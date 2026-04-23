@@ -1,0 +1,18 @@
+{
+  "notas_fiscais": [
+    {
+      "id": "nf_moaq100x70c01488",
+      "numero": "555",
+      "contractId": "ctr_moantqh8cdc71c49",
+      "dataLimite": "2026-04-22",
+      "valor": 200,
+      "prazoRecebimento": 4,
+      "observacoes": "",
+      "emitida": true,
+      "dataEmissaoReal": "2026-04-23",
+      "caixaEntryId": "cxa_moaqejmpb43d67d5",
+      "createdAt": "2026-04-23T00:06:04.642Z",
+      "updatedAt": "2026-04-23T00:16:36.580Z"
+    }
+  ]
+}

@@ -1,0 +1,663 @@
+window.NotasFiscais = {
+  currentView: 'lista',
+  currentMonth: new Date(),
+
+  async render() {
+    const app = document.getElementById('app');
+    app.innerHTML = '<div class="loading-spinner">Carregando...</div>';
+
+    try {
+      await Store.loadAll();
+
+      const todas       = Store.state.notas_fiscais;
+      const pendentes   = todas.filter(nf => !nf.emitida);
+      const emitidas    = todas.filter(nf => nf.emitida);
+      const nfsVencidas = pendentes.filter(nf => Store.getNotaFiscalStatus(nf.dataLimite).status === 'vencida');
+      const nfsProximas = pendentes.filter(nf => Store.getNotaFiscalStatus(nf.dataLimite).status === 'proximo_vencer');
+      const nfsPrazo    = pendentes.filter(nf => Store.getNotaFiscalStatus(nf.dataLimite).status === 'no_prazo');
+
+      const total       = todas.length;
+      const pctOk       = total > 0 ? Math.round(((nfsPrazo.length + emitidas.length) / total) * 100) : 100;
+
+      const statusGeral = nfsVencidas.length > 0
+        ? { cor: '#E53E3E', bg: 'rgba(229,62,62,.07)', texto: 'Atenção urgente', icone: '🔴' }
+        : nfsProximas.length > 0
+          ? { cor: '#D69E2E', bg: 'rgba(214,158,46,.07)', texto: 'Requer atenção', icone: '⚠️' }
+          : { cor: '#38A169', bg: 'rgba(56,161,105,.07)', texto: 'Tudo em dia', icone: '✅' };
+
+      // Próximas a vencer (apenas pendentes, até 30 dias, ordenadas)
+      const proximasTimeline = pendentes
+        .filter(nf => {
+          const diff = Math.floor((new Date(nf.dataLimite + 'T12:00:00') - new Date()) / 86400000);
+          return diff >= -30 && diff <= 30;
+        })
+        .sort((a, b) => new Date(a.dataLimite) - new Date(b.dataLimite))
+        .slice(0, 5);
+
+      const tabStyle = (nome) =>
+        this.currentView === nome
+          ? 'background:var(--color-primary);color:#fff;border:none;'
+          : 'background:transparent;color:var(--color-text-muted);border:1px solid var(--color-border);';
+
+      const html = `
+        <!-- Header -->
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--sp-xl);">
+          <div>
+            <h1 class="page-title">Contas a Receber</h1>
+            <p class="page-subtitle">Notas fiscais e recebimentos previstos · ${total} nota${total !== 1 ? 's' : ''} registrada${total !== 1 ? 's' : ''}</p>
+          </div>
+          <button class="btn btn-primary btn-lg" id="btnNovoNF">+ Nova Conta a Receber</button>
+        </div>
+
+        <!-- Painel de status (faixa compacta) -->
+        <div style="background:${statusGeral.bg};border:1px solid ${statusGeral.cor}30;border-radius:8px;padding:var(--sp-sm) var(--sp-md);margin-bottom:var(--sp-lg);display:flex;align-items:center;gap:var(--sp-lg);flex-wrap:wrap;">
+
+          <!-- Vencidas -->
+          <div style="display:flex;align-items:center;gap:var(--sp-sm);">
+            <span style="font-size:14px;">🔴</span>
+            <span style="font-size:18px;font-weight:800;color:#E53E3E;line-height:1;">${nfsVencidas.length}</span>
+            <span style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Vencidas</span>
+          </div>
+
+          <div style="width:1px;height:20px;background:${statusGeral.cor}25;"></div>
+
+          <!-- Próximas -->
+          <div style="display:flex;align-items:center;gap:var(--sp-sm);">
+            <span style="font-size:14px;">⚠️</span>
+            <span style="font-size:18px;font-weight:800;color:#D69E2E;line-height:1;">${nfsProximas.length}</span>
+            <span style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Próx. 7d</span>
+          </div>
+
+          <div style="width:1px;height:20px;background:${statusGeral.cor}25;"></div>
+
+          <!-- No prazo -->
+          <div style="display:flex;align-items:center;gap:var(--sp-sm);">
+            <span style="font-size:14px;">✅</span>
+            <span style="font-size:18px;font-weight:800;color:#38A169;line-height:1;">${nfsPrazo.length}</span>
+            <span style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">No prazo</span>
+          </div>
+
+          <div style="width:1px;height:20px;background:${statusGeral.cor}25;"></div>
+
+          <!-- Emitidas -->
+          <div style="display:flex;align-items:center;gap:var(--sp-sm);">
+            <span style="font-size:14px;">📤</span>
+            <span style="font-size:18px;font-weight:800;color:#3182CE;line-height:1;">${emitidas.length}</span>
+            <span style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Emitidas</span>
+          </div>
+
+          <!-- Separador flex -->
+          <div style="flex:1;"></div>
+
+          <!-- Score -->
+          <div style="display:flex;align-items:center;gap:var(--sp-sm);">
+            <span style="font-size:12px;font-weight:700;color:${statusGeral.cor};">${statusGeral.icone} ${statusGeral.texto}</span>
+            <div style="width:80px;height:6px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden;">
+              <div style="height:100%;width:${pctOk}%;background:${statusGeral.cor};border-radius:99px;transition:width .5s;"></div>
+            </div>
+            <span style="font-size:14px;font-weight:800;color:${statusGeral.cor};">${pctOk}%</span>
+          </div>
+        </div>
+
+        <!-- Timeline de próximos vencimentos -->
+        ${proximasTimeline.length > 0 ? `
+          <div class="card" style="margin-bottom:var(--sp-xl);">
+            <div class="card-header">
+              <h3 class="card-title">Próximos Vencimentos</h3>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0;">
+              ${proximasTimeline.map((nf, idx) => {
+                const contract = Store.getContractById(nf.contractId);
+                const st       = Store.getNotaFiscalStatus(nf.dataLimite);
+                const dias     = Math.floor((new Date(nf.dataLimite + 'T12:00:00') - new Date()) / 86400000);
+                const cor      = st.status === 'vencida' ? '#E53E3E' : st.status === 'proximo_vencer' ? '#D69E2E' : '#38A169';
+                const diasTxt  = dias < 0 ? `${Math.abs(dias)}d atrás` : dias === 0 ? 'HOJE' : `em ${dias}d`;
+                return `
+                  <div style="display:flex;align-items:center;gap:var(--sp-lg);padding:var(--sp-md) 0;${idx < proximasTimeline.length - 1 ? 'border-bottom:1px solid var(--color-border);' : ''}">
+                    <!-- Indicador de dia -->
+                    <div style="text-align:center;min-width:52px;">
+                      <div style="font-size:20px;font-weight:900;color:${cor};line-height:1;">${new Date(nf.dataLimite + 'T12:00:00').getDate()}</div>
+                      <div style="font-size:10px;color:var(--color-text-muted);text-transform:uppercase;">${new Date(nf.dataLimite + 'T12:00:00').toLocaleDateString('pt-BR', {month:'short'})}</div>
+                    </div>
+                    <!-- Linha vertical -->
+                    <div style="width:3px;height:36px;background:${cor};border-radius:99px;flex-shrink:0;"></div>
+                    <!-- Detalhes -->
+                    <div style="flex:1;">
+                      <div style="font-weight:600;font-size:14px;">NF ${nf.numero}</div>
+                      <div style="font-size:12px;color:var(--color-text-muted);">${contract?.name || '—'} · ${contract?.client || '—'}</div>
+                    </div>
+                    <!-- Countdown -->
+                    <div style="text-align:right;">
+                      <div style="font-weight:800;font-size:15px;color:${cor};">${diasTxt}</div>
+                      <div style="font-size:11px;color:var(--color-text-muted);">${new Date(nf.dataLimite + 'T12:00:00').toLocaleDateString('pt-BR')}</div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Abas -->
+        <div style="display:flex;gap:var(--sp-sm);margin-bottom:var(--sp-lg);">
+          <button class="btn btn-sm" id="tabLista"   style="${tabStyle('lista')}border-radius:6px;">📋 Lista Geral</button>
+          <button class="btn btn-sm" id="tabSemanal" style="${tabStyle('semanal')}border-radius:6px;">📅 Semanal</button>
+          <button class="btn btn-sm" id="tabMensal"  style="${tabStyle('mensal')}border-radius:6px;">📆 Mensal</button>
+        </div>
+
+        <!-- Conteúdo das abas -->
+        <div id="tabContent">
+          ${this.currentView === 'lista'   ? this.renderLista()   : ''}
+          ${this.currentView === 'semanal' ? this.renderSemanal() : ''}
+          ${this.currentView === 'mensal'  ? this.renderMensal()  : ''}
+        </div>
+      `;
+
+      app.innerHTML = html;
+
+      document.getElementById('btnNovoNF').addEventListener('click', () => this.showModal());
+      document.getElementById('tabLista').addEventListener('click',   () => { this.currentView = 'lista';   this.render(); });
+      document.getElementById('tabSemanal').addEventListener('click', () => { this.currentView = 'semanal'; this.render(); });
+      document.getElementById('tabMensal').addEventListener('click',  () => { this.currentView = 'mensal';  this.render(); });
+
+      this.attachListeners();
+    } catch (e) {
+      app.innerHTML = `<div class="card"><p class="text-danger">Erro: ${e.message}</p></div>`;
+    }
+  },
+
+  renderLista() {
+    if (Store.state.notas_fiscais.length === 0) {
+      return `<div class="card"><p class="text-muted" style="padding:var(--sp-lg);">Nenhuma nota fiscal registrada</p></div>`;
+    }
+
+    const sorted = [...Store.state.notas_fiscais].sort((a, b) => {
+      // Emitidas vão para o fim
+      if (a.emitida !== b.emitida) return a.emitida ? 1 : -1;
+      return new Date(a.dataLimite) - new Date(b.dataLimite);
+    });
+
+    return `
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>NF</th>
+                <th>Contrato/Cliente</th>
+                <th style="text-align:right;">Valor</th>
+                <th>Data Limite</th>
+                <th>Recebimento</th>
+                <th>Situação</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sorted.map(nf => {
+                const contract = Store.getContractById(nf.contractId);
+                const st = Store.getNotaFiscalStatus(nf.dataLimite);
+                const prazo = parseInt(nf.prazoRecebimento) || 30;
+
+                // Calcular data prevista de recebimento
+                const baseData = nf.emitida ? nf.dataEmissaoReal : nf.dataLimite;
+                const dtRecebimento = new Date(baseData + 'T12:00:00');
+                dtRecebimento.setDate(dtRecebimento.getDate() + prazo);
+                const diasAteRecebimento = Math.floor((dtRecebimento - new Date()) / 86400000);
+
+                // Label da situação
+                let situacaoHTML;
+                if (nf.emitida) {
+                  situacaoHTML = `
+                    <span class="badge" style="background:rgba(56,161,105,.15);color:#38A169;">✓ EMITIDA</span>
+                    <div style="font-size:10px;color:var(--color-text-muted);margin-top:2px;">em ${new Date(nf.dataEmissaoReal + 'T12:00:00').toLocaleDateString('pt-BR')}</div>
+                  `;
+                } else {
+                  const label = st.status === 'vencida' ? '🔴 Vencida' : st.status === 'proximo_vencer' ? '⚠️ Próxima' : '🟢 No prazo';
+                  const diasTxt = st.status === 'vencida' ? `${Math.abs(Math.floor((new Date(nf.dataLimite) - new Date()) / 86400000))}d atrás` : `em ${st.dias}d`;
+                  situacaoHTML = `
+                    <span class="badge badge-${st.classe}">${label}</span>
+                    <div style="font-size:10px;color:var(--color-text-muted);margin-top:2px;">${diasTxt}</div>
+                  `;
+                }
+
+                return `
+                  <tr style="${nf.emitida ? 'opacity:0.75;' : ''}">
+                    <td><strong>${nf.numero}</strong></td>
+                    <td>
+                      ${contract?.name || '—'}
+                      <div style="font-size:11px;color:var(--color-text-muted);">${contract?.client || '—'}</div>
+                    </td>
+                    <td style="text-align:right;font-weight:700;">${Store.formatBRL(nf.valor || 0)}</td>
+                    <td>${new Date(nf.dataLimite + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                    <td>
+                      <div style="font-size:13px;font-weight:600;color:${nf.emitida ? 'var(--color-info)' : 'var(--color-text-muted)'};">${dtRecebimento.toLocaleDateString('pt-BR')}</div>
+                      <div style="font-size:10px;color:var(--color-text-muted);">${prazo}d após emissão${nf.emitida && diasAteRecebimento >= 0 ? ` · em ${diasAteRecebimento}d` : nf.emitida && diasAteRecebimento < 0 ? ' · recebido' : ''}</div>
+                    </td>
+                    <td>${situacaoHTML}</td>
+                    <td>
+                      <div class="actions-cell" style="flex-wrap:wrap;">
+                        ${!nf.emitida
+                          ? `<a class="action-link btn-emitir-nf" data-id="${nf.id}" style="color:var(--color-success);font-weight:600;">✓ Marcar Emitida</a>`
+                          : `<a class="action-link btn-cancelar-emissao" data-id="${nf.id}" style="color:var(--color-warning);">↶ Desfazer Emissão</a>`
+                        }
+                        <a class="action-link btn-editar-nf" data-id="${nf.id}">Editar</a>
+                        <a class="action-link danger btn-excluir-nf" data-id="${nf.id}">Excluir</a>
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  },
+
+  renderSemanal() {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    // Calcular semanas: semana atual + próximas 4 semanas
+    const semanas = [];
+    for (let s = 0; s < 5; s++) {
+      const inicioSemana = new Date(hoje);
+      const diaSemana = hoje.getDay();
+      inicioSemana.setDate(hoje.getDate() - diaSemana + s * 7);
+      const fimSemana = new Date(inicioSemana);
+      fimSemana.setDate(inicioSemana.getDate() + 6);
+      semanas.push({ inicio: inicioSemana, fim: fimSemana });
+    }
+
+    return `
+      <div style="display:flex; flex-direction:column; gap:var(--sp-lg);">
+        ${semanas.map((sem, idx) => {
+          const nfsSem = Store.state.notas_fiscais.filter(nf => {
+            const d = new Date(nf.dataLimite + 'T12:00:00');
+            return d >= sem.inicio && d <= sem.fim;
+          }).sort((a, b) => new Date(a.dataLimite) - new Date(b.dataLimite));
+
+          const temRisco = nfsSem.some(nf => Store.getNotaFiscalStatus(nf.dataLimite).status !== 'no_prazo');
+          const label = idx === 0 ? 'Esta semana' : idx === 1 ? 'Próxima semana' : `Em ${idx} semanas`;
+
+          return `
+            <div class="card" style="border-left:4px solid ${temRisco ? 'var(--color-warning)' : nfsSem.length > 0 ? 'var(--color-primary)' : 'var(--color-border)'};">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${nfsSem.length > 0 ? 'var(--sp-md)' : '0'};">
+                <div>
+                  <div style="font-weight:700;">${label}</div>
+                  <div style="font-size:12px;color:var(--color-text-muted);">
+                    ${sem.inicio.toLocaleDateString('pt-BR', { day:'2-digit', month:'short' })} — ${sem.fim.toLocaleDateString('pt-BR', { day:'2-digit', month:'short' })}
+                  </div>
+                </div>
+                <span style="font-size:13px;font-weight:700;color:${nfsSem.length > 0 ? 'var(--color-primary)' : 'var(--color-text-muted)'};">
+                  ${nfsSem.length} NF${nfsSem.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+              ${nfsSem.length > 0 ? `
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr><th>NF</th><th>Cliente</th><th>Data Limite</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                      ${nfsSem.map(nf => {
+                        const contract = Store.getContractById(nf.contractId);
+                        const st = Store.getNotaFiscalStatus(nf.dataLimite);
+                        const icon = st.status === 'vencida' ? '🔴' : st.status === 'proximo_vencer' ? '⚠️' : '🟢';
+                        return `
+                          <tr>
+                            <td><strong>${nf.numero}</strong></td>
+                            <td>${contract?.client || '—'}</td>
+                            <td>${new Date(nf.dataLimite + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                            <td><span class="badge badge-${st.classe}">${icon} ${st.dias >= 0 ? st.dias + 'd' : 'Vencida'}</span></td>
+                          </tr>
+                        `;
+                      }).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              ` : `<p style="color:var(--color-text-muted);font-size:13px;margin:0;">Nenhuma nota fiscal nesta semana</p>`}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  },
+
+  renderMensal() {
+    const ano = this.currentMonth.getFullYear();
+    const mes = this.currentMonth.getMonth();
+    const numDias = new Date(ano, mes + 1, 0).getDate();
+    const primeiroDia = new Date(ano, mes, 1).getDay();
+
+    const nfsMes = Store.state.notas_fiscais.filter(nf => {
+      const d = new Date(nf.dataLimite + 'T12:00:00');
+      return d.getFullYear() === ano && d.getMonth() === mes;
+    });
+
+    const celulas = [];
+    for (let i = 0; i < primeiroDia; i++) celulas.push(null);
+    for (let i = 1; i <= numDias; i++) celulas.push(i);
+
+    const linhas = [];
+    for (let i = 0; i < celulas.length; i += 7) linhas.push(celulas.slice(i, i + 7));
+
+    return `
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-lg);">
+          <button class="btn btn-sm btn-secondary" id="btnMesAnterior">← Anterior</button>
+          <h3 style="margin:0;font-size:16px;font-weight:700;">
+            ${this.currentMonth.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+          </h3>
+          <button class="btn btn-sm btn-secondary" id="btnProximoMes">Próximo →</button>
+        </div>
+        <div class="card">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr>
+                ${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d => `<th style="padding:var(--sp-sm);text-align:center;font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">${d}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${linhas.map(linha => `
+                <tr>
+                  ${[...Array(7)].map((_, i) => {
+                    const dia = linha[i] ?? null;
+                    if (!dia) return `<td style="background:var(--color-bg);"></td>`;
+
+                    const nfsDodia = nfsMes.filter(nf => new Date(nf.dataLimite + 'T12:00:00').getDate() === dia);
+                    const temRisco = nfsDodia.some(nf => Store.getNotaFiscalStatus(nf.dataLimite).status !== 'no_prazo');
+                    const ehHoje = new Date().getDate() === dia && new Date().getMonth() === mes && new Date().getFullYear() === ano;
+
+                    return `
+                      <td style="border:1px solid var(--color-border);padding:var(--sp-sm);min-height:80px;vertical-align:top;background:${ehHoje ? 'rgba(46,125,82,.06)' : 'white'};">
+                        <div style="font-weight:${ehHoje ? '800' : '500'};font-size:13px;margin-bottom:4px;color:${ehHoje ? 'var(--color-primary)' : 'inherit'};">${dia}</div>
+                        ${nfsDodia.map(nf => {
+                          const st = Store.getNotaFiscalStatus(nf.dataLimite);
+                          const icon = st.status === 'vencida' ? '🔴' : st.status === 'proximo_vencer' ? '⚠️' : '🟢';
+                          return `<div style="font-size:10px;padding:2px 4px;margin-bottom:2px;border-radius:3px;background:var(--color-primary);color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="NF ${nf.numero}">${icon} NF ${nf.numero}</div>`;
+                        }).join('')}
+                      </td>
+                    `;
+                  }).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  },
+
+  showModal(nfId) {
+    const nf = nfId ? Store.state.notas_fiscais.find(n => n.id === nfId) : null;
+    const title = nf ? 'Editar Nota Fiscal' : 'Nova Nota Fiscal';
+    const clienteAtual = nf ? (Store.getContractById(nf.contractId)?.client || '') : '';
+
+    const html = `
+      <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" style="width:600px;">
+          <div class="modal-header">
+            <h2 class="modal-title">${title}</h2>
+            <button class="modal-close">✕</button>
+          </div>
+          <form id="formNF" class="modal-content">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Número da Nota Fiscal *</label>
+                <input class="form-control" name="numero" value="${nf?.numero || ''}" placeholder="Ex: 1234/2026" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Valor da NF (R$) *</label>
+                <input class="form-control" name="valor" type="text" data-currency inputmode="numeric" value="${nf?.valor ? window.BRLInput.toDisplay(nf.valor) : ''}" placeholder="0,00" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Contrato *</label>
+              <select class="form-control" name="contractId" id="selectContrato" required>
+                <option value="">Selecionar...</option>
+                ${Store.state.contracts.map(c => `<option value="${c.id}" ${nf?.contractId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Cliente</label>
+              <input class="form-control" id="inputCliente" readonly style="background:var(--color-bg);" value="${clienteAtual}">
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Data Limite para Emissão *</label>
+                <input class="form-control" name="dataLimite" type="date" value="${nf?.dataLimite || ''}" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Prazo de Recebimento (dias) *</label>
+                <input class="form-control" name="prazoRecebimento" type="number" min="0" max="365"
+                  value="${nf?.prazoRecebimento ?? 30}" required>
+                <div class="form-helper">Dias após a emissão até o pagamento entrar no caixa</div>
+              </div>
+            </div>
+
+            <!-- Preview do recebimento -->
+            <div id="previewRecebimento" style="padding:var(--sp-md);background:rgba(46,125,82,.07);border:1px solid rgba(46,125,82,.2);border-radius:8px;font-size:13px;display:none;">
+              💰 Recebimento previsto: <strong id="dataRecebimentoCalc">—</strong>
+            </div>
+
+            <div class="form-group" style="margin-top:var(--sp-md);">
+              <label class="form-label">Observações</label>
+              <textarea class="form-control" name="observacoes" style="min-height:70px;">${nf?.observacoes || ''}</textarea>
+            </div>
+          </form>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnCancelar">Cancelar</button>
+            <button class="btn btn-primary" id="btnSalvar">${nf ? 'Atualizar' : 'Criar'}</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    const overlay   = document.getElementById('modalOverlay');
+    const closeModal = () => overlay.remove();
+
+    overlay.querySelector('.modal-close').addEventListener('click', closeModal);
+    document.getElementById('btnCancelar').addEventListener('click', closeModal);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+    // Preenche cliente ao selecionar contrato
+    const sel = document.getElementById('selectContrato');
+    sel.addEventListener('change', () => {
+      const c = Store.getContractById(sel.value);
+      document.getElementById('inputCliente').value = c ? c.client : '';
+    });
+
+    // Calcula e mostra data prevista de recebimento
+    const atualizarPreview = () => {
+      const dataLimite = document.querySelector('[name=dataLimite]').value;
+      const prazo      = parseInt(document.querySelector('[name=prazoRecebimento]').value) || 0;
+      const preview    = document.getElementById('previewRecebimento');
+      const calc       = document.getElementById('dataRecebimentoCalc');
+      if (dataLimite) {
+        const dt = new Date(dataLimite + 'T12:00:00');
+        dt.setDate(dt.getDate() + prazo);
+        calc.textContent = dt.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+        preview.style.display = 'block';
+      } else {
+        preview.style.display = 'none';
+      }
+    };
+    document.querySelector('[name=dataLimite]').addEventListener('change', atualizarPreview);
+    document.querySelector('[name=prazoRecebimento]').addEventListener('input', atualizarPreview);
+    atualizarPreview();
+
+    document.getElementById('btnSalvar').addEventListener('click', async () => {
+      const fd   = new FormData(document.getElementById('formNF'));
+      const data = {
+        numero:            fd.get('numero'),
+        contractId:        fd.get('contractId'),
+        dataLimite:        fd.get('dataLimite'),
+        valor:             window.BRLInput.parse(fd.get('valor')),
+        prazoRecebimento:  parseInt(fd.get('prazoRecebimento')) || 30,
+        observacoes:       fd.get('observacoes')
+      };
+      try {
+        if (nf) {
+          await Store.updateNotaFiscal(nfId, data);
+          window.showToast('Nota fiscal atualizada', 'success');
+        } else {
+          await Store.createNotaFiscal(data);
+          window.showToast('Nota fiscal criada', 'success');
+        }
+        closeModal();
+        this.render();
+      } catch (e) {
+        window.showToast(e.message, 'error');
+      }
+    });
+  },
+
+  attachListeners() {
+    document.querySelectorAll('.btn-editar-nf').forEach(btn => {
+      btn.addEventListener('click', e => this.showModal(e.target.dataset.id));
+    });
+    document.querySelectorAll('.btn-excluir-nf').forEach(btn => {
+      btn.addEventListener('click', e => this.deleteNF(e.target.dataset.id));
+    });
+    document.querySelectorAll('.btn-emitir-nf').forEach(btn => {
+      btn.addEventListener('click', e => this.showModalEmitir(e.target.dataset.id));
+    });
+    document.querySelectorAll('.btn-cancelar-emissao').forEach(btn => {
+      btn.addEventListener('click', e => this.cancelarEmissao(e.target.dataset.id));
+    });
+    const btnAnt = document.getElementById('btnMesAnterior');
+    const btnPrx = document.getElementById('btnProximoMes');
+    if (btnAnt) btnAnt.addEventListener('click', () => { this.currentMonth.setMonth(this.currentMonth.getMonth() - 1); this.render(); });
+    if (btnPrx) btnPrx.addEventListener('click', () => { this.currentMonth.setMonth(this.currentMonth.getMonth() + 1); this.render(); });
+  },
+
+  showModalEmitir(nfId) {
+    const nf = Store.state.notas_fiscais.find(n => n.id === nfId);
+    if (!nf) return;
+    const contract = Store.getContractById(nf.contractId);
+    const prazo = parseInt(nf.prazoRecebimento) || 30;
+    const hoje = new Date().toISOString().split('T')[0];
+
+    const html = `
+      <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" style="width:560px;">
+          <div class="modal-header">
+            <h2 class="modal-title">✓ Marcar NF ${nf.numero} como Emitida</h2>
+            <button class="modal-close">✕</button>
+          </div>
+          <div class="modal-content">
+            <div style="padding:var(--sp-md);background:var(--color-bg);border-radius:8px;margin-bottom:var(--sp-lg);">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-md);font-size:13px;">
+                <div>
+                  <div style="color:var(--color-text-muted);font-size:11px;text-transform:uppercase;">Contrato</div>
+                  <div style="font-weight:600;">${contract?.name || '—'}</div>
+                </div>
+                <div>
+                  <div style="color:var(--color-text-muted);font-size:11px;text-transform:uppercase;">Cliente</div>
+                  <div style="font-weight:600;">${contract?.client || '—'}</div>
+                </div>
+                <div>
+                  <div style="color:var(--color-text-muted);font-size:11px;text-transform:uppercase;">Valor</div>
+                  <div style="font-weight:700;color:var(--color-success);">${Store.formatBRL(nf.valor || 0)}</div>
+                </div>
+                <div>
+                  <div style="color:var(--color-text-muted);font-size:11px;text-transform:uppercase;">Prazo Recebimento</div>
+                  <div style="font-weight:600;">${prazo} dias</div>
+                </div>
+              </div>
+            </div>
+
+            <form id="formEmitir">
+              <div class="form-group">
+                <label class="form-label">Data Real de Emissão *</label>
+                <input class="form-control" type="date" name="dataEmissaoReal" value="${hoje}" required>
+                <div class="form-helper">Normalmente hoje. Será usada para calcular o recebimento no caixa.</div>
+              </div>
+
+              <!-- Preview -->
+              <div id="previewCaixa" style="padding:var(--sp-md);background:rgba(46,125,82,.08);border:1px solid rgba(46,125,82,.2);border-radius:8px;font-size:13px;">
+                <div style="font-weight:600;color:var(--color-primary);margin-bottom:4px;">💰 Entrada automática no caixa</div>
+                <div id="previewTexto" style="color:var(--color-text-muted);">Calculando...</div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnCancelarEmissao">Cancelar</button>
+            <button class="btn btn-success" id="btnConfirmarEmissao">✓ Confirmar Emissão</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    const overlay = document.getElementById('modalOverlay');
+    const closeModal = () => overlay.remove();
+
+    overlay.querySelector('.modal-close').addEventListener('click', closeModal);
+    document.getElementById('btnCancelarEmissao').addEventListener('click', closeModal);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+    const inputData = document.querySelector('[name=dataEmissaoReal]');
+    const previewTexto = document.getElementById('previewTexto');
+
+    const atualizarPreview = () => {
+      const val = inputData.value;
+      if (!val) { previewTexto.textContent = '—'; return; }
+      const dt = new Date(val + 'T12:00:00');
+      dt.setDate(dt.getDate() + prazo);
+      previewTexto.innerHTML = `
+        Valor de <strong style="color:var(--color-success);">${Store.formatBRL(nf.valor || 0)}</strong>
+        será lançado no caixa em <strong>${dt.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}</strong>
+      `;
+    };
+    inputData.addEventListener('change', atualizarPreview);
+    atualizarPreview();
+
+    document.getElementById('btnConfirmarEmissao').addEventListener('click', async () => {
+      const dataEmissao = inputData.value;
+      if (!dataEmissao) { window.showToast('Informe a data de emissão', 'error'); return; }
+
+      try {
+        const result = await Store.emitirNotaFiscal(nfId, dataEmissao);
+        window.showToast(result.mensagem || 'NF marcada como emitida', 'success');
+        closeModal();
+        this.render();
+      } catch (e) {
+        window.showToast(e.message, 'error');
+      }
+    });
+  },
+
+  async cancelarEmissao(id) {
+    if (!confirm('Desfazer a emissão? Isso vai remover a entrada agendada no caixa.')) return;
+    try {
+      await Store.cancelarEmissaoNotaFiscal(id);
+      window.showToast('Emissão desfeita. Entrada removida do caixa.', 'success');
+      this.render();
+    } catch (e) {
+      window.showToast(e.message, 'error');
+    }
+  },
+
+  async deleteNF(id) {
+    const nf = Store.state.notas_fiscais.find(n => n.id === id);
+    const msg = nf?.emitida
+      ? 'Esta NF está emitida. Excluir também vai remover a entrada no caixa. Continuar?'
+      : 'Excluir esta nota fiscal?';
+    if (!confirm(msg)) return;
+    try {
+      await Store.deleteNotaFiscal(id);
+      window.showToast('Nota fiscal removida', 'success');
+      this.render();
+    } catch (e) {
+      window.showToast(e.message, 'error');
+    }
+  }
+};

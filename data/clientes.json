@@ -1,0 +1,19 @@
+{
+  "clientes": [
+    {
+      "id": "cli_moanv33b2104ae0e",
+      "nome": "Eduardo",
+      "empresa": "Suzano",
+      "telefone": "",
+      "email": "",
+      "endereco": "Três Lagoas, Mato Grosso do Sul, Região Centro-Oeste, Brasil",
+      "notas": "",
+      "createdAt": "2026-04-22T23:05:29.447Z",
+      "updatedAt": "2026-04-23T00:39:40.258Z",
+      "cargo": "",
+      "setor": "",
+      "lat": "-20.7866799",
+      "lng": "-51.7061247"
+    }
+  ]
+}

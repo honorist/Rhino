@@ -1,0 +1,386 @@
+window.Configuracao = {
+  currentSection: 'tipos_custo',
+
+  async render() {
+    const app = document.getElementById('app');
+    app.innerHTML = '<div class="loading-spinner">Carregando...</div>';
+
+    try {
+      await Store.loadAll();
+      await Store.loadNiveisAcesso();
+
+      const html = `
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">⚙️ Configurações</h1>
+            <p class="page-subtitle">Personalize seu sistema</p>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:240px 1fr;gap:var(--sp-lg);align-items:start;">
+          <!-- Menu lateral de seções -->
+          <nav class="card" style="padding:var(--sp-sm);position:sticky;top:var(--sp-md);">
+            ${this.renderMenuItem('tipos_custo', '🏷️', 'Tipos de Custo')}
+            ${this.renderMenuItem('niveis_acesso', '🔐', 'Níveis de Acesso')}
+          </nav>
+
+          <!-- Conteúdo da seção -->
+          <div id="configContent">
+            ${this.currentSection === 'tipos_custo' ? this.renderTiposCusto() : ''}
+            ${this.currentSection === 'niveis_acesso' ? this.renderNiveisAcesso() : ''}
+          </div>
+        </div>
+      `;
+
+      app.innerHTML = html;
+
+      document.querySelectorAll('.config-menu-item').forEach(btn => {
+        btn.addEventListener('click', e => {
+          this.currentSection = e.currentTarget.dataset.section;
+          this.render();
+        });
+      });
+
+      this.attachListeners();
+    } catch (e) {
+      app.innerHTML = `<div class="card"><p class="text-danger">Erro: ${e.message}</p></div>`;
+    }
+  },
+
+  renderMenuItem(key, icon, label) {
+    const active = this.currentSection === key;
+    return `
+      <button class="config-menu-item" data-section="${key}" style="display:flex;align-items:center;gap:var(--sp-sm);width:100%;padding:var(--sp-sm) var(--sp-md);border:none;background:${active ? 'var(--color-primary)' : 'transparent'};color:${active ? '#fff' : 'var(--color-text)'};border-radius:6px;cursor:pointer;font-size:14px;font-weight:${active ? '600' : '500'};text-align:left;">
+        <span style="font-size:16px;">${icon}</span>
+        <span>${label}</span>
+      </button>
+    `;
+  },
+
+  renderTiposCusto() {
+    const tipos = Store.state.tipos_base || [];
+    const usoContagem = {};
+    (Store.state.base || []).forEach(i => {
+      usoContagem[i.type] = (usoContagem[i.type] || 0) + 1;
+    });
+
+    return `
+      <div class="page-header" style="margin-bottom:var(--sp-lg);">
+        <div>
+          <h2 style="font-size:20px;font-weight:700;margin:0;">🏷️ Tipos de Custo</h2>
+          <p class="page-subtitle">Classificação de custos usados em BASE e Aportes</p>
+        </div>
+        <button class="btn btn-primary" id="btnNovoTipo">+ Novo Tipo</button>
+      </div>
+
+      <div class="card mb-2xl" style="background:rgba(49,130,206,.05);border-left:4px solid var(--color-info);">
+        <div style="font-size:13px;">
+          <strong>ℹ️ Sobre tipos de custo:</strong> Use esta área para cadastrar as categorias de custos que seu negócio utiliza.
+          Elas aparecem nos formulários de <strong>BASE</strong> e <strong>Aportes</strong>.
+          Tipos do <strong>sistema</strong> não podem ser excluídos. Customizados só podem ser excluídos se não estiverem em uso.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Tipos Cadastrados</h3>
+          <span style="font-size:12px;color:var(--color-text-muted);">${tipos.length} tipo${tipos.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ícone</th>
+                <th>Nome</th>
+                <th>Chave</th>
+                <th>Cor</th>
+                <th>Origem</th>
+                <th style="text-align:right;">Em uso</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tipos.map(t => {
+                const uso = usoContagem[t.key] || 0;
+                return `
+                  <tr>
+                    <td style="font-size:22px;">${t.icon}</td>
+                    <td><strong>${t.label}</strong></td>
+                    <td><code style="font-size:11px;background:var(--color-bg);padding:2px 6px;border-radius:3px;">${t.key}</code></td>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:var(--sp-sm);">
+                        <div style="width:22px;height:22px;border-radius:4px;background:${t.cor};border:1px solid var(--color-border);"></div>
+                        <span style="font-size:11px;color:var(--color-text-muted);font-family:monospace;">${t.cor}</span>
+                      </div>
+                    </td>
+                    <td>
+                      ${t.sistema
+                        ? `<span class="badge" style="background:rgba(113,128,150,.15);color:#718096;">🔒 Sistema</span>`
+                        : `<span class="badge" style="background:rgba(56,161,105,.15);color:#38A169;">✨ Customizado</span>`}
+                    </td>
+                    <td style="text-align:right;font-weight:${uso > 0 ? '700' : '400'};color:${uso > 0 ? 'var(--color-info)' : 'var(--color-text-muted)'};">
+                      ${uso} ${uso !== 1 ? 'itens' : 'item'}
+                    </td>
+                    <td>
+                      <div class="actions-cell">
+                        <a class="action-link btn-editar-tipo" data-id="${t.id}">Editar</a>
+                        ${!t.sistema ? `<a class="action-link danger btn-excluir-tipo" data-id="${t.id}">Excluir</a>` : ''}
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  },
+
+  renderNiveisAcesso() {
+    const niveis = Store.state.niveis_acesso || [];
+    const todasAbas = [
+      { route: '#/dashboard',     label: 'Dashboard',       icon: '▦', grupo: 'Principal' },
+      { route: '#/contratos',     label: 'Contratos',       icon: '≣', grupo: 'Principal' },
+      { route: '#/obras',         label: 'Mapa de Obras',   icon: '⊚', grupo: 'Principal' },
+      { route: '#/clientes',      label: 'Clientes',        icon: '◎', grupo: 'Principal' },
+      { route: '#/fornecedores',  label: 'Fornecedores',    icon: '⬡', grupo: 'Principal' },
+      { route: '#/base',          label: 'BASE',            icon: '⊟', grupo: 'Principal' },
+      { route: '#/caixa',         label: 'Caixa',           icon: '◇', grupo: 'Financeiro' },
+      { route: '#/contas-pagar',  label: 'Contas a Pagar',  icon: '⊖', grupo: 'Financeiro' },
+      { route: '#/notas-fiscais', label: 'Notas Fiscais',   icon: '☐', grupo: 'Financeiro' },
+      { route: '#/socios',        label: 'Sócios',          icon: '⊕', grupo: 'Financeiro' },
+      { route: '#/investimentos', label: 'Aportes',         icon: '△', grupo: 'Financeiro' },
+      { route: '#/configuracao',  label: 'Configuração',    icon: '⊙', grupo: 'Sistema' },
+    ];
+
+    const grupos = ['Principal', 'Financeiro', 'Sistema'];
+
+    return `
+      <div class="page-header" style="margin-bottom:var(--sp-lg);">
+        <div>
+          <h2 style="font-size:20px;font-weight:700;margin:0;">🔐 Níveis de Acesso</h2>
+          <p class="page-subtitle">Configure quais abas cada perfil pode visualizar</p>
+        </div>
+      </div>
+
+      <div class="card mb-2xl" style="background:rgba(49,130,206,.05);border-left:4px solid var(--color-info);">
+        <div style="font-size:13px;">
+          <strong>ℹ️ Como funciona:</strong> Marque as abas que cada nível pode acessar. Salve cada perfil separadamente.
+          Esta configuração define o menu lateral visível para cada tipo de usuário.
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:var(--sp-lg);">
+        ${niveis.map(nivel => `
+          <div class="card" style="border-top:3px solid ${nivel.cor};">
+            <div class="card-header" style="padding-bottom:var(--sp-md);">
+              <div style="display:flex;align-items:center;gap:var(--sp-sm);">
+                <span style="font-size:24px;">${nivel.icon}</span>
+                <div>
+                  <h3 style="margin:0;font-size:16px;font-weight:700;color:${nivel.cor};">${nivel.label}</h3>
+                  <div style="font-size:11px;color:var(--color-text-muted);">
+                    ${(nivel.abas || []).length} aba${(nivel.abas || []).length !== 1 ? 's' : ''} habilitada${(nivel.abas || []).length !== 1 ? 's' : ''}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:var(--sp-xs);" id="nivel-${nivel.id}">
+              ${grupos.map(grupo => {
+                const abasGrupo = todasAbas.filter(a => a.grupo === grupo);
+                return `
+                  <div style="margin-bottom:var(--sp-sm);">
+                    <div style="font-size:10px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.06em;padding:var(--sp-xs) 0;border-bottom:1px solid var(--color-border);margin-bottom:var(--sp-xs);">${grupo}</div>
+                    ${abasGrupo.map(aba => {
+                      const checked = (nivel.abas || []).includes(aba.route);
+                      return `
+                        <label style="display:flex;align-items:center;gap:var(--sp-sm);padding:6px var(--sp-sm);border-radius:5px;cursor:pointer;transition:background .12s;"
+                               onmouseenter="this.style.background='var(--color-bg)'"
+                               onmouseleave="this.style.background='transparent'">
+                          <input type="checkbox" class="nivel-checkbox"
+                                 data-nivel="${nivel.id}" data-route="${aba.route}"
+                                 ${checked ? 'checked' : ''}
+                                 style="width:15px;height:15px;accent-color:${nivel.cor};cursor:pointer;">
+                          <span style="font-size:13px;color:var(--color-text-muted);min-width:20px;">${aba.icon}</span>
+                          <span style="font-size:13px;font-weight:${checked ? '600' : '400'};color:${checked ? 'var(--color-text)' : 'var(--color-text-muted)'};">${aba.label}</span>
+                        </label>
+                      `;
+                    }).join('')}
+                  </div>
+                `;
+              }).join('')}
+            </div>
+
+            <div style="padding-top:var(--sp-md);border-top:1px solid var(--color-border);margin-top:var(--sp-sm);">
+              <button class="btn btn-primary btn-salvar-nivel" data-nivel="${nivel.id}" style="width:100%;background:${nivel.cor};border-color:${nivel.cor};">
+                Salvar ${nivel.label}
+              </button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  },
+
+  attachListeners() {
+    // Níveis de acesso — atualizar label do checkbox ao marcar/desmarcar
+    document.querySelectorAll('.nivel-checkbox').forEach(cb => {
+      cb.addEventListener('change', e => {
+        const label = e.target.closest('label');
+        const span = label?.querySelectorAll('span')[1];
+        if (span) {
+          span.style.fontWeight = e.target.checked ? '600' : '400';
+          span.style.color = e.target.checked ? 'var(--color-text)' : 'var(--color-text-muted)';
+        }
+      });
+    });
+
+    // Salvar nível de acesso
+    document.querySelectorAll('.btn-salvar-nivel').forEach(btn => {
+      btn.addEventListener('click', async e => {
+        const nivelId = e.target.dataset.nivel;
+        const checkboxes = document.querySelectorAll(`.nivel-checkbox[data-nivel="${nivelId}"]`);
+        const abas = [...checkboxes].filter(c => c.checked).map(c => c.dataset.route);
+        try {
+          await Store.updateNivelAcesso(nivelId, abas);
+          window.showToast('Nível de acesso salvo', 'success');
+        } catch (err) { window.showToast(err.message, 'error'); }
+      });
+    });
+
+    const btnNovo = document.getElementById('btnNovoTipo');
+    if (btnNovo) btnNovo.addEventListener('click', () => this.showModalTipo());
+
+    document.querySelectorAll('.btn-editar-tipo').forEach(btn => {
+      btn.addEventListener('click', e => this.showModalTipo(e.target.dataset.id));
+    });
+    document.querySelectorAll('.btn-excluir-tipo').forEach(btn => {
+      btn.addEventListener('click', e => this.deleteTipo(e.target.dataset.id));
+    });
+  },
+
+  showModalTipo(tipoId) {
+    const tipo = tipoId ? Store.state.tipos_base.find(t => t.id === tipoId) : null;
+    const title = tipo ? 'Editar Tipo de Custo' : 'Novo Tipo de Custo';
+
+    const cores = ['#7C3AED', '#D97706', '#059669', '#3182CE', '#D69E2E', '#E53E3E', '#0891B2', '#DB2777', '#2E7D52', '#718096', '#F59E0B', '#10B981'];
+    const icones = ['👷', '📦', '🚗', '📌', '📊', '🔹', '💻', '🏢', '📱', '⚡', '🔧', '💰', '🏭', '📑', '🎨', '🔌', '🛠️', '📞', '☕', '🧾', '🚚', '✈️'];
+
+    const html = `
+      <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" style="width:580px;">
+          <div class="modal-header">
+            <h2 class="modal-title">${title}</h2>
+            <button class="modal-close">✕</button>
+          </div>
+          <form id="formTipo" class="modal-content">
+            <div class="form-group">
+              <label class="form-label">Nome do Tipo *</label>
+              <input class="form-control" name="label" value="${tipo?.label || ''}" placeholder="Ex: Software, Licença, Consultoria..." required>
+              ${tipo?.sistema ? '<div class="form-helper">🔒 Tipo do sistema — a chave não pode ser alterada</div>' : ''}
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Ícone</label>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;padding:var(--sp-sm);border:1px solid var(--color-border);border-radius:6px;max-height:120px;overflow-y:auto;">
+                ${icones.map(ic => `
+                  <button type="button" class="btn-icone" data-icone="${ic}" style="width:36px;height:36px;font-size:18px;border:2px solid ${tipo?.icon === ic ? 'var(--color-primary)' : 'transparent'};background:${tipo?.icon === ic ? 'rgba(46,125,82,.1)' : 'transparent'};border-radius:6px;cursor:pointer;">${ic}</button>
+                `).join('')}
+              </div>
+              <input type="hidden" name="icon" value="${tipo?.icon || '🔹'}">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Cor</label>
+              <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                ${cores.map(c => `
+                  <button type="button" class="btn-cor" data-cor="${c}" style="width:32px;height:32px;border-radius:50%;background:${c};border:${tipo?.cor === c ? '3px solid var(--color-text)' : '2px solid var(--color-border)'};cursor:pointer;"></button>
+                `).join('')}
+              </div>
+              <input type="hidden" name="cor" value="${tipo?.cor || '#718096'}">
+            </div>
+
+            <div style="margin-top:var(--sp-lg);padding:var(--sp-md);background:var(--color-bg);border-radius:6px;">
+              <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:var(--sp-sm);">Preview</div>
+              <div style="display:flex;align-items:center;gap:var(--sp-sm);">
+                <span id="prevIcon" style="font-size:24px;">${tipo?.icon || '🔹'}</span>
+                <span id="prevBadge" class="badge" style="background:${tipo?.cor || '#718096'}22;color:${tipo?.cor || '#718096'};">
+                  <span id="prevLabel">${tipo?.label || 'Novo Tipo'}</span>
+                </span>
+              </div>
+            </div>
+          </form>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnCancelar">Cancelar</button>
+            <button class="btn btn-primary" id="btnSalvarTipo">${tipo ? 'Atualizar' : 'Criar'}</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    const overlay = document.getElementById('modalOverlay');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnCancelar').addEventListener('click', close);
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+    const inputLabel = document.querySelector('[name=label]');
+    const inputIcon  = document.querySelector('[name=icon]');
+    const inputCor   = document.querySelector('[name=cor]');
+    const prevIcon   = document.getElementById('prevIcon');
+    const prevLabel  = document.getElementById('prevLabel');
+    const prevBadge  = document.getElementById('prevBadge');
+
+    const atualizarPreview = () => {
+      prevIcon.textContent = inputIcon.value;
+      prevLabel.textContent = inputLabel.value || 'Novo Tipo';
+      prevBadge.style.background = inputCor.value + '22';
+      prevBadge.style.color = inputCor.value;
+    };
+    inputLabel.addEventListener('input', atualizarPreview);
+
+    document.querySelectorAll('.btn-icone').forEach(btn => {
+      btn.addEventListener('click', e => {
+        document.querySelectorAll('.btn-icone').forEach(b => { b.style.border = '2px solid transparent'; b.style.background = 'transparent'; });
+        e.currentTarget.style.border = '2px solid var(--color-primary)';
+        e.currentTarget.style.background = 'rgba(46,125,82,.1)';
+        inputIcon.value = e.currentTarget.dataset.icone;
+        atualizarPreview();
+      });
+    });
+
+    document.querySelectorAll('.btn-cor').forEach(btn => {
+      btn.addEventListener('click', e => {
+        document.querySelectorAll('.btn-cor').forEach(b => { b.style.border = '2px solid var(--color-border)'; });
+        e.currentTarget.style.border = '3px solid var(--color-text)';
+        inputCor.value = e.currentTarget.dataset.cor;
+        atualizarPreview();
+      });
+    });
+
+    document.getElementById('btnSalvarTipo').addEventListener('click', async () => {
+      const fd = new FormData(document.getElementById('formTipo'));
+      const data = { label: fd.get('label'), icon: fd.get('icon'), cor: fd.get('cor') };
+      if (!data.label || !data.label.trim()) { window.showToast('Informe o nome do tipo', 'error'); return; }
+      try {
+        if (tipo) await Store.updateTipoBase(tipoId, data);
+        else await Store.createTipoBase(data);
+        window.showToast(tipo ? 'Tipo atualizado' : 'Tipo criado', 'success');
+        close();
+        this.render();
+      } catch (e) { window.showToast(e.message, 'error'); }
+    });
+  },
+
+  async deleteTipo(id) {
+    if (!confirm('Excluir este tipo de custo?')) return;
+    try {
+      await Store.deleteTipoBase(id);
+      window.showToast('Tipo excluído', 'success');
+      this.render();
+    } catch (e) { window.showToast(e.message, 'error'); }
+  }
+};

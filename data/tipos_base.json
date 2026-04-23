@@ -1,0 +1,70 @@
+{
+  "tipos": [
+    {
+      "id": "tpb_sys_homem_hora",
+      "key": "homem_hora",
+      "label": "Homem-hora",
+      "icon": "👷",
+      "cor": "#7C3AED",
+      "sistema": true
+    },
+    {
+      "id": "tpb_sys_material_base",
+      "key": "material_base",
+      "label": "Material",
+      "icon": "📦",
+      "cor": "#D97706",
+      "sistema": true
+    },
+    {
+      "id": "tpb_sys_veiculo",
+      "key": "veiculo",
+      "label": "Veículo",
+      "icon": "🚗",
+      "cor": "#059669",
+      "sistema": true
+    },
+    {
+      "id": "tpb_sys_fixo",
+      "key": "fixo",
+      "label": "Fixo",
+      "icon": "📌",
+      "cor": "#3182CE",
+      "sistema": true
+    },
+    {
+      "id": "tpb_sys_variavel",
+      "key": "variavel",
+      "label": "Variável",
+      "icon": "📊",
+      "cor": "#D69E2E",
+      "sistema": true
+    },
+    {
+      "id": "tpb_sys_outros",
+      "key": "outros",
+      "label": "Outros",
+      "icon": "🔹",
+      "cor": "#718096",
+      "sistema": true
+    },
+    {
+      "id": "tpb_moajayh842e8c2a6",
+      "key": "software",
+      "label": "Software",
+      "icon": "💻",
+      "cor": "#3182CE",
+      "sistema": false,
+      "createdAt": "2026-04-22T20:57:51.886Z"
+    },
+    {
+      "id": "tpb_moajdylbb813eaf5",
+      "key": "hospedagem",
+      "label": "Hospedagem",
+      "icon": "🏢",
+      "cor": "#DB2777",
+      "sistema": false,
+      "createdAt": "2026-04-22T21:00:11.999Z"
+    }
+  ]
+}

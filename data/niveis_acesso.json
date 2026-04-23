@@ -1,0 +1,63 @@
+{
+  "niveis": [
+    {
+      "id": "gerente",
+      "label": "Gerente",
+      "icon": "👔",
+      "cor": "#7C3AED",
+      "abas": [
+        "#/dashboard",
+        "#/contratos",
+        "#/obras",
+        "#/clientes",
+        "#/fornecedores",
+        "#/base",
+        "#/caixa",
+        "#/contas-pagar",
+        "#/notas-fiscais",
+        "#/socios",
+        "#/investimentos",
+        "#/configuracao"
+      ]
+    },
+    {
+      "id": "financeiro",
+      "label": "Financeiro",
+      "icon": "💰",
+      "cor": "#059669",
+      "abas": [
+        "#/dashboard",
+        "#/caixa",
+        "#/contas-pagar",
+        "#/notas-fiscais",
+        "#/socios",
+        "#/investimentos"
+      ]
+    },
+    {
+      "id": "rh",
+      "label": "RH",
+      "icon": "👥",
+      "cor": "#3182CE",
+      "abas": [
+        "#/dashboard",
+        "#/contratos",
+        "#/obras",
+        "#/clientes",
+        "#/fornecedores",
+        "#/base"
+      ]
+    },
+    {
+      "id": "encarregado",
+      "label": "Encarregado",
+      "icon": "🦺",
+      "cor": "#D97706",
+      "abas": [
+        "#/dashboard",
+        "#/contratos",
+        "#/obras"
+      ]
+    }
+  ]
+}

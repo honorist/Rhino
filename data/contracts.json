@@ -1,0 +1,46 @@
+{
+  "contracts": [
+    {
+      "id": "ctr_moantqh8cdc71c49",
+      "name": "xxxx",
+      "client": "Eduardo",
+      "value": 100000,
+      "startDate": "2026-04-01",
+      "endDate": "2026-04-30",
+      "status": "ativo",
+      "notes": "",
+      "createdAt": "2026-04-22T23:04:26.445Z",
+      "updatedAt": "2026-04-23T00:47:03.713Z",
+      "budget": [
+        {
+          "id": "bud_moaqwdwm961ab49f",
+          "contractId": "ctr_moantqh8cdc71c49",
+          "description": "54353",
+          "type": "mao_de_obra",
+          "value": 45453.53,
+          "notes": "",
+          "createdAt": "2026-04-23T00:30:28.967Z"
+        },
+        {
+          "id": "bud_moaqwmmd8f95585a",
+          "contractId": "ctr_moantqh8cdc71c49",
+          "description": "4444",
+          "type": "hospedagem",
+          "value": 4444.44,
+          "notes": "",
+          "createdAt": "2026-04-23T00:30:40.261Z"
+        }
+      ],
+      "clientId": "cli_moanv33b2104ae0e",
+      "endereco": "Três Lagoas, Mato Grosso do Sul, Região Centro-Oeste, Brasil",
+      "lat": "-20.7866799",
+      "lng": "-51.7061247",
+      "contractNumber": "",
+      "clientDocument": "",
+      "clientEmail": "",
+      "clientPhone": "",
+      "currency": "BRL"
+    }
+  ],
+  "saidas": []
+}

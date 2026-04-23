@@ -1,0 +1,31 @@
+{
+  "entries": [
+    {
+      "id": "cxa_moaqb7kad4e945b4",
+      "type": "saida",
+      "description": "13213 [PIX]",
+      "value": 100,
+      "date": "2026-04-22",
+      "contractId": null,
+      "baseItemId": null,
+      "category": "fornecedor",
+      "notes": "Pagamento de conta: 13213",
+      "formaPagamento": "PIX",
+      "contaPagarId": "cp_moaptpbzdedea78a",
+      "createdAt": "2026-04-23T00:14:00.970Z"
+    },
+    {
+      "id": "cxa_moaqejmpb43d67d5",
+      "type": "entrada",
+      "description": "Recebimento NF 555 - yyyy",
+      "value": 200,
+      "date": "2026-04-27",
+      "contractId": "ctr_moantqh8cdc71c49",
+      "baseItemId": null,
+      "category": "nota_fiscal",
+      "notes": "NF 555 emitida em 2026-04-23, prazo 4 dias",
+      "nfId": "nf_moaq100x70c01488",
+      "createdAt": "2026-04-23T00:16:36.578Z"
+    }
+  ]
+}

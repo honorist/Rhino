@@ -1,0 +1,23 @@
+{
+  "contas": [
+    {
+      "id": "cp_moaptpbzdedea78a",
+      "descricao": "13213",
+      "fornecedorId": null,
+      "numeroNF": "",
+      "valor": 100,
+      "dataEmissao": "2026-04-23",
+      "dataVencimento": "2026-04-22",
+      "status": "pago",
+      "dataPagamento": "2026-04-22",
+      "caixaEntryId": "cxa_moaqb7kad4e945b4",
+      "contractId": null,
+      "category": "fornecedor",
+      "observacoes": "",
+      "createdAt": "2026-04-23T00:00:24.191Z",
+      "updatedAt": "2026-04-23T00:14:00.972Z",
+      "valorPago": 100,
+      "formaPagamento": "PIX"
+    }
+  ]
+}

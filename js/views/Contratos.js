@@ -1,0 +1,426 @@
+window.Contratos = {
+  currentFilter: 'todos',
+
+  async render() {
+    const app = document.getElementById('app');
+    app.innerHTML = '<div class="loading-spinner">Carregando...</div>';
+
+    try {
+      await Store.loadAll();
+
+      let filtered = Store.state.contracts;
+      if (this.currentFilter !== 'todos') {
+        filtered = filtered.filter(c => c.status === this.currentFilter);
+      }
+
+      const html = `
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Contratos</h1>
+            <p class="page-subtitle">Gerenciar contratos de serviços</p>
+          </div>
+          <button class="btn btn-primary btn-lg" id="btnNovoContrato">+ Novo Contrato</button>
+        </div>
+
+        <div class="filters-bar">
+          <div class="filter-group">
+            <label class="filter-label">Status</label>
+            <select class="form-control filter-control" id="filterStatus">
+              <option value="todos">Todos</option>
+              <option value="prospeccao">Prospecção</option>
+              <option value="ativo">Ativo</option>
+              <option value="pausado">Pausado</option>
+              <option value="concluido">Concluído</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Cliente</th>
+                  <th>Valor</th>
+                  <th>Período</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filtered.length === 0 ? `
+                  <tr>
+                    <td colspan="6" class="text-center text-muted" style="padding: var(--sp-xl);">Nenhum contrato encontrado</td>
+                  </tr>
+                ` : filtered.map(c => `
+                  <tr>
+                    <td>${c.name}</td>
+                    <td>${c.client}</td>
+                    <td>${Store.formatBRL(c.value)}</td>
+                    <td>${new Date(c.startDate).toLocaleDateString('pt-BR')} até ${new Date(c.endDate).toLocaleDateString('pt-BR')}</td>
+                    <td><span class="badge badge-${c.status}">${c.status}</span></td>
+                    <td>
+                      <div class="actions-cell">
+                        <a class="action-link btn-ver" data-id="${c.id}">Ver</a>
+                        <a class="action-link btn-editar" data-id="${c.id}">Editar</a>
+                        <a class="action-link danger btn-excluir" data-id="${c.id}">Excluir</a>
+                      </div>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      app.innerHTML = html;
+
+      // Event listeners
+      document.getElementById('btnNovoContrato').addEventListener('click', () => this.showModal());
+      document.getElementById('filterStatus').addEventListener('change', (e) => {
+        this.currentFilter = e.target.value;
+        this.render();
+      });
+
+      document.querySelectorAll('.btn-ver').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          location.hash = `#/contratos/${e.target.dataset.id}`;
+        });
+      });
+
+      document.querySelectorAll('.btn-editar').forEach(btn => {
+        btn.addEventListener('click', (e) => this.showModal(e.target.dataset.id));
+      });
+
+      document.querySelectorAll('.btn-excluir').forEach(btn => {
+        btn.addEventListener('click', (e) => this.deleteContract(e.target.dataset.id));
+      });
+    } catch (e) {
+      app.innerHTML = `<div class="card"><p class="text-danger">Erro: ${e.message}</p></div>`;
+    }
+  },
+
+  showModal(contractId) {
+    const contract = contractId ? Store.getContractById(contractId) : null;
+    const title = contract ? 'Editar Contrato' : 'Novo Contrato';
+    const clientes = Store.state.clientes || [];
+
+    const html = `
+      <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+          <div class="modal-header">
+            <h2 class="modal-title">${title}</h2>
+            <button class="modal-close">✕</button>
+          </div>
+          <form id="formContrato" class="modal-content">
+            <div class="form-group">
+              <label class="form-label">Nome do Contrato *</label>
+              <input class="form-control" name="name" value="${contract?.name || ''}" required>
+            </div>
+            <div class="form-group">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                <label class="form-label" style="margin:0;">Cliente *</label>
+                ${clientes.length === 0 ? `<a href="#/clientes" id="linkCadastrarCliente" style="font-size:11px;color:var(--color-primary);text-decoration:none;">+ Cadastrar cliente →</a>` : `<a href="#/clientes" id="linkCadastrarCliente" style="font-size:11px;color:var(--color-primary);text-decoration:none;">Gerenciar clientes →</a>`}
+              </div>
+              ${clientes.length > 0 ? `
+                <select class="form-control" name="clientId" id="selectCliente" required>
+                  <option value="">— Selecionar cliente —</option>
+                  ${clientes.map(c => {
+                    const label = c.nome + (c.empresa ? ` · ${c.empresa}` : '');
+                    const selected = contract?.clientId === c.id ||
+                      (!contract?.clientId && (contract?.client === c.nome || contract?.client === c.nome + (c.empresa ? ` (${c.empresa})` : '') || contract?.client === c.nome + (c.empresa ? ` · ${c.empresa}` : '')));
+                    return `<option value="${c.id}" ${selected ? 'selected' : ''}>${label}</option>`;
+                  }).join('')}
+                  <option value="__outro__">✏️ Digitar manualmente...</option>
+                </select>
+                <input class="form-control" name="clientManual" id="inputClienteManual" placeholder="Nome do cliente" style="margin-top:6px;display:none;" value="${!contract?.clientId && !clientes.some(c => contract?.client === c.nome) ? contract?.client || '' : ''}">
+              ` : `
+                <input class="form-control" name="clientManual" id="inputClienteManual" value="${contract?.client || ''}" required placeholder="Nome do cliente ou empresa">
+              `}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Valor Total (BRL) *</label>
+              <input class="form-control" name="value" type="text" data-currency inputmode="numeric" value="${contract?.value ? window.BRLInput.toDisplay(contract.value) : ''}" placeholder="0,00" required>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Data Início</label>
+                <input class="form-control" name="startDate" type="date" value="${contract?.startDate || ''}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Data Fim</label>
+                <input class="form-control" name="endDate" type="date" value="${contract?.endDate || ''}">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select class="form-control" name="status">
+                <option value="prospeccao" ${contract?.status === 'prospeccao' ? 'selected' : ''}>Prospecção</option>
+                <option value="ativo" ${contract?.status === 'ativo' ? 'selected' : ''}>Ativo</option>
+                <option value="pausado" ${contract?.status === 'pausado' ? 'selected' : ''}>Pausado</option>
+                <option value="concluido" ${contract?.status === 'concluido' ? 'selected' : ''}>Concluído</option>
+                <option value="cancelado" ${contract?.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Endereço / Local da Obra</label>
+              <div style="position:relative;" id="enderecoWrap">
+                <input class="form-control" id="enderecoInput" name="endereco"
+                  value="${contract?.endereco || ''}"
+                  placeholder="Buscar endereço no mapa..."
+                  autocomplete="off"
+                  style="padding-right:36px;">
+                <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">📍</span>
+                <div id="nominatimDropdown" class="nominatim-dropdown" style="display:none;top:calc(100% + 4px);left:0;"></div>
+              </div>
+              <input type="hidden" id="enderecoLat" name="lat" value="${contract?.lat || ''}">
+              <input type="hidden" id="enderecoLng" name="lng" value="${contract?.lng || ''}">
+              ${contract?.lat ? `
+                <div id="miniMapa" style="height:160px;border-radius:6px;margin-top:8px;overflow:hidden;border:1px solid var(--color-border);"></div>
+              ` : `<div id="miniMapa" style="height:160px;border-radius:6px;margin-top:8px;overflow:hidden;border:1px solid var(--color-border);display:none;"></div>`}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Notas</label>
+              <textarea class="form-control" name="notes">${contract?.notes || ''}</textarea>
+            </div>
+          </form>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnCancelar">Cancelar</button>
+            <button class="btn btn-primary" id="btnSalvar">${contract ? 'Atualizar' : 'Criar'}</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    const overlay = document.getElementById('modalOverlay');
+    const closeModal = () => overlay.remove();
+
+    overlay.querySelector('.modal-close').addEventListener('click', closeModal);
+    document.getElementById('btnCancelar').addEventListener('click', closeModal);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+    // Link to clientes navigates away and closes modal
+    const linkClientes = document.getElementById('linkCadastrarCliente');
+    if (linkClientes) {
+      linkClientes.addEventListener('click', () => closeModal());
+    }
+
+    // Toggle manual input when "Digitar manualmente..." selected
+    const selectCliente = document.getElementById('selectCliente');
+    const inputManual = document.getElementById('inputClienteManual');
+    if (selectCliente && inputManual) {
+      // Se ao abrir o modal não há clientId mas há texto manual, mostrar o campo
+      if (!contract?.clientId && contract?.client && !clientes.some(c => c.id === contract?.clientId)) {
+        const matchPorNome = clientes.find(c =>
+          contract.client === c.nome ||
+          contract.client === c.nome + (c.empresa ? ` · ${c.empresa}` : '') ||
+          contract.client === c.nome + (c.empresa ? ` (${c.empresa})` : '')
+        );
+        if (!matchPorNome && contract.client) {
+          inputManual.style.display = 'block';
+          selectCliente.value = '__outro__';
+        }
+      }
+      selectCliente.addEventListener('change', () => {
+        if (selectCliente.value === '__outro__') {
+          inputManual.style.display = 'block';
+          inputManual.required = true;
+          selectCliente.required = false;
+        } else {
+          inputManual.style.display = 'none';
+          inputManual.required = false;
+          selectCliente.required = true;
+
+          // Preencher endereço do cliente selecionado
+          const clienteSel = clientes.find(c => c.id === selectCliente.value);
+          const endInput = document.getElementById('enderecoInput');
+          const latInput = document.getElementById('enderecoLat');
+          const lngInput = document.getElementById('enderecoLng');
+          if (clienteSel?.endereco && endInput && !endInput.value) {
+            endInput.value = clienteSel.endereco;
+            if (clienteSel.lat) latInput.value = clienteSel.lat;
+            if (clienteSel.lng) lngInput.value = clienteSel.lng;
+            if (clienteSel.lat && clienteSel.lng) {
+              // Reutiliza o mini-mapa já inicializado
+              const mapaDiv = document.getElementById('miniMapa');
+              if (mapaDiv) {
+                mapaDiv.style.display = 'block';
+                if (window.Contratos._miniMap) {
+                  window.Contratos._miniMap.remove();
+                  window.Contratos._miniMap = null;
+                }
+                setTimeout(() => {
+                  window.Contratos._miniMap = L.map(mapaDiv, { zoomControl: true, scrollWheelZoom: false })
+                    .setView([parseFloat(clienteSel.lat), parseFloat(clienteSel.lng)], 15);
+                  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(window.Contratos._miniMap);
+                  L.marker([parseFloat(clienteSel.lat), parseFloat(clienteSel.lng)])
+                    .addTo(window.Contratos._miniMap)
+                    .bindPopup(clienteSel.endereco).openPopup();
+                }, 50);
+              }
+            }
+          }
+        }
+      });
+    }
+
+    document.getElementById('btnSalvar').addEventListener('click', async () => {
+      const formData = new FormData(document.getElementById('formContrato'));
+      const data = Object.fromEntries(formData);
+
+      // Resolve client: por ID do select ou manual
+      let clienteManualCriado = false;
+      if (selectCliente) {
+        if (selectCliente.value === '__outro__') {
+          data.client = data.clientManual?.trim() || '';
+          data.clientId = null;
+          clienteManualCriado = !!data.client;
+        } else {
+          const clienteSelecionado = clientes.find(c => c.id === selectCliente.value);
+          data.clientId = clienteSelecionado?.id || null;
+          data.client = clienteSelecionado
+            ? clienteSelecionado.nome + (clienteSelecionado.empresa ? ` · ${clienteSelecionado.empresa}` : '')
+            : '';
+        }
+      } else {
+        // Sem clientes cadastrados: campo manual
+        data.client = data.clientManual?.trim() || '';
+        data.clientId = null;
+        clienteManualCriado = !!data.client;
+      }
+      delete data.clientManual;
+
+      if (!data.client?.trim()) { window.showToast('Selecione ou informe o cliente', 'error'); return; }
+
+      data.value = window.BRLInput.parse(data.value);
+
+      try {
+        // Se digitou manualmente, cadastra o cliente automaticamente
+        if (clienteManualCriado) {
+          const jaExiste = (Store.state.clientes || []).some(c =>
+            (c.nome || '').toLowerCase() === data.client.toLowerCase()
+          );
+          if (!jaExiste) {
+            await Store.createCliente({ nome: data.client });
+            window.showToast(`Cliente "${data.client}" cadastrado automaticamente`, 'info');
+          }
+        }
+
+        if (contract) {
+          await Store.updateContract(contractId, data);
+          window.showToast('Contrato atualizado com sucesso', 'success');
+        } else {
+          await Store.createContract(data);
+          window.showToast('Contrato criado com sucesso', 'success');
+        }
+        closeModal();
+        this.render();
+      } catch (e) {
+        window.showToast(e.message, 'error');
+      }
+    });
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeModal();
+    });
+
+    // ─── Busca de endereço (Nominatim / OpenStreetMap) ───
+    this._initEnderecoSearch(contract);
+  },
+
+  _miniMap: null,
+  _miniMarker: null,
+
+  _initEnderecoSearch(contract) {
+    const input    = document.getElementById('enderecoInput');
+    const dropdown = document.getElementById('nominatimDropdown');
+    const latInput = document.getElementById('enderecoLat');
+    const lngInput = document.getElementById('enderecoLng');
+    const mapaDiv  = document.getElementById('miniMapa');
+    if (!input) return;
+
+    let debounce = null;
+
+    const mostrarMiniMapa = (lat, lng, label) => {
+      mapaDiv.style.display = 'block';
+      setTimeout(() => {
+        if (this._miniMap) { this._miniMap.remove(); this._miniMap = null; }
+        this._miniMap = L.map(mapaDiv, { zoomControl: true, scrollWheelZoom: false })
+          .setView([lat, lng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap'
+        }).addTo(this._miniMap);
+        this._miniMarker = L.marker([lat, lng]).addTo(this._miniMap)
+          .bindPopup(label).openPopup();
+      }, 50);
+    };
+
+    // Se já tem coordenadas salvas, mostrar mini mapa
+    if (contract?.lat && contract?.lng) {
+      mostrarMiniMapa(parseFloat(contract.lat), parseFloat(contract.lng), contract.endereco || 'Local');
+    }
+
+    input.addEventListener('input', () => {
+      clearTimeout(debounce);
+      const q = input.value.trim();
+      if (q.length < 4) { dropdown.style.display = 'none'; return; }
+
+      debounce = setTimeout(async () => {
+        try {
+          const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=6&addressdetails=1`;
+          const res = await fetch(url, { headers: { 'Accept-Language': 'pt-BR,pt;q=0.9' } });
+          const results = await res.json();
+
+          if (!results.length) { dropdown.style.display = 'none'; return; }
+
+          dropdown.innerHTML = results.map((r, i) => {
+            const name = r.display_name.split(',').slice(0, 3).join(',');
+            const detail = r.display_name.split(',').slice(3).join(',').trim();
+            return `<div class="nominatim-item" data-i="${i}" data-lat="${r.lat}" data-lng="${r.lon}" data-name="${r.display_name.replace(/"/g, '&quot;')}">
+              <strong>${name}</strong>
+              <span>${detail}</span>
+            </div>`;
+          }).join('');
+          dropdown.style.display = 'block';
+
+          dropdown.querySelectorAll('.nominatim-item').forEach(el => {
+            el.addEventListener('click', () => {
+              const lat = parseFloat(el.dataset.lat);
+              const lng = parseFloat(el.dataset.lng);
+              const nome = el.dataset.name;
+              input.value = nome;
+              latInput.value = lat;
+              lngInput.value = lng;
+              dropdown.style.display = 'none';
+              mostrarMiniMapa(lat, lng, nome);
+            });
+          });
+        } catch { dropdown.style.display = 'none'; }
+      }, 450);
+    });
+
+    // Fechar dropdown ao clicar fora
+    document.addEventListener('click', e => {
+      if (!document.getElementById('enderecoWrap')?.contains(e.target)) {
+        dropdown.style.display = 'none';
+      }
+    }, { once: false });
+  },
+
+  async deleteContract(id) {
+    if (!confirm('Tem certeza que deseja excluir este contrato?')) return;
+
+    try {
+      await Store.deleteContract(id);
+      window.showToast('Contrato excluído com sucesso', 'success');
+      this.render();
+    } catch (e) {
+      window.showToast(e.message, 'error');
+    }
+  }
+};
