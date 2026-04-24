@@ -293,8 +293,20 @@ window.Contratos = {
           inputManual.required = false;
           selectCliente.required = true;
 
-          // Preencher endereço do cliente selecionado
+          // Preencher dados do cliente selecionado (só se campos estiverem vazios)
           const clienteSel = clientes.find(c => c.id === selectCliente.value);
+          if (clienteSel) {
+            const setIfEmpty = (name, val) => {
+              const el = document.querySelector(`#formContrato [name="${name}"]`);
+              if (el && !el.value && val) el.value = val;
+            };
+            setIfEmpty('clientDocument', clienteSel.documento || clienteSel.cnpj || clienteSel.cpf);
+            setIfEmpty('clientEmail',    clienteSel.email);
+            if (clienteSel.telefone) {
+              const telEl = document.querySelector('#formContrato [name="clientPhone"]');
+              if (telEl && !telEl.value) telEl.value = window.formatPhoneBR(clienteSel.telefone);
+            }
+          }
           const endInput = document.getElementById('enderecoInput');
           const latInput = document.getElementById('enderecoLat');
           const lngInput = document.getElementById('enderecoLng');
