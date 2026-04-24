@@ -302,9 +302,22 @@ window.ContratoDetail = {
         ${this._tab === 'financeiro' ? `
         <div class="card mb-2xl">
           <div class="card-header">
-            <h3 class="card-title">Orçamento — Composição de Custo Planejado</h3>
-            <button class="btn btn-primary btn-sm" id="btnNovoItemOrcamento">+ Adicionar Item</button>
+            <div>
+              <h3 class="card-title">Orçamento — Composição de Custo Planejado</h3>
+              <div style="font-size:15px;color:var(--color-text-muted);margin-top:4px;">
+                ${Store.formatBRL(totalOrcado)} de ${Store.formatBRL(contract.value)} orçados
+                ${contract.value > 0 ? `· <strong style="color:${totalOrcado > contract.value ? 'var(--color-danger)' : totalOrcado / contract.value > 0.9 ? 'var(--color-warning)' : 'var(--color-success)'};">${((totalOrcado / contract.value) * 100).toFixed(1)}%</strong>` : ''}
+                ${contract.value > 0 && totalOrcado < contract.value ? `· <span style="color:var(--color-text-muted);">disponível: ${Store.formatBRL(contract.value - totalOrcado)}</span>` : ''}
+                ${totalOrcado > contract.value ? `· <span style="color:var(--color-danger);font-weight:700;">⚠ excedeu em ${Store.formatBRL(totalOrcado - contract.value)}</span>` : ''}
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btnNovoItemOrcamento" ${totalOrcado >= contract.value && contract.value > 0 ? 'disabled title="Valor total do contrato já foi orçado"' : ''}>+ Adicionar Item</button>
           </div>
+          ${contract.value > 0 ? `
+            <div style="height:6px;background:var(--color-surface-2);border-radius:99px;overflow:hidden;margin-bottom:var(--sp-lg);">
+              <div style="height:100%;width:${Math.min(100, (totalOrcado / contract.value) * 100)}%;background:${totalOrcado > contract.value ? 'var(--color-danger)' : totalOrcado / contract.value > 0.9 ? 'var(--color-warning)' : 'var(--color-success)'};transition:width .4s;"></div>
+            </div>
+          ` : ''}
 
           ${budget.length === 0 ? `
             <div style="padding:var(--sp-lg);text-align:center;color:var(--color-text-muted);">
@@ -377,7 +390,7 @@ window.ContratoDetail = {
                       <th>Descrição</th>
                       <th>Categoria</th>
                       <th style="text-align:right;">Valor Orçado</th>
-                      <th>Ações</th>
+                      <th style="text-align:center;width:140px;">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -388,11 +401,9 @@ window.ContratoDetail = {
                           <td><strong>${escapeHtml(b.description)}</strong>${b.notes ? `<div style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(b.notes)}</div>` : ''}</td>
                           <td><span class="badge" style="background:${cor}18;color:${cor};">${TIPOS_LABEL[b.type] || b.type}</span></td>
                           <td style="text-align:right;font-weight:600;font-family:'Nunito',sans-serif;">${Store.formatBRL(b.value)}</td>
-                          <td>
-                            <div class="actions-cell">
-                              <a class="action-link btn-editar-orc" data-id="${b.id}">Editar</a>
-                              <a class="action-link danger btn-excluir-orc" data-id="${b.id}">Excluir</a>
-                            </div>
+                          <td style="text-align:center;white-space:nowrap;">
+                            <button class="btn btn-sm btn-secondary btn-editar-orc" data-id="${b.id}" title="Editar" style="margin-right:4px;">✏️ Editar</button>
+                            <button class="btn btn-sm btn-danger btn-excluir-orc" data-id="${b.id}" title="Excluir">🗑️</button>
                           </td>
                         </tr>
                       `;

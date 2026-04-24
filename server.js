@@ -1568,12 +1568,21 @@ function handlePostBudgetItem(contractId, body, res) {
       return;
     }
     if (!contract.budget) contract.budget = [];
+    const novoValor = parseFloat(body.value) || 0;
+    const totalAtual = contract.budget.reduce((s, b) => s + (parseFloat(b.value) || 0), 0);
+    if (contract.value > 0 && totalAtual + novoValor > contract.value + 0.01) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        error: `Orçamento ultrapassa o valor do contrato. Disponível: R$ ${(contract.value - totalAtual).toFixed(2).replace('.', ',')}`
+      }));
+      return;
+    }
     const item = {
       id: generateId('bud'),
       contractId,
       description: body.description || '',
       type: body.type || 'outros',
-      value: parseFloat(body.value) || 0,
+      value: novoValor,
       notes: body.notes || '',
       createdAt: new Date().toISOString()
     };
@@ -1603,6 +1612,16 @@ function handlePutBudgetItem(contractId, itemId, body, res) {
       return;
     }
     if (body.value !== undefined) body.value = parseFloat(body.value) || 0;
+    if (body.value !== undefined && contract.value > 0) {
+      const outros = contract.budget.reduce((s, b, i) => i === idx ? s : s + (parseFloat(b.value) || 0), 0);
+      if (outros + body.value > contract.value + 0.01) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          error: `Orçamento ultrapassa o valor do contrato. Disponível: R$ ${(contract.value - outros).toFixed(2).replace('.', ',')}`
+        }));
+        return;
+      }
+    }
     contract.budget[idx] = { ...contract.budget[idx], ...body };
     writeData('contracts.json', data);
     res.writeHead(200, { 'Content-Type': 'application/json' });
