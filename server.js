@@ -73,12 +73,21 @@ function handlePostContract(body, res) {
     const contract = {
       id: generateId('ctr'),
       name: body.name,
+      contractNumber: body.contractNumber || '',
       client: body.client,
+      clientId: body.clientId || null,
+      clientDocument: body.clientDocument || '',
+      clientEmail: body.clientEmail || '',
+      clientPhone: body.clientPhone || '',
       value: parseFloat(body.value) || 0,
+      currency: body.currency || 'BRL',
       startDate: body.startDate || '',
       endDate: body.endDate || '',
       tendencyDate: body.tendencyDate || '',
       status: body.status || 'ativo',
+      endereco: body.endereco || '',
+      lat: body.lat || '',
+      lng: body.lng || '',
       notes: body.notes || '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -106,7 +115,7 @@ function handlePutContract(id, body, res) {
     }
 
     const allowed = {};
-    const fields = ['name', 'client', 'value', 'startDate', 'endDate', 'tendencyDate', 'status', 'notes', 'lat', 'lng', 'endereco', 'contractNumber'];
+    const fields = ['name', 'client', 'clientId', 'clientDocument', 'clientEmail', 'clientPhone', 'value', 'currency', 'startDate', 'endDate', 'tendencyDate', 'status', 'notes', 'lat', 'lng', 'endereco', 'contractNumber'];
     for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
     if (allowed.value !== undefined) allowed.value = parseFloat(allowed.value) || 0;
 

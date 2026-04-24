@@ -128,76 +128,117 @@ window.Contratos = {
             <h2 class="modal-title">${title}</h2>
             <button class="modal-close">✕</button>
           </div>
-          <form id="formContrato" class="modal-content">
+          <form id="formContrato" class="modal-content" style="max-height:70vh;overflow-y:auto;">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Número do Contrato</label>
+                <input class="form-control" name="contractNumber" value="${escapeHtml(contract?.contractNumber || '')}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Status *</label>
+                <select class="form-control" name="status" required>
+                  <option value="prospeccao" ${contract?.status === 'prospeccao' ? 'selected' : ''}>Prospecção</option>
+                  <option value="ativo" ${(!contract || contract.status === 'ativo') ? 'selected' : ''}>Ativo</option>
+                  <option value="pausado" ${contract?.status === 'pausado' ? 'selected' : ''}>Pausado</option>
+                  <option value="concluido" ${contract?.status === 'concluido' ? 'selected' : ''}>Concluído</option>
+                  <option value="cancelado" ${contract?.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+                </select>
+              </div>
+            </div>
+
             <div class="form-group">
               <label class="form-label">Nome do Contrato *</label>
               <input class="form-control" name="name" value="${escapeHtml(contract?.name || '')}" required>
             </div>
-            <div class="form-group">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-                <label class="form-label" style="margin:0;">Cliente *</label>
-                ${clientes.length === 0 ? `<a href="#/clientes" id="linkCadastrarCliente" style="font-size:15px;color:var(--color-primary);text-decoration:none;">+ Cadastrar cliente →</a>` : `<a href="#/clientes" id="linkCadastrarCliente" style="font-size:15px;color:var(--color-primary);text-decoration:none;">Gerenciar clientes →</a>`}
-              </div>
-              ${clientes.length > 0 ? `
-                <select class="form-control" name="clientId" id="selectCliente" required>
-                  <option value="">— Selecionar cliente —</option>
-                  ${clientes.map(c => {
-                    const label = c.nome + (c.empresa ? ` · ${c.empresa}` : '');
-                    const selected = contract?.clientId === c.id ||
-                      (!contract?.clientId && (contract?.client === c.nome || contract?.client === c.nome + (c.empresa ? ` (${c.empresa})` : '') || contract?.client === c.nome + (c.empresa ? ` · ${c.empresa}` : '')));
-                    return `<option value="${c.id}" ${selected ? 'selected' : ''}>${label}</option>`;
-                  }).join('')}
-                  <option value="__outro__">✏️ Digitar manualmente...</option>
-                </select>
-                <input class="form-control" name="clientManual" id="inputClienteManual" placeholder="Nome do cliente" style="margin-top:6px;display:none;" value="${!contract?.clientId && !clientes.some(c => contract?.client === c.nome) ? contract?.client || '' : ''}">
-              ` : `
-                <input class="form-control" name="clientManual" id="inputClienteManual" value="${contract?.client || ''}" required placeholder="Nome do cliente ou empresa">
-              `}
-            </div>
-            <div class="form-group">
-              <label class="form-label">Valor Total (BRL) *</label>
-              <input class="form-control" name="value" type="text" data-currency inputmode="numeric" value="${contract?.value ? window.BRLInput.toDisplay(contract.value) : ''}" placeholder="0,00" required>
-            </div>
-            <div class="form-row">
+
+            <div style="border-top:1px solid var(--color-border);padding-top:var(--sp-lg);margin-top:var(--sp-lg);">
+              <h3 class="card-title mb-md">Dados do Cliente</h3>
               <div class="form-group">
-                <label class="form-label">Data Início</label>
-                <input class="form-control" name="startDate" type="date" value="${contract?.startDate || ''}">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                  <label class="form-label" style="margin:0;">Cliente *</label>
+                  ${clientes.length === 0 ? `<a href="#/clientes" id="linkCadastrarCliente" style="font-size:15px;color:var(--color-primary);text-decoration:none;">+ Cadastrar cliente →</a>` : `<a href="#/clientes" id="linkCadastrarCliente" style="font-size:15px;color:var(--color-primary);text-decoration:none;">Gerenciar clientes →</a>`}
+                </div>
+                ${clientes.length > 0 ? `
+                  <select class="form-control" name="clientId" id="selectCliente" required>
+                    <option value="">— Selecionar cliente —</option>
+                    ${clientes.map(c => {
+                      const label = c.nome + (c.empresa ? ` · ${c.empresa}` : '');
+                      const selected = contract?.clientId === c.id ||
+                        (!contract?.clientId && (contract?.client === c.nome || contract?.client === c.nome + (c.empresa ? ` (${c.empresa})` : '') || contract?.client === c.nome + (c.empresa ? ` · ${c.empresa}` : '')));
+                      return `<option value="${c.id}" ${selected ? 'selected' : ''}>${label}</option>`;
+                    }).join('')}
+                    <option value="__outro__">✏️ Digitar manualmente...</option>
+                  </select>
+                  <input class="form-control" name="clientManual" id="inputClienteManual" placeholder="Nome do cliente" style="margin-top:6px;display:none;" value="${!contract?.clientId && !clientes.some(c => contract?.client === c.nome) ? contract?.client || '' : ''}">
+                ` : `
+                  <input class="form-control" name="clientManual" id="inputClienteManual" value="${contract?.client || ''}" required placeholder="Nome do cliente ou empresa">
+                `}
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">CPF/CNPJ</label>
+                  <input class="form-control" name="clientDocument" value="${escapeHtml(contract?.clientDocument || '')}">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Email</label>
+                  <input class="form-control" name="clientEmail" type="email" value="${escapeHtml(contract?.clientEmail || '')}">
+                </div>
               </div>
               <div class="form-group">
-                <label class="form-label">Data Fim</label>
-                <input class="form-control" name="endDate" type="date" value="${contract?.endDate || ''}">
+                <label class="form-label">Telefone</label>
+                <input class="form-control" name="clientPhone" data-phone inputmode="numeric" maxlength="16" value="${contract?.clientPhone ? window.formatPhoneBR(contract.clientPhone) : ''}" placeholder="(00) 00000-0000">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Endereço / Local da Obra</label>
+                <div style="position:relative;" id="enderecoWrap">
+                  <input class="form-control" id="enderecoInput" name="endereco"
+                    value="${escapeHtml(contract?.endereco || '')}"
+                    placeholder="Buscar endereço no mapa..."
+                    autocomplete="off"
+                    style="padding-right:36px;">
+                  <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">📍</span>
+                  <div id="nominatimDropdown" class="nominatim-dropdown" style="display:none;top:calc(100% + 4px);left:0;"></div>
+                </div>
+                <input type="hidden" id="enderecoLat" name="lat" value="${contract?.lat || ''}">
+                <input type="hidden" id="enderecoLng" name="lng" value="${contract?.lng || ''}">
+                <div id="miniMapa" style="height:160px;border-radius:6px;margin-top:8px;overflow:hidden;border:1px solid var(--color-border);${contract?.lat ? '' : 'display:none;'}"></div>
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Status</label>
-              <select class="form-control" name="status">
-                <option value="prospeccao" ${contract?.status === 'prospeccao' ? 'selected' : ''}>Prospecção</option>
-                <option value="ativo" ${contract?.status === 'ativo' ? 'selected' : ''}>Ativo</option>
-                <option value="pausado" ${contract?.status === 'pausado' ? 'selected' : ''}>Pausado</option>
-                <option value="concluido" ${contract?.status === 'concluido' ? 'selected' : ''}>Concluído</option>
-                <option value="cancelado" ${contract?.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Endereço / Local da Obra</label>
-              <div style="position:relative;" id="enderecoWrap">
-                <input class="form-control" id="enderecoInput" name="endereco"
-                  value="${contract?.endereco || ''}"
-                  placeholder="Buscar endereço no mapa..."
-                  autocomplete="off"
-                  style="padding-right:36px;">
-                <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">📍</span>
-                <div id="nominatimDropdown" class="nominatim-dropdown" style="display:none;top:calc(100% + 4px);left:0;"></div>
+
+            <div style="border-top:1px solid var(--color-border);padding-top:var(--sp-lg);margin-top:var(--sp-lg);">
+              <h3 class="card-title mb-md">Dados do Contrato</h3>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Valor Total (BRL) *</label>
+                  <input class="form-control" name="value" type="text" data-currency inputmode="numeric" value="${contract?.value ? window.BRLInput.toDisplay(contract.value) : ''}" placeholder="0,00" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Moeda/Referência</label>
+                  <input class="form-control" name="currency" value="${contract?.currency || 'BRL'}" placeholder="BRL">
+                </div>
               </div>
-              <input type="hidden" id="enderecoLat" name="lat" value="${contract?.lat || ''}">
-              <input type="hidden" id="enderecoLng" name="lng" value="${contract?.lng || ''}">
-              ${contract?.lat ? `
-                <div id="miniMapa" style="height:160px;border-radius:6px;margin-top:8px;overflow:hidden;border:1px solid var(--color-border);"></div>
-              ` : `<div id="miniMapa" style="height:160px;border-radius:6px;margin-top:8px;overflow:hidden;border:1px solid var(--color-border);display:none;"></div>`}
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-lg);align-items:start;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">Data Início</label>
+                  <input class="form-control" name="startDate" type="date" value="${contract?.startDate || ''}">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">Data Fim</label>
+                  <input class="form-control" name="endDate" type="date" value="${contract?.endDate || ''}">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">Data de Tendência</label>
+                  <input class="form-control" name="tendencyDate" type="date" value="${contract?.tendencyDate || ''}">
+                </div>
+              </div>
+              <div class="form-helper" style="margin-top:6px;">💡 <strong>Tendência</strong> é a previsão atualizada do fim da obra.</div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Notas</label>
-              <textarea class="form-control" name="notes">${contract?.notes || ''}</textarea>
+
+            <div style="border-top:1px solid var(--color-border);padding-top:var(--sp-lg);margin-top:var(--sp-lg);">
+              <div class="form-group">
+                <label class="form-label">Notas/Observações</label>
+                <textarea class="form-control" name="notes" style="min-height:80px;">${contract?.notes || ''}</textarea>
+              </div>
             </div>
           </form>
           <div class="modal-footer">
