@@ -899,9 +899,13 @@ function handlePostCliente(body, res) {
       id: generateId('cli'),
       nome: body.nome || '',
       empresa: body.empresa || '',
+      cargo: body.cargo || '',
+      setor: body.setor || '',
       telefone: body.telefone || '',
       email: body.email || '',
       endereco: body.endereco || '',
+      lat: body.lat || '',
+      lng: body.lng || '',
       notas: body.notas || '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
