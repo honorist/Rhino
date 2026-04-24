@@ -3,6 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    // Garante que URLs relativas resolvam corretamente em subpastas (ex: GitHub Pages /Rhino/)
+    (function(){
+      var p = location.pathname;
+      // Se pathname não termina em barra e não é um arquivo, adiciona barra
+      if (!p.endsWith('/') && !/\.[a-z0-9]+$/i.test(p)) {
+        history.replaceState(null, '', p + '/' + location.search + location.hash);
+      }
+      var dir = location.pathname.replace(/[^/]*$/, '');
+      document.write('<base href="' + dir + '">');
+    })();
+  </script>
   <title>Rhino — Gestão Empresarial</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
