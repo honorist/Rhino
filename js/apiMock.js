@@ -172,9 +172,11 @@ function handlePostSaida(contractId, body, res) {
     }
 
     const valor = parseFloat(body.value) || 0;
+    const dataSaida = body.date || new Date().toISOString().split('T')[0];
 
     const nfData = readData('notas_fiscais.json');
-    const nfsContrato = (nfData.notas_fiscais || []).filter(nf => nf.contractId === contractId);
+    if (!nfData.notas_fiscais) nfData.notas_fiscais = [];
+    const nfsContrato = nfData.notas_fiscais.filter(nf => nf.contractId === contractId);
     const totalMedidoAtual = nfsContrato.reduce((s, nf) => s + (parseFloat(nf.valor) || 0), 0);
     if (contract.value > 0 && totalMedidoAtual + valor > contract.value + 0.01) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -184,28 +186,33 @@ function handlePostSaida(contractId, body, res) {
       return;
     }
 
-    const dataSaida = body.date || new Date().toISOString().split('T')[0];
     const saidaId = generateId('sai');
-    const numeroBm = String(nfsContrato.length + 1).padStart(3, '0');
-    const numeroNf = `BM-${numeroBm}`;
-
-    const nf = {
-      id: generateId('nf'),
-      numero: numeroNf,
-      contractId,
-      dataLimite: dataSaida,
-      valor,
-      prazoRecebimento: parseInt(body.prazoRecebimento) || 30,
-      observacoes: body.description || '',
-      emitida: false,
-      dataEmissaoReal: null,
-      caixaEntryId: null,
-      saidaId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    if (!nfData.notas_fiscais) nfData.notas_fiscais = [];
-    nfData.notas_fiscais.push(nf);
+    let nf = nfData.notas_fiscais.find(n =>
+      n.contractId === contractId && n.dataLimite === dataSaida && !n.emitida
+    );
+    let numeroNf;
+    if (nf) {
+      nf.valor = (parseFloat(nf.valor) || 0) + valor;
+      nf.updatedAt = new Date().toISOString();
+      numeroNf = nf.numero;
+    } else {
+      numeroNf = `BM-${String(nfsContrato.length + 1).padStart(3, '0')}`;
+      nf = {
+        id: generateId('nf'),
+        numero: numeroNf,
+        contractId,
+        dataLimite: dataSaida,
+        valor,
+        prazoRecebimento: parseInt(body.prazoRecebimento) || 30,
+        observacoes: body.description || '',
+        emitida: false,
+        dataEmissaoReal: null,
+        caixaEntryId: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      nfData.notas_fiscais.push(nf);
+    }
     writeData('notas_fiscais.json', nfData);
 
     const saida = {
@@ -251,33 +258,76 @@ function handlePutSaida(id, body, res) {
     if (saida.nfId) {
       nfData = readData('notas_fiscais.json');
       const nfIdx = (nfData.notas_fiscais || []).findIndex(nf => nf.id === saida.nfId);
-      if (nfIdx !== -1) {
-        const nf = nfData.notas_fiscais[nfIdx];
-        if (nf.emitida) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Não é possível editar saída com BM já emitido. Cancele a emissão do BM primeiro.' }));
-          return;
-        }
-        if (allowedSaida.value !== undefined) {
-          const contract = data.contracts.find(c => c.id === saida.contractId);
-          if (contract && contract.value > 0) {
-            const outrasNfs = nfData.notas_fiscais.reduce((s, n, i) =>
-              i === nfIdx || n.contractId !== saida.contractId ? s : s + (parseFloat(n.valor) || 0), 0);
-            if (outrasNfs + allowedSaida.value > contract.value + 0.01) {
-              res.writeHead(400, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({
-                error: `BM ultrapassa o valor do contrato. Disponível: R$ ${(contract.value - outrasNfs).toFixed(2).replace('.', ',')}`
-              }));
-              return;
-            }
-          }
-          nf.valor = allowedSaida.value;
-        }
-        if (allowedSaida.date !== undefined) nf.dataLimite = allowedSaida.date;
-        if (allowedSaida.description !== undefined) nf.observacoes = allowedSaida.description;
-        nf.updatedAt = new Date().toISOString();
-        writeData('notas_fiscais.json', nfData);
+      const nf = nfIdx !== -1 ? nfData.notas_fiscais[nfIdx] : null;
+      const dataMudou  = allowedSaida.date  !== undefined && allowedSaida.date  !== saida.date;
+      const valorMudou = allowedSaida.value !== undefined && allowedSaida.value !== parseFloat(saida.value);
+
+      if (nf && nf.emitida && (dataMudou || valorMudou)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Não é possível alterar valor ou data de saída com BM já emitido. Cancele a emissão antes.' }));
+        return;
       }
+
+      if (valorMudou && nf) {
+        const delta = allowedSaida.value - (parseFloat(saida.value) || 0);
+        const contract = data.contracts.find(c => c.id === saida.contractId);
+        if (contract && contract.value > 0) {
+          const totalMedidoOutros = nfData.notas_fiscais.reduce((s, n) =>
+            n.contractId !== saida.contractId ? s : s + (parseFloat(n.valor) || 0), 0);
+          if (totalMedidoOutros + delta > contract.value + 0.01) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              error: `BM ultrapassa o valor do contrato. Disponível: R$ ${(contract.value - totalMedidoOutros).toFixed(2).replace('.', ',')}`
+            }));
+            return;
+          }
+        }
+        nf.valor = Math.max(0, (parseFloat(nf.valor) || 0) + delta);
+        nf.updatedAt = new Date().toISOString();
+      }
+
+      if (dataMudou && nf) {
+        const novaData = allowedSaida.date;
+        const outrasDaNfAtual = data.saidas.filter(s => s.nfId === nf.id && s.id !== id);
+        if (outrasDaNfAtual.length === 0) {
+          nfData.notas_fiscais.splice(nfIdx, 1);
+        } else {
+          nf.valor = Math.max(0, (parseFloat(nf.valor) || 0) - (parseFloat(saida.value) || 0));
+          nf.updatedAt = new Date().toISOString();
+        }
+        const valorFinal = allowedSaida.value !== undefined ? allowedSaida.value : (parseFloat(saida.value) || 0);
+        let nfNova = nfData.notas_fiscais.find(n =>
+          n.contractId === saida.contractId && n.dataLimite === novaData && !n.emitida
+        );
+        if (nfNova) {
+          nfNova.valor = (parseFloat(nfNova.valor) || 0) + valorFinal;
+          nfNova.updatedAt = new Date().toISOString();
+          allowedSaida.nfId = nfNova.id;
+          allowedSaida.numeroBm = nfNova.numero;
+        } else {
+          const nfsCount = nfData.notas_fiscais.filter(n => n.contractId === saida.contractId).length;
+          const numeroNf = `BM-${String(nfsCount + 1).padStart(3, '0')}`;
+          nfNova = {
+            id: generateId('nf'),
+            numero: numeroNf,
+            contractId: saida.contractId,
+            dataLimite: novaData,
+            valor: valorFinal,
+            prazoRecebimento: parseInt(body.prazoRecebimento) || 30,
+            observacoes: allowedSaida.description || saida.description || '',
+            emitida: false,
+            dataEmissaoReal: null,
+            caixaEntryId: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          nfData.notas_fiscais.push(nfNova);
+          allowedSaida.nfId = nfNova.id;
+          allowedSaida.numeroBm = numeroNf;
+        }
+      }
+
+      writeData('notas_fiscais.json', nfData);
     }
 
     data.saidas[idx] = { ...saida, ...allowedSaida, id, updatedAt: new Date().toISOString() };
@@ -307,7 +357,13 @@ function handleDeleteSaida(id, res) {
           res.end(JSON.stringify({ error: 'Não é possível excluir saída cujo BM já foi emitido. Cancele a emissão do BM primeiro.' }));
           return;
         }
-        nfData.notas_fiscais.splice(nfIdx, 1);
+        const outrasSaidas = data.saidas.filter(s => s.nfId === nf.id && s.id !== id);
+        if (outrasSaidas.length === 0) {
+          nfData.notas_fiscais.splice(nfIdx, 1);
+        } else {
+          nf.valor = Math.max(0, (parseFloat(nf.valor) || 0) - (parseFloat(saida.value) || 0));
+          nf.updatedAt = new Date().toISOString();
+        }
         writeData('notas_fiscais.json', nfData);
       }
     }

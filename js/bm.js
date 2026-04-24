@@ -26,7 +26,7 @@ window.BM = {
     } catch { return null; }
   },
 
-  async gerar({ contract, saida, nf, nfsAnteriores, nfsContrato }) {
+  async gerar({ contract, saida, nf, nfsAnteriores, nfsContrato, saidasDoDia }) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
@@ -39,8 +39,12 @@ window.BM = {
     const CINZA_CLARO = [235, 235, 235];
     const BRANCO = [255, 255, 255];
 
-    // Cálculos
-    const valor = parseFloat(saida.value) || 0;
+    // Saídas do dia (múltiplas saídas no mesmo BM)
+    const itens = (saidasDoDia && saidasDoDia.length) ? saidasDoDia : [saida];
+    const valorTotal = itens.reduce((s, it) => s + (parseFloat(it.value) || 0), 0);
+
+    // Cálculos (usa o valor da NF como autoridade, pois ela agrega todas as saídas do dia)
+    const valor = nf ? (parseFloat(nf.valor) || 0) : valorTotal;
     const valorAnterior = (nfsAnteriores || []).reduce((s, n) => s + (parseFloat(n.valor) || 0), 0);
     const valorAcumulado = valorAnterior + valor;
     const saldo = Math.max(0, (contract.value || 0) - valorAcumulado);
@@ -49,8 +53,10 @@ window.BM = {
     const pctTotal    = contract.value > 0 ? (valorAcumulado / contract.value) * 100 : 0;
 
     const osNum = contract.contractNumber || contract.id.slice(-6).toUpperCase();
-    const descServico = saida.description || 'Serviço executado';
-    const numBm = saida.numeroBm || nf?.numero || 'BM-001';
+    const descServico = itens.length > 1
+      ? `Serviços executados em ${new Date(saida.date + 'T12:00:00').toLocaleDateString('pt-BR')} (${itens.length} itens)`
+      : (saida.description || 'Serviço executado');
+    const numBm = nf?.numero || saida.numeroBm || 'BM-001';
 
     const pw = doc.internal.pageSize.getWidth();  // 210mm
     const ph = doc.internal.pageSize.getHeight(); // 297mm
@@ -135,14 +141,22 @@ window.BM = {
     doc.text('CONTRATADO NA OS — ORDEM DE SERVIÇO', mgn + 2, y + 4);
     y += 6;
 
+    const linhasItens = itens.map((it, i) => [
+      `1.${i + 1}`,
+      it.description || 'Serviço',
+      'un',
+      this.fmt(it.value || 0),
+      '1,00',
+      this.fmt(it.value || 0)
+    ]);
+
     doc.autoTable({
       startY: y,
       head: [['Item', 'Descrição', 'Unid.', 'Valor Unitário', 'Qtd.', 'Valor Total']],
-      body: [
-        ['1.1', descServico, 'un', this.fmt(valor), '1,00', this.fmt(valor)]
-      ],
+      body: linhasItens,
       foot: [
-        [{ content: 'Subtotal', colSpan: 4, styles: { halign: 'right' } }, '1,00', this.fmt(valor)],
+        [{ content: 'Subtotal', colSpan: 4, styles: { halign: 'right' } },
+         String(itens.length).replace('.', ',') + ',00', this.fmt(valor)],
         [{ content: 'TOTAL CONTRATADO NA OS', colSpan: 5, styles: { halign: 'right', fontStyle: 'bold' } },
          { content: this.fmt(valor), styles: { fontStyle: 'bold' } }]
       ],
@@ -351,7 +365,12 @@ window.BM = {
       const idxEsta = nfsContrato.findIndex(n => n.id === saida.nfId);
       const nfsAnteriores = idxEsta > 0 ? nfsContrato.slice(0, idxEsta) : [];
 
-      await this.gerar({ contract, saida, nf, nfsAnteriores, nfsContrato });
+      // Todas as saídas que caem no MESMO BM (mesma NF)
+      const saidasDoDia = (Store.state.saidas || [])
+        .filter(s => s.nfId === saida.nfId)
+        .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+      await this.gerar({ contract, saida, nf, nfsAnteriores, nfsContrato, saidasDoDia });
     } catch (e) {
       console.error(e);
       alert('Erro ao gerar BM: ' + e.message);
