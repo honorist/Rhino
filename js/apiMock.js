@@ -2779,7 +2779,12 @@ function handleGetDocumentosStatus(res) {
     if (!localStorage.getItem(STORAGE_PREFIX + 'niveis_acesso.json')) {
       writeData('niveis_acesso.json', {
         niveis: [
-          { id: 'nv_admin', nome: 'Administrador', abas: ['*'] }
+          { id: 'nv_admin',    label: 'Administrador', icon: '👑', cor: '#6366F1',
+            abas: ['#/dashboard','#/contratos','#/obras','#/clientes','#/recursos','#/documentos','#/fornecedores','#/caixa','#/contas-pagar','#/notas-fiscais','#/socios','#/investimentos','#/base','#/configuracao'] },
+          { id: 'nv_gerente',  label: 'Gerente',       icon: '💼', cor: '#10B981',
+            abas: ['#/dashboard','#/contratos','#/obras','#/clientes','#/fornecedores','#/caixa','#/notas-fiscais','#/contas-pagar'] },
+          { id: 'nv_operador', label: 'Operador',      icon: '🔧', cor: '#F59E0B',
+            abas: ['#/dashboard','#/contratos','#/obras'] }
         ]
       });
     }

@@ -103,7 +103,7 @@ async function showProfilePicker() {
   overlay.innerHTML = `
     <div style="width:100%;max-width:680px;padding:var(--sp-xl);">
       <div style="text-align:center;margin-bottom:var(--sp-xl);">
-        <img src="/assets/logo.png" alt="Rhino" style="height:56px;margin-bottom:var(--sp-lg);opacity:.9;">
+        <img src="assets/logo.png" alt="Rhino" style="height:56px;margin-bottom:var(--sp-lg);opacity:.9;">
         <h1 style="font-size:22px;font-weight:700;margin:0 0 var(--sp-sm);">Selecione seu perfil</h1>
         <p style="color:var(--color-text-muted);font-size:15px;margin:0;">Escolha o nível de acesso para continuar</p>
       </div>
@@ -357,7 +357,7 @@ function renderSidebar() {
   const html = `
     <div class="sidebar-header">
       <div class="sidebar-logo">
-        <img src="/assets/logo.png" alt="Rhino Manutenções" class="sidebar-logo-img">
+        <img src="assets/logo.png" alt="Rhino Manutenções" class="sidebar-logo-img">
       </div>
     </div>
     <ul class="nav-links">

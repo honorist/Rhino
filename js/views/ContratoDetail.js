@@ -2738,7 +2738,7 @@ window.ContratoDetail = {
         catch { resolve(null); }
       };
       img.onerror = () => resolve(null);
-      img.src = '/assets/logo.png';
+      img.src = 'assets/logo.png';
     });
 
     carregarLogo().then(logo => this._exportarRdoPdfImpl(rdo, contract, logo));
