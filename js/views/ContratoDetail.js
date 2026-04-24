@@ -302,22 +302,32 @@ window.ContratoDetail = {
         ${this._tab === 'financeiro' ? `
         <div class="card mb-2xl">
           <div class="card-header">
-            <div>
-              <h3 class="card-title">Orçamento — Composição de Custo Planejado</h3>
-              <div style="font-size:15px;color:var(--color-text-muted);margin-top:4px;">
-                ${Store.formatBRL(totalOrcado)} de ${Store.formatBRL(contract.value)} orçados
-                ${contract.value > 0 ? `· <strong style="color:${totalOrcado > contract.value ? 'var(--color-danger)' : totalOrcado / contract.value > 0.9 ? 'var(--color-warning)' : 'var(--color-success)'};">${((totalOrcado / contract.value) * 100).toFixed(1)}%</strong>` : ''}
-                ${contract.value > 0 && totalOrcado < contract.value ? `· <span style="color:var(--color-text-muted);">disponível: ${Store.formatBRL(contract.value - totalOrcado)}</span>` : ''}
-                ${totalOrcado > contract.value ? `· <span style="color:var(--color-danger);font-weight:700;">⚠ excedeu em ${Store.formatBRL(totalOrcado - contract.value)}</span>` : ''}
-              </div>
-            </div>
+            <h3 class="card-title">Orçamento — Composição de Custo Planejado</h3>
             <button class="btn btn-primary btn-sm" id="btnNovoItemOrcamento" ${totalOrcado >= contract.value && contract.value > 0 ? 'disabled title="Valor total do contrato já foi orçado"' : ''}>+ Adicionar Item</button>
           </div>
-          ${contract.value > 0 ? `
-            <div style="height:6px;background:var(--color-surface-2);border-radius:99px;overflow:hidden;margin-bottom:var(--sp-lg);">
-              <div style="height:100%;width:${Math.min(100, (totalOrcado / contract.value) * 100)}%;background:${totalOrcado > contract.value ? 'var(--color-danger)' : totalOrcado / contract.value > 0.9 ? 'var(--color-warning)' : 'var(--color-success)'};transition:width .4s;"></div>
-            </div>
-          ` : ''}
+          ${contract.value > 0 ? (() => {
+            const pct = (totalOrcado / contract.value) * 100;
+            const excedeu = totalOrcado > contract.value;
+            const cor = excedeu ? 'var(--color-danger)' : pct > 90 ? 'var(--color-warning)' : 'var(--color-success)';
+            return `
+              <div style="display:grid;grid-template-columns:1fr 200px 1fr;gap:var(--sp-lg);align-items:center;margin-bottom:var(--sp-lg);padding:var(--sp-md);background:var(--color-surface-2);border-radius:8px;">
+                <div>
+                  <div style="font-size:15px;color:var(--color-text-muted);">Orçado</div>
+                  <div style="font-size:18px;font-weight:700;">${Store.formatBRL(totalOrcado)}</div>
+                </div>
+                <div style="text-align:center;">
+                  <div style="font-size:22px;font-weight:800;color:${cor};margin-bottom:4px;">${pct.toFixed(1)}%</div>
+                  <div style="height:8px;background:var(--color-surface);border-radius:99px;overflow:hidden;">
+                    <div style="height:100%;width:${Math.min(100, pct)}%;background:${cor};transition:width .4s;"></div>
+                  </div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:15px;color:var(--color-text-muted);">${excedeu ? 'Excedeu em' : 'Disponível'}</div>
+                  <div style="font-size:18px;font-weight:700;color:${excedeu ? 'var(--color-danger)' : 'var(--color-text)'};">${Store.formatBRL(Math.abs(contract.value - totalOrcado))}</div>
+                </div>
+              </div>
+            `;
+          })() : ''}
 
           ${budget.length === 0 ? `
             <div style="padding:var(--sp-lg);text-align:center;color:var(--color-text-muted);">
