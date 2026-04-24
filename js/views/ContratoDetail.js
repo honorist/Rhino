@@ -399,34 +399,35 @@ window.ContratoDetail = {
               </div>
             </div>
 
-            <!-- Distribuição do Orçamento (pizza) -->
-            <div style="display:grid;grid-template-columns:280px 1fr;gap:var(--sp-xl);align-items:center;margin:var(--sp-lg) 0;padding:var(--sp-lg);background:var(--color-surface-2);border-radius:8px;">
-              <div style="position:relative;height:240px;">
-                <canvas id="chartPizzaOrcamento"></canvas>
-              </div>
+            <!-- Pizza + tabela lado a lado -->
+            <div style="display:grid;grid-template-columns:320px 1fr;gap:var(--sp-xl);align-items:start;">
+              <!-- Gráfico de pizza com legenda abaixo -->
               <div>
                 <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);margin-bottom:var(--sp-sm);">Distribuição por Categoria</div>
-                <div style="display:flex;flex-direction:column;gap:8px;">
-                  ${Object.entries(orcadoPorTipo).filter(([,v]) => v > 0).sort((a,b)=>b[1]-a[1]).map(([tipo, valor]) => {
-                    const cor = TIPOS_COLOR[tipo] || '#9CA3AF';
-                    const pctDoOrc = totalOrcado > 0 ? (valor / totalOrcado) * 100 : 0;
-                    return `
-                      <div style="display:grid;grid-template-columns:16px 1fr auto auto;gap:10px;align-items:center;font-size:15px;">
-                        <div style="width:12px;height:12px;background:${cor};border-radius:3px;"></div>
-                        <div>${TIPOS_LABEL[tipo] || tipo}</div>
-                        <div style="font-weight:600;font-family:'Nunito',sans-serif;">${Store.formatBRL(valor)}</div>
-                        <div style="color:var(--color-text-muted);min-width:44px;text-align:right;">${pctDoOrc.toFixed(1)}%</div>
-                      </div>
-                    `;
-                  }).join('')}
+                <div style="padding:var(--sp-md);background:var(--color-surface-2);border-radius:8px;">
+                  <div style="position:relative;height:220px;margin-bottom:var(--sp-md);">
+                    <canvas id="chartPizzaOrcamento"></canvas>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:6px;">
+                    ${Object.entries(orcadoPorTipo).filter(([,v]) => v > 0).sort((a,b)=>b[1]-a[1]).map(([tipo, valor]) => {
+                      const cor = TIPOS_COLOR[tipo] || '#9CA3AF';
+                      const pctDoOrc = totalOrcado > 0 ? (valor / totalOrcado) * 100 : 0;
+                      return `
+                        <div style="display:grid;grid-template-columns:14px 1fr auto;gap:8px;align-items:center;font-size:15px;">
+                          <div style="width:10px;height:10px;background:${cor};border-radius:2px;"></div>
+                          <div>${TIPOS_LABEL[tipo] || tipo}</div>
+                          <div style="color:var(--color-text-muted);">${pctDoOrc.toFixed(1)}%</div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Itens do orçamento -->
-            <div>
-              <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);margin-bottom:var(--sp-sm);">Itens do Orçamento</div>
-              <div class="table-wrap">
+              <!-- Tabela de itens -->
+              <div>
+                <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);margin-bottom:var(--sp-sm);">Itens do Orçamento</div>
+                <div class="table-wrap">
                 <table>
                   <thead>
                     <tr>
@@ -453,6 +454,7 @@ window.ContratoDetail = {
                     }).join('')}
                   </tbody>
                 </table>
+              </div>
               </div>
             </div>
           `}
