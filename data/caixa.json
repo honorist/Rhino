@@ -26,6 +26,32 @@
       "notes": "NF 555 emitida em 2026-04-23, prazo 4 dias",
       "nfId": "nf_moaq100x70c01488",
       "createdAt": "2026-04-23T00:16:36.578Z"
+    },
+    {
+      "id": "cxa_moavkht43ba55d90",
+      "type": "saida",
+      "description": "Passagem Ida — xxxxx [PIX]",
+      "value": 500,
+      "date": "2026-04-23",
+      "contractId": "ctr_moantqh8cdc71c49",
+      "baseItemId": null,
+      "category": "passagem",
+      "notes": "Pagamento de conta: Passagem Ida — xxxxx",
+      "formaPagamento": "PIX",
+      "contaPagarId": "cp_moatasnx5cd13599",
+      "createdAt": "2026-04-23T02:41:12.232Z"
+    },
+    {
+      "id": "cxa_moavo2b4f6fda5a2",
+      "type": "saida",
+      "description": "Passagem de Ida — Manoel — xxxx",
+      "value": 600,
+      "date": "2026-04-23",
+      "contractId": "ctr_moantqh8cdc71c49",
+      "baseItemId": null,
+      "category": "passagem",
+      "notes": "Passagem Ida folga de Manoel",
+      "createdAt": "2026-04-23T02:43:58.768Z"
     }
   ]
 }

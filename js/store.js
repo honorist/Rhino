@@ -1,3 +1,13 @@
+window.escapeHtml = function(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
 window.Store = {
   state: {
     contracts: [],
@@ -12,6 +22,8 @@ window.Store = {
     fornecedores: [],
     contas_pagar: [],
     niveis_acesso: [],
+    recursos: [],
+    doc_templates: [],
     dashboard: null,
     loading: false,
     error: null
@@ -21,6 +33,9 @@ window.Store = {
 
   subscribe(fn) {
     this.listeners.push(fn);
+    return () => {
+      this.listeners = this.listeners.filter(l => l !== fn);
+    };
   },
 
   notify() {
@@ -40,7 +55,7 @@ window.Store = {
     try {
       this.state.loading = true;
       const safe = fn => fn.catch(() => ({}));
-      const [contracts, caixa, base, socios, investimentos, notas_fiscais, tipos_base, clientes, fornecedores, contas_pagar] = await Promise.all([
+      const [contracts, caixa, base, socios, investimentos, notas_fiscais, tipos_base, clientes, fornecedores, contas_pagar, recursos] = await Promise.all([
         fetch('/api/contracts').then(r => r.json()),
         fetch('/api/caixa').then(r => r.json()),
         fetch('/api/base').then(r => r.json()),
@@ -50,7 +65,8 @@ window.Store = {
         fetch('/api/tipos-base').then(r => r.json()),
         fetch('/api/clientes').then(r => r.json()),
         fetch('/api/fornecedores').then(r => r.json()),
-        safe(fetch('/api/contas-pagar').then(r => r.json()))
+        safe(fetch('/api/contas-pagar').then(r => r.json())),
+        safe(fetch('/api/recursos').then(r => r.json()))
       ]);
 
       this.state.contracts = contracts.contracts || [];
@@ -64,6 +80,7 @@ window.Store = {
       this.state.clientes = clientes.clientes || [];
       this.state.fornecedores = fornecedores.fornecedores || [];
       this.state.contas_pagar = contas_pagar.contas || [];
+      this.state.recursos = recursos.recursos || [];
       this.state.error = null;
       this.notify();
     } catch (e) {
@@ -356,14 +373,14 @@ window.Store = {
 
   getBaseUnallocated() {
     return this.state.base.reduce((sum, item) => {
-      const allocated = item.allocations.reduce((s, a) => s + a.value, 0);
+      const allocated = (item.allocations || []).reduce((s, a) => s + a.value, 0);
       return sum + (item.value - allocated);
     }, 0);
   },
 
   getBaseAllocationsForContract(contractId) {
     return this.state.base.flatMap(item =>
-      item.allocations
+      (item.allocations || [])
         .filter(a => a.contractId === contractId)
         .map(a => ({ ...a, baseDescription: item.description }))
     );
@@ -682,6 +699,95 @@ window.Store = {
     this.state.contracts = r.contracts || []; this.notify(); return r;
   },
 
+  // RDO (Relatório Diário de Obra)
+  async createRdo(contractId, data) {
+    const res = await fetch(`/api/contracts/${contractId}/rdos`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const msg = await res.text();
+      try { throw new Error(JSON.parse(msg).error || msg); } catch { throw new Error(msg); }
+    }
+    const r = await res.json();
+    this.state.contracts = r.contracts || []; this.notify(); return r;
+  },
+  async updateRdo(contractId, rdoId, data) {
+    const res = await fetch(`/api/contracts/${contractId}/rdos/${rdoId}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const msg = await res.text();
+      try { throw new Error(JSON.parse(msg).error || msg); } catch { throw new Error(msg); }
+    }
+    const r = await res.json();
+    this.state.contracts = r.contracts || []; this.notify(); return r;
+  },
+  async deleteRdo(contractId, rdoId) {
+    const res = await fetch(`/api/contracts/${contractId}/rdos/${rdoId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this.state.contracts = r.contracts || []; this.notify(); return r;
+  },
+  async uploadRdoFoto(contractId, rdoId, files, legenda) {
+    const form = new FormData();
+    if (legenda) form.append('legenda', legenda);
+    for (const f of files) form.append('arquivo', f, f.name);
+    const res = await fetch(`/api/contracts/${contractId}/rdos/${rdoId}/fotos`, {
+      method: 'POST', body: form
+    });
+    if (!res.ok) {
+      const msg = await res.text();
+      try { throw new Error(JSON.parse(msg).error || msg); } catch { throw new Error(msg); }
+    }
+    const r = await res.json();
+    this.state.contracts = r.contracts || []; this.notify(); return r;
+  },
+  async deleteRdoFoto(contractId, rdoId, fotoId) {
+    const res = await fetch(`/api/contracts/${contractId}/rdos/${rdoId}/fotos/${fotoId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this.state.contracts = r.contracts || []; this.notify(); return r;
+  },
+
+  // Organograma (Equipe por Contrato)
+  async createMembroOrganograma(contractId, data) {
+    const res = await fetch(`/api/contracts/${contractId}/organograma`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const msg = await res.text();
+      try { throw new Error(JSON.parse(msg).error || msg); } catch { throw new Error(msg); }
+    }
+    const r = await res.json();
+    this.state.contracts = r.contracts || []; this.notify(); return r;
+  },
+  async updateMembroOrganograma(contractId, membroId, data) {
+    const res = await fetch(`/api/contracts/${contractId}/organograma/${membroId}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const msg = await res.text();
+      try { throw new Error(JSON.parse(msg).error || msg); } catch { throw new Error(msg); }
+    }
+    const r = await res.json();
+    this.state.contracts = r.contracts || []; this.notify(); return r;
+  },
+  async deleteMembroOrganograma(contractId, membroId, opts) {
+    const qs = opts ? ('?' + new URLSearchParams(opts).toString()) : '';
+    const res = await fetch(`/api/contracts/${contractId}/organograma/${membroId}${qs}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const msg = await res.text();
+      let err;
+      try { err = JSON.parse(msg); } catch { err = { error: msg }; }
+      const e = new Error(err.error || msg);
+      e.status = res.status;
+      e.body = err;
+      throw e;
+    }
+    const r = await res.json();
+    this.state.contracts = r.contracts || []; this.notify(); return r;
+  },
+
   // Clientes
   async createCliente(data) {
     const res = await fetch('/api/clientes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
@@ -766,6 +872,92 @@ window.Store = {
     return r;
   },
 
+  // Recursos
+  async addFolga(recursoId, data) {
+    const res = await fetch(`/api/recursos/${recursoId}/folgas`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this.state.recursos = r.recursos || []; this.notify(); return r;
+  },
+  async deleteFolga(recursoId, folgaId) {
+    const res = await fetch(`/api/recursos/${recursoId}/folgas/${folgaId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this.state.recursos = r.recursos || []; this.notify(); return r;
+  },
+  async comprarPassagem(recursoId, folgaId, tipo, data) {
+    const res = await fetch(`/api/recursos/${recursoId}/folgas/${folgaId}/passagem`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipo, ...data }) });
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this.state.recursos = r.recursos || [];
+    if (r.caixa)       this.state.caixa        = r.caixa.entries || [];
+    if (r.contas_pagar) this.state.contas_pagar = r.contas_pagar.contas || [];
+    this.notify(); return r;
+  },
+  async createRecurso(data) {
+    const res = await fetch('/api/recursos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this.state.recursos = r.recursos || []; this.notify(); return r;
+  },
+  async updateRecurso(id, data) {
+    const res = await fetch(`/api/recursos/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this.state.recursos = r.recursos || []; this.notify(); return r;
+  },
+  async deleteRecurso(id) {
+    const res = await fetch(`/api/recursos/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this.state.recursos = r.recursos || []; this.notify(); return r;
+  },
+
+  // Documentos de colaboradores
+  async addDocumento(recursoId, data) {
+    const res = await fetch(`/api/recursos/${recursoId}/documentos`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this.state.recursos = r.recursos || []; this.notify(); return r;
+  },
+  async updateDocumento(recursoId, docId, data) {
+    const res = await fetch(`/api/recursos/${recursoId}/documentos/${docId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this.state.recursos = r.recursos || []; this.notify(); return r;
+  },
+  async deleteDocumento(recursoId, docId) {
+    const res = await fetch(`/api/recursos/${recursoId}/documentos/${docId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this.state.recursos = r.recursos || []; this.notify(); return r;
+  },
+
+  // Templates de documentação
+  async loadDocTemplates() {
+    const r = await fetch('/api/doc-templates').then(res => res.json());
+    this.state.doc_templates = r.templates || [];
+    this.notify(); return r;
+  },
+  async createDocTemplate(data) {
+    const res = await fetch('/api/doc-templates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this.state.doc_templates = r.templates || []; this.notify(); return r;
+  },
+  async updateDocTemplate(id, data) {
+    const res = await fetch(`/api/doc-templates/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this.state.doc_templates = r.templates || []; this.notify(); return r;
+  },
+  async deleteDocTemplate(id) {
+    const res = await fetch(`/api/doc-templates/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this.state.doc_templates = r.templates || []; this.notify(); return r;
+  },
+
   async updateNivelAcesso(id, abas) {
     const res = await fetch(`/api/niveis-acesso/${id}`, {
       method: 'PUT',
@@ -819,7 +1011,9 @@ window.showToast = function(message, type = 'success') {
 
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
-  toast.innerHTML = `<span>${message}</span>`;
+  const span = document.createElement('span');
+  span.textContent = message;
+  toast.appendChild(span);
   container.appendChild(toast);
 
   setTimeout(() => {

@@ -8,6 +8,7 @@ window.Configuracao = {
     try {
       await Store.loadAll();
       await Store.loadNiveisAcesso();
+      await Store.loadDocTemplates();
 
       const html = `
         <div class="page-header">
@@ -22,12 +23,14 @@ window.Configuracao = {
           <nav class="card" style="padding:var(--sp-sm);position:sticky;top:var(--sp-md);">
             ${this.renderMenuItem('tipos_custo', '🏷️', 'Tipos de Custo')}
             ${this.renderMenuItem('niveis_acesso', '🔐', 'Níveis de Acesso')}
+            ${this.renderMenuItem('doc_templates', '📋', 'Templates de Docs')}
           </nav>
 
           <!-- Conteúdo da seção -->
           <div id="configContent">
-            ${this.currentSection === 'tipos_custo' ? this.renderTiposCusto() : ''}
-            ${this.currentSection === 'niveis_acesso' ? this.renderNiveisAcesso() : ''}
+            ${this.currentSection === 'tipos_custo'    ? this.renderTiposCusto() : ''}
+            ${this.currentSection === 'niveis_acesso'  ? this.renderNiveisAcesso() : ''}
+            ${this.currentSection === 'doc_templates'  ? this.renderDocTemplates() : ''}
           </div>
         </div>
       `;
@@ -43,14 +46,15 @@ window.Configuracao = {
 
       this.attachListeners();
     } catch (e) {
-      app.innerHTML = `<div class="card"><p class="text-danger">Erro: ${e.message}</p></div>`;
+      console.error(e);
+      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar configurações. Tente novamente.</p></div>';
     }
   },
 
   renderMenuItem(key, icon, label) {
     const active = this.currentSection === key;
     return `
-      <button class="config-menu-item" data-section="${key}" style="display:flex;align-items:center;gap:var(--sp-sm);width:100%;padding:var(--sp-sm) var(--sp-md);border:none;background:${active ? 'var(--color-primary)' : 'transparent'};color:${active ? '#fff' : 'var(--color-text)'};border-radius:6px;cursor:pointer;font-size:14px;font-weight:${active ? '600' : '500'};text-align:left;">
+      <button class="config-menu-item" data-section="${key}" style="display:flex;align-items:center;gap:var(--sp-sm);width:100%;padding:var(--sp-sm) var(--sp-md);border:none;background:${active ? 'var(--color-primary)' : 'transparent'};color:${active ? '#fff' : 'var(--color-text)'};border-radius:6px;cursor:pointer;font-size:15px;font-weight:${active ? '600' : '500'};text-align:left;">
         <span style="font-size:16px;">${icon}</span>
         <span>${label}</span>
       </button>
@@ -74,7 +78,7 @@ window.Configuracao = {
       </div>
 
       <div class="card mb-2xl" style="background:rgba(49,130,206,.05);border-left:4px solid var(--color-info);">
-        <div style="font-size:13px;">
+        <div style="font-size:15px;">
           <strong>ℹ️ Sobre tipos de custo:</strong> Use esta área para cadastrar as categorias de custos que seu negócio utiliza.
           Elas aparecem nos formulários de <strong>BASE</strong> e <strong>Aportes</strong>.
           Tipos do <strong>sistema</strong> não podem ser excluídos. Customizados só podem ser excluídos se não estiverem em uso.
@@ -84,7 +88,7 @@ window.Configuracao = {
       <div class="card">
         <div class="card-header">
           <h3 class="card-title">Tipos Cadastrados</h3>
-          <span style="font-size:12px;color:var(--color-text-muted);">${tipos.length} tipo${tipos.length !== 1 ? 's' : ''}</span>
+          <span style="font-size:15px;color:var(--color-text-muted);">${tipos.length} tipo${tipos.length !== 1 ? 's' : ''}</span>
         </div>
         <div class="table-wrap">
           <table>
@@ -106,11 +110,11 @@ window.Configuracao = {
                   <tr>
                     <td style="font-size:22px;">${t.icon}</td>
                     <td><strong>${t.label}</strong></td>
-                    <td><code style="font-size:11px;background:var(--color-bg);padding:2px 6px;border-radius:3px;">${t.key}</code></td>
+                    <td><code style="font-size:15px;background:var(--color-bg);padding:2px 6px;border-radius:3px;">${t.key}</code></td>
                     <td>
                       <div style="display:flex;align-items:center;gap:var(--sp-sm);">
                         <div style="width:22px;height:22px;border-radius:4px;background:${t.cor};border:1px solid var(--color-border);"></div>
-                        <span style="font-size:11px;color:var(--color-text-muted);font-family:monospace;">${t.cor}</span>
+                        <span style="font-size:15px;color:var(--color-text-muted);font-family:monospace;">${t.cor}</span>
                       </div>
                     </td>
                     <td>
@@ -165,7 +169,7 @@ window.Configuracao = {
       </div>
 
       <div class="card mb-2xl" style="background:rgba(49,130,206,.05);border-left:4px solid var(--color-info);">
-        <div style="font-size:13px;">
+        <div style="font-size:15px;">
           <strong>ℹ️ Como funciona:</strong> Marque as abas que cada nível pode acessar. Salve cada perfil separadamente.
           Esta configuração define o menu lateral visível para cada tipo de usuário.
         </div>
@@ -179,7 +183,7 @@ window.Configuracao = {
                 <span style="font-size:24px;">${nivel.icon}</span>
                 <div>
                   <h3 style="margin:0;font-size:16px;font-weight:700;color:${nivel.cor};">${nivel.label}</h3>
-                  <div style="font-size:11px;color:var(--color-text-muted);">
+                  <div style="font-size:15px;color:var(--color-text-muted);">
                     ${(nivel.abas || []).length} aba${(nivel.abas || []).length !== 1 ? 's' : ''} habilitada${(nivel.abas || []).length !== 1 ? 's' : ''}
                   </div>
                 </div>
@@ -191,7 +195,7 @@ window.Configuracao = {
                 const abasGrupo = todasAbas.filter(a => a.grupo === grupo);
                 return `
                   <div style="margin-bottom:var(--sp-sm);">
-                    <div style="font-size:10px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.06em;padding:var(--sp-xs) 0;border-bottom:1px solid var(--color-border);margin-bottom:var(--sp-xs);">${grupo}</div>
+                    <div style="font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.06em;padding:var(--sp-xs) 0;border-bottom:1px solid var(--color-border);margin-bottom:var(--sp-xs);">${grupo}</div>
                     ${abasGrupo.map(aba => {
                       const checked = (nivel.abas || []).includes(aba.route);
                       return `
@@ -202,8 +206,8 @@ window.Configuracao = {
                                  data-nivel="${nivel.id}" data-route="${aba.route}"
                                  ${checked ? 'checked' : ''}
                                  style="width:15px;height:15px;accent-color:${nivel.cor};cursor:pointer;">
-                          <span style="font-size:13px;color:var(--color-text-muted);min-width:20px;">${aba.icon}</span>
-                          <span style="font-size:13px;font-weight:${checked ? '600' : '400'};color:${checked ? 'var(--color-text)' : 'var(--color-text-muted)'};">${aba.label}</span>
+                          <span style="font-size:15px;color:var(--color-text-muted);min-width:20px;">${aba.icon}</span>
+                          <span style="font-size:15px;font-weight:${checked ? '600' : '400'};color:${checked ? 'var(--color-text)' : 'var(--color-text-muted)'};">${aba.label}</span>
                         </label>
                       `;
                     }).join('')}
@@ -258,6 +262,8 @@ window.Configuracao = {
     document.querySelectorAll('.btn-excluir-tipo').forEach(btn => {
       btn.addEventListener('click', e => this.deleteTipo(e.target.dataset.id));
     });
+
+    if (this.currentSection === 'doc_templates') this.attachDocTemplateListeners();
   },
 
   showModalTipo(tipoId) {
@@ -302,7 +308,7 @@ window.Configuracao = {
             </div>
 
             <div style="margin-top:var(--sp-lg);padding:var(--sp-md);background:var(--color-bg);border-radius:6px;">
-              <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:var(--sp-sm);">Preview</div>
+              <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:var(--sp-sm);">Preview</div>
               <div style="display:flex;align-items:center;gap:var(--sp-sm);">
                 <span id="prevIcon" style="font-size:24px;">${tipo?.icon || '🔹'}</span>
                 <span id="prevBadge" class="badge" style="background:${tipo?.cor || '#718096'}22;color:${tipo?.cor || '#718096'};">
@@ -380,6 +386,234 @@ window.Configuracao = {
     try {
       await Store.deleteTipoBase(id);
       window.showToast('Tipo excluído', 'success');
+      this.render();
+    } catch (e) { window.showToast(e.message, 'error'); }
+  },
+
+  // ── TEMPLATES DE DOCUMENTAÇÃO ──────────────────────────────────────────────
+  TIPOS_DOC_TPL: [
+    { key: 'ASO',     label: 'ASO — Atestado de Saúde Ocupacional' },
+    { key: 'PGR',     label: 'PGR — Prog. Gerenciamento de Riscos' },
+    { key: 'PCMSO',   label: 'PCMSO — Prog. Controle Médico de Saúde' },
+    { key: 'NR10',    label: 'NR-10 — Segurança em Eletricidade' },
+    { key: 'NR12',    label: 'NR-12 — Segurança em Máquinas' },
+    { key: 'NR18',    label: 'NR-18 — Construção Civil' },
+    { key: 'NR20',    label: 'NR-20 — Líquidos Combustíveis' },
+    { key: 'NR33',    label: 'NR-33 — Espaço Confinado' },
+    { key: 'NR35',    label: 'NR-35 — Trabalho em Altura' },
+    { key: 'CIPA',    label: 'CIPA — Comissão Interna de Prevenção' },
+    { key: 'BRIGADA', label: 'Brigada de Incêndio' },
+    { key: 'CNH',     label: 'CNH — Habilitação' },
+    { key: 'OUTRO',   label: 'Outro' },
+  ],
+
+  renderDocTemplates() {
+    const templates = Store.state.doc_templates || [];
+    const contratos = (Store.state.contracts || []).filter(c => c.status === 'ativo');
+
+    const rows = templates.length === 0
+      ? `<tr><td colspan="5" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum template cadastrado</td></tr>`
+      : templates.map(t => {
+          const contrato = contratos.find(c => c.id === t.empresaId);
+          const tipoLabel = this.TIPOS_DOC_TPL.find(x => x.key === t.tipoDocumento)?.label || t.tipoDocumento || '—';
+          return `<tr>
+            <td><strong>${escapeHtml(t.nome)}</strong></td>
+            <td style="font-size:15px;">${escapeHtml(tipoLabel)}</td>
+            <td style="font-size:15px;">${contrato ? escapeHtml(contrato.name) : '<span style="color:var(--color-text-muted);">Todos</span>'}</td>
+            <td style="font-size:15px;">${t.periodicidadeMeses || 12} meses</td>
+            <td>
+              <div class="actions-cell">
+                <a class="action-link btn-edit-tpl" data-id="${t.id}">Editar</a>
+                <a class="action-link danger btn-del-tpl" data-id="${t.id}">Excluir</a>
+              </div>
+            </td>
+          </tr>`;
+        }).join('');
+
+    return `
+      <div class="page-header" style="margin-bottom:var(--sp-lg);">
+        <div>
+          <h2 style="font-size:20px;font-weight:700;margin:0;">📋 Templates de Documentação</h2>
+          <p class="page-subtitle">Checklists de validação por tipo de documento e empresa</p>
+        </div>
+        <button class="btn btn-primary" id="btnNovoTemplate">+ Novo Template</button>
+      </div>
+
+      <div class="card mb-2xl" style="background:rgba(49,130,206,.05);border-left:4px solid var(--color-info);">
+        <div style="font-size:15px;">
+          <strong>ℹ️ Sobre templates:</strong> Templates definem quais campos são obrigatórios em cada tipo de documento para uma empresa específica.
+          Quando a validação com IA estiver ativa, esses checklists serão usados para verificar a conformidade automaticamente.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Templates Cadastrados</h3>
+          <span style="font-size:15px;color:var(--color-text-muted);">${templates.length} template${templates.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Tipo de Documento</th>
+                <th>Empresa / Contrato</th>
+                <th>Periodicidade</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  },
+
+  attachDocTemplateListeners() {
+    const btnNovo = document.getElementById('btnNovoTemplate');
+    if (btnNovo) btnNovo.addEventListener('click', () => this.showModalTemplate(null));
+    document.querySelectorAll('.btn-edit-tpl').forEach(b =>
+      b.addEventListener('click', e => this.showModalTemplate(e.target.dataset.id)));
+    document.querySelectorAll('.btn-del-tpl').forEach(b =>
+      b.addEventListener('click', e => this.deleteTemplate(e.target.dataset.id)));
+  },
+
+  showModalTemplate(templateId) {
+    const t = templateId ? (Store.state.doc_templates || []).find(x => x.id === templateId) : null;
+    const contratos = (Store.state.contracts || []).filter(c => c.status === 'ativo');
+    const checklist = t ? (t.checklist || []) : [];
+
+    const tiposOptions = this.TIPOS_DOC_TPL.map(x =>
+      `<option value="${x.key}" ${t?.tipoDocumento === x.key ? 'selected' : ''}>${x.label}</option>`
+    ).join('');
+    const contratosOptions = contratos.map(c =>
+      `<option value="${c.id}" ${t?.empresaId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`
+    ).join('');
+
+    const renderChecklist = (items) => items.map((item, i) => `
+      <div class="checklist-item" data-index="${i}" style="display:flex;gap:var(--sp-sm);align-items:center;margin-bottom:var(--sp-sm);">
+        <input class="form-control" style="flex:1;" value="${escapeHtml(item.campo || '')}" placeholder="Campo obrigatório..." data-field="campo">
+        <label style="display:flex;align-items:center;gap:4px;white-space:nowrap;font-size:15px;cursor:pointer;">
+          <input type="checkbox" ${item.obrigatorio ? 'checked' : ''} data-field="obrigatorio"> Obrigatório
+        </label>
+        <button type="button" class="btn btn-sm btn-ghost btn-rm-item" data-index="${i}" style="padding:2px 8px;color:#DC2626;">✕</button>
+      </div>
+    `).join('');
+
+    const html = `
+      <div class="modal-overlay" id="modalTplOverlay">
+        <div class="modal" style="width:600px;max-height:90vh;overflow-y:auto;">
+          <div class="modal-header">
+            <h2 class="modal-title">${t ? 'Editar Template' : 'Novo Template'}</h2>
+            <button class="modal-close">✕</button>
+          </div>
+          <form id="formTemplate" class="modal-content">
+
+            <div class="form-group">
+              <label class="form-label">Nome do Template *</label>
+              <input class="form-control" name="nome" value="${escapeHtml(t?.nome || '')}" placeholder="Ex: ASO Padrão CMPC" required>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Tipo de Documento *</label>
+                <select class="form-control" name="tipoDocumento" required>
+                  <option value="">— Selecione —</option>
+                  ${tiposOptions}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Periodicidade (meses)</label>
+                <input class="form-control" name="periodicidadeMeses" type="number" min="1" max="120" value="${t?.periodicidadeMeses || 12}">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Empresa / Contrato (opcional)</label>
+              <select class="form-control" name="empresaId">
+                <option value="">Todos os contratos</option>
+                ${contratosOptions}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>Checklist de Campos Obrigatórios</span>
+                <button type="button" class="btn btn-sm btn-ghost" id="btnAddItem">+ Adicionar Campo</button>
+              </label>
+              <div id="checklistContainer">
+                ${renderChecklist(checklist)}
+              </div>
+              ${checklist.length === 0 ? `<p style="font-size:15px;color:var(--color-text-muted);">Nenhum campo adicionado. Clique em "+ Adicionar Campo" para inserir itens do checklist.</p>` : ''}
+            </div>
+
+            <div style="display:flex;gap:var(--sp-sm);justify-content:flex-end;margin-top:var(--sp-lg);">
+              <button type="button" class="btn btn-ghost" id="btnCancelarTpl">Cancelar</button>
+              <button type="submit" class="btn btn-primary">${t ? 'Salvar Alterações' : 'Criar Template'}</button>
+            </div>
+          </form>
+        </div>
+      </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalTplOverlay');
+    const container = document.getElementById('checklistContainer');
+    let items = [...checklist];
+
+    const refreshChecklist = () => {
+      container.innerHTML = renderChecklist(items);
+      container.querySelectorAll('.btn-rm-item').forEach(b =>
+        b.addEventListener('click', e => {
+          items.splice(parseInt(e.target.dataset.index), 1);
+          refreshChecklist();
+        }));
+    };
+
+    refreshChecklist();
+
+    document.getElementById('btnAddItem').addEventListener('click', () => {
+      items.push({ campo: '', obrigatorio: true });
+      refreshChecklist();
+    });
+
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnCancelarTpl').addEventListener('click', close);
+
+    document.getElementById('formTemplate').addEventListener('submit', async e => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+
+      const checklistAtual = [];
+      container.querySelectorAll('.checklist-item').forEach(row => {
+        const campo = row.querySelector('[data-field="campo"]').value.trim();
+        const obrigatorio = row.querySelector('[data-field="obrigatorio"]').checked;
+        if (campo) checklistAtual.push({ campo, obrigatorio });
+      });
+
+      const payload = {
+        nome:               fd.get('nome'),
+        tipoDocumento:      fd.get('tipoDocumento'),
+        empresaId:          fd.get('empresaId') || null,
+        periodicidadeMeses: parseInt(fd.get('periodicidadeMeses')) || 12,
+        checklist:          checklistAtual,
+      };
+
+      try {
+        if (t) await Store.updateDocTemplate(templateId, payload);
+        else await Store.createDocTemplate(payload);
+        window.showToast(t ? 'Template atualizado' : 'Template criado', 'success');
+        close();
+        this.render();
+      } catch (err) { window.showToast(err.message, 'error'); }
+    });
+  },
+
+  async deleteTemplate(id) {
+    if (!confirm('Excluir este template?')) return;
+    try {
+      await Store.deleteDocTemplate(id);
+      window.showToast('Template excluído', 'success');
       this.render();
     } catch (e) { window.showToast(e.message, 'error'); }
   }

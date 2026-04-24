@@ -71,6 +71,9 @@ window.Dashboard = {
           </a>
         </div>
 
+        <!-- Contas a Receber / Contas a Pagar (estilo Akaunting) -->
+        ${this.renderReceivablesPayables()}
+
         <!-- Alertas -->
         ${this.renderAlertas(dash)}
 
@@ -81,14 +84,14 @@ window.Dashboard = {
             <div style="display:flex;align-items:center;gap:var(--sp-lg);">
               <div style="display:flex;align-items:center;gap:6px;">
                 <div style="width:24px;height:3px;background:#F0B429;border-radius:2px;"></div>
-                <span style="font-size:11px;color:var(--color-text-muted);">Realizado</span>
+                <span style="font-size:15px;color:var(--color-text-muted);">Realizado</span>
               </div>
               ${this.periodo.modo === 'recente' ? `
               <div style="display:flex;align-items:center;gap:6px;">
                 <div style="width:24px;height:3px;background:#60A5FA;border-radius:2px;border-top:2px dashed #60A5FA;"></div>
-                <span style="font-size:11px;color:var(--color-text-muted);">Projetado (NFs)</span>
+                <span style="font-size:15px;color:var(--color-text-muted);">Projetado (NFs)</span>
               </div>` : ''}
-              <span style="font-weight:700;color:${saudeScore.color};font-size:13px;">${saudeScore.label}</span>
+              <span style="font-weight:700;color:${saudeScore.color};font-size:15px;">${saudeScore.label}</span>
             </div>
           </div>
           <div style="position:relative;height:300px;margin-bottom:var(--sp-lg);">
@@ -96,39 +99,39 @@ window.Dashboard = {
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--sp-lg);padding-top:var(--sp-lg);border-top:1px solid var(--color-border);">
             <div>
-              <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--sp-sm);">Saldo Atual</div>
+              <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--sp-sm);">Saldo Atual</div>
               <div style="font-size:22px;font-weight:700;color:${dash.caixaBalance >= 0 ? 'var(--color-success)' : 'var(--color-danger)'}">
                 ${Store.formatBRL(dash.caixaBalance)}
               </div>
-              <div style="font-size:12px;color:var(--color-text-muted);margin-top:4px;">Caixa hoje</div>
+              <div style="font-size:15px;color:var(--color-text-muted);margin-top:4px;">Caixa hoje</div>
             </div>
             <div>
-              <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--sp-sm);">Entradas Previstas</div>
+              <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--sp-sm);">Entradas Previstas</div>
               <div style="font-size:22px;font-weight:700;color:var(--color-info)">
                 +${Store.formatBRL(dash.projecaoFutura.reduce((s, p) => s + p.totalEntradas, 0))}
               </div>
-              <div style="font-size:12px;color:var(--color-text-muted);margin-top:4px;">Via NFs (próx. 90 dias)</div>
+              <div style="font-size:15px;color:var(--color-text-muted);margin-top:4px;">Via NFs (próx. 90 dias)</div>
             </div>
             <div>
-              <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--sp-sm);">Saídas Previstas</div>
+              <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--sp-sm);">Saídas Previstas</div>
               <div style="font-size:22px;font-weight:700;color:${dash.contasPagarStatus?.totalPendente > 0 ? 'var(--color-danger)' : 'var(--color-text-muted)'}">
                 -${Store.formatBRL(dash.contasPagarStatus?.totalPendente || 0)}
               </div>
-              <div style="font-size:12px;color:var(--color-text-muted);margin-top:4px;">${dash.contasPagarStatus?.pendentes || 0} conta(s) a pagar pendente(s)</div>
+              <div style="font-size:15px;color:var(--color-text-muted);margin-top:4px;">${dash.contasPagarStatus?.pendentes || 0} conta(s) a pagar pendente(s)</div>
             </div>
             <div>
-              <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--sp-sm);">Margem Média</div>
+              <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--sp-sm);">Margem Média</div>
               <div style="font-size:22px;font-weight:700;color:${parseFloat(marginMedia) > 30 ? 'var(--color-success)' : parseFloat(marginMedia) > 10 ? 'var(--color-warning)' : 'var(--color-danger)'}">
                 ${marginMedia}%
               </div>
-              <div style="font-size:12px;color:var(--color-text-muted);margin-top:4px;">Lucro esperado médio</div>
+              <div style="font-size:15px;color:var(--color-text-muted);margin-top:4px;">Lucro esperado médio</div>
             </div>
             <div>
-              <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--sp-sm);">Taxa de Despesa</div>
+              <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--sp-sm);">Taxa de Despesa</div>
               <div style="font-size:22px;font-weight:700;color:${parseFloat(taxaDespesa) > 80 ? 'var(--color-danger)' : parseFloat(taxaDespesa) > 60 ? 'var(--color-warning)' : 'var(--color-success)'}">
                 ${taxaDespesa}%
               </div>
-              <div style="font-size:12px;color:var(--color-text-muted);margin-top:4px;">Saídas ÷ Faturamento</div>
+              <div style="font-size:15px;color:var(--color-text-muted);margin-top:4px;">Saídas ÷ Faturamento</div>
             </div>
           </div>
         </div>
@@ -159,10 +162,10 @@ window.Dashboard = {
                       <tr>
                         <td>
                           <strong style="color:${urgCor};">${new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR')}</strong>
-                          <div style="font-size:11px;color:var(--color-text-muted);">em ${diasAte} dias</div>
+                          <div style="font-size:15px;color:var(--color-text-muted);">em ${diasAte} dias</div>
                         </td>
-                        <td><strong>NF ${e.numero}</strong></td>
-                        <td>${contract?.name || '—'}<div style="font-size:11px;color:var(--color-text-muted);">${contract?.client || ''}</div></td>
+                        <td><strong>NF ${escapeHtml(e.numero)}</strong></td>
+                        <td>${escapeHtml(contract?.name || '—')}<div style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(contract?.client || '')}</div></td>
                         <td>${e.prazoRecebimento}d após emissão</td>
                         <td style="text-align:right;font-weight:700;color:var(--color-success);font-size:15px;">
                           +${Store.formatBRL(e.valor)}
@@ -180,24 +183,24 @@ window.Dashboard = {
         <div class="card mb-2xl">
           <div class="card-header">
             <h3 class="card-title">Notas Fiscais — Situação</h3>
-            <a href="#/notas-fiscais" style="color:var(--color-primary); text-decoration:none; font-size:13px; font-weight:600;">Ver todas →</a>
+            <a href="#/notas-fiscais" style="color:var(--color-primary); text-decoration:none; font-size:15px; font-weight:600;">Ver todas →</a>
           </div>
           <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-md);">
             <div style="text-align:center; padding:var(--sp-lg); background:rgba(229,62,62,.08); border-radius:8px; border:1px solid rgba(229,62,62,.2);">
               <div style="font-size:28px; font-weight:800; color:var(--color-danger);">${dash.nfsStatus.vencidas}</div>
-              <div style="font-size:11px; color:var(--color-danger); font-weight:600; margin-top:4px;">🔴 VENCIDAS</div>
+              <div style="font-size:15px; color:var(--color-danger); font-weight:600; margin-top:4px;">🔴 VENCIDAS</div>
             </div>
             <div style="text-align:center; padding:var(--sp-lg); background:rgba(214,158,46,.08); border-radius:8px; border:1px solid rgba(214,158,46,.2);">
               <div style="font-size:28px; font-weight:800; color:var(--color-warning);">${dash.nfsStatus.proximasVencer}</div>
-              <div style="font-size:11px; color:var(--color-warning); font-weight:600; margin-top:4px;">⚠️ PRÓX. 7 DIAS</div>
+              <div style="font-size:15px; color:var(--color-warning); font-weight:600; margin-top:4px;">⚠️ PRÓX. 7 DIAS</div>
             </div>
             <div style="text-align:center; padding:var(--sp-lg); background:rgba(56,161,105,.08); border-radius:8px; border:1px solid rgba(56,161,105,.2);">
               <div style="font-size:28px; font-weight:800; color:var(--color-success);">${dash.nfsStatus.noPrazo}</div>
-              <div style="font-size:11px; color:var(--color-success); font-weight:600; margin-top:4px;">🟢 NO PRAZO</div>
+              <div style="font-size:15px; color:var(--color-success); font-weight:600; margin-top:4px;">🟢 NO PRAZO</div>
             </div>
             <div style="text-align:center; padding:var(--sp-lg); background:rgba(49,130,206,.08); border-radius:8px; border:1px solid rgba(49,130,206,.2);">
               <div style="font-size:28px; font-weight:800; color:var(--color-info);">${dash.nfsStatus.emitidas || 0}</div>
-              <div style="font-size:11px; color:var(--color-info); font-weight:600; margin-top:4px;">📤 EMITIDAS</div>
+              <div style="font-size:15px; color:var(--color-info); font-weight:600; margin-top:4px;">📤 EMITIDAS</div>
             </div>
           </div>
         </div>
@@ -206,24 +209,24 @@ window.Dashboard = {
         <div class="card mb-2xl">
           <div class="card-header">
             <h3 class="card-title">Contas a Pagar — Situação</h3>
-            <a href="#/contas-pagar" style="color:var(--color-primary); text-decoration:none; font-size:13px; font-weight:600;">Ver todas →</a>
+            <a href="#/contas-pagar" style="color:var(--color-primary); text-decoration:none; font-size:15px; font-weight:600;">Ver todas →</a>
           </div>
           <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-md);">
             <div style="text-align:center; padding:var(--sp-lg); background:rgba(229,62,62,.08); border-radius:8px; border:1px solid rgba(229,62,62,.2);">
               <div style="font-size:28px; font-weight:800; color:var(--color-danger);">${dash.contasPagarStatus?.vencidas || 0}</div>
-              <div style="font-size:11px; color:var(--color-danger); font-weight:600; margin-top:4px;">🔴 VENCIDAS</div>
+              <div style="font-size:15px; color:var(--color-danger); font-weight:600; margin-top:4px;">🔴 VENCIDAS</div>
             </div>
             <div style="text-align:center; padding:var(--sp-lg); background:rgba(214,158,46,.08); border-radius:8px; border:1px solid rgba(214,158,46,.2);">
               <div style="font-size:28px; font-weight:800; color:var(--color-warning);">${dash.contasPagarStatus?.proximasVencer || 0}</div>
-              <div style="font-size:11px; color:var(--color-warning); font-weight:600; margin-top:4px;">⚠️ PRÓX. 7 DIAS</div>
+              <div style="font-size:15px; color:var(--color-warning); font-weight:600; margin-top:4px;">⚠️ PRÓX. 7 DIAS</div>
             </div>
             <div style="text-align:center; padding:var(--sp-lg); background:rgba(56,161,105,.08); border-radius:8px; border:1px solid rgba(56,161,105,.2);">
               <div style="font-size:28px; font-weight:800; color:var(--color-success);">${(dash.contasPagarStatus?.pendentes || 0) - (dash.contasPagarStatus?.vencidas || 0) - (dash.contasPagarStatus?.proximasVencer || 0)}</div>
-              <div style="font-size:11px; color:var(--color-success); font-weight:600; margin-top:4px;">🟢 NO PRAZO</div>
+              <div style="font-size:15px; color:var(--color-success); font-weight:600; margin-top:4px;">🟢 NO PRAZO</div>
             </div>
             <div style="text-align:center; padding:var(--sp-lg); background:rgba(229,62,62,.05); border-radius:8px; border:1px solid rgba(229,62,62,.15);">
               <div style="font-size:20px; font-weight:800; color:var(--color-danger);">${Store.formatBRL(dash.contasPagarStatus?.totalPendente || 0)}</div>
-              <div style="font-size:11px; color:var(--color-danger); font-weight:600; margin-top:4px;">💸 TOTAL PENDENTE</div>
+              <div style="font-size:15px; color:var(--color-danger); font-weight:600; margin-top:4px;">💸 TOTAL PENDENTE</div>
             </div>
           </div>
         </div>
@@ -241,12 +244,12 @@ window.Dashboard = {
                 ${dash.contratosAVencer.map(c => `
                   <div style="display:flex; justify-content:space-between; align-items:center; padding:var(--sp-md); background:${c.diasRestantes <= 7 ? 'rgba(229,62,62,.06)' : 'rgba(214,158,46,.06)'}; border-radius:6px; border-left:3px solid ${c.diasRestantes <= 7 ? 'var(--color-danger)' : 'var(--color-warning)'};">
                     <div>
-                      <a href="#/contratos/${c.id}" style="font-weight:600; color:var(--color-primary); text-decoration:none;">${c.name}</a>
-                      <div style="font-size:12px; color:var(--color-text-muted);">${c.client}</div>
+                      <a href="#/contratos/${c.id}" style="font-weight:600; color:var(--color-primary); text-decoration:none;">${escapeHtml(c.name)}</a>
+                      <div style="font-size:15px; color:var(--color-text-muted);">${escapeHtml(c.client)}</div>
                     </div>
                     <div style="text-align:right;">
                       <div style="font-weight:700; color:${c.diasRestantes <= 7 ? 'var(--color-danger)' : 'var(--color-warning)'};">${c.diasRestantes}d</div>
-                      <div style="font-size:11px; color:var(--color-text-muted);">${new Date(c.endDate).toLocaleDateString('pt-BR')}</div>
+                      <div style="font-size:15px; color:var(--color-text-muted);">${new Date(c.endDate).toLocaleDateString('pt-BR')}</div>
                     </div>
                   </div>
                 `).join('')}
@@ -276,8 +279,8 @@ window.Dashboard = {
                     return `
                       <tr>
                         <td>
-                          <a href="#/contratos/${c.id}" style="color:var(--color-primary); text-decoration:none; font-weight:500;">${c.name}</a>
-                          <div style="font-size:11px; color:var(--color-text-muted);">${c.client}</div>
+                          <a href="#/contratos/${c.id}" style="color:var(--color-primary); text-decoration:none; font-weight:500;">${escapeHtml(c.name)}</a>
+                          <div style="font-size:15px; color:var(--color-text-muted);">${escapeHtml(c.client)}</div>
                         </td>
                         <td>${Store.formatBRL(c.totalSaidas)}</td>
                         <td>
@@ -299,7 +302,7 @@ window.Dashboard = {
         <div class="card" style="margin-top:var(--sp-lg);">
           <div class="card-header">
             <h3 class="card-title">Últimas Movimentações — Caixa</h3>
-            <a href="#/caixa" style="color:var(--color-primary); text-decoration:none; font-size:13px; font-weight:600;">Ver todos →</a>
+            <a href="#/caixa" style="color:var(--color-primary); text-decoration:none; font-size:15px; font-weight:600;">Ver todos →</a>
           </div>
           ${dash.recentCaixaEntries.length === 0 ? `
             <p style="color:var(--color-text-muted);">Nenhuma movimentação registrada</p>
@@ -308,8 +311,8 @@ window.Dashboard = {
               ${dash.recentCaixaEntries.map(e => `
                 <div style="display:flex; justify-content:space-between; align-items:center; padding:var(--sp-md) 0; border-bottom:1px solid var(--color-border);">
                   <div>
-                    <div style="font-weight:500;">${e.description}</div>
-                    <div style="font-size:12px; color:var(--color-text-muted);">${new Date(e.date).toLocaleDateString('pt-BR')}</div>
+                    <div style="font-weight:500;">${escapeHtml(e.description)}</div>
+                    <div style="font-size:15px; color:var(--color-text-muted);">${new Date(e.date).toLocaleDateString('pt-BR')}</div>
                   </div>
                   <div style="text-align:right;">
                     <div style="font-weight:700; font-size:15px; color:${e.type === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};">
@@ -330,7 +333,8 @@ window.Dashboard = {
       this._bindPeriodoCtrl();
 
     } catch (e) {
-      app.innerHTML = `<div class="card"><p class="text-danger">Erro ao carregar dashboard: ${e.message}</p></div>`;
+      console.error(e);
+      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar dashboard. Tente novamente.</p></div>';
     }
   },
 
@@ -342,15 +346,15 @@ window.Dashboard = {
     const { modo, mes, ano } = this.periodo;
 
     return `
-      <select id="dash-modo" style="background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-border);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;">
+      <select id="dash-modo" style="background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-border);border-radius:6px;padding:6px 10px;font-size:15px;cursor:pointer;">
         <option value="recente" ${modo === 'recente' ? 'selected' : ''}>Últimos 30 dias</option>
         <option value="mes" ${modo === 'mes' ? 'selected' : ''}>Mês específico</option>
         <option value="ano" ${modo === 'ano' ? 'selected' : ''}>Ano completo</option>
       </select>
-      <select id="dash-mes" style="background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-border);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;display:${modo === 'mes' ? 'block' : 'none'};">
+      <select id="dash-mes" style="background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-border);border-radius:6px;padding:6px 10px;font-size:15px;cursor:pointer;display:${modo === 'mes' ? 'block' : 'none'};">
         ${meses.map((m, i) => `<option value="${i + 1}" ${mes === i + 1 ? 'selected' : ''}>${m}</option>`).join('')}
       </select>
-      <select id="dash-ano" style="background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-border);border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;display:${modo !== 'recente' ? 'block' : 'none'};">
+      <select id="dash-ano" style="background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-border);border-radius:6px;padding:6px 10px;font-size:15px;cursor:pointer;display:${modo !== 'recente' ? 'block' : 'none'};">
         ${anos.map(a => `<option value="${a}" ${ano === a ? 'selected' : ''}>${a}</option>`).join('')}
       </select>
     `;
@@ -401,6 +405,82 @@ window.Dashboard = {
     if (pontos >= 80) return { label: '🟢 Excelente', color: 'var(--color-success)' };
     if (pontos >= 60) return { label: '🟡 Atenção', color: 'var(--color-warning)' };
     return { label: '🔴 Crítico', color: 'var(--color-danger)' };
+  },
+
+  renderReceivablesPayables() {
+    const hojeStr = new Date().toISOString().split('T')[0];
+
+    // Contas a Receber — NFs ainda não emitidas/recebidas
+    const nfPendentes = (Store.state.notas_fiscais || []).filter(nf => !nf.emitida);
+    const recOpen    = nfPendentes.filter(nf => !nf.dataLimite || nf.dataLimite >= hojeStr);
+    const recOverdue = nfPendentes.filter(nf => nf.dataLimite && nf.dataLimite <  hojeStr);
+    const recOpenVal    = recOpen.reduce((s, nf) => s + (parseFloat(nf.valor) || 0), 0);
+    const recOverdueVal = recOverdue.reduce((s, nf) => s + (parseFloat(nf.valor) || 0), 0);
+    const recTotal = recOpenVal + recOverdueVal;
+    const recOpenPct    = recTotal > 0 ? (recOpenVal    / recTotal) * 100 : 0;
+    const recOverduePct = recTotal > 0 ? (recOverdueVal / recTotal) * 100 : 0;
+
+    // Contas a Pagar — contas pendentes
+    const cpPendentes = (Store.state.contas_pagar || []).filter(c => c.status === 'pendente');
+    const payOpen    = cpPendentes.filter(c => !c.dataVencimento || c.dataVencimento >= hojeStr);
+    const payOverdue = cpPendentes.filter(c => c.dataVencimento && c.dataVencimento <  hojeStr);
+    const payOpenVal    = payOpen.reduce((s, c) => s + (parseFloat(c.valor) || 0), 0);
+    const payOverdueVal = payOverdue.reduce((s, c) => s + (parseFloat(c.valor) || 0), 0);
+    const payTotal = payOpenVal + payOverdueVal;
+    const payOpenPct    = payTotal > 0 ? (payOpenVal    / payTotal) * 100 : 0;
+    const payOverduePct = payTotal > 0 ? (payOverdueVal / payTotal) * 100 : 0;
+
+    const card = (titulo, link, subtitulo, total, totalLabel, openVal, openPct, overdueVal, overduePct) => `
+      <div class="card" style="padding:20px 22px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <h3 style="font-size:16px;font-weight:700;color:var(--color-text);margin:0;letter-spacing:-.01em;">${titulo}</h3>
+          <a href="${link}" style="font-size: 15px;color:var(--color-primary);text-decoration:none;font-weight:500;">Ver Relatório</a>
+        </div>
+        <div style="font-size:15px;color:var(--color-text-muted);margin-bottom:16px;">${subtitulo}</div>
+        <div style="font-size:15px;color:var(--color-text-muted);margin-bottom:6px;">
+          ${totalLabel}: <strong style="color:var(--color-text);font-weight:700;font-size:15px;">${Store.formatBRL(total)}</strong>
+        </div>
+        <div style="height:8px;border-radius:99px;overflow:hidden;background:#F3F4F6;display:flex;margin:10px 0 14px;">
+          <div style="background:#F98F6C;width:${openPct}%;"></div>
+          <div style="background:#FFB547;width:${overduePct}%;"></div>
+        </div>
+        <div style="display:flex;gap:28px;">
+          <div>
+            <div style="color:#F98F6C;font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px;">
+              <span style="width:8px;height:8px;border-radius:99px;background:#F98F6C;"></span>Em aberto
+            </div>
+            <div style="font-size:15px;color:var(--color-text);font-weight:700;margin-top:2px;">${Store.formatBRL(openVal)}</div>
+          </div>
+          <div>
+            <div style="color:#FFB547;font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px;">
+              <span style="width:8px;height:8px;border-radius:99px;background:#FFB547;"></span>Vencido
+            </div>
+            <div style="font-size:15px;color:var(--color-text);font-weight:700;margin-top:2px;">${Store.formatBRL(overdueVal)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-lg);margin-bottom:var(--sp-xl);">
+        ${card(
+          'Contas a Receber',
+          '#/notas-fiscais',
+          'Valor que você tem a receber dos seus clientes',
+          recTotal,
+          'Total de notas fiscais pendentes',
+          recOpenVal, recOpenPct, recOverdueVal, recOverduePct
+        )}
+        ${card(
+          'Contas a Pagar',
+          '#/contas-pagar',
+          'Valor que você tem a pagar aos seus fornecedores',
+          payTotal,
+          'Total de contas pendentes',
+          payOpenVal, payOpenPct, payOverdueVal, payOverduePct
+        )}
+      </div>
+    `;
   },
 
   renderAlertas(dash) {
@@ -501,7 +581,7 @@ window.Dashboard = {
           legend: {
             display: true,
             position: 'top',
-            labels: { usePointStyle: true, padding: 20, color: '#4B5D7B', font: { size: 11, family: 'DM Sans' } }
+            labels: { usePointStyle: true, padding: 20, color: '#4B5D7B', font: { size: 11, family: 'Nunito' } }
           },
           tooltip: {
             backgroundColor: '#0F1523',

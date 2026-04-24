@@ -22,7 +22,7 @@ window.Obras = {
         <div class="card" style="margin-bottom:var(--sp-lg);padding:var(--sp-md);">
           <div style="display:flex;gap:var(--sp-md);flex-wrap:wrap;align-items:flex-end;">
             <div style="flex:1;min-width:160px;">
-              <label style="display:block;font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Status</label>
+              <label style="display:block;font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Status</label>
               <select class="form-control" id="filtroStatus">
                 <option value="">Todos</option>
                 <option value="prospeccao">Prospecção</option>
@@ -33,26 +33,26 @@ window.Obras = {
               </select>
             </div>
             <div style="flex:1;min-width:160px;">
-              <label style="display:block;font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Empresa / Cliente</label>
+              <label style="display:block;font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Empresa / Cliente</label>
               <input class="form-control" id="filtroCliente" placeholder="Buscar por cliente..." value="${this.filters.clientSearch}">
             </div>
             <div style="flex:0 0 130px;">
-              <label style="display:block;font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Valor mín.</label>
+              <label style="display:block;font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Valor mín.</label>
               <input class="form-control" id="filtroValorMin" data-currency placeholder="0,00" value="${this.filters.valorMin}">
             </div>
             <div style="flex:0 0 130px;">
-              <label style="display:block;font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Valor máx.</label>
+              <label style="display:block;font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Valor máx.</label>
               <input class="form-control" id="filtroValorMax" data-currency placeholder="0,00" value="${this.filters.valorMax}">
             </div>
             <div style="flex:0 0 140px;">
-              <label style="display:block;font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Início após</label>
+              <label style="display:block;font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Início após</label>
               <input class="form-control" id="filtroDataInicio" type="date" value="${this.filters.dataInicio}">
             </div>
             <div style="flex:0 0 140px;">
-              <label style="display:block;font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Fim antes de</label>
+              <label style="display:block;font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Fim antes de</label>
               <input class="form-control" id="filtroDataFim" type="date" value="${this.filters.dataFim}">
             </div>
-            <button class="btn btn-secondary" id="btnLimparFiltros" style="white-space:nowrap;">✕ Limpar</button>
+            <button class="btn" id="btnLimparFiltros" style="white-space:nowrap;background:transparent;color:var(--color-text);border:1px solid var(--color-border);font-weight:600;font-size:15px;">✕ Limpar</button>
           </div>
         </div>
 
@@ -66,7 +66,7 @@ window.Obras = {
           <div class="card" style="max-height:620px;overflow-y:auto;">
             <div class="card-header" style="position:sticky;top:0;background:var(--color-surface);z-index:1;">
               <h3 class="card-title">Obras</h3>
-              <span id="contadorObras" style="font-size:12px;color:var(--color-text-muted);"></span>
+              <span id="contadorObras" style="font-size:15px;color:var(--color-text-muted);"></span>
             </div>
             <div id="listaObras" style="display:flex;flex-direction:column;gap:0;"></div>
           </div>
@@ -77,7 +77,8 @@ window.Obras = {
       this._bindFiltros();
 
     } catch (e) {
-      app.innerHTML = `<div class="card"><p class="text-danger">Erro: ${e.message}</p></div>`;
+      console.error(e);
+      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar obras. Tente novamente.</p></div>';
     }
   },
 
@@ -163,7 +164,7 @@ window.Obras = {
     if (!lista) return;
 
     if (contratos.length === 0) {
-      lista.innerHTML = `<div style="padding:var(--sp-lg);text-align:center;color:var(--color-text-muted);font-size:13px;">
+      lista.innerHTML = `<div style="padding:var(--sp-lg);text-align:center;color:var(--color-text-muted);font-size:15px;">
         Nenhuma obra com localização cadastrada.
         ${semCoordenadas.length > 0 ? `<div style="margin-top:var(--sp-sm);">${semCoordenadas.length} contrato(s) sem endereço.</div>` : ''}
       </div>`;
@@ -187,7 +188,7 @@ window.Obras = {
           box-shadow:0 2px 8px rgba(0,0,0,.4);
           transform:rotate(-45deg);
           display:flex;align-items:center;justify-content:center;
-        "><span style="transform:rotate(45deg);font-size:14px;">🏗</span></div>`,
+        "><span style="transform:rotate(45deg);font-size:15px;">🏗</span></div>`,
         className: '',
         iconSize: [32, 32],
         iconAnchor: [16, 32],
@@ -201,17 +202,17 @@ window.Obras = {
         <div class="obra-popup">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
             <div style="width:10px;height:10px;border-radius:50%;background:${cor};flex-shrink:0;"></div>
-            <span style="font-size:11px;font-weight:700;text-transform:uppercase;color:${cor};">${this._getStatusLabel(c.status)}</span>
+            <span style="font-size:15px;font-weight:700;text-transform:uppercase;color:${cor};">${this._getStatusLabel(c.status)}</span>
           </div>
-          <h4>${c.name}</h4>
-          <div class="pop-sub">${c.client}</div>
-          ${endCurto ? `<div style="font-size:11px;color:#888;margin-bottom:6px;">📍 ${endCurto}</div>` : ''}
+          <h4>${escapeHtml(c.name)}</h4>
+          <div class="pop-sub">${escapeHtml(c.client)}</div>
+          ${endCurto ? `<div style="font-size:15px;color:#888;margin-bottom:6px;">📍 ${escapeHtml(endCurto)}</div>` : ''}
           <div class="pop-val">${Store.formatBRL(c.value || 0)}</div>
-          ${c.startDate || c.endDate ? `<div style="font-size:11px;color:#888;margin-top:4px;">
+          ${c.startDate || c.endDate ? `<div style="font-size:15px;color:#888;margin-top:4px;">
             ${c.startDate ? new Date(c.startDate + 'T12:00:00').toLocaleDateString('pt-BR') : '?'}
             → ${c.endDate ? new Date(c.endDate + 'T12:00:00').toLocaleDateString('pt-BR') : '?'}
           </div>` : ''}
-          <a href="#/contratos/${c.id}" style="display:inline-block;margin-top:8px;font-size:12px;color:#3182CE;text-decoration:none;font-weight:600;">Ver contrato →</a>
+          <a href="#/contratos/${c.id}" style="display:inline-block;margin-top:8px;font-size:15px;color:#3182CE;text-decoration:none;font-weight:600;">Ver contrato →</a>
         </div>
       `;
       marker.bindPopup(popup);
@@ -229,8 +230,8 @@ window.Obras = {
         ? Math.floor((new Date(c.endDate) - new Date()) / 86400000)
         : null;
       const diasLabel = dias === null ? '' : dias < 0
-        ? `<span style="color:#E53E3E;font-size:10px;font-weight:700;">encerrado ${Math.abs(dias)}d</span>`
-        : `<span style="color:${dias <= 7 ? '#E53E3E' : dias <= 30 ? '#D69E2E' : '#718096'};font-size:10px;">vence em ${dias}d</span>`;
+        ? `<span style="color:#E53E3E;font-size:15px;font-weight:700;">encerrado ${Math.abs(dias)}d</span>`
+        : `<span style="color:${dias <= 7 ? '#E53E3E' : dias <= 30 ? '#D69E2E' : '#718096'};font-size:15px;">vence em ${dias}d</span>`;
 
       const itemEl = document.createElement('div');
       itemEl.id = `obra-item-${c.id}`;
@@ -240,10 +241,10 @@ window.Obras = {
         <div style="display:flex;align-items:flex-start;gap:var(--sp-sm);">
           <div style="width:8px;height:8px;border-radius:50%;background:${cor};margin-top:5px;flex-shrink:0;"></div>
           <div style="flex:1;min-width:0;">
-            <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.name}</div>
-            <div style="font-size:11px;color:var(--color-text-muted);margin-bottom:2px;">${c.client}</div>
+            <div style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(c.name)}</div>
+            <div style="font-size:15px;color:var(--color-text-muted);margin-bottom:2px;">${escapeHtml(c.client)}</div>
             <div style="display:flex;align-items:center;justify-content:space-between;">
-              <span style="font-size:13px;font-weight:700;color:var(--color-success);">${Store.formatBRL(c.value || 0)}</span>
+              <span style="font-size:15px;font-weight:700;color:var(--color-success);">${Store.formatBRL(c.value || 0)}</span>
               ${diasLabel}
             </div>
           </div>
@@ -270,7 +271,7 @@ window.Obras = {
     // Aviso de contratos sem endereço
     if (semCoordenadas.length > 0) {
       const aviso = document.createElement('div');
-      aviso.style.cssText = 'padding:var(--sp-sm) var(--sp-md);font-size:11px;color:var(--color-text-muted);background:var(--color-bg);border-top:1px solid var(--color-border);';
+      aviso.style.cssText = 'padding:var(--sp-sm) var(--sp-md);font-size:15px;color:var(--color-text-muted);background:var(--color-bg);border-top:1px solid var(--color-border);';
       aviso.textContent = `${semCoordenadas.length} contrato(s) sem endereço cadastrado`;
       lista.appendChild(aviso);
     }

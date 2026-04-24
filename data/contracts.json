@@ -10,14 +10,14 @@
       "status": "ativo",
       "notes": "",
       "createdAt": "2026-04-22T23:04:26.445Z",
-      "updatedAt": "2026-04-23T00:47:03.713Z",
+      "updatedAt": "2026-04-23T19:45:53.448Z",
       "budget": [
         {
           "id": "bud_moaqwdwm961ab49f",
           "contractId": "ctr_moantqh8cdc71c49",
           "description": "54353",
           "type": "mao_de_obra",
-          "value": 45453.53,
+          "value": 40000,
           "notes": "",
           "createdAt": "2026-04-23T00:30:28.967Z"
         },
@@ -26,9 +26,18 @@
           "contractId": "ctr_moantqh8cdc71c49",
           "description": "4444",
           "type": "hospedagem",
-          "value": 4444.44,
+          "value": 45000,
           "notes": "",
           "createdAt": "2026-04-23T00:30:40.261Z"
+        },
+        {
+          "id": "bud_moavxykb8233de2a",
+          "contractId": "ctr_moantqh8cdc71c49",
+          "description": "Passagens ",
+          "type": "transporte",
+          "value": 15000,
+          "notes": "",
+          "createdAt": "2026-04-23T02:51:40.475Z"
         }
       ],
       "clientId": "cli_moanv33b2104ae0e",
@@ -39,7 +48,356 @@
       "clientDocument": "",
       "clientEmail": "",
       "clientPhone": "",
-      "currency": "BRL"
+      "currency": "BRL",
+      "organograma": [
+        {
+          "id": "org_mobhk113e1509262",
+          "contractId": "ctr_moantqh8cdc71c49",
+          "recursoId": "rec_moat7neyaa70dc2a",
+          "nivel": "encarregado",
+          "cargo": "Mecânico",
+          "supervisorId": null,
+          "area": null,
+          "createdAt": "2026-04-23T12:56:42.041Z"
+        },
+        {
+          "id": "org_mobhlbpie5235a43",
+          "contractId": "ctr_moantqh8cdc71c49",
+          "recursoId": "rec_mobhkh6fdff387c7",
+          "nivel": "lider_area",
+          "cargo": "Mecânico",
+          "supervisorId": "org_mobhk113e1509262",
+          "area": "Geral",
+          "createdAt": "2026-04-23T12:57:42.534Z",
+          "updatedAt": "2026-04-23T13:10:24.067Z"
+        },
+        {
+          "id": "org_mobho0o563c65ba3",
+          "contractId": "ctr_moantqh8cdc71c49",
+          "recursoId": "rec_mobhmwoq0561163f",
+          "nivel": "lider_area",
+          "cargo": "Mecânico",
+          "supervisorId": "org_mobhk113e1509262",
+          "area": "Geral",
+          "createdAt": "2026-04-23T12:59:48.198Z",
+          "updatedAt": "2026-04-23T17:56:30.051Z"
+        },
+        {
+          "id": "org_mobhonqgd4c572ed",
+          "contractId": "ctr_moantqh8cdc71c49",
+          "recursoId": "rec_mobhmwxs27f7260a",
+          "nivel": "lider_area",
+          "cargo": "Eletricista",
+          "supervisorId": "org_mobhk113e1509262",
+          "area": "Geral",
+          "createdAt": "2026-04-23T13:00:18.088Z",
+          "updatedAt": "2026-04-23T17:00:32.301Z"
+        },
+        {
+          "id": "org_mobhp0ff008d7544",
+          "contractId": "ctr_moantqh8cdc71c49",
+          "recursoId": "rec_mobhmwh8355dea64",
+          "nivel": "lider_area",
+          "cargo": "Eletricista",
+          "supervisorId": "org_mobhk113e1509262",
+          "area": "eee",
+          "createdAt": "2026-04-23T13:00:34.539Z",
+          "updatedAt": "2026-04-23T17:56:29.012Z"
+        }
+      ],
+      "rdos": [
+        {
+          "id": "rdo_mobtqt8d5ac9a3b5",
+          "contractId": "ctr_moantqh8cdc71c49",
+          "numero": 1,
+          "data": "2026-04-22",
+          "diaSemana": "Qua",
+          "osNumero": "OS-2026-088",
+          "ordemCompra": "xxxx",
+          "projeto": "xxxx",
+          "prazo": {
+            "dataInicial": "2026-04-01",
+            "contratual": 29,
+            "decorrido": 21,
+            "faltante": 0,
+            "pctConcluida": 42
+          },
+          "tempo": {
+            "manha": {
+              "tempo": "bom",
+              "condicoes": "operavel"
+            },
+            "tarde": {
+              "tempo": "chuva",
+              "condicoes": "parcial"
+            },
+            "noiteAnt": {
+              "tempo": "sem_expediente",
+              "condicoes": "inoperavel"
+            },
+            "precipitacao": 5
+          },
+          "periodoTrabalho": "7:00 às 17:00",
+          "horaExtra": false,
+          "moi": [
+            {
+              "cargo": "Encarregado de Obras",
+              "qtd": 1,
+              "horas": 9
+            },
+            {
+              "cargo": "Téc. de Segurança",
+              "qtd": 1,
+              "horas": 9
+            }
+          ],
+          "mod": [
+            {
+              "cargo": "Mecânico",
+              "qtd": 2,
+              "horas": 9
+            },
+            {
+              "cargo": "Eletricista",
+              "qtd": 2,
+              "horas": 9
+            },
+            {
+              "cargo": "Caldeireiro",
+              "qtd": 1,
+              "horas": 9
+            },
+            {
+              "cargo": "Montador de Andaime",
+              "qtd": 1,
+              "horas": 9
+            }
+          ],
+          "terc": [],
+          "equipamentos": [
+            {
+              "tipo": "Máquina de Solda",
+              "qtd": 2,
+              "horas": 8
+            },
+            {
+              "tipo": "Lixadeira",
+              "qtd": 3,
+              "horas": 6
+            }
+          ],
+          "atividades": [
+            {
+              "area": "Mecânica",
+              "descricao": "Montagem de tubulação de refrigeração – trecho norte",
+              "pctConcluida": 35,
+              "ocorrencias": "Chuva forte à tarde interrompeu trabalho externo por 1h"
+            },
+            {
+              "area": "Elétrica",
+              "descricao": "Puxada de cabos de força para painel principal",
+              "pctConcluida": 28,
+              "ocorrencias": ""
+            },
+            {
+              "area": "Andaime",
+              "descricao": "Montagem de andaime para acesso à cobertura do galpão C",
+              "pctConcluida": 60,
+              "ocorrencias": "Aguardando liberação de área — Segurança"
+            }
+          ],
+          "seguranca": {
+            "acidente": "nao_houve",
+            "diagnostico": "",
+            "admissoes": 0,
+            "demissoes": 0,
+            "comentarios": "DDS matinal realizado. Tema: uso correto de EPI em área úmida."
+          },
+          "fiscalizacaoComentarios": "Obra dentro do cronograma. Solicitada revisão do projeto elétrico do painel PL-02 antes da próxima semana.",
+          "totais": {
+            "moi": 0,
+            "mod": 0,
+            "terc": 0,
+            "eqp": 0,
+            "homensHora": 0,
+            "horasParadas": 0,
+            "equipamentoHora": 0
+          },
+          "fotos": [
+            {
+              "id": "foto_mobvl8fp90879bdb",
+              "filename": "foto_mobvl8fp90879bdb.png",
+              "legenda": "Teste",
+              "url": "/data/rdo-fotos/rdo_mobtqt8d5ac9a3b5/foto_mobvl8fp90879bdb.png",
+              "createdAt": "2026-04-23T19:29:32.923Z"
+            }
+          ],
+          "createdAt": "2026-04-23T18:37:53.918Z",
+          "updatedAt": "2026-04-23T19:29:32.925Z"
+        },
+        {
+          "id": "rdo_mobtqt8s4b523e14",
+          "contractId": "ctr_moantqh8cdc71c49",
+          "numero": 2,
+          "data": "2026-04-23",
+          "diaSemana": "Qui",
+          "osNumero": "OS-2026-089",
+          "ordemCompra": "xxxx",
+          "projeto": "xxxx",
+          "prazo": {
+            "dataInicial": "2026-04-01",
+            "dataFinal": "2026-04-30",
+            "dataTendencia": "2026-04-29",
+            "contratual": 29,
+            "decorrido": 22,
+            "faltante": 6,
+            "atraso": 0,
+            "pctConcluida": 44
+          },
+          "tempo": {
+            "manha": {
+              "tempo": "chuva",
+              "condicoes": "inoperavel"
+            },
+            "tarde": {
+              "tempo": "bom",
+              "condicoes": "operavel"
+            },
+            "noiteAnt": {
+              "tempo": "sem_expediente",
+              "condicoes": "inoperavel"
+            },
+            "precipitacao": 0
+          },
+          "periodoTrabalho": "7:00 às 17:00",
+          "horaExtra": true,
+          "moi": [
+            {
+              "cargo": "Encarregado de Obras",
+              "qtd": 1,
+              "horas": 10
+            },
+            {
+              "cargo": "Téc. de Segurança",
+              "qtd": 1,
+              "horas": 9
+            },
+            {
+              "cargo": "Líder de Mecânica",
+              "qtd": 1,
+              "horas": 10
+            }
+          ],
+          "mod": [
+            {
+              "cargo": "Mecânico",
+              "qtd": 2,
+              "horas": 10
+            },
+            {
+              "cargo": "Eletricista",
+              "qtd": 2,
+              "horas": 9
+            },
+            {
+              "cargo": "Caldeireiro",
+              "qtd": 1,
+              "horas": 9
+            },
+            {
+              "cargo": "Montador de Andaime",
+              "qtd": 1,
+              "horas": 8
+            }
+          ],
+          "terc": [
+            {
+              "empresa": "SOLDAS RIO LTDA",
+              "cargo": "Soldador",
+              "qtd": 2,
+              "horas": 8
+            }
+          ],
+          "equipamentos": [
+            {
+              "tipo": "Máquina de Solda",
+              "qtd": 3,
+              "horas": 9
+            },
+            {
+              "tipo": "Caminhão Munck",
+              "qtd": 1,
+              "horas": 4
+            },
+            {
+              "tipo": "Betoneira",
+              "qtd": 1,
+              "horas": 6
+            },
+            {
+              "tipo": "",
+              "qtd": 1,
+              "horas": 9
+            }
+          ],
+          "atividades": [
+            {
+              "area": "Mecânica",
+              "descricao": "Solda de flanges – trecho norte (continuação)",
+              "pctConcluida": 70,
+              "ocorrencias": ""
+            },
+            {
+              "area": "Elétrica",
+              "descricao": "Conexão dos cabos ao painel PL-02",
+              "pctConcluida": 50,
+              "ocorrencias": "Revisão de projeto recebida — liberada execução"
+            },
+            {
+              "area": "Concreto",
+              "descricao": "Concretagem da base do compressor C-03",
+              "pctConcluida": 100,
+              "ocorrencias": "Concretagem concluída. 2h de hora extra autorizadas."
+            }
+          ],
+          "seguranca": {
+            "acidente": "sem_afastamento",
+            "diagnostico": "Ajudante Paulo levou pequeno choque mecânico ao movimentar tubo. Encaminhado para atendimento ambulatorial, liberado para retornar.",
+            "admissoes": 1,
+            "demissoes": 0,
+            "comentarios": "Reforço do DDS sobre movimentação manual de cargas. Novo ajudante Rafael admitido hoje."
+          },
+          "fiscalizacaoComentarios": "Concretagem do C-03 aprovada. Solicitado envio dos registros de teste de estanqueidade antes do próximo alinhamento.",
+          "totais": {
+            "moi": 3,
+            "mod": 6,
+            "terc": 2,
+            "eqp": 6,
+            "homensHora": 100,
+            "horasParadas": 0,
+            "equipamentoHora": 46
+          },
+          "fotos": [
+            {
+              "id": "foto_mobwce9hab63fdaf",
+              "filename": "foto_mobwce9hab63fdaf.png",
+              "legenda": "",
+              "url": "/data/rdo-fotos/rdo_mobtqt8s4b523e14/foto_mobwce9hab63fdaf.png",
+              "createdAt": "2026-04-23T19:50:40.185Z"
+            },
+            {
+              "id": "foto_mobwzecz5a86a41f",
+              "filename": "foto_mobwzecz5a86a41f.png",
+              "legenda": "dasdasdas",
+              "url": "/data/rdo-fotos/rdo_mobtqt8s4b523e14/foto_mobwzecz5a86a41f.png",
+              "createdAt": "2026-04-23T20:08:33.402Z"
+            }
+          ],
+          "createdAt": "2026-04-23T18:37:53.932Z",
+          "updatedAt": "2026-04-23T20:08:33.402Z"
+        }
+      ],
+      "tendencyDate": "2026-04-29"
     }
   ],
   "saidas": []

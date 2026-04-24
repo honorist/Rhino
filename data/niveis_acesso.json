@@ -10,6 +10,8 @@
         "#/contratos",
         "#/obras",
         "#/clientes",
+        "#/recursos",
+        "#/documentos",
         "#/fornecedores",
         "#/base",
         "#/caixa",
@@ -44,6 +46,8 @@
         "#/contratos",
         "#/obras",
         "#/clientes",
+        "#/recursos",
+        "#/documentos",
         "#/fornecedores",
         "#/base"
       ]

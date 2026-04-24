@@ -13,6 +13,20 @@
       "caixaEntryId": "cxa_moaqejmpb43d67d5",
       "createdAt": "2026-04-23T00:06:04.642Z",
       "updatedAt": "2026-04-23T00:16:36.580Z"
+    },
+    {
+      "id": "nf_moavzv6j7b5de6d5",
+      "numero": "34434",
+      "contractId": "ctr_moantqh8cdc71c49",
+      "dataLimite": "2026-04-21",
+      "valor": 301000,
+      "prazoRecebimento": 30,
+      "observacoes": "",
+      "emitida": false,
+      "dataEmissaoReal": null,
+      "caixaEntryId": null,
+      "createdAt": "2026-04-23T02:53:09.403Z",
+      "updatedAt": "2026-04-24T01:13:42.246Z"
     }
   ]
 }

@@ -63,10 +63,10 @@ window.Socios = {
                     const totalInvestido = Store.getTotalInvestimentoBySocio(s.id);
                     return `
                       <tr>
-                        <td>${s.name}</td>
-                        <td>${s.document || '-'}</td>
-                        <td>${s.email || '-'}</td>
-                        <td>${s.phone || '-'}</td>
+                        <td>${escapeHtml(s.name)}</td>
+                        <td>${escapeHtml(s.document) || '-'}</td>
+                        <td>${escapeHtml(s.email) || '-'}</td>
+                        <td>${escapeHtml(s.phone) || '-'}</td>
                         <td style="text-align: right; font-weight: 600;">${s.participacao.toFixed(2)}%</td>
                         <td style="text-align: right; font-weight: 600;">${Store.formatBRL(totalInvestido)}</td>
                         <td>
@@ -102,7 +102,8 @@ window.Socios = {
         btn.addEventListener('click', (e) => this.deleteSocio(e.target.dataset.id));
       });
     } catch (e) {
-      app.innerHTML = `<div class="card"><p class="text-danger">Erro: ${e.message}</p></div>`;
+      console.error(e);
+      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar sócios. Tente novamente.</p></div>';
     }
   },
 

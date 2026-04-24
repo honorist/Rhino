@@ -54,51 +54,51 @@ window.ContasPagar = {
         <div style="background:${statusGeral.bg};border:1px solid ${statusGeral.cor}30;border-radius:8px;padding:var(--sp-sm) var(--sp-md);margin-bottom:var(--sp-lg);display:flex;align-items:center;gap:var(--sp-lg);flex-wrap:wrap;">
 
           <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-            <span style="font-size:14px;">🔴</span>
+            <span style="font-size:15px;">🔴</span>
             <span style="font-size:18px;font-weight:800;color:#E53E3E;line-height:1;">${vencidas.length}</span>
-            <span style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Vencidas</span>
+            <span style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Vencidas</span>
           </div>
 
           <div style="width:1px;height:20px;background:${statusGeral.cor}25;"></div>
 
           <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-            <span style="font-size:14px;">⚠️</span>
+            <span style="font-size:15px;">⚠️</span>
             <span style="font-size:18px;font-weight:800;color:#D69E2E;line-height:1;">${proximasVencer.length}</span>
-            <span style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Próx. 7d</span>
+            <span style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Próx. 7d</span>
           </div>
 
           <div style="width:1px;height:20px;background:${statusGeral.cor}25;"></div>
 
           <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-            <span style="font-size:14px;">✅</span>
+            <span style="font-size:15px;">✅</span>
             <span style="font-size:18px;font-weight:800;color:#38A169;line-height:1;">${noPrazo.length}</span>
-            <span style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">No prazo</span>
+            <span style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">No prazo</span>
           </div>
 
           <div style="width:1px;height:20px;background:${statusGeral.cor}25;"></div>
 
           <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-            <span style="font-size:14px;">💸</span>
+            <span style="font-size:15px;">💸</span>
             <span style="font-size:18px;font-weight:800;color:#3182CE;line-height:1;">${pagas.length}</span>
-            <span style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Pagas</span>
+            <span style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Pagas</span>
           </div>
 
           <div style="width:1px;height:20px;background:${statusGeral.cor}25;"></div>
 
           <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-            <span style="font-size:14px;">💰</span>
+            <span style="font-size:15px;">💰</span>
             <span style="font-size:15px;font-weight:800;color:var(--color-danger);line-height:1;">${Store.formatBRL(totalPendente)}</span>
-            <span style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">A pagar</span>
+            <span style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">A pagar</span>
           </div>
 
           <div style="flex:1;"></div>
 
           <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-            <span style="font-size:12px;font-weight:700;color:${statusGeral.cor};">${statusGeral.icone} ${statusGeral.texto}</span>
+            <span style="font-size:15px;font-weight:700;color:${statusGeral.cor};">${statusGeral.icone} ${statusGeral.texto}</span>
             <div style="width:80px;height:6px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden;">
               <div style="height:100%;width:${pctOk}%;background:${statusGeral.cor};border-radius:99px;transition:width .5s;"></div>
             </div>
-            <span style="font-size:14px;font-weight:800;color:${statusGeral.cor};">${pctOk}%</span>
+            <span style="font-size:15px;font-weight:800;color:${statusGeral.cor};">${pctOk}%</span>
           </div>
         </div>
 
@@ -113,33 +113,37 @@ window.ContasPagar = {
                 const fornecedor = (Store.state.fornecedores || []).find(f => f.id === c.fornecedorId);
                 const dias = Math.floor((new Date(c.dataVencimento) - new Date()) / 86400000);
                 const cor = dias < 0 ? '#E53E3E' : dias <= 7 ? '#D69E2E' : '#38A169';
-                const diasTxt = dias < 0 ? \`\${Math.abs(dias)}d atrás\` : dias === 0 ? 'HOJE' : \`em \${dias}d\`;
-                return \`
-                  <div style="display:flex;align-items:center;gap:var(--sp-lg);padding:var(--sp-md) 0;\${idx < proximasTimeline.length - 1 ? 'border-bottom:1px solid var(--color-border);' : ''}">
+                const diasTxt = dias < 0 ? `${Math.abs(dias)}d atrás` : dias === 0 ? 'HOJE' : `em ${dias}d`;
+                return `
+                  <div style="display:flex;align-items:center;gap:var(--sp-lg);padding:var(--sp-md) 0;${idx < proximasTimeline.length - 1 ? 'border-bottom:1px solid var(--color-border);' : ''}">
                     <div style="text-align:center;min-width:52px;">
-                      <div style="font-size:20px;font-weight:900;color:\${cor};line-height:1;">\${new Date(c.dataVencimento + 'T12:00:00').getDate()}</div>
-                      <div style="font-size:10px;color:var(--color-text-muted);text-transform:uppercase;">\${new Date(c.dataVencimento + 'T12:00:00').toLocaleDateString('pt-BR', {month:'short'})}</div>
+                      <div style="font-size:20px;font-weight:900;color:${cor};line-height:1;">${new Date(c.dataVencimento + 'T12:00:00').getDate()}</div>
+                      <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;">${new Date(c.dataVencimento + 'T12:00:00').toLocaleDateString('pt-BR', {month:'short'})}</div>
                     </div>
                     <div style="flex:1;min-width:0;">
-                      <div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">\${c.descricao}</div>
-                      <div style="font-size:12px;color:var(--color-text-muted);">\${fornecedor ? fornecedor.nome : '—'}\${c.numeroNF ? \` · NF \${c.numeroNF}\` : ''}</div>
+                      <div style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(c.descricao)}</div>
+                      <div style="font-size:15px;color:var(--color-text-muted);">${fornecedor ? escapeHtml(fornecedor.nome) : '—'}${c.numeroNF ? ` · NF ${escapeHtml(c.numeroNF)}` : ''}</div>
                     </div>
                     <div style="text-align:right;">
-                      <div style="font-weight:700;color:var(--color-danger);font-size:15px;">\${Store.formatBRL(c.valor)}</div>
-                      <div style="font-size:11px;font-weight:700;color:\${cor};">\${diasTxt}</div>
+                      <div style="font-weight:700;color:var(--color-danger);font-size:15px;">${Store.formatBRL(c.valor)}</div>
+                      <div style="font-size:15px;font-weight:700;color:${cor};">${diasTxt}</div>
                     </div>
                   </div>
-                \`;
+                `;
               }).join('')}
             </div>
           </div>
-        \` : ''}
+        ` : ''}
 
         <!-- Filtros de status -->
         <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-lg);display:flex;gap:var(--sp-sm);">
-          ${['pendente','pago','todos'].map(s => `
-            <button class="btn ${this.filtroStatus === s ? 'btn-primary' : 'btn-secondary'} btn-filtro-status" data-status="${s}" style="font-size:13px;">
-              ${s === 'pendente' ? '⏳ Pendentes' : s === 'pago' ? '✅ Pagas' : '📋 Todas'}
+          ${[
+            { s:'pendente', cor:'var(--color-warning)', label:'⏳ Pendentes' },
+            { s:'pago',     cor:'var(--color-success)', label:'✅ Pagas' },
+            { s:'todos',    cor:'var(--color-primary)', label:'📋 Todas' }
+          ].map(f => `
+            <button class="btn btn-sm btn-filtro-status" data-status="${f.s}" style="font-size:15px;font-weight:600;${this.filtroStatus === f.s ? `background:${f.cor};color:#fff;border:1px solid ${f.cor};` : 'background:transparent;color:var(--color-text);border:1px solid var(--color-border);'}">
+              ${f.label}
             </button>
           `).join('')}
         </div>
@@ -175,19 +179,19 @@ window.ContasPagar = {
                   const diasLabel = c.dataVencimento && c.status === 'pendente'
                     ? (() => {
                         const dias = Math.floor((new Date(c.dataVencimento) - new Date()) / 86400000);
-                        return dias < 0 ? `<div style="font-size:10px;color:var(--color-danger);font-weight:700;">${Math.abs(dias)}d vencida</div>`
-                          : dias === 0 ? `<div style="font-size:10px;color:var(--color-warning);font-weight:700;">vence hoje</div>`
-                          : `<div style="font-size:10px;color:var(--color-text-muted);">em ${dias}d</div>`;
+                        return dias < 0 ? `<div style="font-size:15px;color:var(--color-danger);font-weight:700;">${Math.abs(dias)}d vencida</div>`
+                          : dias === 0 ? `<div style="font-size:15px;color:var(--color-warning);font-weight:700;">vence hoje</div>`
+                          : `<div style="font-size:15px;color:var(--color-text-muted);">em ${dias}d</div>`;
                       })()
                     : '';
                   return `
                     <tr>
                       <td>
-                        <strong>${c.descricao || '—'}</strong>
-                        ${c.numeroNF ? `<div style="font-size:11px;color:var(--color-text-muted);">NF ${c.numeroNF}</div>` : ''}
+                        <strong>${escapeHtml(c.descricao) || '—'}</strong>
+                        ${c.numeroNF ? `<div style="font-size:15px;color:var(--color-text-muted);">NF ${escapeHtml(c.numeroNF)}</div>` : ''}
                       </td>
-                      <td>${fornecedor ? fornecedor.nome || '—' : '<span style="color:var(--color-text-muted);">—</span>'}</td>
-                      <td style="font-size:12px;">${c.dataEmissao ? new Date(c.dataEmissao + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+                      <td>${fornecedor ? escapeHtml(fornecedor.nome) || '—' : '<span style="color:var(--color-text-muted);">—</span>'}</td>
+                      <td style="font-size:15px;">${c.dataEmissao ? new Date(c.dataEmissao + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
                       <td>
                         <span style="color:${vencCor};font-weight:${vencida || proxima ? '700' : '400'}">
                           ${c.dataVencimento ? new Date(c.dataVencimento + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
@@ -200,7 +204,7 @@ window.ContasPagar = {
                       <td>
                         ${c.status === 'pago'
                           ? `<span class="badge badge-entrada">Pago</span>
-                             ${c.dataPagamento ? `<div style="font-size:10px;color:var(--color-text-muted);margin-top:2px;">${new Date(c.dataPagamento + 'T12:00:00').toLocaleDateString('pt-BR')}${c.formaPagamento ? ` · ${c.formaPagamento}` : ''}</div>` : ''}`
+                             ${c.dataPagamento ? `<div style="font-size:15px;color:var(--color-text-muted);margin-top:2px;">${new Date(c.dataPagamento + 'T12:00:00').toLocaleDateString('pt-BR')}${c.formaPagamento ? ` · ${c.formaPagamento}` : ''}</div>` : ''}`
                           : vencida
                             ? `<span class="badge" style="background:rgba(229,62,62,.15);color:var(--color-danger);">Vencida</span>`
                             : `<span class="badge" style="background:rgba(214,158,46,.12);color:var(--color-warning);">Pendente</span>`
@@ -241,7 +245,8 @@ window.ContasPagar = {
       document.querySelectorAll('.btn-excluir-cp').forEach(b => b.addEventListener('click', e => this.excluir(e.target.dataset.id)));
 
     } catch (e) {
-      app.innerHTML = `<div class="card"><p class="text-danger">Erro: ${e.message}</p></div>`;
+      console.error(e);
+      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar contas a pagar. Tente novamente.</p></div>';
     }
   },
 
@@ -285,14 +290,14 @@ window.ContasPagar = {
                 <label class="form-label">Fornecedor</label>
                 <select class="form-control" name="fornecedorId">
                   <option value="">— Selecionar —</option>
-                  ${fornecedores.map(f => `<option value="${f.id}" ${conta?.fornecedorId === f.id ? 'selected' : ''}>${f.nome}</option>`).join('')}
+                  ${fornecedores.map(f => `<option value="${f.id}" ${conta?.fornecedorId === f.id ? 'selected' : ''}>${escapeHtml(f.nome)}</option>`).join('')}
                 </select>
               </div>
               <div class="form-group">
                 <label class="form-label">Contrato (opcional)</label>
                 <select class="form-control" name="contractId">
                   <option value="">— Nenhum —</option>
-                  ${contratos.map(c => `<option value="${c.id}" ${conta?.contractId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+                  ${contratos.map(c => `<option value="${c.id}" ${conta?.contractId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
                 </select>
               </div>
             </div>
@@ -363,14 +368,14 @@ window.ContasPagar = {
           </div>
           <div class="modal-content">
             <p style="margin-bottom:var(--sp-md);color:var(--color-text-muted);">
-              <strong style="color:var(--color-text);">${conta.descricao}</strong>
-              ${conta.numeroNF ? ` — NF ${conta.numeroNF}` : ''}
+              <strong style="color:var(--color-text);">${escapeHtml(conta.descricao)}</strong>
+              ${conta.numeroNF ? ` — NF ${escapeHtml(conta.numeroNF)}` : ''}
             </p>
             <div class="form-group">
               <label class="form-label">Forma de Pagamento</label>
               <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;" id="formasPagamento">
                 ${['PIX','Boleto','Cartão','Transferência','Dinheiro','Cheque'].map(f => `
-                  <button type="button" class="btn-forma-pag" data-forma="${f}" style="padding:8px 4px;border:1px solid var(--color-border);border-radius:6px;background:var(--color-surface);color:var(--color-text-muted);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;">
+                  <button type="button" class="btn-forma-pag" data-forma="${f}" style="padding:8px 4px;border:1px solid var(--color-border);border-radius:6px;background:var(--color-surface);color:var(--color-text-muted);font-size:15px;font-weight:500;cursor:pointer;transition:all .15s;">
                     ${f === 'PIX' ? '⚡' : f === 'Boleto' ? '📄' : f === 'Cartão' ? '💳' : f === 'Transferência' ? '🏦' : f === 'Dinheiro' ? '💵' : '📝'} ${f}
                   </button>`).join('')}
               </div>
@@ -386,7 +391,7 @@ window.ContasPagar = {
                 <input class="form-control" id="valorPago" data-currency value="${window.BRLInput.toDisplay(conta.valor)}" placeholder="0,00">
               </div>
             </div>
-            <p style="font-size:12px;color:var(--color-text-muted);margin-top:var(--sp-sm);">
+            <p style="font-size:15px;color:var(--color-text-muted);margin-top:var(--sp-sm);">
               Uma saída de <strong>${Store.formatBRL(conta.valor)}</strong> será criada automaticamente no Caixa.
             </p>
           </div>

@@ -52,15 +52,15 @@ window.Clientes = {
                   </td></tr>
                 ` : filtrados.map(c => `
                   <tr>
-                    <td><strong>${c.nome || '—'}</strong></td>
-                    <td>${c.empresa || '—'}</td>
+                    <td><strong>${escapeHtml(c.nome) || '—'}</strong></td>
+                    <td>${escapeHtml(c.empresa) || '—'}</td>
                     <td>
-                      ${c.cargo ? `<div style="font-size:13px;">${c.cargo}</div>` : ''}
-                      ${c.setor ? `<div style="font-size:11px;color:var(--color-text-muted);">${c.setor}</div>` : ''}
+                      ${c.cargo ? `<div style="font-size:15px;">${escapeHtml(c.cargo)}</div>` : ''}
+                      ${c.setor ? `<div style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(c.setor)}</div>` : ''}
                       ${!c.cargo && !c.setor ? '—' : ''}
                     </td>
-                    <td>${c.telefone ? `<a href="tel:${c.telefone}" style="color:var(--color-primary);text-decoration:none;">${c.telefone}</a>` : '—'}</td>
-                    <td>${c.email ? `<a href="mailto:${c.email}" style="color:var(--color-primary);text-decoration:none;">${c.email}</a>` : '—'}</td>
+                    <td>${c.telefone ? `<a href="tel:${escapeHtml(c.telefone)}" style="color:var(--color-primary);text-decoration:none;">${escapeHtml(c.telefone)}</a>` : '—'}</td>
+                    <td>${c.email ? `<a href="mailto:${escapeHtml(c.email)}" style="color:var(--color-primary);text-decoration:none;">${escapeHtml(c.email)}</a>` : '—'}</td>
                     <td>
                       <div class="actions-cell">
                         <a class="action-link btn-editar" data-id="${c.id}">Editar</a>
@@ -88,7 +88,8 @@ window.Clientes = {
       document.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', e => this.showModal(e.target.dataset.id)));
       document.querySelectorAll('.btn-excluir').forEach(b => b.addEventListener('click', e => this.deleteCliente(e.target.dataset.id)));
     } catch (e) {
-      app.innerHTML = `<div class="card"><p class="text-danger">Erro: ${e.message}</p></div>`;
+      console.error(e);
+      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar clientes. Tente novamente.</p></div>';
     }
   },
 
@@ -164,7 +165,10 @@ window.Clientes = {
 
     document.body.insertAdjacentHTML('beforeend', html);
     const overlay = document.getElementById('modalOverlay');
-    const close = () => overlay.remove();
+    const close = () => {
+      if (window.Clientes._miniMap) { window.Clientes._miniMap.remove(); window.Clientes._miniMap = null; }
+      overlay.remove();
+    };
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnCancelar').addEventListener('click', close);
     overlay.addEventListener('click', e => { if (e.target === overlay) close(); });

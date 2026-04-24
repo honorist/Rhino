@@ -1,0 +1,564 @@
+window.Documentos = {
+  busca: '',
+  filtroConformidade: '',
+
+  TIPOS_DOC: [
+    { key: 'ASO',     label: 'ASO',     full: 'Atestado de Saúde Ocupacional',   meses: 12 },
+    { key: 'PGR',     label: 'PGR',     full: 'Prog. Gerenciamento de Riscos',    meses: 24 },
+    { key: 'PCMSO',   label: 'PCMSO',   full: 'Prog. Controle Médico de Saúde',  meses: 12 },
+    { key: 'NR10',    label: 'NR-10',   full: 'Segurança em Eletricidade',        meses: 24 },
+    { key: 'NR12',    label: 'NR-12',   full: 'Segurança em Máquinas',            meses: 24 },
+    { key: 'NR18',    label: 'NR-18',   full: 'Construção Civil',                 meses: 12 },
+    { key: 'NR20',    label: 'NR-20',   full: 'Líquidos Combustíveis',            meses: 12 },
+    { key: 'NR33',    label: 'NR-33',   full: 'Espaço Confinado',                 meses: 12 },
+    { key: 'NR35',    label: 'NR-35',   full: 'Trabalho em Altura',               meses: 24 },
+    { key: 'CIPA',    label: 'CIPA',    full: 'Comissão Interna de Prevenção',    meses: 12 },
+    { key: 'BRIGADA', label: 'Brigada', full: 'Brigada de Incêndio',              meses: 12 },
+    { key: 'CNH',     label: 'CNH',     full: 'Habilitação',                      meses: 60 },
+    { key: 'OUTRO',   label: 'Outro',   full: 'Outro',                            meses: 12 },
+  ],
+
+  _statusDoc(doc) {
+    if (!doc.dataVencimento) return 'pendente';
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const venc = new Date(doc.dataVencimento + 'T12:00:00');
+    const dias = Math.ceil((venc - hoje) / 86400000);
+    if (dias < 0) return 'vencido';
+    if (dias <= 30) return 'vencendo';
+    return 'vigente';
+  },
+
+  _diasRestantes(doc) {
+    if (!doc.dataVencimento) return null;
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const venc = new Date(doc.dataVencimento + 'T12:00:00');
+    return Math.ceil((venc - hoje) / 86400000);
+  },
+
+  _badgeStatus(status, dias) {
+    const configs = {
+      vigente:  { bg: '#D1FAE5', color: '#065F46', label: 'Vigente' },
+      vencendo: { bg: '#FEF3C7', color: '#92400E', label: dias !== null ? `Vence em ${dias}d` : 'Vencendo' },
+      vencido:  { bg: '#FEE2E2', color: '#991B1B', label: dias !== null ? `Vencido há ${Math.abs(dias)}d` : 'Vencido' },
+      pendente: { bg: '#F3F4F6', color: '#6B7280', label: 'Pendente' },
+    };
+    const c = configs[status] || configs.pendente;
+    return `<span class="badge" style="background:${c.bg};color:${c.color};font-size:15px;">${c.label}</span>`;
+  },
+
+  _conformidade(recurso) {
+    const docs = recurso.documentos || [];
+    if (docs.length === 0) return { score: 0, vigentes: 0, total: 0, status: 'sem_docs' };
+    const vigentes = docs.filter(d => this._statusDoc(d) === 'vigente').length;
+    const vencidos = docs.filter(d => this._statusDoc(d) === 'vencido').length;
+    const score = Math.round((vigentes / docs.length) * 100);
+    let status = 'ok';
+    if (vencidos > 0) status = 'critico';
+    else if (score < 100) status = 'atencao';
+    return { score, vigentes, total: docs.length, status };
+  },
+
+  _scoreBar(score) {
+    const color = score === 100 ? '#059669' : score >= 70 ? '#D97706' : '#DC2626';
+    return `
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="flex:1;height:6px;background:var(--color-border);border-radius:3px;overflow:hidden;min-width:60px;">
+          <div style="height:100%;width:${score}%;background:${color};border-radius:3px;transition:width .3s;"></div>
+        </div>
+        <span style="font-size:15px;font-weight:700;color:${color};min-width:32px;">${score}%</span>
+      </div>`;
+  },
+
+  async render() {
+    const app = document.getElementById('app');
+    app.innerHTML = '<div class="loading-spinner">Carregando...</div>';
+    try {
+      await Store.loadAll();
+      this._renderLista();
+    } catch (e) {
+      console.error(e);
+      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar. Tente novamente.</p></div>';
+    }
+  },
+
+  _renderLista() {
+    const app = document.getElementById('app');
+    const recursos = (Store.state.recursos || []).filter(r => r.status === 'funcionario');
+    const termo = (this.busca || '').toLowerCase().trim();
+
+    const filtrados = recursos.filter(r => {
+      const matchBusca = !termo ||
+        (r.nome || '').toLowerCase().includes(termo) ||
+        (r.profissao || '').toLowerCase().includes(termo);
+      const conf = this._conformidade(r);
+      const matchConf = !this.filtroConformidade ||
+        (this.filtroConformidade === 'ok' && conf.status === 'ok') ||
+        (this.filtroConformidade === 'atencao' && conf.status === 'atencao') ||
+        (this.filtroConformidade === 'critico' && conf.status === 'critico') ||
+        (this.filtroConformidade === 'sem_docs' && conf.status === 'sem_docs');
+      return matchBusca && matchConf;
+    });
+
+    const totalAtivos = recursos.length;
+    const comDocs = recursos.filter(r => (r.documentos || []).length > 0).length;
+    const criticos = recursos.filter(r => this._conformidade(r).status === 'critico').length;
+    const vencendo30 = recursos.reduce((acc, r) =>
+      acc + (r.documentos || []).filter(d => this._statusDoc(d) === 'vencendo').length, 0);
+
+    app.innerHTML = `
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Documentação</h1>
+          <p class="page-subtitle">Controle de conformidade documental — ${totalAtivos} funcionário${totalAtivos !== 1 ? 's' : ''} ativo${totalAtivos !== 1 ? 's' : ''}</p>
+        </div>
+        <button class="btn btn-primary btn-lg" id="btnGerenciarTemplates">Gerenciar Templates</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-md);margin-bottom:var(--sp-lg);">
+        ${this._statCard('Funcionários Ativos', totalAtivos, 'var(--color-primary)', '◉')}
+        ${this._statCard('Com Documentação', comDocs, '#059669', '✓')}
+        ${criticos > 0
+          ? this._statCard('Docs Vencidos', criticos, '#DC2626', '✕')
+          : this._statCard('Docs em Dia', recursos.length - criticos, '#059669', '✓')}
+        ${vencendo30 > 0
+          ? this._statCard('Vencem em 30 dias', vencendo30, '#D97706', '⚑')
+          : this._statCard('Vencem em 30 dias', 0, '#059669', '✓')}
+      </div>
+
+      <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-lg);">
+        <div style="display:flex;gap:var(--sp-md);align-items:center;flex-wrap:wrap;">
+          <input class="form-control" id="inputBuscaDocs" placeholder="Buscar por nome, profissão..." value="${escapeHtml(this.busca)}" style="flex:1;min-width:200px;">
+          <select class="form-control" id="filtroConformidade" style="width:220px;">
+            <option value="">Todos os funcionários</option>
+            <option value="ok"       ${this.filtroConformidade === 'ok'       ? 'selected' : ''}>Em dia (100%)</option>
+            <option value="atencao"  ${this.filtroConformidade === 'atencao'  ? 'selected' : ''}>Com atenção</option>
+            <option value="critico"  ${this.filtroConformidade === 'critico'  ? 'selected' : ''}>Crítico (vencidos)</option>
+            <option value="sem_docs" ${this.filtroConformidade === 'sem_docs' ? 'selected' : ''}>Sem documentos</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Funcionário</th>
+                <th>Obra Atual</th>
+                <th>Conformidade</th>
+                <th>Documentos</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filtrados.length === 0
+                ? `<tr><td colspan="5" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum resultado encontrado</td></tr>`
+                : filtrados.map(r => this._renderRow(r)).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('btnGerenciarTemplates').addEventListener('click', () => {
+      window.Configuracao && (window.Configuracao.currentSection = 'doc_templates');
+      location.hash = '#/configuracao';
+    });
+    document.getElementById('inputBuscaDocs').addEventListener('input', e => {
+      this.busca = e.target.value;
+      clearTimeout(this._tBusca);
+      this._tBusca = setTimeout(() => this._renderLista(), 250);
+    });
+    document.getElementById('filtroConformidade').addEventListener('change', e => {
+      this.filtroConformidade = e.target.value;
+      this._renderLista();
+    });
+    document.querySelectorAll('.btn-ver-docs').forEach(b =>
+      b.addEventListener('click', e => this.showDocumentos(e.target.closest('[data-id]').dataset.id)));
+    document.querySelectorAll('.btn-nome-rec').forEach(b =>
+      b.addEventListener('click', e => this.showFichaColaborador(e.target.closest('[data-id]').dataset.id)));
+  },
+
+  _statCard(label, value, cor, icon) {
+    return `<div class="card" style="padding:var(--sp-lg);text-align:center;">
+      <div style="font-size:28px;color:${cor};margin-bottom:4px;">${icon}</div>
+      <div style="font-size:22px;font-weight:700;color:${cor};">${value}</div>
+      <div style="font-size:15px;color:var(--color-text-muted);">${label}</div>
+    </div>`;
+  },
+
+  _renderRow(r) {
+    const docs = r.documentos || [];
+    const conf = this._conformidade(r);
+
+    let obraAtual = '—';
+    if (r.alocacaoAtual?.contractId) {
+      const c = Store.state.contracts.find(x => x.id === r.alocacaoAtual.contractId);
+      if (c) obraAtual = escapeHtml(c.name);
+    }
+
+    const statusLabel = {
+      ok:       `<span style="color:#059669;font-weight:600;">● Em dia</span>`,
+      atencao:  `<span style="color:#D97706;font-weight:600;">● Atenção</span>`,
+      critico:  `<span style="color:#DC2626;font-weight:600;">● Crítico</span>`,
+      sem_docs: `<span style="color:#374151;">— Sem docs</span>`,
+    }[conf.status];
+
+    const docBadges = docs.slice(0, 4).map(d => {
+      const status = this._statusDoc(d);
+      const colors = { vigente: '#059669', vencendo: '#D97706', vencido: '#DC2626', pendente: '#9CA3AF' };
+      const color = colors[status] || '#9CA3AF';
+      const label = d.tipoLabel || d.tipo || '?';
+      const short = label.length > 7 ? label.substring(0, 7) : label;
+      return `<span title="${escapeHtml(label)}" style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:15px;font-weight:700;background:${color}22;color:${color};border:1px solid ${color}44;margin:1px;">${escapeHtml(short)}</span>`;
+    }).join('');
+    const extraDocs = docs.length > 4
+      ? `<span style="font-size:15px;color:var(--color-text-muted);"> +${docs.length - 4}</span>`
+      : '';
+
+    return `<tr>
+      <td>
+        <a class="action-link btn-nome-rec" data-id="${r.id}" style="font-weight:700;font-size:15px;">${escapeHtml(r.nome) || '—'}</a>
+        ${r.profissao ? `<div style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(r.profissao)}</div>` : ''}
+      </td>
+      <td><span style="font-size:15px;">${obraAtual}</span></td>
+      <td>
+        ${statusLabel}
+        ${docs.length > 0 ? `<div style="margin-top:4px;">${this._scoreBar(conf.score)}</div>` : ''}
+      </td>
+      <td>
+        ${docs.length > 0
+          ? docBadges + extraDocs
+          : '<span style="font-size:15px;color:var(--color-text-muted);">Nenhum</span>'}
+      </td>
+      <td>
+        <button class="btn btn-sm btn-ver-docs" data-id="${r.id}" style="white-space:nowrap;">
+          ${docs.length > 0 ? `Ver ${docs.length} doc${docs.length !== 1 ? 's' : ''}` : '+ Adicionar'}
+        </button>
+      </td>
+    </tr>`;
+  },
+
+  _fmtDate(d) {
+    if (!d) return '—';
+    const [y, m, day] = d.split('-');
+    return `${day}/${m}/${y}`;
+  },
+
+  // ── MODAL: LISTA DE DOCUMENTOS DO COLABORADOR ─────────────────────────────
+  showDocumentos(recursoId) {
+    const r = (Store.state.recursos || []).find(x => x.id === recursoId);
+    if (!r) return;
+    const docs = r.documentos || [];
+
+    const rows = docs.length === 0
+      ? `<tr><td colspan="6" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum documento cadastrado</td></tr>`
+      : docs.map(d => {
+          const status = this._statusDoc(d);
+          const dias = this._diasRestantes(d);
+          return `<tr>
+            <td><strong style="font-size:15px;">${escapeHtml(d.tipoLabel || d.tipo)}</strong></td>
+            <td style="font-size:15px;">${this._fmtDate(d.dataEmissao)}</td>
+            <td style="font-size:15px;">${this._fmtDate(d.dataVencimento)}</td>
+            <td>${this._badgeStatus(status, dias)}</td>
+            <td style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(d.responsavel || '—')}</td>
+            <td>
+              <div class="actions-cell">
+                <a class="action-link btn-edit-doc" data-rid="${r.id}" data-did="${d.id}">Editar</a>
+                <a class="action-link danger btn-del-doc" data-rid="${r.id}" data-did="${d.id}">Excluir</a>
+              </div>
+            </td>
+          </tr>`;
+        }).join('');
+
+    const html = `
+      <div class="modal-overlay" id="modalDocsOverlay">
+        <div class="modal" style="width:780px;max-height:90vh;overflow-y:auto;">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">Documentos — ${escapeHtml(r.nome)}</h2>
+              <p style="font-size:15px;color:var(--color-text-muted);margin:0;">${r.profissao || ''}</p>
+            </div>
+            <button class="modal-close">✕</button>
+          </div>
+          <div class="modal-content">
+            <div style="margin-bottom:var(--sp-md);display:flex;justify-content:flex-end;">
+              <button class="btn btn-primary" id="btnAddDoc">+ Adicionar Documento</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th>Emissão</th>
+                    <th>Validade</th>
+                    <th>Status</th>
+                    <th>Responsável</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalDocsOverlay');
+
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+    document.getElementById('btnAddDoc').addEventListener('click', () => {
+      close();
+      this.showModalDocumento(recursoId, null);
+    });
+    overlay.querySelectorAll('.btn-edit-doc').forEach(b =>
+      b.addEventListener('click', e => {
+        const btn = e.target.closest('[data-rid]');
+        close();
+        this.showModalDocumento(btn.dataset.rid, btn.dataset.did);
+      }));
+    overlay.querySelectorAll('.btn-del-doc').forEach(b =>
+      b.addEventListener('click', e => {
+        const btn = e.target.closest('[data-rid]');
+        this._deleteDocumento(btn.dataset.rid, btn.dataset.did, overlay);
+      }));
+  },
+
+  // ── MODAL: ADICIONAR / EDITAR DOCUMENTO ───────────────────────────────────
+  showModalDocumento(recursoId, docId) {
+    const r = (Store.state.recursos || []).find(x => x.id === recursoId);
+    if (!r) return;
+    const doc = docId ? (r.documentos || []).find(d => d.id === docId) : null;
+
+    const tiposOptions = this.TIPOS_DOC.map(t =>
+      `<option value="${t.key}" data-meses="${t.meses}" ${doc?.tipo === t.key ? 'selected' : ''}>${t.label} — ${t.full}</option>`
+    ).join('');
+
+    const html = `
+      <div class="modal-overlay" id="modalDocFormOverlay">
+        <div class="modal" style="width:580px;">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">${doc ? 'Editar Documento' : 'Adicionar Documento'}</h2>
+              <p style="font-size:15px;color:var(--color-text-muted);margin:0;">${escapeHtml(r.nome)}</p>
+            </div>
+            <button class="modal-close">✕</button>
+          </div>
+          <form id="formDocumento" class="modal-content">
+
+            <div class="form-group">
+              <label class="form-label">Tipo de Documento *</label>
+              <select class="form-control" name="tipo" id="selectTipoDoc" required>
+                <option value="">— Selecione —</option>
+                ${tiposOptions}
+              </select>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Data de Emissão</label>
+                <input class="form-control" name="dataEmissao" type="date" id="inputEmissaoDoc" value="${doc?.dataEmissao || ''}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Data de Validade</label>
+                <input class="form-control" name="dataVencimento" type="date" id="inputVencDoc" value="${doc?.dataVencimento || ''}">
+                <span style="font-size:15px;color:var(--color-text-muted);">Calculada automaticamente ao selecionar o tipo e data de emissão</span>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Responsável / Emissor</label>
+                <input class="form-control" name="responsavel" placeholder="Ex: Dr. João Silva — CRM 12345" value="${escapeHtml(doc?.responsavel || '')}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Resultado</label>
+                <input class="form-control" name="resultado" placeholder="Ex: Apto, Aprovado..." value="${escapeHtml(doc?.resultado || '')}">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Observações</label>
+              <textarea class="form-control" name="observacoes" rows="2" placeholder="Informações adicionais...">${escapeHtml(doc?.observacoes || '')}</textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Referência do Arquivo</label>
+              <input class="form-control" name="nomeArquivo" placeholder="Ex: ASO_joao_2025.pdf" value="${escapeHtml(doc?.nomeArquivo || '')}">
+              <span style="font-size:15px;color:var(--color-text-muted);">Upload e validação automática com IA disponíveis após configurar a chave de API</span>
+            </div>
+
+            <div style="display:flex;gap:var(--sp-sm);justify-content:flex-end;margin-top:var(--sp-lg);">
+              <button type="button" class="btn btn-ghost" id="btnCancelarDoc">Cancelar</button>
+              <button type="submit" class="btn btn-primary">${doc ? 'Salvar Alterações' : 'Adicionar Documento'}</button>
+            </div>
+          </form>
+        </div>
+      </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalDocFormOverlay');
+
+    const voltar = () => { overlay.remove(); this.showDocumentos(recursoId); };
+    overlay.querySelector('.modal-close').addEventListener('click', voltar);
+    document.getElementById('btnCancelarDoc').addEventListener('click', voltar);
+
+    const selectTipo = document.getElementById('selectTipoDoc');
+    const inputEmissao = document.getElementById('inputEmissaoDoc');
+    const inputVenc = document.getElementById('inputVencDoc');
+
+    const calcVenc = () => {
+      if (!inputEmissao.value) return;
+      const sel = selectTipo.options[selectTipo.selectedIndex];
+      const meses = parseInt(sel?.dataset.meses || '12');
+      const emissao = new Date(inputEmissao.value + 'T12:00:00');
+      emissao.setMonth(emissao.getMonth() + meses);
+      inputVenc.value = emissao.toISOString().split('T')[0];
+    };
+
+    selectTipo.addEventListener('change', calcVenc);
+    inputEmissao.addEventListener('change', calcVenc);
+
+    document.getElementById('formDocumento').addEventListener('submit', async e => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const tipoKey = fd.get('tipo');
+      const tipoObj = this.TIPOS_DOC.find(t => t.key === tipoKey);
+
+      const payload = {
+        tipo: tipoKey,
+        tipoLabel: tipoObj ? tipoObj.label : tipoKey,
+        dataEmissao:    fd.get('dataEmissao') || '',
+        dataVencimento: fd.get('dataVencimento') || '',
+        responsavel:    fd.get('responsavel') || '',
+        resultado:      fd.get('resultado') || '',
+        observacoes:    fd.get('observacoes') || '',
+        nomeArquivo:    fd.get('nomeArquivo') || null,
+      };
+
+      try {
+        if (doc) {
+          await Store.updateDocumento(recursoId, docId, payload);
+        } else {
+          await Store.addDocumento(recursoId, payload);
+        }
+        overlay.remove();
+        showToast(doc ? 'Documento atualizado!' : 'Documento adicionado!');
+        this.showDocumentos(recursoId);
+        this._renderLista();
+      } catch (err) {
+        showToast('Erro ao salvar documento', 'error');
+        console.error(err);
+      }
+    });
+  },
+
+  async _deleteDocumento(recursoId, docId, parentOverlay) {
+    if (!confirm('Excluir este documento?')) return;
+    try {
+      await Store.deleteDocumento(recursoId, docId);
+      parentOverlay.remove();
+      showToast('Documento excluído');
+      this.showDocumentos(recursoId);
+      this._renderLista();
+    } catch (e) {
+      showToast('Erro ao excluir', 'error');
+      console.error(e);
+    }
+  },
+
+  // ── FICHA DO COLABORADOR ───────────────────────────────────────────────────
+  showFichaColaborador(recursoId) {
+    const r = (Store.state.recursos || []).find(x => x.id === recursoId);
+    if (!r) return;
+
+    const c = r.alocacaoAtual?.contractId
+      ? Store.state.contracts.find(x => x.id === r.alocacaoAtual.contractId)
+      : null;
+
+    const linha = (label, valor) => valor
+      ? `<div style="display:flex;gap:var(--sp-sm);padding:var(--sp-sm) 0;border-bottom:1px solid var(--color-border);">
+           <span style="min-width:140px;font-size:15px;color:var(--color-text-muted);">${label}</span>
+           <span style="font-size:15px;font-weight:500;">${valor}</span>
+         </div>`
+      : '';
+
+    const statusBadge = {
+      funcionario:    `<span class="badge" style="background:#D1FAE5;color:#065F46;">Funcionário Ativo</span>`,
+      candidato:      `<span class="badge" style="background:#DBEAFE;color:#1E40AF;">Candidato</span>`,
+      ex_funcionario: `<span class="badge" style="background:#E5E7EB;color:#374151;">Ex-Funcionário</span>`,
+    }[r.status] || '';
+
+    const fmtDate = d => {
+      if (!d) return null;
+      const [y, m, day] = d.split('-');
+      return `${day}/${m}/${y}`;
+    };
+
+    const idade = r.dataNascimento ? (() => {
+      const nasc = new Date(r.dataNascimento);
+      const hoje = new Date();
+      let i = hoje.getFullYear() - nasc.getFullYear();
+      if (hoje.getMonth() < nasc.getMonth() || (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate())) i--;
+      return `${i} anos`;
+    })() : null;
+
+    const html = `
+      <div class="modal-overlay" id="modalFichaOverlay">
+        <div class="modal" style="width:580px;max-height:90vh;overflow-y:auto;">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">${escapeHtml(r.nome)}</h2>
+              <div style="margin-top:4px;">${statusBadge}</div>
+            </div>
+            <button class="modal-close">✕</button>
+          </div>
+          <div class="modal-content">
+
+            <h3 style="font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--sp-sm);">Dados Pessoais</h3>
+            ${linha('CPF', r.cpf)}
+            ${linha('Data de Nascimento', fmtDate(r.dataNascimento) + (idade ? ` (${idade})` : ''))}
+            ${linha('Gênero', r.genero ? ({ masculino: 'Masculino', feminino: 'Feminino', outro: 'Outro' }[r.genero] || r.genero) : null)}
+            ${linha('Telefone', r.telefone)}
+            ${linha('Email', r.email)}
+            ${linha('Endereço', r.endereco)}
+
+            <h3 style="font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.06em;margin:var(--sp-lg) 0 var(--sp-sm);">Dados Profissionais</h3>
+            ${linha('Profissão', r.profissao)}
+            ${linha('Admissão', fmtDate(r.dataAdmissao))}
+            ${linha('Salário', r.salario ? Store.formatBRL(r.salario) : null)}
+            ${linha('PIS', r.pis)}
+            ${linha('CNH', r.cnh)}
+            ${c ? linha('Obra Atual', c.name + (r.alocacaoAtual?.dataInicio ? ` — desde ${fmtDate(r.alocacaoAtual.dataInicio)}` : '')) : ''}
+            ${r.alocacaoAtual ? linha('Ciclo de Trabalho', `${r.alocacaoAtual.cicloTrabalho || 21}d trabalho / ${r.alocacaoAtual.cicloFolga || 7}d folga`) : ''}
+            ${r.notas ? `<div style="margin-top:var(--sp-md);padding:var(--sp-md);background:var(--color-bg);border-radius:6px;font-size:15px;color:var(--color-text-muted);">${escapeHtml(r.notas)}</div>` : ''}
+
+            <div style="display:flex;gap:var(--sp-sm);justify-content:flex-end;margin-top:var(--sp-lg);">
+              <button class="btn btn-ghost" id="btnFichaVerDocs">Ver Documentos</button>
+              <button class="btn btn-primary" id="btnFichaEditar">Editar Cadastro</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalFichaOverlay');
+
+    overlay.querySelector('.modal-close').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+    document.getElementById('btnFichaVerDocs').addEventListener('click', () => {
+      overlay.remove();
+      this.showDocumentos(recursoId);
+    });
+
+    document.getElementById('btnFichaEditar').addEventListener('click', () => {
+      overlay.remove();
+      if (window.Recursos) window.Recursos.showModal(recursoId);
+    });
+  }
+};

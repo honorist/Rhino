@@ -74,24 +74,24 @@ window.Fornecedores = {
                 ` : filtrados.map(f => `
                   <tr>
                     <td>
-                      <strong>${f.nome || '—'}</strong>
-                      ${f.telefone ? `<div style="font-size:11px;color:var(--color-text-muted);">📞 ${f.telefone}</div>` : ''}
-                      ${f.endereco ? `<div style="font-size:11px;color:var(--color-text-muted);">📍 ${f.endereco.slice(0, 50)}${f.endereco.length > 50 ? '...' : ''}</div>` : ''}
+                      <strong>${escapeHtml(f.nome) || '—'}</strong>
+                      ${f.telefone ? `<div style="font-size:15px;color:var(--color-text-muted);">📞 ${escapeHtml(f.telefone)}</div>` : ''}
+                      ${f.endereco ? `<div style="font-size:15px;color:var(--color-text-muted);">📍 ${escapeHtml(f.endereco.slice(0, 50))}${f.endereco.length > 50 ? '...' : ''}</div>` : ''}
                     </td>
-                    <td><code style="font-size:12px;">${f.cnpj || '—'}</code></td>
+                    <td><code style="font-size:15px;">${escapeHtml(f.cnpj) || '—'}</code></td>
                     <td>
-                      ${f.pessoaContato ? `<strong style="font-size:13px;">${f.pessoaContato}</strong>` : '—'}
+                      ${f.pessoaContato ? `<strong style="font-size:15px;">${escapeHtml(f.pessoaContato)}</strong>` : '—'}
                     </td>
                     <td style="max-width:200px;">
                       ${(f.materiais && f.materiais.length > 0)
                         ? `<div style="display:flex;flex-wrap:wrap;gap:4px;">
-                            ${f.materiais.map(m => `<span class="badge" style="background:rgba(46,125,82,.12);color:#2E7D52;font-size:10px;">${m}</span>`).join('')}
+                            ${f.materiais.map(m => `<span class="badge" style="background:rgba(46,125,82,.12);color:#2E7D52;font-size:15px;">${escapeHtml(m)}</span>`).join('')}
                            </div>`
                         : '<span style="color:var(--color-text-muted);">—</span>'}
                     </td>
-                    <td style="font-size:12px;">
-                      ${f.banco || f.conta ? `<div>🏦 ${f.banco || ''} ${f.agencia ? `Ag. ${f.agencia}` : ''} ${f.conta ? `C. ${f.conta}` : ''}</div>` : ''}
-                      ${f.chavePix ? `<div style="color:var(--color-info);font-family:monospace;">📱 PIX: ${f.chavePix}</div>` : ''}
+                    <td style="font-size:15px;">
+                      ${f.banco || f.conta ? `<div>🏦 ${escapeHtml(f.banco) || ''} ${f.agencia ? `Ag. ${escapeHtml(f.agencia)}` : ''} ${f.conta ? `C. ${escapeHtml(f.conta)}` : ''}</div>` : ''}
+                      ${f.chavePix ? `<div style="color:var(--color-info);font-family:monospace;">📱 PIX: ${escapeHtml(f.chavePix)}</div>` : ''}
                       ${!f.banco && !f.conta && !f.chavePix ? '<span style="color:var(--color-text-muted);">—</span>' : ''}
                     </td>
                     <td>
@@ -124,7 +124,8 @@ window.Fornecedores = {
       document.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', e => this.showModal(e.target.dataset.id)));
       document.querySelectorAll('.btn-excluir').forEach(b => b.addEventListener('click', e => this.deleteFornecedor(e.target.dataset.id)));
     } catch (e) {
-      app.innerHTML = `<div class="card"><p class="text-danger">Erro: ${e.message}</p></div>`;
+      console.error(e);
+      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar fornecedores. Tente novamente.</p></div>';
     }
   },
 
@@ -148,7 +149,7 @@ window.Fornecedores = {
           <form id="formFornecedor" class="modal-content">
 
             <!-- Dados da empresa -->
-            <div style="font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:var(--sp-sm);letter-spacing:.04em;">Dados da Empresa</div>
+            <div style="font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:var(--sp-sm);letter-spacing:.04em;">Dados da Empresa</div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Nome / Razão Social *</label>
@@ -165,7 +166,7 @@ window.Fornecedores = {
             </div>
 
             <!-- Contato -->
-            <div style="font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-top:var(--sp-lg);margin-bottom:var(--sp-sm);letter-spacing:.04em;padding-top:var(--sp-lg);border-top:1px solid var(--color-border);">Contato</div>
+            <div style="font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-top:var(--sp-lg);margin-bottom:var(--sp-sm);letter-spacing:.04em;padding-top:var(--sp-lg);border-top:1px solid var(--color-border);">Contato</div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Telefone</label>
@@ -178,7 +179,7 @@ window.Fornecedores = {
             </div>
 
             <!-- Materiais -->
-            <div style="font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-top:var(--sp-lg);margin-bottom:var(--sp-sm);letter-spacing:.04em;padding-top:var(--sp-lg);border-top:1px solid var(--color-border);">Materiais que Fornece</div>
+            <div style="font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-top:var(--sp-lg);margin-bottom:var(--sp-sm);letter-spacing:.04em;padding-top:var(--sp-lg);border-top:1px solid var(--color-border);">Materiais que Fornece</div>
             <div class="form-group">
               <label class="form-label">Tipos de Material / Serviço</label>
               <input class="form-control" name="materiais" list="sugestoesMateriais"
@@ -191,7 +192,7 @@ window.Fornecedores = {
             </div>
 
             <!-- Dados bancários -->
-            <div style="font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-top:var(--sp-lg);margin-bottom:var(--sp-sm);letter-spacing:.04em;padding-top:var(--sp-lg);border-top:1px solid var(--color-border);">Dados para Pagamento</div>
+            <div style="font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-top:var(--sp-lg);margin-bottom:var(--sp-sm);letter-spacing:.04em;padding-top:var(--sp-lg);border-top:1px solid var(--color-border);">Dados para Pagamento</div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Banco</label>

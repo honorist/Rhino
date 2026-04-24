@@ -62,23 +62,23 @@ window.Base = {
         <!-- Controle mensal + KPIs globais -->
         <div style="display:grid;grid-template-columns:auto 1fr;gap:var(--sp-lg);margin-bottom:var(--sp-xl);align-items:center;">
           <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-            <button class="btn btn-sm btn-secondary" id="btnMesAnterior">←</button>
+            <button class="btn btn-sm" id="btnMesAnterior" style="background:transparent;color:var(--color-text);border:1px solid var(--color-border);font-size:16px;font-weight:700;padding:6px 12px;">←</button>
             <select class="form-control" id="selectMes" style="min-width:180px;font-weight:600;">
               ${mesesDisponiveis.map(m => `<option value="${m}" ${m === this.currentMonth ? 'selected' : ''}>${this.formatarMes(m)}</option>`).join('')}
             </select>
-            <button class="btn btn-sm btn-secondary" id="btnProximoMes">→</button>
+            <button class="btn btn-sm" id="btnProximoMes" style="background:transparent;color:var(--color-text);border:1px solid var(--color-border);font-size:16px;font-weight:700;padding:6px 12px;">→</button>
           </div>
           <div style="display:flex;gap:var(--sp-lg);justify-content:flex-end;flex-wrap:wrap;">
             <div style="text-align:right;">
-              <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">Total Geral (histórico)</div>
+              <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;">Total Geral (histórico)</div>
               <div style="font-size:16px;font-weight:700;">${Store.formatBRL(totalGeral)}</div>
             </div>
             <div style="text-align:right;">
-              <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">Alocado</div>
+              <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;">Alocado</div>
               <div style="font-size:16px;font-weight:700;color:var(--color-info);">${Store.formatBRL(totalAlocado)}</div>
             </div>
             <div style="text-align:right;">
-              <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">Não Alocado</div>
+              <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;">Não Alocado</div>
               <div style="font-size:16px;font-weight:700;color:${totalDisponivel >= 0 ? 'var(--color-warning)' : 'var(--color-danger)'};">${Store.formatBRL(totalDisponivel)}</div>
             </div>
           </div>
@@ -88,9 +88,9 @@ window.Base = {
         <div class="card mb-2xl" style="background:linear-gradient(135deg, rgba(46,125,82,.05), rgba(46,125,82,.02));border-left:4px solid var(--color-primary);">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div>
-              <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Total do Mês — ${this.formatarMes(this.currentMonth)}</div>
+              <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Total do Mês — ${this.formatarMes(this.currentMonth)}</div>
               <div style="font-size:32px;font-weight:800;color:var(--color-primary);margin-top:4px;">${Store.formatBRL(totalMes)}</div>
-              <div style="font-size:12px;color:var(--color-text-muted);margin-top:4px;">${itensMes.length} lançamento${itensMes.length !== 1 ? 's' : ''}</div>
+              <div style="font-size:15px;color:var(--color-text-muted);margin-top:4px;">${itensMes.length} lançamento${itensMes.length !== 1 ? 's' : ''}</div>
             </div>
             ${totalMes > 0 ? `
               <div style="display:flex;flex-direction:column;gap:4px;min-width:280px;">
@@ -102,13 +102,13 @@ window.Base = {
                     const info = this.TIPOS[tipo];
                     return `
                       <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-                        <span style="font-size:14px;">${info.icon}</span>
-                        <span style="font-size:12px;min-width:80px;">${info.label}</span>
+                        <span style="font-size:15px;">${info.icon}</span>
+                        <span style="font-size:15px;min-width:80px;">${info.label}</span>
                         <div style="flex:1;height:8px;background:rgba(0,0,0,.06);border-radius:99px;overflow:hidden;">
                           <div style="height:100%;width:${pct}%;background:${info.cor};border-radius:99px;"></div>
                         </div>
-                        <span style="font-size:11px;color:var(--color-text-muted);min-width:42px;text-align:right;">${pct}%</span>
-                        <span style="font-size:12px;font-weight:700;min-width:80px;text-align:right;">${Store.formatBRL(valor)}</span>
+                        <span style="font-size:15px;color:var(--color-text-muted);min-width:42px;text-align:right;">${pct}%</span>
+                        <span style="font-size:15px;font-weight:700;min-width:80px;text-align:right;">${Store.formatBRL(valor)}</span>
                       </div>
                     `;
                   }).join('')}
@@ -136,9 +136,9 @@ window.Base = {
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
                       <div>
                         <div style="font-size:24px;">${info.icon}</div>
-                        <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-top:6px;">${info.label}</div>
+                        <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-top:6px;">${info.label}</div>
                         <div style="font-size:22px;font-weight:800;color:${info.cor};margin-top:4px;">${Store.formatBRL(valor)}</div>
-                        <div style="font-size:11px;color:var(--color-text-muted);margin-top:2px;">${count} lançamento${count !== 1 ? 's' : ''}</div>
+                        <div style="font-size:15px;color:var(--color-text-muted);margin-top:2px;">${count} lançamento${count !== 1 ? 's' : ''}</div>
                       </div>
                     </div>
                   </div>
@@ -150,7 +150,7 @@ window.Base = {
 
         <!-- Filtros -->
         <div style="display:flex;gap:var(--sp-sm);margin-bottom:var(--sp-lg);flex-wrap:wrap;align-items:center;">
-          <span style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;font-weight:600;margin-right:4px;">Filtrar por tipo:</span>
+          <span style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;font-weight:600;margin-right:4px;">Filtrar por tipo:</span>
           <button class="btn btn-sm btn-filtro" data-filtro="todos" style="${this.currentTypeFilter === 'todos' ? 'background:var(--color-primary);color:#fff;' : 'background:transparent;color:var(--color-text-muted);border:1px solid var(--color-border);'}">Todos</button>
           ${Object.entries(this.TIPOS).map(([tipo, info]) => `
             <button class="btn btn-sm btn-filtro" data-filtro="${tipo}" style="${this.currentTypeFilter === tipo ? `background:${info.cor};color:#fff;` : 'background:transparent;color:var(--color-text-muted);border:1px solid var(--color-border);'}">${info.icon} ${info.label}</button>
@@ -161,7 +161,7 @@ window.Base = {
         <div class="card">
           <div class="card-header">
             <h3 class="card-title">Itens da BASE — ${this.currentTypeFilter === 'todos' ? 'Todos os tipos' : this.TIPOS[this.currentTypeFilter]?.label || this.currentTypeFilter}</h3>
-            <span style="font-size:12px;color:var(--color-text-muted);">${itensFiltrados.length} item${itensFiltrados.length !== 1 ? 's' : ''}</span>
+            <span style="font-size:15px;color:var(--color-text-muted);">${itensFiltrados.length} item${itensFiltrados.length !== 1 ? 's' : ''}</span>
           </div>
           <div class="table-wrap">
             <table>
@@ -188,27 +188,27 @@ window.Base = {
                   const info = this.TIPOS[tipoKey];
                   return `
                     <tr>
-                      <td><strong>${item.description}</strong></td>
+                      <td><strong>${escapeHtml(item.description)}</strong></td>
                       <td><span class="badge badge-${tipoKey}">${info.icon} ${info.label}</span></td>
                       <td>${item.date ? new Date(item.date + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
                       <td style="text-align:right;font-weight:600;">${Store.formatBRL(item.value)}</td>
                       <td style="min-width:260px;">
-                        ${item.allocations.length === 0 ? `
-                          <span style="font-size:12px;color:var(--color-text-muted);font-style:italic;">Nenhuma alocação</span>
+                        ${(item.allocations || []).length === 0 ? `
+                          <span style="font-size:15px;color:var(--color-text-muted);font-style:italic;">Nenhuma alocação</span>
                         ` : `
                           <div style="display:flex;flex-direction:column;gap:4px;">
-                            ${item.allocations.map(a => {
+                            ${(item.allocations || []).map(a => {
                               const contract = Store.getContractById(a.contractId);
                               return `
-                                <div style="display:flex;justify-content:space-between;align-items:center;gap:var(--sp-sm);padding:4px 8px;background:rgba(49,130,206,.08);border-left:3px solid var(--color-info);border-radius:3px;font-size:12px;">
-                                  <a href="#/contratos/${a.contractId}" style="color:var(--color-primary);text-decoration:none;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;" title="${contract?.name || 'Contrato removido'}${contract?.client ? ' — ' + contract.client : ''}">
-                                    ${contract?.name || '⚠️ Removido'}
+                                <div style="display:flex;justify-content:space-between;align-items:center;gap:var(--sp-sm);padding:4px 8px;background:rgba(49,130,206,.08);border-left:3px solid var(--color-info);border-radius:3px;font-size:15px;">
+                                  <a href="#/contratos/${a.contractId}" style="color:var(--color-primary);text-decoration:none;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;" title="${escapeHtml(contract?.name || 'Contrato removido')}${contract?.client ? ' — ' + escapeHtml(contract.client) : ''}">
+                                    ${escapeHtml(contract?.name) || '⚠️ Removido'}
                                   </a>
                                   <span style="font-weight:700;color:var(--color-info);white-space:nowrap;">${Store.formatBRL(a.value)}</span>
                                 </div>
                               `;
                             }).join('')}
-                            <div style="text-align:right;font-size:11px;color:var(--color-text-muted);font-weight:600;margin-top:2px;">
+                            <div style="text-align:right;font-size:15px;color:var(--color-text-muted);font-weight:600;margin-top:2px;">
                               Total: ${Store.formatBRL(allocated)}
                             </div>
                           </div>
@@ -291,7 +291,8 @@ window.Base = {
         btn.addEventListener('click', e => this.deleteItem(e.target.dataset.id));
       });
     } catch (e) {
-      app.innerHTML = `<div class="card"><p class="text-danger">Erro: ${e.message}</p></div>`;
+      console.error(e);
+      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar BASE. Tente novamente.</p></div>';
     }
   },
 
@@ -393,22 +394,22 @@ window.Base = {
       <div class="modal-overlay" id="modalOverlay">
         <div class="modal" style="width:640px;">
           <div class="modal-header">
-            <h2 class="modal-title">${info.icon} Alocar "${item.description}"</h2>
+            <h2 class="modal-title">${info.icon} Alocar "${escapeHtml(item.description)}"</h2>
             <button class="modal-close">✕</button>
           </div>
           <div class="modal-content">
             <!-- Resumo do item -->
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-sm);margin-bottom:var(--sp-lg);padding:var(--sp-md);background:var(--color-bg);border-radius:8px;">
               <div>
-                <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">Valor Total</div>
+                <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;">Valor Total</div>
                 <div style="font-size:15px;font-weight:700;">${Store.formatBRL(item.value)}</div>
               </div>
               <div>
-                <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">Alocado</div>
+                <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;">Alocado</div>
                 <div style="font-size:15px;font-weight:700;color:var(--color-info);">${Store.formatBRL(allocated)}</div>
               </div>
               <div>
-                <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">Disponível</div>
+                <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;">Disponível</div>
                 <div style="font-size:15px;font-weight:700;color:var(--color-success);">${Store.formatBRL(disponivel)}</div>
               </div>
             </div>
@@ -416,15 +417,15 @@ window.Base = {
             <!-- Alocações existentes -->
             ${item.allocations.length > 0 ? `
               <div style="margin-bottom:var(--sp-lg);">
-                <div style="font-size:12px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:var(--sp-sm);">Alocações existentes</div>
+                <div style="font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:var(--sp-sm);">Alocações existentes</div>
                 <div style="display:flex;flex-direction:column;gap:6px;">
                   ${item.allocations.map(a => {
                     const contract = Store.getContractById(a.contractId);
                     return `
-                      <div style="display:flex;justify-content:space-between;align-items:center;padding:var(--sp-sm) var(--sp-md);background:rgba(49,130,206,.06);border-left:3px solid var(--color-info);border-radius:4px;font-size:13px;">
+                      <div style="display:flex;justify-content:space-between;align-items:center;padding:var(--sp-sm) var(--sp-md);background:rgba(49,130,206,.06);border-left:3px solid var(--color-info);border-radius:4px;font-size:15px;">
                         <div>
-                          <strong>${contract?.name || 'Contrato removido'}</strong>
-                          ${contract?.client ? `<span style="color:var(--color-text-muted);"> · ${contract.client}</span>` : ''}
+                          <strong>${escapeHtml(contract?.name || 'Contrato removido')}</strong>
+                          ${contract?.client ? `<span style="color:var(--color-text-muted);"> · ${escapeHtml(contract.client)}</span>` : ''}
                         </div>
                         <div style="font-weight:700;color:var(--color-info);">${Store.formatBRL(a.value)}</div>
                       </div>
@@ -436,14 +437,14 @@ window.Base = {
 
             <!-- Nova alocação -->
             <form id="formAlocar">
-              <div style="font-size:12px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:var(--sp-sm);">Nova alocação</div>
+              <div style="font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:var(--sp-sm);">Nova alocação</div>
               <div class="form-row">
                 <div class="form-group">
                   <label class="form-label">Contrato *</label>
                   <select class="form-control" name="contractId" required>
                     <option value="">Selecionar...</option>
                     ${Store.state.contracts.filter(c => c.status === 'ativo').map(c => `
-                      <option value="${c.id}">${c.name} — ${c.client}</option>
+                      <option value="${c.id}">${escapeHtml(c.name)} — ${escapeHtml(c.client)}</option>
                     `).join('')}
                   </select>
                 </div>

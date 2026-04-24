@@ -115,7 +115,7 @@ window.Caixa = {
         <div class="card" style="margin-bottom:var(--sp-lg);border:1px dashed var(--color-border);">
           <div class="card-header" style="background:transparent;">
             <h3 class="card-title" style="color:var(--color-text-muted);">⏳ Lançamentos Futuros</h3>
-            <div style="font-size:12px;color:var(--color-text-muted);">
+            <div style="font-size:15px;color:var(--color-text-muted);">
               +${Store.formatBRL(totalFutEntradas)} entradas · -${Store.formatBRL(totalFutSaidas)} saídas
             </div>
           </div>
@@ -143,9 +143,9 @@ window.Caixa = {
                 ].sort((a, b) => a.date.localeCompare(b.date)).map(item => `
                   <tr style="opacity:0.8;">
                     <td style="color:var(--color-text-muted);font-style:italic;">${item.date && item.date !== '9999-99-99' ? new Date(item.date + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
-                    <td style="color:var(--color-text-muted);">${item.desc}</td>
+                    <td style="color:var(--color-text-muted);">${escapeHtml(item.desc)}</td>
                     <td><span class="badge" style="background:${item.tipo === 'entrada' ? 'rgba(56,161,105,.12)' : 'rgba(229,62,62,.12)'};color:${item.tipo === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};border:1px dashed ${item.tipo === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};">${item.tipo}</span></td>
-                    <td style="font-size:11px;color:var(--color-text-muted);">${item.origem}</td>
+                    <td style="font-size:15px;color:var(--color-text-muted);">${item.origem}</td>
                     <td style="text-align:right;font-weight:700;color:${item.tipo === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};">
                       ${item.tipo === 'entrada' ? '+' : '-'}${Store.formatBRL(item.valor)}
                     </td>
@@ -161,7 +161,7 @@ window.Caixa = {
         <div class="card" style="margin-bottom:var(--sp-lg);padding:var(--sp-md);">
           <div style="display:flex;gap:var(--sp-md);flex-wrap:wrap;align-items:flex-end;">
             <div style="flex:1;min-width:160px;">
-              <label style="display:block;font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Mês</label>
+              <label style="display:block;font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Mês</label>
               <select class="form-control" id="filterMes">
                 <option value="">Todos os meses</option>
                 ${mesesDisponiveis.map(m => `
@@ -170,16 +170,16 @@ window.Caixa = {
               </select>
             </div>
             <div style="flex:1;min-width:160px;">
-              <label style="display:block;font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Projeto/Contrato</label>
+              <label style="display:block;font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Projeto/Contrato</label>
               <select class="form-control" id="filterContract">
                 <option value="">Todos os contratos</option>
                 ${Store.state.contracts.map(c => `
-                  <option value="${c.id}" ${this.filters.contractId === c.id ? 'selected' : ''}>${c.name} — ${c.client}</option>
+                  <option value="${c.id}" ${this.filters.contractId === c.id ? 'selected' : ''}>${escapeHtml(c.name)} — ${escapeHtml(c.client)}</option>
                 `).join('')}
               </select>
             </div>
             <div style="flex:0 0 140px;">
-              <label style="display:block;font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Tipo</label>
+              <label style="display:block;font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Tipo</label>
               <select class="form-control" id="filterType">
                 <option value="todos">Todos</option>
                 <option value="entrada" ${this.filters.type === 'entrada' ? 'selected' : ''}>Entrada</option>
@@ -187,17 +187,17 @@ window.Caixa = {
               </select>
             </div>
             <div style="flex:1;min-width:140px;">
-              <label style="display:block;font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">De</label>
+              <label style="display:block;font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">De</label>
               <input class="form-control" type="date" id="filterFrom" value="${this.filters.dateFrom}">
             </div>
             <div style="flex:1;min-width:140px;">
-              <label style="display:block;font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Até</label>
+              <label style="display:block;font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Até</label>
               <input class="form-control" type="date" id="filterTo" value="${this.filters.dateTo}">
             </div>
             <button class="btn btn-secondary" id="btnLimparFiltros">Limpar</button>
           </div>
           ${filtrosAtivos ? `
-            <div style="margin-top:var(--sp-sm);padding-top:var(--sp-sm);border-top:1px solid var(--color-border);font-size:12px;color:var(--color-primary);">
+            <div style="margin-top:var(--sp-sm);padding-top:var(--sp-sm);border-top:1px solid var(--color-border);font-size:15px;color:var(--color-primary);">
               ✓ Filtros ativos · ${filtered.length} de ${caixaPassado.length} lançamento${caixaPassado.length !== 1 ? 's' : ''}
             </div>
           ` : ''}
@@ -236,7 +236,7 @@ window.Caixa = {
                 </tbody>
               </table>
             </div>
-            <div style="margin-top:var(--sp-sm);font-size:11px;color:var(--color-text-muted);text-align:center;">Clique em um mês para filtrar</div>
+            <div style="margin-top:var(--sp-sm);font-size:15px;color:var(--color-text-muted);text-align:center;">Clique em um mês para filtrar</div>
           </div>
         ` : ''}
 
@@ -268,16 +268,16 @@ window.Caixa = {
                   return `
                     <tr>
                       <td>${new Date(e.date + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                      <td><strong>${e.description}</strong></td>
+                      <td><strong>${escapeHtml(e.description)}</strong></td>
                       <td><span class="badge badge-${e.type}">${e.type}</span></td>
                       <td>${contract
-                        ? `<a href="#/contratos/${contract.id}" style="color:var(--color-primary);text-decoration:none;font-weight:500;">${contract.name}</a><div style="font-size:11px;color:var(--color-text-muted);">${contract.client}</div>`
+                        ? `<a href="#/contratos/${contract.id}" style="color:var(--color-primary);text-decoration:none;font-weight:500;">${escapeHtml(contract.name)}</a><div style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(contract.client)}</div>`
                         : (e.baseItemId ? '<span style="color:var(--color-info);">BASE</span>' : '<span style="color:var(--color-text-muted);">—</span>')}</td>
                       <td>${(() => {
-                        if (e.contaPagarId || e.category === 'conta_pagar') return `<span style="font-size:11px;font-weight:600;color:var(--color-danger);background:rgba(229,62,62,.1);padding:2px 7px;border-radius:4px;">Conta a Pagar</span>`;
-                        if (e.nfId || e.category === 'nota_fiscal') return `<span style="font-size:11px;font-weight:600;color:var(--color-success);background:rgba(56,161,105,.1);padding:2px 7px;border-radius:4px;">Conta a Receber</span>`;
-                        if (e.baseItemId) return `<span style="font-size:11px;font-weight:600;color:var(--color-info);background:rgba(49,130,206,.1);padding:2px 7px;border-radius:4px;">BASE</span>`;
-                        return `<span style="font-size:11px;color:var(--color-text-muted);">Manual</span>`;
+                        if (e.contaPagarId || e.category === 'conta_pagar') return `<span style="font-size:15px;font-weight:600;color:var(--color-danger);background:rgba(229,62,62,.1);padding:2px 7px;border-radius:4px;">Conta a Pagar</span>`;
+                        if (e.nfId || e.category === 'nota_fiscal') return `<span style="font-size:15px;font-weight:600;color:var(--color-success);background:rgba(56,161,105,.1);padding:2px 7px;border-radius:4px;">Conta a Receber</span>`;
+                        if (e.baseItemId) return `<span style="font-size:15px;font-weight:600;color:var(--color-info);background:rgba(49,130,206,.1);padding:2px 7px;border-radius:4px;">BASE</span>`;
+                        return `<span style="font-size:15px;color:var(--color-text-muted);">Manual</span>`;
                       })()}</td>
                       <td style="text-align:right;font-weight:700;color:${e.type === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};">
                         ${e.type === 'entrada' ? '+' : '-'}${Store.formatBRL(num(e.value))}
@@ -347,7 +347,8 @@ window.Caixa = {
         btn.addEventListener('click', e => this.deleteEntry(e.target.dataset.id));
       });
     } catch (e) {
-      app.innerHTML = `<div class="card"><p class="text-danger">Erro: ${e.message}</p></div>`;
+      console.error(e);
+      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar caixa. Tente novamente.</p></div>';
     }
   },
 
@@ -402,7 +403,7 @@ window.Caixa = {
               <select class="form-control" name="contractId">
                 <option value="">Nenhum</option>
                 ${Store.state.contracts.map(c => `
-                  <option value="${c.id}" ${entry?.contractId === c.id ? 'selected' : ''}>${c.name} — ${c.client}</option>
+                  <option value="${c.id}" ${entry?.contractId === c.id ? 'selected' : ''}>${escapeHtml(c.name)} — ${escapeHtml(c.client)}</option>
                 `).join('')}
               </select>
             </div>

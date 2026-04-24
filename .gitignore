@@ -3,3 +3,7 @@ data/backups/
 server.log
 .env
 functions/node_modules/
+.backup/
+.claude/
+backups/
+*-Honório_PC*

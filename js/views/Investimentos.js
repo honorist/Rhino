@@ -54,7 +54,7 @@ window.Investimentos = {
           <div class="card mb-2xl">
             <div class="card-header">
               <h3 class="card-title">Aportes por Sócio</h3>
-              <span style="font-size:11px;color:var(--color-text-muted);">Comparando com participação societária</span>
+              <span style="font-size:15px;color:var(--color-text-muted);">Comparando com participação societária</span>
             </div>
             <div class="table-wrap">
               <table>
@@ -75,7 +75,7 @@ window.Investimentos = {
                     const diff = aportado - esperado;
                     return `
                       <tr>
-                        <td><strong>${socio.name}</strong></td>
+                        <td><strong>${escapeHtml(socio.name)}</strong></td>
                         <td>${num(socio.participacao).toFixed(2)}%</td>
                         <td style="text-align:right;font-weight:600;">${Store.formatBRL(aportado)}</td>
                         <td style="text-align:right;color:var(--color-text-muted);">${Store.formatBRL(esperado)}</td>
@@ -100,7 +100,7 @@ window.Investimentos = {
 
         <!-- Filtro de origem -->
         <div style="display:flex;gap:var(--sp-sm);margin-bottom:var(--sp-lg);align-items:center;">
-          <span style="font-size:11px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-right:4px;">Filtrar:</span>
+          <span style="font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-right:4px;">Filtrar:</span>
           <button class="btn btn-sm btn-filtro-origem" data-origem="todos" style="${this.filtroOrigem === 'todos' ? 'background:var(--color-primary);color:#fff;' : 'background:transparent;color:var(--color-text-muted);border:1px solid var(--color-border);'}">Todos</button>
           <button class="btn btn-sm btn-filtro-origem" data-origem="socio" style="${this.filtroOrigem === 'socio' ? 'background:var(--color-info);color:#fff;' : 'background:transparent;color:var(--color-text-muted);border:1px solid var(--color-border);'}">👥 Sócios</button>
           <button class="btn btn-sm btn-filtro-origem" data-origem="caixa_empresa" style="${this.filtroOrigem === 'caixa_empresa' ? 'background:var(--color-warning);color:#fff;' : 'background:transparent;color:var(--color-text-muted);border:1px solid var(--color-border);'}">💰 Caixa Empresa</button>
@@ -110,7 +110,7 @@ window.Investimentos = {
         <div class="card">
           <div class="card-header">
             <h3 class="card-title">Histórico de Aportes</h3>
-            <span style="font-size:12px;color:var(--color-text-muted);">${aportesFiltrados.length} aporte${aportesFiltrados.length !== 1 ? 's' : ''}</span>
+            <span style="font-size:15px;color:var(--color-text-muted);">${aportesFiltrados.length} aporte${aportesFiltrados.length !== 1 ? 's' : ''}</span>
           </div>
           ${aportesFiltrados.length === 0 ? `
             <p class="text-muted" style="padding:var(--sp-lg);">Nenhum aporte registrado</p>
@@ -145,7 +145,7 @@ window.Investimentos = {
                     const destinoBadge = destino === 'base'
                       ? `<span class="badge" style="background:rgba(49,130,206,.15);color:#3182CE;">⚙️ BASE</span>`
                       : contract
-                        ? `<a href="#/contratos/${contract.id}" style="text-decoration:none;"><span class="badge" style="background:rgba(46,125,82,.15);color:#2E7D52;cursor:pointer;">📋 ${contract.name}</span></a>`
+                        ? `<a href="#/contratos/${contract.id}" style="text-decoration:none;"><span class="badge" style="background:rgba(46,125,82,.15);color:#2E7D52;cursor:pointer;">📋 ${escapeHtml(contract.name)}</span></a>`
                         : `<span class="badge" style="background:rgba(113,128,150,.15);color:#718096;">📋 Contrato removido</span>`;
 
                     return `
@@ -154,8 +154,8 @@ window.Investimentos = {
                         <td>${origemBadge}</td>
                         <td>
                           ${socio
-                            ? `<strong>${socio.name}</strong>${ap.description ? `<div style="font-size:11px;color:var(--color-text-muted);">${ap.description}</div>` : ''}`
-                            : `<strong>${ap.description || 'Aporte via caixa'}</strong>`
+                            ? `<strong>${escapeHtml(socio.name)}</strong>${ap.description ? `<div style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(ap.description)}</div>` : ''}`
+                            : `<strong>${escapeHtml(ap.description || 'Aporte via caixa')}</strong>`
                           }
                         </td>
                         <td>${tipoBadge}</td>
@@ -196,7 +196,8 @@ window.Investimentos = {
         btn.addEventListener('click', e => this.deleteAporte(e.target.dataset.id));
       });
     } catch (e) {
-      app.innerHTML = `<div class="card"><p class="text-danger">Erro: ${e.message}</p></div>`;
+      console.error(e);
+      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar investimentos. Tente novamente.</p></div>';
     }
   },
 
@@ -218,14 +219,14 @@ window.Investimentos = {
                   <input type="radio" name="origem" value="socio" checked style="margin:0;">
                   <div>
                     <div style="font-weight:600;">👥 Sócio</div>
-                    <div style="font-size:11px;color:var(--color-text-muted);">Aporte de um sócio</div>
+                    <div style="font-size:15px;color:var(--color-text-muted);">Aporte de um sócio</div>
                   </div>
                 </label>
                 <label style="display:flex;align-items:center;gap:var(--sp-sm);padding:var(--sp-md);border:2px solid var(--color-border);border-radius:8px;cursor:pointer;" id="labelCaixa">
                   <input type="radio" name="origem" value="caixa_empresa" style="margin:0;">
                   <div>
                     <div style="font-weight:600;">💰 Caixa da Empresa</div>
-                    <div style="font-size:11px;color:var(--color-text-muted);">Aquisição via caixa (gera saída)</div>
+                    <div style="font-size:15px;color:var(--color-text-muted);">Aquisição via caixa (gera saída)</div>
                   </div>
                 </label>
               </div>
@@ -236,7 +237,7 @@ window.Investimentos = {
               <label class="form-label">Sócio *</label>
               <select class="form-control" name="socioId">
                 <option value="">Selecionar...</option>
-                ${Store.state.socios.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+                ${Store.state.socios.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('')}
               </select>
             </div>
 
@@ -248,14 +249,14 @@ window.Investimentos = {
                   <input type="radio" name="destino" value="contrato" checked style="margin:0;">
                   <div>
                     <div style="font-weight:600;">📋 Contrato</div>
-                    <div style="font-size:11px;color:var(--color-text-muted);">Aporte para um contrato específico</div>
+                    <div style="font-size:15px;color:var(--color-text-muted);">Aporte para um contrato específico</div>
                   </div>
                 </label>
                 <label style="display:flex;align-items:center;gap:var(--sp-sm);padding:var(--sp-md);border:2px solid var(--color-border);border-radius:8px;cursor:pointer;" id="labelDestBase">
                   <input type="radio" name="destino" value="base" style="margin:0;">
                   <div>
                     <div style="font-weight:600;">⚙️ BASE</div>
-                    <div style="font-size:11px;color:var(--color-text-muted);">Custo administrativo geral</div>
+                    <div style="font-size:15px;color:var(--color-text-muted);">Custo administrativo geral</div>
                   </div>
                 </label>
               </div>
@@ -266,7 +267,7 @@ window.Investimentos = {
               <label class="form-label">Contrato *</label>
               <select class="form-control" name="contractId">
                 <option value="">Selecionar contrato...</option>
-                ${Store.state.contracts.map(c => `<option value="${c.id}">${c.name} — ${c.client}</option>`).join('')}
+                ${Store.state.contracts.map(c => `<option value="${c.id}">${escapeHtml(c.name)} — ${escapeHtml(c.client)}</option>`).join('')}
               </select>
             </div>
 
@@ -300,10 +301,10 @@ window.Investimentos = {
             </div>
 
             <!-- Avisos -->
-            <div id="avisoCaixa" style="display:none;padding:var(--sp-md);background:rgba(214,158,46,.1);border-left:4px solid var(--color-warning);border-radius:6px;font-size:13px;margin-top:var(--sp-md);">
+            <div id="avisoCaixa" style="display:none;padding:var(--sp-md);background:rgba(214,158,46,.1);border-left:4px solid var(--color-warning);border-radius:6px;font-size:15px;margin-top:var(--sp-md);">
               ⚠️ Este aporte gerará uma <strong>saída contábil automática</strong> no caixa da empresa.
             </div>
-            <div id="avisoBase" style="display:none;padding:var(--sp-md);background:rgba(49,130,206,.1);border-left:4px solid var(--color-info);border-radius:6px;font-size:13px;margin-top:var(--sp-md);">
+            <div id="avisoBase" style="display:none;padding:var(--sp-md);background:rgba(49,130,206,.1);border-left:4px solid var(--color-info);border-radius:6px;font-size:15px;margin-top:var(--sp-md);">
               ℹ️ Um item será criado na <strong>BASE</strong> para este aporte, pronto para ser alocado em contratos.
             </div>
           </form>
@@ -415,7 +416,7 @@ window.Investimentos = {
       <div class="modal-overlay" id="modalOverlay">
         <div class="modal" style="width:700px;">
           <div class="modal-header">
-            <h2 class="modal-title">Aportes de ${socio.name}</h2>
+            <h2 class="modal-title">Aportes de ${escapeHtml(socio.name)}</h2>
             <button class="modal-close">✕</button>
           </div>
           <div class="modal-content">
@@ -438,7 +439,7 @@ window.Investimentos = {
                       <tr>
                         <td>${new Date(a.date + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                         <td><span class="badge ${a.type === 'inicial' ? 'badge-entrada' : 'badge-warning'}">${a.type === 'inicial' ? 'Inicial' : a.type === 'aquisicao' ? 'Aquisição' : 'Adicional'}</span></td>
-                        <td>${a.description || '—'}</td>
+                        <td>${escapeHtml(a.description) || '—'}</td>
                         <td style="text-align:right;font-weight:700;">${Store.formatBRL(num(a.value))}</td>
                       </tr>
                     `).join('')}

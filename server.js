@@ -5,7 +5,7 @@ const url = require('url');
 const crypto = require('crypto');
 
 const PORT = process.env.PORT || 3001;
-const DATA_DIR = path.join(__dirname, 'data');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const BACKUPS_DIR = path.join(DATA_DIR, 'backups');
 
 // Ensure backups directory exists
@@ -40,8 +40,8 @@ function writeData(filename, data) {
       .sort()
       .reverse();
 
-    if (backups.length > 10) {
-      fs.unlinkSync(path.join(BACKUPS_DIR, backups[10]));
+    for (let i = 10; i < backups.length; i++) {
+      fs.unlinkSync(path.join(BACKUPS_DIR, backups[i]));
     }
   }
 
@@ -64,6 +64,11 @@ function handleGetContracts(res) {
 
 function handlePostContract(body, res) {
   try {
+    if (!body.name || !body.client) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Nome e cliente são obrigatórios' }));
+      return;
+    }
     const data = readData('contracts.json');
     const contract = {
       id: generateId('ctr'),
@@ -72,6 +77,7 @@ function handlePostContract(body, res) {
       value: parseFloat(body.value) || 0,
       startDate: body.startDate || '',
       endDate: body.endDate || '',
+      tendencyDate: body.tendencyDate || '',
       status: body.status || 'ativo',
       notes: body.notes || '',
       createdAt: new Date().toISOString(),
@@ -99,9 +105,14 @@ function handlePutContract(id, body, res) {
       return;
     }
 
+    const allowed = {};
+    const fields = ['name', 'client', 'value', 'startDate', 'endDate', 'tendencyDate', 'status', 'notes', 'lat', 'lng', 'endereco', 'contractNumber'];
+    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    if (allowed.value !== undefined) allowed.value = parseFloat(allowed.value) || 0;
+
     data.contracts[idx] = {
       ...data.contracts[idx],
-      ...body,
+      ...allowed,
       updatedAt: new Date().toISOString()
     };
     writeData('contracts.json', data);
@@ -170,7 +181,12 @@ function handlePutSaida(id, body, res) {
       return;
     }
 
-    data.saidas[idx] = { ...data.saidas[idx], ...body, id, updatedAt: new Date().toISOString() };
+    const allowedSaida = {};
+    const saidaFields = ['type', 'description', 'value', 'date'];
+    for (const f of saidaFields) { if (body[f] !== undefined) allowedSaida[f] = body[f]; }
+    if (allowedSaida.value !== undefined) allowedSaida.value = parseFloat(allowedSaida.value) || 0;
+
+    data.saidas[idx] = { ...data.saidas[idx], ...allowedSaida, id, updatedAt: new Date().toISOString() };
     writeData('contracts.json', data);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -238,11 +254,12 @@ function handlePutCaixa(id, body, res) {
       return;
     }
 
-    // Garante que value seja sempre número
-    const bodyLimpo = { ...body };
-    if (bodyLimpo.value !== undefined) bodyLimpo.value = parseFloat(bodyLimpo.value) || 0;
+    const allowedCxa = {};
+    const cxaFields = ['type', 'description', 'value', 'date', 'contractId', 'baseItemId', 'category', 'notes'];
+    for (const f of cxaFields) { if (body[f] !== undefined) allowedCxa[f] = body[f]; }
+    if (allowedCxa.value !== undefined) allowedCxa.value = parseFloat(allowedCxa.value) || 0;
 
-    data.entries[idx] = { ...data.entries[idx], ...bodyLimpo };
+    data.entries[idx] = { ...data.entries[idx], ...allowedCxa };
     writeData('caixa.json', data);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -309,9 +326,14 @@ function handlePutBase(id, body, res) {
       return;
     }
 
+    const allowedBase = {};
+    const baseFields = ['description', 'type', 'value', 'date', 'notes'];
+    for (const f of baseFields) { if (body[f] !== undefined) allowedBase[f] = body[f]; }
+    if (allowedBase.value !== undefined) allowedBase.value = parseFloat(allowedBase.value) || 0;
+
     data.items[idx] = {
       ...data.items[idx],
-      ...body,
+      ...allowedBase,
       updatedAt: new Date().toISOString()
     };
     writeData('base.json', data);
@@ -351,7 +373,7 @@ function handleAllocateBase(id, body, res) {
 
     const baseItem = baseData.items[baseItemIdx];
     const allocationValue = parseFloat(body.value) || 0;
-    const totalAllocated = baseItem.allocations.reduce((sum, a) => sum + a.value, 0);
+    const totalAllocated = (baseItem.allocations || []).reduce((sum, a) => sum + a.value, 0);
 
     if (totalAllocated + allocationValue > baseItem.value) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -367,8 +389,12 @@ function handleAllocateBase(id, body, res) {
       createdAt: new Date().toISOString()
     };
 
-    baseItem.allocations.push(allocation);
-    baseItem.updatedAt = new Date().toISOString();
+    // Update base item immutably to avoid partial-write inconsistency
+    baseData.items[baseItemIdx] = {
+      ...baseItem,
+      allocations: [...(baseItem.allocations || []), allocation],
+      updatedAt: new Date().toISOString()
+    };
     writeData('base.json', baseData);
 
     // Add matching caixa entry
@@ -440,7 +466,7 @@ function handleDashboard(res, query) {
     const totalSaidas = contracts.saidas.reduce((sum, s) => sum + s.value, 0);
 
     const totalBaseUnallocated = base.items.reduce((sum, item) => {
-      const allocated = item.allocations.reduce((s, a) => s + a.value, 0);
+      const allocated = (item.allocations || []).reduce((s, a) => s + a.value, 0);
       return sum + (item.value - allocated);
     }, 0);
 
@@ -703,7 +729,12 @@ function handlePutSocio(id, body, res) {
       res.end(JSON.stringify({ error: 'Sócio not found' }));
       return;
     }
-    data.socios[idx] = { ...data.socios[idx], ...body, id: id };
+    const allowedSocio = {};
+    const socioFields = ['name', 'document', 'email', 'phone', 'participacao', 'notes'];
+    for (const f of socioFields) { if (body[f] !== undefined) allowedSocio[f] = body[f]; }
+    if (allowedSocio.participacao !== undefined) allowedSocio.participacao = parseFloat(allowedSocio.participacao) || 0;
+
+    data.socios[idx] = { ...data.socios[idx], ...allowedSocio, id };
     writeData('socios.json', data);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -886,7 +917,11 @@ function handlePutCliente(id, body, res) {
       res.end(JSON.stringify({ error: 'Cliente não encontrado' }));
       return;
     }
-    data.clientes[idx] = { ...data.clientes[idx], ...body, id, updatedAt: new Date().toISOString() };
+    const allowedCliente = {};
+    const clienteFields = ['nome', 'empresa', 'cargo', 'setor', 'telefone', 'email', 'endereco', 'notas', 'lat', 'lng'];
+    for (const f of clienteFields) { if (body[f] !== undefined) allowedCliente[f] = body[f]; }
+
+    data.clientes[idx] = { ...data.clientes[idx], ...allowedCliente, id, updatedAt: new Date().toISOString() };
     writeData('clientes.json', data);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -962,11 +997,13 @@ function handlePutFornecedor(id, body, res) {
       res.end(JSON.stringify({ error: 'Fornecedor não encontrado' }));
       return;
     }
-    const bodyLimpo = { ...body };
-    if (typeof bodyLimpo.materiais === 'string') {
-      bodyLimpo.materiais = bodyLimpo.materiais.split(',').map(s => s.trim()).filter(Boolean);
+    const allowedForn = {};
+    const fornFields = ['nome', 'cnpj', 'endereco', 'telefone', 'pessoaContato', 'materiais', 'banco', 'agencia', 'conta', 'chavePix', 'notas'];
+    for (const f of fornFields) { if (body[f] !== undefined) allowedForn[f] = body[f]; }
+    if (typeof allowedForn.materiais === 'string') {
+      allowedForn.materiais = allowedForn.materiais.split(',').map(s => s.trim()).filter(Boolean);
     }
-    data.fornecedores[idx] = { ...data.fornecedores[idx], ...bodyLimpo, id, updatedAt: new Date().toISOString() };
+    data.fornecedores[idx] = { ...data.fornecedores[idx], ...allowedForn, id, updatedAt: new Date().toISOString() };
     writeData('fornecedores.json', data);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1112,6 +1149,11 @@ function handleGetContasPagar(res) {
 
 function handlePostContaPagar(body, res) {
   try {
+    if (!body.descricao || !body.valor || parseFloat(body.valor) <= 0) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Descrição e valor (>0) são obrigatórios' }));
+      return;
+    }
     const data = readData('contas_pagar.json');
     const conta = {
       id: generateId('cp'),
@@ -1149,7 +1191,12 @@ function handlePutContaPagar(id, body, res) {
       res.end(JSON.stringify({ error: 'Conta não encontrada' }));
       return;
     }
-    data.contas[idx] = { ...data.contas[idx], ...body, id, updatedAt: new Date().toISOString() };
+    const allowedCP = {};
+    const cpFields = ['descricao', 'fornecedorId', 'numeroNF', 'valor', 'dataEmissao', 'dataVencimento', 'contractId', 'category', 'observacoes'];
+    for (const f of cpFields) { if (body[f] !== undefined) allowedCP[f] = body[f]; }
+    if (allowedCP.valor !== undefined) allowedCP.valor = parseFloat(allowedCP.valor) || 0;
+
+    data.contas[idx] = { ...data.contas[idx], ...allowedCP, id, updatedAt: new Date().toISOString() };
     writeData('contas_pagar.json', data);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(data));
@@ -1277,6 +1324,11 @@ function handleGetNotasFiscais(res) {
 
 function handlePostNotaFiscal(body, res) {
   try {
+    if (!body.numero || !body.contractId || !body.dataLimite) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Número, contrato e data limite são obrigatórios' }));
+      return;
+    }
     const data = readData('notas_fiscais.json');
     const nf = {
       id: generateId('nf'),
@@ -1312,12 +1364,42 @@ function handlePutNotaFiscal(id, body, res) {
       res.end(JSON.stringify({ error: 'Nota fiscal not found' }));
       return;
     }
+    const existing = data.notas_fiscais[idx];
+    const allowedNF = {};
+    const nfFields = ['numero', 'contractId', 'dataLimite', 'valor', 'prazoRecebimento', 'observacoes', 'dataEmissaoReal'];
+    for (const f of nfFields) { if (body[f] !== undefined) allowedNF[f] = body[f]; }
+    if (allowedNF.valor !== undefined) allowedNF.valor = parseFloat(allowedNF.valor) || 0;
+    if (allowedNF.prazoRecebimento !== undefined) allowedNF.prazoRecebimento = parseInt(allowedNF.prazoRecebimento) || 30;
+
     data.notas_fiscais[idx] = {
-      ...data.notas_fiscais[idx],
-      ...body,
-      id: id,
+      ...existing,
+      ...allowedNF,
+      id,
       updatedAt: new Date().toISOString()
     };
+
+    // Sync caixa entry when emission date or prazo changes for an emitted NF
+    const updated = data.notas_fiscais[idx];
+    if (existing.emitida && existing.caixaEntryId) {
+      const newDataEmissao = updated.dataEmissaoReal || existing.dataEmissaoReal;
+      const newPrazo = updated.prazoRecebimento;
+      const dtRecebimento = new Date(newDataEmissao + 'T12:00:00');
+      dtRecebimento.setDate(dtRecebimento.getDate() + newPrazo);
+      const dataRecebimento = dtRecebimento.toISOString().split('T')[0];
+
+      const caixaData = readData('caixa.json');
+      const caixaIdx = caixaData.entries.findIndex(e => e.id === existing.caixaEntryId);
+      if (caixaIdx !== -1) {
+        caixaData.entries[caixaIdx] = {
+          ...caixaData.entries[caixaIdx],
+          value: updated.valor,
+          date: dataRecebimento,
+          notes: `NF ${updated.numero} emitida em ${newDataEmissao}, prazo ${newPrazo} dias`
+        };
+        writeData('caixa.json', caixaData);
+      }
+    }
+
     writeData('notas_fiscais.json', data);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -1537,9 +1619,510 @@ function handleDeleteBudgetItem(contractId, itemId, res) {
   }
 }
 
+// ============ Organograma (Equipe por Contrato) handlers ============
+const NIVEIS_VALIDOS = ['encarregado', 'lider_area', 'profissional'];
+
+function validarMembroOrganograma(body, organograma, membroIdAtual) {
+  const nivel = body.nivel;
+  if (!NIVEIS_VALIDOS.includes(nivel)) {
+    return 'Nível inválido';
+  }
+  if (!body.recursoId) return 'Recurso obrigatório';
+
+  // recurso duplicado no mesmo contrato
+  const jaExiste = organograma.some(m =>
+    m.recursoId === body.recursoId && m.id !== membroIdAtual
+  );
+  if (jaExiste) return 'Este recurso já faz parte do organograma deste contrato';
+
+  if (nivel === 'encarregado') {
+    const outroEnc = organograma.some(m =>
+      m.nivel === 'encarregado' && m.id !== membroIdAtual
+    );
+    if (outroEnc) return 'Já existe um encarregado neste contrato';
+  }
+
+  if (nivel === 'lider_area') {
+    if (!body.area || !String(body.area).trim()) return 'Área é obrigatória para líder';
+  }
+
+  if (nivel === 'profissional') {
+    if (!body.supervisorId) return 'Profissional precisa ter um supervisor';
+    const sup = organograma.find(m => m.id === body.supervisorId);
+    if (!sup) return 'Supervisor não encontrado';
+    if (sup.nivel !== 'lider_area') return 'Supervisor de profissional deve ser Líder de Área';
+  }
+
+  return null;
+}
+
+function handlePostMembroOrganograma(contractId, body, res) {
+  try {
+    const data = readData('contracts.json');
+    const contract = data.contracts.find(c => c.id === contractId);
+    if (!contract) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
+      return;
+    }
+    if (!contract.organograma) contract.organograma = [];
+
+    const erro = validarMembroOrganograma(body, contract.organograma, null);
+    if (erro) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: erro }));
+      return;
+    }
+
+    const membro = {
+      id: generateId('org'),
+      contractId,
+      recursoId: body.recursoId,
+      nivel: body.nivel,
+      cargo: body.cargo,
+      supervisorId: body.nivel === 'encarregado' ? null : (body.supervisorId || null),
+      area: body.nivel === 'lider_area' ? String(body.area).trim() : null,
+      createdAt: new Date().toISOString()
+    };
+    contract.organograma.push(membro);
+    writeData('contracts.json', data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: e.message }));
+  }
+}
+
+function handlePutMembroOrganograma(contractId, membroId, body, res) {
+  try {
+    const data = readData('contracts.json');
+    const contract = data.contracts.find(c => c.id === contractId);
+    if (!contract) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
+      return;
+    }
+    const idx = (contract.organograma || []).findIndex(m => m.id === membroId);
+    if (idx === -1) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Membro não encontrado' }));
+      return;
+    }
+
+    const atual = contract.organograma[idx];
+    const merged = {
+      recursoId:    body.recursoId    !== undefined ? body.recursoId    : atual.recursoId,
+      nivel:        body.nivel        !== undefined ? body.nivel        : atual.nivel,
+      cargo:        body.cargo        !== undefined ? body.cargo        : atual.cargo,
+      supervisorId: body.supervisorId !== undefined ? body.supervisorId : atual.supervisorId,
+      area:         body.area         !== undefined ? body.area         : atual.area
+    };
+
+    const erro = validarMembroOrganograma(merged, contract.organograma, membroId);
+    if (erro) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: erro }));
+      return;
+    }
+
+    contract.organograma[idx] = {
+      ...atual,
+      recursoId: merged.recursoId,
+      nivel: merged.nivel,
+      cargo: merged.cargo,
+      supervisorId: merged.nivel === 'encarregado' ? null : (merged.supervisorId || null),
+      area: merged.nivel === 'lider_area' ? String(merged.area).trim() : null,
+      updatedAt: new Date().toISOString()
+    };
+    writeData('contracts.json', data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: e.message }));
+  }
+}
+
+function handleDeleteMembroOrganograma(contractId, membroId, body, res, query) {
+  try {
+    const data = readData('contracts.json');
+    const contract = data.contracts.find(c => c.id === contractId);
+    if (!contract) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
+      return;
+    }
+    const lista = contract.organograma || [];
+    const alvo = lista.find(m => m.id === membroId);
+    if (!alvo) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Membro não encontrado' }));
+      return;
+    }
+
+    const mode = (query && query.mode) || 'strict'; // strict | reassign | cascade
+    const reassignTo = query && query.reassignTo;
+
+    if (alvo.nivel === 'encarregado') {
+      const temLideres = lista.some(m => m.nivel === 'lider_area');
+      if (temLideres) {
+        res.writeHead(409, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Não é possível remover o encarregado enquanto houver líderes no organograma' }));
+        return;
+      }
+      contract.organograma = lista.filter(m => m.id !== membroId);
+    } else if (alvo.nivel === 'lider_area') {
+      const subordinados = lista.filter(m => m.supervisorId === membroId);
+      if (subordinados.length > 0 && mode === 'strict') {
+        res.writeHead(409, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          error: 'Líder possui profissionais vinculados. Informe mode=reassign&reassignTo=<liderId> ou mode=cascade',
+          subordinadosCount: subordinados.length
+        }));
+        return;
+      }
+      if (mode === 'reassign') {
+        const novo = lista.find(m => m.id === reassignTo && m.nivel === 'lider_area' && m.id !== membroId);
+        if (!novo) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Líder de destino inválido' }));
+          return;
+        }
+        contract.organograma = lista
+          .map(m => m.supervisorId === membroId ? { ...m, supervisorId: novo.id } : m)
+          .filter(m => m.id !== membroId);
+      } else if (mode === 'cascade') {
+        const idsRemover = new Set([membroId, ...subordinados.map(s => s.id)]);
+        contract.organograma = lista.filter(m => !idsRemover.has(m.id));
+      } else {
+        contract.organograma = lista.filter(m => m.id !== membroId);
+      }
+    } else {
+      contract.organograma = lista.filter(m => m.id !== membroId);
+    }
+
+    writeData('contracts.json', data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: e.message }));
+  }
+}
+
+// ============ RDO (Relatório Diário de Obra) handlers ============
+const RDO_FOTOS_DIR = path.join(__dirname, 'data', 'rdo-fotos');
+
+function validarRdo(body, rdos, rdoIdAtual) {
+  if (!body.data) return 'Data é obrigatória';
+  const duplicado = rdos.some(r => r.data === body.data && r.id !== rdoIdAtual);
+  if (duplicado) return `Já existe um RDO para a data ${body.data} neste contrato`;
+  return null;
+}
+
+function proxNumeroRdo(rdos) {
+  return rdos.reduce((max, r) => Math.max(max, r.numero || 0), 0) + 1;
+}
+
+function handlePostRdo(contractId, body, res) {
+  try {
+    const data = readData('contracts.json');
+    const contract = data.contracts.find(c => c.id === contractId);
+    if (!contract) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
+      return;
+    }
+    if (!contract.rdos) contract.rdos = [];
+
+    const erro = validarRdo(body, contract.rdos, null);
+    if (erro) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: erro }));
+      return;
+    }
+
+    const rdo = {
+      id: generateId('rdo'),
+      contractId,
+      numero: proxNumeroRdo(contract.rdos),
+      data: body.data,
+      diaSemana: body.diaSemana || '',
+      osNumero: body.osNumero || '',
+      ordemCompra: body.ordemCompra || '',
+      projeto: body.projeto || '',
+      prazo: body.prazo || { dataInicial: '', contratual: 0, decorrido: 0, faltante: 0, pctConcluida: 0 },
+      tempo: body.tempo || {
+        manha:    { tempo: 'bom', condicoes: 'operavel' },
+        tarde:    { tempo: 'bom', condicoes: 'operavel' },
+        noiteAnt: { tempo: 'bom', condicoes: 'operavel' },
+        precipitacao: 0
+      },
+      periodoTrabalho: body.periodoTrabalho || '7:00 às 17:00',
+      horaExtra: !!body.horaExtra,
+      moi:  Array.isArray(body.moi)  ? body.moi  : [],
+      mod:  Array.isArray(body.mod)  ? body.mod  : [],
+      terc: Array.isArray(body.terc) ? body.terc : [],
+      equipamentos: Array.isArray(body.equipamentos) ? body.equipamentos : [],
+      atividades:   Array.isArray(body.atividades)   ? body.atividades   : [],
+      seguranca: body.seguranca || { acidente: 'nao_houve', diagnostico: '', admissoes: 0, demissoes: 0, comentarios: '' },
+      fiscalizacaoComentarios: body.fiscalizacaoComentarios || '',
+      totais: body.totais || { moi: 0, mod: 0, terc: 0, eqp: 0, homensHora: 0, horasParadas: 0, equipamentoHora: 0 },
+      fotos: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    contract.rdos.push(rdo);
+    writeData('contracts.json', data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: e.message }));
+  }
+}
+
+function handlePutRdo(contractId, rdoId, body, res) {
+  try {
+    const data = readData('contracts.json');
+    const contract = data.contracts.find(c => c.id === contractId);
+    if (!contract) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
+      return;
+    }
+    const idx = (contract.rdos || []).findIndex(r => r.id === rdoId);
+    if (idx === -1) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'RDO não encontrado' }));
+      return;
+    }
+    const atual = contract.rdos[idx];
+    const novaData = body.data !== undefined ? body.data : atual.data;
+    const erro = validarRdo({ ...body, data: novaData }, contract.rdos, rdoId);
+    if (erro) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: erro }));
+      return;
+    }
+    // merge preservando fotos (gerenciadas por endpoints próprios) e id/numero/createdAt
+    contract.rdos[idx] = {
+      ...atual,
+      ...body,
+      id: atual.id,
+      contractId: atual.contractId,
+      numero: atual.numero,
+      fotos: atual.fotos || [],
+      createdAt: atual.createdAt,
+      updatedAt: new Date().toISOString()
+    };
+    writeData('contracts.json', data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: e.message }));
+  }
+}
+
+function handleDeleteRdo(contractId, rdoId, res) {
+  try {
+    const data = readData('contracts.json');
+    const contract = data.contracts.find(c => c.id === contractId);
+    if (!contract) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
+      return;
+    }
+    const rdo = (contract.rdos || []).find(r => r.id === rdoId);
+    contract.rdos = (contract.rdos || []).filter(r => r.id !== rdoId);
+    writeData('contracts.json', data);
+
+    // Remove pasta de fotos associada
+    if (rdo) {
+      const pastaFotos = path.join(RDO_FOTOS_DIR, rdoId);
+      try {
+        if (fs.existsSync(pastaFotos)) fs.rmSync(pastaFotos, { recursive: true, force: true });
+      } catch {}
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: e.message }));
+  }
+}
+
+// --- Upload de fotos: parser multipart nativo simples ---
+function parseMultipart(buffer, boundary) {
+  const boundaryBytes = Buffer.from('--' + boundary);
+  const parts = [];
+  let offset = 0;
+  while (offset < buffer.length) {
+    const start = buffer.indexOf(boundaryBytes, offset);
+    if (start === -1) break;
+    const end = buffer.indexOf(boundaryBytes, start + boundaryBytes.length);
+    if (end === -1) break;
+    const section = buffer.slice(start + boundaryBytes.length, end);
+    // section começa com \r\n headers \r\n\r\n content \r\n
+    const headerEnd = section.indexOf('\r\n\r\n');
+    if (headerEnd === -1) { offset = end; continue; }
+    const headersRaw = section.slice(2, headerEnd).toString('utf8');
+    const content = section.slice(headerEnd + 4, section.length - 2);
+    // Extrai name e filename com regexes separados (evita confusão de backtracking)
+    const nameMatch = headersRaw.match(/\bname="([^"]*)"/i);
+    const fileMatch = headersRaw.match(/\bfilename="([^"]*)"/i);
+    const typeMatch = headersRaw.match(/Content-Type:\s*([^\r\n]+)/i);
+    if (nameMatch) {
+      parts.push({
+        name: nameMatch[1],
+        filename: fileMatch ? fileMatch[1] : null,
+        contentType: typeMatch ? typeMatch[1].trim() : null,
+        data: content
+      });
+    }
+    offset = end;
+  }
+  return parts;
+}
+
+const FOTO_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const FOTO_MAX_BYTES = 8 * 1024 * 1024;
+
+function handlePostRdoFoto(contractId, rdoId, req, res) {
+  const contentType = req.headers['content-type'] || '';
+  const mBoundary = contentType.match(/boundary=(.+)$/);
+  if (!mBoundary) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Content-Type multipart esperado' }));
+    return;
+  }
+  const boundary = mBoundary[1].replace(/^"|"$/g, '');
+
+  const chunks = [];
+  let totalSize = 0;
+  const MAX_TOTAL = 25 * 1024 * 1024;
+
+  req.on('data', c => {
+    totalSize += c.length;
+    if (totalSize > MAX_TOTAL) {
+      req.destroy();
+      res.writeHead(413, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Upload muito grande' }));
+      return;
+    }
+    chunks.push(c);
+  });
+
+  req.on('end', () => {
+    try {
+      const body = Buffer.concat(chunks);
+      const parts = parseMultipart(body, boundary);
+
+      const data = readData('contracts.json');
+      const contract = data.contracts.find(c => c.id === contractId);
+      if (!contract) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
+        return;
+      }
+      const rdo = (contract.rdos || []).find(r => r.id === rdoId);
+      if (!rdo) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'RDO não encontrado' }));
+        return;
+      }
+      if (!rdo.fotos) rdo.fotos = [];
+
+      const legendaPart = parts.find(p => p.name === 'legenda');
+      const legenda = legendaPart ? legendaPart.data.toString('utf8') : '';
+
+      const arquivos = parts.filter(p => p.filename && p.data && p.data.length > 0);
+      if (arquivos.length === 0) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Nenhum arquivo enviado' }));
+        return;
+      }
+
+      const pastaRdo = path.join(RDO_FOTOS_DIR, rdoId);
+      if (!fs.existsSync(pastaRdo)) fs.mkdirSync(pastaRdo, { recursive: true });
+
+      const adicionadas = [];
+      for (const arq of arquivos) {
+        if (arq.contentType && !FOTO_ALLOWED_TYPES.includes(arq.contentType)) continue;
+        if (arq.data.length > FOTO_MAX_BYTES) continue;
+        const ext = (arq.filename.match(/\.[a-z0-9]+$/i) || ['.jpg'])[0].toLowerCase();
+        const fotoId = generateId('foto');
+        const filename = fotoId + ext;
+        const destino = path.join(pastaRdo, filename);
+        fs.writeFileSync(destino, arq.data);
+        const fotoObj = {
+          id: fotoId,
+          filename,
+          legenda,
+          url: `/data/rdo-fotos/${rdoId}/${filename}`,
+          createdAt: new Date().toISOString()
+        };
+        rdo.fotos.push(fotoObj);
+        adicionadas.push(fotoObj);
+      }
+
+      rdo.updatedAt = new Date().toISOString();
+      writeData('contracts.json', data);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ contracts: data.contracts, fotos: adicionadas }));
+    } catch (e) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: e.message }));
+    }
+  });
+}
+
+function handleDeleteRdoFoto(contractId, rdoId, fotoId, res) {
+  try {
+    const data = readData('contracts.json');
+    const contract = data.contracts.find(c => c.id === contractId);
+    if (!contract) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
+      return;
+    }
+    const rdo = (contract.rdos || []).find(r => r.id === rdoId);
+    if (!rdo) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'RDO não encontrado' }));
+      return;
+    }
+    const foto = (rdo.fotos || []).find(f => f.id === fotoId);
+    if (foto) {
+      const filepath = path.join(RDO_FOTOS_DIR, rdoId, foto.filename);
+      try { if (fs.existsSync(filepath)) fs.unlinkSync(filepath); } catch {}
+    }
+    rdo.fotos = (rdo.fotos || []).filter(f => f.id !== fotoId);
+    rdo.updatedAt = new Date().toISOString();
+    writeData('contracts.json', data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: e.message }));
+  }
+}
+
 // ============ Static file serving ============
+const STATIC_ROOT = path.resolve(__dirname);
+
 function serveStaticFile(pathname, res) {
-  const filepath = path.join(__dirname, pathname);
+  const filepath = path.resolve(STATIC_ROOT, '.' + pathname);
+
+  // Prevent path traversal: resolved path must stay within project root
+  if (!filepath.startsWith(STATIC_ROOT + path.sep) && filepath !== STATIC_ROOT) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('Forbidden');
+    return;
+  }
 
   if (!fs.existsSync(filepath)) {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -1547,7 +2130,7 @@ function serveStaticFile(pathname, res) {
     return;
   }
 
-  const ext = path.extname(filepath);
+  const ext = path.extname(filepath).toLowerCase();
   const contentTypeMap = {
     '.html': 'text/html',
     '.js': 'application/javascript',
@@ -1555,12 +2138,21 @@ function serveStaticFile(pathname, res) {
     '.json': 'application/json',
     '.png': 'image/png',
     '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.webp': 'image/webp',
     '.gif': 'image/gif',
     '.svg': 'image/svg+xml'
   };
 
   const contentType = contentTypeMap[ext] || 'application/octet-stream';
-  res.writeHead(200, { 'Content-Type': contentType });
+  const headers = { 'Content-Type': contentType };
+  // Desabilita cache para JS/CSS/HTML durante desenvolvimento — evita ter que forçar reload
+  if (['.js', '.css', '.html'].includes(ext)) {
+    headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0';
+    headers['Pragma'] = 'no-cache';
+    headers['Expires'] = '0';
+  }
+  res.writeHead(200, headers);
   res.end(fs.readFileSync(filepath));
 }
 
@@ -1569,8 +2161,11 @@ const server = http.createServer((req, res) => {
   const parsedUrl = url.parse(req.url, true);
   const pathname = parsedUrl.pathname;
 
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS: restrict to same-origin / localhost only
+  const origin = req.headers.origin || '';
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -1580,10 +2175,29 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Multipart (upload de fotos RDO) — não passa pelo body parser JSON
+  const isRdoFotoUpload = req.method === 'POST'
+    && /^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/fotos$/.test(pathname);
+  if (isRdoFotoUpload) {
+    const parts = pathname.split('/');
+    return handlePostRdoFoto(parts[3], parts[5], req, res);
+  }
+
   // Parse body for POST/PUT requests
+  const MAX_BODY_BYTES = 1_000_000; // 1 MB
   let body = '';
+  let bodySize = 0;
   if (['POST', 'PUT'].includes(req.method)) {
-    req.on('data', chunk => { body += chunk; });
+    req.on('data', chunk => {
+      bodySize += chunk.length;
+      if (bodySize > MAX_BODY_BYTES) {
+        req.destroy();
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Payload too large' }));
+        return;
+      }
+      body += chunk;
+    });
     req.on('end', () => {
       try {
         body = body ? JSON.parse(body) : {};
@@ -1629,6 +2243,42 @@ function routeRequest(pathname, method, body, res, parsedUrl) {
     const parts = pathname.split('/');
     return handleDeleteBudgetItem(parts[3], parts[5], res);
   }
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/organograma$/) && method === 'POST') {
+    const contractId = pathname.split('/')[3];
+    return handlePostMembroOrganograma(contractId, body, res);
+  }
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/organograma\/[^/]+$/) && method === 'PUT') {
+    const parts = pathname.split('/');
+    return handlePutMembroOrganograma(parts[3], parts[5], body, res);
+  }
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/organograma\/[^/]+$/) && method === 'DELETE') {
+    const parts = pathname.split('/');
+    return handleDeleteMembroOrganograma(parts[3], parts[5], body, res, parsedUrl.query);
+  }
+
+  // ── RDO ──
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/rdos$/) && method === 'POST') {
+    const contractId = pathname.split('/')[3];
+    return handlePostRdo(contractId, body, res);
+  }
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/rdos\/[^/]+$/) && method === 'PUT') {
+    const parts = pathname.split('/');
+    return handlePutRdo(parts[3], parts[5], body, res);
+  }
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/rdos\/[^/]+$/) && method === 'DELETE') {
+    const parts = pathname.split('/');
+    return handleDeleteRdo(parts[3], parts[5], res);
+  }
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/fotos$/) && method === 'POST') {
+    // multipart — não é tratado no body JSON parser acima, chamamos handler que consome req diretamente
+    const parts = pathname.split('/');
+    return handlePostRdoFoto(parts[3], parts[5], req, res);
+  }
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/fotos\/[^/]+$/) && method === 'DELETE') {
+    const parts = pathname.split('/');
+    return handleDeleteRdoFoto(parts[3], parts[5], parts[7], res);
+  }
+
   if (pathname.match(/^\/api\/saidas\/[^/]+$/) && method === 'PUT') {
     const id = pathname.split('/')[3];
     return handlePutSaida(id, body, res);
@@ -1780,6 +2430,27 @@ function routeRequest(pathname, method, body, res, parsedUrl) {
     return handleDeleteNotaFiscal(id, res);
   }
 
+  // Recursos routes
+  if (pathname === '/api/recursos' && method === 'GET')  return handleGetRecursos(res);
+  if (pathname === '/api/recursos' && method === 'POST') return handlePostRecurso(body, res);
+  if (pathname.match(/^\/api\/recursos\/[^/]+$/) && method === 'PUT')    return handlePutRecurso(pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/recursos\/[^/]+$/) && method === 'DELETE') return handleDeleteRecurso(pathname.split('/')[3], res);
+  if (pathname.match(/^\/api\/recursos\/[^/]+\/folgas$/) && method === 'POST') return handleAddFolga(pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/recursos\/[^/]+\/folgas\/[^/]+$/) && method === 'DELETE') return handleDeleteFolga(pathname.split('/')[3], pathname.split('/')[5], res);
+  if (pathname.match(/^\/api\/recursos\/[^/]+\/folgas\/[^/]+\/passagem$/) && method === 'POST') return handleComprarPassagem(pathname.split('/')[3], pathname.split('/')[5], body, res);
+
+  // Documentos routes
+  if (pathname === '/api/documentos/status' && method === 'GET') return handleGetDocumentosStatus(res);
+  if (pathname.match(/^\/api\/recursos\/[^/]+\/documentos$/) && method === 'POST') return handleAddDocumento(pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/recursos\/[^/]+\/documentos\/[^/]+$/) && method === 'PUT') return handlePutDocumento(pathname.split('/')[3], pathname.split('/')[5], body, res);
+  if (pathname.match(/^\/api\/recursos\/[^/]+\/documentos\/[^/]+$/) && method === 'DELETE') return handleDeleteDocumento(pathname.split('/')[3], pathname.split('/')[5], res);
+
+  // Doc Templates routes
+  if (pathname === '/api/doc-templates' && method === 'GET') return handleGetDocTemplates(res);
+  if (pathname === '/api/doc-templates' && method === 'POST') return handlePostDocTemplate(body, res);
+  if (pathname.match(/^\/api\/doc-templates\/[^/]+$/) && method === 'PUT') return handlePutDocTemplate(pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/doc-templates\/[^/]+$/) && method === 'DELETE') return handleDeleteDocTemplate(pathname.split('/')[3], res);
+
   // Níveis de Acesso routes
   if (pathname === '/api/niveis-acesso' && method === 'GET') return handleGetNiveisAcesso(res);
   if (pathname.match(/^\/api\/niveis-acesso\/[^/]+$/) && method === 'PUT') {
@@ -1820,6 +2491,362 @@ function handlePutNivelAcesso(id, body, res) {
   }
 }
 
-server.listen(PORT, () => {
-  console.log(`Rhino running at http://localhost:${PORT}`);
-});
+// ============ Recursos handlers ============
+function handleGetRecursos(res) {
+  const data = readData('recursos.json');
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(data));
+}
+
+function handlePostRecurso(body, res) {
+  try {
+    const data = readData('recursos.json');
+    const recurso = {
+      id: generateId('rec'),
+      nome: body.nome || '',
+      cpf: body.cpf || '',
+      dataNascimento: body.dataNascimento || '',
+      genero: body.genero || '',
+      telefone: body.telefone || '',
+      email: body.email || '',
+      endereco: body.endereco || '',
+      lat: body.lat || '',
+      lng: body.lng || '',
+      status: body.status || 'candidato',
+      profissao: body.profissao || '',
+      dataAdmissao: body.dataAdmissao || '',
+      salario: parseFloat(body.salario) || 0,
+      cnh: body.cnh || '',
+      pis: body.pis || '',
+      dataDesligamento: body.dataDesligamento || '',
+      motivoDesligamento: body.motivoDesligamento || '',
+      obsDesligamento: body.obsDesligamento || '',
+      notas: body.notas || '',
+      rdoCategoria: body.rdoCategoria || '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    data.recursos.push(recurso);
+    writeData('recursos.json', data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: e.message }));
+  }
+}
+
+function handlePutRecurso(id, body, res) {
+  try {
+    const data = readData('recursos.json');
+    const idx = data.recursos.findIndex(r => r.id === id);
+    if (idx === -1) {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Recurso não encontrado' }));
+      return;
+    }
+    const allowedRec = {};
+    const recFields = ['nome', 'cpf', 'dataNascimento', 'genero', 'telefone', 'email', 'endereco', 'lat', 'lng',
+      'status', 'profissao', 'dataAdmissao', 'salario', 'cnh', 'pis', 'dataDesligamento',
+      'motivoDesligamento', 'obsDesligamento', 'notas', 'alocacaoAtual', 'rdoCategoria'];
+    for (const f of recFields) { if (body[f] !== undefined) allowedRec[f] = body[f]; }
+    if (allowedRec.salario !== undefined) allowedRec.salario = parseFloat(allowedRec.salario) || 0;
+
+    data.recursos[idx] = { ...data.recursos[idx], ...allowedRec, id, updatedAt: new Date().toISOString() };
+    writeData('recursos.json', data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: e.message }));
+  }
+}
+
+function handleDeleteRecurso(id, res) {
+  try {
+    const data = readData('recursos.json');
+    data.recursos = data.recursos.filter(r => r.id !== id);
+    writeData('recursos.json', data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: e.message }));
+  }
+}
+
+function handleAddFolga(id, body, res) {
+  try {
+    const data = readData('recursos.json');
+    const idx  = data.recursos.findIndex(r => r.id === id);
+    if (idx === -1) { res.writeHead(404); res.end(JSON.stringify({ error: 'Não encontrado' })); return; }
+    if (!data.recursos[idx].folgas) data.recursos[idx].folgas = [];
+    const folga = {
+      id: generateId('fol'),
+      dataInicio:   body.dataInicio || '',
+      dataFim:      body.dataFim    || '',
+      observacoes:  body.observacoes || '',
+      passagemIda:   { comprada: false, valor: 0, dataCompra: null, financiadoPor: null, contractIdPagador: null, caixaEntryId: null, contaPagarId: null },
+      passagemVolta: { comprada: false, valor: 0, dataCompra: null, financiadoPor: null, contractIdPagador: null, caixaEntryId: null, contaPagarId: null },
+      createdAt: new Date().toISOString()
+    };
+    data.recursos[idx].folgas.push(folga);
+    writeData('recursos.json', data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) { res.writeHead(400); res.end(JSON.stringify({ error: e.message })); }
+}
+
+function handleDeleteFolga(recursoId, folgaId, res) {
+  try {
+    const data = readData('recursos.json');
+    const idx  = data.recursos.findIndex(r => r.id === recursoId);
+    if (idx === -1) { res.writeHead(404); res.end(JSON.stringify({ error: 'Não encontrado' })); return; }
+    data.recursos[idx].folgas = (data.recursos[idx].folgas || []).filter(f => f.id !== folgaId);
+    writeData('recursos.json', data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) { res.writeHead(400); res.end(JSON.stringify({ error: e.message })); }
+}
+
+function handleComprarPassagem(recursoId, folgaId, body, res) {
+  try {
+    const data       = readData('recursos.json');
+    const caixaData  = readData('caixa.json');
+    const cpData     = readData('contas_pagar.json');
+
+    const rIdx = data.recursos.findIndex(r => r.id === recursoId);
+    if (rIdx === -1) { res.writeHead(404); res.end(JSON.stringify({ error: 'Recurso não encontrado' })); return; }
+    const recurso = data.recursos[rIdx];
+    const fIdx    = (recurso.folgas || []).findIndex(f => f.id === folgaId);
+    if (fIdx === -1) { res.writeHead(404); res.end(JSON.stringify({ error: 'Folga não encontrada' })); return; }
+
+    const tipo        = body.tipo === 'ida' ? 'passagemIda' : 'passagemVolta';
+    const tipoLabel   = body.tipo === 'ida' ? 'Ida' : 'Volta';
+    const valor       = parseFloat(body.valor) || 0;
+    const folga       = recurso.folgas[fIdx];
+
+    // Get contract/obra name for description
+    const contractId  = body.contractIdPagador || recurso.alocacaoAtual?.contractId || null;
+    let obraLabel = '';
+    if (contractId) {
+      const contracts = readData('contracts.json');
+      const ct = (contracts.contracts || []).find(c => c.id === contractId);
+      if (ct) obraLabel = ` — ${ct.name}`;
+    }
+    const descricao   = `Passagem de ${tipoLabel} — ${recurso.nome}${obraLabel}`;
+
+    let caixaEntryId = null, contaPagarId = null;
+
+    if (body.tipoLancamento === 'conta_pagar') {
+      const conta = {
+        id: generateId('cp'), descricao,
+        fornecedorId: null, numeroNF: '',
+        valor, dataEmissao: body.dataCompra || new Date().toISOString().split('T')[0],
+        dataVencimento: folga.dataInicio || '', status: 'pendente',
+        dataPagamento: null, caixaEntryId: null,
+        contractId: body.financiadoPor === 'contrato' ? (body.contractIdPagador || null) : null,
+        category: 'passagem', observacoes: `Folga de ${recurso.nome}`,
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+      };
+      cpData.contas.push(conta);
+      writeData('contas_pagar.json', cpData);
+      contaPagarId = conta.id;
+    } else {
+      const entry = {
+        id: generateId('cxa'), type: 'saida', description: descricao,
+        value: valor, date: body.dataCompra || new Date().toISOString().split('T')[0],
+        contractId: body.financiadoPor === 'contrato' ? (body.contractIdPagador || null) : null,
+        baseItemId: null, category: 'passagem',
+        notes: `Passagem ${tipoLabel} folga de ${recurso.nome}`,
+        createdAt: new Date().toISOString()
+      };
+      caixaData.entries.push(entry);
+      writeData('caixa.json', caixaData);
+      caixaEntryId = entry.id;
+    }
+
+    recurso.folgas[fIdx][tipo] = {
+      comprada: true, valor,
+      dataCompra:        body.dataCompra || new Date().toISOString().split('T')[0],
+      companhia:         body.companhia  || '',
+      numeroVoo:         body.numeroVoo  || '',
+      origem:            body.origem     || '',
+      destino:           body.destino    || '',
+      dataVoo:           body.dataVoo    || '',
+      horario:           body.horario    || '',
+      financiadoPor:     body.financiadoPor,
+      contractIdPagador: body.contractIdPagador || null,
+      caixaEntryId, contaPagarId
+    };
+    writeData('recursos.json', data);
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ recursos: data.recursos, caixa: caixaData, contas_pagar: cpData }));
+  } catch (e) { res.writeHead(400); res.end(JSON.stringify({ error: e.message })); }
+}
+
+// ============ Doc Templates handlers ============
+function handleGetDocTemplates(res) {
+  const data = readData('doc_templates.json');
+  if (!data.templates) data.templates = [];
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(data));
+}
+
+function handlePostDocTemplate(body, res) {
+  try {
+    const data = readData('doc_templates.json');
+    if (!data.templates) data.templates = [];
+    const template = {
+      id: generateId('tpl'),
+      nome: body.nome || '',
+      tipoDocumento: body.tipoDocumento || '',
+      empresaId: body.empresaId || null,
+      checklist: Array.isArray(body.checklist) ? body.checklist : [],
+      periodicidadeMeses: parseInt(body.periodicidadeMeses) || 12,
+      createdAt: new Date().toISOString()
+    };
+    data.templates.push(template);
+    writeData('doc_templates.json', data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: e.message }));
+  }
+}
+
+function handlePutDocTemplate(id, body, res) {
+  try {
+    const data = readData('doc_templates.json');
+    if (!data.templates) data.templates = [];
+    const idx = data.templates.findIndex(t => t.id === id);
+    if (idx === -1) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Não encontrado' })); return; }
+    data.templates[idx] = { ...data.templates[idx], ...body, id, updatedAt: new Date().toISOString() };
+    writeData('doc_templates.json', data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: e.message }));
+  }
+}
+
+function handleDeleteDocTemplate(id, res) {
+  try {
+    const data = readData('doc_templates.json');
+    if (!data.templates) data.templates = [];
+    data.templates = data.templates.filter(t => t.id !== id);
+    writeData('doc_templates.json', data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: e.message }));
+  }
+}
+
+// ============ Documentos de colaboradores handlers ============
+function handleAddDocumento(recursoId, body, res) {
+  try {
+    const data = readData('recursos.json');
+    const idx = data.recursos.findIndex(r => r.id === recursoId);
+    if (idx === -1) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Recurso não encontrado' })); return; }
+    if (!data.recursos[idx].documentos) data.recursos[idx].documentos = [];
+    const doc = {
+      id: generateId('doc'),
+      tipo:           body.tipo || '',
+      tipoLabel:      body.tipoLabel || body.tipo || '',
+      dataEmissao:    body.dataEmissao || '',
+      dataVencimento: body.dataVencimento || '',
+      responsavel:    body.responsavel || '',
+      resultado:      body.resultado || '',
+      observacoes:    body.observacoes || '',
+      nomeArquivo:    body.nomeArquivo || null,
+      createdAt:  new Date().toISOString(),
+      updatedAt:  new Date().toISOString()
+    };
+    data.recursos[idx].documentos.push(doc);
+    writeData('recursos.json', data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); }
+}
+
+function handlePutDocumento(recursoId, docId, body, res) {
+  try {
+    const data = readData('recursos.json');
+    const rIdx = data.recursos.findIndex(r => r.id === recursoId);
+    if (rIdx === -1) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Recurso não encontrado' })); return; }
+    const docs = data.recursos[rIdx].documentos || [];
+    const dIdx = docs.findIndex(d => d.id === docId);
+    if (dIdx === -1) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Documento não encontrado' })); return; }
+    data.recursos[rIdx].documentos[dIdx] = {
+      ...data.recursos[rIdx].documentos[dIdx],
+      ...body,
+      id: docId,
+      updatedAt: new Date().toISOString()
+    };
+    writeData('recursos.json', data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); }
+}
+
+function handleDeleteDocumento(recursoId, docId, res) {
+  try {
+    const data = readData('recursos.json');
+    const rIdx = data.recursos.findIndex(r => r.id === recursoId);
+    if (rIdx === -1) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Recurso não encontrado' })); return; }
+    data.recursos[rIdx].documentos = (data.recursos[rIdx].documentos || []).filter(d => d.id !== docId);
+    writeData('recursos.json', data);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); }
+}
+
+function handleGetDocumentosStatus(res) {
+  try {
+    const data = readData('recursos.json');
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const ativos = (data.recursos || []).filter(r => r.status === 'funcionario');
+    let totalDocs = 0, vigentes = 0, vencidos = 0, vencendo = 0, pendentes = 0;
+
+    ativos.forEach(r => {
+      (r.documentos || []).forEach(doc => {
+        totalDocs++;
+        if (!doc.dataVencimento) { pendentes++; return; }
+        const venc = new Date(doc.dataVencimento + 'T12:00:00');
+        const dias = Math.ceil((venc - hoje) / 86400000);
+        if (dias < 0) vencidos++;
+        else if (dias <= 30) vencendo++;
+        else vigentes++;
+      });
+    });
+
+    const colaboradoresComVencidos = ativos.filter(r =>
+      (r.documentos || []).some(doc => {
+        if (!doc.dataVencimento) return false;
+        return Math.ceil((new Date(doc.dataVencimento + 'T12:00:00') - hoje) / 86400000) < 0;
+      })
+    ).length;
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ totalAtivos: ativos.length, colaboradoresComVencidos, totalDocs, vigentes, vencidos, vencendo, pendentes }));
+  } catch (e) {
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: e.message }));
+  }
+}
+
+// Export for testing; start only when run directly
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`Rhino running at http://localhost:${PORT}`);
+  });
+} else {
+  server.listen(PORT);
+}
+
+module.exports = { __server: server };

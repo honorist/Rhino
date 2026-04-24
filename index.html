@@ -10,17 +10,17 @@
   <link rel="stylesheet" href="/css/components.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
   <style>
-    .leaflet-container { background: #1a2035; }
+    .leaflet-container { background: #E5E7EB; }
     .obra-popup { font-family: inherit; min-width: 200px; }
-    .obra-popup h4 { margin: 0 0 4px; font-size: 14px; font-weight: 700; }
-    .obra-popup .pop-sub { font-size: 12px; color: #666; margin-bottom: 6px; }
-    .obra-popup .pop-val { font-size: 15px; font-weight: 700; color: #2E7D52; }
+    .obra-popup h4 { margin: 0 0 4px; font-size:15px; font-weight: 700; color: #1F2937; }
+    .obra-popup .pop-sub { font-size:15px; color: #374151; margin-bottom: 6px; }
+    .obra-popup .pop-val { font-size: 15px; font-weight: 700; color: #55588B; }
     .nominatim-dropdown { position:absolute;z-index:9999;background:var(--color-surface);border:1px solid var(--color-border);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.3);max-height:220px;overflow-y:auto;width:100%; }
-    .nominatim-item { padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--color-border);transition:background .1s; }
+    .nominatim-item { padding:10px 14px;cursor:pointer;font-size:15px;border-bottom:1px solid var(--color-border);transition:background .1s; }
     .nominatim-item:last-child { border-bottom:none; }
     .nominatim-item:hover { background:var(--color-bg); }
-    .nominatim-item strong { display:block;font-size:13px;margin-bottom:1px; }
-    .nominatim-item span { font-size:11px;color:var(--color-text-muted); }
+    .nominatim-item strong { display:block;font-size:15px;margin-bottom:1px; }
+    .nominatim-item span { font-size:15px;color:var(--color-text-muted); }
   </style>
 </head>
 <body>
@@ -34,6 +34,8 @@
   <!-- Load libraries first -->
   <script src="/js/lib/chart.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
   <!-- Load in dependency order: store first, views second, app last -->
   <script src="/js/store.js"></script>
@@ -50,6 +52,9 @@
   <script src="/js/views/Base.js"></script>
   <script src="/js/views/Configuracao.js"></script>
   <script src="/js/views/Obras.js"></script>
+  <script src="/js/views/Recursos.js"></script>
+  <script src="/js/views/Documentos.js"></script>
+  <script src="/js/views/Manual.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

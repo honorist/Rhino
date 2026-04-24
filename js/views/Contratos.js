@@ -45,6 +45,7 @@ window.Contratos = {
                   <th>Cliente</th>
                   <th>Valor</th>
                   <th>Período</th>
+                  <th style="text-align:center;">Equipe</th>
                   <th>Status</th>
                   <th>Ações</th>
                 </tr>
@@ -52,14 +53,25 @@ window.Contratos = {
               <tbody>
                 ${filtered.length === 0 ? `
                   <tr>
-                    <td colspan="6" class="text-center text-muted" style="padding: var(--sp-xl);">Nenhum contrato encontrado</td>
+                    <td colspan="7" class="text-center text-muted" style="padding: var(--sp-xl);">Nenhum contrato encontrado</td>
                   </tr>
-                ` : filtered.map(c => `
+                ` : filtered.map(c => {
+                  const nOrg = (c.organograma || []).length;
+                  const nRec = (Store.state.recursos || []).filter(r => r.status === 'funcionario' && r.alocacaoAtual?.contractId === c.id).length;
+                  const total = Math.max(nOrg, nRec);
+                  const bg = total === 0 ? '#9CA3AF' : '#55588B';
+                  return `
                   <tr>
-                    <td>${c.name}</td>
-                    <td>${c.client}</td>
+                    <td><strong>${escapeHtml(c.name)}</strong></td>
+                    <td>${escapeHtml(c.client)}</td>
                     <td>${Store.formatBRL(c.value)}</td>
                     <td>${new Date(c.startDate).toLocaleDateString('pt-BR')} até ${new Date(c.endDate).toLocaleDateString('pt-BR')}</td>
+                    <td style="text-align:center;">
+                      <div title="${nOrg} no organograma · ${nRec} recurso(s) alocado(s)" style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:${bg};border-radius:99px;font-weight:700;color:#FFFFFF;box-shadow:0 1px 3px rgba(85,88,139,.2);">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        ${total}
+                      </div>
+                    </td>
                     <td><span class="badge badge-${c.status}">${c.status}</span></td>
                     <td>
                       <div class="actions-cell">
@@ -69,7 +81,7 @@ window.Contratos = {
                       </div>
                     </td>
                   </tr>
-                `).join('')}
+                `;}).join('')}
               </tbody>
             </table>
           </div>
@@ -99,7 +111,8 @@ window.Contratos = {
         btn.addEventListener('click', (e) => this.deleteContract(e.target.dataset.id));
       });
     } catch (e) {
-      app.innerHTML = `<div class="card"><p class="text-danger">Erro: ${e.message}</p></div>`;
+      console.error(e);
+      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar contratos. Tente novamente.</p></div>';
     }
   },
 
@@ -118,12 +131,12 @@ window.Contratos = {
           <form id="formContrato" class="modal-content">
             <div class="form-group">
               <label class="form-label">Nome do Contrato *</label>
-              <input class="form-control" name="name" value="${contract?.name || ''}" required>
+              <input class="form-control" name="name" value="${escapeHtml(contract?.name || '')}" required>
             </div>
             <div class="form-group">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
                 <label class="form-label" style="margin:0;">Cliente *</label>
-                ${clientes.length === 0 ? `<a href="#/clientes" id="linkCadastrarCliente" style="font-size:11px;color:var(--color-primary);text-decoration:none;">+ Cadastrar cliente →</a>` : `<a href="#/clientes" id="linkCadastrarCliente" style="font-size:11px;color:var(--color-primary);text-decoration:none;">Gerenciar clientes →</a>`}
+                ${clientes.length === 0 ? `<a href="#/clientes" id="linkCadastrarCliente" style="font-size:15px;color:var(--color-primary);text-decoration:none;">+ Cadastrar cliente →</a>` : `<a href="#/clientes" id="linkCadastrarCliente" style="font-size:15px;color:var(--color-primary);text-decoration:none;">Gerenciar clientes →</a>`}
               </div>
               ${clientes.length > 0 ? `
                 <select class="form-control" name="clientId" id="selectCliente" required>
@@ -198,7 +211,10 @@ window.Contratos = {
     document.body.insertAdjacentHTML('beforeend', html);
 
     const overlay = document.getElementById('modalOverlay');
-    const closeModal = () => overlay.remove();
+    const closeModal = () => {
+      if (window.Contratos._miniMap) { window.Contratos._miniMap.remove(); window.Contratos._miniMap = null; }
+      overlay.remove();
+    };
 
     overlay.querySelector('.modal-close').addEventListener('click', closeModal);
     document.getElementById('btnCancelar').addEventListener('click', closeModal);
