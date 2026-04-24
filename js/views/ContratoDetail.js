@@ -310,7 +310,7 @@ window.ContratoDetail = {
             const excedeu = totalOrcado > contract.value;
             const cor = excedeu ? 'var(--color-danger)' : pct > 90 ? 'var(--color-warning)' : 'var(--color-success)';
             return `
-              <div style="display:grid;grid-template-columns:140px 220px 110px 110px 90px;gap:var(--sp-md);align-items:center;padding:10px var(--sp-md);border-radius:6px;background:var(--color-surface-2);border-left:3px solid ${cor};margin-bottom:var(--sp-lg);">
+              <div style="display:grid;grid-template-columns:140px minmax(220px, 1fr) 130px 130px 120px;gap:var(--sp-md);align-items:center;padding:10px var(--sp-md);border-radius:6px;background:var(--color-surface-2);border-left:3px solid ${cor};margin-bottom:var(--sp-lg);">
                 <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Orçado × Contrato</div>
                 <div>
                   <div style="display:flex;align-items:center;gap:6px;">
@@ -358,7 +358,7 @@ window.ContratoDetail = {
                   const statusCor = real > orc && orc > 0 ? 'var(--color-danger)' : real > 0 && orc === 0 ? 'var(--color-warning)' : 'var(--color-success)';
                   const statusIcon = real > orc && orc > 0 ? '▼' : real > 0 && orc === 0 ? '⚠' : '▲';
                   return `
-                    <div style="display:grid;grid-template-columns:140px 220px 110px 110px 90px;gap:var(--sp-md);align-items:center;padding:10px var(--sp-md);border-radius:6px;background:var(--color-surface-2) ;border-left:3px solid ${cor};">
+                    <div style="display:grid;grid-template-columns:140px minmax(220px, 1fr) 130px 130px 120px;gap:var(--sp-md);align-items:center;padding:10px var(--sp-md);border-radius:6px;background:var(--color-surface-2) ;border-left:3px solid ${cor};">
                       <div style="font-size: 15px;font-weight:600;">${TIPOS_LABEL[tipo] || tipo}</div>
                       <div>
                         <div style="display:flex;align-items:center;gap:6px;">
@@ -387,7 +387,7 @@ window.ContratoDetail = {
                 }).join('')}
 
                 <!-- Total -->
-                <div style="display:grid;grid-template-columns:140px 220px 110px 110px 90px;gap:var(--sp-md);align-items:center;padding:10px var(--sp-md);border-radius:6px;border:1px solid var(--color-border);margin-top:4px;">
+                <div style="display:grid;grid-template-columns:140px minmax(220px, 1fr) 130px 130px 120px;gap:var(--sp-md);align-items:center;padding:10px var(--sp-md);border-radius:6px;border:1px solid var(--color-border);margin-top:4px;">
                   <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Total</div>
                   <div></div>
                   <div style="text-align:right;font-size:15px;font-weight:700;font-family:'Nunito',sans-serif;">${Store.formatBRL(totalOrcado)}</div>
