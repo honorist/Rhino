@@ -123,7 +123,7 @@ window.Contratos = {
 
     const html = `
       <div class="modal-overlay" id="modalOverlay">
-        <div class="modal">
+        <div class="modal" style="width:720px;max-width:95vw;max-height:90vh;display:flex;flex-direction:column;">
           <div class="modal-header">
             <h2 class="modal-title">${title}</h2>
             <button class="modal-close">✕</button>
