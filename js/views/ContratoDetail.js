@@ -345,9 +345,23 @@ window.ContratoDetail = {
               <div style="font-size:15px;">Adicione os custos planejados para confrontar com os gastos reais</div>
             </div>
           ` : `
-            <!-- Comparativo por tipo -->
+            <!-- Gráfico de Barras: Orçado × Realizado por categoria -->
             <div style="margin-bottom:var(--sp-lg);">
-              <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);margin-bottom:var(--sp-sm);">Comparativo Orçado × Realizado</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-sm);">
+                <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);">Orçado × Realizado por Categoria</div>
+                <div style="display:flex;gap:var(--sp-md);font-size:15px;">
+                  <span><span style="display:inline-block;width:12px;height:12px;background:#6366F1;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>Orçado</span>
+                  <span><span style="display:inline-block;width:12px;height:12px;background:#F59E0B;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>Realizado</span>
+                </div>
+              </div>
+              <div style="padding:var(--sp-md);background:var(--color-surface-2);border-radius:8px;height:${Math.max(180, tiposComparar.length * 48 + 40)}px;">
+                <canvas id="chartBarrasOrcado"></canvas>
+              </div>
+            </div>
+
+            <!-- Comparativo textual por tipo -->
+            <div style="margin-bottom:var(--sp-lg);">
+              <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);margin-bottom:var(--sp-sm);">Detalhamento por Categoria</div>
               <div style="display:flex;flex-direction:column;gap:8px;">
                 ${tiposComparar.map(tipo => {
                   const orc = orcadoPorTipo[tipo] || 0;
@@ -704,6 +718,7 @@ window.ContratoDetail = {
         saldo:      Math.max(0, margin)
       });
       this.renderPizzaOrcamento(orcadoPorTipo, totalOrcado);
+      this.renderBarrasOrcado(tiposComparar, orcadoPorTipo, realizadoPorTipo);
 
       // Event listeners (guardados — botões podem não existir conforme a aba)
       document.getElementById('btnEditarDados')?.addEventListener('click', () => this.showModalEditarDados(contract));
@@ -801,6 +816,56 @@ window.ContratoDetail = {
                 return `  ${fmt(ctx.parsed)}  (${pct}%)`;
               }
             }
+          }
+        }
+      }
+    });
+  },
+
+  renderBarrasOrcado(tipos, orcadoPorTipo, realizadoPorTipo) {
+    if (this.chartBarras) { this.chartBarras.destroy(); this.chartBarras = null; }
+    const canvas = document.getElementById('chartBarrasOrcado');
+    if (!canvas || typeof Chart === 'undefined' || tipos.length === 0) return;
+
+    const TIPOS_LABEL = { mao_de_obra: 'Mão de Obra', material: 'Material', hospedagem: 'Hospedagem', transporte: 'Transporte', base: 'BASE', outros: 'Outros' };
+
+    const labels = tipos.map(t => TIPOS_LABEL[t] || t);
+    const orcado = tipos.map(t => orcadoPorTipo[t] || 0);
+    const real   = tipos.map(t => realizadoPorTipo[t] || 0);
+
+    const fmt = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+    this.chartBarras = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Orçado',    data: orcado, backgroundColor: '#6366F1', borderRadius: 4 },
+          { label: 'Realizado', data: real,   backgroundColor: '#F59E0B', borderRadius: 4 }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(26,32,46,0.95)',
+            padding: 12,
+            callbacks: {
+              label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.x)}`
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { callback: v => fmt(v), color: 'var(--color-text-muted)', font: { size: 11 } },
+            grid: { color: 'rgba(255,255,255,.05)' }
+          },
+          y: {
+            ticks: { color: 'var(--color-text)', font: { size: 13 } },
+            grid: { display: false }
           }
         }
       }
