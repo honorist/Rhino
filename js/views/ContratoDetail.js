@@ -597,9 +597,10 @@ window.ContratoDetail = {
                       ? `<span style="font-size:15px;color:var(--color-text-muted);">Gerenciar em <a href="#/base" style="color:var(--color-primary);">BASE</a></span>`
                       : isPassagem
                       ? `<span style="font-size:15px;color:var(--color-text-muted);">Gerenciar em <a href="#/recursos" style="color:var(--color-primary);">Recursos</a></span>`
-                      : `<div class="actions-cell">
-                          <a class="action-link btn-editar-saida" data-id="${linha.id}">Editar</a>
-                          <a class="action-link danger btn-excluir-saida" data-id="${linha.id}">Excluir</a>
+                      : `<div style="display:flex;gap:4px;flex-wrap:wrap;">
+                          <button class="btn btn-sm btn-secondary btn-gerar-bm" data-id="${linha.id}" title="Gerar Boletim de Medição">📄 BM</button>
+                          <button class="btn btn-sm btn-secondary btn-editar-saida" data-id="${linha.id}" title="Editar">✏️</button>
+                          <button class="btn btn-sm btn-danger btn-excluir-saida" data-id="${linha.id}" title="Excluir">🗑️</button>
                         </div>`;
 
                     return `
@@ -728,7 +729,10 @@ window.ContratoDetail = {
         btn.addEventListener('click', (e) => this.showModalSaida(contractId, e.target.dataset.id));
       });
       document.querySelectorAll('.btn-excluir-saida').forEach(btn => {
-        btn.addEventListener('click', (e) => this.deleteSaida(e.target.dataset.id));
+        btn.addEventListener('click', (e) => this.deleteSaida(e.currentTarget.dataset.id));
+      });
+      document.querySelectorAll('.btn-gerar-bm').forEach(btn => {
+        btn.addEventListener('click', (e) => window.BM.gerarPorSaida(e.currentTarget.dataset.id));
       });
       document.querySelectorAll('.btn-editar-orc').forEach(btn => {
         btn.addEventListener('click', (e) => {
