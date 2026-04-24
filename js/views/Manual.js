@@ -538,26 +538,30 @@ window.Manual = {
   _contratos() {
     return `
       <h1><span class="ico">📄</span> Contratos</h1>
-      <p class="man-lead">Cada <strong>contrato</strong> é uma obra que sua empresa fechou com um cliente. É o centro de tudo: dinheiro, equipe, RDO — tudo gira em volta do contrato.</p>
+      <p class="man-lead">O <strong>contrato</strong> é o valor que você vendeu ao cliente. À medida que a obra avança, você registra as <strong>saídas</strong> (serviços executados) e o sistema gera automaticamente os <strong>Boletins de Medição (BMs)</strong> que entram em Contas a Receber.</p>
 
       <h2>Cadastrar um novo contrato</h2>
       <ol class="man-steps">
         <li>Clique em <strong>≣ Contratos</strong> no menu lateral.</li>
-        <li>Clique no botão roxo <strong>+ Novo Contrato</strong> no canto superior direito.</li>
-        <li>Preencha os campos:
+        <li>Clique em <strong>+ Novo Contrato</strong>.</li>
+        <li>Preencha:
           <ul style="margin-top:8px;">
-            <li><strong>Nome</strong> — apelido da obra (ex: "Galpão Norte CMPC")</li>
-            <li><strong>Cliente</strong> — quem contratou vocês</li>
-            <li><strong>Valor</strong> — quanto o cliente paga no total</li>
-            <li><strong>Data de Início e Fim</strong> — prazos contratuais</li>
-            <li><strong>Status</strong> — ativo, pausado, concluído, etc.</li>
+            <li><strong>Número do Contrato</strong> e <strong>Status</strong></li>
+            <li><strong>Nome da obra</strong> (ex: "Galpão Norte CMPC")</li>
+            <li><strong>Cliente</strong> — seleciona de uma lista; ao escolher, puxa email/telefone/CPF-CNPJ automaticamente</li>
+            <li><strong>Valor Total</strong> — o quanto o cliente paga no total</li>
+            <li><strong>Datas</strong> — início, fim e tendência (previsão atualizada do término)</li>
           </ul>
         </li>
-        <li>Clique em <strong>Salvar</strong>.</li>
+        <li>Clique em <strong>Criar</strong>.</li>
       </ol>
 
-      <h2>Ver detalhes de um contrato</h2>
-      <p>Na lista de contratos, clique em <strong>Ver</strong> numa linha. Abre uma tela com <strong>5 abas</strong>:</p>
+      <div class="man-tip">
+        💡 Os mesmos campos aparecem ao <strong>criar</strong> e ao <strong>editar</strong> um contrato.
+      </div>
+
+      <h2>Abrir um contrato</h2>
+      <p>Clique no card do contrato. Abre uma tela com <strong>5 abas</strong>:</p>
 
       <div class="man-mockup">
         <div class="man-mockup-label">As abas do contrato</div>
@@ -569,30 +573,34 @@ window.Manual = {
             <div class="mock-tab">📋 RDO</div>
             <div class="mock-tab">⚠ Pendências</div>
           </div>
-          <div style="font-size:13px;color:var(--color-text-muted);">Cada aba mostra um tipo de informação do contrato.</div>
         </div>
       </div>
 
-      <h3>Aba Visão Geral</h3>
-      <p>Resumo rápido: valor, quanto gastou, saldo, tamanho da equipe e uma barrinha mostrando o quanto já foi usado do orçamento.</p>
+      <h3>Aba Visão Geral (orientada a medição)</h3>
+      <p>Barra com 4 indicadores principais:</p>
+      <ul style="line-height:1.7;">
+        <li><strong>Valor do Contrato</strong> — total vendido</li>
+        <li><strong>Medido</strong> — soma dos BMs (emitidos + não emitidos) + quantidade de BMs</li>
+        <li><strong>A Medir</strong> — saldo que ainda falta faturar</li>
+        <li><strong>Margem Atual</strong> — medido − (saídas + BASE + passagens)</li>
+      </ul>
+      <p>Barra de <strong>progresso de medição</strong> em 3 zonas: verde (emitido), amarelo (cadastrado) e cinza (a medir).</p>
 
       <h3>Aba Financeiro</h3>
-      <p>Aqui você <strong>planeja o orçamento</strong> (quanto quer gastar com mão de obra, material, transporte) e vê o que <strong>foi gasto de verdade</strong>. O sistema compara e mostra se você está estourando ou economizando.</p>
+      <ul style="line-height:1.7;">
+        <li><strong>Orçamento</strong>: itens planejados por categoria. Não pode ultrapassar o valor do contrato. Há gráfico de pizza (distribuição) e gráfico de barras (Orçado × Realizado).</li>
+        <li><strong>Saídas Classificadas</strong>: cada saída é um serviço executado. Gera BM automaticamente em Contas a Receber. Botão <strong>📄 BM</strong> em cada linha baixa o PDF.</li>
+      </ul>
 
-      <h3>Aba Equipe</h3>
-      <p>Monta o <strong>organograma</strong> da obra: quem é o encarregado, quem é líder de área, quem são os profissionais. Veja a seção "Equipe e Organograma" neste manual.</p>
+      <div class="man-tip">
+        💡 <strong>Saídas do mesmo dia + mesmo contrato</strong> são agregadas num único BM. Se você lançar 3 saídas em 24/04, todas entram no BM daquele dia.
+      </div>
 
-      <h3>Aba RDO</h3>
-      <p>Lista de Relatórios Diários de Obra. É onde você cria o RDO do dia. Ver seção "RDO" deste manual.</p>
-
-      <h3>Aba Pendências</h3>
-      <p>Mostra passagens aéreas pendentes, alertas de vencimento. Fica vermelho se tem algo urgente.</p>
-
-      <h2>Editar ou excluir</h2>
-      <p>Na lista de contratos, ao lado do nome, tem os botões <strong>Editar</strong> (lápis) e <strong>Excluir</strong> (vermelho). Dentro do contrato, o botão <strong>✏️ Editar Dados</strong> no topo abre os dados pra mudar.</p>
+      <h3>Aba Equipe · RDO · Pendências</h3>
+      <p>Veja as seções específicas deste manual.</p>
 
       <div class="man-warn">
-        ⚠️ <strong>Cuidado:</strong> Excluir um contrato apaga também o orçamento, organograma e RDOs dele. Não tem como desfazer.
+        ⚠️ Excluir um contrato apaga também o orçamento, organograma, RDOs e BMs não emitidos. Não tem como desfazer.
       </div>
     `;
   },
@@ -920,18 +928,38 @@ window.Manual = {
 
   _contasreceber() {
     return `
-      <h1><span class="ico">☐</span> Contas a Receber</h1>
-      <p class="man-lead">São as <strong>Notas Fiscais</strong> que você emitiu pros clientes e está esperando o pagamento.</p>
+      <h1><span class="ico">☐</span> Contas a Receber (BMs)</h1>
+      <p class="man-lead">Cada registro aqui é um <strong>Boletim de Medição (BM)</strong> vinculado a um contrato. A maioria dos BMs aparece <strong>automaticamente</strong> quando você lança saídas no contrato.</p>
 
-      <h2>Lançar NF</h2>
+      <h2>Como os BMs nascem</h2>
       <ol class="man-steps">
-        <li>Menu → <strong>Financeiro → ☐ Contas a Receber</strong>.</li>
-        <li>Clique em <strong>+ Nova NF</strong>.</li>
-        <li>Preencha: número da NF, contrato, valor, data limite para emissão, prazo de recebimento (dias).</li>
+        <li>Você entra num contrato → aba <strong>Financeiro</strong> → <strong>+ Adicionar Saída</strong>.</li>
+        <li>Preenche descrição, tipo, valor e data do serviço executado.</li>
+        <li>O sistema:
+          <ul style="margin-top:6px;">
+            <li>Se já existe um BM <strong>não emitido</strong> desse contrato na mesma data → soma o valor ao BM existente;</li>
+            <li>Se não existe → cria um novo BM com número sequencial (BM-001, BM-002…).</li>
+          </ul>
+        </li>
       </ol>
 
-      <h2>Marcar como emitida/recebida</h2>
-      <p>Quando você realmente emitir a NF e depois receber o pagamento, marca na lista. O sistema <strong>lança no Caixa como entrada</strong> automaticamente.</p>
+      <h2>Ciclo de vida do BM</h2>
+      <ol style="padding-left:22px;line-height:1.7;">
+        <li><strong>Cadastrado</strong> (não emitido) — acabou de sair. Ainda pode ser editado/excluído.</li>
+        <li><strong>Emitido</strong> — você clicou em "Emitir". Cria automaticamente uma entrada agendada no Caixa pela data de recebimento prevista.</li>
+        <li><strong>Recebido</strong> — o dinheiro entrou no caixa na data prevista.</li>
+      </ol>
+
+      <h2>Gerar o PDF do BM</h2>
+      <p>Na aba Financeiro do contrato, clique em <strong>📄 BM</strong> ao lado de qualquer saída. Baixa um PDF com a identidade da Rhino + layout CMPC contendo: cabeçalho, OS, descrição, itens do dia, valor cobrado, dados contratuais (acumulado, saldo, % avanço), acompanhamento MED 01–12 e aprovações.</p>
+
+      <div class="man-tip">
+        💡 Se o BM já foi <strong>emitido</strong>, você não pode mais alterar/excluir a saída que o originou. Cancele a emissão primeiro.
+      </div>
+
+      <div class="man-warn">
+        ⚠️ O total de BMs não pode ultrapassar o <strong>valor do contrato</strong>. O sistema bloqueia.
+      </div>
     `;
   },
 
@@ -1032,11 +1060,17 @@ window.Manual = {
       <p class="man-lead">Os termos que mais aparecem no Rhino, explicados.</p>
 
       <dl class="man-glossary">
+        <dt>A Medir</dt>
+        <dd>Saldo do contrato que ainda pode virar BM. É <strong>Valor do Contrato − Medido</strong>.</dd>
+
         <dt>Aporte</dt>
         <dd>Dinheiro que um sócio (ou a empresa matriz) coloca na obra.</dd>
 
         <dt>BASE</dt>
         <dd>Custos da empresa que não são de uma obra só (aluguel, secretária, contador...). São divididos entre as obras ativas.</dd>
+
+        <dt>BM (Boletim de Medição)</dt>
+        <dd>Cobrança parcial enviada ao cliente por um serviço executado. No Rhino, cada BM é uma NF em Contas a Receber. É criado automaticamente quando você registra uma saída. Saídas do mesmo dia num mesmo contrato vão para o mesmo BM.</dd>
 
         <dt>Caixa</dt>
         <dd>Extrato do dinheiro da empresa. Entradas (receitas) e saídas (despesas).</dd>
@@ -1059,11 +1093,20 @@ window.Manual = {
         <dt>MOD</dt>
         <dd>Mão de Obra Direta — quem executa o serviço (mecânico, pedreiro, eletricista...).</dd>
 
+        <dt>Margem Atual</dt>
+        <dd>Lucro estimado = Medido − (Saídas + BASE alocada + Passagens). Mostra o quanto sobra de fato do que foi faturado.</dd>
+
+        <dt>Medido</dt>
+        <dd>Total já cobrado do cliente via BMs (emitidos + cadastrados aguardando emissão).</dd>
+
         <dt>MOI</dt>
         <dd>Mão de Obra Indireta — quem dá suporte (engenheiro, técnico, encarregado, aux. administrativo...).</dd>
 
         <dt>NF</dt>
-        <dd>Nota Fiscal. Documento que você emite pro cliente pra receber o pagamento.</dd>
+        <dd>Nota Fiscal. No Rhino, equivale a um BM — documento que formaliza a cobrança ao cliente.</dd>
+
+        <dt>Saída (do contrato)</dt>
+        <dd>Serviço executado para o cliente. Gera um BM automaticamente em Contas a Receber. Não é gasto da empresa — é entrega/cobrança.</dd>
 
         <dt>Organograma</dt>
         <dd>Desenho em árvore da hierarquia da obra: Encarregado → Líderes → Profissionais.</dd>
