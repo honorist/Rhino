@@ -207,15 +207,9 @@ window.Contratos = {
 
             <div style="border-top:1px solid var(--color-border);padding-top:var(--sp-lg);margin-top:var(--sp-lg);">
               <h3 class="card-title mb-md">Dados do Contrato</h3>
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label">Valor Total (BRL) *</label>
-                  <input class="form-control" name="value" type="text" data-currency inputmode="numeric" value="${contract?.value ? window.BRLInput.toDisplay(contract.value) : ''}" placeholder="0,00" required>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Moeda/Referência</label>
-                  <input class="form-control" name="currency" value="${contract?.currency || 'BRL'}" placeholder="BRL">
-                </div>
+              <div class="form-group">
+                <label class="form-label">Valor Total (BRL) *</label>
+                <input class="form-control" name="value" type="text" data-currency inputmode="numeric" value="${contract?.value ? window.BRLInput.toDisplay(contract.value) : ''}" placeholder="0,00" required>
               </div>
               <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-lg);align-items:start;">
                 <div class="form-group" style="margin-bottom:0;">
