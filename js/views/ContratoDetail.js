@@ -310,20 +310,29 @@ window.ContratoDetail = {
             const excedeu = totalOrcado > contract.value;
             const cor = excedeu ? 'var(--color-danger)' : pct > 90 ? 'var(--color-warning)' : 'var(--color-success)';
             return `
-              <div style="display:grid;grid-template-columns:1fr 200px 1fr;gap:var(--sp-lg);align-items:center;margin-bottom:var(--sp-lg);padding:var(--sp-md);background:var(--color-surface-2);border-radius:8px;">
+              <div style="display:grid;grid-template-columns:140px 220px 110px 110px 90px;gap:var(--sp-md);align-items:center;padding:10px var(--sp-md);border-radius:6px;background:var(--color-surface-2);border-left:3px solid ${cor};margin-bottom:var(--sp-lg);">
+                <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Orçado × Contrato</div>
                 <div>
-                  <div style="font-size:15px;color:var(--color-text-muted);">Orçado</div>
-                  <div style="font-size:18px;font-weight:700;">${Store.formatBRL(totalOrcado)}</div>
-                </div>
-                <div style="text-align:center;">
-                  <div style="font-size:22px;font-weight:800;color:${cor};margin-bottom:4px;">${pct.toFixed(1)}%</div>
-                  <div style="height:8px;background:var(--color-surface);border-radius:99px;overflow:hidden;">
-                    <div style="height:100%;width:${Math.min(100, pct)}%;background:${cor};transition:width .4s;"></div>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <div style="flex:1;background:rgba(255,255,255,.06);border-radius:99px;height:6px;overflow:hidden;">
+                      <div style="height:100%;width:${Math.min(100, pct)}%;background:${cor};border-radius:99px;transition:width .4s;"></div>
+                    </div>
+                    <span style="font-size:15px;color:var(--color-text-muted);min-width:42px;">${pct.toFixed(1)}%</span>
                   </div>
                 </div>
                 <div style="text-align:right;">
-                  <div style="font-size:15px;color:var(--color-text-muted);">${excedeu ? 'Excedeu em' : 'Disponível'}</div>
-                  <div style="font-size:18px;font-weight:700;color:${excedeu ? 'var(--color-danger)' : 'var(--color-text)'};">${Store.formatBRL(Math.abs(contract.value - totalOrcado))}</div>
+                  <div style="font-size:15px;color:var(--color-text-muted);margin-bottom:2px;">Orçado</div>
+                  <div style="font-size:15px;font-weight:600;font-family:'Nunito',sans-serif;">${Store.formatBRL(totalOrcado)}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:15px;color:var(--color-text-muted);margin-bottom:2px;">Contrato</div>
+                  <div style="font-size:15px;font-weight:600;font-family:'Nunito',sans-serif;">${Store.formatBRL(contract.value)}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:15px;color:var(--color-text-muted);margin-bottom:2px;">${excedeu ? 'Excedeu' : 'Disponível'}</div>
+                  <div style="font-size:15px;font-weight:700;color:${excedeu ? 'var(--color-danger)' : 'var(--color-success)'};">
+                    ${excedeu ? '▼' : '▲'} ${Store.formatBRL(Math.abs(contract.value - totalOrcado))}
+                  </div>
                 </div>
               </div>
             `;
@@ -349,7 +358,7 @@ window.ContratoDetail = {
                   const statusCor = real > orc && orc > 0 ? 'var(--color-danger)' : real > 0 && orc === 0 ? 'var(--color-warning)' : 'var(--color-success)';
                   const statusIcon = real > orc && orc > 0 ? '▼' : real > 0 && orc === 0 ? '⚠' : '▲';
                   return `
-                    <div style="display:grid;grid-template-columns:140px 1fr 110px 110px 90px;gap:var(--sp-md);align-items:center;padding:10px var(--sp-md);border-radius:6px;background:var(--color-surface-2) ;border-left:3px solid ${cor};">
+                    <div style="display:grid;grid-template-columns:140px 220px 110px 110px 90px;gap:var(--sp-md);align-items:center;padding:10px var(--sp-md);border-radius:6px;background:var(--color-surface-2) ;border-left:3px solid ${cor};">
                       <div style="font-size: 15px;font-weight:600;">${TIPOS_LABEL[tipo] || tipo}</div>
                       <div>
                         <div style="display:flex;align-items:center;gap:6px;">
@@ -378,7 +387,7 @@ window.ContratoDetail = {
                 }).join('')}
 
                 <!-- Total -->
-                <div style="display:grid;grid-template-columns:140px 1fr 110px 110px 90px;gap:var(--sp-md);align-items:center;padding:10px var(--sp-md);border-radius:6px;border:1px solid var(--color-border);margin-top:4px;">
+                <div style="display:grid;grid-template-columns:140px 220px 110px 110px 90px;gap:var(--sp-md);align-items:center;padding:10px var(--sp-md);border-radius:6px;border:1px solid var(--color-border);margin-top:4px;">
                   <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Total</div>
                   <div></div>
                   <div style="text-align:right;font-size:15px;font-weight:700;font-family:'Nunito',sans-serif;">${Store.formatBRL(totalOrcado)}</div>
@@ -386,6 +395,30 @@ window.ContratoDetail = {
                   <div style="text-align:right;font-size:15px;font-weight:700;color:${(totalSaidas+totalBase)>totalOrcado?'var(--color-danger)':'var(--color-success)'};">
                     ${(totalSaidas+totalBase) > totalOrcado ? '▼' : '▲'} ${Store.formatBRL(Math.abs(totalOrcado - totalSaidas - totalBase))}
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Distribuição do Orçamento (pizza) -->
+            <div style="display:grid;grid-template-columns:280px 1fr;gap:var(--sp-xl);align-items:center;margin:var(--sp-lg) 0;padding:var(--sp-lg);background:var(--color-surface-2);border-radius:8px;">
+              <div style="position:relative;height:240px;">
+                <canvas id="chartPizzaOrcamento"></canvas>
+              </div>
+              <div>
+                <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);margin-bottom:var(--sp-sm);">Distribuição por Categoria</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  ${Object.entries(orcadoPorTipo).filter(([,v]) => v > 0).sort((a,b)=>b[1]-a[1]).map(([tipo, valor]) => {
+                    const cor = TIPOS_COLOR[tipo] || '#9CA3AF';
+                    const pctDoOrc = totalOrcado > 0 ? (valor / totalOrcado) * 100 : 0;
+                    return `
+                      <div style="display:grid;grid-template-columns:16px 1fr auto auto;gap:10px;align-items:center;font-size:15px;">
+                        <div style="width:12px;height:12px;background:${cor};border-radius:3px;"></div>
+                        <div>${TIPOS_LABEL[tipo] || tipo}</div>
+                        <div style="font-weight:600;font-family:'Nunito',sans-serif;">${Store.formatBRL(valor)}</div>
+                        <div style="color:var(--color-text-muted);min-width:44px;text-align:right;">${pctDoOrc.toFixed(1)}%</div>
+                      </div>
+                    `;
+                  }).join('')}
                 </div>
               </div>
             </div>
@@ -668,6 +701,7 @@ window.ContratoDetail = {
         base:       totalBase,
         saldo:      Math.max(0, margin)
       });
+      this.renderPizzaOrcamento(orcadoPorTipo, totalOrcado);
 
       // Event listeners (guardados — botões podem não existir conforme a aba)
       document.getElementById('btnEditarDados')?.addEventListener('click', () => this.showModalEditarDados(contract));
@@ -762,6 +796,65 @@ window.ContratoDetail = {
               title: items => items[0].label,
               label: ctx => {
                 const pct = ((ctx.parsed / total) * 100).toFixed(1);
+                return `  ${fmt(ctx.parsed)}  (${pct}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+  },
+
+  renderPizzaOrcamento(orcadoPorTipo, totalOrcado) {
+    if (this.chartOrcamento) { this.chartOrcamento.destroy(); this.chartOrcamento = null; }
+    const canvas = document.getElementById('chartPizzaOrcamento');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    const TIPOS_LABEL = { mao_de_obra: 'Mão de Obra', material: 'Material', hospedagem: 'Hospedagem', transporte: 'Transporte', base: 'BASE', outros: 'Outros' };
+    const TIPOS_COLOR = { mao_de_obra: '#7C3AED', material: '#D97706', hospedagem: '#0891B2', transporte: '#059669', base: '#3182CE', outros: '#9CA3AF' };
+
+    const segments = Object.entries(orcadoPorTipo)
+      .filter(([, v]) => v > 0)
+      .sort((a, b) => b[1] - a[1])
+      .map(([tipo, valor]) => ({
+        label: TIPOS_LABEL[tipo] || tipo,
+        value: valor,
+        color: TIPOS_COLOR[tipo] || '#9CA3AF'
+      }));
+
+    if (segments.length === 0) {
+      canvas.parentElement.innerHTML = '<p style="text-align:center;color:var(--color-text-muted);padding:var(--sp-lg);">Sem itens no orçamento</p>';
+      return;
+    }
+
+    const fmt = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+    this.chartOrcamento = new Chart(canvas.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: segments.map(s => s.label),
+        datasets: [{
+          data: segments.map(s => s.value),
+          backgroundColor: segments.map(s => s.color),
+          borderColor: '#fff',
+          borderWidth: 3,
+          hoverBorderWidth: 4,
+          hoverOffset: 10
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(26,32,46,0.95)',
+            padding: 12,
+            callbacks: {
+              title: items => items[0].label,
+              label: ctx => {
+                const pct = totalOrcado > 0 ? ((ctx.parsed / totalOrcado) * 100).toFixed(1) : 0;
                 return `  ${fmt(ctx.parsed)}  (${pct}%)`;
               }
             }
