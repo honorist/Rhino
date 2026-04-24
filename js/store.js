@@ -1000,6 +1000,21 @@ document.addEventListener('input', e => {
   input.value = BRLInput._fmt(cents);
 });
 
+// Máscara de telefone BR: (XX) XXXX-XXXX (fixo) ou (XX) XXXXX-XXXX (celular)
+window.formatPhoneBR = function (raw) {
+  const d = String(raw || '').replace(/\D/g, '').slice(0, 11);
+  if (d.length === 0) return '';
+  if (d.length <= 2)  return `(${d}`;
+  if (d.length <= 6)  return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+};
+
+document.addEventListener('input', e => {
+  if (!e.target.matches('[data-phone]')) return;
+  e.target.value = window.formatPhoneBR(e.target.value);
+});
+
 // Global toast notification helper
 window.showToast = function(message, type = 'success') {
   let container = document.querySelector('.toast-container');

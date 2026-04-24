@@ -128,7 +128,7 @@ window.Clientes = {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Telefone</label>
-                <input class="form-control" name="telefone" value="${cliente?.telefone || ''}" placeholder="(00) 00000-0000">
+                <input class="form-control" name="telefone" data-phone inputmode="numeric" maxlength="16" value="${cliente?.telefone ? window.formatPhoneBR(cliente.telefone) : ''}" placeholder="(00) 00000-0000">
               </div>
               <div class="form-group">
                 <label class="form-label">Email</label>

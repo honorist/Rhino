@@ -140,7 +140,7 @@ window.Socios = {
               </div>
               <div class="form-group">
                 <label class="form-label">Telefone</label>
-                <input class="form-control" name="phone" value="${socio?.phone || ''}">
+                <input class="form-control" name="phone" data-phone inputmode="numeric" maxlength="16" value="${socio?.phone ? window.formatPhoneBR(socio.phone) : ''}" placeholder="(00) 00000-0000">
               </div>
             </div>
             <div class="form-group">

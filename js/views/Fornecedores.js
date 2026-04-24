@@ -170,7 +170,7 @@ window.Fornecedores = {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Telefone</label>
-                <input class="form-control" name="telefone" value="${fornecedor?.telefone || ''}" placeholder="(00) 00000-0000">
+                <input class="form-control" name="telefone" data-phone inputmode="numeric" maxlength="16" value="${fornecedor?.telefone ? window.formatPhoneBR(fornecedor.telefone) : ''}" placeholder="(00) 00000-0000">
               </div>
               <div class="form-group">
                 <label class="form-label">Pessoa de Contato</label>
