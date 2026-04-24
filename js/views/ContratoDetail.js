@@ -862,7 +862,13 @@ window.ContratoDetail = {
         scales: {
           x: {
             ticks: { color: '#FFFFFF', font: { size: 13 } },
-            grid: { display: false }
+            grid: {
+              color: 'rgba(255,255,255,.15)',
+              drawOnChartArea: true,
+              drawTicks: true,
+              offset: true,
+              lineWidth: 1
+            }
           },
           y: {
             ticks: { callback: v => fmt(v), color: '#FFFFFF', font: { size: 12 } },
