@@ -225,26 +225,28 @@ window.ContratoDetail = {
 
         <!-- Resumo orientado a Boletim de Medição -->
         ${this._tab === 'visao' ? `
-        <div class="grid-4 mb-2xl">
-          <div class="card" style="border-left:4px solid var(--color-primary);">
-            <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Valor do Contrato</div>
-            <div class="font-xl font-bold">${Store.formatBRL(contract.value)}</div>
-            <div class="text-muted font-sm mt-sm">valor vendido ao cliente</div>
-          </div>
-          <div class="card" style="border-left:4px solid var(--color-success);">
-            <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Medido</div>
-            <div style="font-size: 22px; font-weight: 700; color: var(--color-success);">${Store.formatBRL(totalMedido)}</div>
-            <div class="text-muted font-sm mt-sm">${pctMedido.toFixed(1)}% do contrato · ${nfsContrato.length} BM${nfsContrato.length !== 1 ? 's' : ''}</div>
-          </div>
-          <div class="card" style="border-left:4px solid var(--color-warning);">
-            <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">A Medir</div>
-            <div style="font-size: 22px; font-weight: 700; color: var(--color-warning);">${Store.formatBRL(totalAMedir)}</div>
-            <div class="text-muted font-sm mt-sm">${(100 - pctMedido).toFixed(1)}% restante</div>
-          </div>
-          <div class="card" style="border-left:4px solid ${margemAtual >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">
-            <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Margem Atual</div>
-            <div style="font-size: 22px; font-weight: 700; color: ${margemAtual >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${Store.formatBRL(margemAtual)}</div>
-            <div class="text-muted font-sm mt-sm">${totalMedido > 0 ? pctMargem.toFixed(1) + '% sobre medido' : 'sem medição ainda'}</div>
+        <div class="card mb-2xl" style="padding:0;overflow:hidden;">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);">
+            <div style="padding:var(--sp-lg);border-right:1px solid var(--color-border);border-top:3px solid var(--color-primary);">
+              <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Valor do Contrato</div>
+              <div style="font-size:22px;font-weight:800;">${Store.formatBRL(contract.value)}</div>
+              <div class="text-muted font-sm mt-sm">valor vendido</div>
+            </div>
+            <div style="padding:var(--sp-lg);border-right:1px solid var(--color-border);border-top:3px solid var(--color-success);">
+              <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Medido</div>
+              <div style="font-size:22px;font-weight:800;color:var(--color-success);">${Store.formatBRL(totalMedido)}</div>
+              <div class="text-muted font-sm mt-sm">${pctMedido.toFixed(1)}% · ${nfsContrato.length} BM${nfsContrato.length !== 1 ? 's' : ''}</div>
+            </div>
+            <div style="padding:var(--sp-lg);border-right:1px solid var(--color-border);border-top:3px solid var(--color-warning);">
+              <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">A Medir</div>
+              <div style="font-size:22px;font-weight:800;color:var(--color-warning);">${Store.formatBRL(totalAMedir)}</div>
+              <div class="text-muted font-sm mt-sm">${(100 - pctMedido).toFixed(1)}% restante</div>
+            </div>
+            <div style="padding:var(--sp-lg);border-top:3px solid ${margemAtual >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">
+              <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Margem Atual</div>
+              <div style="font-size:22px;font-weight:800;color:${margemAtual >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${Store.formatBRL(margemAtual)}</div>
+              <div class="text-muted font-sm mt-sm">${totalMedido > 0 ? pctMargem.toFixed(1) + '% sobre medido' : 'sem medição'}</div>
+            </div>
           </div>
         </div>
 
