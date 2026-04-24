@@ -9,10 +9,10 @@ window.BM = {
       return;
     }
 
-    // Carrega o modelo
-    const respModelo = await fetch('assets/modelos/modelo_bm.xlsm');
+    // Carrega o modelo (pré-processado para compatibilidade com ExcelJS)
+    const respModelo = await fetch('assets/modelos/modelo_bm.xlsx');
     if (!respModelo.ok) {
-      alert('Modelo de BM não encontrado em assets/modelos/modelo_bm.xlsm');
+      alert('Modelo de BM não encontrado em assets/modelos/modelo_bm.xlsx');
       return;
     }
     const bufferModelo = await respModelo.arrayBuffer();
