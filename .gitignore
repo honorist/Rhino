@@ -7,3 +7,5 @@ functions/node_modules/
 .claude/
 backups/
 *-Honório_PC*
+test-results/
+playwright-report/
