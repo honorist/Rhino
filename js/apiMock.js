@@ -163,27 +163,67 @@ function handleDeleteContract(id, res) {
 function handlePostSaida(contractId, body, res) {
   try {
     const data = readData('contracts.json');
+    const contract = data.contracts.find(c => c.id === contractId);
 
-    if (!data.contracts.find(c => c.id === contractId)) {
+    if (!contract) {
       res.writeHead(404, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Contract not found' }));
       return;
     }
 
+    const valor = parseFloat(body.value) || 0;
+
+    const nfData = readData('notas_fiscais.json');
+    const nfsContrato = (nfData.notas_fiscais || []).filter(nf => nf.contractId === contractId);
+    const totalMedidoAtual = nfsContrato.reduce((s, nf) => s + (parseFloat(nf.valor) || 0), 0);
+    if (contract.value > 0 && totalMedidoAtual + valor > contract.value + 0.01) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        error: `BM ultrapassa o valor do contrato. Disponível para medir: R$ ${(contract.value - totalMedidoAtual).toFixed(2).replace('.', ',')}`
+      }));
+      return;
+    }
+
+    const dataSaida = body.date || new Date().toISOString().split('T')[0];
+    const saidaId = generateId('sai');
+    const numeroBm = String(nfsContrato.length + 1).padStart(3, '0');
+    const numeroNf = `BM-${numeroBm}`;
+
+    const nf = {
+      id: generateId('nf'),
+      numero: numeroNf,
+      contractId,
+      dataLimite: dataSaida,
+      valor,
+      prazoRecebimento: parseInt(body.prazoRecebimento) || 30,
+      observacoes: body.description || '',
+      emitida: false,
+      dataEmissaoReal: null,
+      caixaEntryId: null,
+      saidaId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    if (!nfData.notas_fiscais) nfData.notas_fiscais = [];
+    nfData.notas_fiscais.push(nf);
+    writeData('notas_fiscais.json', nfData);
+
     const saida = {
-      id: generateId('sai'),
+      id: saidaId,
       contractId,
       type: body.type || 'material',
       description: body.description || '',
-      value: parseFloat(body.value) || 0,
-      date: body.date || new Date().toISOString().split('T')[0],
+      value: valor,
+      date: dataSaida,
+      nfId: nf.id,
+      numeroBm: numeroNf,
       createdAt: new Date().toISOString()
     };
     data.saidas.push(saida);
     writeData('contracts.json', data);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    res.end(JSON.stringify({ contracts: data.contracts, saidas: data.saidas, notas_fiscais: nfData.notas_fiscais }));
   } catch (e) {
     res.writeHead(400, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: e.message }));
@@ -201,16 +241,50 @@ function handlePutSaida(id, body, res) {
       return;
     }
 
+    const saida = data.saidas[idx];
     const allowedSaida = {};
     const saidaFields = ['type', 'description', 'value', 'date'];
     for (const f of saidaFields) { if (body[f] !== undefined) allowedSaida[f] = body[f]; }
     if (allowedSaida.value !== undefined) allowedSaida.value = parseFloat(allowedSaida.value) || 0;
 
-    data.saidas[idx] = { ...data.saidas[idx], ...allowedSaida, id, updatedAt: new Date().toISOString() };
+    let nfData = null;
+    if (saida.nfId) {
+      nfData = readData('notas_fiscais.json');
+      const nfIdx = (nfData.notas_fiscais || []).findIndex(nf => nf.id === saida.nfId);
+      if (nfIdx !== -1) {
+        const nf = nfData.notas_fiscais[nfIdx];
+        if (nf.emitida) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Não é possível editar saída com BM já emitido. Cancele a emissão do BM primeiro.' }));
+          return;
+        }
+        if (allowedSaida.value !== undefined) {
+          const contract = data.contracts.find(c => c.id === saida.contractId);
+          if (contract && contract.value > 0) {
+            const outrasNfs = nfData.notas_fiscais.reduce((s, n, i) =>
+              i === nfIdx || n.contractId !== saida.contractId ? s : s + (parseFloat(n.valor) || 0), 0);
+            if (outrasNfs + allowedSaida.value > contract.value + 0.01) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                error: `BM ultrapassa o valor do contrato. Disponível: R$ ${(contract.value - outrasNfs).toFixed(2).replace('.', ',')}`
+              }));
+              return;
+            }
+          }
+          nf.valor = allowedSaida.value;
+        }
+        if (allowedSaida.date !== undefined) nf.dataLimite = allowedSaida.date;
+        if (allowedSaida.description !== undefined) nf.observacoes = allowedSaida.description;
+        nf.updatedAt = new Date().toISOString();
+        writeData('notas_fiscais.json', nfData);
+      }
+    }
+
+    data.saidas[idx] = { ...saida, ...allowedSaida, id, updatedAt: new Date().toISOString() };
     writeData('contracts.json', data);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    res.end(JSON.stringify({ contracts: data.contracts, saidas: data.saidas, notas_fiscais: nfData ? nfData.notas_fiscais : undefined }));
   } catch (e) {
     res.writeHead(400, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: e.message }));
@@ -220,11 +294,29 @@ function handlePutSaida(id, body, res) {
 function handleDeleteSaida(id, res) {
   try {
     const data = readData('contracts.json');
+    const saida = data.saidas.find(s => s.id === id);
+
+    let nfData = null;
+    if (saida && saida.nfId) {
+      nfData = readData('notas_fiscais.json');
+      const nfIdx = (nfData.notas_fiscais || []).findIndex(nf => nf.id === saida.nfId);
+      if (nfIdx !== -1) {
+        const nf = nfData.notas_fiscais[nfIdx];
+        if (nf.emitida) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Não é possível excluir saída cujo BM já foi emitido. Cancele a emissão do BM primeiro.' }));
+          return;
+        }
+        nfData.notas_fiscais.splice(nfIdx, 1);
+        writeData('notas_fiscais.json', nfData);
+      }
+    }
+
     data.saidas = data.saidas.filter(s => s.id !== id);
     writeData('contracts.json', data);
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    res.end(JSON.stringify({ contracts: data.contracts, saidas: data.saidas, notas_fiscais: nfData ? nfData.notas_fiscais : undefined }));
   } catch (e) {
     res.writeHead(400, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: e.message }));

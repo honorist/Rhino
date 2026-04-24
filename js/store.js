@@ -117,6 +117,7 @@ window.Store = {
       const result = await res.json();
       this.state.contracts = result.contracts || [];
       this.state.saidas = result.saidas || [];
+      if (result.notas_fiscais !== undefined) this.state.notas_fiscais = result.notas_fiscais;
       this.notify();
       return result;
     } catch (e) {
@@ -137,6 +138,7 @@ window.Store = {
       const result = await res.json();
       this.state.contracts = result.contracts || [];
       this.state.saidas = result.saidas || [];
+      if (result.notas_fiscais !== undefined) this.state.notas_fiscais = result.notas_fiscais;
       this.notify();
       return result;
     } catch (e) {
@@ -153,6 +155,7 @@ window.Store = {
       const result = await res.json();
       this.state.contracts = result.contracts || [];
       this.state.saidas = result.saidas || [];
+      if (result.notas_fiscais !== undefined) this.state.notas_fiscais = result.notas_fiscais;
       this.notify();
       return result;
     } catch (e) {
@@ -174,6 +177,7 @@ window.Store = {
       const result = await res.json();
       this.state.contracts = result.contracts || [];
       this.state.saidas = result.saidas || [];
+      if (result.notas_fiscais !== undefined) this.state.notas_fiscais = result.notas_fiscais;
       this.notify();
       return result;
     } catch (e) {
@@ -194,6 +198,7 @@ window.Store = {
       const result = await res.json();
       this.state.contracts = result.contracts || [];
       this.state.saidas = result.saidas || [];
+      if (result.notas_fiscais !== undefined) this.state.notas_fiscais = result.notas_fiscais;
       this.notify();
       return result;
     } catch (e) {
@@ -210,6 +215,7 @@ window.Store = {
       const result = await res.json();
       this.state.contracts = result.contracts || [];
       this.state.saidas = result.saidas || [];
+      if (result.notas_fiscais !== undefined) this.state.notas_fiscais = result.notas_fiscais;
       this.notify();
       return result;
     } catch (e) {
