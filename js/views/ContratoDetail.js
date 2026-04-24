@@ -105,6 +105,17 @@ window.ContratoDetail = {
       const margin = contract.value - totalSaidas - totalBase - totalPassagensRealizadas;
       const spentPct = ((totalSaidas + totalPassagensRealizadas) / contract.value * 100).toFixed(1);
 
+      // Boletins de Medição = Notas Fiscais vinculadas ao contrato
+      const nfsContrato = (Store.state.notas_fiscais || []).filter(nf => nf.contractId === contractId);
+      const nfsEmitidas = nfsContrato.filter(nf => nf.emitida);
+      const totalMedido   = nfsContrato.reduce((s, nf) => s + (parseFloat(nf.valor) || 0), 0);
+      const totalEmitido  = nfsEmitidas.reduce((s, nf) => s + (parseFloat(nf.valor) || 0), 0);
+      const totalAMedir   = Math.max(0, contract.value - totalMedido);
+      const pctMedido     = contract.value > 0 ? (totalMedido / contract.value * 100) : 0;
+      const pctEmitido    = contract.value > 0 ? (totalEmitido / contract.value * 100) : 0;
+      const margemAtual   = totalMedido - totalSaidas - totalBase - totalPassagensRealizadas;
+      const pctMargem     = totalMedido > 0 ? (margemAtual / totalMedido * 100) : 0;
+
       // Orçamento
       const budget = contract.budget || [];
       const totalOrcado = budget.reduce((s, b) => s + b.value, 0);
@@ -212,43 +223,75 @@ window.ContratoDetail = {
           }
         </style>
 
-        <!-- Resumo Principal em 4 Cartões + barra de progresso -->
+        <!-- Resumo orientado a Boletim de Medição -->
         ${this._tab === 'visao' ? `
         <div class="grid-4 mb-2xl">
-          <div class="card">
+          <div class="card" style="border-left:4px solid var(--color-primary);">
             <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Valor do Contrato</div>
             <div class="font-xl font-bold">${Store.formatBRL(contract.value)}</div>
+            <div class="text-muted font-sm mt-sm">valor vendido ao cliente</div>
           </div>
-          <div class="card">
-            <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Total Gasto</div>
-            <div style="font-size: 22px; font-weight: 700; color: var(--color-danger);">${Store.formatBRL(totalSaidas + totalBase)}</div>
-            <div class="text-muted font-sm mt-sm">${spentPct}% utilizado</div>
+          <div class="card" style="border-left:4px solid var(--color-success);">
+            <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Medido</div>
+            <div style="font-size: 22px; font-weight: 700; color: var(--color-success);">${Store.formatBRL(totalMedido)}</div>
+            <div class="text-muted font-sm mt-sm">${pctMedido.toFixed(1)}% do contrato · ${nfsContrato.length} BM${nfsContrato.length !== 1 ? 's' : ''}</div>
           </div>
-          <div class="card">
-            <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Saldo Disponível</div>
-            <div style="font-size: 22px; font-weight: 700; color: ${margin >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">
-              ${Store.formatBRL(Math.max(0, margin))}
-            </div>
-            <div class="text-muted font-sm mt-sm">${((margin / contract.value) * 100).toFixed(1)}% margem</div>
+          <div class="card" style="border-left:4px solid var(--color-warning);">
+            <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">A Medir</div>
+            <div style="font-size: 22px; font-weight: 700; color: var(--color-warning);">${Store.formatBRL(totalAMedir)}</div>
+            <div class="text-muted font-sm mt-sm">${(100 - pctMedido).toFixed(1)}% restante</div>
           </div>
-          <div class="card">
-            <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Equipe</div>
-            <div style="font-size: 22px; font-weight: 700;">${(contract.organograma || []).length}</div>
-            <div class="text-muted font-sm mt-sm">pessoa(s) no organograma</div>
+          <div class="card" style="border-left:4px solid ${margemAtual >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">
+            <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Margem Atual</div>
+            <div style="font-size: 22px; font-weight: 700; color: ${margemAtual >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${Store.formatBRL(margemAtual)}</div>
+            <div class="text-muted font-sm mt-sm">${totalMedido > 0 ? pctMargem.toFixed(1) + '% sobre medido' : 'sem medição ainda'}</div>
           </div>
         </div>
 
-        <!-- Barra de progresso executiva -->
+        <!-- Barra de progresso de medição -->
         <div class="card mb-2xl" style="padding: var(--sp-lg);">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
             <div>
-              <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600;">Progresso Financeiro do Contrato</div>
-              <div style="font-size:15px;color:var(--color-text);margin-top:4px;">${Store.formatBRL(totalSaidas + totalBase + totalPassagensRealizadas)} de ${Store.formatBRL(contract.value)} utilizados</div>
+              <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600;">Progresso de Medição (BM)</div>
+              <div style="font-size:15px;color:var(--color-text);margin-top:4px;">
+                <span style="color:var(--color-success);font-weight:600;">${Store.formatBRL(totalEmitido)} emitido</span>
+                · <span style="color:var(--color-warning);">${Store.formatBRL(totalMedido - totalEmitido)} a emitir</span>
+                · <span style="color:var(--color-text-muted);">${Store.formatBRL(totalAMedir)} a medir</span>
+              </div>
             </div>
-            <div style="font-size:28px;font-weight:800;color:${spentPct > 100 ? 'var(--color-danger)' : spentPct > 80 ? 'var(--color-warning)' : 'var(--color-success)'};">${spentPct}%</div>
+            <div style="font-size:28px;font-weight:800;color:var(--color-success);">${pctMedido.toFixed(1)}%</div>
           </div>
-          <div style="height:10px;background:var(--color-surface-2);border-radius:99px;overflow:hidden;">
-            <div style="height:100%;width:${Math.min(100, parseFloat(spentPct))}%;background:linear-gradient(90deg, ${spentPct > 100 ? 'var(--color-danger), #B91C1C' : spentPct > 80 ? 'var(--color-warning), #B45309' : 'var(--color-success), #047857'});border-radius:99px;transition:width .4s;"></div>
+          <div style="height:14px;background:var(--color-surface-2);border-radius:99px;overflow:hidden;display:flex;">
+            <div style="height:100%;width:${Math.min(100, pctEmitido)}%;background:linear-gradient(90deg, var(--color-success), #047857);"></div>
+            <div style="height:100%;width:${Math.min(100, pctMedido - pctEmitido)}%;background:linear-gradient(90deg, var(--color-warning), #B45309);"></div>
+          </div>
+          <div style="display:flex;gap:var(--sp-lg);margin-top:var(--sp-md);font-size:15px;">
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--color-success);border-radius:50%;margin-right:6px;"></span>Emitido</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--color-warning);border-radius:50%;margin-right:6px;"></span>Cadastrado (não emitido)</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:var(--color-surface-2);border:1px solid var(--color-border);border-radius:50%;margin-right:6px;"></span>A medir</span>
+          </div>
+        </div>
+
+        <!-- Equipe + Custos (linha secundária) -->
+        <div class="grid-2 mb-2xl">
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+              <div>
+                <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Equipe da Obra</div>
+                <div style="font-size: 22px; font-weight: 700;">${(contract.organograma || []).length} <span style="font-size:15px;font-weight:400;color:var(--color-text-muted);">pessoa(s)</span></div>
+              </div>
+              <a href="#/contratos/${contract.id}" onclick="window.ContratoDetail._tab='equipe';window.ContratoDetail.render('${contract.id}');event.preventDefault();" style="font-size:15px;color:var(--color-primary);text-decoration:none;">Ver equipe →</a>
+            </div>
+          </div>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+              <div>
+                <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Custos Acumulados</div>
+                <div style="font-size: 22px; font-weight: 700; color: var(--color-danger);">${Store.formatBRL(totalSaidas + totalBase + totalPassagensRealizadas)}</div>
+                <div class="text-muted font-sm mt-sm">saídas + BASE alocada + passagens</div>
+              </div>
+              <a href="#/contratos/${contract.id}" onclick="window.ContratoDetail._tab='financeiro';window.ContratoDetail.render('${contract.id}');event.preventDefault();" style="font-size:15px;color:var(--color-primary);text-decoration:none;">Ver detalhes →</a>
+            </div>
           </div>
         </div>
         ` : ''}
