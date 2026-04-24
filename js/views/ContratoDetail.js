@@ -354,7 +354,7 @@ window.ContratoDetail = {
                   <span><span style="display:inline-block;width:12px;height:12px;background:#F59E0B;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>Realizado</span>
                 </div>
               </div>
-              <div style="padding:var(--sp-md);background:var(--color-surface-2);border-radius:8px;height:${Math.max(180, tiposComparar.length * 48 + 40)}px;">
+              <div style="padding:var(--sp-md);background:var(--color-surface-2);border-radius:8px;height:320px;">
                 <canvas id="chartBarrasOrcado"></canvas>
               </div>
             </div>
@@ -845,7 +845,6 @@ window.ContratoDetail = {
         ]
       },
       options: {
-        indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
@@ -853,19 +852,21 @@ window.ContratoDetail = {
           tooltip: {
             backgroundColor: 'rgba(26,32,46,0.95)',
             padding: 12,
+            titleColor: '#FFFFFF',
+            bodyColor: '#FFFFFF',
             callbacks: {
-              label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.x)}`
+              label: ctx => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`
             }
           }
         },
         scales: {
           x: {
-            ticks: { callback: v => fmt(v), color: 'var(--color-text-muted)', font: { size: 11 } },
-            grid: { color: 'rgba(255,255,255,.05)' }
+            ticks: { color: '#FFFFFF', font: { size: 13 } },
+            grid: { display: false }
           },
           y: {
-            ticks: { color: 'var(--color-text)', font: { size: 13 } },
-            grid: { display: false }
+            ticks: { callback: v => fmt(v), color: '#FFFFFF', font: { size: 12 } },
+            grid: { color: 'rgba(255,255,255,.08)' }
           }
         }
       }
