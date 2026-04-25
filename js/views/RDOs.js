@@ -51,6 +51,7 @@ const RDOs = {
     root.innerHTML = `
       <div class="page-header">
         <h1 class="page-title">RDOs — Todos os Contratos</h1>
+        <button class="btn btn-primary" id="btnNovoRdoGlobal">+ Novo RDO</button>
       </div>
 
       <!-- KPIs -->
@@ -146,6 +147,7 @@ const RDOs = {
       ` : ''}
     `;
 
+    document.getElementById('btnNovoRdoGlobal').addEventListener('click', () => this.showPickerContrato());
     document.getElementById('fltContract').addEventListener('change', (e) => {
       this._filters.contractId = e.target.value;
       this._page = 0;
@@ -171,6 +173,65 @@ const RDOs = {
     if (prev) prev.addEventListener('click', () => { this._page--; this.draw(); });
     if (next) next.addEventListener('click', () => { this._page++; this.draw(); });
   },
+};
+
+RDOs.showPickerContrato = function () {
+  // Carrega contratos ativos
+  const ativos = (Store.state.contracts || [])
+    .filter(c => c.status === 'ativo')
+    .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+  if (ativos.length === 0) {
+    if (window.showToast) window.showToast('Nenhum contrato ativo encontrado.', 'warning');
+    return;
+  }
+
+  const html = `
+    <div class="modal-overlay" id="modalRdoPicker">
+      <div class="modal" style="width:520px;max-width:95vw;">
+        <div class="modal-header">
+          <h2 class="modal-title">+ Novo RDO</h2>
+          <button class="modal-close">✕</button>
+        </div>
+        <div class="modal-content">
+          <p style="margin:0 0 var(--sp-md);font-size:14px;color:var(--color-text-muted);">
+            Escolha o contrato para o qual você quer lançar um RDO. Você poderá preencher os dados (MOI, MOD, equipamentos, atividades, etc.) na próxima tela.
+          </p>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label">Contrato *</label>
+            <select class="form-control" id="pickerContractId" required>
+              <option value="">— selecione —</option>
+              ${ativos.map(c => `<option value="${c.id}">${escapeHtml(c.name)} — ${escapeHtml(c.client || '')}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="btnPickerCancel">Cancelar</button>
+          <button class="btn btn-primary" id="btnPickerOk">Continuar →</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+  const overlay = document.getElementById('modalRdoPicker');
+  const close = () => overlay.remove();
+  overlay.querySelector('.modal-close').addEventListener('click', close);
+  document.getElementById('btnPickerCancel').addEventListener('click', close);
+  document.getElementById('btnPickerOk').addEventListener('click', () => {
+    const id = document.getElementById('pickerContractId').value;
+    if (!id) {
+      if (window.showToast) window.showToast('Selecione um contrato.', 'error');
+      return;
+    }
+    close();
+    if (window.ContratoDetail?.showModalRdo) {
+      // Reusa o modal completo de criação de RDO
+      window.ContratoDetail.showModalRdo(id);
+    } else {
+      // Fallback: navega pra tela do contrato com aba RDO
+      window.ContratoDetail._tab = 'rdo';
+      location.hash = '#/contratos/' + id;
+    }
+  });
 };
 
 function kpiCard(label, value, color) {
