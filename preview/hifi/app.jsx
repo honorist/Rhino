@@ -33,9 +33,19 @@ function App() {
             <RdosList/>
           </DCArtboard>
         </DCSection>
+        <DCSection id="notas-fiscais" title="Notas fiscais">
+          <DCArtboard id="nf" label="NFs · pipeline rascunho/emitida/recebida" width={1440} height={1100}>
+            <NotasFiscais/>
+          </DCArtboard>
+        </DCSection>
         <DCSection id="contas-pagar" title="Contas a pagar">
           <DCArtboard id="cp" label="Contas a pagar · KPIs, alertas e lista filtravel" width={1440} height={1100}>
             <ContasPagar/>
+          </DCArtboard>
+        </DCSection>
+        <DCSection id="recursos" title="Recursos">
+          <DCArtboard id="rec" label="Recursos · pessoas, alocacao, documentos" width={1440} height={1100}>
+            <Recursos/>
           </DCArtboard>
         </DCSection>
         <DCSection id="caixa" title="Livro caixa">
