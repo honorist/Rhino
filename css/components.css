@@ -62,7 +62,7 @@
 }
 
 .stat-value {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-sans);
   font-size: 30px;
   font-weight: 700;
   color: var(--color-text);
@@ -102,7 +102,7 @@ thead th {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   white-space: nowrap;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-sans);
 }
 
 tbody td {
@@ -139,7 +139,7 @@ tbody tr:last-child td {
   transition: all 0.15s;
   white-space: nowrap;
   text-decoration: none;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-sans);
   letter-spacing: 0.01em;
 }
 
@@ -149,14 +149,15 @@ tbody tr:last-child td {
 }
 
 .btn-primary {
-  background: var(--color-primary);
+  background: var(--accent);
   color: #FFFFFF;
-  box-shadow: 0 1px 2px rgba(85,88,139,.2);
+  border: 1px solid var(--accent-deep);
+  box-shadow: 0 1px 0 var(--accent-deep);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-dark);
-  box-shadow: 0 2px 6px rgba(85,88,139,.28);
+  background: var(--accent-deep);
+  border-color: var(--accent-deep);
 }
 
 .btn-secondary {
@@ -237,7 +238,7 @@ textarea.form-control {
   font-size: 15px;
   background: #FFFFFF !important;
   color: #1F2937 !important;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-sans);
   transition: border-color 0.15s, box-shadow 0.15s;
   -webkit-text-fill-color: #1F2937 !important;
 }
@@ -275,7 +276,7 @@ select.form-control option {
 textarea.form-control {
   resize: vertical;
   min-height: 90px;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-sans);
   font-size: 15px;
 }
 
@@ -342,7 +343,7 @@ textarea.form-control {
 }
 
 .modal-title {
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-sans);
   font-size: 20px;
   font-weight: 700;
   color: var(--color-text);
@@ -403,7 +404,7 @@ textarea.form-control {
   text-transform: uppercase;
   letter-spacing: 0.07em;
   line-height: 1.5;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-sans);
 }
 
 .badge-mao-de-obra  { background: #EDE9FE; color: #6D28D9; }
@@ -461,7 +462,7 @@ textarea.form-control {
   font-size: 15px;
   font-weight: 600;
   transition: opacity 0.2s;
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-sans);
 }
 
 .stacked-segment.mao-de-obra { background: var(--cat-mao-de-obra); }
@@ -579,7 +580,7 @@ textarea.form-control {
   text-decoration: none;
   transition: all 0.14s;
   border-radius: var(--border-radius);
-  font-family: 'Nunito', sans-serif;
+  font-family: var(--font-sans);
   font-weight: 500;
 }
 
@@ -632,3 +633,113 @@ textarea.form-control {
 .checklist-item {
   animation: fadeSlideIn 0.2s ease both;
 }
+
+/* ============================================================
+   HI-FI RHINO — refinos industriais (overrides finais)
+   ============================================================ */
+
+/* Cards mais clean estilo paper */
+.card {
+  box-shadow: var(--shadow-sm);
+  border-radius: var(--border-radius-lg);
+}
+.card:hover { box-shadow: var(--shadow-md); }
+
+/* Stat cards — hi-fi: número grande, label pequena */
+.stat-card { padding: 14px 16px; }
+.stat-value {
+  font-size: 26px !important;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.stat-label {
+  font-size: 11px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted) !important;
+  font-weight: 500;
+}
+
+/* Tabelas hi-fi: header em paper-2, números tabulares */
+thead { background: var(--paper-2); }
+thead th {
+  font-size: 11px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted) !important;
+  font-weight: 600;
+}
+tbody td { font-variant-numeric: tabular-nums; font-size: 13px !important; }
+tbody tr:hover { background: var(--paper-2); }
+
+/* Botões hi-fi */
+.btn {
+  font-weight: 500;
+  border-radius: 6px;
+  font-size: 13px !important;
+  padding: 7px 14px;
+}
+.btn-secondary {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: var(--paper-2);
+  border-color: var(--ink-3);
+  color: var(--ink);
+}
+
+/* Form controls */
+.form-control {
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  font-size: 13px !important;
+}
+.form-control:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* Page header alinhado com hi-fi */
+.page-header { padding-bottom: var(--sp-md); }
+.page-title {
+  font-size: 22px !important;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.page-subtitle {
+  font-size: 12px !important;
+  color: var(--muted) !important;
+  margin-top: 2px;
+}
+
+/* Sidebar item ativo no estilo hi-fi (preto sólido + accent bar) */
+.nav-item a.active { background: var(--ink); color: var(--paper); }
+.nav-item a.active::before { background: var(--accent); }
+.nav-group-header.active { background: var(--ink); color: var(--paper); }
+.nav-group-header.active::before { background: var(--accent); }
+
+/* Badges hi-fi */
+.badge {
+  font-size: 11px !important;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--paper-3);
+  color: var(--ink-2);
+  text-transform: none;
+  letter-spacing: 0;
+}
+.badge-ativo, .badge-pos { background: var(--pos-soft); color: var(--pos); }
+.badge-cancelado, .badge-neg { background: var(--neg-soft); color: var(--neg); }
+.badge-pausado, .badge-warn { background: var(--warn-soft); color: var(--warn); }
+.badge-concluido { background: #e0f2fe; color: #0369a1; }
+.badge-prospeccao { background: var(--accent-soft); color: var(--accent-deep); }
+
+/* Modal */
+.modal { border-radius: var(--border-radius-lg); }

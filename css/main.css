@@ -1,65 +1,105 @@
 /* ─────────────────────────────────────────────
-   RHINO · Theme System
-   Nunito (tipografia única do app)
+   RHINO · Theme System (Hi-fi industrial-modern)
+   Inter Tight + JetBrains Mono · paleta paper/ink/orange
 ───────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-/* ─── Design Tokens — Paleta Akaunting (light, slate-purple) ─── */
+/* ─── Design Tokens — Hi-fi Rhino (industrial-modern) ─── */
 :root {
-  /* UI font-size multiplier (controlado por +/- na sidebar) */
   --fs-mult: 1;
 
-  /* Primary — slate-purple icônico do Akaunting */
-  --color-primary:       #55588B;
-  --color-primary-light: #6F73A8;
-  --color-primary-dark:  #3E4068;
-  --color-accent:        #6D9480;   /* sage green accent */
+  /* Tokens hi-fi originais */
+  --ink:        #0c0d10;
+  --ink-2:      #2a2e36;
+  --ink-3:      #4a4f5a;
+  --muted:      #7d8290;
+  --muted-2:    #aaaeb8;
+  --line:       #e3e5ea;
+  --line-2:     #eef0f3;
+  --paper:      #ffffff;
+  --paper-2:    #f7f8fa;
+  --paper-3:    #f1f3f6;
 
-  /* Sidebar — branca com separadores sutis */
-  --sidebar-bg:          #FFFFFF;
-  --sidebar-text:        #374151;
-  --sidebar-active-bg:   rgba(85, 88, 139, 0.08);
-  --sidebar-active-text: #55588B;
-  --sidebar-width:       244px;
+  --accent:      #ff5a1f;
+  --accent-deep: #d63d00;
+  --accent-soft: #fff1ea;
+  --accent-line: #ffd1be;
 
-  /* Surface / Neutral — light */
-  --color-bg:            #F3F4F6;
-  --color-surface:       #FFFFFF;
-  --color-surface-2:     #F9FAFB;
-  --color-border:        #E5E7EB;
-  --color-text:          #1F2937;
-  --color-text-muted:    #1F2937;  /* forçado para preto — requisito de legibilidade */
+  --pos:       #0a8754;
+  --pos-soft:  #e6f5ed;
+  --neg:       #c92a2a;
+  --neg-soft:  #fdecec;
+  --warn:      #b8860b;
+  --warn-soft: #fbf3df;
 
-  /* Status — Akaunting vibes */
-  --color-success:       #6D9480;
-  --color-warning:       #F59E0B;
-  --color-danger:        #DC2626;
+  /* Aliases para o sistema antigo (compat) */
+  --color-primary:       var(--accent);
+  --color-primary-light: #ff7a48;
+  --color-primary-dark:  var(--accent-deep);
+  --color-accent:        var(--accent);
+
+  --sidebar-bg:          var(--paper);
+  --sidebar-text:        var(--ink-2);
+  --sidebar-active-bg:   var(--ink);
+  --sidebar-active-text: var(--paper);
+  --sidebar-width:       232px;
+
+  --color-bg:            var(--paper-2);
+  --color-surface:       var(--paper);
+  --color-surface-2:     var(--paper-3);
+  --color-border:        var(--line);
+  --color-text:          var(--ink);
+  --color-text-muted:    var(--muted);
+
+  --color-success:       var(--pos);
+  --color-warning:       var(--warn);
+  --color-danger:        var(--neg);
   --color-info:          #2563EB;
 
-  /* Category colors */
   --cat-mao-de-obra:     #8B5CF6;
-  --cat-material:        #F97316;
+  --cat-material:        var(--accent);
   --cat-hospedagem:      #0891B2;
-  --cat-transporte:      #10B981;
+  --cat-transporte:      var(--pos);
 
-  /* Layout */
   --border-radius:       6px;
-  --border-radius-lg:    10px;
-  --shadow-sm:           0 1px 2px rgba(0,0,0,.04);
-  --shadow-md:           0 2px 8px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
-  --shadow-lg:           0 12px 32px rgba(0,0,0,.1), 0 4px 8px rgba(0,0,0,.04);
+  --border-radius-lg:    12px;
+  --shadow-sm:           0 1px 0 rgba(12,13,16,0.04), 0 1px 2px rgba(12,13,16,0.04);
+  --shadow-md:           0 1px 0 rgba(12,13,16,0.04), 0 2px 6px rgba(12,13,16,0.06);
+  --shadow-lg:           0 8px 28px rgba(12,13,16,0.10), 0 2px 4px rgba(12,13,16,0.06);
 
-  /* Text aliases */
-  --text-dark:           #1F2937;
-  --text-muted:          #1F2937;
+  --text-dark:           var(--ink);
+  --text-muted:          var(--muted);
 
-  /* Spacing */
-  --sp-xs:               4px;
-  --sp-sm:               8px;
-  --sp-md:               16px;
-  --sp-lg:               24px;
-  --sp-xl:               32px;
-  --sp-2xl:              48px;
+  --sp-xs:  4px;
+  --sp-sm:  8px;
+  --sp-md:  16px;
+  --sp-lg:  24px;
+  --sp-xl:  32px;
+  --sp-2xl: 48px;
+
+  --font-sans: "Inter Tight", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* Dark mode (mantém suporte ao toggle existente) */
+html[data-theme="dark"], html.dark {
+  --ink:     #f1f2f5;
+  --ink-2:   #d4d7de;
+  --ink-3:   #9ea3ad;
+  --muted:   #9ea3ad;
+  --muted-2: #5a5e68;
+  --line:    #2a2d33;
+  --line-2:  #1f2126;
+  --paper:   #0e1014;
+  --paper-2: #14171c;
+  --paper-3: #1a1d23;
+  --accent-soft: #2a1208;
+  --accent-line: #5a2b14;
+  --pos-soft: #0f2b1e;
+  --neg-soft: #2b1212;
+  --warn-soft: #2b220e;
+  --sidebar-active-bg: var(--accent);
+  --sidebar-active-text: var(--paper);
 }
 
 /* ─── Reset ─── */
@@ -75,56 +115,31 @@ html, body {
 }
 
 body {
-  font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11", "tnum";
   background: var(--color-bg);
   color: var(--color-text);
-  font-size: 17px;
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+.mono { font-family: var(--font-mono); }
+.num { font-variant-numeric: tabular-nums; }
 
-/* ═══ Texto segue a cor do tema — adapta a light e dark ═══ */
+/* ═══ Hierarquia textual: muted permanece muted (paleta hi-fi) ═══ */
 .text-muted,
 .page-subtitle,
 .form-helper,
-.card-title,
 .stat-label,
 thead th,
 .filter-label,
 .sidebar-version,
 .text-secondary,
 [class*="text-muted"] {
-  color: var(--color-text) !important;
-  -webkit-text-fill-color: var(--color-text) !important;
+  color: var(--muted);
 }
-
-/* Captura TODAS as cores cinzas claras usadas em style inline — adapta ao tema */
-[style*="color:#6B7280"],
-[style*="color: #6B7280"],
-[style*="color:#9CA3AF"],
-[style*="color: #9CA3AF"],
-[style*="color:#D1D5DB"],
-[style*="color: #D1D5DB"],
-[style*="color:#4B5563"],
-[style*="color: #4B5563"],
-[style*="color:#9B8F82"],
-[style*="color: #9B8F82"],
-[style*="color:#999"],
-[style*="color: #999"],
-[style*="color:#aaa"],
-[style*="color: #aaa"],
-[style*="color:#ccc"],
-[style*="color: #ccc"],
-[style*="color:rgba(75"],
-[style*="color: rgba(75"],
-[style*="color:var(--color-text-muted)"],
-[style*="color: var(--color-text-muted)"],
-[style*="color:var(--text-muted)"],
-[style*="color: var(--text-muted)"] {
-  color: var(--color-text) !important;
-  -webkit-text-fill-color: var(--color-text) !important;
-}
+.card-title { color: var(--ink); font-weight: 600; }
 
 /* ═══ Piso absoluto de legibilidade — 16px em qualquer elemento ═══ */
 body, p, span, div, button, a, label, input, select, textarea,
@@ -229,7 +244,7 @@ body .page-subtitle                { font-size: 16.5px; }
 }
 
 .nav-item a:hover {
-  background: rgba(85, 88, 139, 0.06);
+  background: var(--paper-2);
   color: var(--color-primary);
 }
 
@@ -314,7 +329,7 @@ body .page-subtitle                { font-size: 16.5px; }
 }
 
 .nav-group-header:hover {
-  background: rgba(85, 88, 139, 0.06);
+  background: var(--paper-2);
   color: var(--color-primary);
 }
 
@@ -411,7 +426,7 @@ body .page-subtitle                { font-size: 16.5px; }
 }
 
 .theme-toggle-btn:hover {
-  background: rgba(85, 88, 139, 0.06);
+  background: var(--paper-2);
   border-color: rgba(85, 88, 139, 0.25);
   color: var(--color-primary);
 }
