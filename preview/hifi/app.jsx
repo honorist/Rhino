@@ -23,6 +23,11 @@ function App() {
             <Clientes/>
           </DCArtboard>
         </DCSection>
+        <DCSection id="fornecedores" title="Fornecedores">
+          <DCArtboard id="forn" label="Fornecedores · gasto e contas pendentes" width={1440} height={1000}>
+            <Fornecedores/>
+          </DCArtboard>
+        </DCSection>
         <DCSection id="contratos" title="Lista de contratos">
           <DCArtboard id="ctlist" label="Contratos · filtros, status, link para detalhe" width={1440} height={1100}>
             <ContractsList/>
