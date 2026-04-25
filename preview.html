@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Rhino · Preview do design hi-fi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./preview/hifi/styles.css">
+  <style>
+    .preview-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--ink); color: var(--paper);
+      padding: 10px 18px; display: flex; align-items: center; gap: 14px;
+      font-family: var(--font-sans); font-size: 13px;
+      border-bottom: 1px solid var(--ink-2);
+    }
+    .preview-bar a { color: var(--paper); text-decoration: none; opacity: .9; }
+    .preview-bar a:hover { opacity: 1; }
+    .preview-bar .accent { color: var(--accent); font-weight: 600; }
+    .preview-bar .right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+    .preview-bar .toggle {
+      background: transparent; border: 1px solid rgba(255,255,255,.25);
+      color: var(--paper); padding: 4px 10px; border-radius: 6px;
+      font-family: var(--font-sans); font-size: 12px; cursor: pointer;
+    }
+    .preview-bar .toggle:hover { background: rgba(255,255,255,.08); }
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div class="preview-bar">
+    <a href="/">← Voltar ao app</a>
+    <span class="accent">Preview do design hi-fi</span>
+    <span style="opacity:.6;">·</span>
+    <a href="#dashboard">Dashboard</a>
+    <a href="#contrato">Contrato</a>
+    <a href="#caixa">Caixa</a>
+    <div class="right">
+      <button class="toggle" id="btnDark">🌙 Modo escuro</button>
+    </div>
+  </div>
+  <div id="root"></div>
+
+  <script type="text/babel" src="./preview/design-canvas.jsx"></script>
+  <script type="text/babel" src="./preview/tweaks-panel.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/shared.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/dash-v1.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/contract-v5.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/caixa-v6.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/app.jsx"></script>
+
+  <script>
+    document.getElementById('btnDark').addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      document.getElementById('btnDark').textContent =
+        document.documentElement.classList.contains('dark') ? '☀️ Modo claro' : '🌙 Modo escuro';
+    });
+  </script>
+</body>
+</html>

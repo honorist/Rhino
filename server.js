@@ -2192,6 +2192,7 @@ function serveStaticFile(pathname, res) {
   const contentTypeMap = {
     '.html': 'text/html',
     '.js': 'application/javascript',
+    '.jsx': 'application/javascript',
     '.css': 'text/css',
     '.json': 'application/json',
     '.png': 'image/png',

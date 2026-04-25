@@ -129,6 +129,9 @@ async function showLoginModal() {
           <div style="text-align:center;margin-top:var(--sp-md);">
             <a href="#" id="goForgot" style="font-size:13px;color:var(--color-primary);">Esqueci minha senha</a>
           </div>
+          <div style="text-align:center;margin-top:var(--sp-lg);padding-top:var(--sp-md);border-top:1px solid var(--color-border);">
+            <a href="./preview.html" target="_blank" rel="noopener" style="font-size:13px;color:var(--color-primary);text-decoration:none;">🎨 Ver preview do novo design</a>
+          </div>
         </form>
       `;
       attach();
@@ -709,6 +712,10 @@ function renderSidebar() {
       <a href="#/manual" id="btn-manual" class="theme-toggle-btn" title="Abrir Manual do Usuário" style="text-decoration:none;">
         <span class="theme-toggle-icon">📖</span>
         <span>Manual</span>
+      </a>
+      <a href="./preview.html" target="_blank" rel="noopener" class="theme-toggle-btn" title="Ver preview do novo design hi-fi" style="text-decoration:none;">
+        <span class="theme-toggle-icon">🎨</span>
+        <span>Preview novo visual</span>
       </a>
       <div class="zoom-control" title="Ajustar tamanho da interface">
         <button id="zoom-out" class="zoom-btn" title="Diminuir (menor)">−</button>
