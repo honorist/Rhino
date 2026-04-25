@@ -13,7 +13,7 @@ const useRhinoData = () => {
   React.useEffect(() => {
     Promise.all([
       fetch('/api/contracts').then(r => r.json()).catch(() => ({ contracts: [] })),
-      fetch('/api/dashboard').then(r => r.json()).catch(() => null),
+      fetch('/api/dashboard?projDays=60').then(r => r.json()).catch(() => null),
       fetch('/api/rdos').then(r => r.json()).catch(() => ({ stats: null, rdos: [] })),
       fetch('/api/contas-pagar').then(r => r.json()).catch(() => ({ contasPagar: [] })),
       fetch('/api/notas-fiscais').then(r => r.json()).catch(() => ({ notasFiscais: [] })),
@@ -160,7 +160,34 @@ const DashV1 = () => {
               </div>
             </div>
             <div style={{ padding: "0 8px" }}>
-              <CashflowChart/>
+              <CashflowChart
+                realData={dashboard?.historicoCaixa || []}
+                projData={dashboard?.saldoProjetado || []}
+                recvData={(() => {
+                  const today = new Date();
+                  const inicio = new Date(); inicio.setDate(today.getDate() - 30);
+                  return notasFiscais
+                    .filter(n => n.status === 'emitida' && (n.dataVencimento || n.data_vencimento))
+                    .map(n => {
+                      const d = new Date(n.dataVencimento || n.data_vencimento);
+                      const i = Math.round((d - inicio) / (1000 * 60 * 60 * 24));
+                      return { i, v: Math.round((Number(n.totalLiquido || n.valorTotal) || 0) / 1000), l: 'NF#' + (n.numero || '') };
+                    })
+                    .filter(e => e.i >= 0 && e.i <= 90);
+                })()}
+                billsData={(() => {
+                  const today = new Date();
+                  const inicio = new Date(); inicio.setDate(today.getDate() - 30);
+                  return contasPagar
+                    .filter(c => c.status === 'pendente' && (c.dataVencimento || c.data_vencimento))
+                    .map(c => {
+                      const d = new Date(c.dataVencimento || c.data_vencimento);
+                      const i = Math.round((d - inicio) / (1000 * 60 * 60 * 24));
+                      return { i, v: Math.round((Number(c.valor) || 0) / 1000), l: c.descricao || '' };
+                    })
+                    .filter(e => e.i >= 0 && e.i <= 90);
+                })()}
+              />
             </div>
             <div className="chart-legend">
               <span className="legend-item"><span className="legend-line" style={{ background: "var(--accent)" }}/> Saldo realizado</span>

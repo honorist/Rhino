@@ -159,13 +159,20 @@ const ScoreGauge = ({ value = 72 }) => {
 };
 
 // Cashflow: 30d realized + 60d projected, with NF receivables and bills
-const CashflowChart = ({ accent = "var(--accent)" }) => {
-  const W = 800, H = 220, P = { l: 36, r: 16, t: 14, b: 28 };
-  // 30d real + 60d proj = 90 pts
-  const real = [444,448,442,455,460,470,468,475,480,485,490,495,498,505,512,510,520,525,530,536,540,548,552,560,565,572,575,580,585,592,598,604,612];
-  const proj = [612,620,635,628,640,655,650,665,680,672,690,705,710,725,730,745,752,768,765,780,795,790,805,820,815,830,845,840,855,870,880,895,890,910,925,920,940,955,952,975,990,985,1010,1025,1020,1045,1060,1058,1080,1095,1090,1115,1130,1128,1150,1170,1165,1190,1210];
+// Aceita arrays {data, saldo} via props para ligar com dados reais
+const CashflowChart = ({ accent = "var(--accent)", realData, projData, recvData, billsData }) => {
+  const W = 800, H = 220, P = { l: 44, r: 16, t: 14, b: 28 };
+  const fallbackReal = [444,448,442,455,460,470,468,475,480,485,490,495,498,505,512,510,520,525,530,536,540,548,552,560,565,572,575,580,585,592,598,604,612];
+  const fallbackProj = [612,620,635,628,640,655,650,665,680,672,690,705,710,725,730,745,752,768,765,780,795,790,805,820,815,830,845,840,855,870,880,895,890,910,925,920,940,955,952,975,990,985,1010,1025,1020,1045,1060,1058,1080,1095,1090,1115,1130,1128,1150,1170,1165,1190,1210];
+  // Recebe valores em R$ — converte para milhares (k) para exibir na escala
+  const real = realData && realData.length ? realData.map(p => (Number(p.saldo) || 0) / 1000) : fallbackReal;
+  const proj = projData && projData.length ? projData.map(p => (Number(p.saldo) || 0) / 1000) : fallbackProj;
   const all = [...real, ...proj];
-  const maxV = 1300, minV = 0;
+  const dataMax = Math.max(...all, 1);
+  const dataMin = Math.min(...all, 0);
+  // Pad 10% acima/abaixo, força mínimo zero se positivo
+  const maxV = Math.ceil(dataMax * 1.1 / 100) * 100 || 1000;
+  const minV = dataMin < 0 ? Math.floor(dataMin * 1.1 / 100) * 100 : 0;
   const xStep = (W - P.l - P.r) / (all.length - 1);
 
   const x = i => P.l + i * xStep;
@@ -175,12 +182,16 @@ const CashflowChart = ({ accent = "var(--accent)" }) => {
   const projPath = proj.map((v, i) => `${i ? "L" : "M"} ${x(real.length - 1 + i)} ${y(v)}`).join(" ");
   const fillPath = real.map((v, i) => `${i ? "L" : "M"} ${x(i)} ${y(v)}`).join(" ") + ` L ${x(real.length-1)} ${y(0)} L ${x(0)} ${y(0)} Z`;
 
-  // Bills (out) and receivables (in)
-  const bills = [{i:35, v:198, l:"Folha"}, {i:42, v:84, l:"Cabos"}, {i:49, v:43, l:"INSS"}, {i:65, v:142, l:"Painéis"}, {i:78, v:38, l:"Locação"}];
-  const recvs = [{i:32, v:184, l:"NF #845"}, {i:38, v:142, l:"NF #846"}, {i:48, v:86, l:"NF #847"}, {i:58, v:220, l:"BM-06"}, {i:75, v:184, l:"BM-07"}];
+  // Bills (out) and receivables (in) — aceita props ou usa exemplos
+  const bills = billsData && billsData.length ? billsData : [{i:35, v:198, l:"Folha"}, {i:42, v:84, l:"Cabos"}, {i:49, v:43, l:"INSS"}, {i:65, v:142, l:"Painéis"}, {i:78, v:38, l:"Locação"}];
+  const recvs = recvData && recvData.length ? recvData : [{i:32, v:184, l:"NF #845"}, {i:38, v:142, l:"NF #846"}, {i:48, v:86, l:"NF #847"}, {i:58, v:220, l:"BM-06"}, {i:75, v:184, l:"BM-07"}];
 
-  // Y grid
-  const ticks = [0, 300, 600, 900, 1200];
+  // Y grid — 5 ticks distribuídos
+  const ticks = (() => {
+    const arr = [];
+    for (let i = 0; i <= 4; i++) arr.push(Math.round(minV + ((maxV - minV) * i) / 4));
+    return arr;
+  })();
   // X labels (days)
   const dayLabels = [
     {i:0, l:"21/09"},
@@ -197,7 +208,7 @@ const CashflowChart = ({ accent = "var(--accent)" }) => {
       {ticks.map((t, i) => (
         <g key={i}>
           <line x1={P.l} x2={W - P.r} y1={y(t)} y2={y(t)} stroke="var(--line-2)" strokeWidth="1"/>
-          <text x={P.l - 6} y={y(t) + 3} textAnchor="end" fontSize="10" fill="var(--muted)" fontFamily="var(--font-sans)">{t === 0 ? "0" : `${t}k`}</text>
+          <text x={P.l - 6} y={y(t) + 3} textAnchor="end" fontSize="10" fill="var(--muted)" fontFamily="var(--font-sans)">{t === 0 ? "0" : (Math.abs(t) >= 1000 ? (t/1000).toFixed(1).replace('.0','') + 'M' : t + 'k')}</text>
         </g>
       ))}
       {/* hoje line */}
