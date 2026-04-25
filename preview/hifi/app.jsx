@@ -63,6 +63,11 @@ function App() {
             <Socios/>
           </DCArtboard>
         </DCSection>
+        <DCSection id="base" title="BASE">
+          <DCArtboard id="base" label="BASE · capital geral, alocacoes em obras" width={1440} height={1100}>
+            <Base/>
+          </DCArtboard>
+        </DCSection>
         <DCSection id="caixa" title="Livro caixa">
           <DCArtboard id="v6" label="Caixa unificado · entradas/saídas com vínculos" width={1440} height={1100}>
             <CaixaV6/>
