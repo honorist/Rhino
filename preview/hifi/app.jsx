@@ -18,9 +18,19 @@ function App() {
             <DashV1/>
           </DCArtboard>
         </DCSection>
+        <DCSection id="contratos" title="Lista de contratos">
+          <DCArtboard id="ctlist" label="Contratos · filtros, status, link para detalhe" width={1440} height={1100}>
+            <ContractsList/>
+          </DCArtboard>
+        </DCSection>
         <DCSection id="contrato" title="Detalhe de contrato">
-          <DCArtboard id="v5" label="CT-014 Veracel · Visão geral (5 abas)" width={1440} height={1280}>
+          <DCArtboard id="v5" label="Primeiro contrato ativo · Visão geral" width={1440} height={1280}>
             <ContractV5/>
+          </DCArtboard>
+        </DCSection>
+        <DCSection id="rdos" title="RDOs · Todos os contratos">
+          <DCArtboard id="rdolist" label="RDOs global · KPIs de aderência e alertas" width={1440} height={1300}>
+            <RdosList/>
           </DCArtboard>
         </DCSection>
         <DCSection id="caixa" title="Livro caixa">
