@@ -58,6 +58,11 @@ function App() {
             <Recursos/>
           </DCArtboard>
         </DCSection>
+        <DCSection id="socios" title="Sócios e Aportes">
+          <DCArtboard id="soc" label="Socios e aportes · participacao, aportes recentes" width={1440} height={950}>
+            <Socios/>
+          </DCArtboard>
+        </DCSection>
         <DCSection id="caixa" title="Livro caixa">
           <DCArtboard id="v6" label="Caixa unificado · entradas/saídas com vínculos" width={1440} height={1100}>
             <CaixaV6/>
