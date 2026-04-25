@@ -33,6 +33,11 @@ function App() {
             <RdosList/>
           </DCArtboard>
         </DCSection>
+        <DCSection id="contas-pagar" title="Contas a pagar">
+          <DCArtboard id="cp" label="Contas a pagar · KPIs, alertas e lista filtravel" width={1440} height={1100}>
+            <ContasPagar/>
+          </DCArtboard>
+        </DCSection>
         <DCSection id="caixa" title="Livro caixa">
           <DCArtboard id="v6" label="Caixa unificado · entradas/saídas com vínculos" width={1440} height={1100}>
             <CaixaV6/>
