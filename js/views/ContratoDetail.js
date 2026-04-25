@@ -350,24 +350,26 @@ window.ContratoDetail = {
               <div style="font-size:15px;">Adicione os custos planejados para confrontar com os gastos reais</div>
             </div>
           ` : `
-            <!-- Gráfico de Barras: Orçado × Realizado por categoria -->
-            <div style="margin-bottom:var(--sp-lg);">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-sm);">
-                <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);">Orçado × Realizado por Categoria</div>
-                <div style="display:flex;gap:var(--sp-md);font-size:15px;">
-                  <span><span style="display:inline-block;width:12px;height:12px;background:#6366F1;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>Orçado</span>
-                  <span><span style="display:inline-block;width:12px;height:12px;background:#F59E0B;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>Realizado</span>
+            <!-- Gráfico de Barras + Detalhamento lado a lado -->
+            <div style="display:grid;grid-template-columns:minmax(0, 1fr) minmax(0, 1fr);gap:var(--sp-lg);margin-bottom:var(--sp-lg);align-items:start;">
+              <!-- Gráfico -->
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-sm);">
+                  <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);">Orçado × Realizado</div>
+                  <div style="display:flex;gap:var(--sp-md);font-size:13px;">
+                    <span><span style="display:inline-block;width:10px;height:10px;background:#6366F1;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>Orçado</span>
+                    <span><span style="display:inline-block;width:10px;height:10px;background:#F59E0B;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>Realizado</span>
+                  </div>
+                </div>
+                <div style="padding:var(--sp-md);background:var(--color-surface-2);border-radius:8px;height:380px;">
+                  <canvas id="chartBarrasOrcado"></canvas>
                 </div>
               </div>
-              <div style="padding:var(--sp-md);background:var(--color-surface-2);border-radius:8px;height:320px;">
-                <canvas id="chartBarrasOrcado"></canvas>
-              </div>
-            </div>
 
-            <!-- Comparativo textual por tipo -->
-            <div style="margin-bottom:var(--sp-lg);">
-              <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);margin-bottom:var(--sp-sm);">Detalhamento por Categoria</div>
-              <div style="display:flex;flex-direction:column;gap:8px;">
+              <!-- Detalhamento por Categoria -->
+              <div>
+                <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);margin-bottom:var(--sp-sm);">Detalhamento por Categoria</div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
                 ${tiposComparar.map(tipo => {
                   const orc = orcadoPorTipo[tipo] || 0;
                   const real = realizadoPorTipo[tipo] || 0;
@@ -377,43 +379,49 @@ window.ContratoDetail = {
                   const statusCor = real > orc && orc > 0 ? 'var(--color-danger)' : real > 0 && orc === 0 ? 'var(--color-warning)' : 'var(--color-success)';
                   const statusIcon = real > orc && orc > 0 ? '▼' : real > 0 && orc === 0 ? '⚠' : '▲';
                   return `
-                    <div style="display:grid;grid-template-columns:140px minmax(220px, 1fr) 130px 130px 120px;gap:var(--sp-md);align-items:center;padding:10px var(--sp-md);border-radius:6px;background:var(--color-surface-2) ;border-left:3px solid ${cor};">
-                      <div style="font-size: 15px;font-weight:600;">${TIPOS_LABEL[tipo] || tipo}</div>
-                      <div>
-                        <div style="display:flex;align-items:center;gap:6px;">
-                          <div style="flex:1;background:rgba(255,255,255,.06);border-radius:99px;height:6px;overflow:hidden;">
-                            <div style="height:100%;width:${Math.min(pct,100)}%;background:${pct>100?'var(--color-danger)':cor};border-radius:99px;transition:width .4s;"></div>
-                          </div>
-                          <span style="font-size:15px;color:var(--color-text-muted);min-width:32px;">${pct > 999 ? '—' : pct.toFixed(0)+'%'}</span>
+                    <div style="padding:10px var(--sp-md);border-radius:6px;background:var(--color-surface-2);border-left:3px solid ${cor};">
+                      <!-- Header da linha: nome + delta -->
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                        <div style="font-size:14px;font-weight:600;">${TIPOS_LABEL[tipo] || tipo}</div>
+                        <div style="font-size:13px;font-weight:700;color:${orc===0?'var(--color-text-muted)':statusCor};">
+                          ${orc === 0 ? '—' : `${statusIcon} ${Store.formatBRL(Math.abs(delta))}`}
                         </div>
                       </div>
-                      <div style="text-align:right;">
-                        <div style="font-size:15px;color:var(--color-text-muted);margin-bottom:2px;">Orçado</div>
-                        <div style="font-size:15px;font-weight:600;font-family:'Nunito',sans-serif;">${orc > 0 ? Store.formatBRL(orc) : '<span style="color:var(--color-text-muted)">—</span>'}</div>
+                      <!-- Barra de progresso -->
+                      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                        <div style="flex:1;background:rgba(255,255,255,.06);border-radius:99px;height:5px;overflow:hidden;">
+                          <div style="height:100%;width:${Math.min(pct,100)}%;background:${pct>100?'var(--color-danger)':cor};border-radius:99px;"></div>
+                        </div>
+                        <span style="font-size:12px;color:var(--color-text-muted);min-width:36px;text-align:right;">${pct > 999 ? '—' : pct.toFixed(0)+'%'}</span>
                       </div>
-                      <div style="text-align:right;">
-                        <div style="font-size:15px;color:var(--color-text-muted);margin-bottom:2px;">Realizado</div>
-                        <div style="font-size:15px;font-weight:600;font-family:'Nunito',sans-serif;color:${real>0?'var(--color-text)':'var(--color-text-muted)'};">${real > 0 ? Store.formatBRL(real) : '—'}</div>
-                      </div>
-                      <div style="text-align:right;">
-                        <div style="font-size:15px;color:var(--color-text-muted);margin-bottom:2px;">Delta</div>
-                        <div style="font-size:15px;font-weight:700;color:${orc===0?'var(--color-text-muted)':statusCor};">
-                          ${orc === 0 ? '—' : `${statusIcon} ${Store.formatBRL(Math.abs(delta))}`}
+                      <!-- Valores: Orçado / Realizado lado a lado -->
+                      <div style="display:flex;justify-content:space-between;font-size:13px;">
+                        <div>
+                          <span style="color:var(--color-text-muted);">Orç:</span>
+                          <span style="font-weight:600;margin-left:4px;">${orc > 0 ? Store.formatBRL(orc) : '<span style="color:var(--color-text-muted)">—</span>'}</span>
+                        </div>
+                        <div>
+                          <span style="color:var(--color-text-muted);">Real:</span>
+                          <span style="font-weight:600;margin-left:4px;color:${real>0?'var(--color-text)':'var(--color-text-muted)'};">${real > 0 ? Store.formatBRL(real) : '—'}</span>
                         </div>
                       </div>
                     </div>
                   `;
                 }).join('')}
 
-                <!-- Total -->
-                <div style="display:grid;grid-template-columns:140px minmax(220px, 1fr) 130px 130px 120px;gap:var(--sp-md);align-items:center;padding:10px var(--sp-md);border-radius:6px;border:1px solid var(--color-border);margin-top:4px;">
-                  <div style="font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Total</div>
-                  <div></div>
-                  <div style="text-align:right;font-size:15px;font-weight:700;font-family:'Nunito',sans-serif;">${Store.formatBRL(totalOrcado)}</div>
-                  <div style="text-align:right;font-size:15px;font-weight:700;font-family:'Nunito',sans-serif;color:${(totalSaidas+totalBase)>totalOrcado?'var(--color-danger)':'var(--color-text)'};">${Store.formatBRL(totalSaidas + totalBase)}</div>
-                  <div style="text-align:right;font-size:15px;font-weight:700;color:${(totalSaidas+totalBase)>totalOrcado?'var(--color-danger)':'var(--color-success)'};">
-                    ${(totalSaidas+totalBase) > totalOrcado ? '▼' : '▲'} ${Store.formatBRL(Math.abs(totalOrcado - totalSaidas - totalBase))}
+                <!-- Total compacto -->
+                <div style="padding:10px var(--sp-md);border-radius:6px;border:1px solid var(--color-border);margin-top:4px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                    <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Total</div>
+                    <div style="font-size:13px;font-weight:700;color:${(totalSaidas+totalBase)>totalOrcado?'var(--color-danger)':'var(--color-success)'};">
+                      ${(totalSaidas+totalBase) > totalOrcado ? '▼' : '▲'} ${Store.formatBRL(Math.abs(totalOrcado - totalSaidas - totalBase))}
+                    </div>
                   </div>
+                  <div style="display:flex;justify-content:space-between;font-size:13px;">
+                    <div><span style="color:var(--color-text-muted);">Orç:</span> <strong style="margin-left:4px;">${Store.formatBRL(totalOrcado)}</strong></div>
+                    <div><span style="color:var(--color-text-muted);">Real:</span> <strong style="margin-left:4px;color:${(totalSaidas+totalBase)>totalOrcado?'var(--color-danger)':'var(--color-text)'};">${Store.formatBRL(totalSaidas + totalBase)}</strong></div>
+                  </div>
+                </div>
                 </div>
               </div>
             </div>
