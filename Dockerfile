@@ -10,12 +10,14 @@ RUN npm ci --omit=dev && npm cache clean --force
 COPY server.js ./
 COPY analyze.js ./
 COPY index.html ./
+COPY preview.html ./
 COPY css ./css
 COPY js ./js
 COPY assets ./assets
 COPY db ./db
 COPY lib ./lib
 COPY scripts ./scripts
+COPY preview ./preview
 
 RUN mkdir -p /app/data/backups /app/data/rdo-fotos
 
