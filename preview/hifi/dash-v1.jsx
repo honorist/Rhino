@@ -1,7 +1,59 @@
-// Rhino Hi-fi V1 — Dashboard Executivo
-// Score · KPIs · Fluxo de caixa · Contratos · RDOs · Pipeline BM · Eventos do caixa
+// Rhino Hi-fi V1 — Dashboard Executivo (conectado aos dados reais via /api)
 
-const DashV1 = () => (
+const fmtBRL = (n) => 'R$ ' + (Number(n) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const fmtBRLk = (n) => {
+  const v = Number(n) || 0;
+  if (Math.abs(v) >= 1_000_000) return 'R$ ' + (v / 1_000_000).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + 'M';
+  if (Math.abs(v) >= 1_000) return 'R$ ' + Math.round(v / 1000) + 'k';
+  return fmtBRL(v);
+};
+
+const useRhinoData = () => {
+  const [data, setData] = React.useState(null);
+  React.useEffect(() => {
+    Promise.all([
+      fetch('/api/contracts').then(r => r.json()).catch(() => ({ contracts: [] })),
+      fetch('/api/dashboard').then(r => r.json()).catch(() => null),
+      fetch('/api/rdos').then(r => r.json()).catch(() => ({ stats: null, rdos: [] })),
+      fetch('/api/contas-pagar').then(r => r.json()).catch(() => ({ contasPagar: [] })),
+      fetch('/api/notas-fiscais').then(r => r.json()).catch(() => ({ notasFiscais: [] })),
+      fetch('/api/auth/me').then(r => r.ok ? r.json() : null).catch(() => null),
+    ]).then(([contracts, dashboard, rdos, cp, nf, me]) => {
+      setData({
+        contracts: contracts.contracts || [],
+        dashboard,
+        rdoStats: rdos.stats,
+        rdos: rdos.rdos || [],
+        contasPagar: cp.contasPagar || [],
+        notasFiscais: nf.notasFiscais || [],
+        user: me?.user,
+      });
+    });
+  }, []);
+  return data;
+};
+
+const DashV1 = () => {
+  const data = useRhinoData();
+  if (!data) return <div style={{ padding: 40, fontFamily: 'var(--font-sans)' }}>Carregando dados…</div>;
+
+  const { contracts, dashboard, rdoStats, contasPagar, notasFiscais, user } = data;
+  const ativos = contracts.filter(c => c.status === 'ativo');
+  const totalCarteira = ativos.reduce((s, c) => s + (Number(c.value) || 0), 0);
+  const saldoCaixa = dashboard?.caixaBalance || 0;
+  const totalNFsAReceber = notasFiscais.filter(n => n.status === 'emitida').reduce((s, n) => s + (Number(n.totalLiquido || n.valorTotal) || 0), 0);
+  const totalCPVencendo = contasPagar.filter(c => c.status === 'pendente').reduce((s, c) => s + (Number(c.valor) || 0), 0);
+  const aderenciaPct = rdoStats?.aderencia7d ?? 100;
+  const obrasSemRdo = rdoStats?.obrasSemRdoOntem || [];
+  const obrasAtrasadas = rdoStats?.obrasAtrasadas || [];
+
+  const hoje = new Date();
+  const horaH = hoje.getHours();
+  const saudacao = horaH < 12 ? 'Bom dia' : horaH < 18 ? 'Boa tarde' : 'Boa noite';
+  const nome = (user?.name || user?.email || '').split(' ')[0] || 'visitante';
+  const subAlerta = `${ativos.length} contratos ativos · ${obrasSemRdo.length} obras sem RDO ontem · ${obrasAtrasadas.length} atrasadas`;
+
+  return (
   <div className="hifi-screen">
     <div className="app">
       <Sidebar active="Dashboard"/>
@@ -12,26 +64,25 @@ const DashV1 = () => (
           {/* Header */}
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 14 }}>
             <div>
-              <h1 className="h1">Bom dia, João</h1>
-              <p className="muted" style={{ margin: "4px 0 0", fontSize: 13 }}>
-                Caixa positivo · <span className="strong">3 BMs aguardando emissão</span> · 2 RDOs sem lançamento ontem
-              </p>
+              <h1 className="h1">{saudacao}, {nome}</h1>
+              <p className="muted" style={{ margin: "4px 0 0", fontSize: 13 }}>{subAlerta}</p>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              <button className="btn"><Icon name="download" size={14}/> Exportar</button>
-              <button className="btn btn-primary"><Icon name="plus" size={14}/> Novo lançamento</button>
+              <a className="btn" href="/" target="_top"><Icon name="arrow-right" size={14}/> Ir ao app</a>
             </div>
           </div>
 
-          {/* Alert bar */}
-          <div className="alert-bar">
-            <div className="alert-bar-icon">!</div>
-            <div className="alert-bar-text">
-              <b>CT-017 Eldorado</b> abaixo da curva (28% real × 35% planejado) e com resultado parcial negativo.
-              <span className="muted"> · Painéis CCM atrasados há 2 dias.</span>
+          {/* Alert bar — primeira obra sem RDO ontem */}
+          {obrasSemRdo.length > 0 && (
+            <div className="alert-bar">
+              <div className="alert-bar-icon">!</div>
+              <div className="alert-bar-text">
+                <b>{obrasSemRdo[0].name}</b> sem RDO no último dia útil
+                {obrasSemRdo.length > 1 && <span className="muted"> · e mais {obrasSemRdo.length - 1} obra(s) na mesma situação.</span>}
+              </div>
+              <a className="btn btn-sm" href={'/#/contratos/' + obrasSemRdo[0].contractId} target="_top">Abrir contrato</a>
             </div>
-            <button className="btn btn-sm">Abrir contrato</button>
-          </div>
+          )}
 
           {/* Hero: Score + KPIs */}
           <div className="dash-hero">
@@ -71,12 +122,12 @@ const DashV1 = () => (
 
             <div className="dash-kpis">
               {[
-                { l: "Saldo em caixa", v: "R$ 482k", d: "+ R$ 38k em 30d", up: true, trend: [444,455,470,485,498,512,520,530,545,560,575,592,612] },
-                { l: "A receber (NFs)", v: "R$ 1,24M", d: "8 emitidas · 3 pendentes", up: true, trend: [800,820,850,890,920,950,990,1020,1080,1120,1180,1220,1240] },
-                { l: "A pagar (30d)", v: "R$ 968k", d: "12 lançamentos", up: false, trend: [620,680,710,740,790,820,860,880,900,920,940,955,968] },
-                { l: "Faturado (mês)", v: "R$ 1,42M", d: "+ 12% vs setembro", up: true, trend: [800,860,920,980,1050,1100,1180,1240,1290,1340,1380,1410,1420] },
-                { l: "Margem", v: "18,2%", d: "− 1,3pp", up: false, trend: [22,21,20.5,20,19.8,19.5,19.2,19,18.8,18.6,18.5,18.3,18.2] },
-                { l: "Aportes acumulados", v: "R$ 320k", d: "Sócio + empresa", up: true, trend: [50,80,120,150,180,200,230,250,270,290,300,310,320] },
+                { l: "Saldo em caixa", v: fmtBRLk(saldoCaixa), d: saldoCaixa >= 0 ? 'positivo' : 'negativo', up: saldoCaixa >= 0, trend: [saldoCaixa] },
+                { l: "A receber (NFs)", v: fmtBRLk(totalNFsAReceber), d: notasFiscais.filter(n => n.status === 'emitida').length + ' emitidas', up: true, trend: [totalNFsAReceber] },
+                { l: "A pagar", v: fmtBRLk(totalCPVencendo), d: contasPagar.filter(c => c.status === 'pendente').length + ' pendentes', up: false, trend: [totalCPVencendo] },
+                { l: "Carteira ativa", v: fmtBRLk(totalCarteira), d: ativos.length + ' contratos', up: true, trend: [totalCarteira] },
+                { l: "Aderência RDO", v: aderenciaPct + '%', d: rdoStats?.diasUteisAvaliados ? 'últimos ' + rdoStats.diasUteisAvaliados + ' dias úteis' : '', up: aderenciaPct >= 80, trend: [aderenciaPct] },
+                { l: "Obras sem RDO", v: String(obrasSemRdo.length), d: 'no último dia útil', up: obrasSemRdo.length === 0, trend: [obrasSemRdo.length] },
               ].map((k, i) => (
                 <div key={i} className="card kpi-card">
                   <div className="kpi-label">{k.l}</div>
@@ -156,32 +207,36 @@ const DashV1 = () => (
               </div>
               <div className="card-body flush">
                 <div className="ct-list">
-                  {[
-                    { n: "CT-014", cli: "Veracel Celulose", esc: "Manutenção parada planta 2", v: "R$ 2,4M", p: 82, st: "ok", res: "+ R$ 124k" },
-                    { n: "CT-015", cli: "Klabin", esc: "Linha de prensagem", v: "R$ 1,8M", p: 64, st: "ok", res: "+ R$ 96k" },
-                    { n: "CT-016", cli: "Suzano", esc: "Tubulação vapor", v: "R$ 1,2M", p: 45, st: "warn", res: "+ R$ 38k" },
-                    { n: "CT-017", cli: "Eldorado Brasil", esc: "Painéis CCM", v: "R$ 980k", p: 28, st: "crit", res: "− R$ 12k" },
-                    { n: "CT-019", cli: "Veracel Celulose", esc: "Cabeamento BT", v: "R$ 640k", p: 12, st: "ok", res: "+ R$ 4k" },
-                  ].map((c, i) => (
-                    <div key={i} className="ct-list-row">
-                      <div className="ct-list-info">
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span className={`status-dot ${c.st}`}/>
-                          <span className="ct-list-cli">{c.cli}</span>
-                          <span className="tag outline mono" style={{ fontSize: 10 }}>{c.n}</span>
+                  {ativos.slice(0, 8).map((c, i) => {
+                    const hoje = new Date();
+                    const start = new Date(c.startDate || c.start_date);
+                    const end = new Date(c.endDate || c.end_date);
+                    const total = end - start;
+                    const dec = hoje - start;
+                    const pct = total > 0 ? Math.max(0, Math.min(100, Math.round((dec / total) * 100))) : 0;
+                    const semRdo = (rdoStats?.obrasSemRdoOntem || []).some(o => o.contractId === c.id);
+                    const atras = (rdoStats?.obrasAtrasadas || []).some(o => o.contractId === c.id);
+                    const st = semRdo ? 'crit' : atras ? 'warn' : 'ok';
+                    return (
+                      <div key={c.id} className="ct-list-row">
+                        <div className="ct-list-info">
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span className={`status-dot ${st}`}/>
+                            <span className="ct-list-cli">{c.client || '—'}</span>
+                            <span className="tag outline mono" style={{ fontSize: 10 }}>{c.codigo || c.name}</span>
+                          </div>
+                          <div className="ct-list-meta">
+                            <span>{c.name}</span><span>·</span><span className="strong">{fmtBRLk(c.value)}</span>
+                          </div>
                         </div>
-                        <div className="ct-list-meta">
-                          <span>{c.esc}</span><span>·</span><span className="strong">{c.v}</span><span>·</span>
-                          <span style={{ color: c.res.startsWith("−") ? "var(--neg)" : "var(--pos)", fontWeight: 600 }}>{c.res}</span>
+                        <div className="ct-list-prog">
+                          <div className="ct-list-prog-v">{pct}%</div>
+                          <div className="progress"><div className={`progress-fill ${st === "crit" ? "neg" : st === "warn" ? "warn" : "accent"}`} style={{ width: `${pct}%` }}/></div>
                         </div>
+                        <a className="btn btn-icon" href={'/#/contratos/' + c.id} target="_top"><Icon name="arrow-right" size={14}/></a>
                       </div>
-                      <div className="ct-list-prog">
-                        <div className="ct-list-prog-v">{c.p}%</div>
-                        <div className="progress"><div className={`progress-fill ${c.st === "crit" ? "neg" : c.st === "warn" ? "warn" : "accent"}`} style={{ width: `${c.p}%` }}/></div>
-                      </div>
-                      <button className="btn btn-icon"><Icon name="more" size={14}/></button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -192,33 +247,34 @@ const DashV1 = () => (
                   <h2 className="h2">RDOs</h2>
                   <small className="muted">Aderência mensal</small>
                 </div>
-                <span className="tag warn"><span className="tag-dot"/> 2 atrasados</span>
+                <span className={`tag ${obrasAtrasadas.length > 0 ? 'neg' : 'pos'}`}><span className="tag-dot"/> {obrasAtrasadas.length} atrasada(s)</span>
               </div>
               <div className="rdo-top">
                 <div>
-                  <div className="rdo-big tabular" style={{ color: "var(--accent)" }}>87%</div>
-                  <div className="rdo-big-l">aderência mês</div>
+                  <div className="rdo-big tabular" style={{ color: aderenciaPct >= 80 ? 'var(--pos)' : aderenciaPct >= 50 ? 'var(--warn)' : 'var(--neg)' }}>{aderenciaPct}%</div>
+                  <div className="rdo-big-l">aderência {rdoStats?.diasUteisAvaliados || 7}du</div>
                 </div>
                 <div className="rdo-mini">
-                  <div className="rdo-mini-row"><span className="muted">Lançados ontem</span><b className="tabular">5/7</b></div>
-                  <div className="rdo-mini-row"><span className="muted">Sem RDO ontem</span><span className="tag warn">2</span></div>
-                  <div className="rdo-mini-row"><span className="muted">Atrasados &gt;2du</span><span className="tag neg">2</span></div>
+                  <div className="rdo-mini-row"><span className="muted">Obras ativas</span><b className="tabular">{ativos.length}</b></div>
+                  <div className="rdo-mini-row"><span className="muted">Sem RDO ontem</span><span className={`tag ${obrasSemRdo.length > 0 ? 'neg' : 'pos'}`}>{obrasSemRdo.length}</span></div>
+                  <div className="rdo-mini-row"><span className="muted">Atrasados &gt;2du</span><span className={`tag ${obrasAtrasadas.length > 0 ? 'warn' : 'pos'}`}>{obrasAtrasadas.length}</span></div>
                 </div>
               </div>
-              <div className="rdo-list-h">Obras sem RDO ontem</div>
-              {[
-                ["CT-016", "Suzano", "3 dias úteis"],
-                ["CT-017", "Eldorado Brasil", "2 dias úteis"],
-              ].map((r, i) => (
-                <div key={i} className="rdo-missing">
-                  <span className="status-dot crit"/>
-                  <div style={{ flex: 1 }}>
-                    <b>{r[1]}</b> <span className="muted mono" style={{ fontSize: 11 }}>{r[0]}</span>
-                    <div className="muted" style={{ fontSize: 11 }}>sem lançamento há {r[2]}</div>
-                  </div>
-                  <button className="btn btn-sm">Cobrar</button>
-                </div>
-              ))}
+              {obrasSemRdo.length > 0 && (
+                <>
+                  <div className="rdo-list-h">Obras sem RDO ontem</div>
+                  {obrasSemRdo.slice(0, 4).map((o, i) => (
+                    <div key={i} className="rdo-missing">
+                      <span className="status-dot crit"/>
+                      <div style={{ flex: 1 }}>
+                        <b>{o.client || o.name}</b> <span className="muted mono" style={{ fontSize: 11 }}>{o.name}</span>
+                        <div className="muted" style={{ fontSize: 11 }}>último RDO: {o.ultimoRdo || 'nunca'}</div>
+                      </div>
+                      <a className="btn btn-sm" href={'/#/contratos/' + o.contractId} target="_top">Abrir</a>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           </div>
 
@@ -232,14 +288,25 @@ const DashV1 = () => (
               <a className="btn btn-ghost btn-sm" style={{ color: "var(--accent-deep)" }}>Ver caixa completo <Icon name="arrow-right" size={12}/></a>
             </div>
             <div className="events">
-              {[
-                { d: "24 OUT", w: "qui", t: "in",  desc: "NF #845 · Veracel · BM-05",      ct: "CT-014", v: 184200, st: "agendada" },
-                { d: "26 OUT", w: "sáb", t: "out", desc: "Folha quinzena (38 pessoas)",     ct: "BASE",   v: 198400, st: "agendada" },
-                { d: "28 OUT", w: "seg", t: "in",  desc: "NF #846 · Klabin · BM-04",        ct: "CT-015", v: 142500, st: "agendada" },
-                { d: "30 OUT", w: "qua", t: "out", desc: "INSS folha",                       ct: "BASE",   v: 42600,  st: "agendada" },
-                { d: "02 NOV", w: "sáb", t: "in",  desc: "NF #840 · Klabin · vencida",      ct: "CT-015", v: 86300,  st: "atrasada" },
-                { d: "05 NOV", w: "ter", t: "out", desc: "Cabos Pirelli — fornecedor",       ct: "CT-014", v: 84200,  st: "aprovada" },
-              ].map((e, i) => (
+              {(() => {
+                const meses = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+                const dows = ['dom','seg','ter','qua','qui','sex','sáb'];
+                const eventos = [];
+                notasFiscais.filter(n => n.status === 'emitida' && (n.dataVencimento || n.data_vencimento)).forEach(n => {
+                  const d = new Date(n.dataVencimento || n.data_vencimento);
+                  eventos.push({ d, t: 'in', desc: 'NF #' + (n.numero || '—') + ' · ' + (n.contractName || ''), ct: n.contractCodigo || '', v: Number(n.totalLiquido || n.valorTotal) || 0, st: d < new Date() ? 'atrasada' : 'agendada' });
+                });
+                contasPagar.filter(c => c.status === 'pendente' && (c.dataVencimento || c.data_vencimento)).forEach(c => {
+                  const d = new Date(c.dataVencimento || c.data_vencimento);
+                  eventos.push({ d, t: 'out', desc: c.descricao || 'Conta', ct: c.contractCodigo || c.fornecedorNome || 'BASE', v: Number(c.valor) || 0, st: d < new Date() ? 'atrasada' : 'agendada' });
+                });
+                eventos.sort((a, b) => a.d - b.d);
+                return eventos.slice(0, 8).map((e, i) => ({
+                  d: String(e.d.getDate()).padStart(2, '0') + ' ' + meses[e.d.getMonth()],
+                  w: dows[e.d.getDay()],
+                  t: e.t, desc: e.desc, ct: e.ct, v: e.v, st: e.st,
+                }));
+              })().map((e, i) => (
                 <div key={i} className="event-row">
                   <div className="event-date">
                     {e.d}
@@ -263,6 +330,7 @@ const DashV1 = () => (
       </div>
     </div>
   </div>
-);
+  );
+};
 
 window.DashV1 = DashV1;
