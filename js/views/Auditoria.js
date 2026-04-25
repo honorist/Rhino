@@ -119,25 +119,25 @@ window.Auditoria = {
       <!-- Filtros -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr auto;gap:var(--sp-md);margin-bottom:var(--sp-md);align-items:end;">
         <div class="form-group" style="margin:0;">
-          <label class="form-label">Quem? (email do usuário)</label>
-          <input class="form-control" id="fAuditUser" placeholder="ex: joão@" value="${escapeHtml(this._filters.user)}">
+          <label class="form-label">Pesquisar por usuário</label>
+          <input class="form-control" id="fAuditUser" placeholder="digite um email" value="${escapeHtml(this._filters.user)}">
         </div>
         <div class="form-group" style="margin:0;">
-          <label class="form-label">Em quê? (tela/recurso)</label>
+          <label class="form-label">Em qual tela</label>
           <select class="form-control" id="fAuditEntity">
-            <option value="">Tudo</option>
+            <option value="">Todas as telas</option>
             ${entidadesOpts.map(e => `<option value="${e}" ${this._filters.entity === e ? 'selected' : ''}>${this._entityLabel(e)}</option>`).join('')}
           </select>
         </div>
         <div class="form-group" style="margin:0;">
-          <label class="form-label">O que fez?</label>
+          <label class="form-label">Tipo de ação</label>
           <select class="form-control" id="fAuditAction">
             <option value="">Qualquer ação</option>
             ${acoesOpts.map(a => `<option value="${a}" ${this._filters.action === a ? 'selected' : ''}>${this._actionVerb(a).verbo}</option>`).join('')}
           </select>
         </div>
         <div class="form-group" style="margin:0;">
-          <label class="form-label">De</label>
+          <label class="form-label">A partir de</label>
           <input class="form-control" type="date" id="fAuditFrom" value="${escapeHtml(this._filters.from)}">
         </div>
         <div class="form-group" style="margin:0;">
