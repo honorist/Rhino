@@ -1,17 +1,21 @@
 {
-  "name": "rino",
+  "name": "rhino",
   "version": "1.0.0",
   "description": "Business management app",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node --test test/**/*.test.js"
+    "test": "node --test test/**/*.test.js",
+    "test:e2e": "playwright test test/e2e/api.spec.js",
+    "db:migrate-json": "node scripts/migrate-json-to-pg.js"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "chart.js": "^4.5.1",
     "jimp": "^1.6.1",
-    "pdf-to-img": "^6.0.0"
+    "pdf-to-img": "^6.0.0",
+    "pg": "^8.20.0"
   },
   "engines": {
     "node": ">=18"

@@ -72,6 +72,11 @@ window.ContratoDetail = {
     const app = document.getElementById('app');
     const contractId = params?.id;
 
+    // Se a aba atual não é permitida pelo perfil, escolhe a primeira liberada.
+    if (window.perfil && !window.perfil.podeContractTab(this._tab)) {
+      this._tab = window.perfil.primeiraContractTab();
+    }
+
     if (!contractId) {
       app.innerHTML = '<div class="card"><p class="text-danger">Contrato não encontrado</p></div>';
       return;
@@ -170,7 +175,7 @@ window.ContratoDetail = {
           </div>
         </div>
 
-        <!-- Tabs executivas -->
+        <!-- Tabs executivas (filtradas pelo nível de acesso) -->
         <div class="ctd-tabs">
           ${[
             { k:'visao',     l:'Visão Geral',  i:'◉' },
@@ -178,7 +183,7 @@ window.ContratoDetail = {
             { k:'equipe',    l:'Equipe',       i:'◎' },
             { k:'rdo',       l:'RDO',          i:'📋', badge: (contract.rdos || []).length },
             { k:'pendencias',l:'Pendências',   i:'⚠', badge: passagensPendentes.length }
-          ].map(t => `
+          ].filter(t => (window.perfil ? window.perfil.podeContractTab(t.k) : true)).map(t => `
             <button class="ctd-tab ${this._tab === t.k ? 'active' : ''}" data-ctd-tab="${t.k}">
               <span style="opacity:.7;font-size:.85em;">${t.i}</span>
               ${t.l}
@@ -3031,7 +3036,7 @@ window.ContratoDetail = {
       try { doc.addImage(logo.data, logo.fmt || 'JPEG', ix, iy, drawW, drawH, undefined, 'FAST'); } catch {}
     } else {
       doc.setFontSize(8); doc.setFont(undefined, 'bold');
-      doc.text('RINO', margin + logoW / 2, y + headerH / 2 + 1, { align: 'center' });
+      doc.text('RHINO', margin + logoW / 2, y + headerH / 2 + 1, { align: 'center' });
     }
 
     // caixa do título central
@@ -3772,9 +3777,19 @@ window.ContratoDetail = {
                 <input class="form-control" name="value" type="text" data-currency inputmode="numeric" value="${saida?.value ? window.BRLInput.toDisplay(saida.value) : ''}" placeholder="0,00" required>
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Data</label>
-              <input class="form-control" name="date" type="date" value="${saida?.date || new Date().toISOString().split('T')[0]}">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Data</label>
+                <input class="form-control" name="date" type="date" value="${saida?.date || new Date().toISOString().split('T')[0]}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Prazo recebimento (dias)</label>
+                <input class="form-control" name="prazoRecebimento" type="number" min="0" max="365"
+                  value="${(() => {
+                    const nfRef = saida?.nfId ? (Store.state.notas_fiscais || []).find(n => n.id === saida.nfId) : null;
+                    return nfRef?.prazoRecebimento ?? 30;
+                  })()}">
+              </div>
             </div>
           </form>
           <div class="modal-footer">
@@ -3797,6 +3812,9 @@ window.ContratoDetail = {
       const formData = new FormData(document.getElementById('formSaida'));
       const data = Object.fromEntries(formData);
       data.value = window.BRLInput.parse(data.value);
+      if (data.prazoRecebimento !== undefined && data.prazoRecebimento !== '') {
+        data.prazoRecebimento = (Number.isFinite(parseInt(data.prazoRecebimento)) ? parseInt(data.prazoRecebimento) : 30);
+      }
 
       try {
         if (saida) {

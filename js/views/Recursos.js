@@ -111,13 +111,25 @@ window.Recursos = {
       this._renderLista();
     });
 
-    document.querySelectorAll('.btn-editar-rec').forEach(b    => b.addEventListener('click', e => this.showModal(e.target.dataset.id)));
-    document.querySelectorAll('.btn-folgas').forEach(b        => b.addEventListener('click', e => this.showFolgas(e.target.dataset.id)));
-    document.querySelectorAll('.btn-distancia').forEach(b     => b.addEventListener('click', e => this.showDistancias(e.target.dataset.id)));
-    document.querySelectorAll('.btn-excluir-rec').forEach(b   => b.addEventListener('click', e => this.deleteRecurso(e.target.dataset.id)));
+    document.querySelectorAll('.btn-editar-rec').forEach(b    => b.addEventListener('click', e => { e.stopPropagation(); this.showModal(e.target.dataset.id); }));
+    document.querySelectorAll('.btn-folgas').forEach(b        => b.addEventListener('click', e => { e.stopPropagation(); this.showFolgas(e.target.dataset.id); }));
+    document.querySelectorAll('.btn-distancia').forEach(b     => b.addEventListener('click', e => { e.stopPropagation(); this.showDistancias(e.target.dataset.id); }));
+    document.querySelectorAll('.btn-excluir-rec').forEach(b   => b.addEventListener('click', e => { e.stopPropagation(); this.deleteRecurso(e.target.dataset.id); }));
     document.querySelectorAll('.btn-docs-rec').forEach(b      => b.addEventListener('click', e => {
+      e.stopPropagation();
       if (window.Documentos) window.Documentos.showDocumentos(e.target.dataset.id);
     }));
+
+    // Click na linha → abre modal de detalhe do colaborador (reusa ContratoDetail.showDetalheColaborador)
+    document.querySelectorAll('.row-recurso').forEach(tr => {
+      tr.addEventListener('click', (e) => {
+        if (e.target.closest('.actions-cell')) return;
+        const id = tr.dataset.id;
+        if (window.ContratoDetail?.showDetalheColaborador) {
+          window.ContratoDetail.showDetalheColaborador(id);
+        }
+      });
+    });
   },
 
   _statCard(label, value, cor, icon) {
@@ -193,7 +205,7 @@ window.Recursos = {
       else if (temVencendo) docBadge = `<span title="Documentos vencendo em breve" style="margin-left:4px;font-size:15px;background:#FEF3C7;color:#92400E;padding:1px 5px;border-radius:3px;font-weight:700;">docs ~</span>`;
     }
 
-    return `<tr>
+    return `<tr class="row-recurso" data-id="${r.id}" style="cursor:pointer;">
       <td>
         <strong>${escapeHtml(r.nome) || '—'}</strong>${docBadge}
         ${r.cpf ? `<div style="font-size:15px;color:var(--color-text-muted);font-family:monospace;">${escapeHtml(r.cpf)}</div>` : ''}

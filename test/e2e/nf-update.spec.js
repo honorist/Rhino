@@ -1,11 +1,11 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
-const BASE_URL = process.env.RINO_URL || 'http://localhost:5000';
+const BASE_URL = process.env.RHINO_URL || 'http://localhost:5000';
 
 test('NF: editar prazo de recebimento persiste e aparece na tela', async ({ page }) => {
   await page.goto(BASE_URL);
   await page.evaluate(() => {
-    Object.keys(localStorage).filter(k => k.startsWith('rino:') || k.startsWith('rino-')).forEach(k => localStorage.removeItem(k));
+    Object.keys(localStorage).filter(k => k.startsWith('rhino:') || k.startsWith('rhino-')).forEach(k => localStorage.removeItem(k));
     sessionStorage.clear();
   });
   await page.goto(BASE_URL);
@@ -32,7 +32,7 @@ test('NF: editar prazo de recebimento persiste e aparece na tela', async ({ page
   await page.locator('#modalOverlay #btnSalvar').evaluate(el => el.click());
   await page.waitForTimeout(500);
 
-  const cId = await page.evaluate(() => JSON.parse(localStorage.getItem('rino:contracts.json')).contracts[0].id);
+  const cId = await page.evaluate(() => JSON.parse(localStorage.getItem('rhino:contracts.json')).contracts[0].id);
   await page.evaluate(id => location.hash = `#/contratos/${id}`, cId);
   await page.waitForTimeout(500);
   await page.locator('[data-ctd-tab="financeiro"]').click();
@@ -58,7 +58,7 @@ test('NF: editar prazo de recebimento persiste e aparece na tela', async ({ page
   await page.waitForTimeout(1000);
 
   const prazoPersistido = await page.evaluate(() =>
-    JSON.parse(localStorage.getItem('rino:notas_fiscais.json')).notas_fiscais[0].prazoRecebimento
+    JSON.parse(localStorage.getItem('rhino:notas_fiscais.json')).notas_fiscais[0].prazoRecebimento
   );
   expect(prazoPersistido).toBe(45);
   await expect(page.locator('#app')).toContainText('45d após emissão');

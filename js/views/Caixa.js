@@ -43,7 +43,7 @@ window.Caixa = {
       const nfsFuturas = (Store.state.notas_fiscais || [])
         .filter(nf => !nf.emitida && nf.valor > 0)
         .map(nf => {
-          const prazo = parseInt(nf.prazoRecebimento) || 30;
+          const prazo = (Number.isFinite(parseInt(nf.prazoRecebimento)) ? parseInt(nf.prazoRecebimento) : 30);
           const dtBase = new Date(nf.dataLimite + 'T12:00:00');
           dtBase.setDate(dtBase.getDate() + prazo);
           const expectedDate = dtBase.toISOString().split('T')[0];
@@ -266,7 +266,7 @@ window.Caixa = {
                 ` : [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date)).map(e => {
                   const contract = e.contractId ? Store.getContractById(e.contractId) : null;
                   return `
-                    <tr>
+                    <tr class="row-caixa" data-id="${e.id}" style="cursor:pointer;">
                       <td>${new Date(e.date + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                       <td><strong>${escapeHtml(e.description)}</strong></td>
                       <td><span class="badge badge-${e.type}">${e.type}</span></td>
@@ -341,10 +341,16 @@ window.Caixa = {
       });
 
       document.querySelectorAll('.btn-editar').forEach(btn => {
-        btn.addEventListener('click', e => this.showModal(e.target.dataset.id));
+        btn.addEventListener('click', e => { e.stopPropagation(); this.showModal(e.target.dataset.id); });
       });
       document.querySelectorAll('.btn-excluir').forEach(btn => {
-        btn.addEventListener('click', e => this.deleteEntry(e.target.dataset.id));
+        btn.addEventListener('click', e => { e.stopPropagation(); this.deleteEntry(e.target.dataset.id); });
+      });
+      document.querySelectorAll('.row-caixa').forEach(tr => {
+        tr.addEventListener('click', e => {
+          if (e.target.closest('.actions-cell')) return;
+          this.showDetail(tr.dataset.id);
+        });
       });
     } catch (e) {
       console.error(e);
@@ -357,6 +363,60 @@ window.Caixa = {
     const [ano, mes] = ym.split('-').map(Number);
     const d = new Date(ano, mes - 1, 1);
     return d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
+  },
+
+  showDetail(entryId) {
+    const e = Store.state.caixa.find(x => x.id === entryId);
+    if (!e) return;
+    const fmtD = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+    const fmtDT = d => d ? new Date(d).toLocaleString('pt-BR') : '—';
+    const contract = e.contractId ? Store.getContractById(e.contractId) : null;
+    const cp = e.contaPagarId ? (Store.state.contas_pagar || []).find(c => c.id === e.contaPagarId) : null;
+    const nf = e.nfId ? (Store.state.notas_fiscais || []).find(n => n.id === e.nfId) : null;
+    const baseItem = e.baseItemId ? (Store.state.base || []).find(b => b.id === e.baseItemId) : null;
+    const isEntrada = e.type === 'entrada';
+    const valor = Store.formatBRL(parseFloat(e.value) || 0);
+
+    const row = (lbl, val) => val ? `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--color-border);"><span style="color:var(--color-text-muted);">${lbl}</span><span style="font-weight:500;">${val}</span></div>` : '';
+
+    const html = `
+      <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" style="width:600px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">${escapeHtml(e.description || 'Lançamento')}</h2>
+              <div style="margin-top:4px;">
+                <span class="badge badge-${e.type}" style="margin-right:6px;">${e.type}</span>
+                <span style="font-size:22px;font-weight:700;color:${isEntrada ? 'var(--color-success)' : 'var(--color-danger)'};">${isEntrada ? '+' : '-'}${valor}</span>
+              </div>
+            </div>
+            <button class="modal-close">✕</button>
+          </div>
+          <div class="modal-content">
+            ${row('Data',           fmtD(e.date))}
+            ${row('Categoria',      e.category ? escapeHtml(e.category) : null)}
+            ${row('Forma de Pagto.', e.formaPagamento ? escapeHtml(e.formaPagamento) : null)}
+            ${row('Contrato',       contract ? `<a href="#/contratos/${contract.id}" style="color:var(--color-primary);">${escapeHtml(contract.name)}</a>` : null)}
+            ${row('Cliente',        contract ? escapeHtml(contract.client) : null)}
+            ${row('Conta a Pagar',  cp ? escapeHtml(cp.descricao) : null)}
+            ${row('NF vinculada',   nf ? `NF ${escapeHtml(nf.numero)} (${fmtD(nf.dataLimite)})` : null)}
+            ${row('Item BASE',      baseItem ? escapeHtml(baseItem.description) : null)}
+            ${row('Observações',    e.notes ? escapeHtml(e.notes) : null)}
+            ${row('Criado em',      fmtDT(e.createdAt))}
+            <div style="font-size:12px;color:var(--color-text-muted);margin-top:var(--sp-md);font-family:monospace;">ID: ${escapeHtml(e.id)}</div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnDetClose">Fechar</button>
+            <button class="btn btn-primary" id="btnDetEdit">Editar</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalOverlay');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnDetClose').addEventListener('click', close);
+    document.getElementById('btnDetEdit').addEventListener('click', () => { close(); this.showModal(e.id); });
   },
 
   showModal(entryId) {

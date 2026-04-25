@@ -8,7 +8,7 @@ module.exports = defineConfig({
   workers: 1,
   reporter: [['list']],
   use: {
-    baseURL: process.env.RINO_URL || 'http://localhost:5000',
+    baseURL: process.env.RHINO_URL || 'http://localhost:3001',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure'
   },

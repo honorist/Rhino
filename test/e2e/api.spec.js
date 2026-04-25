@@ -1,0 +1,252 @@
+// @ts-check
+// Testes E2E via API HTTP — cobrem os fluxos críticos pós-refatoração FASE 5+6 + auth (FASE 11).
+// Roda direto contra http://localhost:3001 (app + Postgres em docker compose).
+const { test, expect, request } = require('@playwright/test');
+
+const BASE_URL = process.env.RHINO_URL || 'http://localhost:3001';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@rhino.local';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+
+// Cria contexto autenticado (faz login e mantém cookie de sessão).
+async function api() {
+  const ctx = await request.newContext({ baseURL: BASE_URL, extraHTTPHeaders: { 'Content-Type': 'application/json' } });
+  const r = await ctx.post('/api/auth/login', { data: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD } });
+  if (!r.ok()) throw new Error(`Login falhou: ${r.status()} ${await r.text()}`);
+  return ctx;
+}
+
+async function unauth() {
+  return await request.newContext({ baseURL: BASE_URL, extraHTTPHeaders: { 'Content-Type': 'application/json' } });
+}
+
+test.describe('Auth', () => {
+  test('rotas /api/* exigem login', async () => {
+    const ctx = await unauth();
+    const r = await ctx.get('/api/contracts');
+    expect(r.status()).toBe(401);
+  });
+
+  test('login com senha errada → 401', async () => {
+    const ctx = await unauth();
+    const r = await ctx.post('/api/auth/login', { data: { email: ADMIN_EMAIL, password: 'wrong' } });
+    expect(r.status()).toBe(401);
+  });
+
+  test('login + /me + logout', async () => {
+    const ctx = await unauth();
+    const login = await ctx.post('/api/auth/login', { data: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD } });
+    expect(login.status()).toBe(200);
+    const me = await ctx.get('/api/auth/me');
+    expect(me.status()).toBe(200);
+    expect((await me.json()).user.email).toBe(ADMIN_EMAIL.toLowerCase());
+    const logout = await ctx.post('/api/auth/logout');
+    expect(logout.status()).toBe(200);
+    const meAfter = await ctx.get('/api/auth/me');
+    expect(meAfter.status()).toBe(401);
+  });
+
+  test('/api/health não exige login', async () => {
+    const ctx = await unauth();
+    const r = await ctx.get('/api/health');
+    expect(r.status()).toBe(200);
+  });
+});
+
+test.describe('Health & smoke', () => {
+  test('health responde db ok', async () => {
+    const ctx = await api();
+    const r = await ctx.get('/api/health');
+    expect(r.status()).toBe(200);
+    const body = await r.json();
+    expect(body.db).toBe('ok');
+  });
+
+  test('todos os endpoints GET principais retornam 200', async () => {
+    const ctx = await api();
+    const eps = ['contracts','clientes','socios','fornecedores','recursos','caixa','contas-pagar','notas-fiscais','tipos-base','niveis-acesso','doc-templates','base','investimentos','dashboard'];
+    for (const ep of eps) {
+      const r = await ctx.get(`/api/${ep}`);
+      expect(r.status(), ep).toBe(200);
+    }
+  });
+});
+
+test.describe('Clientes CRUD', () => {
+  test('cria, edita, deleta cliente', async () => {
+    const ctx = await api();
+    const post = await ctx.post('/api/clientes', { data: { nome: 'PW Cliente', empresa: 'PW Co' } });
+    expect(post.status()).toBe(200);
+    const created = (await post.json()).clientes.find(c => c.nome === 'PW Cliente');
+    expect(created).toBeTruthy();
+
+    const put = await ctx.put(`/api/clientes/${created.id}`, { data: { empresa: 'PW Updated' } });
+    expect(put.status()).toBe(200);
+    expect((await put.json()).clientes.find(c => c.id === created.id).empresa).toBe('PW Updated');
+
+    const del = await ctx.delete(`/api/clientes/${created.id}`);
+    expect(del.status()).toBe(200);
+    expect((await del.json()).clientes.find(c => c.id === created.id)).toBeFalsy();
+  });
+});
+
+test.describe('Contracts + sub-recursos', () => {
+  let contractId;
+
+  test.afterAll(async () => {
+    if (contractId) {
+      const ctx = await api();
+      await ctx.delete(`/api/contracts/${contractId}`); // cascade de saidas/organograma/rdos
+    }
+  });
+
+  test('cria contrato', async () => {
+    const ctx = await api();
+    const r = await ctx.post('/api/contracts', { data: { name: 'PW Contract', client: 'X', value: 50000 } });
+    expect(r.status()).toBe(200);
+    const c = (await r.json()).contracts.find(c => c.name === 'PW Contract');
+    expect(c).toBeTruthy();
+    contractId = c.id;
+  });
+
+  test('budget item', async () => {
+    const ctx = await api();
+    const r = await ctx.post(`/api/contracts/${contractId}/budget`, { data: { description: 'PW orcamento', type: 'material', value: 1000 } });
+    expect(r.status()).toBe(200);
+    const c = (await r.json()).contracts.find(c => c.id === contractId);
+    expect(c.budget.length).toBe(1);
+  });
+
+  test('saída cria NF e respeita prazo=0', async () => {
+    const ctx = await api();
+    const r = await ctx.post(`/api/contracts/${contractId}/saidas`, {
+      data: { description: 'PW saida', type: 'material', value: 500, date: '2026-06-01', prazoRecebimento: 0 },
+    });
+    expect(r.status()).toBe(200);
+    const body = await r.json();
+    const saida = body.saidas.find(s => s.description === 'PW saida');
+    expect(saida).toBeTruthy();
+    const nf = body.notas_fiscais.find(n => n.id === saida.nfId);
+    expect(nf.prazoRecebimento).toBe(0);
+  });
+
+  test('editar prazo da saída persiste', async () => {
+    const ctx = await api();
+    const list = await (await ctx.get('/api/contracts')).json();
+    const saida = list.saidas.find(s => s.description === 'PW saida');
+    const put = await ctx.put(`/api/saidas/${saida.id}`, { data: { prazoRecebimento: 45 } });
+    expect(put.status()).toBe(200);
+    const nfs = await (await ctx.get('/api/notas-fiscais')).json();
+    expect(nfs.notas_fiscais.find(n => n.id === saida.nfId).prazoRecebimento).toBe(45);
+  });
+
+  test('RDO criado com numero', async () => {
+    const ctx = await api();
+    const r = await ctx.post(`/api/contracts/${contractId}/rdos`, { data: { data: '2026-06-15' } });
+    expect(r.status()).toBe(200);
+    const c = (await r.json()).contracts.find(c => c.id === contractId);
+    expect(c.rdos.length).toBeGreaterThan(0);
+    expect(c.rdos[0].data).toBe('2026-06-15');
+  });
+
+  test('organograma encarregado', async () => {
+    const ctx = await api();
+    const recs = await (await ctx.get('/api/recursos')).json();
+    const rec = recs.recursos[0];
+    const r = await ctx.post(`/api/contracts/${contractId}/organograma`, {
+      data: { recursoId: rec.id, nivel: 'encarregado', cargo: 'Encarregado' },
+    });
+    expect(r.status()).toBe(200);
+    const c = (await r.json()).contracts.find(c => c.id === contractId);
+    expect(c.organograma.find(m => m.recursoId === rec.id)).toBeTruthy();
+  });
+});
+
+test.describe('Contas a pagar — pagar/estornar', () => {
+  test('cria, paga, estorna, deleta com cascade no caixa', async () => {
+    const ctx = await api();
+    const created = await (await ctx.post('/api/contas-pagar', {
+      data: { descricao: 'PW conta', valor: 800, dataVencimento: '2026-06-30' },
+    })).json();
+    const conta = created.contas.find(c => c.descricao === 'PW conta');
+    expect(conta).toBeTruthy();
+
+    const pago = await (await ctx.post(`/api/contas-pagar/${conta.id}/pagar`, {
+      data: { valorPago: 800, formaPagamento: 'PIX' },
+    })).json();
+    const pagoConta = pago.contas.find(c => c.id === conta.id);
+    expect(pagoConta.status).toBe('pago');
+    expect(pagoConta.caixaEntryId).toBeTruthy();
+
+    // Caixa deve ter a entrada criada pelo pagamento
+    const cxBefore = await (await ctx.get('/api/caixa')).json();
+    expect(cxBefore.entries.find(e => e.id === pagoConta.caixaEntryId)).toBeTruthy();
+
+    const estorno = await (await ctx.post(`/api/contas-pagar/${conta.id}/estornar`)).json();
+    expect(estorno.contas.find(c => c.id === conta.id).status).toBe('pendente');
+
+    const cxAfter = await (await ctx.get('/api/caixa')).json();
+    expect(cxAfter.entries.find(e => e.id === pagoConta.caixaEntryId)).toBeFalsy();
+
+    await ctx.delete(`/api/contas-pagar/${conta.id}`);
+  });
+});
+
+test.describe('Investimentos cascade', () => {
+  test('aporte destino=base cria base_item, delete remove cascade', async () => {
+    const ctx = await api();
+    const r = await ctx.post('/api/investimentos', {
+      data: { value: 2000, destino: 'base', origem: 'socio', description: 'PW aporte' },
+    });
+    expect(r.status()).toBe(200);
+    const inv = (await r.json()).investimentos.find(x => x.description === 'PW aporte');
+    expect(inv.baseItemId).toBeTruthy();
+
+    const base = await (await ctx.get('/api/base')).json();
+    expect(base.items.find(b => b.id === inv.baseItemId)).toBeTruthy();
+
+    await ctx.delete(`/api/investimentos/${inv.id}`);
+
+    const baseAfter = await (await ctx.get('/api/base')).json();
+    expect(baseAfter.items.find(b => b.id === inv.baseItemId)).toBeFalsy();
+  });
+});
+
+test.describe('NF emitir/cancelar', () => {
+  let contractId, nfId;
+
+  test.beforeAll(async () => {
+    const ctx = await api();
+    const c = (await (await ctx.post('/api/contracts', {
+      data: { name: 'PW NF Contract', client: 'NF Test', value: 10000 },
+    })).json()).contracts.find(c => c.name === 'PW NF Contract');
+    contractId = c.id;
+    const nfRes = await (await ctx.post('/api/notas-fiscais', {
+      data: { numero: 'PW-001', contractId, dataLimite: '2026-07-01', valor: 1000, prazoRecebimento: 30 },
+    })).json();
+    nfId = nfRes.notas_fiscais.find(n => n.numero === 'PW-001').id;
+  });
+
+  test.afterAll(async () => {
+    const ctx = await api();
+    if (contractId) await ctx.delete(`/api/contracts/${contractId}`);
+  });
+
+  test('emite NF cria entrada no caixa', async () => {
+    const ctx = await api();
+    const r = await ctx.post(`/api/notas-fiscais/${nfId}/emitir`, { data: { dataEmissaoReal: '2026-07-01' } });
+    expect(r.status()).toBe(200);
+    const body = await r.json();
+    const nf = body.notas_fiscais.find(n => n.id === nfId);
+    expect(nf.emitida).toBe(true);
+    expect(nf.caixaEntryId).toBeTruthy();
+    expect(body.caixa.entries.find(e => e.id === nf.caixaEntryId)).toBeTruthy();
+  });
+
+  test('cancela emissão remove caixa', async () => {
+    const ctx = await api();
+    const r = await ctx.post(`/api/notas-fiscais/${nfId}/cancelar-emissao`);
+    expect(r.status()).toBe(200);
+    const body = await r.json();
+    expect(body.notas_fiscais.find(n => n.id === nfId).emitida).toBe(false);
+  });
+});

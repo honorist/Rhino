@@ -1,0 +1,185 @@
+// Tela global de RDOs — listagem flat + dashboard de aderência.
+const RDOs = {
+  _cache: null,
+  _filters: { contractId: '', mes: '' },
+  _page: 0,
+  _pageSize: 50,
+
+  async render() {
+    const root = document.getElementById('app');
+    root.innerHTML = `<div style="padding:var(--sp-xl);color:var(--color-text-muted);">Carregando RDOs...</div>`;
+
+    try {
+      const r = await fetch('/api/rdos');
+      if (!r.ok) throw new Error(await r.text());
+      this._cache = await r.json();
+    } catch (e) {
+      root.innerHTML = `<div style="padding:var(--sp-xl);color:#c33;">Erro ao carregar: ${escapeHtml(e.message)}</div>`;
+      return;
+    }
+
+    this.draw();
+  },
+
+  draw() {
+    const root = document.getElementById('app');
+    const { rdos, stats } = this._cache;
+
+    // Filtros aplicados
+    const filtered = rdos.filter(r => {
+      if (this._filters.contractId && r.contractId !== this._filters.contractId) return false;
+      if (this._filters.mes && !String(r.data || '').startsWith(this._filters.mes)) return false;
+      return true;
+    });
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / this._pageSize));
+    if (this._page >= totalPages) this._page = 0;
+    const slice = filtered.slice(this._page * this._pageSize, (this._page + 1) * this._pageSize);
+
+    const contratos = [...new Set(rdos.map(r => `${r.contractId}|${r.contractName}|${r.contractClient || ''}`))]
+      .map(s => { const [id, name, client] = s.split('|'); return { id, name, client }; })
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const fmtData = (d) => {
+      if (!d) return '—';
+      const m = String(d).match(/^(\d{4})-(\d{2})-(\d{2})/);
+      return m ? `${m[3]}/${m[2]}/${m[1]}` : d;
+    };
+
+    const fmtUltimoRdo = (d) => d ? fmtData(d) : '<strong>nunca</strong>';
+
+    root.innerHTML = `
+      <div class="page-header">
+        <h1 class="page-title">RDOs — Todos os Contratos</h1>
+      </div>
+
+      <!-- KPIs -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:var(--sp-md);margin-bottom:var(--sp-lg);">
+        ${kpiCard('Obras ativas', stats.obrasAtivas, '#3b82f6')}
+        ${kpiCard('Sem RDO ontem', stats.obrasSemRdoOntem.length, stats.obrasSemRdoOntem.length > 0 ? '#dc2626' : '#10b981')}
+        ${kpiCard('Atrasadas (>2 dias úteis)', stats.obrasAtrasadas.length, stats.obrasAtrasadas.length > 0 ? '#f59e0b' : '#10b981')}
+        ${kpiCard(`Aderência ${stats.diasUteisAvaliados} dias úteis`, `${stats.aderencia7d}%`, stats.aderencia7d >= 80 ? '#10b981' : stats.aderencia7d >= 50 ? '#f59e0b' : '#dc2626')}
+      </div>
+
+      ${stats.obrasSemRdoOntem.length > 0 ? `
+        <div style="background:#dc2626;color:#fff;padding:var(--sp-md) var(--sp-lg);border-radius:8px;margin-bottom:var(--sp-lg);box-shadow:0 2px 8px rgba(220,38,38,0.3);">
+          <div style="font-weight:700;font-size:15px;margin-bottom:8px;">⚠ Obras sem RDO no último dia útil (${fmtData(stats.ultimoDiaUtil)}):</div>
+          <ul style="margin:0;padding-left:22px;line-height:1.7;">
+            ${stats.obrasSemRdoOntem.map(o => `
+              <li>
+                <a href="#/contratos/${o.contractId}" style="color:#fff;font-weight:700;text-decoration:underline;">${escapeHtml(o.name)}</a>
+                — ${escapeHtml(o.client || '')}
+                <span style="color:rgba(255,255,255,0.85);font-size:13px;">(último RDO: ${fmtUltimoRdo(o.ultimoRdo)})</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+      ` : ''}
+
+      ${stats.obrasAtrasadas.length > 0 ? `
+        <div style="background:#f59e0b;color:#1f1300;padding:var(--sp-md) var(--sp-lg);border-radius:8px;margin-bottom:var(--sp-lg);box-shadow:0 2px 8px rgba(245,158,11,0.3);">
+          <div style="font-weight:700;font-size:15px;margin-bottom:8px;">📋 Obras com mais de 2 dias úteis sem RDO:</div>
+          <ul style="margin:0;padding-left:22px;line-height:1.7;">
+            ${stats.obrasAtrasadas.map(o => `
+              <li>
+                <a href="#/contratos/${o.contractId}" style="color:#1f1300;font-weight:700;text-decoration:underline;">${escapeHtml(o.name)}</a>
+                — <strong>${o.nuncaFezRdo ? 'nunca fez RDO' : o.diasUteisSemRdo + ' dias úteis sem RDO'}</strong>
+                ${o.ultimoRdo ? `<span style="color:rgba(31,19,0,0.7);font-size:13px;">(último: ${fmtUltimoRdo(o.ultimoRdo)})</span>` : ''}
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+      ` : ''}
+
+      <!-- Filtros -->
+      <div style="display:flex;gap:var(--sp-md);align-items:end;margin-bottom:var(--sp-md);flex-wrap:wrap;">
+        <div class="form-group" style="margin:0;min-width:240px;">
+          <label class="form-label">Contrato</label>
+          <select class="form-control" id="fltContract">
+            <option value="">— Todos —</option>
+            ${contratos.map(c => `<option value="${c.id}" ${this._filters.contractId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}${c.client ? ' (' + escapeHtml(c.client) + ')' : ''}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Mês</label>
+          <input class="form-control" id="fltMes" type="month" value="${this._filters.mes}">
+        </div>
+        <button class="btn btn-secondary" id="btnLimparFiltros">Limpar</button>
+        <div style="margin-left:auto;color:var(--color-text-muted);font-size:14px;">
+          ${filtered.length} RDOs encontrados
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width:120px;">Data</th>
+            <th style="width:90px;">Nº</th>
+            <th>Contrato</th>
+            <th>Cliente</th>
+            <th style="width:120px;">OS</th>
+            <th style="width:140px;">Atualizado</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${slice.length === 0 ? `<tr><td colspan="6" style="text-align:center;color:var(--color-text-muted);padding:var(--sp-xl);">Nenhum RDO</td></tr>` : ''}
+          ${slice.map(r => `
+            <tr style="cursor:pointer;" data-contract-id="${r.contractId}">
+              <td>${fmtData(r.data)}</td>
+              <td>${escapeHtml(String(r.numero || ''))}</td>
+              <td>${escapeHtml(r.contractName || '')}</td>
+              <td>${escapeHtml(r.contractClient || '')}</td>
+              <td>${escapeHtml(r.osNumero || '')}</td>
+              <td style="color:var(--color-text-muted);font-size:13px;">${r.updatedAt ? new Date(r.updatedAt).toLocaleString('pt-BR') : '—'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+
+      ${totalPages > 1 ? `
+        <div style="display:flex;justify-content:center;gap:var(--sp-sm);margin-top:var(--sp-md);">
+          <button class="btn btn-secondary" id="btnPrev" ${this._page === 0 ? 'disabled' : ''}>← Anterior</button>
+          <span style="display:flex;align-items:center;color:var(--color-text-muted);">Página ${this._page + 1} de ${totalPages}</span>
+          <button class="btn btn-secondary" id="btnNext" ${this._page >= totalPages - 1 ? 'disabled' : ''}>Próxima →</button>
+        </div>
+      ` : ''}
+    `;
+
+    document.getElementById('fltContract').addEventListener('change', (e) => {
+      this._filters.contractId = e.target.value;
+      this._page = 0;
+      this.draw();
+    });
+    document.getElementById('fltMes').addEventListener('change', (e) => {
+      this._filters.mes = e.target.value;
+      this._page = 0;
+      this.draw();
+    });
+    document.getElementById('btnLimparFiltros').addEventListener('click', () => {
+      this._filters = { contractId: '', mes: '' };
+      this._page = 0;
+      this.draw();
+    });
+    document.querySelectorAll('tbody tr[data-contract-id]').forEach(tr => {
+      tr.addEventListener('click', () => {
+        location.hash = '#/contratos/' + tr.dataset.contractId;
+      });
+    });
+    const prev = document.getElementById('btnPrev');
+    const next = document.getElementById('btnNext');
+    if (prev) prev.addEventListener('click', () => { this._page--; this.draw(); });
+    if (next) next.addEventListener('click', () => { this._page++; this.draw(); });
+  },
+};
+
+function kpiCard(label, value, color) {
+  return `
+    <div style="padding:var(--sp-md);background:var(--color-surface);border-radius:8px;border:1px solid var(--color-border);">
+      <div style="color:var(--color-text-muted);font-size:13px;margin-bottom:6px;">${label}</div>
+      <div style="font-size:28px;font-weight:700;color:${color};">${value}</div>
+    </div>
+  `;
+}
+
+window.RDOs = RDOs;

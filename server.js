@@ -8,45 +8,20 @@ const PORT = process.env.PORT || 3001;
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const BACKUPS_DIR = path.join(DATA_DIR, 'backups');
 
-// Ensure backups directory exists
+// Postgres é fonte única de verdade. DATABASE_URL é obrigatório.
+if (!process.env.DATABASE_URL) {
+  console.error('[server] DATABASE_URL é obrigatório (use docker compose ou exporte a variável)');
+  process.exit(1);
+}
+const repos = require('./db/repos');
+const auth = require('./lib/auth');
+const feriados = require('./lib/feriados');
+const email = require('./lib/email');
+const rateLimit = require('./lib/rate-limit');
+
+// Ensure backups directory exists (used by handleBackup pra dump PG → JSON)
 if (!fs.existsSync(BACKUPS_DIR)) {
   fs.mkdirSync(BACKUPS_DIR, { recursive: true });
-}
-
-// ============ Data persistence ============
-function readData(filename) {
-  const filepath = path.join(DATA_DIR, filename);
-  try {
-    return JSON.parse(fs.readFileSync(filepath, 'utf8'));
-  } catch (e) {
-    console.error(`Error reading ${filename}:`, e.message);
-    return {};
-  }
-}
-
-function writeData(filename, data) {
-  const filepath = path.join(DATA_DIR, filename);
-
-  // Backup before write
-  if (fs.existsSync(filepath)) {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-    const backupPath = path.join(BACKUPS_DIR, `${filename.replace('.json', '')}_${timestamp}.json`);
-    fs.copyFileSync(filepath, backupPath);
-
-    // Keep max 10 backups per file
-    const pattern = filename.replace('.json', '');
-    const backups = fs.readdirSync(BACKUPS_DIR)
-      .filter(f => f.startsWith(pattern))
-      .sort()
-      .reverse();
-
-    for (let i = 10; i < backups.length; i++) {
-      fs.unlinkSync(path.join(BACKUPS_DIR, backups[i]));
-    }
-  }
-
-  const jsonString = JSON.stringify(data, null, 2);
-  fs.writeFileSync(filepath, jsonString, 'utf8');
 }
 
 function generateId(prefix) {
@@ -55,21 +30,47 @@ function generateId(prefix) {
   return `${prefix}_${timestamp}${random}`;
 }
 
-// ============ Route handlers ============
-function handleGetContracts(res) {
-  const data = readData('contracts.json');
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
+// Lê uma coleção do Postgres e retorna o envelope `{ [arrayKey]: rows }`.
+async function readCollection(filename, repoName, arrayKey) {
+  const rows = await repos[repoName].findAll();
+  return { [arrayKey]: rows };
 }
 
-function handlePostContract(body, res) {
+// Executa uma operação de escrita via repo e devolve o envelope atualizado.
+// Lança se o PG não estiver disponível (escritas não têm fallback seguro).
+async function writeCollection(repoName, arrayKey, fn) {
+  if (!repos || !repos[repoName]) {
+    throw new Error('Banco de dados indisponível');
+  }
+  const result = await fn(repos[repoName]);
+  const rows = await repos[repoName].findAll();
+  return { envelope: { [arrayKey]: rows }, result };
+}
+
+function sendError(res, status, message) {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ error: message }));
+}
+
+function sendJson(res, body, status = 200) {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(body));
+}
+
+// ============ Route handlers ============
+async function handleGetContracts(res) {
+  try {
+    sendJson(res, await repos.contracts.getEnvelope());
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handlePostContract(body, res) {
   try {
     if (!body.name || !body.client) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Nome e cliente são obrigatórios' }));
-      return;
+      return sendError(res, 400, 'Nome e cliente são obrigatórios');
     }
-    const data = readData('contracts.json');
     const contract = {
       id: generateId('ctr'),
       name: body.name,
@@ -81,137 +82,101 @@ function handlePostContract(body, res) {
       clientPhone: body.clientPhone || '',
       value: parseFloat(body.value) || 0,
       currency: body.currency || 'BRL',
-      startDate: body.startDate || '',
-      endDate: body.endDate || '',
-      tendencyDate: body.tendencyDate || '',
+      startDate: body.startDate || null,
+      endDate: body.endDate || null,
+      tendencyDate: body.tendencyDate || null,
       status: body.status || 'ativo',
       endereco: body.endereco || '',
       lat: body.lat || '',
       lng: body.lng || '',
       notes: body.notes || '',
+      budget: '[]',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
-    data.contracts.push(contract);
-    writeData('contracts.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    await repos.contracts.create(contract);
+    sendJson(res, await repos.contracts.getEnvelope());
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handlePutContract(id, body, res) {
+async function handlePutContract(id, body, res) {
   try {
-    const data = readData('contracts.json');
-    const idx = data.contracts.findIndex(c => c.id === id);
-
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Contract not found' }));
-      return;
-    }
-
     const allowed = {};
-    const fields = ['name', 'client', 'clientId', 'clientDocument', 'clientEmail', 'clientPhone', 'value', 'currency', 'startDate', 'endDate', 'tendencyDate', 'status', 'notes', 'lat', 'lng', 'endereco', 'contractNumber'];
+    const fields = ['name', 'client', 'clientId', 'clientDocument', 'clientEmail', 'clientPhone', 'currency', 'status', 'notes', 'lat', 'lng', 'endereco', 'contractNumber'];
     for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
-    if (allowed.value !== undefined) allowed.value = parseFloat(allowed.value) || 0;
-
-    data.contracts[idx] = {
-      ...data.contracts[idx],
-      ...allowed,
-      updatedAt: new Date().toISOString()
-    };
-    writeData('contracts.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
-  } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
-  }
-}
-
-function handleDeleteContract(id, res) {
-  try {
-    const data = readData('contracts.json');
-    data.contracts = (data.contracts || []).filter(c => c.id !== id);
-    data.saidas = (data.saidas || []).filter(s => s.contractId !== id);
-    writeData('contracts.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
-  } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
-  }
-}
-
-function handlePostSaida(contractId, body, res) {
-  try {
-    const data = readData('contracts.json');
-    const contract = data.contracts.find(c => c.id === contractId);
-
-    if (!contract) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Contract not found' }));
-      return;
+    if (body.value !== undefined) allowed.value = parseFloat(body.value) || 0;
+    for (const f of ['startDate', 'endDate', 'tendencyDate']) {
+      if (body[f] !== undefined) allowed[f] = body[f] || null;
     }
+    allowed.updatedAt = new Date().toISOString();
+
+    const result = await repos.contracts.updateById(id, allowed);
+    if (!result) return sendError(res, 404, 'Contract not found');
+    sendJson(res, await repos.contracts.getEnvelope());
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handleDeleteContract(id, res) {
+  try {
+    // FK CASCADE remove saidas/organograma/rdos automaticamente
+    await repos.contracts.removeById(id);
+    sendJson(res, await repos.contracts.getEnvelope());
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handlePostSaida(contractId, body, res) {
+  try {
+    const contract = await repos.contracts.findById(contractId);
+    if (!contract) return sendError(res, 404, 'Contract not found');
 
     const valor = parseFloat(body.value) || 0;
     const dataSaida = body.date || new Date().toISOString().split('T')[0];
 
-    const nfData = readData('notas_fiscais.json');
-    if (!nfData.notas_fiscais) nfData.notas_fiscais = [];
-    const nfsContrato = nfData.notas_fiscais.filter(nf => nf.contractId === contractId);
+    const nfsAll = await repos.notasFiscais.findAll();
+    const nfsContrato = nfsAll.filter(nf => nf.contractId === contractId);
     const totalMedidoAtual = nfsContrato.reduce((s, nf) => s + (parseFloat(nf.valor) || 0), 0);
-    if (contract.value > 0 && totalMedidoAtual + valor > contract.value + 0.01) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        error: `BM ultrapassa o valor do contrato. Disponível para medir: R$ ${(contract.value - totalMedidoAtual).toFixed(2).replace('.', ',')}`
-      }));
-      return;
+    if (contract.value > 0 && totalMedidoAtual + valor > parseFloat(contract.value) + 0.01) {
+      return sendError(res, 400,
+        `BM ultrapassa o valor do contrato. Disponível para medir: R$ ${(parseFloat(contract.value) - totalMedidoAtual).toFixed(2).replace('.', ',')}`);
     }
 
-    const saidaId = generateId('sai');
-
     // Busca NF do mesmo dia (não emitida) para agregar
-    let nf = nfData.notas_fiscais.find(n =>
-      n.contractId === contractId && n.dataLimite === dataSaida && !n.emitida
-    );
+    let nf = nfsContrato.find(n => n.dataLimite === dataSaida && !n.emitida);
     let numeroNf;
 
     if (nf) {
-      // Agrega à NF existente do mesmo dia
-      nf.valor = (parseFloat(nf.valor) || 0) + valor;
-      nf.updatedAt = new Date().toISOString();
+      const novoValor = (parseFloat(nf.valor) || 0) + valor;
+      await repos.notasFiscais.updateById(nf.id, { valor: novoValor, updatedAt: new Date().toISOString() });
       numeroNf = nf.numero;
     } else {
-      // Cria nova NF (BM) em Contas a Receber
       const numeroBm = String(nfsContrato.length + 1).padStart(3, '0');
       numeroNf = `BM-${numeroBm}`;
-      nf = {
+      const newNf = {
         id: generateId('nf'),
         numero: numeroNf,
         contractId,
         dataLimite: dataSaida,
         valor,
-        prazoRecebimento: parseInt(body.prazoRecebimento) || 30,
+        prazoRecebimento: (Number.isFinite(parseInt(body.prazoRecebimento)) ? parseInt(body.prazoRecebimento) : 30),
         observacoes: body.description || '',
         emitida: false,
         dataEmissaoReal: null,
         caixaEntryId: null,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       };
-      nfData.notas_fiscais.push(nf);
+      await repos.notasFiscais.create(newNf);
+      nf = newNf;
     }
-    writeData('notas_fiscais.json', nfData);
 
     const saida = {
-      id: saidaId,
+      id: generateId('sai'),
       contractId,
       type: body.type || 'material',
       description: body.description || '',
@@ -219,179 +184,161 @@ function handlePostSaida(contractId, body, res) {
       date: dataSaida,
       nfId: nf.id,
       numeroBm: numeroNf,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
-    data.saidas.push(saida);
-    writeData('contracts.json', data);
+    await repos.saidas.create(saida);
 
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ contracts: data.contracts, saidas: data.saidas, notas_fiscais: nfData.notas_fiscais }));
+    const env = await repos.contracts.getEnvelope();
+    sendJson(res, { ...env, notas_fiscais: await repos.notasFiscais.findAll() });
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handlePutSaida(id, body, res) {
+async function handlePutSaida(id, body, res) {
   try {
-    const data = readData('contracts.json');
-    const idx = data.saidas.findIndex(s => s.id === id);
+    const saida = await repos.saidas.findById(id);
+    if (!saida) return sendError(res, 404, 'Saida not found');
 
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Saida not found' }));
-      return;
-    }
-
-    const saida = data.saidas[idx];
     const allowedSaida = {};
-    const saidaFields = ['type', 'description', 'value', 'date'];
-    for (const f of saidaFields) { if (body[f] !== undefined) allowedSaida[f] = body[f]; }
-    if (allowedSaida.value !== undefined) allowedSaida.value = parseFloat(allowedSaida.value) || 0;
+    const fields = ['type', 'description', 'date'];
+    for (const f of fields) { if (body[f] !== undefined) allowedSaida[f] = body[f]; }
+    if (body.value !== undefined) allowedSaida.value = parseFloat(body.value) || 0;
 
-    // Bloqueia edição se data/valor mudou e BM já emitido
-    let nfData = null;
     if (saida.nfId) {
-      nfData = readData('notas_fiscais.json');
-      const nfIdx = (nfData.notas_fiscais || []).findIndex(nf => nf.id === saida.nfId);
-      const nf = nfIdx !== -1 ? nfData.notas_fiscais[nfIdx] : null;
+      const nf = await repos.notasFiscais.findById(saida.nfId);
       const dataMudou  = allowedSaida.date  !== undefined && allowedSaida.date  !== saida.date;
       const valorMudou = allowedSaida.value !== undefined && allowedSaida.value !== parseFloat(saida.value);
 
       if (nf && nf.emitida && (dataMudou || valorMudou)) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Não é possível alterar valor ou data de saída com BM já emitido. Cancele a emissão antes.' }));
-        return;
+        return sendError(res, 400, 'Não é possível alterar valor ou data de saída com BM já emitido. Cancele a emissão antes.');
       }
 
       // Ajuste por delta de valor
       if (valorMudou && nf) {
         const delta = allowedSaida.value - (parseFloat(saida.value) || 0);
-        const contract = data.contracts.find(c => c.id === saida.contractId);
+        const contract = await repos.contracts.findById(saida.contractId);
         if (contract && contract.value > 0) {
-          const totalMedidoOutros = nfData.notas_fiscais.reduce((s, n) =>
+          const allNFs = await repos.notasFiscais.findAll();
+          const totalMedidoOutros = allNFs.reduce((s, n) =>
             n.contractId !== saida.contractId ? s : s + (parseFloat(n.valor) || 0), 0);
-          if (totalMedidoOutros + delta > contract.value + 0.01) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({
-              error: `BM ultrapassa o valor do contrato. Disponível: R$ ${(contract.value - totalMedidoOutros).toFixed(2).replace('.', ',')}`
-            }));
-            return;
+          if (totalMedidoOutros + delta > parseFloat(contract.value) + 0.01) {
+            return sendError(res, 400,
+              `BM ultrapassa o valor do contrato. Disponível: R$ ${(parseFloat(contract.value) - totalMedidoOutros).toFixed(2).replace('.', ',')}`);
           }
         }
-        nf.valor = Math.max(0, (parseFloat(nf.valor) || 0) + delta);
-        nf.updatedAt = new Date().toISOString();
+        await repos.notasFiscais.updateById(nf.id, {
+          valor: Math.max(0, (parseFloat(nf.valor) || 0) + delta),
+          updatedAt: new Date().toISOString(),
+        });
       }
 
-      // Se a data mudou, precisa realocar entre NFs (vira operação complexa)
+      // Se a data mudou, realoca entre NFs
       if (dataMudou && nf) {
         const novaData = allowedSaida.date;
-        // Remove esta saída da NF atual
-        const outrasDaNfAtual = data.saidas.filter(s => s.nfId === nf.id && s.id !== id);
+        const outrasDaNfAtual = (await repos.saidas.findAll()).filter(s => s.nfId === nf.id && s.id !== id);
         if (outrasDaNfAtual.length === 0) {
-          // Era a única — remove a NF antiga
-          nfData.notas_fiscais.splice(nfIdx, 1);
+          await repos.notasFiscais.removeById(nf.id);
         } else {
-          nf.valor = Math.max(0, (parseFloat(nf.valor) || 0) - (parseFloat(saida.value) || 0));
-          nf.updatedAt = new Date().toISOString();
+          await repos.notasFiscais.updateById(nf.id, {
+            valor: Math.max(0, (parseFloat(nf.valor) || 0) - (parseFloat(saida.value) || 0)),
+            updatedAt: new Date().toISOString(),
+          });
         }
-        // Busca/cria NF do novo dia
         const valorFinal = allowedSaida.value !== undefined ? allowedSaida.value : (parseFloat(saida.value) || 0);
-        let nfNova = nfData.notas_fiscais.find(n =>
-          n.contractId === saida.contractId && n.dataLimite === novaData && !n.emitida
-        );
+        const allNFs2 = await repos.notasFiscais.findAll();
+        const nfsContrato = allNFs2.filter(n => n.contractId === saida.contractId);
+        let nfNova = nfsContrato.find(n => n.dataLimite === novaData && !n.emitida);
         if (nfNova) {
-          nfNova.valor = (parseFloat(nfNova.valor) || 0) + valorFinal;
-          nfNova.updatedAt = new Date().toISOString();
+          await repos.notasFiscais.updateById(nfNova.id, {
+            valor: (parseFloat(nfNova.valor) || 0) + valorFinal,
+            updatedAt: new Date().toISOString(),
+          });
           allowedSaida.nfId = nfNova.id;
           allowedSaida.numeroBm = nfNova.numero;
         } else {
-          const nfsCount = nfData.notas_fiscais.filter(n => n.contractId === saida.contractId).length;
-          const numeroNf = `BM-${String(nfsCount + 1).padStart(3, '0')}`;
-          nfNova = {
+          const numeroNf = `BM-${String(nfsContrato.length + 1).padStart(3, '0')}`;
+          const novaNf = {
             id: generateId('nf'),
             numero: numeroNf,
             contractId: saida.contractId,
             dataLimite: novaData,
             valor: valorFinal,
-            prazoRecebimento: parseInt(body.prazoRecebimento) || 30,
+            prazoRecebimento: (Number.isFinite(parseInt(body.prazoRecebimento)) ? parseInt(body.prazoRecebimento) : 30),
             observacoes: allowedSaida.description || saida.description || '',
             emitida: false,
             dataEmissaoReal: null,
             caixaEntryId: null,
             createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            updatedAt: new Date().toISOString(),
           };
-          nfData.notas_fiscais.push(nfNova);
-          allowedSaida.nfId = nfNova.id;
+          await repos.notasFiscais.create(novaNf);
+          allowedSaida.nfId = novaNf.id;
           allowedSaida.numeroBm = numeroNf;
         }
       }
 
-      writeData('notas_fiscais.json', nfData);
-    }
-
-    data.saidas[idx] = { ...saida, ...allowedSaida, id, updatedAt: new Date().toISOString() };
-    writeData('contracts.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ contracts: data.contracts, saidas: data.saidas, notas_fiscais: nfData ? nfData.notas_fiscais : undefined }));
-  } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
-  }
-}
-
-function handleDeleteSaida(id, res) {
-  try {
-    const data = readData('contracts.json');
-    const saida = data.saidas.find(s => s.id === id);
-
-    let nfData = null;
-    if (saida && saida.nfId) {
-      nfData = readData('notas_fiscais.json');
-      const nfIdx = (nfData.notas_fiscais || []).findIndex(nf => nf.id === saida.nfId);
-      if (nfIdx !== -1) {
-        const nf = nfData.notas_fiscais[nfIdx];
-        if (nf.emitida) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Não é possível excluir saída cujo BM já foi emitido. Cancele a emissão do BM primeiro.' }));
-          return;
+      // Atualiza prazoRecebimento da NF associada
+      if (body.prazoRecebimento !== undefined) {
+        const novoPrazo = (Number.isFinite(parseInt(body.prazoRecebimento)) ? parseInt(body.prazoRecebimento) : 30);
+        const finalNfId = allowedSaida.nfId || saida.nfId;
+        const targetNf = await repos.notasFiscais.findById(finalNfId);
+        if (targetNf && !targetNf.emitida && targetNf.prazoRecebimento !== novoPrazo) {
+          await repos.notasFiscais.updateById(finalNfId, {
+            prazoRecebimento: novoPrazo,
+            updatedAt: new Date().toISOString(),
+          });
         }
-        // Outras saídas vinculadas à mesma NF (exceto a que será removida)
-        const outrasSaidas = data.saidas.filter(s => s.nfId === nf.id && s.id !== id);
-        if (outrasSaidas.length === 0) {
-          // Esta era a única saída — remove NF
-          nfData.notas_fiscais.splice(nfIdx, 1);
-        } else {
-          // Decrementa valor da NF
-          nf.valor = Math.max(0, (parseFloat(nf.valor) || 0) - (parseFloat(saida.value) || 0));
-          nf.updatedAt = new Date().toISOString();
-        }
-        writeData('notas_fiscais.json', nfData);
       }
     }
 
-    data.saidas = data.saidas.filter(s => s.id !== id);
-    writeData('contracts.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ contracts: data.contracts, saidas: data.saidas, notas_fiscais: nfData ? nfData.notas_fiscais : undefined }));
+    await repos.saidas.updateById(id, allowedSaida);
+    const env = await repos.contracts.getEnvelope();
+    sendJson(res, { ...env, notas_fiscais: await repos.notasFiscais.findAll() });
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleGetCaixa(res) {
-  const data = readData('caixa.json');
+async function handleDeleteSaida(id, res) {
+  try {
+    const saida = await repos.saidas.findById(id);
+    if (!saida) return sendError(res, 404, 'Saída não encontrada');
+
+    if (saida.nfId) {
+      const nf = await repos.notasFiscais.findById(saida.nfId);
+      if (nf) {
+        if (nf.emitida) {
+          return sendError(res, 400, 'Não é possível excluir saída cujo BM já foi emitido. Cancele a emissão do BM primeiro.');
+        }
+        const outrasSaidas = (await repos.saidas.findAll()).filter(s => s.nfId === nf.id && s.id !== id);
+        if (outrasSaidas.length === 0) {
+          await repos.notasFiscais.removeById(nf.id);
+        } else {
+          await repos.notasFiscais.updateById(nf.id, {
+            valor: Math.max(0, (parseFloat(nf.valor) || 0) - (parseFloat(saida.value) || 0)),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      }
+    }
+    await repos.saidas.removeById(id);
+
+    const env = await repos.contracts.getEnvelope();
+    sendJson(res, { ...env, notas_fiscais: await repos.notasFiscais.findAll() });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handleGetCaixa(res) {
+  const data = await readCollection('caixa.json', 'caixa', 'entries');
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
 }
 
-function handlePostCaixa(body, res) {
+async function handlePostCaixa(body, res) {
   try {
-    const data = readData('caixa.json');
     const entry = {
       id: generateId('cxa'),
       type: body.type || 'entrada',
@@ -402,155 +349,101 @@ function handlePostCaixa(body, res) {
       baseItemId: body.baseItemId || null,
       category: body.category || 'geral',
       notes: body.notes || '',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
-    data.entries.push(entry);
-    writeData('caixa.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('caixa', 'entries', (repo) => repo.create(entry));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handlePutCaixa(id, body, res) {
+async function handlePutCaixa(id, body, res) {
   try {
-    const data = readData('caixa.json');
-    const idx = data.entries.findIndex(e => e.id === id);
+    const allowed = {};
+    const fields = ['type', 'description', 'value', 'date', 'contractId', 'baseItemId', 'category', 'notes'];
+    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    if (allowed.value !== undefined) allowed.value = parseFloat(allowed.value) || 0;
 
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Entry not found' }));
-      return;
-    }
-
-    const allowedCxa = {};
-    const cxaFields = ['type', 'description', 'value', 'date', 'contractId', 'baseItemId', 'category', 'notes'];
-    for (const f of cxaFields) { if (body[f] !== undefined) allowedCxa[f] = body[f]; }
-    if (allowedCxa.value !== undefined) allowedCxa.value = parseFloat(allowedCxa.value) || 0;
-
-    data.entries[idx] = { ...data.entries[idx], ...allowedCxa };
-    writeData('caixa.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope, result } = await writeCollection('caixa', 'entries', (repo) => repo.updateById(id, allowed));
+    if (!result) return sendError(res, 404, 'Entry not found');
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleDeleteCaixa(id, res) {
+async function handleDeleteCaixa(id, res) {
   try {
-    const data = readData('caixa.json');
-    data.entries = data.entries.filter(e => e.id !== id);
-    writeData('caixa.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('caixa', 'entries', (repo) => repo.removeById(id));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleGetBase(res) {
-  const data = readData('base.json');
+async function handleGetBase(res) {
+  const data = await readCollection('base.json', 'baseItems', 'items');
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
 }
 
-function handlePostBase(body, res) {
+async function handlePostBase(body, res) {
   try {
-    const data = readData('base.json');
     const item = {
       id: generateId('bas'),
       description: body.description || '',
       type: body.type || 'variavel',
       value: parseFloat(body.value) || 0,
       date: body.date || new Date().toISOString().split('T')[0],
-      allocations: [],
+      allocations: '[]',
       notes: body.notes || '',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
-    data.items.push(item);
-    writeData('base.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('baseItems', 'items', (repo) => repo.create(item));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handlePutBase(id, body, res) {
+async function handlePutBase(id, body, res) {
   try {
-    const data = readData('base.json');
-    const idx = data.items.findIndex(i => i.id === id);
+    const allowed = {};
+    const fields = ['description', 'type', 'notes'];
+    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    if (body.value !== undefined) allowed.value = parseFloat(body.value) || 0;
+    if (body.date !== undefined) allowed.date = body.date || null;
+    allowed.updatedAt = new Date().toISOString();
 
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Item not found' }));
-      return;
-    }
-
-    const allowedBase = {};
-    const baseFields = ['description', 'type', 'value', 'date', 'notes'];
-    for (const f of baseFields) { if (body[f] !== undefined) allowedBase[f] = body[f]; }
-    if (allowedBase.value !== undefined) allowedBase.value = parseFloat(allowedBase.value) || 0;
-
-    data.items[idx] = {
-      ...data.items[idx],
-      ...allowedBase,
-      updatedAt: new Date().toISOString()
-    };
-    writeData('base.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope, result } = await writeCollection('baseItems', 'items', (repo) => repo.updateById(id, allowed));
+    if (!result) return sendError(res, 404, 'Item not found');
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleDeleteBase(id, res) {
+async function handleDeleteBase(id, res) {
   try {
-    const data = readData('base.json');
-    data.items = data.items.filter(i => i.id !== id);
-    writeData('base.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('baseItems', 'items', (repo) => repo.removeById(id));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleAllocateBase(id, body, res) {
+async function handleAllocateBase(id, body, res) {
   try {
-    const baseData = readData('base.json');
-    const baseItemIdx = baseData.items.findIndex(i => i.id === id);
+    const baseItem = await repos.baseItems.findById(id);
+    if (!baseItem) return sendError(res, 404, 'Base item not found');
 
-    if (baseItemIdx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Base item not found' }));
-      return;
-    }
-
-    const baseItem = baseData.items[baseItemIdx];
     const allocationValue = parseFloat(body.value) || 0;
-    const totalAllocated = (baseItem.allocations || []).reduce((sum, a) => sum + a.value, 0);
-
-    if (totalAllocated + allocationValue > baseItem.value) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: `Cannot allocate more than available. Available: ${baseItem.value - totalAllocated}` }));
-      return;
+    const allocs = baseItem.allocations || [];
+    const totalAllocated = allocs.reduce((sum, a) => sum + (parseFloat(a.value) || 0), 0);
+    if (totalAllocated + allocationValue > parseFloat(baseItem.value)) {
+      return sendError(res, 400, `Cannot allocate more than available. Available: ${parseFloat(baseItem.value) - totalAllocated}`);
     }
 
     const allocation = {
@@ -558,20 +451,15 @@ function handleAllocateBase(id, body, res) {
       contractId: body.contractId,
       value: allocationValue,
       date: new Date().toISOString().split('T')[0],
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
+    const newAllocs = allocs.concat(allocation);
+    await repos.baseItems.updateById(id, {
+      allocations: JSON.stringify(newAllocs),
+      updatedAt: new Date().toISOString(),
+    });
 
-    // Update base item immutably to avoid partial-write inconsistency
-    baseData.items[baseItemIdx] = {
-      ...baseItem,
-      allocations: [...(baseItem.allocations || []), allocation],
-      updatedAt: new Date().toISOString()
-    };
-    writeData('base.json', baseData);
-
-    // Add matching caixa entry
-    const caixaData = readData('caixa.json');
-    caixaData.entries.push({
+    await repos.caixa.create({
       id: generateId('cxa'),
       type: 'saida',
       description: `Alocação BASE: ${baseItem.description}`,
@@ -581,37 +469,25 @@ function handleAllocateBase(id, body, res) {
       baseItemId: id,
       category: 'base',
       notes: '',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     });
-    writeData('caixa.json', caixaData);
 
-    // Add to contract's baseAllocations (create if not exists)
-    const contractData = readData('contracts.json');
-    const contract = contractData.contracts.find(c => c.id === body.contractId);
-    if (contract) {
-      if (!contract.baseAllocations) contract.baseAllocations = [];
-      contract.baseAllocations.push(allocation);
-      writeData('contracts.json', contractData);
-    }
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      base: baseData,
-      caixa: caixaData,
-      contracts: contractData
-    }));
+    sendJson(res, {
+      base: { items: await repos.baseItems.findAll() },
+      caixa: { entries: await repos.caixa.findAll() },
+      contracts: await repos.contracts.getEnvelope(),
+    });
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleDashboard(res, query) {
+async function handleDashboard(res, query) {
   try {
-    const contracts = readData('contracts.json');
-    const caixa = readData('caixa.json');
-    const base = readData('base.json');
-    const notasFiscais = readData('notas_fiscais.json');
+    const contracts = await repos.contracts.getEnvelope();
+    const caixa = { entries: await repos.caixa.findAll() };
+    const base = { items: await repos.baseItems.findAll() };
+    const notasFiscais = { notas_fiscais: await repos.notasFiscais.findAll() };
 
     // Period filter: mes=1-12, ano=YYYY, or modo='ano' for full year
     const hoje = new Date();
@@ -649,7 +525,7 @@ function handleDashboard(res, query) {
 
     const recentCaixaEntries = [...caixa.entries]
       .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .slice(0, 5);
+      .slice(0, 20);
 
     const contractsWithMargin = contracts.contracts.map(c => {
       const cSaidas = contracts.saidas
@@ -760,14 +636,14 @@ function handleDashboard(res, query) {
       const entradasEsperadas = notasFiscais.notas_fiscais
         .filter(nf => !nf.emitida && nf.valor > 0)
         .filter(nf => {
-          const prazo = parseInt(nf.prazoRecebimento) || 30;
+          const prazo = (Number.isFinite(parseInt(nf.prazoRecebimento)) ? parseInt(nf.prazoRecebimento) : 30);
           const dtEmissao = new Date(nf.dataLimite + 'T12:00:00');
           const dtRecebimento = new Date(dtEmissao);
           dtRecebimento.setDate(dtRecebimento.getDate() + prazo);
           return dtRecebimento.toISOString().split('T')[0] === diaStr;
         })
         .map(nf => {
-          const prazo = parseInt(nf.prazoRecebimento) || 30;
+          const prazo = (Number.isFinite(parseInt(nf.prazoRecebimento)) ? parseInt(nf.prazoRecebimento) : 30);
           return {
             nfId: nf.id,
             numero: nf.numero,
@@ -788,37 +664,38 @@ function handleDashboard(res, query) {
     }
 
     // Contas a pagar status
-    const contasPagar = readData('contas_pagar.json');
+    const contasPagar = { contas: await repos.contasPagar.findAll() };
     const hojeStrCP = new Date().toISOString().split('T')[0];
     const em7DiasStrCP = (() => { const d = new Date(); d.setDate(d.getDate() + 7); return d.toISOString().split('T')[0]; })();
     const contasPagarStatus = { vencidas: 0, proximasVencer: 0, pendentes: 0, totalPendente: 0 };
     contasPagar.contas.filter(c => c.status === 'pendente').forEach(c => {
       contasPagarStatus.pendentes++;
-      contasPagarStatus.totalPendente += c.valor;
+      contasPagarStatus.totalPendente += parseFloat(c.valor) || 0;
       if (c.dataVencimento && c.dataVencimento < hojeStrCP) contasPagarStatus.vencidas++;
       else if (c.dataVencimento && c.dataVencimento <= em7DiasStrCP) contasPagarStatus.proximasVencer++;
     });
 
-    // Saldo projetado acumulado para o gráfico (próximos 60 dias, semanalmente)
-    // Inclui entradas de NFs e saídas de contas a pagar (vencidas já são deduzidas no início)
+    // Saldo projetado acumulado para o gráfico — configurável via ?projDays (30/60/90, default 60, max 180)
+    const projDays = Math.min(180, Math.max(7, parseInt(query?.projDays) || 60));
     const contasVencidasTotal = contasPagar.contas
       .filter(c => c.status === 'pendente' && c.dataVencimento && c.dataVencimento <= hojeStrCP)
-      .reduce((s, c) => s + (c.valor || 0), 0);
+      .reduce((s, c) => s + (parseFloat(c.valor) || 0), 0);
     const saldoProjetado = [];
     let saldoAcumulado = caixaBalance - contasVencidasTotal;
-    for (let i = 1; i <= 60; i++) {
+    // Agregação: até 60 dias semanal (7), 60-90 semanal, 90+ quinzenal
+    const stepAt = (i) => (projDays <= 30 ? 3 : projDays <= 60 ? 7 : 7);
+    const step = stepAt(projDays);
+    for (let i = 1; i <= projDays; i++) {
       const dia = new Date();
       dia.setDate(dia.getDate() + i);
       const diaStr = dia.toISOString().split('T')[0];
       const entradasDia = projecaoFutura.find(p => p.data === diaStr);
       if (entradasDia) saldoAcumulado += entradasDia.totalEntradas;
-      // Subtrair contas a pagar com vencimento neste dia futuro
       const saidasCP = contasPagar.contas
         .filter(c => c.status === 'pendente' && c.dataVencimento === diaStr)
-        .reduce((s, c) => s + (c.valor || 0), 0);
+        .reduce((s, c) => s + (parseFloat(c.valor) || 0), 0);
       if (saidasCP > 0) saldoAcumulado -= saidasCP;
-      // Agregar apenas a cada 7 dias para não poluir o gráfico
-      if (i % 7 === 0 || i === 1) {
+      if (i === 1 || i % step === 0 || i === projDays) {
         saldoProjetado.push({ data: diaStr, saldo: saldoAcumulado });
       }
     }
@@ -836,6 +713,7 @@ function handleDashboard(res, query) {
       nfsStatus,
       projecaoFutura,
       saldoProjetado,
+      projDays,
       contasPagarStatus
     };
 
@@ -847,30 +725,355 @@ function handleDashboard(res, query) {
   }
 }
 
-function handleBackup(res) {
+// Backup: dump do PG pras pastas JSON (útil antes de refatorar ou restaurar)
+async function handleBackup(res) {
   try {
-    writeData('contracts.json', readData('contracts.json'));
-    writeData('caixa.json', readData('caixa.json'));
-    writeData('base.json', readData('base.json'));
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ message: 'Backup completed' }));
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    const dumps = {
+      contracts: await repos.contracts.getEnvelope(),
+      caixa: { entries: await repos.caixa.findAll() },
+      base: { items: await repos.baseItems.findAll() },
+      notas_fiscais: { notas_fiscais: await repos.notasFiscais.findAll() },
+      contas_pagar: { contas: await repos.contasPagar.findAll() },
+      clientes: { clientes: await repos.clientes.findAll() },
+    };
+    for (const [name, payload] of Object.entries(dumps)) {
+      const filepath = path.join(BACKUPS_DIR, `${name}_pgdump_${timestamp}.json`);
+      fs.writeFileSync(filepath, JSON.stringify(payload, null, 2), 'utf8');
+    }
+    sendJson(res, { message: 'Backup completed', timestamp });
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
+async function handleHealth(res) {
+  const result = {
+    app: 'ok',
+    db: 'unknown',
+    uptime_s: Math.round((Date.now() - APP_START) / 1000),
+    version: process.env.APP_VERSION || 'dev',
+    node: process.version,
+    timestamp: new Date().toISOString(),
+  };
+  try {
+    const db = require('./db');
+    const ok = await db.ping();
+    result.db = ok ? 'ok' : 'down';
+    if (ok) {
+      const ver = await db.getOne('SELECT version() AS v');
+      if (ver) result.db_version = String(ver.v).split(' ')[1];
+    }
+  } catch (e) {
+    result.db = 'down';
+    result.db_error = e.message;
+  }
+  const status = result.db === 'ok' ? 200 : 503;
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(result));
+}
+
+// ============ Auth handlers ============
+async function handleLogin(req, body, res) {
+  try {
+    const emailIn = (body.email || '').trim();
+    const password = body.password || '';
+    if (!emailIn || !password) return sendError(res, 400, 'Email e senha são obrigatórios');
+
+    // Rate limit: 5 tentativas FALHAS / 15 min por IP+email.
+    // Logins bem sucedidos NÃO contam — evita travar usuário legítimo.
+    const rlKey = rateLimit.clientKey(req, 'login:' + emailIn.toLowerCase());
+    // Consulta sem consumir
+    const rlPeek = rateLimit.check(rlKey, { max: 5, windowMs: 15 * 60 * 1000 });
+    if (!rlPeek.ok) {
+      res.setHeader('Retry-After', rlPeek.retryAfterSec);
+      return sendError(res, 429, `Muitas tentativas. Tente novamente em ${rlPeek.retryAfterSec} segundos.`);
+    }
+
+    const user = await auth.findUserByEmail(emailIn);
+    const ok = user ? await auth.verify(password, user.passwordHash) : false;
+    if (!user || !ok) {
+      // Falhou — registra tentativa no bucket
+      // (rlPeek já registrou um slot acima; mantém — total de 5 falhas em 15min)
+      return sendError(res, 401, 'Credenciais inválidas');
+    }
+    // Sucesso — devolve o slot consumido (o login certo não deve contar contra o usuário)
+    rateLimit.refund(rlKey);
+
+    const session = await auth.createSession(user.id);
+    auth.setSessionCookie(res, session.id, session.expiresAt);
+    await auth.bumpLastLogin(user.id);
+
+    sendJson(res, {
+      user: {
+        id: user.id, email: user.email, name: user.name,
+        nivelAcessoId: user.nivelAcessoId, socioId: user.socioId,
+        acceptedTermsAt: user.acceptedTermsAt || null,
+      },
+    });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handleForgotPassword(req, body, res) {
+  try {
+    const emailIn = (body.email || '').trim().toLowerCase();
+    if (!emailIn) return sendError(res, 400, 'Email é obrigatório');
+
+    // Rate limit: 3 / hora por IP+email (evita spam de envio)
+    const rlKey = rateLimit.clientKey(req, 'forgot:' + emailIn);
+    const rl = rateLimit.check(rlKey, { max: 3, windowMs: 60 * 60 * 1000 });
+    if (!rl.ok) {
+      // Resposta genérica pra não vazar info de rate limit por usuário
+      return sendJson(res, { ok: true, message: 'Se o email existir, enviamos as instruções.' });
+    }
+
+    const user = await auth.findUserByEmail(emailIn);
+    // Sempre responde sucesso (não vazar quais emails existem)
+    if (user) {
+      const { token } = await auth.createResetToken(user.id);
+      const origin = req.headers.origin || (req.headers['x-forwarded-proto'] && req.headers.host
+        ? `${req.headers['x-forwarded-proto']}://${req.headers.host}`
+        : 'http://localhost:3001');
+      const link = `${origin}/?action=reset-password&token=${token}`;
+      const tmpl = email.tmplResetPassword({ nome: user.name, link, expiraEm: '1 hora' });
+      await email.send({ to: user.email, subject: 'Rhino — redefinir sua senha', html: tmpl.html, text: tmpl.text });
+    }
+    sendJson(res, { ok: true, message: 'Se o email existir, enviamos as instruções.' });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handleResetPassword(body, res) {
+  try {
+    const token = (body.token || '').trim();
+    const newPassword = body.password || '';
+    if (!token || !newPassword) return sendError(res, 400, 'Token e nova senha são obrigatórios');
+    if (newPassword.length < 6) return sendError(res, 400, 'Senha precisa ter no mínimo 6 caracteres');
+
+    const result = await auth.consumeResetToken(token, newPassword);
+    if (!result) return sendError(res, 400, 'Token inválido ou expirado');
+    sendJson(res, { ok: true, email: result.email });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handleAcceptTerms(req, res) {
+  try {
+    if (!req.user) return sendError(res, 401, 'Não autenticado');
+    await auth.acceptTerms(req.user.id, '1.0');
+    sendJson(res, { ok: true });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handleLogout(req, res) {
+  try {
+    const sid = auth.parseCookies(req)[auth.COOKIE_NAME];
+    await auth.destroySession(sid);
+    auth.clearSessionCookie(res);
+    sendJson(res, { ok: true });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handleMe(req, res) {
+  if (!req.user) return sendError(res, 401, 'Não autenticado');
+  const u = req.user;
+  sendJson(res, {
+    user: {
+      id: u.id, email: u.email, name: u.name,
+      nivelAcessoId: u.nivelAcessoId, socioId: u.socioId,
+      acceptedTermsAt: u.acceptedTermsAt || null,
+    },
+  });
+}
+
+// ============ RDOs (visão global) ============
+async function handleGetRdosGlobal(res) {
+  try {
+    const [rdos, contracts, lastByContract] = await Promise.all([
+      repos.rdos.findAllFlat(),
+      repos.contracts.findAll(),
+      repos.rdos.lastRdoDateByContract(),
+    ]);
+
+    const hojeISO = new Date().toISOString().split('T')[0];
+    const ultimoDiaUtil = feriados.ultimoDiaUtilAnterior(hojeISO);
+
+    // Obras ativas = status='ativo' (mesmo critério do dashboard).
+    // Contratos com endDate no passado ainda contam se não foram concluídos manualmente —
+    // isso é intencional: obra "vencida" mas aberta ainda precisa de RDO.
+    const ativas = contracts.filter(c => c.status === 'ativo');
+
+    // Sem RDO ontem: obra ativa cuja data do último RDO < último dia útil
+    const obrasSemRdoOntem = ativas
+      .filter(c => {
+        const last = lastByContract[c.id];
+        return !last || last < ultimoDiaUtil;
+      })
+      .map(c => ({ contractId: c.id, name: c.name, client: c.client, ultimoRdo: lastByContract[c.id] || null }));
+
+    // Atrasada: > 2 dias úteis sem RDO ou nunca fez RDO.
+    const obrasAtrasadas = ativas
+      .map(c => {
+        const last = lastByContract[c.id] || null;
+        const nuncaFezRdo = !last;
+        const diasSem = nuncaFezRdo ? null : feriados.diasUteisEntre(last, hojeISO);
+        return { contractId: c.id, name: c.name, client: c.client, ultimoRdo: last, diasUteisSemRdo: diasSem, nuncaFezRdo };
+      })
+      .filter(c => c.nuncaFezRdo || c.diasUteisSemRdo > 2)
+      .sort((a, b) => {
+        const av = a.nuncaFezRdo ? Number.MAX_SAFE_INTEGER : a.diasUteisSemRdo;
+        const bv = b.nuncaFezRdo ? Number.MAX_SAFE_INTEGER : b.diasUteisSemRdo;
+        return bv - av;
+      });
+
+    // Aderência últimos 7 dias úteis: feitos / esperados (ativas × 7).
+    const ultimos7 = feriados.ultimosNDiasUteis(7, hojeISO);
+    const setUltimos7 = new Set(ultimos7);
+    const ativasIds = new Set(ativas.map(c => c.id));
+    let feitos = 0;
+    for (const r of rdos) {
+      if (!ativasIds.has(r.contractId)) continue;
+      if (setUltimos7.has(r.data)) feitos++;
+    }
+    const esperados = ativas.length * ultimos7.length;
+    const aderencia = esperados > 0 ? Math.round((feitos / esperados) * 100) : 100;
+
+    sendJson(res, {
+      rdos,
+      stats: {
+        ultimoDiaUtil,
+        hoje: hojeISO,
+        obrasAtivas: ativas.length,
+        obrasSemRdoOntem,
+        obrasAtrasadas,
+        aderencia7d: aderencia,
+        diasUteisAvaliados: ultimos7.length,
+      },
+    });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+// ============ Users CRUD (admin) ============
+function sanitizeUser(u) {
+  // Nunca devolver password_hash pro frontend
+  if (!u) return null;
+  const { passwordHash, ...rest } = u;
+  return rest;
+}
+
+async function handleGetUsers(res) {
+  try {
+    const rows = await repos.users.findAll();
+    sendJson(res, { users: rows.map(sanitizeUser) });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handlePostUser(body, res) {
+  try {
+    const email = (body.email || '').trim();
+    const password = body.password || '';
+    if (!email || !password) return sendError(res, 400, 'Email e senha são obrigatórios');
+    if (password.length < 6) return sendError(res, 400, 'Senha precisa ter no mínimo 6 caracteres');
+
+    const exists = await auth.findUserByEmail(email);
+    if (exists) return sendError(res, 400, 'Já existe um usuário com este email');
+
+    const id = await auth.createUser({
+      email,
+      password,
+      name: body.name || null,
+      nivelAcessoId: body.nivelAcessoId || null,
+      socioId: body.socioId || null,
+    });
+    const created = await repos.users.findById(id);
+    sendJson(res, { users: (await repos.users.findAll()).map(sanitizeUser), user: sanitizeUser(created) });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handlePutUser(id, body, res) {
+  try {
+    const allowed = {};
+    if (body.name !== undefined) allowed.name = body.name;
+    if (body.email !== undefined) allowed.email = String(body.email).trim().toLowerCase();
+    if (body.nivelAcessoId !== undefined) allowed.nivelAcessoId = body.nivelAcessoId || null;
+    if (body.socioId !== undefined) allowed.socioId = body.socioId || null;
+    if (body.isActive !== undefined) allowed.isActive = !!body.isActive;
+    if (body.password) {
+      if (String(body.password).length < 6) return sendError(res, 400, 'Senha precisa ter no mínimo 6 caracteres');
+      allowed.passwordHash = await auth.hash(body.password);
+    }
+    allowed.updatedAt = new Date().toISOString();
+
+    const result = await repos.users.updateById(id, allowed);
+    if (!result) return sendError(res, 404, 'Usuário não encontrado');
+    sendJson(res, { users: (await repos.users.findAll()).map(sanitizeUser) });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handleDeleteUser(id, req, res) {
+  try {
+    if (req.user && req.user.id === id) {
+      return sendError(res, 400, 'Você não pode deletar seu próprio usuário');
+    }
+    await repos.users.removeById(id);
+    sendJson(res, { users: (await repos.users.findAll()).map(sanitizeUser) });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handleMetrics(res) {
+  const mem = process.memoryUsage();
+  const out = {
+    ...metrics,
+    uptime_s: Math.round((Date.now() - APP_START) / 1000),
+    memory: {
+      rss_mb: Math.round(mem.rss / 1024 / 1024),
+      heap_mb: Math.round(mem.heapUsed / 1024 / 1024),
+    },
+  };
+  // Contagens por tabela (rápido — só conta linhas)
+  try {
+    const db = require('./db');
+    const counts = {};
+    for (const t of ['contracts', 'clientes', 'recursos', 'caixa', 'notas_fiscais', 'contas_pagar', 'rdos']) {
+      const row = await db.getOne(`SELECT COUNT(*)::int AS n FROM ${t}`);
+      counts[t] = row ? row.n : 0;
+    }
+    out.tables = counts;
+  } catch (e) {
+    out.tables_error = e.message;
+  }
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(out));
+}
+
 // ============ Sócios handlers ============
-function handleGetSocios(res) {
-  const data = readData('socios.json');
+async function handleGetSocios(res) {
+  const data = await readCollection('socios.json', 'socios', 'socios');
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
 }
 
-function handlePostSocio(body, res) {
+async function handlePostSocio(body, res) {
   try {
-    const data = readData('socios.json');
+    if (!body.name) return sendError(res, 400, 'Nome é obrigatório');
     const socio = {
       id: generateId('soc'),
       name: body.name,
@@ -879,70 +1082,52 @@ function handlePostSocio(body, res) {
       phone: body.phone || '',
       participacao: parseFloat(body.participacao) || 0,
       notes: body.notes || '',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
-    data.socios.push(socio);
-    writeData('socios.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('socios', 'socios', (repo) => repo.create(socio));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handlePutSocio(id, body, res) {
+async function handlePutSocio(id, body, res) {
   try {
-    const data = readData('socios.json');
-    const idx = data.socios.findIndex(s => s.id === id);
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Sócio not found' }));
-      return;
-    }
-    const allowedSocio = {};
-    const socioFields = ['name', 'document', 'email', 'phone', 'participacao', 'notes'];
-    for (const f of socioFields) { if (body[f] !== undefined) allowedSocio[f] = body[f]; }
-    if (allowedSocio.participacao !== undefined) allowedSocio.participacao = parseFloat(allowedSocio.participacao) || 0;
+    const allowed = {};
+    const fields = ['name', 'document', 'email', 'phone', 'participacao', 'notes'];
+    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    if (allowed.participacao !== undefined) allowed.participacao = parseFloat(allowed.participacao) || 0;
+    allowed.updatedAt = new Date().toISOString();
 
-    data.socios[idx] = { ...data.socios[idx], ...allowedSocio, id };
-    writeData('socios.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope, result } = await writeCollection('socios', 'socios', (repo) => repo.updateById(id, allowed));
+    if (!result) return sendError(res, 404, 'Sócio não encontrado');
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleDeleteSocio(id, res) {
+async function handleDeleteSocio(id, res) {
   try {
-    const data = readData('socios.json');
-    data.socios = data.socios.filter(s => s.id !== id);
-    writeData('socios.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('socios', 'socios', (repo) => repo.removeById(id));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
 // ============ Investimentos handlers ============
-function handleGetInvestimentos(res) {
-  const data = readData('investimentos.json');
+async function handleGetInvestimentos(res) {
+  const data = await readCollection('investimentos.json', 'investimentos', 'investimentos');
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
 }
 
-function handlePostInvestimento(body, res) {
+async function handlePostInvestimento(body, res) {
   try {
-    const data = readData('investimentos.json');
-    const origem  = body.origem  || 'socio';        // 'socio' | 'caixa_empresa'
-    const destino = body.destino || 'contrato';     // 'contrato' | 'base'
+    const origem  = body.origem  || 'socio';
+    const destino = body.destino || 'contrato';
     const valor   = parseFloat(body.value) || 0;
     const dataDoc = body.date || new Date().toISOString().split('T')[0];
 
@@ -952,112 +1137,85 @@ function handlePostInvestimento(body, res) {
       value: valor,
       date: dataDoc,
       description: body.description || '',
-      origem: origem,
-      destino: destino,
+      origem,
+      destino,
       baseType: body.baseType || 'outros',
       contractId: destino === 'contrato' ? (body.contractId || null) : null,
       baseItemId: null,
       caixaEntryId: null,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
-    // Se destino=base, cria automaticamente um item na BASE para rastrear
     if (destino === 'base') {
-      const baseData = readData('base.json');
       const baseItem = {
         id: generateId('bas'),
         description: body.description || 'Aporte',
-        type: body.baseType || 'outros',      // tipo do custo na base
+        type: body.baseType || 'outros',
         value: valor,
         date: dataDoc,
-        allocations: [],
+        allocations: '[]',
         notes: `Criado via Aporte (${origem === 'socio' ? 'sócio' : 'caixa da empresa'})`,
-        aporteId: aporte.id,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       };
-      baseData.items.push(baseItem);
-      writeData('base.json', baseData);
+      await repos.baseItems.create(baseItem);
       aporte.baseItemId = baseItem.id;
     }
 
-    // Se origem = caixa_empresa, cria saída contábil automática no caixa
     if (origem === 'caixa_empresa') {
-      const caixaData = readData('caixa.json');
-      const descricaoOrigem = body.description || 'Aquisição via caixa da empresa';
       const destLabel = destino === 'base' ? 'BASE' : 'Contrato';
       const entry = {
         id: generateId('cxa'),
         type: 'saida',
-        description: `[Aporte → ${destLabel}] ${descricaoOrigem}`,
+        description: `[Aporte → ${destLabel}] ${body.description || 'Aquisição via caixa da empresa'}`,
         value: valor,
         date: dataDoc,
         contractId: aporte.contractId,
         baseItemId: aporte.baseItemId,
         category: destino === 'base' ? 'aporte_base' : 'aporte_contrato',
         notes: `Aporte via caixa da empresa - destino: ${destLabel}`,
-        aporteId: aporte.id,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
-      caixaData.entries.push(entry);
-      writeData('caixa.json', caixaData);
+      await repos.caixa.create(entry);
       aporte.caixaEntryId = entry.id;
     }
 
-    data.investimentos.push(aporte);
-    writeData('investimentos.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('investimentos', 'investimentos', (repo) => repo.create(aporte));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleDeleteInvestimento(id, res) {
+async function handleDeleteInvestimento(id, res) {
   try {
-    const data = readData('investimentos.json');
-    const aporte = data.investimentos.find(i => i.id === id);
-
-    // Remover entrada do caixa vinculada
+    const aporte = await repos.investimentos.findById(id);
     if (aporte && aporte.caixaEntryId) {
-      const caixaData = readData('caixa.json');
-      caixaData.entries = caixaData.entries.filter(e => e.id !== aporte.caixaEntryId);
-      writeData('caixa.json', caixaData);
+      await repos.caixa.removeById(aporte.caixaEntryId);
     }
-
-    // Remover item BASE criado (se houver e não tiver alocações)
     if (aporte && aporte.baseItemId) {
-      const baseData = readData('base.json');
-      const baseItem = baseData.items.find(b => b.id === aporte.baseItemId);
+      const baseItem = await repos.baseItems.findById(aporte.baseItemId);
       if (baseItem && (!baseItem.allocations || baseItem.allocations.length === 0)) {
-        baseData.items = baseData.items.filter(b => b.id !== aporte.baseItemId);
-        writeData('base.json', baseData);
+        await repos.baseItems.removeById(aporte.baseItemId);
       }
     }
-
-    data.investimentos = data.investimentos.filter(i => i.id !== id);
-    writeData('investimentos.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('investimentos', 'investimentos', (repo) => repo.removeById(id));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
 // ============ Clientes ============
-function handleGetClientes(res) {
-  const data = readData('clientes.json');
+async function handleGetClientes(res) {
+  const data = await readCollection('clientes.json', 'clientes', 'clientes');
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
 }
 
-function handlePostCliente(body, res) {
+async function handlePostCliente(body, res) {
   try {
-    const data = readData('clientes.json');
     const cliente = {
       id: generateId('cli'),
       nome: body.nome || '',
@@ -1071,142 +1229,106 @@ function handlePostCliente(body, res) {
       lng: body.lng || '',
       notas: body.notas || '',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
-    data.clientes.push(cliente);
-    writeData('clientes.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('clientes', 'clientes', (repo) => repo.create(cliente));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handlePutCliente(id, body, res) {
+async function handlePutCliente(id, body, res) {
   try {
-    const data = readData('clientes.json');
-    const idx = data.clientes.findIndex(c => c.id === id);
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Cliente não encontrado' }));
-      return;
-    }
-    const allowedCliente = {};
-    const clienteFields = ['nome', 'empresa', 'cargo', 'setor', 'telefone', 'email', 'endereco', 'notas', 'lat', 'lng'];
-    for (const f of clienteFields) { if (body[f] !== undefined) allowedCliente[f] = body[f]; }
+    const allowed = {};
+    const fields = ['nome', 'empresa', 'cargo', 'setor', 'telefone', 'email', 'endereco', 'notas', 'lat', 'lng'];
+    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    allowed.updatedAt = new Date().toISOString();
 
-    data.clientes[idx] = { ...data.clientes[idx], ...allowedCliente, id, updatedAt: new Date().toISOString() };
-    writeData('clientes.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope, result } = await writeCollection('clientes', 'clientes', (repo) => repo.updateById(id, allowed));
+    if (!result) return sendError(res, 404, 'Cliente não encontrado');
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleDeleteCliente(id, res) {
+async function handleDeleteCliente(id, res) {
   try {
-    const data = readData('clientes.json');
-    data.clientes = data.clientes.filter(c => c.id !== id);
-    writeData('clientes.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('clientes', 'clientes', (repo) => repo.removeById(id));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
 // ============ Fornecedores ============
-function handleGetFornecedores(res) {
-  const data = readData('fornecedores.json');
+async function handleGetFornecedores(res) {
+  const data = await readCollection('fornecedores.json', 'fornecedores', 'fornecedores');
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
 }
 
-function handlePostFornecedor(body, res) {
+function normalizeMateriais(v) {
+  if (Array.isArray(v)) return v;
+  if (typeof v === 'string') return v.split(',').map(s => s.trim()).filter(Boolean);
+  return [];
+}
+
+async function handlePostFornecedor(body, res) {
   try {
-    const data = readData('fornecedores.json');
-    // materiais: string separada por vírgula OU array
-    let materiais = body.materiais || [];
-    if (typeof materiais === 'string') {
-      materiais = materiais.split(',').map(s => s.trim()).filter(Boolean);
-    }
     const fornecedor = {
       id: generateId('for'),
       nome: body.nome || '',
       cnpj: body.cnpj || '',
       endereco: body.endereco || '',
       telefone: body.telefone || '',
+      email: body.email || '',
       pessoaContato: body.pessoaContato || '',
-      materiais,
+      materiais: JSON.stringify(normalizeMateriais(body.materiais)),
       banco: body.banco || '',
       agencia: body.agencia || '',
       conta: body.conta || '',
       chavePix: body.chavePix || '',
       notas: body.notas || '',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
-    data.fornecedores.push(fornecedor);
-    writeData('fornecedores.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('fornecedores', 'fornecedores', (repo) => repo.create(fornecedor));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handlePutFornecedor(id, body, res) {
+async function handlePutFornecedor(id, body, res) {
   try {
-    const data = readData('fornecedores.json');
-    const idx = data.fornecedores.findIndex(f => f.id === id);
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Fornecedor não encontrado' }));
-      return;
-    }
-    const allowedForn = {};
-    const fornFields = ['nome', 'cnpj', 'endereco', 'telefone', 'pessoaContato', 'materiais', 'banco', 'agencia', 'conta', 'chavePix', 'notas'];
-    for (const f of fornFields) { if (body[f] !== undefined) allowedForn[f] = body[f]; }
-    if (typeof allowedForn.materiais === 'string') {
-      allowedForn.materiais = allowedForn.materiais.split(',').map(s => s.trim()).filter(Boolean);
-    }
-    data.fornecedores[idx] = { ...data.fornecedores[idx], ...allowedForn, id, updatedAt: new Date().toISOString() };
-    writeData('fornecedores.json', data);
+    const allowed = {};
+    const fields = ['nome', 'cnpj', 'endereco', 'telefone', 'email', 'pessoaContato', 'banco', 'agencia', 'conta', 'chavePix', 'notas'];
+    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    if (body.materiais !== undefined) allowed.materiais = JSON.stringify(normalizeMateriais(body.materiais));
+    allowed.updatedAt = new Date().toISOString();
 
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope, result } = await writeCollection('fornecedores', 'fornecedores', (repo) => repo.updateById(id, allowed));
+    if (!result) return sendError(res, 404, 'Fornecedor não encontrado');
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleDeleteFornecedor(id, res) {
+async function handleDeleteFornecedor(id, res) {
   try {
-    const data = readData('fornecedores.json');
-    data.fornecedores = data.fornecedores.filter(f => f.id !== id);
-    writeData('fornecedores.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('fornecedores', 'fornecedores', (repo) => repo.removeById(id));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
 // ============ Tipos BASE (custos administrativos customizáveis) ============
-function handleGetTiposBase(res) {
-  const data = readData('tipos_base.json');
+async function handleGetTiposBase(res) {
+  const data = await readCollection('tipos_base.json', 'tiposBase', 'tipos');
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
 }
@@ -1220,20 +1342,16 @@ function slugify(texto) {
     .slice(0, 40) || ('tipo_' + Date.now().toString(36));
 }
 
-function handlePostTipoBase(body, res) {
+async function handlePostTipoBase(body, res) {
   try {
-    const data = readData('tipos_base.json');
     const label = (body.label || '').trim();
-    if (!label) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Nome do tipo é obrigatório' }));
-      return;
-    }
-    let key = slugify(body.key || label);
-    // Garantir chave única
-    const existentes = data.tipos.map(t => t.key);
-    let k = key, n = 2;
-    while (existentes.includes(k)) { k = `${key}_${n++}`; }
+    if (!label) return sendError(res, 400, 'Nome do tipo é obrigatório');
+
+    const baseKey = slugify(body.key || label);
+    // Garantir chave única (consulta os já existentes)
+    const existentes = (await repos.tiposBase.findAll()).map(t => t.key);
+    let k = baseKey, n = 2;
+    while (existentes.includes(k)) { k = `${baseKey}_${n++}`; }
 
     const tipo = {
       id: generateId('tpb'),
@@ -1242,95 +1360,63 @@ function handlePostTipoBase(body, res) {
       icon: body.icon || '🔹',
       cor: body.cor || '#718096',
       sistema: false,
-      createdAt: new Date().toISOString()
     };
-    data.tipos.push(tipo);
-    writeData('tipos_base.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('tiposBase', 'tipos', (repo) => repo.create(tipo));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handlePutTipoBase(id, body, res) {
+async function handlePutTipoBase(id, body, res) {
   try {
-    const data = readData('tipos_base.json');
-    const idx = data.tipos.findIndex(t => t.id === id);
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Tipo não encontrado' }));
-      return;
-    }
-    // Não permite alterar a key de tipos do sistema
-    const isSystem = data.tipos[idx].sistema;
-    const updated = { ...data.tipos[idx] };
-    if (body.label) updated.label = body.label.trim();
-    if (body.icon)  updated.icon  = body.icon;
-    if (body.cor)   updated.cor   = body.cor;
-    if (!isSystem && body.key) updated.key = slugify(body.key);
+    const current = await repos.tiposBase.findById(id);
+    if (!current) return sendError(res, 404, 'Tipo não encontrado');
 
-    data.tipos[idx] = updated;
-    writeData('tipos_base.json', data);
+    const allowed = {};
+    if (body.label) allowed.label = body.label.trim();
+    if (body.icon)  allowed.icon  = body.icon;
+    if (body.cor)   allowed.cor   = body.cor;
+    if (!current.sistema && body.key) allowed.key = slugify(body.key);
 
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('tiposBase', 'tipos', (repo) => repo.updateById(id, allowed));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleDeleteTipoBase(id, res) {
+async function handleDeleteTipoBase(id, res) {
   try {
-    const data = readData('tipos_base.json');
-    const tipo = data.tipos.find(t => t.id === id);
-    if (!tipo) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Tipo não encontrado' }));
-      return;
-    }
-    if (tipo.sistema) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Não é possível excluir tipos do sistema' }));
-      return;
-    }
-    // Verificar se está em uso em algum item da BASE
-    const baseData = readData('base.json');
-    const emUso = baseData.items.some(item => item.type === tipo.key);
-    if (emUso) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Tipo em uso por itens da BASE. Remova ou reclassifique os itens antes de excluir.' }));
-      return;
-    }
-    data.tipos = data.tipos.filter(t => t.id !== id);
-    writeData('tipos_base.json', data);
+    const tipo = await repos.tiposBase.findById(id);
+    if (!tipo) return sendError(res, 404, 'Tipo não encontrado');
+    if (tipo.sistema) return sendError(res, 400, 'Não é possível excluir tipos do sistema');
 
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    // Verificar se está em uso (base_items ainda lê do JSON enquanto não migramos)
+    const baseItems = await repos.baseItems.findAll();
+    if (baseItems.some(b => b.tipoKey === tipo.key)) {
+      return sendError(res, 400, 'Tipo em uso por itens da BASE. Remova ou reclassifique os itens antes de excluir.');
+    }
+    const { envelope } = await writeCollection('tiposBase', 'tipos', (repo) => repo.removeById(id));
+    sendJson(res, envelope);
+    return;
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    return sendError(res, 400, e.message);
   }
 }
 
 // ============ Contas a Pagar handlers ============
-function handleGetContasPagar(res) {
-  const data = readData('contas_pagar.json');
+async function handleGetContasPagar(res) {
+  const data = await readCollection('contas_pagar.json', 'contasPagar', 'contas');
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
 }
 
-function handlePostContaPagar(body, res) {
+async function handlePostContaPagar(body, res) {
   try {
     if (!body.descricao || !body.valor || parseFloat(body.valor) <= 0) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Descrição e valor (>0) são obrigatórios' }));
-      return;
+      return sendError(res, 400, 'Descrição e valor (>0) são obrigatórios');
     }
-    const data = readData('contas_pagar.json');
     const conta = {
       id: generateId('cp'),
       descricao: body.descricao || '',
@@ -1338,7 +1424,7 @@ function handlePostContaPagar(body, res) {
       numeroNF: body.numeroNF || '',
       valor: parseFloat(body.valor) || 0,
       dataEmissao: body.dataEmissao || new Date().toISOString().split('T')[0],
-      dataVencimento: body.dataVencimento || '',
+      dataVencimento: body.dataVencimento || null,
       status: 'pendente',
       dataPagamento: null,
       caixaEntryId: null,
@@ -1346,86 +1432,60 @@ function handlePostContaPagar(body, res) {
       category: body.category || 'fornecedor',
       observacoes: body.observacoes || '',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
-    data.contas.push(conta);
-    writeData('contas_pagar.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('contasPagar', 'contas', (repo) => repo.create(conta));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handlePutContaPagar(id, body, res) {
+async function handlePutContaPagar(id, body, res) {
   try {
-    const data = readData('contas_pagar.json');
-    const idx = data.contas.findIndex(c => c.id === id);
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Conta não encontrada' }));
-      return;
-    }
-    const allowedCP = {};
-    const cpFields = ['descricao', 'fornecedorId', 'numeroNF', 'valor', 'dataEmissao', 'dataVencimento', 'contractId', 'category', 'observacoes'];
-    for (const f of cpFields) { if (body[f] !== undefined) allowedCP[f] = body[f]; }
-    if (allowedCP.valor !== undefined) allowedCP.valor = parseFloat(allowedCP.valor) || 0;
+    const allowed = {};
+    const fields = ['descricao', 'fornecedorId', 'numeroNF', 'contractId', 'category', 'observacoes'];
+    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    if (body.valor !== undefined) allowed.valor = parseFloat(body.valor) || 0;
+    if (body.dataEmissao !== undefined) allowed.dataEmissao = body.dataEmissao || null;
+    if (body.dataVencimento !== undefined) allowed.dataVencimento = body.dataVencimento || null;
+    allowed.updatedAt = new Date().toISOString();
 
-    data.contas[idx] = { ...data.contas[idx], ...allowedCP, id, updatedAt: new Date().toISOString() };
-    writeData('contas_pagar.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope, result } = await writeCollection('contasPagar', 'contas', (repo) => repo.updateById(id, allowed));
+    if (!result) return sendError(res, 404, 'Conta não encontrada');
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleDeleteContaPagar(id, res) {
+async function handleDeleteContaPagar(id, res) {
   try {
-    const data = readData('contas_pagar.json');
-    const conta = data.contas.find(c => c.id === id);
-    // Remove linked caixa entry if exists
+    const conta = await repos.contasPagar.findById(id);
+    // Remove caixa entry vinculada (se houver)
     if (conta && conta.caixaEntryId) {
-      const caixa = readData('caixa.json');
-      caixa.entries = caixa.entries.filter(e => e.id !== conta.caixaEntryId);
-      writeData('caixa.json', caixa);
+      await repos.caixa.removeById(conta.caixaEntryId);
     }
-    data.contas = data.contas.filter(c => c.id !== id);
-    writeData('contas_pagar.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('contasPagar', 'contas', (repo) => repo.removeById(id));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handlePagarConta(id, body, res) {
+async function handlePagarConta(id, body, res) {
   try {
-    const data = readData('contas_pagar.json');
-    const idx = data.contas.findIndex(c => c.id === id);
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Conta não encontrada' }));
-      return;
-    }
-    const conta = data.contas[idx];
-    if (conta.status === 'pago') {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Conta já foi paga' }));
-      return;
-    }
+    const conta = await repos.contasPagar.findById(id);
+    if (!conta) return sendError(res, 404, 'Conta não encontrada');
+    if (conta.status === 'pago') return sendError(res, 400, 'Conta já foi paga');
 
-    // Create caixa saída entry
-    const caixa = readData('caixa.json');
     const dataPagamento = body.dataPagamento || new Date().toISOString().split('T')[0];
+    const valorPago = parseFloat(body.valorPago) || parseFloat(conta.valor) || 0;
     const caixaEntry = {
       id: generateId('cxa'),
       type: 'saida',
       description: conta.descricao + (conta.numeroNF ? ` — NF ${conta.numeroNF}` : '') + (body.formaPagamento ? ` [${body.formaPagamento}]` : ''),
-      value: parseFloat(body.valorPago) || conta.valor,
+      value: valorPago,
       date: dataPagamento,
       contractId: conta.contractId || null,
       baseItemId: null,
@@ -1433,217 +1493,150 @@ function handlePagarConta(id, body, res) {
       notes: `Pagamento de conta: ${conta.descricao}`,
       formaPagamento: body.formaPagamento || null,
       contaPagarId: conta.id,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
-    caixa.entries.push(caixaEntry);
-    writeData('caixa.json', caixa);
-
-    // Mark conta as paid
-    data.contas[idx] = {
-      ...conta,
-      status: 'pago',
-      dataPagamento,
-      valorPago: parseFloat(body.valorPago) || conta.valor,
-      formaPagamento: body.formaPagamento || null,
-      caixaEntryId: caixaEntry.id,
-      updatedAt: new Date().toISOString()
-    };
-    writeData('contas_pagar.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    await repos.caixa.create(caixaEntry);
+    const { envelope } = await writeCollection('contasPagar', 'contas', (repo) =>
+      repo.updateById(id, {
+        status: 'pago',
+        dataPagamento,
+        valorPago,
+        formaPagamento: body.formaPagamento || null,
+        caixaEntryId: caixaEntry.id,
+        updatedAt: new Date().toISOString(),
+      })
+    );
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleEstornarConta(id, res) {
+async function handleEstornarConta(id, res) {
   try {
-    const data = readData('contas_pagar.json');
-    const idx = data.contas.findIndex(c => c.id === id);
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Conta não encontrada' }));
-      return;
-    }
-    const conta = data.contas[idx];
-    // Remove caixa entry
+    const conta = await repos.contasPagar.findById(id);
+    if (!conta) return sendError(res, 404, 'Conta não encontrada');
     if (conta.caixaEntryId) {
-      const caixa = readData('caixa.json');
-      caixa.entries = caixa.entries.filter(e => e.id !== conta.caixaEntryId);
-      writeData('caixa.json', caixa);
+      await repos.caixa.removeById(conta.caixaEntryId);
     }
-    data.contas[idx] = {
-      ...conta,
-      status: 'pendente',
-      dataPagamento: null,
-      valorPago: null,
-      caixaEntryId: null,
-      updatedAt: new Date().toISOString()
-    };
-    writeData('contas_pagar.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('contasPagar', 'contas', (repo) =>
+      repo.updateById(id, {
+        status: 'pendente',
+        dataPagamento: null,
+        valorPago: null,
+        caixaEntryId: null,
+        updatedAt: new Date().toISOString(),
+      })
+    );
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
 // ============ Notas Fiscais handlers ============
-function handleGetNotasFiscais(res) {
-  const data = readData('notas_fiscais.json');
+async function handleGetNotasFiscais(res) {
+  const data = await readCollection('notas_fiscais.json', 'notasFiscais', 'notas_fiscais');
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
 }
 
-function handlePostNotaFiscal(body, res) {
+async function handlePostNotaFiscal(body, res) {
   try {
     if (!body.numero || !body.contractId || !body.dataLimite) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Número, contrato e data limite são obrigatórios' }));
-      return;
+      return sendError(res, 400, 'Número, contrato e data limite são obrigatórios');
     }
-    const data = readData('notas_fiscais.json');
     const nf = {
       id: generateId('nf'),
       numero: body.numero,
       contractId: body.contractId,
       dataLimite: body.dataLimite,
       valor: parseFloat(body.valor) || 0,
-      prazoRecebimento: parseInt(body.prazoRecebimento) || 30,
+      prazoRecebimento: (Number.isFinite(parseInt(body.prazoRecebimento)) ? parseInt(body.prazoRecebimento) : 30),
       observacoes: body.observacoes || '',
       emitida: false,
       dataEmissaoReal: null,
       caixaEntryId: null,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
-    data.notas_fiscais.push(nf);
-    writeData('notas_fiscais.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('notasFiscais', 'notas_fiscais', (repo) => repo.create(nf));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handlePutNotaFiscal(id, body, res) {
+async function handlePutNotaFiscal(id, body, res) {
   try {
-    const data = readData('notas_fiscais.json');
-    const idx = data.notas_fiscais.findIndex(nf => nf.id === id);
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Nota fiscal not found' }));
-      return;
+    const existing = await repos.notasFiscais.findById(id);
+    if (!existing) return sendError(res, 404, 'Nota fiscal not found');
+
+    const allowed = {};
+    const fields = ['numero', 'contractId', 'observacoes'];
+    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    if (body.valor !== undefined) allowed.valor = parseFloat(body.valor) || 0;
+    if (body.prazoRecebimento !== undefined) {
+      allowed.prazoRecebimento = (Number.isFinite(parseInt(body.prazoRecebimento)) ? parseInt(body.prazoRecebimento) : 30);
     }
-    const existing = data.notas_fiscais[idx];
-    const allowedNF = {};
-    const nfFields = ['numero', 'contractId', 'dataLimite', 'valor', 'prazoRecebimento', 'observacoes', 'dataEmissaoReal'];
-    for (const f of nfFields) { if (body[f] !== undefined) allowedNF[f] = body[f]; }
-    if (allowedNF.valor !== undefined) allowedNF.valor = parseFloat(allowedNF.valor) || 0;
-    if (allowedNF.prazoRecebimento !== undefined) allowedNF.prazoRecebimento = parseInt(allowedNF.prazoRecebimento) || 30;
+    if (body.dataLimite !== undefined) allowed.dataLimite = body.dataLimite || null;
+    if (body.dataEmissaoReal !== undefined) allowed.dataEmissaoReal = body.dataEmissaoReal || null;
+    allowed.updatedAt = new Date().toISOString();
 
-    data.notas_fiscais[idx] = {
-      ...existing,
-      ...allowedNF,
-      id,
-      updatedAt: new Date().toISOString()
-    };
+    const updated = { ...existing, ...allowed };
 
-    // Sync caixa entry when emission date or prazo changes for an emitted NF
-    const updated = data.notas_fiscais[idx];
+    // Sincroniza caixa entry quando data/prazo mudam para NF emitida
     if (existing.emitida && existing.caixaEntryId) {
-      const newDataEmissao = updated.dataEmissaoReal || existing.dataEmissaoReal;
-      const newPrazo = updated.prazoRecebimento;
-      const dtRecebimento = new Date(newDataEmissao + 'T12:00:00');
-      dtRecebimento.setDate(dtRecebimento.getDate() + newPrazo);
-      const dataRecebimento = dtRecebimento.toISOString().split('T')[0];
-
-      const caixaData = readData('caixa.json');
-      const caixaIdx = caixaData.entries.findIndex(e => e.id === existing.caixaEntryId);
-      if (caixaIdx !== -1) {
-        caixaData.entries[caixaIdx] = {
-          ...caixaData.entries[caixaIdx],
+      const newDataEmissao = (allowed.dataEmissaoReal !== undefined ? allowed.dataEmissaoReal : existing.dataEmissaoReal);
+      const newPrazo = (allowed.prazoRecebimento !== undefined ? allowed.prazoRecebimento : existing.prazoRecebimento);
+      if (newDataEmissao) {
+        const dtRecebimento = new Date(newDataEmissao + 'T12:00:00');
+        dtRecebimento.setDate(dtRecebimento.getDate() + newPrazo);
+        const dataRecebimento = dtRecebimento.toISOString().split('T')[0];
+        await repos.caixa.updateById(existing.caixaEntryId, {
           value: updated.valor,
           date: dataRecebimento,
-          notes: `NF ${updated.numero} emitida em ${newDataEmissao}, prazo ${newPrazo} dias`
-        };
-        writeData('caixa.json', caixaData);
+          notes: `NF ${updated.numero} emitida em ${newDataEmissao}, prazo ${newPrazo} dias`,
+        });
       }
     }
 
-    writeData('notas_fiscais.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('notasFiscais', 'notas_fiscais', (repo) => repo.updateById(id, allowed));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleDeleteNotaFiscal(id, res) {
+async function handleDeleteNotaFiscal(id, res) {
   try {
-    const data = readData('notas_fiscais.json');
-    const nf = data.notas_fiscais.find(n => n.id === id);
-
-    // Se tinha entrada no caixa vinculada, remove
+    const nf = await repos.notasFiscais.findById(id);
     if (nf && nf.caixaEntryId) {
-      const caixa = readData('caixa.json');
-      caixa.entries = caixa.entries.filter(e => e.id !== nf.caixaEntryId);
-      writeData('caixa.json', caixa);
+      await repos.caixa.removeById(nf.caixaEntryId);
     }
-
-    data.notas_fiscais = data.notas_fiscais.filter(nf => nf.id !== id);
-    writeData('notas_fiscais.json', data);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('notasFiscais', 'notas_fiscais', (repo) => repo.removeById(id));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
 // Marca NF como emitida e cria entrada agendada no caixa
-function handleEmitirNotaFiscal(id, body, res) {
+async function handleEmitirNotaFiscal(id, body, res) {
   try {
-    const nfData = readData('notas_fiscais.json');
-    const idx = nfData.notas_fiscais.findIndex(n => n.id === id);
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Nota fiscal não encontrada' }));
-      return;
-    }
+    const nf = await repos.notasFiscais.findById(id);
+    if (!nf) return sendError(res, 404, 'Nota fiscal não encontrada');
+    if (nf.emitida) return sendError(res, 400, 'Nota fiscal já foi emitida');
 
-    const nf = nfData.notas_fiscais[idx];
-    if (nf.emitida) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Nota fiscal já foi emitida' }));
-      return;
-    }
-
-    // Data real de emissão (informada pelo usuário ou hoje)
     const dataEmissaoReal = body.dataEmissaoReal || new Date().toISOString().split('T')[0];
-    const prazo = parseInt(nf.prazoRecebimento) || 30;
-
-    // Calcular data prevista de recebimento
-    const dtEmissao = new Date(dataEmissaoReal + 'T12:00:00');
-    const dtRecebimento = new Date(dtEmissao);
+    const prazo = Number.isFinite(parseInt(nf.prazoRecebimento)) ? parseInt(nf.prazoRecebimento) : 30;
+    const dtRecebimento = new Date(dataEmissaoReal + 'T12:00:00');
     dtRecebimento.setDate(dtRecebimento.getDate() + prazo);
     const dataRecebimento = dtRecebimento.toISOString().split('T')[0];
 
-    // Buscar contrato para descrição
-    const contracts = readData('contracts.json');
-    const contract = contracts.contracts.find(c => c.id === nf.contractId);
+    const contract = nf.contractId ? await repos.contracts.findById(nf.contractId) : null;
     const descricao = `Recebimento NF ${nf.numero}${contract ? ` - ${contract.client}` : ''}`;
 
-    // Criar entrada no caixa
-    const caixaData = readData('caixa.json');
     const caixaEntry = {
       id: generateId('cxa'),
       type: 'entrada',
@@ -1655,90 +1648,59 @@ function handleEmitirNotaFiscal(id, body, res) {
       category: 'nota_fiscal',
       notes: `NF ${nf.numero} emitida em ${dataEmissaoReal}, prazo ${prazo} dias`,
       nfId: nf.id,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
-    caixaData.entries.push(caixaEntry);
-    writeData('caixa.json', caixaData);
-
-    // Atualizar NF
-    nfData.notas_fiscais[idx] = {
-      ...nf,
+    await repos.caixa.create(caixaEntry);
+    await repos.notasFiscais.updateById(id, {
       emitida: true,
       dataEmissaoReal,
       caixaEntryId: caixaEntry.id,
-      updatedAt: new Date().toISOString()
-    };
-    writeData('notas_fiscais.json', nfData);
+      updatedAt: new Date().toISOString(),
+    });
 
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      notas_fiscais: nfData.notas_fiscais,
-      caixa: caixaData,
-      mensagem: `NF marcada como emitida. Entrada de ${nf.valor} agendada para ${dataRecebimento}`
-    }));
+    sendJson(res, {
+      notas_fiscais: await repos.notasFiscais.findAll(),
+      caixa: { entries: await repos.caixa.findAll() },
+      mensagem: `NF marcada como emitida. Entrada de ${nf.valor} agendada para ${dataRecebimento}`,
+    });
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
 // Desfaz emissão: remove entrada do caixa e volta status
-function handleCancelarEmissao(id, res) {
+async function handleCancelarEmissao(id, res) {
   try {
-    const nfData = readData('notas_fiscais.json');
-    const idx = nfData.notas_fiscais.findIndex(n => n.id === id);
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Nota fiscal não encontrada' }));
-      return;
-    }
-
-    const nf = nfData.notas_fiscais[idx];
-
-    // Remover entrada do caixa
+    const nf = await repos.notasFiscais.findById(id);
+    if (!nf) return sendError(res, 404, 'Nota fiscal não encontrada');
     if (nf.caixaEntryId) {
-      const caixaData = readData('caixa.json');
-      caixaData.entries = caixaData.entries.filter(e => e.id !== nf.caixaEntryId);
-      writeData('caixa.json', caixaData);
+      await repos.caixa.removeById(nf.caixaEntryId);
     }
-
-    // Voltar NF ao estado pendente
-    nfData.notas_fiscais[idx] = {
-      ...nf,
+    await repos.notasFiscais.updateById(id, {
       emitida: false,
       dataEmissaoReal: null,
       caixaEntryId: null,
-      updatedAt: new Date().toISOString()
-    };
-    writeData('notas_fiscais.json', nfData);
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ notas_fiscais: nfData.notas_fiscais }));
+      updatedAt: new Date().toISOString(),
+    });
+    sendJson(res, { notas_fiscais: await repos.notasFiscais.findAll() });
+    return;
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
 // ============ Orçamento (Budget) handlers ============
-function handlePostBudgetItem(contractId, body, res) {
+async function handlePostBudgetItem(contractId, body, res) {
   try {
-    const data = readData('contracts.json');
-    const contract = data.contracts.find(c => c.id === contractId);
-    if (!contract) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
-      return;
-    }
-    if (!contract.budget) contract.budget = [];
+    const contract = await repos.contracts.findById(contractId);
+    if (!contract) return sendError(res, 404, 'Contrato não encontrado');
+
     const novoValor = parseFloat(body.value) || 0;
-    const totalAtual = contract.budget.reduce((s, b) => s + (parseFloat(b.value) || 0), 0);
-    if (contract.value > 0 && totalAtual + novoValor > contract.value + 0.01) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        error: `Orçamento ultrapassa o valor do contrato. Disponível: R$ ${(contract.value - totalAtual).toFixed(2).replace('.', ',')}`
-      }));
-      return;
+    const budget = contract.budget || [];
+    const totalAtual = budget.reduce((s, b) => s + (parseFloat(b.value) || 0), 0);
+    if (contract.value > 0 && totalAtual + novoValor > parseFloat(contract.value) + 0.01) {
+      return sendError(res, 400,
+        `Orçamento ultrapassa o valor do contrato. Disponível: R$ ${(parseFloat(contract.value) - totalAtual).toFixed(2).replace('.', ',')}`);
     }
     const item = {
       id: generateId('bud'),
@@ -1747,70 +1709,47 @@ function handlePostBudgetItem(contractId, body, res) {
       type: body.type || 'outros',
       value: novoValor,
       notes: body.notes || '',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
-    contract.budget.push(item);
-    writeData('contracts.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    await repos.contracts.addBudgetItem(contractId, item);
+    sendJson(res, await repos.contracts.getEnvelope());
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handlePutBudgetItem(contractId, itemId, body, res) {
+async function handlePutBudgetItem(contractId, itemId, body, res) {
   try {
-    const data = readData('contracts.json');
-    const contract = data.contracts.find(c => c.id === contractId);
-    if (!contract) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
-      return;
-    }
-    const idx = (contract.budget || []).findIndex(b => b.id === itemId);
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Item não encontrado' }));
-      return;
-    }
-    if (body.value !== undefined) body.value = parseFloat(body.value) || 0;
-    if (body.value !== undefined && contract.value > 0) {
-      const outros = contract.budget.reduce((s, b, i) => i === idx ? s : s + (parseFloat(b.value) || 0), 0);
-      if (outros + body.value > contract.value + 0.01) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          error: `Orçamento ultrapassa o valor do contrato. Disponível: R$ ${(contract.value - outros).toFixed(2).replace('.', ',')}`
-        }));
-        return;
+    const contract = await repos.contracts.findById(contractId);
+    if (!contract) return sendError(res, 404, 'Contrato não encontrado');
+    const budget = contract.budget || [];
+    const idx = budget.findIndex(b => b.id === itemId);
+    if (idx === -1) return sendError(res, 404, 'Item não encontrado');
+
+    const patch = { ...body };
+    if (patch.value !== undefined) patch.value = parseFloat(patch.value) || 0;
+    if (patch.value !== undefined && contract.value > 0) {
+      const outros = budget.reduce((s, b, i) => i === idx ? s : s + (parseFloat(b.value) || 0), 0);
+      if (outros + patch.value > parseFloat(contract.value) + 0.01) {
+        return sendError(res, 400,
+          `Orçamento ultrapassa o valor do contrato. Disponível: R$ ${(parseFloat(contract.value) - outros).toFixed(2).replace('.', ',')}`);
       }
     }
-    contract.budget[idx] = { ...contract.budget[idx], ...body };
-    writeData('contracts.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    await repos.contracts.updateBudgetItem(contractId, itemId, patch);
+    sendJson(res, await repos.contracts.getEnvelope());
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleDeleteBudgetItem(contractId, itemId, res) {
+async function handleDeleteBudgetItem(contractId, itemId, res) {
   try {
-    const data = readData('contracts.json');
-    const contract = data.contracts.find(c => c.id === contractId);
-    if (!contract) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
-      return;
-    }
-    contract.budget = (contract.budget || []).filter(b => b.id !== itemId);
-    writeData('contracts.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const contract = await repos.contracts.findById(contractId);
+    if (!contract) return sendError(res, 404, 'Contrato não encontrado');
+    await repos.contracts.removeBudgetItem(contractId, itemId);
+    sendJson(res, await repos.contracts.getEnvelope());
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
@@ -1851,23 +1790,13 @@ function validarMembroOrganograma(body, organograma, membroIdAtual) {
   return null;
 }
 
-function handlePostMembroOrganograma(contractId, body, res) {
+async function handlePostMembroOrganograma(contractId, body, res) {
   try {
-    const data = readData('contracts.json');
-    const contract = data.contracts.find(c => c.id === contractId);
-    if (!contract) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
-      return;
-    }
-    if (!contract.organograma) contract.organograma = [];
+    const contract = await repos.contracts.findByIdWithChildren(contractId);
+    if (!contract) return sendError(res, 404, 'Contrato não encontrado');
 
-    const erro = validarMembroOrganograma(body, contract.organograma, null);
-    if (erro) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: erro }));
-      return;
-    }
+    const erro = validarMembroOrganograma(body, contract.organograma || [], null);
+    if (erro) return sendError(res, 400, erro);
 
     const membro = {
       id: generateId('org'),
@@ -1877,131 +1806,94 @@ function handlePostMembroOrganograma(contractId, body, res) {
       cargo: body.cargo,
       supervisorId: body.nivel === 'encarregado' ? null : (body.supervisorId || null),
       area: body.nivel === 'lider_area' ? String(body.area).trim() : null,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
-    contract.organograma.push(membro);
-    writeData('contracts.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    await repos.organograma.create(membro);
+    sendJson(res, await repos.contracts.getEnvelope());
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handlePutMembroOrganograma(contractId, membroId, body, res) {
+async function handlePutMembroOrganograma(contractId, membroId, body, res) {
   try {
-    const data = readData('contracts.json');
-    const contract = data.contracts.find(c => c.id === contractId);
-    if (!contract) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
-      return;
-    }
-    const idx = (contract.organograma || []).findIndex(m => m.id === membroId);
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Membro não encontrado' }));
-      return;
-    }
+    const contract = await repos.contracts.findByIdWithChildren(contractId);
+    if (!contract) return sendError(res, 404, 'Contrato não encontrado');
+    const lista = contract.organograma || [];
+    const atual = lista.find(m => m.id === membroId);
+    if (!atual) return sendError(res, 404, 'Membro não encontrado');
 
-    const atual = contract.organograma[idx];
     const merged = {
       recursoId:    body.recursoId    !== undefined ? body.recursoId    : atual.recursoId,
       nivel:        body.nivel        !== undefined ? body.nivel        : atual.nivel,
       cargo:        body.cargo        !== undefined ? body.cargo        : atual.cargo,
       supervisorId: body.supervisorId !== undefined ? body.supervisorId : atual.supervisorId,
-      area:         body.area         !== undefined ? body.area         : atual.area
+      area:         body.area         !== undefined ? body.area         : atual.area,
     };
+    const erro = validarMembroOrganograma(merged, lista, membroId);
+    if (erro) return sendError(res, 400, erro);
 
-    const erro = validarMembroOrganograma(merged, contract.organograma, membroId);
-    if (erro) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: erro }));
-      return;
-    }
-
-    contract.organograma[idx] = {
-      ...atual,
+    await repos.organograma.updateById(membroId, {
       recursoId: merged.recursoId,
       nivel: merged.nivel,
       cargo: merged.cargo,
       supervisorId: merged.nivel === 'encarregado' ? null : (merged.supervisorId || null),
       area: merged.nivel === 'lider_area' ? String(merged.area).trim() : null,
-      updatedAt: new Date().toISOString()
-    };
-    writeData('contracts.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    });
+    sendJson(res, await repos.contracts.getEnvelope());
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleDeleteMembroOrganograma(contractId, membroId, body, res, query) {
+async function handleDeleteMembroOrganograma(contractId, membroId, body, res, query) {
   try {
-    const data = readData('contracts.json');
-    const contract = data.contracts.find(c => c.id === contractId);
-    if (!contract) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
-      return;
-    }
+    const contract = await repos.contracts.findByIdWithChildren(contractId);
+    if (!contract) return sendError(res, 404, 'Contrato não encontrado');
     const lista = contract.organograma || [];
     const alvo = lista.find(m => m.id === membroId);
-    if (!alvo) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Membro não encontrado' }));
-      return;
-    }
+    if (!alvo) return sendError(res, 404, 'Membro não encontrado');
 
-    const mode = (query && query.mode) || 'strict'; // strict | reassign | cascade
+    const mode = (query && query.mode) || 'strict';
     const reassignTo = query && query.reassignTo;
 
     if (alvo.nivel === 'encarregado') {
-      const temLideres = lista.some(m => m.nivel === 'lider_area');
-      if (temLideres) {
-        res.writeHead(409, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Não é possível remover o encarregado enquanto houver líderes no organograma' }));
-        return;
+      if (lista.some(m => m.nivel === 'lider_area')) {
+        return sendError(res, 409, 'Não é possível remover o encarregado enquanto houver líderes no organograma');
       }
-      contract.organograma = lista.filter(m => m.id !== membroId);
+      await repos.organograma.removeById(membroId);
     } else if (alvo.nivel === 'lider_area') {
       const subordinados = lista.filter(m => m.supervisorId === membroId);
       if (subordinados.length > 0 && mode === 'strict') {
         res.writeHead(409, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           error: 'Líder possui profissionais vinculados. Informe mode=reassign&reassignTo=<liderId> ou mode=cascade',
-          subordinadosCount: subordinados.length
+          subordinadosCount: subordinados.length,
         }));
         return;
       }
       if (mode === 'reassign') {
         const novo = lista.find(m => m.id === reassignTo && m.nivel === 'lider_area' && m.id !== membroId);
-        if (!novo) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Líder de destino inválido' }));
-          return;
+        if (!novo) return sendError(res, 400, 'Líder de destino inválido');
+        for (const s of subordinados) {
+          await repos.organograma.updateById(s.id, { supervisorId: novo.id });
         }
-        contract.organograma = lista
-          .map(m => m.supervisorId === membroId ? { ...m, supervisorId: novo.id } : m)
-          .filter(m => m.id !== membroId);
+        await repos.organograma.removeById(membroId);
       } else if (mode === 'cascade') {
-        const idsRemover = new Set([membroId, ...subordinados.map(s => s.id)]);
-        contract.organograma = lista.filter(m => !idsRemover.has(m.id));
+        for (const s of subordinados) await repos.organograma.removeById(s.id);
+        await repos.organograma.removeById(membroId);
       } else {
-        contract.organograma = lista.filter(m => m.id !== membroId);
+        await repos.organograma.removeById(membroId);
       }
     } else {
-      contract.organograma = lista.filter(m => m.id !== membroId);
+      await repos.organograma.removeById(membroId);
     }
 
-    writeData('contracts.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    sendJson(res, await repos.contracts.getEnvelope());
+    return;
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
+    sendError(res, 400, e.message);
+    return;
     res.end(JSON.stringify({ error: e.message }));
   }
 }
@@ -2020,133 +1912,90 @@ function proxNumeroRdo(rdos) {
   return rdos.reduce((max, r) => Math.max(max, r.numero || 0), 0) + 1;
 }
 
-function handlePostRdo(contractId, body, res) {
+async function handlePostRdo(contractId, body, res) {
   try {
-    const data = readData('contracts.json');
-    const contract = data.contracts.find(c => c.id === contractId);
-    if (!contract) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
-      return;
-    }
-    if (!contract.rdos) contract.rdos = [];
+    const contract = await repos.contracts.findByIdWithChildren(contractId);
+    if (!contract) return sendError(res, 404, 'Contrato não encontrado');
 
-    const erro = validarRdo(body, contract.rdos, null);
-    if (erro) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: erro }));
-      return;
-    }
+    const erro = validarRdo(body, contract.rdos || [], null);
+    if (erro) return sendError(res, 400, erro);
 
     const rdo = {
       id: generateId('rdo'),
       contractId,
-      numero: proxNumeroRdo(contract.rdos),
+      numero: String(proxNumeroRdo(contract.rdos || [])),
       data: body.data,
       diaSemana: body.diaSemana || '',
       osNumero: body.osNumero || '',
       ordemCompra: body.ordemCompra || '',
       projeto: body.projeto || '',
-      prazo: body.prazo || { dataInicial: '', contratual: 0, decorrido: 0, faltante: 0, pctConcluida: 0 },
-      tempo: body.tempo || {
+      prazo: JSON.stringify(body.prazo || { dataInicial: '', contratual: 0, decorrido: 0, faltante: 0, pctConcluida: 0 }),
+      tempo: JSON.stringify(body.tempo || {
         manha:    { tempo: 'bom', condicoes: 'operavel' },
         tarde:    { tempo: 'bom', condicoes: 'operavel' },
         noiteAnt: { tempo: 'bom', condicoes: 'operavel' },
-        precipitacao: 0
-      },
+        precipitacao: 0,
+      }),
       periodoTrabalho: body.periodoTrabalho || '7:00 às 17:00',
-      horaExtra: !!body.horaExtra,
-      moi:  Array.isArray(body.moi)  ? body.moi  : [],
-      mod:  Array.isArray(body.mod)  ? body.mod  : [],
-      terc: Array.isArray(body.terc) ? body.terc : [],
-      equipamentos: Array.isArray(body.equipamentos) ? body.equipamentos : [],
-      atividades:   Array.isArray(body.atividades)   ? body.atividades   : [],
-      seguranca: body.seguranca || { acidente: 'nao_houve', diagnostico: '', admissoes: 0, demissoes: 0, comentarios: '' },
+      horaExtra: !!body.horaExtra ? 'true' : 'false',
+      moi:  JSON.stringify(Array.isArray(body.moi)  ? body.moi  : []),
+      mod:  JSON.stringify(Array.isArray(body.mod)  ? body.mod  : []),
+      terc: JSON.stringify(Array.isArray(body.terc) ? body.terc : []),
+      equipamentos: JSON.stringify(Array.isArray(body.equipamentos) ? body.equipamentos : []),
+      atividades:   JSON.stringify(Array.isArray(body.atividades)   ? body.atividades   : []),
+      seguranca: JSON.stringify(body.seguranca || { acidente: 'nao_houve', diagnostico: '', admissoes: 0, demissoes: 0, comentarios: '' }),
       fiscalizacaoComentarios: body.fiscalizacaoComentarios || '',
-      totais: body.totais || { moi: 0, mod: 0, terc: 0, eqp: 0, homensHora: 0, horasParadas: 0, equipamentoHora: 0 },
-      fotos: [],
+      totais: JSON.stringify(body.totais || { moi: 0, mod: 0, terc: 0, eqp: 0, homensHora: 0, horasParadas: 0, equipamentoHora: 0 }),
+      fotos: '[]',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
-    contract.rdos.push(rdo);
-    writeData('contracts.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    await repos.rdos.create(rdo);
+    sendJson(res, await repos.contracts.getEnvelope());
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handlePutRdo(contractId, rdoId, body, res) {
+async function handlePutRdo(contractId, rdoId, body, res) {
   try {
-    const data = readData('contracts.json');
-    const contract = data.contracts.find(c => c.id === contractId);
-    if (!contract) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
-      return;
-    }
-    const idx = (contract.rdos || []).findIndex(r => r.id === rdoId);
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'RDO não encontrado' }));
-      return;
-    }
-    const atual = contract.rdos[idx];
+    const contract = await repos.contracts.findByIdWithChildren(contractId);
+    if (!contract) return sendError(res, 404, 'Contrato não encontrado');
+    const atual = (contract.rdos || []).find(r => r.id === rdoId);
+    if (!atual) return sendError(res, 404, 'RDO não encontrado');
+
     const novaData = body.data !== undefined ? body.data : atual.data;
-    const erro = validarRdo({ ...body, data: novaData }, contract.rdos, rdoId);
-    if (erro) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: erro }));
-      return;
+    const erro = validarRdo({ ...body, data: novaData }, contract.rdos || [], rdoId);
+    if (erro) return sendError(res, 400, erro);
+
+    const allowed = {};
+    const stringFields = ['data', 'diaSemana', 'osNumero', 'ordemCompra', 'projeto', 'periodoTrabalho', 'fiscalizacaoComentarios'];
+    for (const f of stringFields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    const jsonbFields = ['prazo', 'tempo', 'moi', 'mod', 'terc', 'equipamentos', 'atividades', 'seguranca', 'totais'];
+    for (const f of jsonbFields) {
+      if (body[f] !== undefined) allowed[f] = JSON.stringify(body[f]);
     }
-    // merge preservando fotos (gerenciadas por endpoints próprios) e id/numero/createdAt
-    contract.rdos[idx] = {
-      ...atual,
-      ...body,
-      id: atual.id,
-      contractId: atual.contractId,
-      numero: atual.numero,
-      fotos: atual.fotos || [],
-      createdAt: atual.createdAt,
-      updatedAt: new Date().toISOString()
-    };
-    writeData('contracts.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    if (body.horaExtra !== undefined) allowed.horaExtra = !!body.horaExtra ? 'true' : 'false';
+    allowed.updatedAt = new Date().toISOString();
+
+    await repos.rdos.updateById(rdoId, allowed);
+    sendJson(res, await repos.contracts.getEnvelope());
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleDeleteRdo(contractId, rdoId, res) {
+async function handleDeleteRdo(contractId, rdoId, res) {
   try {
-    const data = readData('contracts.json');
-    const contract = data.contracts.find(c => c.id === contractId);
-    if (!contract) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
-      return;
-    }
-    const rdo = (contract.rdos || []).find(r => r.id === rdoId);
-    contract.rdos = (contract.rdos || []).filter(r => r.id !== rdoId);
-    writeData('contracts.json', data);
-
+    await repos.rdos.removeById(rdoId);
     // Remove pasta de fotos associada
-    if (rdo) {
-      const pastaFotos = path.join(RDO_FOTOS_DIR, rdoId);
-      try {
-        if (fs.existsSync(pastaFotos)) fs.rmSync(pastaFotos, { recursive: true, force: true });
-      } catch {}
-    }
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const pastaFotos = path.join(RDO_FOTOS_DIR, rdoId);
+    try {
+      if (fs.existsSync(pastaFotos)) fs.rmSync(pastaFotos, { recursive: true, force: true });
+    } catch {}
+    sendJson(res, await repos.contracts.getEnvelope());
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
@@ -2211,35 +2060,19 @@ function handlePostRdoFoto(contractId, rdoId, req, res) {
     chunks.push(c);
   });
 
-  req.on('end', () => {
+  req.on('end', async () => {
     try {
       const body = Buffer.concat(chunks);
       const parts = parseMultipart(body, boundary);
 
-      const data = readData('contracts.json');
-      const contract = data.contracts.find(c => c.id === contractId);
-      if (!contract) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
-        return;
-      }
-      const rdo = (contract.rdos || []).find(r => r.id === rdoId);
-      if (!rdo) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'RDO não encontrado' }));
-        return;
-      }
-      if (!rdo.fotos) rdo.fotos = [];
+      const rdo = await repos.rdos.findById(rdoId);
+      if (!rdo) return sendError(res, 404, 'RDO não encontrado');
 
       const legendaPart = parts.find(p => p.name === 'legenda');
       const legenda = legendaPart ? legendaPart.data.toString('utf8') : '';
 
       const arquivos = parts.filter(p => p.filename && p.data && p.data.length > 0);
-      if (arquivos.length === 0) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Nenhum arquivo enviado' }));
-        return;
-      }
+      if (arquivos.length === 0) return sendError(res, 400, 'Nenhum arquivo enviado');
 
       const pastaRdo = path.join(RDO_FOTOS_DIR, rdoId);
       if (!fs.existsSync(pastaRdo)) fs.mkdirSync(pastaRdo, { recursive: true });
@@ -2251,58 +2084,45 @@ function handlePostRdoFoto(contractId, rdoId, req, res) {
         const ext = (arq.filename.match(/\.[a-z0-9]+$/i) || ['.jpg'])[0].toLowerCase();
         const fotoId = generateId('foto');
         const filename = fotoId + ext;
-        const destino = path.join(pastaRdo, filename);
-        fs.writeFileSync(destino, arq.data);
-        const fotoObj = {
-          id: fotoId,
-          filename,
-          legenda,
+        fs.writeFileSync(path.join(pastaRdo, filename), arq.data);
+        adicionadas.push({
+          id: fotoId, filename, legenda,
           url: `/data/rdo-fotos/${rdoId}/${filename}`,
-          createdAt: new Date().toISOString()
-        };
-        rdo.fotos.push(fotoObj);
-        adicionadas.push(fotoObj);
+          createdAt: new Date().toISOString(),
+        });
       }
 
-      rdo.updatedAt = new Date().toISOString();
-      writeData('contracts.json', data);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ contracts: data.contracts, fotos: adicionadas }));
+      const fotos = (rdo.fotos || []).concat(adicionadas);
+      await repos.rdos.updateById(rdoId, {
+        fotos: JSON.stringify(fotos),
+        updatedAt: new Date().toISOString(),
+      });
+      const env = await repos.contracts.getEnvelope();
+      sendJson(res, { contracts: env.contracts, fotos: adicionadas });
     } catch (e) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
+      sendError(res, 400, e.message);
     }
   });
 }
 
-function handleDeleteRdoFoto(contractId, rdoId, fotoId, res) {
+async function handleDeleteRdoFoto(contractId, rdoId, fotoId, res) {
   try {
-    const data = readData('contracts.json');
-    const contract = data.contracts.find(c => c.id === contractId);
-    if (!contract) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Contrato não encontrado' }));
-      return;
-    }
-    const rdo = (contract.rdos || []).find(r => r.id === rdoId);
-    if (!rdo) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'RDO não encontrado' }));
-      return;
-    }
-    const foto = (rdo.fotos || []).find(f => f.id === fotoId);
+    const rdo = await repos.rdos.findById(rdoId);
+    if (!rdo) return sendError(res, 404, 'RDO não encontrado');
+    const fotos = rdo.fotos || [];
+    const foto = fotos.find(f => f.id === fotoId);
     if (foto) {
       const filepath = path.join(RDO_FOTOS_DIR, rdoId, foto.filename);
       try { if (fs.existsSync(filepath)) fs.unlinkSync(filepath); } catch {}
     }
-    rdo.fotos = (rdo.fotos || []).filter(f => f.id !== fotoId);
-    rdo.updatedAt = new Date().toISOString();
-    writeData('contracts.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const novasFotos = fotos.filter(f => f.id !== fotoId);
+    await repos.rdos.updateById(rdoId, {
+      fotos: JSON.stringify(novasFotos),
+      updatedAt: new Date().toISOString(),
+    });
+    sendJson(res, await repos.contracts.getEnvelope());
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
@@ -2351,10 +2171,44 @@ function serveStaticFile(pathname, res) {
   res.end(fs.readFileSync(filepath));
 }
 
+// ============ Observabilidade ============
+const APP_START = Date.now();
+const metrics = {
+  requests: 0,
+  by_status: { '2xx': 0, '3xx': 0, '4xx': 0, '5xx': 0 },
+  by_method: { GET: 0, POST: 0, PUT: 0, DELETE: 0 },
+  errors: 0,
+};
+
+function logEvent(obj) {
+  // Logging estruturado em uma linha JSON (fácil de parsear em CloudWatch/Loki/etc)
+  console.log(JSON.stringify({ ts: new Date().toISOString(), ...obj }));
+}
+
 // ============ Request handler ============
 const server = http.createServer((req, res) => {
   const parsedUrl = url.parse(req.url, true);
   const pathname = parsedUrl.pathname;
+  const requestId = crypto.randomBytes(6).toString('hex');
+  const t0 = Date.now();
+  res.setHeader('X-Request-Id', requestId);
+
+  // Hook no res.end pra emitir log + atualizar métricas
+  const origEnd = res.end.bind(res);
+  res.end = function (...args) {
+    const ms = Date.now() - t0;
+    const status = res.statusCode;
+    metrics.requests++;
+    const bucket = status >= 500 ? '5xx' : status >= 400 ? '4xx' : status >= 300 ? '3xx' : '2xx';
+    metrics.by_status[bucket]++;
+    if (metrics.by_method[req.method] !== undefined) metrics.by_method[req.method]++;
+    if (status >= 500) metrics.errors++;
+    // Não loga assets estáticos para não poluir
+    if (pathname.startsWith('/api/') || status >= 400) {
+      logEvent({ rid: requestId, m: req.method, p: pathname, s: status, ms });
+    }
+    return origEnd(...args);
+  };
 
   // CORS: restrict to same-origin / localhost only
   const origin = req.headers.origin || '';
@@ -2374,8 +2228,12 @@ const server = http.createServer((req, res) => {
   const isRdoFotoUpload = req.method === 'POST'
     && /^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/fotos$/.test(pathname);
   if (isRdoFotoUpload) {
-    const parts = pathname.split('/');
-    return handlePostRdoFoto(parts[3], parts[5], req, res);
+    (async () => {
+      if (await applyAuthMiddleware(req, res, pathname)) return;
+      const parts = pathname.split('/');
+      handlePostRdoFoto(parts[3], parts[5], req, res);
+    })();
+    return;
   }
 
   // Parse body for POST/PUT requests
@@ -2393,20 +2251,79 @@ const server = http.createServer((req, res) => {
       }
       body += chunk;
     });
-    req.on('end', () => {
+    req.on('end', async () => {
       try {
         body = body ? JSON.parse(body) : {};
       } catch (e) {
         body = {};
       }
-      routeRequest(pathname, req.method, body, res, parsedUrl);
+      if (await applyAuthMiddleware(req, res, pathname)) return;
+      routeRequest(pathname, req.method, body, res, parsedUrl, req);
     });
   } else {
-    routeRequest(pathname, req.method, null, res, parsedUrl);
+    (async () => {
+      if (await applyAuthMiddleware(req, res, pathname)) return;
+      routeRequest(pathname, req.method, null, res, parsedUrl, req);
+    })();
   }
 });
 
-function routeRequest(pathname, method, body, res, parsedUrl) {
+// Middleware: rotas /api/* exigem sessão, exceto whitelist abaixo.
+const AUTH_WHITELIST = new Set([
+  '/api/health',
+  '/api/metrics',
+  '/api/auth/login',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+]);
+async function applyAuthMiddleware(req, res, pathname) {
+  if (!pathname.startsWith('/api/')) return false;
+
+  // Rate limit global pra /api/* — 1000 req / min por IP (anti-DDoS / abuso)
+  const rlGlobal = rateLimit.check(rateLimit.clientKey(req, 'global'), { max: 1000, windowMs: 60 * 1000 });
+  if (!rlGlobal.ok) {
+    res.setHeader('Retry-After', rlGlobal.retryAfterSec);
+    sendError(res, 429, 'Limite de requisições atingido. Aguarde um momento.');
+    return true;
+  }
+
+  if (AUTH_WHITELIST.has(pathname)) return false;
+  try {
+    const sid = auth.parseCookies(req)[auth.COOKIE_NAME];
+    const user = await auth.getUserBySession(sid);
+    if (!user) {
+      sendError(res, 401, 'Não autenticado');
+      return true;
+    }
+    req.user = user;
+    return false;
+  } catch (e) {
+    sendError(res, 500, e.message);
+    return true;
+  }
+}
+
+function routeRequest(pathname, method, body, res, parsedUrl, req) {
+  // ============ Auth routes ============
+  if (pathname === '/api/auth/login' && method === 'POST') return handleLogin(req, body, res);
+  if (pathname === '/api/auth/logout' && method === 'POST') return handleLogout(req, res);
+  if (pathname === '/api/auth/me' && method === 'GET') return handleMe(req, res);
+  if (pathname === '/api/auth/forgot-password' && method === 'POST') return handleForgotPassword(req, body, res);
+  if (pathname === '/api/auth/reset-password' && method === 'POST') return handleResetPassword(body, res);
+  if (pathname === '/api/auth/accept-terms' && method === 'POST') return handleAcceptTerms(req, res);
+
+  // ============ RDOs (visão global) ============
+  if (pathname === '/api/rdos' && method === 'GET') return handleGetRdosGlobal(res);
+
+  // ============ Users CRUD ============
+  if (pathname === '/api/users' && method === 'GET') return handleGetUsers(res);
+  if (pathname === '/api/users' && method === 'POST') return handlePostUser(body, res);
+  if (pathname.match(/^\/api\/users\/[^/]+$/) && method === 'PUT') {
+    return handlePutUser(pathname.split('/')[3], body, res);
+  }
+  if (pathname.match(/^\/api\/users\/[^/]+$/) && method === 'DELETE') {
+    return handleDeleteUser(pathname.split('/')[3], req, res);
+  }
   // API routes
   if (pathname === '/api/contracts' && method === 'GET') {
     return handleGetContracts(res);
@@ -2519,6 +2436,12 @@ function routeRequest(pathname, method, body, res, parsedUrl) {
   }
   if (pathname === '/api/backup' && method === 'POST') {
     return handleBackup(res);
+  }
+  if (pathname === '/api/health' && method === 'GET') {
+    return handleHealth(res);
+  }
+  if (pathname === '/api/metrics' && method === 'GET') {
+    return handleMetrics(res);
   }
 
   // Sócios routes
@@ -2661,46 +2584,37 @@ function routeRequest(pathname, method, body, res, parsedUrl) {
 }
 
 // ============ Níveis de Acesso handlers ============
-function handleGetNiveisAcesso(res) {
-  const data = readData('niveis_acesso.json');
+async function handleGetNiveisAcesso(res) {
+  const data = await readCollection('niveis_acesso.json', 'niveisAcesso', 'niveis');
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
 }
 
-function handlePutNivelAcesso(id, body, res) {
+async function handlePutNivelAcesso(id, body, res) {
   try {
-    const data = readData('niveis_acesso.json');
-    const idx = data.niveis.findIndex(n => n.id === id);
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Nível não encontrado' }));
-      return;
-    }
-    data.niveis[idx] = { ...data.niveis[idx], abas: body.abas || [] };
-    writeData('niveis_acesso.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const abas = JSON.stringify(body.abas || []);
+    const { envelope, result } = await writeCollection('niveisAcesso', 'niveis', (repo) => repo.updateById(id, { abas }));
+    if (!result) return sendError(res, 404, 'Nível não encontrado');
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 500, e.message);
   }
 }
 
 // ============ Recursos handlers ============
-function handleGetRecursos(res) {
-  const data = readData('recursos.json');
+async function handleGetRecursos(res) {
+  const data = await readCollection('recursos.json', 'recursos', 'recursos');
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
 }
 
-function handlePostRecurso(body, res) {
+async function handlePostRecurso(body, res) {
   try {
-    const data = readData('recursos.json');
     const recurso = {
       id: generateId('rec'),
       nome: body.nome || '',
       cpf: body.cpf || '',
-      dataNascimento: body.dataNascimento || '',
+      dataNascimento: body.dataNascimento || null,
       genero: body.genero || '',
       telefone: body.telefone || '',
       email: body.email || '',
@@ -2709,73 +2623,65 @@ function handlePostRecurso(body, res) {
       lng: body.lng || '',
       status: body.status || 'candidato',
       profissao: body.profissao || '',
-      dataAdmissao: body.dataAdmissao || '',
+      dataAdmissao: body.dataAdmissao || null,
       salario: parseFloat(body.salario) || 0,
       cnh: body.cnh || '',
       pis: body.pis || '',
-      dataDesligamento: body.dataDesligamento || '',
+      dataDesligamento: body.dataDesligamento || null,
       motivoDesligamento: body.motivoDesligamento || '',
       obsDesligamento: body.obsDesligamento || '',
       notas: body.notas || '',
       rdoCategoria: body.rdoCategoria || '',
+      folgas: '[]',
+      documentos: '[]',
+      historicoAlocacoes: '[]',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
-    data.recursos.push(recurso);
-    writeData('recursos.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('recursos', 'recursos', (repo) => repo.create(recurso));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handlePutRecurso(id, body, res) {
+async function handlePutRecurso(id, body, res) {
   try {
-    const data = readData('recursos.json');
-    const idx = data.recursos.findIndex(r => r.id === id);
-    if (idx === -1) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Recurso não encontrado' }));
-      return;
+    const allowed = {};
+    const fields = ['nome', 'cpf', 'genero', 'telefone', 'email', 'endereco', 'lat', 'lng',
+      'status', 'profissao', 'cnh', 'pis', 'motivoDesligamento', 'obsDesligamento', 'notas', 'rdoCategoria'];
+    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    // Datas: '' → null
+    for (const f of ['dataNascimento', 'dataAdmissao', 'dataDesligamento']) {
+      if (body[f] !== undefined) allowed[f] = body[f] || null;
     }
-    const allowedRec = {};
-    const recFields = ['nome', 'cpf', 'dataNascimento', 'genero', 'telefone', 'email', 'endereco', 'lat', 'lng',
-      'status', 'profissao', 'dataAdmissao', 'salario', 'cnh', 'pis', 'dataDesligamento',
-      'motivoDesligamento', 'obsDesligamento', 'notas', 'alocacaoAtual', 'rdoCategoria'];
-    for (const f of recFields) { if (body[f] !== undefined) allowedRec[f] = body[f]; }
-    if (allowedRec.salario !== undefined) allowedRec.salario = parseFloat(allowedRec.salario) || 0;
+    if (body.salario !== undefined) allowed.salario = parseFloat(body.salario) || 0;
+    if (body.alocacaoAtual !== undefined) {
+      allowed.alocacaoAtual = body.alocacaoAtual ? JSON.stringify(body.alocacaoAtual) : null;
+    }
+    allowed.updatedAt = new Date().toISOString();
 
-    data.recursos[idx] = { ...data.recursos[idx], ...allowedRec, id, updatedAt: new Date().toISOString() };
-    writeData('recursos.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope, result } = await writeCollection('recursos', 'recursos', (repo) => repo.updateById(id, allowed));
+    if (!result) return sendError(res, 404, 'Recurso não encontrado');
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleDeleteRecurso(id, res) {
+async function handleDeleteRecurso(id, res) {
   try {
-    const data = readData('recursos.json');
-    data.recursos = data.recursos.filter(r => r.id !== id);
-    writeData('recursos.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('recursos', 'recursos', (repo) => repo.removeById(id));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleAddFolga(id, body, res) {
+async function handleAddFolga(id, body, res) {
   try {
-    const data = readData('recursos.json');
-    const idx  = data.recursos.findIndex(r => r.id === id);
-    if (idx === -1) { res.writeHead(404); res.end(JSON.stringify({ error: 'Não encontrado' })); return; }
-    if (!data.recursos[idx].folgas) data.recursos[idx].folgas = [];
+    const rec = await repos.recursos.findById(id);
+    if (!rec) return sendError(res, 404, 'Não encontrado');
     const folga = {
       id: generateId('fol'),
       dataInicio:   body.dataInicio || '',
@@ -2783,53 +2689,50 @@ function handleAddFolga(id, body, res) {
       observacoes:  body.observacoes || '',
       passagemIda:   { comprada: false, valor: 0, dataCompra: null, financiadoPor: null, contractIdPagador: null, caixaEntryId: null, contaPagarId: null },
       passagemVolta: { comprada: false, valor: 0, dataCompra: null, financiadoPor: null, contractIdPagador: null, caixaEntryId: null, contaPagarId: null },
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
-    data.recursos[idx].folgas.push(folga);
-    writeData('recursos.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
-  } catch (e) { res.writeHead(400); res.end(JSON.stringify({ error: e.message })); }
+    const folgas = (rec.folgas || []).concat(folga);
+    const { envelope } = await writeCollection('recursos', 'recursos',
+      (repo) => repo.updateById(id, { folgas: JSON.stringify(folgas), updatedAt: new Date().toISOString() })
+    );
+    sendJson(res, envelope);
+  } catch (e) { sendError(res, 400, e.message); }
 }
 
-function handleDeleteFolga(recursoId, folgaId, res) {
+async function handleDeleteFolga(recursoId, folgaId, res) {
   try {
-    const data = readData('recursos.json');
-    const idx  = data.recursos.findIndex(r => r.id === recursoId);
-    if (idx === -1) { res.writeHead(404); res.end(JSON.stringify({ error: 'Não encontrado' })); return; }
-    data.recursos[idx].folgas = (data.recursos[idx].folgas || []).filter(f => f.id !== folgaId);
-    writeData('recursos.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
-  } catch (e) { res.writeHead(400); res.end(JSON.stringify({ error: e.message })); }
+    const rec = await repos.recursos.findById(recursoId);
+    if (!rec) return sendError(res, 404, 'Não encontrado');
+    const folgas = (rec.folgas || []).filter(f => f.id !== folgaId);
+    const { envelope } = await writeCollection('recursos', 'recursos',
+      (repo) => repo.updateById(recursoId, { folgas: JSON.stringify(folgas), updatedAt: new Date().toISOString() })
+    );
+    sendJson(res, envelope);
+  } catch (e) { sendError(res, 400, e.message); }
 }
 
-function handleComprarPassagem(recursoId, folgaId, body, res) {
+async function handleComprarPassagem(recursoId, folgaId, body, res) {
   try {
-    const data       = readData('recursos.json');
-    const caixaData  = readData('caixa.json');
-    const cpData     = readData('contas_pagar.json');
+    const recurso = await repos.recursos.findById(recursoId);
+    if (!recurso) return sendError(res, 404, 'Recurso não encontrado');
 
-    const rIdx = data.recursos.findIndex(r => r.id === recursoId);
-    if (rIdx === -1) { res.writeHead(404); res.end(JSON.stringify({ error: 'Recurso não encontrado' })); return; }
-    const recurso = data.recursos[rIdx];
-    const fIdx    = (recurso.folgas || []).findIndex(f => f.id === folgaId);
-    if (fIdx === -1) { res.writeHead(404); res.end(JSON.stringify({ error: 'Folga não encontrada' })); return; }
+    const folgas = recurso.folgas || [];
+    const fIdx = folgas.findIndex(f => f.id === folgaId);
+    if (fIdx === -1) return sendError(res, 404, 'Folga não encontrada');
 
-    const tipo        = body.tipo === 'ida' ? 'passagemIda' : 'passagemVolta';
-    const tipoLabel   = body.tipo === 'ida' ? 'Ida' : 'Volta';
-    const valor       = parseFloat(body.valor) || 0;
-    const folga       = recurso.folgas[fIdx];
+    const tipo      = body.tipo === 'ida' ? 'passagemIda' : 'passagemVolta';
+    const tipoLabel = body.tipo === 'ida' ? 'Ida' : 'Volta';
+    const valor     = parseFloat(body.valor) || 0;
+    const folga     = folgas[fIdx];
 
-    // Get contract/obra name for description
-    const contractId  = body.contractIdPagador || recurso.alocacaoAtual?.contractId || null;
+    const contractId = body.contractIdPagador || recurso.alocacaoAtual?.contractId || null;
     let obraLabel = '';
     if (contractId) {
-      const contracts = readData('contracts.json');
-      const ct = (contracts.contracts || []).find(c => c.id === contractId);
+      const ct = await repos.contracts.findById(contractId);
       if (ct) obraLabel = ` — ${ct.name}`;
     }
-    const descricao   = `Passagem de ${tipoLabel} — ${recurso.nome}${obraLabel}`;
+    const descricao = `Passagem de ${tipoLabel} — ${recurso.nome}${obraLabel}`;
+    const dataCompra = body.dataCompra || new Date().toISOString().split('T')[0];
 
     let caixaEntryId = null, contaPagarId = null;
 
@@ -2837,118 +2740,119 @@ function handleComprarPassagem(recursoId, folgaId, body, res) {
       const conta = {
         id: generateId('cp'), descricao,
         fornecedorId: null, numeroNF: '',
-        valor, dataEmissao: body.dataCompra || new Date().toISOString().split('T')[0],
-        dataVencimento: folga.dataInicio || '', status: 'pendente',
+        valor, dataEmissao: dataCompra,
+        dataVencimento: folga.dataInicio || null, status: 'pendente',
         dataPagamento: null, caixaEntryId: null,
         contractId: body.financiadoPor === 'contrato' ? (body.contractIdPagador || null) : null,
         category: 'passagem', observacoes: `Folga de ${recurso.nome}`,
-        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+        createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
       };
-      cpData.contas.push(conta);
-      writeData('contas_pagar.json', cpData);
+      await repos.contasPagar.create(conta);
       contaPagarId = conta.id;
     } else {
       const entry = {
         id: generateId('cxa'), type: 'saida', description: descricao,
-        value: valor, date: body.dataCompra || new Date().toISOString().split('T')[0],
+        value: valor, date: dataCompra,
         contractId: body.financiadoPor === 'contrato' ? (body.contractIdPagador || null) : null,
         baseItemId: null, category: 'passagem',
         notes: `Passagem ${tipoLabel} folga de ${recurso.nome}`,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
-      caixaData.entries.push(entry);
-      writeData('caixa.json', caixaData);
+      await repos.caixa.create(entry);
       caixaEntryId = entry.id;
     }
 
-    recurso.folgas[fIdx][tipo] = {
-      comprada: true, valor,
-      dataCompra:        body.dataCompra || new Date().toISOString().split('T')[0],
-      companhia:         body.companhia  || '',
-      numeroVoo:         body.numeroVoo  || '',
-      origem:            body.origem     || '',
-      destino:           body.destino    || '',
-      dataVoo:           body.dataVoo    || '',
-      horario:           body.horario    || '',
-      financiadoPor:     body.financiadoPor,
-      contractIdPagador: body.contractIdPagador || null,
-      caixaEntryId, contaPagarId
+    folgas[fIdx] = {
+      ...folga,
+      [tipo]: {
+        comprada: true, valor,
+        dataCompra,
+        companhia:         body.companhia  || '',
+        numeroVoo:         body.numeroVoo  || '',
+        origem:            body.origem     || '',
+        destino:           body.destino    || '',
+        dataVoo:           body.dataVoo    || '',
+        horario:           body.horario    || '',
+        financiadoPor:     body.financiadoPor,
+        contractIdPagador: body.contractIdPagador || null,
+        caixaEntryId, contaPagarId,
+      },
     };
-    writeData('recursos.json', data);
+    await repos.recursos.updateById(recursoId, {
+      folgas: JSON.stringify(folgas),
+      updatedAt: new Date().toISOString(),
+    });
 
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ recursos: data.recursos, caixa: caixaData, contas_pagar: cpData }));
-  } catch (e) { res.writeHead(400); res.end(JSON.stringify({ error: e.message })); }
+    sendJson(res, {
+      recursos: await repos.recursos.findAll(),
+      caixa: { entries: await repos.caixa.findAll() },
+      contas_pagar: { contas: await repos.contasPagar.findAll() },
+    });
+  } catch (e) { sendError(res, 400, e.message); }
 }
 
 // ============ Doc Templates handlers ============
-function handleGetDocTemplates(res) {
-  const data = readData('doc_templates.json');
+async function handleGetDocTemplates(res) {
+  const data = await readCollection('doc_templates.json', 'docTemplates', 'templates');
   if (!data.templates) data.templates = [];
   res.writeHead(200, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
 }
 
-function handlePostDocTemplate(body, res) {
+async function handlePostDocTemplate(body, res) {
   try {
-    const data = readData('doc_templates.json');
-    if (!data.templates) data.templates = [];
     const template = {
       id: generateId('tpl'),
       nome: body.nome || '',
       tipoDocumento: body.tipoDocumento || '',
       empresaId: body.empresaId || null,
-      checklist: Array.isArray(body.checklist) ? body.checklist : [],
-      periodicidadeMeses: parseInt(body.periodicidadeMeses) || 12,
-      createdAt: new Date().toISOString()
+      checklist: JSON.stringify(Array.isArray(body.checklist) ? body.checklist : []),
+      periodicidadeMeses: Number.isFinite(parseInt(body.periodicidadeMeses)) ? parseInt(body.periodicidadeMeses) : 12,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
-    data.templates.push(template);
-    writeData('doc_templates.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('docTemplates', 'templates', (repo) => repo.create(template));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handlePutDocTemplate(id, body, res) {
+async function handlePutDocTemplate(id, body, res) {
   try {
-    const data = readData('doc_templates.json');
-    if (!data.templates) data.templates = [];
-    const idx = data.templates.findIndex(t => t.id === id);
-    if (idx === -1) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Não encontrado' })); return; }
-    data.templates[idx] = { ...data.templates[idx], ...body, id, updatedAt: new Date().toISOString() };
-    writeData('doc_templates.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const allowed = {};
+    const fields = ['nome', 'tipoDocumento', 'empresaId'];
+    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    if (body.checklist !== undefined) {
+      allowed.checklist = JSON.stringify(Array.isArray(body.checklist) ? body.checklist : []);
+    }
+    if (body.periodicidadeMeses !== undefined) {
+      allowed.periodicidadeMeses = Number.isFinite(parseInt(body.periodicidadeMeses)) ? parseInt(body.periodicidadeMeses) : 12;
+    }
+    allowed.updatedAt = new Date().toISOString();
+
+    const { envelope, result } = await writeCollection('docTemplates', 'templates', (repo) => repo.updateById(id, allowed));
+    if (!result) return sendError(res, 404, 'Não encontrado');
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
-function handleDeleteDocTemplate(id, res) {
+async function handleDeleteDocTemplate(id, res) {
   try {
-    const data = readData('doc_templates.json');
-    if (!data.templates) data.templates = [];
-    data.templates = data.templates.filter(t => t.id !== id);
-    writeData('doc_templates.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
+    const { envelope } = await writeCollection('docTemplates', 'templates', (repo) => repo.removeById(id));
+    sendJson(res, envelope);
   } catch (e) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    sendError(res, 400, e.message);
   }
 }
 
 // ============ Documentos de colaboradores handlers ============
-function handleAddDocumento(recursoId, body, res) {
+async function handleAddDocumento(recursoId, body, res) {
   try {
-    const data = readData('recursos.json');
-    const idx = data.recursos.findIndex(r => r.id === recursoId);
-    if (idx === -1) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Recurso não encontrado' })); return; }
-    if (!data.recursos[idx].documentos) data.recursos[idx].documentos = [];
+    const rec = await repos.recursos.findById(recursoId);
+    if (!rec) return sendError(res, 404, 'Recurso não encontrado');
     const doc = {
       id: generateId('doc'),
       tipo:           body.tipo || '',
@@ -2960,52 +2864,48 @@ function handleAddDocumento(recursoId, body, res) {
       observacoes:    body.observacoes || '',
       nomeArquivo:    body.nomeArquivo || null,
       createdAt:  new Date().toISOString(),
-      updatedAt:  new Date().toISOString()
+      updatedAt:  new Date().toISOString(),
     };
-    data.recursos[idx].documentos.push(doc);
-    writeData('recursos.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
-  } catch (e) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); }
+    const documentos = (rec.documentos || []).concat(doc);
+    const { envelope } = await writeCollection('recursos', 'recursos',
+      (repo) => repo.updateById(recursoId, { documentos: JSON.stringify(documentos), updatedAt: new Date().toISOString() })
+    );
+    sendJson(res, envelope);
+  } catch (e) { sendError(res, 400, e.message); }
 }
 
-function handlePutDocumento(recursoId, docId, body, res) {
+async function handlePutDocumento(recursoId, docId, body, res) {
   try {
-    const data = readData('recursos.json');
-    const rIdx = data.recursos.findIndex(r => r.id === recursoId);
-    if (rIdx === -1) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Recurso não encontrado' })); return; }
-    const docs = data.recursos[rIdx].documentos || [];
+    const rec = await repos.recursos.findById(recursoId);
+    if (!rec) return sendError(res, 404, 'Recurso não encontrado');
+    const docs = rec.documentos || [];
     const dIdx = docs.findIndex(d => d.id === docId);
-    if (dIdx === -1) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Documento não encontrado' })); return; }
-    data.recursos[rIdx].documentos[dIdx] = {
-      ...data.recursos[rIdx].documentos[dIdx],
-      ...body,
-      id: docId,
-      updatedAt: new Date().toISOString()
-    };
-    writeData('recursos.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
-  } catch (e) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); }
+    if (dIdx === -1) return sendError(res, 404, 'Documento não encontrado');
+    docs[dIdx] = { ...docs[dIdx], ...body, id: docId, updatedAt: new Date().toISOString() };
+    const { envelope } = await writeCollection('recursos', 'recursos',
+      (repo) => repo.updateById(recursoId, { documentos: JSON.stringify(docs), updatedAt: new Date().toISOString() })
+    );
+    sendJson(res, envelope);
+  } catch (e) { sendError(res, 400, e.message); }
 }
 
-function handleDeleteDocumento(recursoId, docId, res) {
+async function handleDeleteDocumento(recursoId, docId, res) {
   try {
-    const data = readData('recursos.json');
-    const rIdx = data.recursos.findIndex(r => r.id === recursoId);
-    if (rIdx === -1) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Recurso não encontrado' })); return; }
-    data.recursos[rIdx].documentos = (data.recursos[rIdx].documentos || []).filter(d => d.id !== docId);
-    writeData('recursos.json', data);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(data));
-  } catch (e) { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: e.message })); }
+    const rec = await repos.recursos.findById(recursoId);
+    if (!rec) return sendError(res, 404, 'Recurso não encontrado');
+    const docs = (rec.documentos || []).filter(d => d.id !== docId);
+    const { envelope } = await writeCollection('recursos', 'recursos',
+      (repo) => repo.updateById(recursoId, { documentos: JSON.stringify(docs), updatedAt: new Date().toISOString() })
+    );
+    sendJson(res, envelope);
+  } catch (e) { sendError(res, 400, e.message); }
 }
 
-function handleGetDocumentosStatus(res) {
+async function handleGetDocumentosStatus(res) {
   try {
-    const data = readData('recursos.json');
+    const recursos = await repos.recursos.findAll();
     const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-    const ativos = (data.recursos || []).filter(r => r.status === 'funcionario');
+    const ativos = recursos.filter(r => r.status === 'funcionario');
     let totalDocs = 0, vigentes = 0, vencidos = 0, vencendo = 0, pendentes = 0;
 
     ativos.forEach(r => {
@@ -3036,12 +2936,29 @@ function handleGetDocumentosStatus(res) {
 }
 
 // Export for testing; start only when run directly
+async function bootstrap() {
+  try {
+    const db = require('./db');
+    await db.ping();
+    console.log('[server] Postgres conectado');
+    await auth.bootstrapAdmin();
+    await auth.purgeExpiredSessions();
+    // Limpa sessões expiradas a cada hora
+    setInterval(() => auth.purgeExpiredSessions().catch(() => {}), 60 * 60 * 1000);
+  } catch (e) {
+    console.error('[server] Falha ao conectar no Postgres:', e.message);
+    process.exit(1);
+  }
+}
+
 if (require.main === module) {
-  server.listen(PORT, () => {
-    console.log(`Rhino running at http://localhost:${PORT}`);
+  bootstrap().finally(() => {
+    server.listen(PORT, () => {
+      console.log(`Rhino running at http://localhost:${PORT}`);
+    });
   });
 } else {
-  server.listen(PORT);
+  bootstrap().finally(() => server.listen(PORT));
 }
 
 module.exports = { __server: server };

@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  const STORAGE_PREFIX = 'rino:';
+  const STORAGE_PREFIX = 'rhino:';
 
   const DEFAULTS = {
     'contracts.json':     { contracts: [], saidas: [] },
@@ -203,7 +203,7 @@ function handlePostSaida(contractId, body, res) {
         contractId,
         dataLimite: dataSaida,
         valor,
-        prazoRecebimento: parseInt(body.prazoRecebimento) || 30,
+        prazoRecebimento: (Number.isFinite(parseInt(body.prazoRecebimento)) ? parseInt(body.prazoRecebimento) : 30),
         observacoes: body.description || '',
         emitida: false,
         dataEmissaoReal: null,
@@ -313,7 +313,7 @@ function handlePutSaida(id, body, res) {
             contractId: saida.contractId,
             dataLimite: novaData,
             valor: valorFinal,
-            prazoRecebimento: parseInt(body.prazoRecebimento) || 30,
+            prazoRecebimento: (Number.isFinite(parseInt(body.prazoRecebimento)) ? parseInt(body.prazoRecebimento) : 30),
             observacoes: allowedSaida.description || saida.description || '',
             emitida: false,
             dataEmissaoReal: null,
@@ -324,6 +324,17 @@ function handlePutSaida(id, body, res) {
           nfData.notas_fiscais.push(nfNova);
           allowedSaida.nfId = nfNova.id;
           allowedSaida.numeroBm = numeroNf;
+        }
+      }
+
+      // Atualiza prazoRecebimento da NF associada (modo browser/offline).
+      if (body.prazoRecebimento !== undefined) {
+        const novoPrazo = (Number.isFinite(parseInt(body.prazoRecebimento)) ? parseInt(body.prazoRecebimento) : 30);
+        const finalNfId = allowedSaida.nfId || saida.nfId;
+        const targetNf = (nfData.notas_fiscais || []).find(n => n.id === finalNfId);
+        if (targetNf && !targetNf.emitida && targetNf.prazoRecebimento !== novoPrazo) {
+          targetNf.prazoRecebimento = novoPrazo;
+          targetNf.updatedAt = new Date().toISOString();
         }
       }
 
@@ -756,14 +767,14 @@ function handleDashboard(res, query) {
       const entradasEsperadas = notasFiscais.notas_fiscais
         .filter(nf => !nf.emitida && nf.valor > 0)
         .filter(nf => {
-          const prazo = parseInt(nf.prazoRecebimento) || 30;
+          const prazo = (Number.isFinite(parseInt(nf.prazoRecebimento)) ? parseInt(nf.prazoRecebimento) : 30);
           const dtEmissao = new Date(nf.dataLimite + 'T12:00:00');
           const dtRecebimento = new Date(dtEmissao);
           dtRecebimento.setDate(dtRecebimento.getDate() + prazo);
           return dtRecebimento.toISOString().split('T')[0] === diaStr;
         })
         .map(nf => {
-          const prazo = parseInt(nf.prazoRecebimento) || 30;
+          const prazo = (Number.isFinite(parseInt(nf.prazoRecebimento)) ? parseInt(nf.prazoRecebimento) : 30);
           return {
             nfId: nf.id,
             numero: nf.numero,
@@ -1508,7 +1519,7 @@ function handlePostNotaFiscal(body, res) {
       contractId: body.contractId,
       dataLimite: body.dataLimite,
       valor: parseFloat(body.valor) || 0,
-      prazoRecebimento: parseInt(body.prazoRecebimento) || 30,
+      prazoRecebimento: (Number.isFinite(parseInt(body.prazoRecebimento)) ? parseInt(body.prazoRecebimento) : 30),
       observacoes: body.observacoes || '',
       emitida: false,
       dataEmissaoReal: null,
@@ -1541,7 +1552,7 @@ function handlePutNotaFiscal(id, body, res) {
     const nfFields = ['numero', 'contractId', 'dataLimite', 'valor', 'prazoRecebimento', 'observacoes', 'dataEmissaoReal'];
     for (const f of nfFields) { if (body[f] !== undefined) allowedNF[f] = body[f]; }
     if (allowedNF.valor !== undefined) allowedNF.valor = parseFloat(allowedNF.valor) || 0;
-    if (allowedNF.prazoRecebimento !== undefined) allowedNF.prazoRecebimento = parseInt(allowedNF.prazoRecebimento) || 30;
+    if (allowedNF.prazoRecebimento !== undefined) allowedNF.prazoRecebimento = (Number.isFinite(parseInt(allowedNF.prazoRecebimento)) ? parseInt(allowedNF.prazoRecebimento) : 30);
 
     data.notas_fiscais[idx] = {
       ...existing,
@@ -1625,7 +1636,7 @@ function handleEmitirNotaFiscal(id, body, res) {
 
     // Data real de emissão (informada pelo usuário ou hoje)
     const dataEmissaoReal = body.dataEmissaoReal || new Date().toISOString().split('T')[0];
-    const prazo = parseInt(nf.prazoRecebimento) || 30;
+    const prazo = (Number.isFinite(parseInt(nf.prazoRecebimento)) ? parseInt(nf.prazoRecebimento) : 30);
 
     // Calcular data prevista de recebimento
     const dtEmissao = new Date(dataEmissaoReal + 'T12:00:00');
@@ -2149,7 +2160,7 @@ function handleDeleteRdo(contractId, rdoId, res) {
 const FOTO_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const FOTO_MAX_BYTES = 2 * 1024 * 1024; // 2MB por foto em modo local (cabe no localStorage)
 
-// No modo browser recebemos fotos já convertidas para data URL via __rinoRdoFotoUpload.
+// No modo browser recebemos fotos já convertidas para data URL via __rhinoRdoFotoUpload.
 // A interceptação de fetch transforma FormData em { fotos: [{filename, dataUrl, legenda}] }.
 function handlePostRdoFoto(contractId, rdoId, body, res) {
   try {
@@ -2971,13 +2982,13 @@ function handleGetDocumentosStatus(res) {
   })();
 
   // Expõe utilitários para depuração
-  window.__rinoApi = { readData, writeData, generateId, handleApiRequest };
-  window.__rinoResetData = function () {
+  window.__rhinoApi = { readData, writeData, generateId, handleApiRequest };
+  window.__rhinoResetData = function () {
     Object.keys(localStorage)
       .filter(k => k.startsWith(STORAGE_PREFIX))
       .forEach(k => localStorage.removeItem(k));
     location.reload();
   };
 
-  console.log('[Rino] Modo local ativo — dados salvos no navegador (localStorage).');
+  console.log('[Rhino] Modo local ativo — dados salvos no navegador (localStorage).');
 })();

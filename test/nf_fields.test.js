@@ -101,7 +101,7 @@ const put = (urlPath, body) => request('PUT', urlPath, body);
 
 before(async () => {
   // Isolated temp directory — never touches real data
-  testDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rino-test-'));
+  testDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'rhino-test-'));
   fs.mkdirSync(path.join(testDataDir, 'backups'), { recursive: true });
 
   // Seed minimal files the server expects at startup

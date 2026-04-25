@@ -48,6 +48,38 @@ npm start                    # sobe o server em http://localhost:3001
 
 O `server.js` serve os arquivos estáticos e expõe `/api/*` lendo/gravando em `data/`. Backups automáticos ficam em `data/backups/` (mantém 10 por arquivo).
 
+## Docker (app + Postgres)
+
+A configuração Docker prepara o terreno pra migrar a persistência de JSON para Postgres e pra deploy em VPS.
+
+**Pré-requisitos**: Docker Desktop instalado.
+
+```bash
+# 1) Copie .env.example pra .env (já vem com senha gerada se você usou o setup)
+cp .env.example .env
+
+# 2) Suba o stack (app + banco)
+docker compose up -d --build
+
+# 3) Acesse
+# App:    http://localhost:3001
+# Banco:  postgres://rhino:<senha>@localhost:5432/rhino
+
+# 4) Logs / parar
+docker compose logs -f
+docker compose down            # para sem apagar dados
+docker compose down -v         # apaga volume do banco (CUIDADO)
+```
+
+**O que o stack inclui hoje**:
+- `rhino` — app Node atual (ainda usando JSON via volume `./data`)
+- `db` — Postgres 16 com schema inicial em `db/schema.sql` aplicado no primeiro `up`
+
+**Próximos passos** (não feitos ainda):
+- Refatorar `server.js` pra usar Postgres no lugar de JSON
+- Script `migrate-json-to-pg.js` pra importar os dados atuais
+- Remover montagem do volume `./data` quando a migração concluir
+
 ## Deploy (Firebase)
 
 ```bash
@@ -65,4 +97,4 @@ node functions/migrate-data.js
 
 ## Perfis de acesso
 
-O controle de abas é feito por perfil via `/api/niveis-acesso`. O perfil selecionado é guardado em `sessionStorage` (`rino-perfil`) e restringe as rotas visíveis na sidebar.
+O controle de abas é feito por perfil via `/api/niveis-acesso`. O perfil selecionado é guardado em `sessionStorage` (`rhino-perfil`) e restringe as rotas visíveis na sidebar.

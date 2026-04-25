@@ -20,13 +20,13 @@
       "contractId": "ctr_moantqh8cdc71c49",
       "dataLimite": "2026-04-21",
       "valor": 301000,
-      "prazoRecebimento": 30,
+      "prazoRecebimento": 77,
       "observacoes": "",
       "emitida": false,
       "dataEmissaoReal": null,
       "caixaEntryId": null,
       "createdAt": "2026-04-23T02:53:09.403Z",
-      "updatedAt": "2026-04-24T01:13:42.246Z"
+      "updatedAt": "2026-04-25T01:01:16.734Z"
     }
   ]
 }

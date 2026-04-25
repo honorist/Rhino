@@ -1,0 +1,40 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+server.log
+
+# Test artifacts
+test
+test-results
+playwright-report
+playwright.config.js
+
+# Local data + backups (montados via volume em prod)
+data/backups
+data/rdo-fotos
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Firebase (deploy separado)
+firebase.json
+.firebaserc
+functions/node_modules
+
+# Docker meta
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Backups locais
+Rhino_backup_*

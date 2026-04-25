@@ -1,0 +1,16 @@
+# Substitua "rhino.example.com" pelo seu domínio.
+# Caddy obtém SSL via Let's Encrypt automaticamente.
+rhino.example.com {
+    encode zstd gzip
+    reverse_proxy rhino:3001 {
+        header_up X-Real-IP {remote_host}
+        health_uri /api/health
+        health_interval 30s
+        health_timeout 5s
+    }
+    # Block access to sensitive paths
+    @forbidden {
+        path /data/* /db/* /scripts/* /node_modules/* /.env /.env.example /Dockerfile /docker-compose*.yml /package*.json
+    }
+    respond @forbidden 403
+}

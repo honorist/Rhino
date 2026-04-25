@@ -1,14 +1,14 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 
-const BASE_URL = process.env.RINO_URL || 'http://localhost:5000';
+const BASE_URL = process.env.RHINO_URL || 'http://localhost:5000';
 
 // Helper: resetar dados (estado limpo a cada teste)
 async function freshApp(page) {
   await page.goto(BASE_URL);
   await page.evaluate(() => {
     try {
-      Object.keys(localStorage).filter(k => k.startsWith('rino:') || k.startsWith('rino-')).forEach(k => localStorage.removeItem(k));
+      Object.keys(localStorage).filter(k => k.startsWith('rhino:') || k.startsWith('rhino-')).forEach(k => localStorage.removeItem(k));
       sessionStorage.clear();
     } catch {}
   });
@@ -84,7 +84,7 @@ async function expectNoJsError(page, label) {
 
 // =====================================================================
 
-test.describe('Rino — smoke test completo', () => {
+test.describe('Rhino — smoke test completo', () => {
   /** @type {string[]} */
   let errors;
 
@@ -312,7 +312,102 @@ test.describe('Rino — smoke test completo', () => {
   });
 
   // -------------------------------------------------------------------
-  test('12. Navegação por todas as abas sem erro JS', async ({ page }) => {
+  test('12a. Contrato — adicionar e excluir saída', async ({ page }) => {
+    // Cria cliente + contrato
+    await goto(page, '#/clientes');
+    await page.click('#btnNovoCliente');
+    await fillModal(page, { nome: 'Cli Saida', empresa: 'Obra Saida' });
+
+    await goto(page, '#/contratos');
+    await page.click('#btnNovoContrato');
+    await page.waitForSelector('#modalOverlay', { state: 'visible' });
+    const selCli = page.locator('#modalOverlay [name="clientId"]');
+    const optsCli = await selCli.locator('option').allInnerTexts();
+    const idxCli = optsCli.findIndex(o => /Cli Saida/i.test(o));
+    await selCli.selectOption({ index: idxCli >= 0 ? idxCli : 1 });
+    await page.locator('#modalOverlay [name="name"]').fill('Contrato Saida');
+    await fillCurrency(page.locator('#modalOverlay [name="value"]'), '50000');
+    await page.locator('#modalOverlay #btnSalvar').evaluate(el => el.click());
+    await page.waitForSelector('#modalOverlay', { state: 'detached', timeout: 5000 }).catch(() => {});
+
+    // Abre o contrato criado (clica no card)
+    await page.locator('#app').getByText('Contrato Saida').first().click();
+    await page.waitForTimeout(400);
+
+    // Vai na aba Financeiro
+    await page.locator('[data-ctd-tab="financeiro"]').click();
+    await page.waitForTimeout(300);
+
+    // Clica em + Adicionar Saída
+    await page.click('#btnNovaSaida');
+    await page.waitForSelector('#modalOverlay', { state: 'visible' });
+    await page.locator('#modalOverlay [name="description"]').fill('Compra de cimento');
+    await page.locator('#modalOverlay [name="type"]').selectOption('material').catch(() => {});
+    await fillCurrency(page.locator('#modalOverlay [name="value"]'), '3500');
+    await page.locator('#modalOverlay [name="date"]').fill('2026-04-15');
+    await page.locator('#modalOverlay #btnSalvar').evaluate(el => el.click());
+    await page.waitForSelector('#modalOverlay', { state: 'detached', timeout: 5000 }).catch(() => {});
+
+    // Verifica que aparece
+    await expect(page.locator('#app')).toContainText('Compra de cimento');
+    await expect(page.locator('#app')).toContainText('R$ 3.500,00');
+
+    // Exclui a saída
+    page.on('dialog', d => d.accept());
+    await page.locator('.btn-excluir-saida').first().click();
+    await page.waitForTimeout(500);
+    await expect(page.locator('#app')).not.toContainText('Compra de cimento');
+  });
+
+  // -------------------------------------------------------------------
+  test('12b. Contrato — orçamento respeita valor do contrato', async ({ page }) => {
+    await goto(page, '#/clientes');
+    await page.click('#btnNovoCliente');
+    await fillModal(page, { nome: 'Cli Orc', empresa: 'Orc Ltda' });
+
+    await goto(page, '#/contratos');
+    await page.click('#btnNovoContrato');
+    await page.waitForSelector('#modalOverlay', { state: 'visible' });
+    const selCli2 = page.locator('#modalOverlay [name="clientId"]');
+    const optsCli2 = await selCli2.locator('option').allInnerTexts();
+    const idx2 = optsCli2.findIndex(o => /Cli Orc/i.test(o));
+    await selCli2.selectOption({ index: idx2 >= 0 ? idx2 : 1 });
+    await page.locator('#modalOverlay [name="name"]').fill('Contrato Orcamento');
+    await fillCurrency(page.locator('#modalOverlay [name="value"]'), '10000');
+    await page.locator('#modalOverlay #btnSalvar').evaluate(el => el.click());
+    await page.waitForSelector('#modalOverlay', { state: 'detached', timeout: 5000 }).catch(() => {});
+
+    await page.locator('#app').getByText('Contrato Orcamento').first().click();
+    await page.waitForTimeout(400);
+    await page.locator('[data-ctd-tab="financeiro"]').click();
+    await page.waitForTimeout(300);
+
+    // Primeiro item: 6.000 (OK)
+    await page.click('#btnNovoItemOrcamento');
+    await page.waitForSelector('#modalOverlay', { state: 'visible' });
+    await page.locator('#modalOverlay [name="description"]').fill('Mão de obra');
+    await page.locator('#modalOverlay [name="type"]').selectOption('mao_de_obra').catch(() => {});
+    await fillCurrency(page.locator('#modalOverlay [name="value"]'), '6000');
+    await page.locator('#modalOverlay #btnSalvar').evaluate(el => el.click());
+    await page.waitForSelector('#modalOverlay', { state: 'detached', timeout: 5000 }).catch(() => {});
+    await expect(page.locator('#app')).toContainText('Mão de obra');
+
+    // Segundo item: 5.000 (ultrapassa — deve falhar)
+    page.on('dialog', d => d.accept());
+    await page.click('#btnNovoItemOrcamento');
+    await page.waitForSelector('#modalOverlay', { state: 'visible' });
+    await page.locator('#modalOverlay [name="description"]').fill('Material excedente');
+    await page.locator('#modalOverlay [name="type"]').selectOption('material').catch(() => {});
+    await fillCurrency(page.locator('#modalOverlay [name="value"]'), '5000');
+    await page.locator('#modalOverlay #btnSalvar').evaluate(el => el.click());
+    // O modal não deve fechar (item rejeitado)
+    await page.waitForTimeout(1000);
+    // Item não deve aparecer na tabela
+    await expect(page.locator('#app')).not.toContainText('Material excedente');
+  });
+
+  // -------------------------------------------------------------------
+  test('13. Navegação por todas as abas sem erro JS', async ({ page }) => {
     const rotas = [
       '#/dashboard', '#/contratos', '#/obras', '#/clientes', '#/recursos',
       '#/documentos', '#/fornecedores', '#/caixa', '#/contas-pagar',

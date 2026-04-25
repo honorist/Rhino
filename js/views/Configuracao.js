@@ -24,6 +24,9 @@ window.Configuracao = {
             ${this.renderMenuItem('tipos_custo', '🏷️', 'Tipos de Custo')}
             ${this.renderMenuItem('niveis_acesso', '🔐', 'Níveis de Acesso')}
             ${this.renderMenuItem('doc_templates', '📋', 'Templates de Docs')}
+            <a href="#/usuarios" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;text-decoration:none;color:var(--color-text);margin-top:4px;border-top:1px solid var(--color-border);padding-top:14px;">
+              <span>👥</span><span>Usuários e Logins</span>
+            </a>
           </nav>
 
           <!-- Conteúdo da seção -->
@@ -146,19 +149,27 @@ window.Configuracao = {
     const todasAbas = [
       { route: '#/dashboard',     label: 'Dashboard',       icon: '▦', grupo: 'Principal' },
       { route: '#/contratos',     label: 'Contratos',       icon: '≣', grupo: 'Principal' },
+      { route: '#/rdos',          label: 'RDOs (todos)',    icon: '⊟', grupo: 'Principal' },
       { route: '#/obras',         label: 'Mapa de Obras',   icon: '⊚', grupo: 'Principal' },
-      { route: '#/clientes',      label: 'Clientes',        icon: '◎', grupo: 'Principal' },
-      { route: '#/fornecedores',  label: 'Fornecedores',    icon: '⬡', grupo: 'Principal' },
       { route: '#/base',          label: 'BASE',            icon: '⊟', grupo: 'Principal' },
+      { route: '#/clientes',      label: 'Clientes',        icon: '◎', grupo: 'RH' },
+      { route: '#/fornecedores',  label: 'Fornecedores',    icon: '⬡', grupo: 'RH' },
+      { route: '#/recursos',      label: 'Recursos',        icon: '◉', grupo: 'RH' },
+      { route: '#/documentos',    label: 'Documentação',    icon: '⊞', grupo: 'RH' },
       { route: '#/caixa',         label: 'Caixa',           icon: '◇', grupo: 'Financeiro' },
       { route: '#/contas-pagar',  label: 'Contas a Pagar',  icon: '⊖', grupo: 'Financeiro' },
       { route: '#/notas-fiscais', label: 'Notas Fiscais',   icon: '☐', grupo: 'Financeiro' },
       { route: '#/socios',        label: 'Sócios',          icon: '⊕', grupo: 'Financeiro' },
       { route: '#/investimentos', label: 'Aportes',         icon: '△', grupo: 'Financeiro' },
       { route: '#/configuracao',  label: 'Configuração',    icon: '⊙', grupo: 'Sistema' },
+      { route: 'contrato-tab:visao',      label: 'Visão Geral',  icon: '◉', grupo: 'Abas dentro do Contrato' },
+      { route: 'contrato-tab:financeiro', label: 'Financeiro',   icon: '◈', grupo: 'Abas dentro do Contrato' },
+      { route: 'contrato-tab:equipe',     label: 'Equipe',       icon: '◎', grupo: 'Abas dentro do Contrato' },
+      { route: 'contrato-tab:rdo',        label: 'RDO',          icon: '📋', grupo: 'Abas dentro do Contrato' },
+      { route: 'contrato-tab:pendencias', label: 'Pendências',   icon: '⚠', grupo: 'Abas dentro do Contrato' },
     ];
 
-    const grupos = ['Principal', 'Financeiro', 'Sistema'];
+    const grupos = ['Principal', 'RH', 'Financeiro', 'Sistema', 'Abas dentro do Contrato'];
 
     return `
       <div class="page-header" style="margin-bottom:var(--sp-lg);">

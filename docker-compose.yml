@@ -1,0 +1,52 @@
+services:
+  rhino:
+    build: .
+    container_name: rhino-app
+    ports:
+      - "${APP_PORT:-3001}:3001"
+    environment:
+      PORT: 3001
+      NODE_ENV: production
+      DATA_DIR: /app/data
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    volumes:
+      # Persiste dados JSON (transição até migrar pro Postgres)
+      - ./data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - rhino-net
+
+  db:
+    image: postgres:16-alpine
+    container_name: rhino-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    ports:
+      # Expor só pra debug local; remova em produção
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - rhino-net
+
+volumes:
+  pg_data:
+    driver: local
+
+networks:
+  rhino-net:
+    driver: bridge

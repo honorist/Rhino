@@ -1,0 +1,168 @@
+// Tela de Usuários — gerencia logins e perfis de acesso
+const Usuarios = {
+  async render() {
+    const root = document.getElementById('app');
+    await Store.loadUsers().catch(() => {});
+    // Garante níveis carregados
+    if (!Store.state.niveis_acesso || Store.state.niveis_acesso.length === 0) {
+      try {
+        const r = await fetch('/api/niveis-acesso').then(res => res.json());
+        Store.state.niveis_acesso = r.niveis || [];
+      } catch {}
+    }
+
+    const users = Store.state.users || [];
+    const niveis = Store.state.niveis_acesso || [];
+    const niveisById = Object.fromEntries(niveis.map(n => [n.id, n]));
+    const meEmail = (window.auth && window.auth.user && window.auth.user()) ? window.auth.user().email : '';
+
+    root.innerHTML = `
+      <div class="page-header">
+        <h1 class="page-title">Usuários e Acessos</h1>
+        <button class="btn btn-primary" id="btnNovoUser">+ Novo Usuário</button>
+      </div>
+
+      <p style="color:var(--color-text-muted);margin-bottom:var(--sp-md);font-size:14px;">
+        Cada usuário precisa de email + senha para entrar e tem um <strong>nível de acesso</strong> (perfil),
+        que define quais abas ele vê.
+      </p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Nome</th>
+            <th>Nível de acesso</th>
+            <th>Status</th>
+            <th>Último login</th>
+            <th style="width:120px;">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${users.length === 0 ? `<tr><td colspan="6" style="text-align:center;color:var(--color-text-muted);padding:var(--sp-xl);">Nenhum usuário ainda</td></tr>` : ''}
+          ${users.map(u => {
+            const nivel = niveisById[u.nivelAcessoId];
+            const ehVoce = u.email === meEmail;
+            return `
+              <tr>
+                <td>
+                  ${escapeHtml(u.email)}
+                  ${ehVoce ? '<span style="color:var(--color-text-muted);font-size:12px;margin-left:6px;">(você)</span>' : ''}
+                </td>
+                <td>${escapeHtml(u.name || '—')}</td>
+                <td>
+                  ${nivel ? `<span style="color:${nivel.cor};font-weight:600;">${nivel.icon} ${nivel.label}</span>` : '<span style="color:var(--color-text-muted);">sem nível</span>'}
+                </td>
+                <td>${u.isActive ? '<span style="color:#10b981;">Ativo</span>' : '<span style="color:#aaa;">Desativado</span>'}</td>
+                <td>${u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString('pt-BR') : '—'}</td>
+                <td>
+                  <button class="btn btn-sm btn-secondary btn-edit-user" data-id="${u.id}" title="Editar">✏️</button>
+                  ${ehVoce ? '' : `<button class="btn btn-sm btn-secondary btn-del-user" data-id="${u.id}" data-email="${escapeHtml(u.email)}" title="Excluir">🗑</button>`}
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+
+    document.getElementById('btnNovoUser').addEventListener('click', () => this.showModal(null));
+    document.querySelectorAll('.btn-edit-user').forEach(b => b.addEventListener('click', e => this.showModal(e.currentTarget.dataset.id)));
+    document.querySelectorAll('.btn-del-user').forEach(b => b.addEventListener('click', async e => {
+      const id = e.currentTarget.dataset.id;
+      const email = e.currentTarget.dataset.email;
+      if (!confirm(`Excluir o usuário ${email}?`)) return;
+      try {
+        await Store.deleteUser(id);
+        window.showToast('Usuário excluído', 'success');
+        this.render();
+      } catch (ex) {
+        window.showToast(ex.message, 'error');
+      }
+    }));
+  },
+
+  showModal(id) {
+    const user = id ? (Store.state.users || []).find(u => u.id === id) : null;
+    const niveis = Store.state.niveis_acesso || [];
+    const title = user ? 'Editar Usuário' : 'Novo Usuário';
+
+    const html = `
+      <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+          <div class="modal-header">
+            <h2 class="modal-title">${title}</h2>
+            <button class="modal-close">✕</button>
+          </div>
+          <form id="formUser" class="modal-content">
+            <div class="form-group">
+              <label class="form-label">Email *</label>
+              <input class="form-control" name="email" type="email" value="${escapeHtml(user?.email || '')}" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nome</label>
+              <input class="form-control" name="name" value="${escapeHtml(user?.name || '')}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">${user ? 'Nova senha (deixe vazio para não alterar)' : 'Senha *'}</label>
+              <input class="form-control" name="password" type="password" autocomplete="new-password" minlength="6" ${user ? '' : 'required'}>
+              <small style="color:var(--color-text-muted);">Mínimo 6 caracteres.</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nível de acesso</label>
+              <select class="form-control" name="nivelAcessoId">
+                <option value="">— sem nível (sem restrição) —</option>
+                ${niveis.map(n => `<option value="${n.id}" ${user?.nivelAcessoId === n.id ? 'selected' : ''}>${n.icon} ${n.label}</option>`).join('')}
+              </select>
+            </div>
+            ${user ? `
+              <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;">
+                  <input type="checkbox" name="isActive" ${user.isActive ? 'checked' : ''}>
+                  <span>Usuário ativo (pode fazer login)</span>
+                </label>
+              </div>
+            ` : ''}
+          </form>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnCancelar">Cancelar</button>
+            <button class="btn btn-primary" id="btnSalvar">${user ? 'Atualizar' : 'Criar'}</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalOverlay');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnCancelar').addEventListener('click', close);
+
+    document.getElementById('btnSalvar').addEventListener('click', async () => {
+      const fd = new FormData(document.getElementById('formUser'));
+      const data = {
+        email: fd.get('email'),
+        name: fd.get('name') || null,
+        nivelAcessoId: fd.get('nivelAcessoId') || null,
+      };
+      const pwd = fd.get('password');
+      if (pwd) data.password = pwd;
+      if (user) data.isActive = !!fd.get('isActive');
+
+      try {
+        if (user) {
+          await Store.updateUser(user.id, data);
+          window.showToast('Usuário atualizado', 'success');
+        } else {
+          await Store.createUser(data);
+          window.showToast('Usuário criado', 'success');
+        }
+        close();
+        this.render();
+      } catch (e) {
+        window.showToast(e.message, 'error');
+      }
+    });
+  },
+};
+
+window.Usuarios = Usuarios;

@@ -14,6 +14,146 @@
       "setor": "",
       "lat": "-20.7866799",
       "lng": "-51.7061247"
+    },
+    {
+      "id": "cli_mod6wd789df186e5",
+      "nome": "João Silva",
+      "empresa": "Klabin",
+      "telefone": "(42) 99999-0001",
+      "email": "joao.silva@klabin.com.br",
+      "endereco": "Telêmaco Borba, Paraná, Brasil",
+      "notas": "",
+      "createdAt": "2026-04-24T17:33:54.264Z",
+      "updatedAt": "2026-04-24T17:33:54.264Z"
+    },
+    {
+      "id": "cli_mod6wd84dbd544e6",
+      "nome": "Maria Santos",
+      "empresa": "Bracell",
+      "telefone": "(14) 99999-0002",
+      "email": "maria.santos@bracell.com",
+      "endereco": "Lençóis Paulista, São Paulo, Brasil",
+      "notas": "",
+      "createdAt": "2026-04-24T17:33:54.292Z",
+      "updatedAt": "2026-04-24T17:33:54.292Z"
+    },
+    {
+      "id": "cli_mod6wd8ae12a05ce",
+      "nome": "Carlos Oliveira",
+      "empresa": "CMPC Celulose Riograndense",
+      "telefone": "(51) 99999-0003",
+      "email": "carlos.oliveira@cmpc.com.br",
+      "endereco": "Guaíba, Rio Grande do Sul, Brasil",
+      "notas": "",
+      "createdAt": "2026-04-24T17:33:54.298Z",
+      "updatedAt": "2026-04-24T17:33:54.298Z"
+    },
+    {
+      "id": "cli_mod6wd8ge754857a",
+      "nome": "Ana Pereira",
+      "empresa": "Eldorado Brasil",
+      "telefone": "(67) 99999-0004",
+      "email": "ana.pereira@eldoradobrasil.com.br",
+      "endereco": "Três Lagoas, Mato Grosso do Sul, Brasil",
+      "notas": "",
+      "createdAt": "2026-04-24T17:33:54.304Z",
+      "updatedAt": "2026-04-24T17:33:54.304Z"
+    },
+    {
+      "id": "cli_mod6wd8n332437a0",
+      "nome": "Roberto Costa",
+      "empresa": "Veracel Celulose",
+      "telefone": "(73) 99999-0005",
+      "email": "roberto.costa@veracel.com.br",
+      "endereco": "Eunápolis, Bahia, Brasil",
+      "notas": "",
+      "createdAt": "2026-04-24T17:33:54.312Z",
+      "updatedAt": "2026-04-24T17:33:54.312Z"
+    },
+    {
+      "id": "cli_mod6yigm21d4272b",
+      "nome": "João Silva",
+      "empresa": "Klabin",
+      "telefone": "(42) 99999-0001",
+      "email": "joao.silva@klabin.com.br",
+      "endereco": "Telêmaco Borba, Paraná, Brasil",
+      "notas": "",
+      "createdAt": "2026-04-24T17:35:34.390Z",
+      "updatedAt": "2026-04-24T17:35:34.390Z"
+    },
+    {
+      "id": "cli_mod6yigz4a89ecf6",
+      "nome": "Maria Santos",
+      "empresa": "Bracell",
+      "telefone": "(14) 99999-0002",
+      "email": "maria.santos@bracell.com",
+      "endereco": "Lençóis Paulista, São Paulo, Brasil",
+      "notas": "",
+      "createdAt": "2026-04-24T17:35:34.404Z",
+      "updatedAt": "2026-04-24T17:35:34.404Z"
+    },
+    {
+      "id": "cli_mod6yih632772234",
+      "nome": "Carlos Oliveira",
+      "empresa": "CMPC Celulose Riograndense",
+      "telefone": "(51) 99999-0003",
+      "email": "carlos.oliveira@cmpc.com.br",
+      "endereco": "Guaíba, Rio Grande do Sul, Brasil",
+      "notas": "",
+      "createdAt": "2026-04-24T17:35:34.410Z",
+      "updatedAt": "2026-04-24T17:35:34.410Z"
+    },
+    {
+      "id": "cli_mod6yihd2fab02cf",
+      "nome": "Ana Pereira",
+      "empresa": "Eldorado Brasil",
+      "telefone": "(67) 99999-0004",
+      "email": "ana.pereira@eldoradobrasil.com.br",
+      "endereco": "Três Lagoas, Mato Grosso do Sul, Brasil",
+      "notas": "",
+      "createdAt": "2026-04-24T17:35:34.417Z",
+      "updatedAt": "2026-04-24T17:35:34.417Z"
+    },
+    {
+      "id": "cli_mod6yihj63d0a1c0",
+      "nome": "Roberto Costa",
+      "empresa": "Veracel Celulose",
+      "telefone": "(73) 99999-0005",
+      "email": "roberto.costa@veracel.com.br",
+      "endereco": "Eunápolis, Bahia, Brasil",
+      "notas": "",
+      "createdAt": "2026-04-24T17:35:34.423Z",
+      "updatedAt": "2026-04-24T17:35:34.423Z"
+    },
+    {
+      "id": "cli_modmnugo68751f2a",
+      "nome": "Teste FASE5",
+      "empresa": "Acme",
+      "cargo": "",
+      "setor": "",
+      "telefone": "",
+      "email": "a@b.com",
+      "endereco": "",
+      "lat": "",
+      "lng": "",
+      "notas": "",
+      "createdAt": "2026-04-25T00:55:10.584Z",
+      "updatedAt": "2026-04-25T00:55:10.584Z"
+    },
+    {
+      "id": "cli_modmoopz16369bce",
+      "nome": "Teste FASE5",
+      "empresa": "Acme",
+      "cargo": "",
+      "setor": "",
+      "telefone": "",
+      "email": "a@b.com",
+      "endereco": "",
+      "lat": "",
+      "lng": "",
+      "notas": "",
+      "createdAt": "2026-04-25T00:55:49.799Z",
+      "updatedAt": "2026-04-25T00:55:49.799Z"
     }
   ]
 }

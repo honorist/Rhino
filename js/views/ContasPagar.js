@@ -185,7 +185,7 @@ window.ContasPagar = {
                       })()
                     : '';
                   return `
-                    <tr>
+                    <tr class="row-cp" data-id="${c.id}" style="cursor:pointer;">
                       <td>
                         <strong>${escapeHtml(c.descricao) || '—'}</strong>
                         ${c.numeroNF ? `<div style="font-size:15px;color:var(--color-text-muted);">NF ${escapeHtml(c.numeroNF)}</div>` : ''}
@@ -236,18 +236,84 @@ window.ContasPagar = {
         this.filtroStatus = e.target.dataset.status;
         this.render();
       }));
-      document.querySelectorAll('.btn-pagar').forEach(b => b.addEventListener('click', e => this.showModalPagar(e.target.dataset.id)));
-      document.querySelectorAll('.btn-estornar').forEach(b => b.addEventListener('click', e => this.estornar(e.target.dataset.id)));
+      document.querySelectorAll('.btn-pagar').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); this.showModalPagar(e.target.dataset.id); }));
+      document.querySelectorAll('.btn-estornar').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); this.estornar(e.target.dataset.id); }));
       document.querySelectorAll('.btn-editar-cp').forEach(b => b.addEventListener('click', e => {
+        e.stopPropagation();
         const conta = (Store.state.contas_pagar || []).find(c => c.id === e.target.dataset.id);
         this.showModal(conta);
       }));
-      document.querySelectorAll('.btn-excluir-cp').forEach(b => b.addEventListener('click', e => this.excluir(e.target.dataset.id)));
+      document.querySelectorAll('.btn-excluir-cp').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); this.excluir(e.target.dataset.id); }));
+
+      document.querySelectorAll('.row-cp').forEach(tr => {
+        tr.addEventListener('click', e => {
+          if (e.target.closest('.actions-cell')) return;
+          this.showDetail(tr.dataset.id);
+        });
+      });
 
     } catch (e) {
       console.error(e);
       app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar contas a pagar. Tente novamente.</p></div>';
     }
+  },
+
+  showDetail(id) {
+    const c = (Store.state.contas_pagar || []).find(x => x.id === id);
+    if (!c) return;
+    const fmtD = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+    const fornecedor = c.fornecedorId ? (Store.state.fornecedores || []).find(f => f.id === c.fornecedorId) : null;
+    const contract = c.contractId ? Store.getContractById(c.contractId) : null;
+    const dias = c.dataVencimento ? Math.floor((new Date(c.dataVencimento) - new Date()) / 86400000) : null;
+    const vencida = c.status === 'pendente' && dias !== null && dias < 0;
+
+    const row = (lbl, val) => val ? `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--color-border);"><span style="color:var(--color-text-muted);">${lbl}</span><span style="font-weight:500;text-align:right;">${val}</span></div>` : '';
+
+    const html = `
+      <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" style="width:620px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">${escapeHtml(c.descricao) || '—'}</h2>
+              <div style="margin-top:6px;">
+                <span class="badge" style="background:${c.status === 'pago' ? 'rgba(56,161,105,.15)' : vencida ? 'rgba(229,62,62,.15)' : 'rgba(214,158,46,.12)'};color:${c.status === 'pago' ? 'var(--color-success)' : vencida ? 'var(--color-danger)' : 'var(--color-warning)'};">${c.status === 'pago' ? 'Pago' : vencida ? 'Vencida' : 'Pendente'}</span>
+                <span style="font-size:22px;font-weight:700;color:var(--color-danger);margin-left:12px;">${Store.formatBRL(c.valor)}</span>
+              </div>
+            </div>
+            <button class="modal-close">✕</button>
+          </div>
+          <div class="modal-content">
+            ${row('Fornecedor',      fornecedor ? escapeHtml(fornecedor.nome) : null)}
+            ${row('Nº NF',           c.numeroNF ? escapeHtml(c.numeroNF) : null)}
+            ${row('Data de Emissão', fmtD(c.dataEmissao))}
+            ${row('Vencimento',      c.dataVencimento ? `${fmtD(c.dataVencimento)} ${dias !== null ? `<span style="color:var(--color-text-muted);font-size:13px;">(${dias < 0 ? Math.abs(dias) + ' dias vencida' : dias === 0 ? 'hoje' : 'em ' + dias + ' dias'})</span>` : ''}` : null)}
+            ${row('Categoria',       c.category ? escapeHtml(c.category) : null)}
+            ${row('Contrato',        contract ? `<a href="#/contratos/${contract.id}" style="color:var(--color-primary);">${escapeHtml(contract.name)}</a>` : null)}
+            ${c.status === 'pago' ? `
+              ${row('Data do Pagto.',  fmtD(c.dataPagamento))}
+              ${row('Valor Pago',      c.valorPago != null ? Store.formatBRL(c.valorPago) : null)}
+              ${row('Forma de Pagto.', c.formaPagamento ? escapeHtml(c.formaPagamento) : null)}
+            ` : ''}
+            ${row('Observações',     c.observacoes ? escapeHtml(c.observacoes) : null)}
+            <div style="font-size:12px;color:var(--color-text-muted);margin-top:var(--sp-md);font-family:monospace;">ID: ${escapeHtml(c.id)}</div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnDetClose">Fechar</button>
+            ${c.status === 'pendente'
+              ? `<button class="btn btn-primary" id="btnDetPagar" style="background:var(--color-success);border-color:var(--color-success);">Marcar como pago</button>`
+              : `<button class="btn btn-secondary" id="btnDetEstornar">Estornar</button>`}
+          </div>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalOverlay');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnDetClose').addEventListener('click', close);
+    const bPagar = document.getElementById('btnDetPagar');
+    if (bPagar) bPagar.addEventListener('click', () => { close(); this.showModalPagar(id); });
+    const bEst = document.getElementById('btnDetEstornar');
+    if (bEst) bEst.addEventListener('click', () => { close(); this.estornar(id); });
   },
 
   showModal(conta) {

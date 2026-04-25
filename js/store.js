@@ -24,6 +24,7 @@ window.Store = {
     niveis_acesso: [],
     recursos: [],
     doc_templates: [],
+    users: [],
     dashboard: null,
     loading: false,
     error: null
@@ -792,6 +793,41 @@ window.Store = {
     }
     const r = await res.json();
     this.state.contracts = r.contracts || []; this.notify(); return r;
+  },
+
+  // Users (admin)
+  async loadUsers() {
+    const res = await fetch('/api/users');
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this.state.users = r.users || []; this.notify(); return r;
+  },
+  async createUser(data) {
+    const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Falha ao criar usuário');
+    }
+    const r = await res.json();
+    this.state.users = r.users || []; this.notify(); return r;
+  },
+  async updateUser(id, data) {
+    const res = await fetch(`/api/users/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Falha ao atualizar');
+    }
+    const r = await res.json();
+    this.state.users = r.users || []; this.notify(); return r;
+  },
+  async deleteUser(id) {
+    const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Falha ao deletar');
+    }
+    const r = await res.json();
+    this.state.users = r.users || []; this.notify(); return r;
   },
 
   // Clientes

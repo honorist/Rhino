@@ -1,4 +1,4 @@
-// Manual do Usuário — guia passo a passo com ilustrações visuais
+// Manual do Usuário — versão 2.0 com fluxogramas SVG profissionais.
 window.Manual = {
   _secao: 'inicio',
 
@@ -8,301 +8,600 @@ window.Manual = {
     this._attachListeners();
   },
 
+  // ═════════════ Helpers de SVG ═════════════
+  _svgDefs() {
+    return `
+      <defs>
+        <marker id="m-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+        </marker>
+        <marker id="m-arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/>
+        </marker>
+        <marker id="m-arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/>
+        </marker>
+      </defs>`;
+  },
+
+  _box(x, y, w, h, label, opts = {}) {
+    const fill = opts.fill || '#1e293b';
+    const stroke = opts.stroke || '#475569';
+    const textColor = opts.text || '#f1f5f9';
+    const rounded = opts.r ?? 8;
+    const fs = opts.fs || 13;
+    const lines = String(label).split('\n');
+    const lh = fs + 4;
+    const startY = y + h/2 - ((lines.length - 1) * lh / 2);
+    return `
+      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rounded}" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
+      ${lines.map((l, i) => `<text x="${x + w/2}" y="${startY + i*lh}" text-anchor="middle" dominant-baseline="middle" fill="${textColor}" font-size="${fs}" font-weight="${opts.bold ? 700 : 600}" font-family="Nunito, sans-serif">${this._esc(l)}</text>`).join('')}
+    `;
+  },
+
+  _diamond(cx, cy, w, h, label, opts = {}) {
+    const fill = opts.fill || '#92400e';
+    const stroke = opts.stroke || '#f59e0b';
+    const text = opts.text || '#fff';
+    const points = `${cx},${cy - h/2} ${cx + w/2},${cy} ${cx},${cy + h/2} ${cx - w/2},${cy}`;
+    return `
+      <polygon points="${points}" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
+      <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" fill="${text}" font-size="12" font-weight="700" font-family="Nunito, sans-serif">${this._esc(label)}</text>
+    `;
+  },
+
+  _arrow(x1, y1, x2, y2, opts = {}) {
+    const color = opts.color || '#64748b';
+    const marker = opts.color === '#10b981' ? 'm-arrow-green' : opts.color === '#dc2626' ? 'm-arrow-red' : 'm-arrow';
+    let path;
+    if (opts.curve) {
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2 + (opts.curve || 0);
+      path = `M ${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}`;
+    } else {
+      path = `M ${x1} ${y1} L ${x2} ${y2}`;
+    }
+    return `
+      <path d="${path}" fill="none" stroke="${color}" stroke-width="2" marker-end="url(#${marker})" ${opts.dashed ? 'stroke-dasharray="6 4"' : ''}/>
+      ${opts.label ? `<text x="${(x1+x2)/2}" y="${(y1+y2)/2 + (opts.labelOffset || -8)}" text-anchor="middle" fill="${opts.labelColor || color}" font-size="11" font-weight="700" font-family="Nunito, sans-serif" style="paint-order:stroke;stroke:#0f172a;stroke-width:3px;stroke-linejoin:round;">${this._esc(opts.label)}</text>` : ''}
+    `;
+  },
+
+  _esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); },
+
+  // ═════════════ Fluxogramas ═════════════
+  _flowAuth() {
+    return `
+      <svg viewBox="0 0 700 280" style="width:100%;max-width:700px;background:#0f172a;border-radius:8px;">
+        ${this._svgDefs()}
+        ${this._box(20, 20, 140, 50, 'Acesso ao app',     { fill: '#1d4ed8', stroke: '#3b82f6', bold: true })}
+        ${this._box(220, 20, 160, 50, 'Tela de login\n(email + senha)')}
+        ${this._diamond(490, 45, 130, 60, 'Credenciais\nválidas?')}
+        ${this._box(580, 145, 100, 50, 'Erro:\n401 não autenticado', { fill: '#7f1d1d', stroke: '#dc2626' })}
+        ${this._box(220, 145, 160, 50, 'Sessão criada\n(cookie httpOnly)', { fill: '#065f46', stroke: '#10b981' })}
+        ${this._box(20, 145, 140, 50, 'App carrega\n+ perfil de acesso', { fill: '#065f46', stroke: '#10b981' })}
+        ${this._box(20, 220, 660, 40, 'Cookie expira em 30 dias · sessões em memória no Postgres · logout limpa tudo', { fill: '#1e293b', stroke: '#475569', fs: 12 })}
+        ${this._arrow(160, 45, 220, 45)}
+        ${this._arrow(380, 45, 425, 45)}
+        ${this._arrow(490, 75, 490, 145, { label: 'sim', color: '#10b981' })}
+        ${this._arrow(555, 75, 580, 145, { label: 'não',  color: '#dc2626' })}
+        ${this._arrow(490, 170, 380, 170, { color: '#10b981' })}
+        ${this._arrow(220, 170, 160, 170, { color: '#10b981' })}
+      </svg>`;
+  },
+
+  _flowSaida() {
+    return `
+      <svg viewBox="0 0 760 380" style="width:100%;max-width:760px;background:#0f172a;border-radius:8px;">
+        ${this._svgDefs()}
+        ${this._box(20, 20, 140, 50, 'Adicionar saída\nno contrato', { fill: '#1d4ed8', stroke: '#3b82f6', bold: true })}
+        ${this._box(220, 20, 160, 50, 'Informa valor + data\n+ prazo de recebimento')}
+        ${this._diamond(500, 45, 160, 70, 'Já existe NF\nmesmo dia, não\nemitida?')}
+        ${this._box(220, 150, 160, 50, 'Cria nova NF/BM\nseparada', { fill: '#1e293b', stroke: '#3b82f6' })}
+        ${this._box(500, 150, 160, 50, 'Soma valor à NF\nexistente', { fill: '#1e293b', stroke: '#3b82f6' })}
+        ${this._box(360, 240, 200, 50, 'Saída fica vinculada à NF\n(numeroBM, nfId)', { fill: '#065f46', stroke: '#10b981' })}
+        ${this._box(20, 320, 720, 40, 'Quando a NF é emitida → entrada agendada no caixa em (dataEmissão + prazo)', { fill: '#1e293b', stroke: '#475569', fs: 12 })}
+        ${this._arrow(160, 45, 220, 45)}
+        ${this._arrow(380, 45, 420, 45)}
+        ${this._arrow(440, 80, 300, 150, { label: 'não', color: '#dc2626' })}
+        ${this._arrow(560, 80, 580, 150, { label: 'sim', color: '#10b981' })}
+        ${this._arrow(300, 200, 400, 240, { color: '#10b981' })}
+        ${this._arrow(580, 200, 480, 240, { color: '#10b981' })}
+      </svg>`;
+  },
+
+  _flowNF() {
+    return `
+      <svg viewBox="0 0 760 280" style="width:100%;max-width:760px;background:#0f172a;border-radius:8px;">
+        ${this._svgDefs()}
+        ${this._box(20, 20, 130, 50, 'NF criada\n(BM pendente)', { fill: '#92400e', stroke: '#f59e0b', bold: true })}
+        ${this._box(200, 20, 130, 50, 'Editar prazo\nse necessário')}
+        ${this._box(380, 20, 130, 50, 'Marcar Emitida\n(informa data real)', { fill: '#1d4ed8', stroke: '#3b82f6', bold: true })}
+        ${this._box(560, 20, 180, 50, 'Cria entrada no caixa\n(prevista futura)', { fill: '#065f46', stroke: '#10b981' })}
+        ${this._box(380, 130, 130, 50, 'Receber NF\n(caixa lança)', { fill: '#065f46', stroke: '#10b981', bold: true })}
+        ${this._box(560, 130, 180, 50, 'Saldo do caixa\nefetivamente entra')}
+        ${this._box(380, 220, 130, 40, 'Cancelar emissão\n(estorno)', { fill: '#7f1d1d', stroke: '#dc2626', fs: 12 })}
+        ${this._box(560, 220, 180, 40, 'Remove entrada do caixa\n(volta a status BM)', { fill: '#1e293b', stroke: '#dc2626', fs: 12 })}
+        ${this._arrow(150, 45, 200, 45)}
+        ${this._arrow(330, 45, 380, 45)}
+        ${this._arrow(510, 45, 560, 45, { color: '#10b981' })}
+        ${this._arrow(650, 70, 650, 130, { color: '#10b981', dashed: true, label: 'no prazo', labelOffset: -4 })}
+        ${this._arrow(510, 155, 560, 155, { color: '#10b981' })}
+        ${this._arrow(445, 70, 445, 220, { color: '#dc2626', dashed: true, label: 'opcional', labelOffset: -4 })}
+        ${this._arrow(510, 240, 560, 240, { color: '#dc2626' })}
+      </svg>`;
+  },
+
+  _flowContaPagar() {
+    return `
+      <svg viewBox="0 0 760 320" style="width:100%;max-width:760px;background:#0f172a;border-radius:8px;">
+        ${this._svgDefs()}
+        ${this._box(20, 20, 140, 50, 'Lançar conta\na pagar', { fill: '#1d4ed8', stroke: '#3b82f6', bold: true })}
+        ${this._box(220, 20, 160, 50, 'Status: Pendente\nValor + vencimento')}
+        ${this._diamond(500, 45, 130, 60, 'Vencimento\npassou?')}
+        ${this._box(620, 130, 130, 50, 'Vencida\n(alerta vermelho)', { fill: '#7f1d1d', stroke: '#dc2626' })}
+        ${this._box(220, 130, 160, 50, 'Botão "Pagar"\n(informa data/valor/forma)', { fill: '#1d4ed8', stroke: '#3b82f6', bold: true })}
+        ${this._box(20, 130, 140, 50, 'Cria saída no caixa\n+ marca como Pago', { fill: '#065f46', stroke: '#10b981' })}
+        ${this._box(220, 230, 160, 50, 'Estornar\n(desfaz pagamento)', { fill: '#92400e', stroke: '#f59e0b' })}
+        ${this._box(20, 230, 140, 50, 'Remove entrada\nde caixa\n+ volta Pendente', { fill: '#1e293b', stroke: '#dc2626' })}
+        ${this._arrow(160, 45, 220, 45)}
+        ${this._arrow(380, 45, 435, 45)}
+        ${this._arrow(565, 45, 620, 130, { color: '#dc2626', label: 'sim', labelOffset: -2 })}
+        ${this._arrow(490, 75, 350, 130, { color: '#10b981', label: 'não', labelOffset: -4 })}
+        ${this._arrow(220, 155, 160, 155, { color: '#10b981' })}
+        ${this._arrow(300, 180, 300, 230, { color: '#dc2626', dashed: true })}
+        ${this._arrow(220, 255, 160, 255, { color: '#dc2626' })}
+      </svg>`;
+  },
+
+  _flowFolga() {
+    return `
+      <svg viewBox="0 0 800 380" style="width:100%;max-width:800px;background:#0f172a;border-radius:8px;">
+        ${this._svgDefs()}
+        ${this._box(20, 20, 160, 50, 'Recurso alocado\nno contrato', { fill: '#1d4ed8', stroke: '#3b82f6', bold: true })}
+        ${this._box(240, 20, 180, 50, 'Próxima folga calculada\n(data início + ciclo)')}
+        ${this._box(480, 20, 180, 50, 'Cadastrar folga\n(início + fim + obs.)')}
+        ${this._box(680, 20, 100, 50, 'Folga\nregistrada', { fill: '#065f46', stroke: '#10b981' })}
+        ${this._box(480, 110, 180, 50, 'Comprar passagem\n(ida e/ou volta)', { fill: '#1d4ed8', stroke: '#3b82f6', bold: true })}
+        ${this._diamond(180, 230, 180, 80, 'Quem paga?\n(financiadoPor)')}
+        ${this._diamond(480, 230, 180, 80, 'Como lançar?\n(tipoLancamento)')}
+        ${this._box(20, 320, 160, 40, 'Caixa empresa\n(sem contrato)', { fill: '#1e293b', stroke: '#3b82f6', fs: 12 })}
+        ${this._box(200, 320, 160, 40, 'Contrato específico\n(reduz margem)', { fill: '#1e293b', stroke: '#3b82f6', fs: 12 })}
+        ${this._box(380, 320, 160, 40, 'Saída direta no caixa\n(saldo cai já)', { fill: '#065f46', stroke: '#10b981', fs: 12 })}
+        ${this._box(560, 320, 160, 40, 'Conta a pagar pendente\n(saldo só cai depois)', { fill: '#92400e', stroke: '#f59e0b', fs: 12 })}
+        ${this._arrow(180, 45, 240, 45)}
+        ${this._arrow(420, 45, 480, 45)}
+        ${this._arrow(660, 45, 680, 45)}
+        ${this._arrow(570, 70, 570, 110)}
+        ${this._arrow(480, 135, 250, 195)}
+        ${this._arrow(570, 160, 480, 195)}
+        ${this._arrow(120, 270, 90, 320)}
+        ${this._arrow(240, 270, 270, 320)}
+        ${this._arrow(420, 270, 450, 320)}
+        ${this._arrow(540, 270, 620, 320)}
+      </svg>`;
+  },
+
+  _flowAporte() {
+    return `
+      <svg viewBox="0 0 800 320" style="width:100%;max-width:800px;background:#0f172a;border-radius:8px;">
+        ${this._svgDefs()}
+        ${this._box(20, 20, 140, 50, 'Aporte criado',           { fill: '#1d4ed8', stroke: '#3b82f6', bold: true })}
+        ${this._diamond(290, 45, 160, 70, 'Origem?')}
+        ${this._diamond(550, 45, 160, 70, 'Destino?')}
+        ${this._box(20,  150, 220, 50, 'Sócio: registra histórico\nde aportes (sem caixa)',  { fill: '#1e293b', stroke: '#3b82f6' })}
+        ${this._box(260, 150, 220, 50, 'Caixa empresa: cria saída\ncontábil automática',     { fill: '#7f1d1d', stroke: '#dc2626' })}
+        ${this._box(500, 150, 280, 50, 'Contrato: marca contractId\n(não cria item BASE)',   { fill: '#1e293b', stroke: '#3b82f6' })}
+        ${this._box(500, 220, 280, 50, 'BASE: cria item da BASE rastreável\n(allocations vazias)', { fill: '#065f46', stroke: '#10b981' })}
+        ${this._box(20, 240, 460, 40, 'Aporte preserva referência (caixaEntryId, baseItemId, contractId) p/ rastreio.', { fill: '#1e293b', stroke: '#475569', fs: 12 })}
+        ${this._arrow(160, 45, 220, 45)}
+        ${this._arrow(355, 45, 475, 45)}
+        ${this._arrow(245, 80, 130, 150, { label: 'sócio',  labelOffset: -4 })}
+        ${this._arrow(335, 80, 370, 150, { label: 'caixa', labelOffset: -4, color: '#dc2626' })}
+        ${this._arrow(550, 80, 600, 150, { label: 'contrato', labelOffset: -4 })}
+        ${this._arrow(610, 80, 640, 220, { label: 'BASE', labelOffset: -4, color: '#10b981' })}
+      </svg>`;
+  },
+
+  _flowRDO() {
+    return `
+      <svg viewBox="0 0 760 280" style="width:100%;max-width:760px;background:#0f172a;border-radius:8px;">
+        ${this._svgDefs()}
+        ${this._box(20, 20, 140, 50, 'Contrato ativo', { fill: '#1d4ed8', stroke: '#3b82f6', bold: true })}
+        ${this._box(220, 20, 160, 50, 'Diariamente em\ndia útil')}
+        ${this._diamond(490, 45, 130, 70, 'É feriado\nnacional?')}
+        ${this._box(620, 130, 130, 50, 'RDO opcional\n(não conta)', { fill: '#1e293b', stroke: '#475569' })}
+        ${this._box(220, 130, 160, 50, 'Criar RDO do dia\n(MOI/MOD/equip./atividades)', { fill: '#065f46', stroke: '#10b981', bold: true })}
+        ${this._box(20, 130, 140, 50, 'Anexar fotos\n(opcional)')}
+        ${this._box(20, 220, 720, 40, 'Aba "RDOs" mostra alerta para obras ativas que não fizeram RDO no último dia útil.', { fill: '#1e293b', stroke: '#475569', fs: 12 })}
+        ${this._arrow(160, 45, 220, 45)}
+        ${this._arrow(380, 45, 425, 45)}
+        ${this._arrow(490, 80, 490, 130, { color: '#10b981', label: 'não', labelOffset: -4 })}
+        ${this._arrow(555, 75, 620, 130, { color: '#dc2626', label: 'sim', labelOffset: -4 })}
+        ${this._arrow(380, 155, 410, 155, { color: '#10b981', dashed: true })}
+        ${this._arrow(220, 155, 160, 155, { color: '#10b981' })}
+      </svg>`;
+  },
+
+  // ═════════════ Conteúdo ═════════════
+  _secoes() {
+    return [
+      { k: 'inicio',     icon: '🏠', label: 'Início', },
+      { k: 'auth',       icon: '🔐', label: 'Login e Acesso' },
+      { k: 'contratos',  icon: '📋', label: 'Contratos' },
+      { k: 'rdos',       icon: '📝', label: 'RDOs' },
+      { k: 'saidas-bm',  icon: '🧾', label: 'Saídas e BMs' },
+      { k: 'nfs',        icon: '✅', label: 'NFs / Faturamento' },
+      { k: 'contas-pg',  icon: '💸', label: 'Contas a Pagar' },
+      { k: 'caixa',      icon: '💰', label: 'Caixa' },
+      { k: 'recursos',   icon: '👥', label: 'Recursos e Folgas' },
+      { k: 'aportes',    icon: '⬆️', label: 'Aportes / Investimentos' },
+      { k: 'base',       icon: '🏢', label: 'BASE' },
+      { k: 'usuarios',   icon: '🛡️', label: 'Usuários e Permissões' },
+      { k: 'glossario',  icon: '📚', label: 'Glossário' },
+    ];
+  },
+
+  _conteudo() {
+    return {
+      inicio: `
+        <h1 class="man-h1">Bem-vindo ao Rhino</h1>
+        <p class="man-p">Sistema de gestão para empresas de manutenção industrial. Gerencia contratos, equipe, medições, faturamento e fluxo de caixa.</p>
+
+        <div class="man-grid">
+          <div class="man-card">
+            <h3>📋 Operação</h3>
+            <p>Cada <strong>contrato</strong> tem orçamento, equipe (organograma) e RDOs diários. As <strong>medições mensais (BMs)</strong> viram NFs que entram no caixa quando emitidas.</p>
+          </div>
+          <div class="man-card">
+            <h3>👥 Pessoas</h3>
+            <p>Cadastre <strong>recursos</strong> (colaboradores) com documentos e folgas. Aloque-os em contratos via organograma.</p>
+          </div>
+          <div class="man-card">
+            <h3>💰 Financeiro</h3>
+            <p>Lançamentos de <strong>caixa</strong>, <strong>contas a pagar</strong> (com pagar/estornar), <strong>NFs/BMs</strong> e aportes de sócios. Tudo amarrado por contrato.</p>
+          </div>
+          <div class="man-card">
+            <h3>📊 Visibilidade</h3>
+            <p>Dashboard com fluxo de caixa real + projeção (30/60/90 dias), aderência de RDOs, contratos a vencer e contas atrasadas.</p>
+          </div>
+        </div>
+
+        <div class="man-tip">
+          <strong>Atalho rápido:</strong> use o menu lateral (esquerda) ou os ícones nas seções para navegar. Cada tela tem botões "+ Novo" no canto superior direito.
+        </div>
+      `,
+
+      auth: `
+        <h1 class="man-h1">🔐 Login e Acesso</h1>
+        <p class="man-p">Acesso é controlado por <strong>email + senha</strong>. Sessão dura 30 dias e fica em cookie httpOnly. Cada usuário tem um <strong>nível de acesso</strong> que define quais abas ele vê.</p>
+
+        ${this._flowAuth()}
+
+        <h2 class="man-h2">Como criar usuários</h2>
+        <ol class="man-ol">
+          <li>Configuração → <strong>Usuários e Logins</strong> (ou diretamente em "Usuários" no sidebar)</li>
+          <li>Botão "+ Novo Usuário"</li>
+          <li>Preencha email, senha (mínimo 6 caracteres), nome e <strong>escolha um nível de acesso</strong></li>
+          <li>Para alterar permissões de um nível: Configuração → Níveis de Acesso → marque/desmarque as abas</li>
+        </ol>
+
+        <div class="man-warn">
+          <strong>Importante:</strong> usuário com nível atrelado vê apenas as abas daquele nível. Sem nível = admin (vê tudo). Não é possível deletar a si mesmo.
+        </div>
+      `,
+
+      contratos: `
+        <h1 class="man-h1">📋 Contratos</h1>
+        <p class="man-p">A entidade central. Tudo gira em torno do contrato: orçamento, equipe (organograma), medições/saídas, RDOs, faturamento.</p>
+
+        <h2 class="man-h2">Estrutura de um contrato</h2>
+        <table class="man-table">
+          <tr><th>Aba</th><th>O que contém</th></tr>
+          <tr><td><strong>Visão Geral</strong></td><td>Resumo financeiro, prazo, status, orçamento</td></tr>
+          <tr><td><strong>Financeiro</strong></td><td>Saídas/medições mensais (BMs), valor medido vs valor do contrato, margem</td></tr>
+          <tr><td><strong>Equipe</strong></td><td>Organograma: 1 encarregado, líderes de área, profissionais</td></tr>
+          <tr><td><strong>RDO</strong></td><td>Relatórios diários de obra (MOI, MOD, equipamentos, atividades, fotos)</td></tr>
+          <tr><td><strong>Pendências</strong></td><td>Passagens compradas/pendentes, alertas de prazo, vencimentos</td></tr>
+        </table>
+
+        <h2 class="man-h2">Fluxo recomendado</h2>
+        <ol class="man-ol">
+          <li>Cadastre o <strong>cliente</strong> primeiro (RH → Clientes)</li>
+          <li>Crie o contrato vinculando ao cliente, com valor, prazo e status</li>
+          <li>Adicione itens de <strong>orçamento</strong> (até o valor do contrato)</li>
+          <li>Monte o <strong>organograma</strong> com encarregado + líderes + profissionais</li>
+          <li>RDOs são lançados <strong>diariamente</strong> em dias úteis</li>
+          <li>No final de cada mês, lance <strong>saídas (BMs)</strong> que viram NFs</li>
+        </ol>
+
+        <div class="man-tip">
+          <strong>Visão rápida:</strong> na tela "Contratos", clique numa linha para ver o resumo. Use "Ver detalhes →" para abrir a tela completa.
+        </div>
+      `,
+
+      rdos: `
+        <h1 class="man-h1">📝 RDOs — Relatório Diário de Obra</h1>
+        <p class="man-p">Documento obrigatório <strong>em dias úteis</strong> para todo contrato ativo. Sábado/domingo/feriado é opcional.</p>
+
+        ${this._flowRDO()}
+
+        <h2 class="man-h2">O que entra num RDO</h2>
+        <ul class="man-ul">
+          <li><strong>MOI</strong> (Mão de Obra Indireta): encarregado, técnicos</li>
+          <li><strong>MOD</strong> (Mão de Obra Direta): mecânicos, soldadores, eletricistas</li>
+          <li><strong>Terceiros</strong>: subcontratados</li>
+          <li><strong>Equipamentos</strong>: munck, andaime, gerador, com horas operando</li>
+          <li><strong>Atividades</strong>: descrição + % executado</li>
+          <li><strong>Tempo</strong>: manhã/tarde/noite anterior + precipitação (mm)</li>
+          <li><strong>Segurança</strong>: acidentes, admissões, demissões, comentários</li>
+          <li><strong>Fotos</strong>: até 2 MB cada (JPEG/PNG/WEBP)</li>
+        </ul>
+
+        <h2 class="man-h2">Aba "RDOs" (visão global)</h2>
+        <p class="man-p">Acesse pelo sidebar → <strong>RDOs</strong>. Mostra:</p>
+        <ul class="man-ul">
+          <li><strong>Obras ativas</strong> sem RDO no último dia útil (alerta vermelho)</li>
+          <li><strong>Atrasadas</strong>: + de 2 dias úteis sem RDO (alerta laranja)</li>
+          <li><strong>Aderência</strong>: % de RDOs feitos / esperados nos últimos 7 dias úteis</li>
+          <li>Tabela com todos os RDOs filtráveis por contrato e mês</li>
+        </ul>
+      `,
+
+      'saidas-bm': `
+        <h1 class="man-h1">🧾 Saídas e BMs</h1>
+        <p class="man-p"><strong>Saída</strong> é uma medição parcial executada no contrato. Ao criar uma saída, o sistema agrupa em uma <strong>NF/BM</strong> (Boletim de Medição) — uma por dia/mês.</p>
+
+        ${this._flowSaida()}
+
+        <h2 class="man-h2">Regra de negócio</h2>
+        <ul class="man-ul">
+          <li>Cada saída precisa de <strong>valor + data + tipo</strong> (mão de obra/material/equip./serviço)</li>
+          <li>Sistema busca NF do mesmo dia (mesma data limite, não emitida) — se existir, soma o valor; se não, cria nova</li>
+          <li>O <strong>prazo de recebimento</strong> (em dias) define quando o cliente paga após emissão</li>
+          <li>Soma de saídas <strong>não pode ultrapassar o valor do contrato</strong></li>
+        </ul>
+
+        <h2 class="man-h2">Atenção: edição de saídas</h2>
+        <ul class="man-ul">
+          <li>Não é possível editar valor/data se o BM já foi emitido — cancele a emissão antes</li>
+          <li>Mudar a data move a saída para outra NF (busca/cria a do novo dia)</li>
+          <li>Editar prazo de recebimento atualiza a NF associada</li>
+        </ul>
+      `,
+
+      nfs: `
+        <h1 class="man-h1">✅ NFs e Faturamento</h1>
+        <p class="man-p">As NFs (BMs) são geradas automaticamente pelas saídas. Aparecem em <strong>Contas a Receber</strong> com status pendente até serem emitidas.</p>
+
+        ${this._flowNF()}
+
+        <h2 class="man-h2">Estados de uma NF</h2>
+        <table class="man-table">
+          <tr><th>Status</th><th>Descrição</th></tr>
+          <tr><td><strong>Pendente</strong></td><td>BM criado, aguardando emissão fiscal pelo cliente</td></tr>
+          <tr><td><strong>Vencida</strong></td><td>Pendente cuja data limite já passou (alerta vermelho)</td></tr>
+          <tr><td><strong>Emitida</strong></td><td>NF lançada, entrada de caixa agendada para data + prazo</td></tr>
+        </table>
+
+        <div class="man-tip">
+          <strong>Quando emitir:</strong> ao confirmar a NF, informe a data real de emissão. O sistema calcula automaticamente quando o caixa receberá (data + prazo de recebimento).
+        </div>
+      `,
+
+      'contas-pg': `
+        <h1 class="man-h1">💸 Contas a Pagar</h1>
+        <p class="man-p">Lançamento de despesas com fornecedor. Pode ou não estar vinculada a um contrato (reduz a margem do contrato se vinculada).</p>
+
+        ${this._flowContaPagar()}
+
+        <h2 class="man-h2">Como funciona</h2>
+        <ol class="man-ol">
+          <li>Crie a conta com descrição, fornecedor, valor, vencimento, NF (se houver)</li>
+          <li>Status inicial: <strong>Pendente</strong></li>
+          <li>Quando pagar, clique em "Pagar" e informe data/valor/forma — sistema cria automaticamente uma <strong>saída no caixa</strong></li>
+          <li>Para corrigir: "Estornar" remove a entrada de caixa e volta para Pendente</li>
+        </ol>
+
+        <h2 class="man-h2">Filtros disponíveis</h2>
+        <ul class="man-ul">
+          <li><strong>Pendente</strong> (default) — incluindo vencidas</li>
+          <li><strong>Pago</strong> — histórico de pagamentos</li>
+          <li><strong>Todas</strong></li>
+        </ul>
+
+        <div class="man-warn">
+          <strong>Excluir conta:</strong> se já paga, a saída do caixa também é removida (cascade). Use com cuidado.
+        </div>
+      `,
+
+      caixa: `
+        <h1 class="man-h1">💰 Caixa</h1>
+        <p class="man-p">Livro-caixa unificado. Todas as entradas e saídas passam por aqui: NFs emitidas, pagamentos, aportes, despesas administrativas.</p>
+
+        <h2 class="man-h2">Como entradas chegam ao caixa</h2>
+        <table class="man-table">
+          <tr><th>Origem</th><th>Quando aparece</th></tr>
+          <tr><td>NF emitida</td><td>Em <code>data_emissão + prazo_recebimento</code> (entrada futura)</td></tr>
+          <tr><td>Conta paga</td><td>Saída imediata na data informada</td></tr>
+          <tr><td>Aporte (caixa empresa)</td><td>Saída automática no momento do aporte</td></tr>
+          <tr><td>Manual</td><td>Lançamento direto de qualquer tipo</td></tr>
+          <tr><td>BASE alocação</td><td>Saída quando aloca custo administrativo num contrato</td></tr>
+        </table>
+
+        <h2 class="man-h2">Filtros</h2>
+        <ul class="man-ul">
+          <li>Por <strong>mês</strong> ou intervalo de datas</li>
+          <li>Por <strong>contrato</strong></li>
+          <li>Por <strong>tipo</strong> (entrada / saída)</li>
+        </ul>
+
+        <div class="man-tip">
+          No <strong>Dashboard</strong>, "Últimas Movimentações" mostra as 20 mais recentes com filtro entrada/saída/ambos. Clique numa linha para ver detalhes.
+        </div>
+      `,
+
+      recursos: `
+        <h1 class="man-h1">👥 Recursos, Folgas e Passagens</h1>
+        <p class="man-p">Recurso = colaborador. Pode ser candidato, funcionário ou ex-funcionário. Funcionários ativos são alocados em contratos via organograma.</p>
+
+        <h2 class="man-h2">Cadastro completo</h2>
+        <p class="man-p">Cada recurso tem:</p>
+        <ul class="man-ul">
+          <li>Dados pessoais: CPF, nascimento, telefone, email, endereço</li>
+          <li>Trabalhistas: profissão, data de admissão, salário, CNH, PIS</li>
+          <li>Status: candidato → funcionário → desligado</li>
+          <li>Documentos: ASO, NR-10, NR-35, ART, CNH (com validade)</li>
+          <li>Folgas: período + passagens (ida/volta)</li>
+          <li>Alocação atual: contrato + data início + ciclo de trabalho (15/21/28 dias)</li>
+        </ul>
+
+        ${this._flowFolga()}
+
+        <h2 class="man-h2">Compra de passagem</h2>
+        <p class="man-p">Ao comprar passagem para uma folga, você decide:</p>
+        <ul class="man-ul">
+          <li><strong>Quem paga</strong>: caixa da empresa OU contrato específico</li>
+          <li><strong>Como lançar</strong>: saída direta no caixa OU conta a pagar pendente</li>
+        </ul>
+        <p class="man-p">A passagem fica vinculada à folga via <code>caixaEntryId</code> ou <code>contaPagarId</code> para rastreio futuro.</p>
+      `,
+
+      aportes: `
+        <h1 class="man-h1">⬆️ Aportes / Investimentos</h1>
+        <p class="man-p">Aportes capitalizam contratos ou a BASE da empresa. Podem vir de sócios ou do caixa da própria empresa.</p>
+
+        ${this._flowAporte()}
+
+        <h2 class="man-h2">Combinações possíveis</h2>
+        <table class="man-table">
+          <tr><th>Origem × Destino</th><th>Efeito</th></tr>
+          <tr><td>Sócio → Contrato</td><td>Sócio injeta capital no contrato (sem mexer no caixa da empresa)</td></tr>
+          <tr><td>Sócio → BASE</td><td>Sócio compra um item para a base (cria <strong>base_item</strong> rastreável)</td></tr>
+          <tr><td>Caixa → Contrato</td><td>Empresa transfere capital pro contrato (cria saída no caixa)</td></tr>
+          <tr><td>Caixa → BASE</td><td>Empresa adquire item da base via caixa (saída + base_item)</td></tr>
+        </table>
+
+        <div class="man-tip">
+          <strong>Excluir aporte:</strong> remove cascade — a entrada do caixa volta a sair, e o item da BASE é removido se não tiver alocações.
+        </div>
+      `,
+
+      base: `
+        <h1 class="man-h1">🏢 BASE — Custos Administrativos</h1>
+        <p class="man-p">Catálogo de custos fixos/variáveis da empresa: aluguel, salários administrativos, energia, marketing, software. Esses custos podem ser <strong>alocados parcialmente</strong> a um contrato.</p>
+
+        <h2 class="man-h2">Tipos de custo</h2>
+        <ul class="man-ul">
+          <li>Sistema (não pode excluir): Fixo, Variável, Outros</li>
+          <li>Customizáveis: Aluguel, Salários, Utilidades, Marketing, Tecnologia, etc.</li>
+          <li>Configure em: Configuração → Tipos de Custo</li>
+        </ul>
+
+        <h2 class="man-h2">Alocação</h2>
+        <ol class="man-ol">
+          <li>Cada item tem um valor mensal</li>
+          <li>Você pode alocar parcelas desse item para contratos específicos</li>
+          <li>Total alocado não pode ultrapassar o valor do item</li>
+          <li>Cada alocação cria uma <strong>saída no caixa</strong> com category = base</li>
+        </ol>
+      `,
+
+      usuarios: `
+        <h1 class="man-h1">🛡️ Usuários e Permissões</h1>
+        <p class="man-p">Hierarquia: <strong>Usuário</strong> tem <strong>Nível de acesso</strong>. Cada nível tem uma lista de abas permitidas.</p>
+
+        <h2 class="man-h2">Configurar permissões</h2>
+        <ol class="man-ol">
+          <li>Configuração → Níveis de Acesso</li>
+          <li>Marque/desmarque as abas em cada grupo (Principal, RH, Financeiro, Sistema)</li>
+          <li>Bonus: dentro do grupo "Abas dentro do Contrato" você pode liberar individualmente Visão Geral, Financeiro, Equipe, RDO, Pendências</li>
+          <li>Salve cada nível separadamente</li>
+        </ol>
+
+        <h2 class="man-h2">Criar usuários</h2>
+        <ol class="man-ol">
+          <li>Acesse "Usuários" no sidebar (ou pelo atalho na Configuração)</li>
+          <li>Clique "+ Novo Usuário"</li>
+          <li>Email + senha (≥ 6 caracteres) + nome + nível</li>
+          <li>O usuário entrará automaticamente no nível atribuído (não pode trocar)</li>
+        </ol>
+
+        <div class="man-warn">
+          <strong>Admin master:</strong> usuário <strong>sem nível</strong> tem acesso universal. Crie pelo menos um sempre. Por padrão o sistema cria <code>admin@rhino.local</code> no primeiro boot (env <code>ADMIN_EMAIL/ADMIN_PASSWORD</code>).
+        </div>
+      `,
+
+      glossario: `
+        <h1 class="man-h1">📚 Glossário</h1>
+        <table class="man-table">
+          <tr><th>Termo</th><th>Significado</th></tr>
+          <tr><td><strong>BM</strong></td><td>Boletim de Medição — uma NF gerada pelas saídas (medições) do mês</td></tr>
+          <tr><td><strong>MOI</strong></td><td>Mão de Obra Indireta (encarregado, técnico de segurança, almoxarife)</td></tr>
+          <tr><td><strong>MOD</strong></td><td>Mão de Obra Direta (mecânico, soldador, eletricista)</td></tr>
+          <tr><td><strong>RDO</strong></td><td>Relatório Diário de Obra</td></tr>
+          <tr><td><strong>Aderência</strong></td><td>RDOs feitos ÷ esperados nos últimos N dias úteis</td></tr>
+          <tr><td><strong>Margem</strong></td><td>Valor do contrato − total medido nas saídas</td></tr>
+          <tr><td><strong>Aporte</strong></td><td>Capital adicional para contrato ou BASE</td></tr>
+          <tr><td><strong>BASE</strong></td><td>Catálogo de custos administrativos</td></tr>
+          <tr><td><strong>Organograma</strong></td><td>Estrutura hierárquica da equipe num contrato (encarregado → líderes → profissionais)</td></tr>
+          <tr><td><strong>Ciclo de trabalho</strong></td><td>Dias trabalhados antes de uma folga (15/21/28)</td></tr>
+          <tr><td><strong>NR-10/NR-35</strong></td><td>Normas regulamentadoras (eletricidade / trabalho em altura)</td></tr>
+          <tr><td><strong>ASO</strong></td><td>Atestado de Saúde Ocupacional</td></tr>
+          <tr><td><strong>ART</strong></td><td>Anotação de Responsabilidade Técnica (CREA)</td></tr>
+        </table>
+      `,
+    };
+  },
+
   _buildHtml() {
+    const secoes = this._secoes();
+    const conteudos = this._conteudo();
+    const ativa = this._secao;
     return `
       <style>
-        /* ═══ Manual — estilos isolados ═══ */
         .man-root { font-family: 'Nunito', sans-serif; }
-        .man-root * { box-sizing: border-box; }
-
-        .man-layout {
-          display: grid;
-          grid-template-columns: 260px 1fr;
-          gap: var(--sp-lg);
-          min-height: calc(100vh - 160px);
-        }
-
-        /* Menu lateral interno */
+        .man-layout { display: grid; grid-template-columns: 240px 1fr; gap: var(--sp-lg); }
         .man-menu {
-          background: var(--color-surface);
-          color: var(--color-text);
-          border: 1px solid var(--color-border);
-          border-radius: 10px;
-          padding: var(--sp-sm);
-          height: fit-content;
-          position: sticky;
-          top: var(--sp-md);
-          max-height: calc(100vh - 40px);
-          overflow-y: auto;
-        }
-        .man-menu-title {
-          padding: 10px 14px 6px;
-          font-size: 16px;
-          font-weight: 800;
-          color: var(--color-text);
-        }
-        .man-menu-subtitle {
-          padding: 0 14px 10px;
-          font-size: 13px;
-          color: var(--color-text-muted);
-          border-bottom: 1px solid var(--color-border);
-          margin-bottom: 6px;
-        }
-        .man-menu-group {
-          padding: 10px 14px 4px;
-          font-size: 12px;
-          font-weight: 700;
-          color: var(--color-text-muted);
-          text-transform: uppercase;
-          letter-spacing: 0.07em;
+          background: var(--color-surface); border: 1px solid var(--color-border);
+          border-radius: 10px; padding: var(--sp-sm); height: fit-content;
+          position: sticky; top: var(--sp-md); max-height: calc(100vh - 40px); overflow-y: auto;
         }
         .man-menu-item {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 9px 14px;
-          border-radius: 6px;
-          color: var(--color-text);
-          cursor: pointer;
-          font-size: 15px;
-          font-weight: 500;
-          transition: background 0.15s, color 0.15s;
-          border: none;
-          background: none;
-          width: 100%;
-          text-align: left;
-          font-family: inherit;
+          display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+          border-radius: 6px; cursor: pointer; font-size: 14px; color: var(--color-text);
+          background: transparent; border: 0; width: 100%; text-align: left; font-family: inherit;
         }
-        .man-menu-item:hover {
-          background: rgba(85, 88, 139, 0.08);
-          color: var(--color-primary);
-        }
-        .man-menu-item.active {
-          background: rgba(85, 88, 139, 0.12);
-          color: var(--color-primary);
-          font-weight: 700;
-          border-left: 3px solid var(--color-primary);
-          padding-left: 11px;
-        }
-        .man-menu-icon { font-size: 18px; flex-shrink: 0; }
-
-        /* Conteúdo principal */
+        .man-menu-item:hover { background: var(--color-bg); }
+        .man-menu-item.active { background: #3b82f6; color: #fff; font-weight: 700; }
         .man-content {
-          background: var(--color-surface);
-          color: var(--color-text);
-          border: 1px solid var(--color-border);
-          border-radius: 10px;
-          padding: var(--sp-xl);
-          max-width: 900px;
+          background: var(--color-surface); border: 1px solid var(--color-border);
+          border-radius: 10px; padding: var(--sp-xl); line-height: 1.6;
         }
-        .man-content h1 {
-          font-size: 28px;
-          font-weight: 800;
-          color: var(--color-text);
-          margin: 0 0 8px 0;
-          display: flex;
-          align-items: center;
-          gap: 12px;
+        .man-h1 { font-size: 28px; font-weight: 800; margin: 0 0 var(--sp-md); color: var(--color-text); }
+        .man-h2 { font-size: 18px; font-weight: 700; margin: var(--sp-xl) 0 var(--sp-sm); color: var(--color-text); }
+        .man-p  { font-size: 15px; color: var(--color-text); margin: 0 0 var(--sp-md); }
+        .man-ul, .man-ol { margin: 0 0 var(--sp-md); padding-left: 22px; font-size: 15px; line-height: 1.8; }
+        .man-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap: var(--sp-md); margin: var(--sp-md) 0; }
+        .man-card {
+          background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 8px; padding: var(--sp-md);
         }
-        .man-content h1 .ico {
-          width: 48px; height: 48px;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #8B8FBF, #55588B);
-          color: #FFFFFF;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 24px;
-        }
-        .man-content h2 {
-          font-size: 20px;
-          font-weight: 700;
-          color: var(--color-text);
-          margin: 28px 0 10px 0;
-          padding-bottom: 6px;
-          border-bottom: 2px solid var(--color-border);
-        }
-        .man-content h3 {
-          font-size: 17px;
-          font-weight: 700;
-          color: var(--color-text);
-          margin: 20px 0 8px 0;
-        }
-        .man-content p { font-size: 15px; line-height: 1.65; color: var(--color-text); margin: 10px 0; }
-        .man-content strong { color: var(--color-text); font-weight: 700; }
-
-        .man-lead {
-          padding: 14px 18px;
-          background: linear-gradient(135deg, rgba(85,88,139,.08), rgba(85,88,139,.02));
-          border-left: 4px solid var(--color-primary);
-          border-radius: 6px;
-          font-size: 15.5px;
-          color: var(--color-text);
-          margin: 16px 0 24px;
-        }
-
-        .man-steps { list-style: none; padding: 0; counter-reset: step; }
-        .man-steps li {
-          position: relative;
-          padding: 14px 16px 14px 52px;
-          margin-bottom: 10px;
-          background: var(--color-bg);
-          color: var(--color-text);
-          border: 1px solid var(--color-border);
-          border-radius: 8px;
-          font-size: 15px;
-          line-height: 1.55;
-          counter-increment: step;
-        }
-        .man-steps li::before {
-          content: counter(step);
-          position: absolute;
-          left: 12px; top: 12px;
-          width: 28px; height: 28px;
-          background: var(--color-primary);
-          color: #FFFFFF;
-          font-weight: 800;
-          font-size: 14px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
+        .man-card h3 { margin: 0 0 6px; font-size: 16px; }
+        .man-card p { margin: 0; font-size: 14px; color: var(--color-text-muted); }
+        .man-table { width: 100%; border-collapse: collapse; margin: var(--sp-md) 0; font-size: 14px; }
+        .man-table th, .man-table td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--color-border); }
+        .man-table th { background: var(--color-bg); font-weight: 700; color: var(--color-text-muted); }
         .man-tip {
-          background: #ECFDF5;
-          border-left: 4px solid #6D9480;
-          border-radius: 6px;
-          padding: 12px 16px;
-          margin: 16px 0;
-          font-size: 14.5px;
-          color: #064E3B;
+          background: rgba(59,130,246,.1); border-left: 3px solid #3b82f6;
+          padding: 12px 16px; border-radius: 6px; margin: var(--sp-md) 0; font-size: 14px;
         }
-        .man-tip strong { color: #064E3B; }
         .man-warn {
-          background: #FEF3C7;
-          border-left: 4px solid #F59E0B;
-          border-radius: 6px;
-          padding: 12px 16px;
-          margin: 16px 0;
-          font-size: 14.5px;
-          color: #78350F;
+          background: rgba(245,158,11,.1); border-left: 3px solid #f59e0b;
+          padding: 12px 16px; border-radius: 6px; margin: var(--sp-md) 0; font-size: 14px;
         }
-
-        /* Mockups ilustrativos */
-        .man-mockup {
-          background: var(--color-bg);
-          border: 1px dashed var(--color-border);
-          border-radius: 8px;
-          padding: 16px;
-          margin: 14px 0;
-        }
-        .man-mockup-label {
-          font-size: 12px;
-          color: var(--color-text-muted);
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          font-weight: 700;
-          margin-bottom: 10px;
-        }
-        .mock-card {
-          background: var(--color-surface);
-          border: 1px solid var(--color-border);
-          border-radius: 8px;
-          padding: 16px;
-          box-shadow: 0 1px 3px rgba(0,0,0,.06);
-        }
-        .mock-btn {
-          display: inline-block;
-          padding: 8px 16px;
-          background: var(--color-primary);
-          color: #FFFFFF;
-          border-radius: 6px;
-          font-weight: 600;
-          font-size: 14px;
-        }
-        .mock-btn-ghost {
-          display: inline-block;
-          padding: 8px 16px;
-          background: var(--color-surface);
-          color: var(--color-text);
-          border: 1px solid var(--color-border);
-          border-radius: 6px;
-          font-weight: 600;
-          font-size: 14px;
-        }
-        .mock-input {
-          display: block;
-          width: 100%;
-          padding: 9px 12px;
-          background: var(--color-surface);
-          border: 1px solid var(--color-border);
-          border-radius: 6px;
-          font-size: 14px;
-          color: var(--color-text);
-          margin: 4px 0;
-        }
-        .mock-label {
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--color-text);
-          margin-top: 8px;
-          display: block;
-        }
-        .mock-tabs {
-          display: flex;
-          gap: 4px;
-          border-bottom: 1px solid var(--color-border);
-          margin: 8px 0 12px;
-        }
-        .mock-tab {
-          padding: 8px 14px;
-          font-size: 13.5px;
-          color: var(--color-text);
-          border-bottom: 3px solid transparent;
-          margin-bottom: -1px;
-        }
-        .mock-tab.active {
-          color: var(--color-primary);
-          border-bottom-color: var(--color-primary);
-          font-weight: 700;
-        }
-        .mock-pill {
-          display: inline-block;
-          padding: 3px 10px;
-          border-radius: 99px;
-          font-size: 12px;
-          font-weight: 700;
-        }
-        .mock-pill-ok { background: #D1FAE5; color: #065F46; }
-        .mock-pill-warn { background: #FEF3C7; color: #92400E; }
-        .mock-pill-err { background: #FEE2E2; color: #991B1B; }
-
-        .man-kb {
-          display: inline-block;
-          padding: 2px 8px;
-          border-radius: 4px;
-          background: var(--color-bg);
-          border: 1px solid var(--color-border);
-          font-family: monospace;
-          font-size: 13px;
-          font-weight: 700;
-          color: var(--color-text);
-        }
-
-        .man-glossary {
-          display: grid;
-          grid-template-columns: 1fr 2fr;
-          gap: 8px 16px;
-          margin: 12px 0;
-          font-size: 15px;
-        }
-        .man-glossary dt { font-weight: 700; color: var(--color-primary); }
-        .man-glossary dd { color: var(--color-text); margin: 0; }
-
-        @media (max-width: 900px) {
-          .man-layout { grid-template-columns: 1fr; }
-          .man-menu { position: static; max-height: none; }
+        code {
+          background: var(--color-bg); padding: 2px 6px; border-radius: 3px;
+          font-family: monospace; font-size: 13px; color: var(--color-primary);
         }
       </style>
 
@@ -310,829 +609,33 @@ window.Manual = {
         <div class="page-header">
           <div>
             <h1 class="page-title">📖 Manual do Usuário</h1>
-            <p class="page-subtitle">Guia passo a passo de todas as funções do Rhino.</p>
+            <p class="page-subtitle">Guia completo do sistema com fluxogramas</p>
           </div>
         </div>
 
         <div class="man-layout">
-          ${this._menu()}
+          <div class="man-menu">
+            ${secoes.map(s => `
+              <button class="man-menu-item ${s.k === ativa ? 'active' : ''}" data-secao="${s.k}">
+                <span>${s.icon}</span><span>${s.label}</span>
+              </button>
+            `).join('')}
+          </div>
+
           <div class="man-content">
-            ${this._conteudo(this._secao)}
+            ${conteudos[ativa] || conteudos.inicio}
           </div>
         </div>
       </div>
-    `;
-  },
-
-  _menu() {
-    const grupos = [
-      {
-        titulo: 'Primeiros Passos',
-        items: [
-          { k: 'inicio',       i: '🚀', l: 'Começando' },
-          { k: 'navegacao',    i: '🧭', l: 'Como navegar' }
-        ]
-      },
-      {
-        titulo: 'Módulos Principais',
-        items: [
-          { k: 'dashboard',    i: '📊', l: 'Dashboard' },
-          { k: 'contratos',    i: '📄', l: 'Contratos' },
-          { k: 'equipe',       i: '👷', l: 'Equipe e Organograma' },
-          { k: 'rdo',          i: '📋', l: 'RDO' },
-          { k: 'obras',        i: '🏗️', l: 'Mapa de Obras' },
-          { k: 'recursos',     i: '👥', l: 'Recursos (Colaboradores)' },
-          { k: 'clientes',     i: '◎',  l: 'Clientes' },
-          { k: 'fornecedores', i: '⬡',  l: 'Fornecedores' },
-          { k: 'documentos',   i: '📑', l: 'Documentação' }
-        ]
-      },
-      {
-        titulo: 'Financeiro',
-        items: [
-          { k: 'caixa',        i: '◇',  l: 'Caixa' },
-          { k: 'contaspagar',  i: '⊖',  l: 'Contas a Pagar' },
-          { k: 'contasreceber',i: '☐',  l: 'Contas a Receber' },
-          { k: 'socios',       i: '⊕',  l: 'Sócios' },
-          { k: 'aportes',      i: '△',  l: 'Aportes' },
-          { k: 'base',         i: '⊟',  l: 'BASE (rateio)' }
-        ]
-      },
-      {
-        titulo: 'Outros',
-        items: [
-          { k: 'configuracao', i: '⚙️', l: 'Configuração' },
-          { k: 'atalhos',      i: '⌨',  l: 'Atalhos e dicas' },
-          { k: 'glossario',    i: '📚', l: 'Glossário' }
-        ]
-      }
-    ];
-
-    return `
-      <nav class="man-menu">
-        <div class="man-menu-title">Índice</div>
-        <div class="man-menu-subtitle">Clique para navegar</div>
-        ${grupos.map(g => `
-          <div class="man-menu-group">${g.titulo}</div>
-          ${g.items.map(it => `
-            <button class="man-menu-item ${this._secao === it.k ? 'active' : ''}" data-man-sec="${it.k}">
-              <span class="man-menu-icon">${it.i}</span>
-              <span>${it.l}</span>
-            </button>
-          `).join('')}
-        `).join('')}
-      </nav>
-    `;
-  },
-
-  _conteudo(sec) {
-    return {
-      inicio:         this._inicio(),
-      navegacao:      this._navegacao(),
-      dashboard:      this._dashboard(),
-      contratos:      this._contratos(),
-      equipe:         this._equipe(),
-      rdo:            this._rdo(),
-      obras:          this._obras(),
-      recursos:       this._recursos(),
-      clientes:       this._clientes(),
-      fornecedores:   this._fornecedores(),
-      documentos:     this._documentos(),
-      caixa:          this._caixa(),
-      contaspagar:    this._contaspagar(),
-      contasreceber:  this._contasreceber(),
-      socios:         this._socios(),
-      aportes:        this._aportes(),
-      base:           this._base(),
-      configuracao:   this._configuracao(),
-      atalhos:        this._atalhos(),
-      glossario:      this._glossario()
-    }[sec] || this._inicio();
-  },
-
-  _inicio() {
-    return `
-      <h1><span class="ico">🚀</span> Começando</h1>
-      <p class="man-lead">Bem-vindo ao <strong>Rhino</strong>! Este é um sistema para gerenciar obras, contratos, equipes e finanças.</p>
-
-      <h2>O que dá pra fazer aqui?</h2>
-      <ul style="padding-left:22px;line-height:1.7;font-size:15px;">
-        <li>📄 Cadastrar contratos e acompanhar o orçamento de cada um</li>
-        <li>👷 Montar a equipe da obra (organograma) e saber quem faz o quê</li>
-        <li>📋 Fazer o RDO (Relatório Diário de Obra) todo dia — com fotos</li>
-        <li>💰 Controlar dinheiro: o que entra, o que sai, quem paga, quem recebe</li>
-        <li>🏗️ Ver todas as obras num mapa</li>
-        <li>📑 Guardar documentos (contratos, PCMSO, certificados...)</li>
-      </ul>
-
-      <h2>Primeira vez aqui?</h2>
-      <ol class="man-steps">
-        <li><strong>Escolha seu perfil</strong> — quando abre o sistema, aparece uma tela pra você dizer se é dono, gerente, fiscal, etc. Isso define o que você vê.</li>
-        <li><strong>Dê uma volta pelo menu</strong> — o menu da esquerda tem tudo. Clique em cada item pra ver o que é.</li>
-        <li><strong>Cadastre um contrato</strong> — tudo começa por aí. Menu → Contratos → + Novo Contrato.</li>
-        <li><strong>Adicione pessoas</strong> — em Recursos, cadastre os colaboradores.</li>
-        <li><strong>Monte a equipe na obra</strong> — abra o contrato → aba Equipe → adicione quem trabalha lá.</li>
-        <li><strong>Faça o RDO do dia</strong> — no contrato → aba RDO → + Novo RDO.</li>
-      </ol>
-
-      <div class="man-tip">
-        💡 <strong>Dica:</strong> Se você se perdeu, clique no logo do Rhino no canto superior esquerdo da barra lateral. Isso te leva pro Dashboard (página inicial).
-      </div>
-
-      <h2>Conceitos importantes (leia antes!)</h2>
-      <dl class="man-glossary">
-        <dt>Contrato</dt>
-        <dd>Cada obra que sua empresa fechou. Tem nome, cliente, valor, data de início e fim.</dd>
-        <dt>RDO</dt>
-        <dd>Relatório Diário de Obra — papel (agora digital) que o encarregado preenche todo dia contando o que aconteceu na obra.</dd>
-        <dt>MOI e MOD</dt>
-        <dd>MOI = Mão de Obra Indireta (engenheiro, técnico, encarregado). MOD = Mão de Obra Direta (mecânico, pedreiro, eletricista).</dd>
-        <dt>Organograma</dt>
-        <dd>Um desenho tipo árvore mostrando quem manda em quem na obra.</dd>
-      </dl>
-    `;
-  },
-
-  _navegacao() {
-    return `
-      <h1><span class="ico">🧭</span> Como navegar</h1>
-      <p class="man-lead">O Rhino tem 3 áreas principais: <strong>menu lateral</strong> (esquerda), <strong>conteúdo</strong> (centro) e <strong>controles</strong> (rodapé da barra lateral).</p>
-
-      <h2>A barra lateral</h2>
-      <p>Fica fixa na esquerda e tem todos os menus principais. Os mais usados no topo, os financeiros num grupo que abre/fecha.</p>
-
-      <div class="man-mockup">
-        <div class="man-mockup-label">Como é a barra lateral</div>
-        <div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:8px;padding:12px;max-width:260px;">
-          <div style="font-weight:700;color:var(--color-text);padding-bottom:8px;border-bottom:1px solid var(--color-border);margin-bottom:8px;">🦏 RINO</div>
-          <div style="padding:8px 10px;background:rgba(85,88,139,.1);color:var(--color-primary);border-left:3px solid var(--color-primary);border-radius:4px;font-weight:700;font-size:14px;">▦ Dashboard</div>
-          <div style="padding:8px 10px;color:var(--color-text);font-size:14px;">≣ Contratos</div>
-          <div style="padding:8px 10px;color:var(--color-text);font-size:14px;">⊚ Mapa de Obras</div>
-          <div style="padding:8px 10px;color:var(--color-text);font-size:14px;">◎ Clientes</div>
-          <div style="padding:8px 10px;color:var(--color-text);font-size:14px;">◉ Recursos</div>
-          <div style="padding:8px 10px;color:var(--color-text);font-weight:600;font-size:14px;">◈ Financeiro ›</div>
-          <div style="padding:8px 10px;color:var(--color-text);font-size:14px;">⚙️ Configuração</div>
-        </div>
-      </div>
-
-      <h3>Item marcado em roxo</h3>
-      <p>A aba atual fica com uma <strong>barrinha roxa à esquerda</strong> e o texto em roxo. Isso te ajuda a saber onde você está.</p>
-
-      <h3>Financeiro tem submenu</h3>
-      <p>Clique em <strong>◈ Financeiro</strong> pra abrir e mostrar: Caixa, Contas a Pagar, Contas a Receber, Sócios, Aportes. Clique de novo pra fechar.</p>
-
-      <h2>Rodapé da barra lateral</h2>
-      <ul style="padding-left:22px;line-height:1.7;font-size:15px;">
-        <li>👤 <strong>Perfil:</strong> mostra quem você é logado. Clique pra trocar de perfil.</li>
-        <li>☀/☾ <strong>Tema:</strong> troca entre claro e escuro.</li>
-        <li>📖 <strong>Manual:</strong> (é onde você está agora!)</li>
-        <li>− / + <strong>Zoom:</strong> diminui ou aumenta o tamanho das letras.</li>
-      </ul>
-
-      <div class="man-tip">
-        💡 <strong>Dica:</strong> Se as letras ficarem pequenas, clique no <span class="man-kb">+</span> até ficar do tamanho que você gosta. O sistema lembra da escolha.
-      </div>
-    `;
-  },
-
-  _dashboard() {
-    return `
-      <h1><span class="ico">📊</span> Dashboard</h1>
-      <p class="man-lead">É a <strong>página inicial</strong>. Mostra um resumão de tudo: quanto você tem a receber, quanto tem a pagar, saldo do caixa, margem das obras.</p>
-
-      <h2>O que aparece lá?</h2>
-
-      <h3>Cards grandes no topo</h3>
-      <p>São 4 números grandes mostrando:</p>
-      <ul style="padding-left:22px;line-height:1.7;font-size:15px;">
-        <li><strong>Contratos Ativos</strong> — quantas obras estão em andamento agora</li>
-        <li><strong>Faturamento Total</strong> — quanto todas as obras somam</li>
-        <li><strong>Saldo em Caixa</strong> — quanto tem no banco/dinheiro</li>
-        <li><strong>Margem Média</strong> — quanto sobra de lucro em média</li>
-      </ul>
-
-      <div class="man-mockup">
-        <div class="man-mockup-label">Como aparece</div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
-          ${[['7','Contratos Ativos'],['R$ 2.5M','Faturamento'],['R$ 180k','Saldo'],['23%','Margem']].map(([v,l]) => `
-            <div class="mock-card" style="text-align:center;">
-              <div style="font-size:22px;font-weight:800;color:var(--color-text);">${v}</div>
-              <div style="font-size:12px;color:var(--color-text-muted);">${l}</div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-
-      <h3>Contas a Receber e Contas a Pagar</h3>
-      <p>Dois cards coloridos logo abaixo, mostrando <strong>o que entra</strong> (clientes que te devem) e <strong>o que sai</strong> (fornecedores que você deve). Cada um tem uma barrinha mostrando o que está em dia (laranja) e o que venceu (amarelo).</p>
-
-      <h3>Fluxo de Caixa</h3>
-      <p>Um gráfico mostrando como o dinheiro entrou e saiu nos últimos meses. Serve pra ver se você está gastando mais ou menos.</p>
-
-      <div class="man-tip">
-        💡 <strong>Dica:</strong> Clique em qualquer card (Contratos Ativos, Saldo, etc.) que ele te leva direto pra tela com os detalhes.
-      </div>
-    `;
-  },
-
-  _contratos() {
-    return `
-      <h1><span class="ico">📄</span> Contratos</h1>
-      <p class="man-lead">O <strong>contrato</strong> é o valor que você vendeu ao cliente. À medida que a obra avança, você registra as <strong>saídas</strong> (serviços executados) e o sistema gera automaticamente os <strong>Boletins de Medição (BMs)</strong> que entram em Contas a Receber.</p>
-
-      <h2>Cadastrar um novo contrato</h2>
-      <ol class="man-steps">
-        <li>Clique em <strong>≣ Contratos</strong> no menu lateral.</li>
-        <li>Clique em <strong>+ Novo Contrato</strong>.</li>
-        <li>Preencha:
-          <ul style="margin-top:8px;">
-            <li><strong>Número do Contrato</strong> e <strong>Status</strong></li>
-            <li><strong>Nome da obra</strong> (ex: "Galpão Norte CMPC")</li>
-            <li><strong>Cliente</strong> — seleciona de uma lista; ao escolher, puxa email/telefone/CPF-CNPJ automaticamente</li>
-            <li><strong>Valor Total</strong> — o quanto o cliente paga no total</li>
-            <li><strong>Datas</strong> — início, fim e tendência (previsão atualizada do término)</li>
-          </ul>
-        </li>
-        <li>Clique em <strong>Criar</strong>.</li>
-      </ol>
-
-      <div class="man-tip">
-        💡 Os mesmos campos aparecem ao <strong>criar</strong> e ao <strong>editar</strong> um contrato.
-      </div>
-
-      <h2>Abrir um contrato</h2>
-      <p>Clique no card do contrato. Abre uma tela com <strong>5 abas</strong>:</p>
-
-      <div class="man-mockup">
-        <div class="man-mockup-label">As abas do contrato</div>
-        <div class="mock-card">
-          <div class="mock-tabs">
-            <div class="mock-tab active">◉ Visão Geral</div>
-            <div class="mock-tab">◈ Financeiro</div>
-            <div class="mock-tab">◎ Equipe</div>
-            <div class="mock-tab">📋 RDO</div>
-            <div class="mock-tab">⚠ Pendências</div>
-          </div>
-        </div>
-      </div>
-
-      <h3>Aba Visão Geral (orientada a medição)</h3>
-      <p>Barra com 4 indicadores principais:</p>
-      <ul style="line-height:1.7;">
-        <li><strong>Valor do Contrato</strong> — total vendido</li>
-        <li><strong>Medido</strong> — soma dos BMs (emitidos + não emitidos) + quantidade de BMs</li>
-        <li><strong>A Medir</strong> — saldo que ainda falta faturar</li>
-        <li><strong>Margem Atual</strong> — medido − (saídas + BASE + passagens)</li>
-      </ul>
-      <p>Barra de <strong>progresso de medição</strong> em 3 zonas: verde (emitido), amarelo (cadastrado) e cinza (a medir).</p>
-
-      <h3>Aba Financeiro</h3>
-      <ul style="line-height:1.7;">
-        <li><strong>Orçamento</strong>: itens planejados por categoria. Não pode ultrapassar o valor do contrato. Há gráfico de pizza (distribuição) e gráfico de barras (Orçado × Realizado).</li>
-        <li><strong>Saídas Classificadas</strong>: cada saída é um serviço executado. Gera BM automaticamente em Contas a Receber. Botão <strong>📄 BM</strong> em cada linha baixa o PDF.</li>
-      </ul>
-
-      <div class="man-tip">
-        💡 <strong>Saídas do mesmo dia + mesmo contrato</strong> são agregadas num único BM. Se você lançar 3 saídas em 24/04, todas entram no BM daquele dia.
-      </div>
-
-      <h3>Aba Equipe · RDO · Pendências</h3>
-      <p>Veja as seções específicas deste manual.</p>
-
-      <div class="man-warn">
-        ⚠️ Excluir um contrato apaga também o orçamento, organograma, RDOs e BMs não emitidos. Não tem como desfazer.
-      </div>
-    `;
-  },
-
-  _equipe() {
-    return `
-      <h1><span class="ico">👷</span> Equipe e Organograma</h1>
-      <p class="man-lead">O <strong>Organograma</strong> mostra quem trabalha na obra e <strong>quem manda em quem</strong> — estilo árvore genealógica. Útil pra quando alguém chega na obra e quer saber com quem falar.</p>
-
-      <h2>Os 3 níveis</h2>
-      <p>Toda obra tem no máximo 3 níveis:</p>
-      <ol style="padding-left:22px;line-height:1.7;font-size:15px;">
-        <li><strong>Encarregado</strong> — chefe da obra. Só pode ter <strong>1</strong>.</li>
-        <li><strong>Líder de Área</strong> — chefe de uma frente específica (Mecânica, Elétrica, Andaimes). Pode ter vários.</li>
-        <li><strong>Profissional</strong> — quem coloca a mão na massa (mecânico, eletricista, caldeireiro…).</li>
-      </ol>
-
-      <h2>Como montar o organograma</h2>
-      <ol class="man-steps">
-        <li>Abra o contrato da obra.</li>
-        <li>Clique na aba <strong>◎ Equipe</strong>.</li>
-        <li>Clique em <strong>+ Adicionar Membro</strong>.</li>
-        <li>Escolha o <strong>Recurso</strong> (funcionário que já deve estar cadastrado em "Recursos").</li>
-        <li>O nível aparece <strong>automaticamente</strong> pela profissão dele. Se a profissão for "Encarregado", o nível vira Encarregado. Se for "Líder de Mecânica", vira Líder.</li>
-        <li>Se for Líder, escreva a <strong>Área</strong> (ex: "Mecânica", "Elétrica").</li>
-        <li>Se for Profissional, escolha o <strong>Supervisor</strong> (qual líder ele se reporta).</li>
-        <li>Clique em <strong>Adicionar</strong>.</li>
-      </ol>
-
-      <h2>Arrastando pra reorganizar</h2>
-      <p>Você pode <strong>arrastar</strong> um card sobre outro pra mudar o chefe. É só clicar e segurar. O sistema mostra:</p>
-      <ul style="padding-left:22px;line-height:1.7;font-size:15px;">
-        <li>🟡 <strong>Amarelo</strong> = pode soltar aqui</li>
-        <li>🔴 <strong>Vermelho</strong> = não pode (ex: não dá pra colocar um chefe embaixo do subordinado dele)</li>
-      </ul>
-
-      <h2>Clicar no nome</h2>
-      <p>Clicar no <strong>nome</strong> de um colaborador abre um modal com:</p>
-      <ul style="padding-left:22px;line-height:1.7;font-size:15px;">
-        <li>Próxima folga (contagem regressiva)</li>
-        <li>Dados pessoais (CPF, telefone, endereço…)</li>
-        <li>Histórico de folgas e passagens</li>
-        <li>Documentação (quais estão vencidos)</li>
-      </ul>
-
-      <div class="man-tip">
-        💡 <strong>Visão Lista vs Hierarquia:</strong> No topo da aba Equipe tem dois botões: <strong>Hierarquia</strong> (árvore visual) e <strong>Lista</strong> (tabela simples). Use o que for mais útil.
-      </div>
-    `;
-  },
-
-  _rdo() {
-    return `
-      <h1><span class="ico">📋</span> RDO — Relatório Diário de Obra</h1>
-      <p class="man-lead">RDO é um <strong>papel que a obra preenche todo dia</strong>. Dizendo: quem trabalhou, o tempo (sol/chuva), o que foi feito, se aconteceu algum acidente. Agora está digital e vira PDF no final.</p>
-
-      <h2>Criar um RDO</h2>
-      <ol class="man-steps">
-        <li>Entre no contrato da obra.</li>
-        <li>Clique na aba <strong>📋 RDO</strong>.</li>
-        <li>Clique em <strong>+ Novo RDO</strong>.</li>
-        <li>Preencha as <strong>8 abas</strong> (explicadas abaixo).</li>
-        <li>Clique em <strong>Criar RDO</strong>.</li>
-      </ol>
-
-      <h2>As 8 abas do RDO</h2>
-
-      <h3>1️⃣ Cabeçalho</h3>
-      <p>Já vem preenchido com os dados do contrato: projeto, ordem de compra, datas de prazo. Você só precisa:</p>
-      <ul style="padding-left:22px;line-height:1.7;font-size:15px;">
-        <li>Confirmar a <strong>Data</strong> (por padrão é hoje)</li>
-        <li>Escrever o <strong>Nº da Ordem de Serviço</strong> do dia</li>
-        <li>Escolher o <strong>Período de Trabalho</strong> (7 às 15, 7 às 17, 23 às 7…)</li>
-        <li>Marcar se teve <strong>Hora Extra</strong></li>
-        <li>Atualizar a <strong>% Concluída</strong> da obra</li>
-      </ul>
-
-      <h3>2️⃣ Tempo</h3>
-      <p>Diz como estava o clima em cada período:</p>
-      <ul style="padding-left:22px;line-height:1.7;font-size:15px;">
-        <li><strong>Manhã</strong> — Bom, Chuva, Não Houve, Sem Expediente</li>
-        <li><strong>Tarde</strong> — igual</li>
-        <li><strong>Noite Ant.</strong> — por padrão vem "Sem Expediente"</li>
-        <li><strong>Precipitação</strong> em milímetros (se choveu)</li>
-      </ul>
-
-      <h3>3️⃣ Mão de Obra</h3>
-      <p><strong>Já vem preenchido automaticamente</strong> com base no organograma da obra. Você só ajusta as <strong>quantidades</strong> e <strong>horas</strong> trabalhadas de cada cargo. Tem três seções:</p>
-      <ul style="padding-left:22px;line-height:1.7;font-size:15px;">
-        <li><strong>MOI</strong> — Mão de Obra Indireta (engenheiro, técnico, encarregado, líder)</li>
-        <li><strong>MOD</strong> — Mão de Obra Direta (mecânico, eletricista, pedreiro…)</li>
-        <li><strong>Terceirizados</strong> — empresas contratadas (ex: SOLDAS RIO LTDA)</li>
-      </ul>
-
-      <h3>4️⃣ Equipamentos</h3>
-      <p>Liste os equipamentos usados (retroescavadeira, máquina de solda, betoneira…) com quantidade e horas.</p>
-
-      <h3>5️⃣ Atividades</h3>
-      <p>O <strong>coração do RDO</strong>. Cada linha é uma atividade:</p>
-      <ul style="padding-left:22px;line-height:1.7;font-size:15px;">
-        <li><strong>Área</strong> — Mecânica, Elétrica, Concreto…</li>
-        <li><strong>Descrição</strong> — o que foi feito (ex: "Montagem de tubulação no trecho norte")</li>
-        <li><strong>% Concluída</strong> — quanto dessa atividade está pronto</li>
-        <li><strong>Ocorrências</strong> — problemas, observações</li>
-      </ul>
-
-      <h3>6️⃣ Segurança</h3>
-      <p>Preenche:</p>
-      <ul style="padding-left:22px;line-height:1.7;font-size:15px;">
-        <li><strong>Tema do DDS</strong> — diálogo diário de segurança (ex: "Uso de EPI em área úmida")</li>
-        <li><strong>Tema de Meio Ambiente</strong></li>
-        <li>Se houve <strong>Acidente</strong> (não houve, sem afastamento, com afastamento)</li>
-        <li><strong>Admissões e Demissões</strong> do dia</li>
-        <li><strong>Comentários</strong> gerais</li>
-      </ul>
-
-      <h3>7️⃣ Fiscalização</h3>
-      <p>Campo livre pra escrever o que o fiscal falou/pediu no dia.</p>
-
-      <h3>8️⃣ Fotos</h3>
-      <p><strong>Só aparece depois de salvar o RDO.</strong> Pra adicionar fotos:</p>
-      <ol class="man-steps">
-        <li>Salve o RDO primeiro (botão Criar RDO).</li>
-        <li>Clique em <strong>Editar</strong> na lista.</li>
-        <li>Vá na aba <strong>Fotos</strong>.</li>
-        <li>(Opcional) escreva uma <strong>legenda</strong> que valerá pra todas as fotos que vai anexar agora.</li>
-        <li>Clique em <strong>📷 Adicionar Fotos</strong>, selecione uma ou várias imagens.</li>
-      </ol>
-
-      <h2>Gerar o PDF</h2>
-      <p>Na lista de RDOs, cada linha tem o botão <strong>📄 PDF</strong>. Clica e baixa um arquivo bonitinho no formato Usiminas, com:</p>
-      <ul style="padding-left:22px;line-height:1.7;font-size:15px;">
-        <li>Logo da empresa no topo</li>
-        <li>Todos os dados em tabelas organizadas</li>
-        <li>Fotos em páginas extras</li>
-        <li>Espaço pra assinatura no rodapé</li>
-      </ul>
-
-      <div class="man-tip">
-        💡 <strong>Data de Tendência:</strong> se a obra atrasar, edita o contrato e coloca a nova <strong>Data de Tendência</strong>. O RDO passa a mostrar "Atraso de X dias" automaticamente.
-      </div>
-
-      <div class="man-warn">
-        ⚠️ <strong>Não dá pra ter 2 RDOs no mesmo dia.</strong> Se tentar criar um pra uma data que já tem RDO, o sistema avisa.
-      </div>
-    `;
-  },
-
-  _obras() {
-    return `
-      <h1><span class="ico">🏗️</span> Mapa de Obras</h1>
-      <p class="man-lead">Mostra todas as obras num <strong>mapa interativo</strong>. Útil pra ver onde está cada uma, distância, e planejar visitas.</p>
-
-      <h2>Como usar</h2>
-      <ol class="man-steps">
-        <li>Menu lateral → <strong>⊚ Mapa de Obras</strong>.</li>
-        <li>O mapa abre mostrando marcadores pra cada obra cadastrada (que tenha endereço).</li>
-        <li>Use os filtros no topo (Status, Cliente, datas) pra ver só algumas obras.</li>
-        <li>Clique num marcador pra ver o popup com nome, cliente, valor.</li>
-      </ol>
-
-      <h2>Botão ✕ Limpar</h2>
-      <p>Se você usou filtros e quer voltar a ver tudo, clique no botão <strong>✕ Limpar</strong>.</p>
-
-      <div class="man-tip">
-        💡 A obra precisa ter <strong>endereço</strong> cadastrado pra aparecer no mapa. Edite o contrato e preencha o endereço pra ela aparecer.
-      </div>
-    `;
-  },
-
-  _recursos() {
-    return `
-      <h1><span class="ico">👥</span> Recursos (Colaboradores)</h1>
-      <p class="man-lead"><strong>Recursos</strong> = pessoas que trabalham na empresa. Funcionários ativos, candidatos ou ex-funcionários. Tudo que você precisa saber sobre cada um.</p>
-
-      <h2>Cadastrar um colaborador</h2>
-      <ol class="man-steps">
-        <li>Menu → <strong>◉ Recursos</strong> → <strong>+ Novo Cadastro</strong>.</li>
-        <li>Preencha os dados pessoais: nome, CPF, telefone, endereço.</li>
-        <li><strong>Status</strong> — escolha Candidato, Funcionário Ativo ou Ex-Funcionário.</li>
-        <li><strong>Profissão</strong> — ex: "Mecânico", "Eletricista", "Encarregado".</li>
-        <li><strong>Categoria no RDO</strong> — MOI ou MOD. Serve pra o RDO saber em qual caixinha colocar.</li>
-        <li>Se for Funcionário Ativo, preencha alocação (qual contrato), ciclo de trabalho (ex: 21 dias trabalhando / 7 folga).</li>
-      </ol>
-
-      <h2>Lista de colaboradores</h2>
-      <p>A tela principal mostra uma tabela com todos. Cada linha tem:</p>
-      <ul style="padding-left:22px;line-height:1.7;font-size:15px;">
-        <li>Nome, CPF, profissão, status</li>
-        <li><strong>Obra Atual</strong> — em qual contrato está alocado</li>
-        <li><strong>Próxima Folga</strong> — quando pode tirar. Fica vermelho se está atrasada, amarelo se chega em 5 dias.</li>
-        <li>Ações: Folgas, Docs, Distâncias, Editar, Excluir</li>
-      </ul>
-
-      <h3>Botão "Folgas"</h3>
-      <p>Abre um modal com todas as folgas do colaborador. Dá pra lançar nova folga e marcar se a passagem foi comprada.</p>
-
-      <h3>Botão "Docs"</h3>
-      <p>Documentação do colaborador (PCMSO, ASO, certificados). Mostra o que tá vencido.</p>
-
-      <h3>Botão "Distâncias"</h3>
-      <p>Mostra num mapa a distância da casa do colaborador até cada obra ativa. <strong>Usa as rodovias reais</strong> (não linha reta). Dá pra ver em quanto tempo ele chega de carro.</p>
-
-      <div class="man-tip">
-        💡 Por que cadastrar MOI/MOD? Quando você criar um RDO, o sistema usa essa informação pra colocar automaticamente cada pessoa na caixinha certa.
-      </div>
-    `;
-  },
-
-  _clientes() {
-    return `
-      <h1><span class="ico">◎</span> Clientes</h1>
-      <p class="man-lead">Lista das empresas/pessoas que contratam seus serviços.</p>
-
-      <h2>Cadastrar</h2>
-      <ol class="man-steps">
-        <li>Menu → <strong>◎ Clientes</strong> → <strong>+ Novo Cliente</strong>.</li>
-        <li>Preencha: Nome, CNPJ/CPF, contato principal, email, telefone, endereço.</li>
-        <li>Salve.</li>
-      </ol>
-
-      <p>Depois, quando criar um contrato, o campo "Cliente" já vai sugerir os cadastrados.</p>
-    `;
-  },
-
-  _fornecedores() {
-    return `
-      <h1><span class="ico">⬡</span> Fornecedores</h1>
-      <p class="man-lead">Empresas de quem você compra material, aluga equipamento ou contrata serviço.</p>
-
-      <h2>Cadastrar</h2>
-      <ol class="man-steps">
-        <li>Menu → <strong>⬡ Fornecedores</strong> → <strong>+ Novo Fornecedor</strong>.</li>
-        <li>Preencha os dados.</li>
-        <li>Na hora de lançar uma <strong>Conta a Pagar</strong>, você escolhe qual fornecedor é.</li>
-      </ol>
-    `;
-  },
-
-  _documentos() {
-    return `
-      <h1><span class="ico">📑</span> Documentação</h1>
-      <p class="man-lead">Painel que consolida toda a <strong>documentação dos colaboradores</strong>. Mostra o que está vencido, o que vence em breve, o que está OK.</p>
-
-      <h2>Como funciona</h2>
-      <p>Cada colaborador tem vários documentos (ASO, PCMSO, Certificados, Permissões...). O sistema monitora as datas de vencimento e alerta.</p>
-
-      <h2>Indicadores</h2>
-      <ul style="padding-left:22px;line-height:1.7;font-size:15px;">
-        <li>🔴 <strong>Vencido</strong> — precisa renovar já</li>
-        <li>🟡 <strong>Vence em ≤30 dias</strong> — providenciar</li>
-        <li>🟢 <strong>Válido</strong> — tudo certo</li>
-      </ul>
-
-      <div class="man-tip">
-        💡 O menu lateral mostra um <strong>número vermelho</strong> ao lado de "Documentação" quando tem documentos vencidos. Clique pra resolver.
-      </div>
-    `;
-  },
-
-  _caixa() {
-    return `
-      <h1><span class="ico">◇</span> Caixa</h1>
-      <p class="man-lead">É o <strong>extrato</strong> do dinheiro da empresa. Cada entrada (cliente pagou, aporte de sócio) e cada saída (pagou fornecedor, combustível, salário...).</p>
-
-      <h2>Lançar entrada ou saída</h2>
-      <ol class="man-steps">
-        <li>Menu → <strong>Financeiro → ◇ Caixa</strong>.</li>
-        <li>Clique em <strong>+ Nova Entrada</strong> ou <strong>+ Nova Saída</strong>.</li>
-        <li>Preencha: data, descrição, valor, categoria, em qual contrato (se aplicável).</li>
-        <li>Salve.</li>
-      </ol>
-
-      <div class="man-tip">
-        💡 Na verdade, você raramente precisa lançar manualmente. A maioria das entradas/saídas vem <strong>automaticamente</strong> quando você:
-        <ul style="margin-top:6px;">
-          <li>Marca uma NF como "Recebida" (Contas a Receber)</li>
-          <li>Paga uma Conta a Pagar</li>
-          <li>Registra um Aporte</li>
-        </ul>
-      </div>
-    `;
-  },
-
-  _contaspagar() {
-    return `
-      <h1><span class="ico">⊖</span> Contas a Pagar</h1>
-      <p class="man-lead">Lista de <strong>boletos, notas, faturas</strong> que você tem que pagar pra alguém. Serve pra não esquecer e não atrasar.</p>
-
-      <h2>Lançar uma conta</h2>
-      <ol class="man-steps">
-        <li>Menu → <strong>Financeiro → ⊖ Contas a Pagar</strong>.</li>
-        <li>Clique em <strong>+ Nova Conta</strong>.</li>
-        <li>Preencha:
-          <ul>
-            <li><strong>Descrição</strong> (ex: "Aluguel galpão abril")</li>
-            <li><strong>Fornecedor</strong> (escolhe da lista)</li>
-            <li><strong>Valor</strong> e <strong>Data de Vencimento</strong></li>
-            <li><strong>Contrato</strong> (opcional, se essa despesa é de uma obra específica)</li>
-          </ul>
-        </li>
-        <li>Status inicial fica <strong>Pendente</strong>.</li>
-      </ol>
-
-      <h2>Filtrar a lista</h2>
-      <p>No topo tem 3 botões coloridos:</p>
-      <ul style="padding-left:22px;line-height:1.7;font-size:15px;">
-        <li>⏳ <strong>Pendentes</strong> (laranja) — contas ainda em aberto</li>
-        <li>✅ <strong>Pagas</strong> (verde) — já quitadas</li>
-        <li>📋 <strong>Todas</strong> (roxo) — ver tudo</li>
-      </ul>
-
-      <h2>Pagar uma conta</h2>
-      <ol class="man-steps">
-        <li>Na linha da conta, clique em <strong>Pagar</strong>.</li>
-        <li>Preencha data do pagamento, valor pago, forma (PIX, boleto, dinheiro...).</li>
-        <li>Confirma. O sistema <strong>lança automaticamente no Caixa</strong> como saída.</li>
-      </ol>
-
-      <div class="man-tip">
-        💡 Se errou e pagou a conta errada, clique em <strong>Estornar</strong> na linha. Volta pra pendente e tira do caixa.
-      </div>
-    `;
-  },
-
-  _contasreceber() {
-    return `
-      <h1><span class="ico">☐</span> Contas a Receber (BMs)</h1>
-      <p class="man-lead">Cada registro aqui é um <strong>Boletim de Medição (BM)</strong> vinculado a um contrato. A maioria dos BMs aparece <strong>automaticamente</strong> quando você lança saídas no contrato.</p>
-
-      <h2>Como os BMs nascem</h2>
-      <ol class="man-steps">
-        <li>Você entra num contrato → aba <strong>Financeiro</strong> → <strong>+ Adicionar Saída</strong>.</li>
-        <li>Preenche descrição, tipo, valor e data do serviço executado.</li>
-        <li>O sistema:
-          <ul style="margin-top:6px;">
-            <li>Se já existe um BM <strong>não emitido</strong> desse contrato na mesma data → soma o valor ao BM existente;</li>
-            <li>Se não existe → cria um novo BM com número sequencial (BM-001, BM-002…).</li>
-          </ul>
-        </li>
-      </ol>
-
-      <h2>Ciclo de vida do BM</h2>
-      <ol style="padding-left:22px;line-height:1.7;">
-        <li><strong>Cadastrado</strong> (não emitido) — acabou de sair. Ainda pode ser editado/excluído.</li>
-        <li><strong>Emitido</strong> — você clicou em "Emitir". Cria automaticamente uma entrada agendada no Caixa pela data de recebimento prevista.</li>
-        <li><strong>Recebido</strong> — o dinheiro entrou no caixa na data prevista.</li>
-      </ol>
-
-      <h2>Gerar o PDF do BM</h2>
-      <p>Na aba Financeiro do contrato, clique em <strong>📄 BM</strong> ao lado de qualquer saída. Baixa um PDF com a identidade da Rhino + layout CMPC contendo: cabeçalho, OS, descrição, itens do dia, valor cobrado, dados contratuais (acumulado, saldo, % avanço), acompanhamento MED 01–12 e aprovações.</p>
-
-      <div class="man-tip">
-        💡 Se o BM já foi <strong>emitido</strong>, você não pode mais alterar/excluir a saída que o originou. Cancele a emissão primeiro.
-      </div>
-
-      <div class="man-warn">
-        ⚠️ O total de BMs não pode ultrapassar o <strong>valor do contrato</strong>. O sistema bloqueia.
-      </div>
-    `;
-  },
-
-  _socios() {
-    return `
-      <h1><span class="ico">⊕</span> Sócios</h1>
-      <p class="man-lead">Cadastro dos sócios da empresa e o percentual de cada um. Usado pra calcular quando tem <strong>Aporte</strong> (sócio botou dinheiro).</p>
-
-      <h2>Cadastrar sócio</h2>
-      <ol class="man-steps">
-        <li>Menu → <strong>Financeiro → ⊕ Sócios</strong> → <strong>+ Novo Sócio</strong>.</li>
-        <li>Nome, CPF, percentual de participação.</li>
-        <li>Salva.</li>
-      </ol>
-    `;
-  },
-
-  _aportes() {
-    return `
-      <h1><span class="ico">△</span> Aportes</h1>
-      <p class="man-lead">Quando um <strong>sócio coloca dinheiro</strong> na empresa (fora do pró-labore/lucro). Ou quando a empresa transfere dinheiro pra obra específica.</p>
-
-      <h2>Lançar aporte</h2>
-      <ol class="man-steps">
-        <li>Menu → <strong>Financeiro → △ Aportes</strong> → <strong>+ Novo Aporte</strong>.</li>
-        <li>Escolha a <strong>origem</strong>:
-          <ul>
-            <li>👥 <strong>Sócio</strong> — dinheiro de um sócio</li>
-            <li>💰 <strong>Caixa Empresa</strong> — a empresa transferiu pra obra</li>
-          </ul>
-        </li>
-        <li>Preencha valor, data, contrato de destino (se for pra uma obra).</li>
-      </ol>
-    `;
-  },
-
-  _base() {
-    return `
-      <h1><span class="ico">⊟</span> BASE — Custo Rateado</h1>
-      <p class="man-lead">BASE é o <strong>custo que não é de uma obra só</strong>: aluguel do escritório, salário da secretária, internet, contador... Como o rateio funciona? Esses valores são divididos entre as obras ativas.</p>
-
-      <h2>Cadastrar um item BASE</h2>
-      <ol class="man-steps">
-        <li>Menu → <strong>⊟ BASE</strong> → <strong>+ Novo Item</strong>.</li>
-        <li>Escolha o <strong>tipo</strong> (fixo, variável, homem-hora, veículo...).</li>
-        <li>Descrição (ex: "Aluguel galpão"), valor, mês.</li>
-        <li>Se for recorrente (sai todo mês), marca.</li>
-      </ol>
-
-      <h2>Como é rateado</h2>
-      <p>O total do mês é dividido entre as obras ativas. Cada obra "absorve" uma parte proporcional. Você vê isso na aba <strong>Financeiro</strong> de cada contrato, como "Custo BASE Alocado".</p>
-
-      <h2>Navegação por mês</h2>
-      <p>No topo tem <strong>← →</strong> e um dropdown de mês. Use pra ver ou lançar custos de meses anteriores.</p>
-    `;
-  },
-
-  _configuracao() {
-    return `
-      <h1><span class="ico">⚙️</span> Configuração</h1>
-      <p class="man-lead">Configurações gerais do sistema: perfis de acesso, tipos de custo base, templates de documentos, etc.</p>
-
-      <h2>Níveis de Acesso</h2>
-      <p>Cria perfis como "Gerente", "Fiscal", "Engenheiro" e define quais menus cada um pode ver. Quando alguém loga, escolhe o perfil dele.</p>
-
-      <h2>Tipos de Custo BASE</h2>
-      <p>Edita os tipos disponíveis na tela BASE (fixo, variável, homem-hora...).</p>
-
-      <h2>Templates de Documentos</h2>
-      <p>Define quais documentos cada tipo de colaborador precisa ter (ex: Operador → CNH, NR-11, NR-35).</p>
-    `;
-  },
-
-  _atalhos() {
-    return `
-      <h1><span class="ico">⌨</span> Atalhos e Dicas</h1>
-
-      <h2>Zoom da interface</h2>
-      <p>No rodapé da barra lateral tem <span class="man-kb">−</span> <span class="man-kb">%</span> <span class="man-kb">+</span>. Aumenta ou diminui o tamanho das letras do app inteiro. Clicar no percentual (100%) volta ao padrão.</p>
-
-      <h2>Temas</h2>
-      <p>Botão ☀/☾ no rodapé troca entre tema claro (padrão) e escuro.</p>
-
-      <h2>Trocar perfil</h2>
-      <p>Botão do nome do perfil no rodapé — clica pra escolher outro perfil sem precisar relogar.</p>
-
-      <h2>Recarregar dados</h2>
-      <p>Se você trocou algo e não apareceu na tela, dê um <span class="man-kb">F5</span> pra recarregar.</p>
-
-      <h2>Onde estão meus arquivos?</h2>
-      <p>As fotos dos RDOs ficam em <code>data/rdo-fotos/</code> dentro da pasta do Rhino. Os dados gerais em arquivos <code>.json</code> em <code>data/</code>.</p>
-    `;
-  },
-
-  _glossario() {
-    return `
-      <h1><span class="ico">📚</span> Glossário</h1>
-      <p class="man-lead">Os termos que mais aparecem no Rhino, explicados.</p>
-
-      <dl class="man-glossary">
-        <dt>A Medir</dt>
-        <dd>Saldo do contrato que ainda pode virar BM. É <strong>Valor do Contrato − Medido</strong>.</dd>
-
-        <dt>Aporte</dt>
-        <dd>Dinheiro que um sócio (ou a empresa matriz) coloca na obra.</dd>
-
-        <dt>BASE</dt>
-        <dd>Custos da empresa que não são de uma obra só (aluguel, secretária, contador...). São divididos entre as obras ativas.</dd>
-
-        <dt>BM (Boletim de Medição)</dt>
-        <dd>Cobrança parcial enviada ao cliente por um serviço executado. No Rhino, cada BM é uma NF em Contas a Receber. É criado automaticamente quando você registra uma saída. Saídas do mesmo dia num mesmo contrato vão para o mesmo BM.</dd>
-
-        <dt>Caixa</dt>
-        <dd>Extrato do dinheiro da empresa. Entradas (receitas) e saídas (despesas).</dd>
-
-        <dt>Contrato</dt>
-        <dd>Uma obra fechada com um cliente. Tem nome, valor total, datas, orçamento e equipe próprios.</dd>
-
-        <dt>DDS</dt>
-        <dd>Diálogo Diário de Segurança. Conversa rápida no início do turno sobre um tema de segurança.</dd>
-
-        <dt>Encarregado</dt>
-        <dd>Chefe da obra. Só pode ter um por contrato. Fica no topo do organograma.</dd>
-
-        <dt>Faltante</dt>
-        <dd>Quantos dias faltam até a data de tendência. Se a tendência for depois do contratual, vira "Atraso".</dd>
-
-        <dt>Líder de Área</dt>
-        <dd>Chefe de uma frente específica (Mecânica, Elétrica, Andaimes). Se reporta ao Encarregado.</dd>
-
-        <dt>MOD</dt>
-        <dd>Mão de Obra Direta — quem executa o serviço (mecânico, pedreiro, eletricista...).</dd>
-
-        <dt>Margem Atual</dt>
-        <dd>Lucro estimado = Medido − (Saídas + BASE alocada + Passagens). Mostra o quanto sobra de fato do que foi faturado.</dd>
-
-        <dt>Medido</dt>
-        <dd>Total já cobrado do cliente via BMs (emitidos + cadastrados aguardando emissão).</dd>
-
-        <dt>MOI</dt>
-        <dd>Mão de Obra Indireta — quem dá suporte (engenheiro, técnico, encarregado, aux. administrativo...).</dd>
-
-        <dt>NF</dt>
-        <dd>Nota Fiscal. No Rhino, equivale a um BM — documento que formaliza a cobrança ao cliente.</dd>
-
-        <dt>Saída (do contrato)</dt>
-        <dd>Serviço executado para o cliente. Gera um BM automaticamente em Contas a Receber. Não é gasto da empresa — é entrega/cobrança.</dd>
-
-        <dt>Organograma</dt>
-        <dd>Desenho em árvore da hierarquia da obra: Encarregado → Líderes → Profissionais.</dd>
-
-        <dt>OS</dt>
-        <dd>Ordem de Serviço. Número que identifica o trabalho do dia.</dd>
-
-        <dt>RDO</dt>
-        <dd>Relatório Diário de Obra. Preenchido todo dia — quem trabalhou, tempo, atividades, segurança.</dd>
-
-        <dt>Tendência</dt>
-        <dd>Previsão atualizada do fim da obra. Pode ser igual, menor ou maior que a Data de Término contratual.</dd>
-
-        <dt>Terceirizados</dt>
-        <dd>Profissionais que não são funcionários da sua empresa — vêm de outra empresa contratada.</dd>
-      </dl>
     `;
   },
 
   _attachListeners() {
-    document.querySelectorAll('[data-man-sec]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        this._secao = e.currentTarget.dataset.manSec;
+    document.querySelectorAll('.man-menu-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this._secao = btn.dataset.secao;
         this.render();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     });
-  }
+  },
 };

@@ -61,7 +61,7 @@ window.Contratos = {
                   const total = Math.max(nOrg, nRec);
                   const bg = total === 0 ? '#9CA3AF' : '#55588B';
                   return `
-                  <tr>
+                  <tr class="row-contrato" data-id="${c.id}" style="cursor:pointer;">
                     <td><strong>${escapeHtml(c.name)}</strong></td>
                     <td>${escapeHtml(c.client)}</td>
                     <td>${Store.formatBRL(c.value)}</td>
@@ -75,7 +75,6 @@ window.Contratos = {
                     <td><span class="badge badge-${c.status}">${c.status}</span></td>
                     <td>
                       <div class="actions-cell">
-                        <a class="action-link btn-ver" data-id="${c.id}">Ver</a>
                         <a class="action-link btn-editar" data-id="${c.id}">Editar</a>
                         <a class="action-link danger btn-excluir" data-id="${c.id}">Excluir</a>
                       </div>
@@ -97,23 +96,180 @@ window.Contratos = {
         this.render();
       });
 
-      document.querySelectorAll('.btn-ver').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          location.hash = `#/contratos/${e.target.dataset.id}`;
+      // Click na linha → abre overview (não dispara se clicou em botão de ação)
+      document.querySelectorAll('.row-contrato').forEach(tr => {
+        tr.addEventListener('click', (e) => {
+          if (e.target.closest('.actions-cell')) return;
+          this.showOverview(tr.dataset.id);
         });
       });
 
       document.querySelectorAll('.btn-editar').forEach(btn => {
-        btn.addEventListener('click', (e) => this.showModal(e.target.dataset.id));
+        btn.addEventListener('click', (e) => { e.stopPropagation(); this.showModal(e.target.dataset.id); });
       });
 
       document.querySelectorAll('.btn-excluir').forEach(btn => {
-        btn.addEventListener('click', (e) => this.deleteContract(e.target.dataset.id));
+        btn.addEventListener('click', (e) => { e.stopPropagation(); this.deleteContract(e.target.dataset.id); });
       });
     } catch (e) {
       console.error(e);
       app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar contratos. Tente novamente.</p></div>';
     }
+  },
+
+  // Visão geral rápida do contrato (modal)
+  showOverview(contractId) {
+    const c = Store.getContractById(contractId);
+    if (!c) return;
+
+    const fmt = (d) => d ? new Date(d).toLocaleDateString('pt-BR') : '—';
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const fim = c.endDate ? new Date(c.endDate) : null;
+    const diasRestantes = fim ? Math.ceil((fim - hoje) / 86400000) : null;
+
+    const saidas = (Store.state.saidas || []).filter(s => s.contractId === c.id);
+    const totalMedido = saidas.reduce((acc, s) => acc + (parseFloat(s.value) || 0), 0);
+    const margem = parseFloat(c.value || 0) - totalMedido;
+    const marginPct = c.value > 0 ? (margem / c.value * 100) : 0;
+
+    const orgCount = (c.organograma || []).length;
+    const recCount = (Store.state.recursos || []).filter(r => r.status === 'funcionario' && r.alocacaoAtual?.contractId === c.id).length;
+    const rdoCount = (c.rdos || []).length;
+    const budget = c.budget || [];
+    const totalBudget = budget.reduce((acc, b) => acc + (parseFloat(b.value) || 0), 0);
+
+    const nfs = (Store.state.notas_fiscais || []).filter(n => n.contractId === c.id);
+    const nfsEmitidas = nfs.filter(n => n.emitida).length;
+
+    const html = `
+      <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" style="width:720px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">${escapeHtml(c.name)}</h2>
+              <div style="font-size:14px;color:var(--color-text-muted);margin-top:4px;">
+                ${escapeHtml(c.client)} ${c.contractNumber ? `· <span style="font-family:monospace;">#${escapeHtml(c.contractNumber)}</span>` : ''}
+                <span class="badge badge-${c.status}" style="margin-left:8px;">${c.status}</span>
+              </div>
+            </div>
+            <button class="modal-close">✕</button>
+          </div>
+
+          <div class="modal-content">
+            <!-- KPIs -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:var(--sp-md);margin-bottom:var(--sp-lg);">
+              <div style="padding:var(--sp-md);background:var(--color-surface);border-radius:8px;border:1px solid var(--color-border);">
+                <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Valor do contrato</div>
+                <div style="font-size:20px;font-weight:700;color:#3b82f6;margin-top:4px;">${Store.formatBRL(c.value)}</div>
+              </div>
+              <div style="padding:var(--sp-md);background:var(--color-surface);border-radius:8px;border:1px solid var(--color-border);">
+                <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Medido</div>
+                <div style="font-size:20px;font-weight:700;color:#10b981;margin-top:4px;">${Store.formatBRL(totalMedido)}</div>
+                <div style="font-size:12px;color:var(--color-text-muted);">${saidas.length} medições</div>
+              </div>
+              <div style="padding:var(--sp-md);background:var(--color-surface);border-radius:8px;border:1px solid var(--color-border);">
+                <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Margem</div>
+                <div style="font-size:20px;font-weight:700;color:${margem >= 0 ? '#10b981' : '#dc2626'};margin-top:4px;">${Store.formatBRL(margem)}</div>
+                <div style="font-size:12px;color:var(--color-text-muted);">${marginPct.toFixed(1)}%</div>
+              </div>
+              <div style="padding:var(--sp-md);background:var(--color-surface);border-radius:8px;border:1px solid var(--color-border);">
+                <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Prazo</div>
+                <div style="font-size:20px;font-weight:700;color:${diasRestantes === null ? '#999' : diasRestantes < 0 ? '#dc2626' : diasRestantes <= 30 ? '#f59e0b' : '#10b981'};margin-top:4px;">
+                  ${diasRestantes === null ? '—' : diasRestantes < 0 ? `vencido há ${Math.abs(diasRestantes)}d` : `${diasRestantes} dias`}
+                </div>
+                <div style="font-size:12px;color:var(--color-text-muted);">até ${fmt(c.endDate)}</div>
+              </div>
+            </div>
+
+            <!-- Dados do cliente / contrato -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-lg);margin-bottom:var(--sp-lg);">
+              <div>
+                <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:6px;">Período</div>
+                <div style="font-size:14px;line-height:1.8;">
+                  <div><strong>Início:</strong> ${fmt(c.startDate)}</div>
+                  <div><strong>Término:</strong> ${fmt(c.endDate)}</div>
+                  ${c.tendencyDate ? `<div><strong>Tendência:</strong> ${fmt(c.tendencyDate)}</div>` : ''}
+                </div>
+              </div>
+              <div>
+                <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:6px;">Cliente</div>
+                <div style="font-size:14px;line-height:1.8;">
+                  ${c.clientEmail ? `<div>${escapeHtml(c.clientEmail)}</div>` : ''}
+                  ${c.clientPhone ? `<div>${escapeHtml(c.clientPhone)}</div>` : ''}
+                  ${c.clientDocument ? `<div style="font-family:monospace;">${escapeHtml(c.clientDocument)}</div>` : ''}
+                </div>
+              </div>
+            </div>
+
+            <!-- Local -->
+            ${c.endereco ? `
+              <div style="margin-bottom:var(--sp-lg);">
+                <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:6px;">Local da obra</div>
+                <div style="font-size:14px;">${escapeHtml(c.endereco)}</div>
+              </div>
+            ` : ''}
+
+            <!-- Resumo operacional -->
+            <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:var(--sp-md);padding:var(--sp-md);background:var(--color-bg);border-radius:8px;margin-bottom:var(--sp-lg);">
+              <div style="text-align:center;">
+                <div style="font-size:22px;font-weight:700;">${orgCount}</div>
+                <div style="font-size:12px;color:var(--color-text-muted);">Organograma</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:22px;font-weight:700;">${recCount}</div>
+                <div style="font-size:12px;color:var(--color-text-muted);">Alocados</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:22px;font-weight:700;">${rdoCount}</div>
+                <div style="font-size:12px;color:var(--color-text-muted);">RDOs</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:22px;font-weight:700;">${nfsEmitidas}/${nfs.length}</div>
+                <div style="font-size:12px;color:var(--color-text-muted);">NFs emitidas</div>
+              </div>
+            </div>
+
+            <!-- Orçamento resumido -->
+            ${budget.length > 0 ? `
+              <div style="margin-bottom:var(--sp-lg);">
+                <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:8px;">Orçamento (${budget.length} itens · total ${Store.formatBRL(totalBudget)})</div>
+                <div style="font-size:14px;">
+                  ${budget.slice(0, 5).map(b => `
+                    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--color-border);">
+                      <span>${escapeHtml(b.description || '—')} <span style="color:var(--color-text-muted);">(${escapeHtml(b.type || '')})</span></span>
+                      <span style="font-weight:600;">${Store.formatBRL(b.value)}</span>
+                    </div>
+                  `).join('')}
+                  ${budget.length > 5 ? `<div style="text-align:center;color:var(--color-text-muted);margin-top:6px;">+ ${budget.length - 5} itens</div>` : ''}
+                </div>
+              </div>
+            ` : ''}
+
+            <!-- Notas -->
+            ${c.notes ? `
+              <div style="margin-bottom:var(--sp-md);">
+                <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:6px;">Observações</div>
+                <div style="font-size:14px;white-space:pre-wrap;">${escapeHtml(c.notes)}</div>
+              </div>
+            ` : ''}
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnOvClose">Fechar</button>
+            <button class="btn btn-primary" id="btnOvVerDetalhes">Ver detalhes completos →</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalOverlay');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnOvClose').addEventListener('click', close);
+    document.getElementById('btnOvVerDetalhes').addEventListener('click', () => {
+      close();
+      location.hash = `#/contratos/${contractId}`;
+    });
   },
 
   showModal(contractId) {

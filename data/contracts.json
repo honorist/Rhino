@@ -398,6 +398,372 @@
         }
       ],
       "tendencyDate": "2026-04-29"
+    },
+    {
+      "id": "ctr_mod6wd8y60bb2ec4",
+      "name": "Manutenção Preventiva - Utilidades",
+      "client": "Klabin",
+      "value": 10000,
+      "startDate": "2026-05-01",
+      "endDate": "2026-05-31",
+      "tendencyDate": "",
+      "status": "ativo",
+      "notes": "Contrato com Klabin - João Silva (undefined)",
+      "createdAt": "2026-04-24T17:33:54.322Z",
+      "updatedAt": "2026-04-24T17:33:54.322Z",
+      "budget": [
+        {
+          "id": "bud_mod6wdeib10d5af3",
+          "contractId": "ctr_mod6wd8y60bb2ec4",
+          "description": "Mão de obra direta",
+          "type": "mao_de_obra",
+          "value": 10000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:33:54.522Z"
+        }
+      ]
+    },
+    {
+      "id": "ctr_mod6wdco84cca348",
+      "name": "Reparos Mecânicos Digestor",
+      "client": "Bracell",
+      "value": 20000,
+      "startDate": "2026-05-01",
+      "endDate": "2026-06-30",
+      "tendencyDate": "",
+      "status": "ativo",
+      "notes": "Contrato com Bracell - Maria Santos (undefined)",
+      "createdAt": "2026-04-24T17:33:54.456Z",
+      "updatedAt": "2026-04-24T17:33:54.456Z",
+      "budget": [
+        {
+          "id": "bud_mod6wdev8917df5a",
+          "contractId": "ctr_mod6wdco84cca348",
+          "description": "Mão de obra direta",
+          "type": "mao_de_obra",
+          "value": 10000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:33:54.535Z"
+        },
+        {
+          "id": "bud_mod6wdf4b28976a1",
+          "contractId": "ctr_mod6wdco84cca348",
+          "description": "Hospedagem da equipe",
+          "type": "hospedagem",
+          "value": 10000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:33:54.544Z"
+        }
+      ]
+    },
+    {
+      "id": "ctr_mod6wdd411dc6c9e",
+      "name": "Montagem Linha de Fibra",
+      "client": "CMPC Celulose Riograndense",
+      "value": 30000,
+      "startDate": "2026-05-15",
+      "endDate": "2026-08-15",
+      "tendencyDate": "",
+      "status": "ativo",
+      "notes": "Contrato com CMPC Celulose Riograndense - Carlos Oliveira (undefined)",
+      "createdAt": "2026-04-24T17:33:54.472Z",
+      "updatedAt": "2026-04-24T17:33:54.472Z",
+      "budget": [
+        {
+          "id": "bud_mod6wdfccbb7190d",
+          "contractId": "ctr_mod6wdd411dc6c9e",
+          "description": "Mão de obra direta",
+          "type": "mao_de_obra",
+          "value": 10000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:33:54.553Z"
+        },
+        {
+          "id": "bud_mod6wdfmbecbf99d",
+          "contractId": "ctr_mod6wdd411dc6c9e",
+          "description": "Hospedagem da equipe",
+          "type": "hospedagem",
+          "value": 10000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:33:54.562Z"
+        },
+        {
+          "id": "bud_mod6wdfy11cc34a3",
+          "contractId": "ctr_mod6wdd411dc6c9e",
+          "description": "Transporte / passagens",
+          "type": "transporte",
+          "value": 10000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:33:54.574Z"
+        }
+      ]
+    },
+    {
+      "id": "ctr_mod6wddg95de459b",
+      "name": "Reforma Pátio de Madeira",
+      "client": "Eldorado Brasil",
+      "value": 40000,
+      "startDate": "2026-06-01",
+      "endDate": "2026-09-30",
+      "tendencyDate": "",
+      "status": "ativo",
+      "notes": "Contrato com Eldorado Brasil - Ana Pereira (undefined)",
+      "createdAt": "2026-04-24T17:33:54.484Z",
+      "updatedAt": "2026-04-24T17:33:54.485Z",
+      "budget": [
+        {
+          "id": "bud_mod6wdgc1a16ae54",
+          "contractId": "ctr_mod6wddg95de459b",
+          "description": "Mão de obra direta",
+          "type": "mao_de_obra",
+          "value": 20000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:33:54.588Z"
+        },
+        {
+          "id": "bud_mod6wdgs2b4fb105",
+          "contractId": "ctr_mod6wddg95de459b",
+          "description": "Hospedagem da equipe",
+          "type": "hospedagem",
+          "value": 10000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:33:54.604Z"
+        },
+        {
+          "id": "bud_mod6wdh613b11f67",
+          "contractId": "ctr_mod6wddg95de459b",
+          "description": "Transporte / passagens",
+          "type": "transporte",
+          "value": 10000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:33:54.618Z"
+        }
+      ]
+    },
+    {
+      "id": "ctr_mod6wdds314116e2",
+      "name": "Expansão Secadora Máquina 2",
+      "client": "Veracel Celulose",
+      "value": 50000,
+      "startDate": "2026-06-01",
+      "endDate": "2026-11-30",
+      "tendencyDate": "",
+      "status": "ativo",
+      "notes": "Contrato com Veracel Celulose - Roberto Costa (undefined)",
+      "createdAt": "2026-04-24T17:33:54.496Z",
+      "updatedAt": "2026-04-24T17:33:54.496Z",
+      "budget": [
+        {
+          "id": "bud_mod6wdhhf4cbddbc",
+          "contractId": "ctr_mod6wdds314116e2",
+          "description": "Mão de obra direta",
+          "type": "mao_de_obra",
+          "value": 20000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:33:54.629Z"
+        },
+        {
+          "id": "bud_mod6wdi792385b13",
+          "contractId": "ctr_mod6wdds314116e2",
+          "description": "Hospedagem da equipe",
+          "type": "hospedagem",
+          "value": 20000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:33:54.655Z"
+        },
+        {
+          "id": "bud_mod6wdiie946053c",
+          "contractId": "ctr_mod6wdds314116e2",
+          "description": "Transporte / passagens",
+          "type": "transporte",
+          "value": 10000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:33:54.666Z"
+        }
+      ]
+    },
+    {
+      "id": "ctr_mod6yihrbc41c40c",
+      "name": "Manutenção Preventiva - Utilidades",
+      "client": "Klabin",
+      "value": 10000,
+      "startDate": "2026-05-01",
+      "endDate": "2026-05-31",
+      "tendencyDate": "",
+      "status": "ativo",
+      "notes": "Contrato com Klabin - João Silva (undefined)",
+      "createdAt": "2026-04-24T17:35:34.431Z",
+      "updatedAt": "2026-04-24T17:35:34.431Z",
+      "budget": [
+        {
+          "id": "bud_mod6yijp8ff78946",
+          "contractId": "ctr_mod6yihrbc41c40c",
+          "description": "Mão de obra direta",
+          "type": "mao_de_obra",
+          "value": 10000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:35:34.501Z"
+        }
+      ]
+    },
+    {
+      "id": "ctr_mod6yiiq9f23f707",
+      "name": "Reparos Mecânicos Digestor",
+      "client": "Bracell",
+      "value": 20000,
+      "startDate": "2026-05-01",
+      "endDate": "2026-06-30",
+      "tendencyDate": "",
+      "status": "ativo",
+      "notes": "Contrato com Bracell - Maria Santos (undefined)",
+      "createdAt": "2026-04-24T17:35:34.466Z",
+      "updatedAt": "2026-04-24T17:35:34.466Z",
+      "budget": [
+        {
+          "id": "bud_mod6yijxd91da37b",
+          "contractId": "ctr_mod6yiiq9f23f707",
+          "description": "Mão de obra direta",
+          "type": "mao_de_obra",
+          "value": 10000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:35:34.509Z"
+        },
+        {
+          "id": "bud_mod6yik5dcec147a",
+          "contractId": "ctr_mod6yiiq9f23f707",
+          "description": "Hospedagem da equipe",
+          "type": "hospedagem",
+          "value": 10000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:35:34.517Z"
+        }
+      ]
+    },
+    {
+      "id": "ctr_mod6yiiyb0d3a654",
+      "name": "Montagem Linha de Fibra",
+      "client": "CMPC Celulose Riograndense",
+      "value": 30000,
+      "startDate": "2026-05-15",
+      "endDate": "2026-08-15",
+      "tendencyDate": "",
+      "status": "ativo",
+      "notes": "Contrato com CMPC Celulose Riograndense - Carlos Oliveira (undefined)",
+      "createdAt": "2026-04-24T17:35:34.474Z",
+      "updatedAt": "2026-04-24T17:35:34.474Z",
+      "budget": [
+        {
+          "id": "bud_mod6yikd224e35ab",
+          "contractId": "ctr_mod6yiiyb0d3a654",
+          "description": "Mão de obra direta",
+          "type": "mao_de_obra",
+          "value": 10000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:35:34.525Z"
+        },
+        {
+          "id": "bud_mod6yiko993655c2",
+          "contractId": "ctr_mod6yiiyb0d3a654",
+          "description": "Hospedagem da equipe",
+          "type": "hospedagem",
+          "value": 10000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:35:34.536Z"
+        },
+        {
+          "id": "bud_mod6yikxa00fa664",
+          "contractId": "ctr_mod6yiiyb0d3a654",
+          "description": "Transporte / passagens",
+          "type": "transporte",
+          "value": 10000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:35:34.545Z"
+        }
+      ]
+    },
+    {
+      "id": "ctr_mod6yij888e12bee",
+      "name": "Reforma Pátio de Madeira",
+      "client": "Eldorado Brasil",
+      "value": 40000,
+      "startDate": "2026-06-01",
+      "endDate": "2026-09-30",
+      "tendencyDate": "",
+      "status": "ativo",
+      "notes": "Contrato com Eldorado Brasil - Ana Pereira (undefined)",
+      "createdAt": "2026-04-24T17:35:34.484Z",
+      "updatedAt": "2026-04-24T17:35:34.484Z",
+      "budget": [
+        {
+          "id": "bud_mod6yil47fb3588d",
+          "contractId": "ctr_mod6yij888e12bee",
+          "description": "Mão de obra direta",
+          "type": "mao_de_obra",
+          "value": 20000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:35:34.552Z"
+        },
+        {
+          "id": "bud_mod6yilc0f15e8e4",
+          "contractId": "ctr_mod6yij888e12bee",
+          "description": "Hospedagem da equipe",
+          "type": "hospedagem",
+          "value": 10000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:35:34.560Z"
+        },
+        {
+          "id": "bud_mod6yilk6dc58ba4",
+          "contractId": "ctr_mod6yij888e12bee",
+          "description": "Transporte / passagens",
+          "type": "transporte",
+          "value": 10000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:35:34.568Z"
+        }
+      ]
+    },
+    {
+      "id": "ctr_mod6yijh6b5b3f93",
+      "name": "Expansão Secadora Máquina 2",
+      "client": "Veracel Celulose",
+      "value": 50000,
+      "startDate": "2026-06-01",
+      "endDate": "2026-11-30",
+      "tendencyDate": "",
+      "status": "ativo",
+      "notes": "Contrato com Veracel Celulose - Roberto Costa (undefined)",
+      "createdAt": "2026-04-24T17:35:34.493Z",
+      "updatedAt": "2026-04-24T17:35:34.493Z",
+      "budget": [
+        {
+          "id": "bud_mod6yils6884335a",
+          "contractId": "ctr_mod6yijh6b5b3f93",
+          "description": "Mão de obra direta",
+          "type": "mao_de_obra",
+          "value": 20000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:35:34.576Z"
+        },
+        {
+          "id": "bud_mod6yim1bde77226",
+          "contractId": "ctr_mod6yijh6b5b3f93",
+          "description": "Hospedagem da equipe",
+          "type": "hospedagem",
+          "value": 20000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:35:34.585Z"
+        },
+        {
+          "id": "bud_mod6yim870fc22cd",
+          "contractId": "ctr_mod6yijh6b5b3f93",
+          "description": "Transporte / passagens",
+          "type": "transporte",
+          "value": 10000,
+          "notes": "",
+          "createdAt": "2026-04-24T17:35:34.592Z"
+        }
+      ]
     }
   ],
   "saidas": []

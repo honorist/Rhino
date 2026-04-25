@@ -1,12 +1,15 @@
 window.Dashboard = {
   chart: null,
-  periodo: { modo: 'recente' }, // { modo: 'recente' | 'mes' | 'ano', mes: 1-12, ano: 2024 }
+  periodo: { modo: 'recente' },
+  projDays: 60,
+  movFiltro: 'ambos', // 'entrada' | 'saida' | 'ambos'
 
   _buildParams() {
     const { modo, mes, ano } = this.periodo;
-    if (modo === 'mes' && mes && ano) return { mes, ano };
-    if (modo === 'ano' && ano) return { ano, modo: 'ano' };
-    return null;
+    const base = { projDays: this.projDays };
+    if (modo === 'mes' && mes && ano) return { ...base, mes, ano };
+    if (modo === 'ano' && ano) return { ...base, ano, modo: 'ano' };
+    return base;
   },
 
   _periodoLabel() {
@@ -81,7 +84,7 @@ window.Dashboard = {
         <div class="card mb-2xl">
           <div class="card-header">
             <h3 class="card-title">Fluxo de Caixa — ${this._periodoLabel()}</h3>
-            <div style="display:flex;align-items:center;gap:var(--sp-lg);">
+            <div style="display:flex;align-items:center;gap:var(--sp-lg);flex-wrap:wrap;">
               <div style="display:flex;align-items:center;gap:6px;">
                 <div style="width:24px;height:3px;background:#F0B429;border-radius:2px;"></div>
                 <span style="font-size:15px;color:var(--color-text-muted);">Realizado</span>
@@ -90,7 +93,18 @@ window.Dashboard = {
               <div style="display:flex;align-items:center;gap:6px;">
                 <div style="width:24px;height:3px;background:#60A5FA;border-radius:2px;border-top:2px dashed #60A5FA;"></div>
                 <span style="font-size:15px;color:var(--color-text-muted);">Projetado (NFs)</span>
-              </div>` : ''}
+              </div>
+              <div id="projDaysCtrl" style="display:inline-flex;border:1px solid var(--color-border);border-radius:6px;overflow:hidden;">
+                ${[30, 60, 90].map(d => `
+                  <button data-days="${d}" style="
+                    padding:6px 12px;border:0;cursor:pointer;font-size:13px;font-weight:600;
+                    background:${this.projDays === d ? '#60A5FA' : 'transparent'};
+                    color:${this.projDays === d ? '#fff' : 'var(--color-text-muted)'};
+                    border-right:${d !== 90 ? '1px solid var(--color-border)' : '0'};
+                  ">${d}d</button>
+                `).join('')}
+              </div>
+              ` : ''}
               <span style="font-weight:700;color:${saudeScore.color};font-size:15px;">${saudeScore.label}</span>
             </div>
           </div>
@@ -110,7 +124,7 @@ window.Dashboard = {
               <div style="font-size:22px;font-weight:700;color:var(--color-info)">
                 +${Store.formatBRL(dash.projecaoFutura.reduce((s, p) => s + p.totalEntradas, 0))}
               </div>
-              <div style="font-size:15px;color:var(--color-text-muted);margin-top:4px;">Via NFs (próx. 90 dias)</div>
+              <div style="font-size:15px;color:var(--color-text-muted);margin-top:4px;">Via NFs (próx. ${this.projDays} dias)</div>
             </div>
             <div>
               <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--sp-sm);">Saídas Previstas</div>
@@ -159,7 +173,7 @@ window.Dashboard = {
                     const diasAte  = Math.floor((new Date(p.data) - new Date()) / 86400000);
                     const urgCor   = diasAte <= 7 ? 'var(--color-success)' : diasAte <= 30 ? 'var(--color-info)' : 'var(--color-text-muted)';
                     return `
-                      <tr>
+                      <tr class="row-dash-fut" data-nf-id="${e.nfId}" style="cursor:pointer;">
                         <td>
                           <strong style="color:${urgCor};">${new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR')}</strong>
                           <div style="font-size:15px;color:var(--color-text-muted);">em ${diasAte} dias</div>
@@ -299,32 +313,57 @@ window.Dashboard = {
         </div>
 
         <!-- Últimas movimentações -->
-        <div class="card" style="margin-top:var(--sp-lg);">
-          <div class="card-header">
-            <h3 class="card-title">Últimas Movimentações — Caixa</h3>
-            <a href="#/caixa" style="color:var(--color-primary); text-decoration:none; font-size:15px; font-weight:600;">Ver todos →</a>
-          </div>
-          ${dash.recentCaixaEntries.length === 0 ? `
-            <p style="color:var(--color-text-muted);">Nenhuma movimentação registrada</p>
-          ` : `
-            <div style="display:flex; flex-direction:column;">
-              ${dash.recentCaixaEntries.map(e => `
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:var(--sp-md) 0; border-bottom:1px solid var(--color-border);">
-                  <div>
-                    <div style="font-weight:500;">${escapeHtml(e.description)}</div>
-                    <div style="font-size:15px; color:var(--color-text-muted);">${new Date(e.date).toLocaleDateString('pt-BR')}</div>
-                  </div>
-                  <div style="text-align:right;">
-                    <div style="font-weight:700; font-size:15px; color:${e.type === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};">
-                      ${e.type === 'entrada' ? '+' : '-'}${Store.formatBRL(e.value)}
-                    </div>
-                    <span class="badge badge-${e.type}">${e.type}</span>
-                  </div>
+        ${(() => {
+          const filtradas = (dash.recentCaixaEntries || [])
+            .filter(e => this.movFiltro === 'ambos' ? true : e.type === this.movFiltro)
+            .slice(0, 20);
+          return `
+          <div class="card" style="margin-top:var(--sp-lg);">
+            <div class="card-header">
+              <h3 class="card-title">Últimas Movimentações — Caixa</h3>
+              <div style="display:flex;align-items:center;gap:var(--sp-md);">
+                <div id="movFiltroCtrl" style="display:inline-flex;border:1px solid var(--color-border);border-radius:6px;overflow:hidden;">
+                  ${[
+                    { k: 'ambos',   l: 'Ambos',   c: '#60A5FA' },
+                    { k: 'entrada', l: 'Entradas', c: 'var(--color-success)' },
+                    { k: 'saida',   l: 'Saídas',  c: 'var(--color-danger)' },
+                  ].map((b, i) => `
+                    <button data-filtro="${b.k}" style="
+                      padding:5px 12px;border:0;cursor:pointer;font-size:13px;font-weight:600;
+                      background:${this.movFiltro === b.k ? b.c : 'transparent'};
+                      color:${this.movFiltro === b.k ? '#fff' : 'var(--color-text-muted)'};
+                      ${i < 2 ? 'border-right:1px solid var(--color-border);' : ''}
+                    ">${b.l}</button>
+                  `).join('')}
                 </div>
-              `).join('')}
+                <a href="#/caixa" style="color:var(--color-primary); text-decoration:none; font-size:15px; font-weight:600;">Ver todos →</a>
+              </div>
             </div>
-          `}
-        </div>
+            ${filtradas.length === 0 ? `
+              <p style="color:var(--color-text-muted);padding:var(--sp-md) 0;">Nenhuma movimentação no filtro selecionado</p>
+            ` : `
+              <div style="display:flex; flex-direction:column;">
+                ${filtradas.map(e => `
+                  <div class="row-dash-mov" data-id="${e.id}" style="display:flex; justify-content:space-between; align-items:center; padding:var(--sp-md) 0; border-bottom:1px solid var(--color-border); cursor:pointer;">
+                    <div>
+                      <div style="font-weight:500;">${escapeHtml(e.description)}</div>
+                      <div style="font-size:15px; color:var(--color-text-muted);">${new Date(e.date).toLocaleDateString('pt-BR')}${e.formaPagamento ? ' · ' + escapeHtml(e.formaPagamento) : ''}${e.category ? ' · ' + escapeHtml(e.category) : ''}</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div style="font-weight:700; font-size:15px; color:${e.type === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};">
+                        ${e.type === 'entrada' ? '+' : '-'}${Store.formatBRL(e.value)}
+                      </div>
+                      <span class="badge badge-${e.type}">${e.type}</span>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+              <div style="padding:var(--sp-sm) 0 0;color:var(--color-text-muted);font-size:13px;text-align:center;">
+                ${filtradas.length} movimentaç${filtradas.length === 1 ? 'ão' : 'ões'} exibida${filtradas.length === 1 ? '' : 's'}
+              </div>
+            `}
+          </div>`;
+        })()}
       `;
 
       app.innerHTML = html;
@@ -391,6 +430,44 @@ window.Dashboard = {
     anoEl.addEventListener('change', () => {
       this.periodo.ano = parseInt(anoEl.value);
       this.render();
+    });
+
+    // Botões 30/60/90 dias de projeção
+    document.querySelectorAll('#projDaysCtrl button[data-days]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const d = parseInt(btn.dataset.days);
+        if (d && d !== this.projDays) {
+          this.projDays = d;
+          this.render();
+        }
+      });
+    });
+
+    // Filtro entrada/saída/ambos
+    document.querySelectorAll('#movFiltroCtrl button[data-filtro]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const f = btn.dataset.filtro;
+        if (f && f !== this.movFiltro) {
+          this.movFiltro = f;
+          this.render();
+        }
+      });
+    });
+
+    // Click na linha de movimentação → modal de detalhe (reusa Caixa.showDetail)
+    document.querySelectorAll('.row-dash-mov').forEach(row => {
+      row.addEventListener('click', () => {
+        const id = row.dataset.id;
+        if (window.Caixa?.showDetail) window.Caixa.showDetail(id);
+      });
+    });
+
+    // Click na linha de entradas previstas → modal de detalhe da NF
+    document.querySelectorAll('.row-dash-fut').forEach(row => {
+      row.addEventListener('click', () => {
+        const nfId = row.dataset.nfId;
+        if (window.NotasFiscais?.showDetail) window.NotasFiscais.showDetail(nfId);
+      });
     });
   },
 

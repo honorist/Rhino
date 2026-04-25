@@ -149,7 +149,7 @@ window.Investimentos = {
                         : `<span class="badge" style="background:rgba(113,128,150,.15);color:#718096;">📋 Contrato removido</span>`;
 
                     return `
-                      <tr>
+                      <tr class="row-aporte" data-id="${ap.id}" style="cursor:pointer;">
                         <td>${new Date(ap.date + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                         <td>${origemBadge}</td>
                         <td>
@@ -193,12 +193,69 @@ window.Investimentos = {
         });
       });
       document.querySelectorAll('.btn-excluir-aporte').forEach(btn => {
-        btn.addEventListener('click', e => this.deleteAporte(e.target.dataset.id));
+        btn.addEventListener('click', e => { e.stopPropagation(); this.deleteAporte(e.target.dataset.id); });
+      });
+      document.querySelectorAll('.row-aporte').forEach(tr => {
+        tr.addEventListener('click', e => {
+          if (e.target.closest('.actions-cell')) return;
+          this.showDetail(tr.dataset.id);
+        });
       });
     } catch (e) {
       console.error(e);
       app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar investimentos. Tente novamente.</p></div>';
     }
+  },
+
+  showDetail(id) {
+    const ap = (Store.state.investimentos || []).find(x => x.id === id);
+    if (!ap) return;
+    const fmtD = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+    const socio = ap.socioId ? (Store.state.socios || []).find(s => s.id === ap.socioId) : null;
+    const contract = ap.contractId ? Store.getContractById(ap.contractId) : null;
+    const baseItem = ap.baseItemId ? (Store.state.base || []).find(b => b.id === ap.baseItemId) : null;
+    const caixaEntry = ap.caixaEntryId ? (Store.state.caixa || []).find(e => e.id === ap.caixaEntryId) : null;
+
+    const row = (lbl, val) => val ? `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--color-border);"><span style="color:var(--color-text-muted);">${lbl}</span><span style="font-weight:500;text-align:right;">${val}</span></div>` : '';
+
+    const origemLabel = ap.origem === 'socio' ? '👤 Sócio' : ap.origem === 'caixa_empresa' ? '💼 Caixa da empresa' : escapeHtml(ap.origem || '—');
+    const destinoLabel = ap.destino === 'base' ? '⚙️ BASE' : ap.destino === 'contrato' ? '📋 Contrato' : escapeHtml(ap.destino || '—');
+
+    const html = `
+      <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" style="width:600px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">${escapeHtml(ap.description || 'Aporte')}</h2>
+              <div style="margin-top:6px;">
+                <span style="font-size:22px;font-weight:700;color:var(--color-info);">${Store.formatBRL(parseFloat(ap.value) || 0)}</span>
+              </div>
+            </div>
+            <button class="modal-close">✕</button>
+          </div>
+          <div class="modal-content">
+            ${row('Data',          fmtD(ap.date))}
+            ${row('Origem',        origemLabel)}
+            ${row('Sócio',         socio ? `<strong>${escapeHtml(socio.name)}</strong>${socio.participacao ? ` <span style="color:var(--color-text-muted);">(${socio.participacao}%)</span>` : ''}` : null)}
+            ${row('Destino',       destinoLabel)}
+            ${row('Contrato',      contract ? `<a href="#/contratos/${contract.id}" style="color:var(--color-primary);">${escapeHtml(contract.name)}</a>` : null)}
+            ${row('Item BASE',     baseItem ? `${escapeHtml(baseItem.description)} <span style="color:var(--color-text-muted);font-size:13px;">(${escapeHtml(baseItem.type || '')})</span>` : null)}
+            ${row('Tipo BASE',     ap.baseType && !baseItem ? escapeHtml(ap.baseType) : null)}
+            ${row('Entrada no caixa', caixaEntry ? `${escapeHtml(caixaEntry.description)} em ${fmtD(caixaEntry.date)}` : null)}
+            <div style="font-size:12px;color:var(--color-text-muted);margin-top:var(--sp-md);font-family:monospace;">ID: ${escapeHtml(ap.id)}</div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnDetClose">Fechar</button>
+            <button class="btn danger" id="btnDetDel" style="color:var(--color-danger);">Excluir</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalOverlay');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnDetClose').addEventListener('click', close);
+    document.getElementById('btnDetDel').addEventListener('click', () => { close(); this.deleteAporte(id); });
   },
 
   showModal() {

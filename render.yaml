@@ -1,12 +1,21 @@
 services:
   - type: web
-    name: rino
-    runtime: node
-    plan: free
-    buildCommand: npm install
-    startCommand: node server.js
+    name: rhino
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/health
     envVars:
-      - key: NODE_VERSION
-        value: "20"
-    healthCheckPath: /
+      - key: APP_PORT
+        value: "3001"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: rhino-db
+          property: connectionString
     autoDeploy: true
+
+databases:
+  - name: rhino-db
+    plan: starter
+    postgresMajorVersion: "16"

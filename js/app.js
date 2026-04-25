@@ -4,11 +4,12 @@ const routes = {
   '#/proposta':     { view: null,                 label: 'Proposta',     icon: '◧', soon: true },
   '#/contratos':    { view: window.Contratos,      label: 'Contratos',    icon: '≣' },
   '#/contratos/:id':{ view: window.ContratoDetail, label: null,           icon: null },
+  '#/rdos':         { view: window.RDOs,           label: 'RDOs',         icon: '⊟' },
   '#/obras':        { view: window.Obras,          label: 'Mapa de Obras',icon: '⊚' },
-  '#/clientes':     { view: window.Clientes,       label: 'Clientes',     icon: '◎' },
-  '#/recursos':     { view: window.Recursos,       label: 'Recursos',     icon: '◉' },
-  '#/documentos':   { view: window.Documentos,     label: 'Documentação', icon: '⊞' },
-  '#/fornecedores': { view: window.Fornecedores,   label: 'Fornecedores', icon: '⬡' },
+  '#/clientes':     { view: window.Clientes,       label: 'Clientes',     icon: '◎', group: 'rh' },
+  '#/recursos':     { view: window.Recursos,       label: 'Recursos',     icon: '◉', group: 'rh' },
+  '#/documentos':   { view: window.Documentos,     label: 'Documentação', icon: '⊞', group: 'rh' },
+  '#/fornecedores': { view: window.Fornecedores,   label: 'Fornecedores', icon: '⬡', group: 'rh' },
   '#/caixa':        { view: window.Caixa,          label: 'Caixa',        icon: '◇',  group: 'financeiro' },
   '#/contas-pagar': { view: window.ContasPagar,    label: 'Contas a Pagar', icon: '⊖', group: 'financeiro' },
   '#/notas-fiscais':{ view: window.NotasFiscais,   label: 'Contas a Receber',icon: '☐',  group: 'financeiro' },
@@ -16,6 +17,7 @@ const routes = {
   '#/investimentos':{ view: window.Investimentos,  label: 'Aportes',      icon: '△',  group: 'financeiro' },
   '#/base':         { view: window.Base,           label: 'BASE',         icon: '⊟' },
   '#/configuracao': { view: window.Configuracao,   label: 'Configuração', icon: '⊙' },
+  '#/usuarios':     { view: window.Usuarios,       label: 'Usuários',     icon: '◍' },
   '#/manual':       { view: window.Manual,         label: null,           icon: null }
 };
 
@@ -23,12 +25,12 @@ const routes = {
 const sidebarGroups = {
   get(key) {
     try {
-      const v = localStorage.getItem('rino-group-' + key);
+      const v = localStorage.getItem('rhino-group-' + key);
       return v === null ? true : JSON.parse(v);
-    } catch { localStorage.removeItem('rino-group-' + key); return true; }
+    } catch { localStorage.removeItem('rhino-group-' + key); return true; }
   },
   set(key, val) {
-    localStorage.setItem('rino-group-' + key, JSON.stringify(val));
+    localStorage.setItem('rhino-group-' + key, JSON.stringify(val));
   },
   toggle(key) {
     this.set(key, !this.get(key));
@@ -36,6 +38,292 @@ const sidebarGroups = {
 };
 
 // ─── Perfil de Acesso ───
+// ─── Autenticação ───
+const auth = {
+  _user: null,
+  user() { return this._user; },
+  async loadMe() {
+    try {
+      const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
+      if (res.status === 401) { this._user = null; return null; }
+      if (!res.ok) throw new Error(await res.text());
+      const j = await res.json();
+      this._user = j.user;
+      return this._user;
+    } catch (e) {
+      this._user = null;
+      return null;
+    }
+  },
+  async login(email, password) {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error || 'Falha no login');
+    }
+    const j = await res.json();
+    this._user = j.user;
+    return this._user;
+  },
+  async logout() {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+    this._user = null;
+    sessionStorage.removeItem('rhino-perfil');
+    location.reload();
+  },
+};
+
+window.auth = auth;
+// (perfil é exposto após sua definição abaixo)
+
+async function showLoginModal() {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.id = 'loginOverlay';
+    overlay.style.cssText = `
+      position:fixed;inset:0;z-index:10000;
+      display:flex;align-items:center;justify-content:center;
+      background:var(--color-bg);
+    `;
+    let mode = 'login'; // login | forgot
+    const draw = () => {
+      overlay.innerHTML = mode === 'forgot' ? `
+        <form id="forgotForm" style="width:100%;max-width:380px;padding:var(--sp-xl);">
+          <div style="text-align:center;margin-bottom:var(--sp-xl);">
+            <img src="assets/logo.png" alt="Rhino" style="height:56px;margin-bottom:var(--sp-lg);opacity:.9;">
+            <h1 style="font-size:22px;font-weight:700;margin:0 0 6px;">Esqueci minha senha</h1>
+            <p style="margin:0;color:var(--color-text-muted);font-size:14px;">Informe seu email pra receber o link de recuperação</p>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input class="form-control" name="email" type="email" autocomplete="username" required>
+          </div>
+          <div id="forgotMsg" style="display:none;font-size:13px;margin-bottom:var(--sp-md);padding:8px 12px;border-radius:6px;"></div>
+          <button class="btn btn-primary" type="submit" style="width:100%;">Enviar link</button>
+          <div style="text-align:center;margin-top:var(--sp-md);">
+            <a href="#" id="backToLogin" style="font-size:13px;color:var(--color-primary);">← voltar ao login</a>
+          </div>
+        </form>
+      ` : `
+        <form id="loginForm" style="width:100%;max-width:380px;padding:var(--sp-xl);">
+          <div style="text-align:center;margin-bottom:var(--sp-xl);">
+            <img src="assets/logo.png" alt="Rhino" style="height:56px;margin-bottom:var(--sp-lg);opacity:.9;">
+            <h1 style="font-size:22px;font-weight:700;margin:0;">Acessar o Rhino</h1>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input class="form-control" name="email" type="email" autocomplete="username" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Senha</label>
+            <input class="form-control" name="password" type="password" autocomplete="current-password" required>
+          </div>
+          <div id="loginError" style="display:none;color:#c33;font-size:13px;margin-bottom:var(--sp-md);"></div>
+          <button class="btn btn-primary" type="submit" style="width:100%;">Entrar</button>
+          <div style="text-align:center;margin-top:var(--sp-md);">
+            <a href="#" id="goForgot" style="font-size:13px;color:var(--color-primary);">Esqueci minha senha</a>
+          </div>
+        </form>
+      `;
+      attach();
+    };
+    const attach = () => {
+      const form = document.getElementById('loginForm');
+      const forgotForm = document.getElementById('forgotForm');
+      if (form) {
+        const err = document.getElementById('loginError');
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          err.style.display = 'none';
+          const fd = new FormData(form);
+          try {
+            await auth.login(fd.get('email'), fd.get('password'));
+            overlay.remove();
+            resolve();
+          } catch (ex) {
+            err.textContent = ex.message;
+            err.style.display = 'block';
+          }
+        });
+        document.getElementById('goForgot').addEventListener('click', (e) => { e.preventDefault(); mode = 'forgot'; draw(); });
+      }
+      if (forgotForm) {
+        const msg = document.getElementById('forgotMsg');
+        forgotForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const fd = new FormData(forgotForm);
+          try {
+            const res = await fetch('/api/auth/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: fd.get('email') }) });
+            const j = await res.json();
+            msg.style.display = 'block';
+            msg.style.background = 'rgba(16,185,129,.1)';
+            msg.style.color = '#065f46';
+            msg.textContent = j.message || 'Se o email existir, enviamos as instruções.';
+          } catch (ex) {
+            msg.style.display = 'block';
+            msg.style.background = 'rgba(220,38,38,.1)';
+            msg.style.color = '#7f1d1d';
+            msg.textContent = ex.message;
+          }
+        });
+        document.getElementById('backToLogin').addEventListener('click', (e) => { e.preventDefault(); mode = 'login'; draw(); });
+      }
+    };
+    document.body.appendChild(overlay);
+    draw();
+  });
+}
+
+// Tela de redefinição de senha — abre quando URL tem ?action=reset-password&token=XXX
+async function showResetPasswordModal(token) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.id = 'resetOverlay';
+    overlay.style.cssText = `position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:var(--color-bg);`;
+    overlay.innerHTML = `
+      <form id="resetForm" style="width:100%;max-width:400px;padding:var(--sp-xl);">
+        <div style="text-align:center;margin-bottom:var(--sp-xl);">
+          <img src="assets/logo.png" alt="Rhino" style="height:56px;margin-bottom:var(--sp-lg);opacity:.9;">
+          <h1 style="font-size:22px;font-weight:700;margin:0 0 6px;">Redefinir senha</h1>
+          <p style="margin:0;color:var(--color-text-muted);font-size:14px;">Defina sua nova senha (mínimo 6 caracteres)</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nova senha</label>
+          <input class="form-control" name="password" type="password" autocomplete="new-password" minlength="6" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirmar senha</label>
+          <input class="form-control" name="password2" type="password" minlength="6" required>
+        </div>
+        <div id="resetMsg" style="display:none;font-size:13px;margin-bottom:var(--sp-md);padding:8px 12px;border-radius:6px;"></div>
+        <button class="btn btn-primary" type="submit" style="width:100%;">Redefinir e entrar</button>
+      </form>
+    `;
+    document.body.appendChild(overlay);
+    const form = document.getElementById('resetForm');
+    const msg = document.getElementById('resetMsg');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const p1 = fd.get('password');
+      const p2 = fd.get('password2');
+      if (p1 !== p2) {
+        msg.style.display = 'block';
+        msg.style.background = 'rgba(220,38,38,.1)';
+        msg.style.color = '#7f1d1d';
+        msg.textContent = 'As senhas não coincidem.';
+        return;
+      }
+      try {
+        const res = await fetch('/api/auth/reset-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, password: p1 }) });
+        const j = await res.json();
+        if (!res.ok) throw new Error(j.error || 'Erro ao redefinir');
+        msg.style.display = 'block';
+        msg.style.background = 'rgba(16,185,129,.1)';
+        msg.style.color = '#065f46';
+        msg.textContent = 'Senha redefinida! Você já pode fazer login com a nova senha.';
+        // Limpa query string
+        history.replaceState({}, '', location.pathname);
+        setTimeout(() => { overlay.remove(); resolve(); }, 1500);
+      } catch (ex) {
+        msg.style.display = 'block';
+        msg.style.background = 'rgba(220,38,38,.1)';
+        msg.style.color = '#7f1d1d';
+        msg.textContent = ex.message;
+      }
+    });
+  });
+}
+
+// Modal de aceite de termos — bloqueia o app até aceitar
+async function showTermosModal() {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div');
+    overlay.id = 'termosOverlay';
+    overlay.style.cssText = `position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);`;
+    overlay.innerHTML = `
+      <div style="background:var(--color-surface);width:100%;max-width:680px;max-height:85vh;border-radius:10px;display:flex;flex-direction:column;border:1px solid var(--color-border);">
+        <div style="padding:var(--sp-lg);border-bottom:1px solid var(--color-border);">
+          <h2 style="margin:0;font-size:20px;font-weight:800;">Termos de Uso e Política de Privacidade</h2>
+          <p style="margin:6px 0 0;color:var(--color-text-muted);font-size:14px;">Para continuar usando o Rhino, leia e aceite os termos abaixo.</p>
+        </div>
+        <div style="overflow-y:auto;padding:var(--sp-lg);font-size:14px;line-height:1.7;color:var(--color-text);">
+          <h3 style="margin:0 0 10px;font-size:16px;">1. Sobre o Rhino</h3>
+          <p style="margin:0 0 12px;">O Rhino é um sistema interno de gestão de contratos, equipe e financeiro. O acesso é restrito a usuários autorizados pela administração.</p>
+
+          <h3 style="margin:14px 0 10px;font-size:16px;">2. Dados pessoais que tratamos (LGPD)</h3>
+          <p style="margin:0 0 8px;">O sistema armazena os seguintes dados:</p>
+          <ul style="margin:0 0 12px 22px;">
+            <li><strong>Usuários do sistema:</strong> nome, email, senha (criptografada com bcrypt), nível de acesso, registro de último login.</li>
+            <li><strong>Colaboradores cadastrados:</strong> nome, CPF, RG, PIS, CNH, data de nascimento, gênero, telefone, email, endereço, salário, profissão, datas de admissão/desligamento, documentos digitalizados (ASO, NRs, etc.) e folgas.</li>
+            <li><strong>Clientes e fornecedores:</strong> nome/razão social, CNPJ/CPF, contato, endereço, dados bancários (apenas fornecedores).</li>
+            <li><strong>Sócios:</strong> nome, documento, email, telefone, percentual de participação.</li>
+          </ul>
+
+          <h3 style="margin:14px 0 10px;font-size:16px;">3. Finalidade do tratamento</h3>
+          <p style="margin:0 0 12px;">Os dados são tratados exclusivamente para gestão administrativa, financeira e operacional da empresa: emissão de medições, controle de folgas, pagamentos, conformidade trabalhista e fiscal.</p>
+
+          <h3 style="margin:14px 0 10px;font-size:16px;">4. Base legal</h3>
+          <p style="margin:0 0 12px;">Tratamento baseado em: (i) execução de contrato de trabalho/prestação de serviços, (ii) cumprimento de obrigação legal ou regulatória, (iii) interesse legítimo e (iv) consentimento explícito do titular ao aceitar este termo.</p>
+
+          <h3 style="margin:14px 0 10px;font-size:16px;">5. Direitos do titular</h3>
+          <p style="margin:0 0 8px;">Você (ou o titular cujos dados você cadastra) tem direito a:</p>
+          <ul style="margin:0 0 12px 22px;">
+            <li>Confirmar a existência de tratamento dos seus dados</li>
+            <li>Acessar os dados</li>
+            <li>Corrigir dados incompletos, inexatos ou desatualizados</li>
+            <li>Solicitar anonimização, bloqueio ou eliminação de dados desnecessários</li>
+            <li>Solicitar portabilidade ou eliminação dos dados após o término do tratamento</li>
+            <li>Revogar o consentimento</li>
+          </ul>
+          <p style="margin:0 0 12px;">Para exercer estes direitos, contate o administrador do sistema.</p>
+
+          <h3 style="margin:14px 0 10px;font-size:16px;">6. Segurança</h3>
+          <ul style="margin:0 0 12px 22px;">
+            <li>Senhas armazenadas com hash bcrypt (irreversível)</li>
+            <li>Sessões em cookies httpOnly + SameSite=Lax (proteção contra XSS/CSRF)</li>
+            <li>Tráfego em produção via HTTPS (TLS)</li>
+            <li>Acesso restrito por nível de acesso configurável</li>
+            <li>Logs estruturados para auditoria</li>
+            <li>Rate limiting em login (5 tentativas / 15 min)</li>
+          </ul>
+
+          <h3 style="margin:14px 0 10px;font-size:16px;">7. Retenção</h3>
+          <p style="margin:0 0 12px;">Os dados são retidos enquanto durar a relação com a empresa e pelos prazos exigidos por lei (CLT: 30 anos para FGTS; fiscal: 5 anos; outros conforme legislação aplicável).</p>
+
+          <h3 style="margin:14px 0 10px;font-size:16px;">8. Aceite</h3>
+          <p style="margin:0 0 12px;">Ao clicar em <strong>"Aceito"</strong>, você confirma que leu, compreendeu e concorda com estes termos. O aceite é registrado no sistema com data/hora.</p>
+
+          <p style="margin:0;color:var(--color-text-muted);font-size:13px;">Versão 1.0 · ${new Date().toLocaleDateString('pt-BR')}</p>
+        </div>
+        <div style="padding:var(--sp-lg);border-top:1px solid var(--color-border);display:flex;gap:var(--sp-md);justify-content:flex-end;">
+          <button class="btn btn-secondary" id="btnRejeitar">Não aceito (sair)</button>
+          <button class="btn btn-primary" id="btnAceitar">Aceito</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    document.getElementById('btnAceitar').addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/auth/accept-terms', { method: 'POST' });
+        if (!res.ok) throw new Error('Erro ao aceitar');
+        overlay.remove();
+        resolve(true);
+      } catch (e) {
+        alert(e.message);
+      }
+    });
+    document.getElementById('btnRejeitar').addEventListener('click', async () => {
+      await auth.logout(); // já recarrega
+    });
+  });
+}
+
 const perfil = {
   _niveis: [],
 
@@ -47,15 +335,15 @@ const perfil = {
   },
 
   get() {
-    try { return JSON.parse(sessionStorage.getItem('rino-perfil') || 'null'); } catch { return null; }
+    try { return JSON.parse(sessionStorage.getItem('rhino-perfil') || 'null'); } catch { return null; }
   },
 
   set(nivelObj) {
-    sessionStorage.setItem('rino-perfil', JSON.stringify(nivelObj));
+    sessionStorage.setItem('rhino-perfil', JSON.stringify(nivelObj));
   },
 
   clear() {
-    sessionStorage.removeItem('rino-perfil');
+    sessionStorage.removeItem('rhino-perfil');
   },
 
   // Retorna as abas permitidas do perfil atual (null = sem restrição)
@@ -70,9 +358,26 @@ const perfil = {
     if (!abas) return true;
     // Rotas de detalhe (ex: #/contratos/123) seguem a permissão da rota pai
     const base = route.replace(/(#\/[^/]+).*/, '$1');
-    // Manual é universal — qualquer perfil pode abrir
-    if (base === '#/manual') return true;
+    // Manual, Usuários e RDOs são universais — qualquer perfil autenticado pode abrir
+    if (base === '#/manual' || base === '#/usuarios' || base === '#/rdos') return true;
     return abas.includes(base);
+  },
+
+  // Verifica se uma sub-aba dentro do contrato está liberada para este perfil.
+  // Convenção: abas com prefixo "contrato-tab:" no array niveis.abas.
+  // Se o perfil não tem NENHUMA contrato-tab configurada, libera todas (compat).
+  podeContractTab(tabKey) {
+    const abas = this.abas();
+    if (!abas) return true; // sem perfil → tudo liberado
+    const contractTabs = abas.filter(a => typeof a === 'string' && a.startsWith('contrato-tab:'));
+    if (contractTabs.length === 0) return true; // nada configurado → tudo liberado (legado)
+    return contractTabs.includes('contrato-tab:' + tabKey);
+  },
+
+  // Primeira sub-aba do contrato liberada
+  primeiraContractTab() {
+    const ordem = ['visao', 'financeiro', 'equipe', 'rdo', 'pendencias'];
+    return ordem.find(k => this.podeContractTab(k)) || 'visao';
   },
 
   // Primeira aba acessível (para redirecionar após seleção)
@@ -84,6 +389,8 @@ const perfil = {
 
   niveis() { return this._niveis; }
 };
+
+window.perfil = perfil;
 
 // ─── Seletor de perfil ───
 async function showProfilePicker() {
@@ -159,7 +466,7 @@ function iniciarApp() {
 
 // ─── Theme ───
 function getTheme() {
-  return localStorage.getItem('rino-theme') || 'light';
+  return localStorage.getItem('rhino-theme') || 'light';
 }
 
 function applyTheme(theme) {
@@ -169,7 +476,7 @@ function applyTheme(theme) {
   } else {
     document.documentElement.setAttribute('data-theme', theme);
   }
-  localStorage.setItem('rino-theme', theme);
+  localStorage.setItem('rhino-theme', theme);
   const btn = document.getElementById('theme-toggle');
   if (btn) btn.title = theme === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro';
 }
@@ -184,13 +491,13 @@ const ZOOM_MAX = 1.6;
 const ZOOM_STEP = 0.1;
 
 function getZoom() {
-  const v = parseFloat(localStorage.getItem('rino-zoom'));
+  const v = parseFloat(localStorage.getItem('rhino-zoom'));
   return isNaN(v) ? 1 : Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, v));
 }
 
 function applyZoom(z) {
   const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 100) / 100));
-  localStorage.setItem('rino-zoom', String(clamped));
+  localStorage.setItem('rhino-zoom', String(clamped));
   document.documentElement.style.zoom = '';
   document.documentElement.style.setProperty('--fs-mult', String(clamped));
   const lbl = document.getElementById('zoom-label');
@@ -313,46 +620,52 @@ function renderSidebar() {
   const recAlerts = getRecursosAlertCount();
   const docAlerts = getDocumentosAlertCount();
   const isDark = getTheme() === 'dark';
-  const finOpen = sidebarGroups.get('financeiro');
   const currentHash = location.hash || '#/dashboard';
   const perfilAtual = perfil.get();
 
-  // Separate top-level links from grouped ones, filtradas pelo perfil
+  // Definição de grupos da sidebar (RH e Financeiro). Cada grupo é dropdown.
+  const groups = [
+    { key: 'rh',         label: 'RH',         icon: '👥', alertCount: recAlerts + docAlerts, btnId: 'btnRH' },
+    { key: 'financeiro', label: 'Financeiro', icon: '◈',  alertCount: nfAlerts + cpAlerts,   btnId: 'btnFinanceiro' },
+  ];
+  const groupLinks = Object.fromEntries(groups.map(g => [g.key, []]));
   const topLinks = [];
-  const finLinks = [];
 
   for (const [pattern, config] of Object.entries(routes)) {
     if (!config.label || pattern.includes(':id')) continue;
     if (!perfil.podeAcessar(pattern)) continue;
     const item = { href: pattern, label: config.label, icon: config.icon, soon: config.soon || false, docAlerts: pattern === '#/documentos' ? docAlerts : 0 };
-    if (config.group === 'financeiro') {
-      finLinks.push(item);
+    if (config.group && groupLinks[config.group]) {
+      groupLinks[config.group].push(item);
     } else {
       topLinks.push(item);
     }
   }
 
-  // Check if any financial route is currently active
-  const finActive = finLinks.some(l => currentHash.startsWith(l.href));
-  const finOpenEffective = finOpen || finActive;
-  const finAlerts = nfAlerts + cpAlerts;
+  function renderGroup(g) {
+    const links = groupLinks[g.key];
+    if (!links.length) return '';
+    const isOpen = sidebarGroups.get(g.key);
+    const isActive = links.some(l => currentHash.startsWith(l.href));
+    const open = isOpen || isActive;
+    return `
+      <li class="nav-group-item">
+        <button class="nav-group-header" id="${g.btnId}" data-group="${g.key}">
+          <span class="nav-icon">${g.icon}</span>
+          <span class="nav-group-label">${g.label}</span>
+          ${!open && g.alertCount > 0 ? `<span class="nav-badge-alert">${g.alertCount}</span>` : ''}
+          <span class="nav-group-arrow ${open ? 'open' : ''}">›</span>
+        </button>
+        <ul class="nav-group-children ${open ? 'open' : ''}">
+          ${links.map(l => renderNavItem(l, nfAlerts, cpAlerts, recAlerts)).join('')}
+        </ul>
+      </li>`;
+  }
 
-  // Índice onde o grupo financeiro aparece (entre topLinks[3] e topLinks[4])
+  // Layout: 4 primeiros top-links → RH → Financeiro → resto.
   const topBefore = topLinks.filter((_, i) => i < 4);
   const topAfter  = topLinks.filter((_, i) => i >= 4);
-
-  const finBlock = finLinks.length > 0 ? `
-    <li class="nav-group-item">
-      <button class="nav-group-header" id="btnFinanceiro">
-        <span class="nav-icon">◈</span>
-        <span class="nav-group-label">Financeiro</span>
-        ${!finOpenEffective && finAlerts > 0 ? `<span class="nav-badge-alert">${finAlerts}</span>` : ''}
-        <span class="nav-group-arrow ${finOpenEffective ? 'open' : ''}">›</span>
-      </button>
-      <ul class="nav-group-children ${finOpenEffective ? 'open' : ''}">
-        ${finLinks.map(l => renderNavItem(l, nfAlerts, cpAlerts)).join('')}
-      </ul>
-    </li>` : '';
+  const groupsHtml = groups.map(renderGroup).join('');
 
   const html = `
     <div class="sidebar-header">
@@ -362,17 +675,32 @@ function renderSidebar() {
     </div>
     <ul class="nav-links">
       ${topBefore.map(l => renderNavItem(l, nfAlerts, cpAlerts, recAlerts)).join('')}
-      ${finBlock}
+      ${groupsHtml}
       ${topAfter.map(l => renderNavItem(l, nfAlerts, cpAlerts, recAlerts)).join('')}
     </ul>
     <div class="sidebar-footer">
-      ${perfilAtual ? `
-        <button id="btn-trocar-perfil" class="theme-toggle-btn" title="Trocar perfil" style="margin-bottom:4px;">
-          <span style="font-size:15px;">${perfilAtual.icon}</span>
-          <span style="color:${perfilAtual.cor};font-weight:600;">${perfilAtual.label}</span>
-          <span style="margin-left:auto;font-size:15px;color:var(--color-text-muted);">trocar</span>
+      ${auth.user() ? `
+        <button id="btn-logout" class="theme-toggle-btn" title="Sair (${auth.user().email})" style="margin-bottom:4px;">
+          <span style="font-size:15px;">🚪</span>
+          <span style="font-weight:600;">${auth.user().name || auth.user().email}</span>
+          <span style="margin-left:auto;font-size:13px;color:var(--color-text-muted);">sair</span>
         </button>
       ` : ''}
+      ${perfilAtual ? (
+        // Se o usuário logado tem nivelAcessoId fixo, mostra o nível mas SEM botão de trocar.
+        auth.user() && auth.user().nivelAcessoId ? `
+          <div class="theme-toggle-btn" title="Seu nível de acesso" style="margin-bottom:4px;cursor:default;">
+            <span style="font-size:15px;">${perfilAtual.icon}</span>
+            <span style="color:${perfilAtual.cor};font-weight:600;">${perfilAtual.label}</span>
+          </div>
+        ` : `
+          <button id="btn-trocar-perfil" class="theme-toggle-btn" title="Trocar perfil" style="margin-bottom:4px;">
+            <span style="font-size:15px;">${perfilAtual.icon}</span>
+            <span style="color:${perfilAtual.cor};font-weight:600;">${perfilAtual.label}</span>
+            <span style="margin-left:auto;font-size:15px;color:var(--color-text-muted);">trocar</span>
+          </button>
+        `
+      ) : ''}
       <button id="theme-toggle" class="theme-toggle-btn" title="${isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}">
         <span class="theme-toggle-icon">${isDark ? '☀' : '☾'}</span>
         <span>${isDark ? 'Tema Claro' : 'Tema Escuro'}</span>
@@ -400,25 +728,36 @@ function renderSidebar() {
     });
   });
 
-  // Group toggle
-  const btnFin = document.getElementById('btnFinanceiro');
-  if (btnFin) {
-    btnFin.addEventListener('click', () => {
-      const children = document.querySelector('.nav-group-children');
-      const arrow = document.querySelector('.nav-group-arrow');
+  // Group toggles (genérico — funciona para RH, Financeiro e novos grupos)
+  document.querySelectorAll('.nav-group-header[data-group]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const groupKey = btn.dataset.group;
+      const item = btn.closest('.nav-group-item');
+      const children = item?.querySelector('.nav-group-children');
+      const arrow = item?.querySelector('.nav-group-arrow');
       if (!children || !arrow) return;
       const isOpen = children.classList.contains('open');
-      const currentlyActive = finLinks.some(l => (location.hash || '').startsWith(l.href));
+      // Não fecha se há rota ativa neste grupo
+      const links = groupLinks[groupKey] || [];
+      const currentlyActive = links.some(l => (location.hash || '').startsWith(l.href));
       if (currentlyActive && isOpen) return;
       if (isOpen) {
         children.classList.remove('open');
         arrow.classList.remove('open');
-        sidebarGroups.set('financeiro', false);
+        sidebarGroups.set(groupKey, false);
       } else {
         children.classList.add('open');
         arrow.classList.add('open');
-        sidebarGroups.set('financeiro', true);
+        sidebarGroups.set(groupKey, true);
       }
+    });
+  });
+
+  // Logout
+  const btnLogout = document.getElementById('btn-logout');
+  if (btnLogout) {
+    btnLogout.addEventListener('click', async () => {
+      if (confirm('Deseja sair?')) await auth.logout();
     });
   }
 
@@ -457,15 +796,15 @@ function updateSidebarActiveState(hash) {
     }
   });
 
-  // Highlight group header if a child is active
-  const finLinks = Object.entries(routes)
-    .filter(([, c]) => c.group === 'financeiro' && c.label)
-    .map(([p]) => p);
-  const finActive = finLinks.some(p => hash.startsWith(p));
-  const groupHeader = document.getElementById('btnFinanceiro');
-  if (groupHeader) {
-    groupHeader.classList.toggle('active', finActive);
-  }
+  // Highlight cada group header se algum filho está ativo
+  document.querySelectorAll('.nav-group-header[data-group]').forEach(btn => {
+    const groupKey = btn.dataset.group;
+    const links = Object.entries(routes)
+      .filter(([, c]) => c.group === groupKey && c.label)
+      .map(([p]) => p);
+    const isActive = links.some(p => hash.startsWith(p));
+    btn.classList.toggle('active', isActive);
+  });
 }
 
 async function navigate() {
@@ -504,14 +843,45 @@ document.addEventListener('DOMContentLoaded', async () => {
   applyTheme(getTheme());
   applyZoom(getZoom());
 
+  // 0) Reset de senha via URL (?action=reset-password&token=XXX)
+  const params = new URLSearchParams(location.search);
+  if (params.get('action') === 'reset-password' && params.get('token')) {
+    await showResetPasswordModal(params.get('token'));
+    // Após reset, volta pro fluxo normal de login
+  }
+
+  // 1) Autenticação obrigatória
+  let user = await auth.loadMe();
+  if (!user) {
+    await showLoginModal();
+    user = await auth.loadMe();
+  }
+
+  // 1.5) LGPD — exige aceite de termos no primeiro login
+  if (user && !user.acceptedTermsAt) {
+    await showTermosModal();
+    user = await auth.loadMe(); // recarrega
+  }
+
+  // 2) Carrega níveis e dados (já autenticado)
+  await perfil.load();
   await Store.loadAll();
 
+  // 3) Perfil de acesso:
+  //    - Se o usuário tem nivel_acesso_id atrelado, aplica direto (sem picker).
+  //    - Sem nivel (ex: admin) → permite escolher.
+  if (user && user.nivelAcessoId) {
+    const nivel = perfil.niveis().find(n => n.id === user.nivelAcessoId);
+    if (nivel) {
+      perfil.set(nivel);
+      iniciarApp();
+      return;
+    }
+  }
   if (perfil.get()) {
-    // Perfil já selecionado nesta sessão
     iniciarApp();
   } else {
-    // Mostrar seletor de perfil
-    renderSidebar(); // renderiza sidebar vazia enquanto carrega
+    renderSidebar();
     showProfilePicker();
   }
 });
