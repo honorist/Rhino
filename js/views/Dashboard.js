@@ -595,6 +595,17 @@ window.Dashboard = {
     const fmt = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
     const hoje = new Date().toISOString().split('T')[0];
 
+    // Cores adaptáveis ao tema (light/dark)
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const tc = {
+      text:    isDark ? '#FFFFFF' : '#1f2937',
+      grid:    isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+      tipBg:   isDark ? '#0F1523' : '#FFFFFF',
+      tipBorder: isDark ? '#1C2840' : '#e5e7eb',
+      tipText: isDark ? '#FFFFFF' : '#1f2937',
+      hojeLine: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)',
+    };
+
     // Passado: histórico real (últimos 30 dias)
     const labelsPassado = dash.historicoCaixa.map(d =>
       d.label || new Date(d.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
@@ -658,14 +669,14 @@ window.Dashboard = {
           legend: {
             display: true,
             position: 'top',
-            labels: { usePointStyle: true, padding: 20, color: '#FFFFFF', font: { size: 14, family: 'Nunito', weight: '600' } }
+            labels: { usePointStyle: true, padding: 20, color: tc.text, font: { size: 14, family: 'Nunito', weight: '600' } }
           },
           tooltip: {
-            backgroundColor: '#0F1523',
-            borderColor: '#1C2840',
+            backgroundColor: tc.tipBg,
+            borderColor: tc.tipBorder,
             borderWidth: 1,
-            titleColor: '#FFFFFF',
-            bodyColor: '#FFFFFF',
+            titleColor: tc.tipText,
+            bodyColor: tc.tipText,
             titleFont: { size: 13 },
             bodyFont: { size: 13 },
             callbacks: {
@@ -678,23 +689,23 @@ window.Dashboard = {
                 type: 'line',
                 xMin: totalPassado - 1,
                 xMax: totalPassado - 1,
-                borderColor: 'rgba(255,255,255,0.25)',
+                borderColor: tc.hojeLine,
                 borderWidth: 1,
                 borderDash: [4, 4],
-                label: { display: true, content: 'Hoje', position: 'start', font: { size: 12, weight: '600' }, color: '#FFFFFF' }
+                label: { display: true, content: 'Hoje', position: 'start', font: { size: 12, weight: '600' }, color: tc.text }
               }
             }
           }
         },
         scales: {
           x: {
-            grid: { color: 'rgba(255,255,255,0.08)' },
-            ticks: { color: '#FFFFFF', font: { size: 13, weight: '500' }, maxTicksLimit: 12 }
+            grid: { color: tc.grid },
+            ticks: { color: tc.text, font: { size: 13, weight: '500' }, maxTicksLimit: 12 }
           },
           y: {
-            grid: { color: 'rgba(255,255,255,0.08)' },
+            grid: { color: tc.grid },
             ticks: {
-              color: '#FFFFFF',
+              color: tc.text,
               font: { size: 13, weight: '500' },
               callback: v => v >= 1000000 ? 'R$' + (v/1000000).toFixed(1) + 'M' : v >= 1000 ? 'R$' + (v/1000).toFixed(0) + 'k' : 'R$' + v
             }
