@@ -13,6 +13,15 @@ window.Contratos = {
         filtered = filtered.filter(c => c.status === this.currentFilter);
       }
 
+      // Compliance de RDOs (não-bloqueante)
+      let rdoStats = null;
+      try {
+        const r = await fetch('/api/rdos');
+        if (r.ok) rdoStats = (await r.json()).stats || null;
+      } catch (_) {}
+      const semRdoIds = new Set((rdoStats?.obrasSemRdoOntem || []).map(o => o.contractId));
+      const atrasadasMap = new Map((rdoStats?.obrasAtrasadas || []).map(o => [o.contractId, o]));
+
       const html = `
         <div class="page-header">
           <div>
@@ -21,6 +30,12 @@ window.Contratos = {
           </div>
           <button class="btn btn-primary btn-lg" id="btnNovoContrato">+ Novo Contrato</button>
         </div>
+
+        ${rdoStats && !rdoStats.ehFimDeSemana && rdoStats.obrasSemRdoOntem.length > 0 ? `
+          <div style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:10px 14px;border-radius:8px;margin-bottom:var(--sp-md);font-size:14px;">
+            ⚠ <strong>${rdoStats.obrasSemRdoOntem.length} obra(s)</strong> sem RDO no último dia útil. Linhas marcadas com 🔴 abaixo. <a href="#/rdos" style="color:#991b1b;font-weight:700;">Ver detalhes →</a>
+          </div>
+        ` : ''}
 
         <div class="filters-bar">
           <div class="filter-group">
@@ -62,7 +77,11 @@ window.Contratos = {
                   const bg = total === 0 ? '#9CA3AF' : '#55588B';
                   return `
                   <tr class="row-contrato" data-id="${c.id}" style="cursor:pointer;">
-                    <td><strong>${escapeHtml(c.name)}</strong></td>
+                    <td>
+                      <strong>${escapeHtml(c.name)}</strong>
+                      ${c.status === 'ativo' && semRdoIds.has(c.id) ? `<span title="Sem RDO no último dia útil" style="margin-left:6px;">🔴</span>` : ''}
+                      ${c.status === 'ativo' && atrasadasMap.has(c.id) ? `<span title="${atrasadasMap.get(c.id).nuncaFezRdo ? 'Nunca fez RDO' : atrasadasMap.get(c.id).diasUteisSemRdo + ' dias úteis sem RDO'}" style="margin-left:4px;">⏰</span>` : ''}
+                    </td>
                     <td>${escapeHtml(c.client)}</td>
                     <td>${Store.formatBRL(c.value)}</td>
                     <td>${new Date(c.startDate).toLocaleDateString('pt-BR')} até ${new Date(c.endDate).toLocaleDateString('pt-BR')}</td>

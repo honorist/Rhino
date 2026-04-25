@@ -29,6 +29,14 @@ window.Dashboard = {
       await Store.loadDashboard(this._buildParams());
       const dash = Store.state.dashboard;
 
+      // Compliance de RDOs (não bloqueia se falhar)
+      let rdoStats = null;
+      try {
+        const r = await fetch('/api/rdos');
+        if (r.ok) rdoStats = (await r.json()).stats || null;
+      } catch (_) {}
+      this._rdoStats = rdoStats;
+
       const totalSaidas = Store.state.saidas.reduce((sum, s) => sum + s.value, 0);
       const taxaDespesa = dash.totalContractValue > 0
         ? ((totalSaidas / dash.totalContractValue) * 100).toFixed(1)
@@ -72,6 +80,14 @@ window.Dashboard = {
             </div>
             <div class="stat-label">Margem Média →</div>
           </a>
+          ${rdoStats ? `
+            <a href="#/rdos" class="card stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
+              <div class="stat-value" style="color: ${rdoStats.aderencia7d >= 80 ? 'var(--color-success)' : rdoStats.aderencia7d >= 50 ? 'var(--color-warning)' : 'var(--color-danger)'}">
+                ${rdoStats.aderencia7d}%
+              </div>
+              <div class="stat-label">Aderência RDO ${rdoStats.diasUteisAvaliados}d → ${rdoStats.obrasSemRdoOntem.length > 0 ? `<span style="color:var(--color-danger);">${rdoStats.obrasSemRdoOntem.length} sem RDO ontem</span>` : 'tudo em dia'}</div>
+            </a>
+          ` : ''}
         </div>
 
         <!-- Contas a Receber / Contas a Pagar (estilo Akaunting) -->
@@ -574,6 +590,22 @@ window.Dashboard = {
       alertas.push({ tipo: 'danger', msg: `🔴 ${dash.contasPagarStatus.vencidas} conta(s) a pagar VENCIDA(S) — <a href="#/contas-pagar" style="color:inherit;text-decoration:underline;">ver Contas a Pagar</a>` });
     if (dash.contasPagarStatus?.proximasVencer > 0)
       alertas.push({ tipo: 'warning', msg: `⚠️ ${dash.contasPagarStatus.proximasVencer} conta(s) a pagar vence(m) em até 7 dias — total ${Store.formatBRL(dash.contasPagarStatus.totalPendente)}` });
+
+    // Alertas de RDO (compliance de obras)
+    const rs = this._rdoStats;
+    if (rs && !rs.ehFimDeSemana) {
+      if (rs.obrasSemRdoOntem && rs.obrasSemRdoOntem.length > 0) {
+        const nomes = rs.obrasSemRdoOntem.slice(0, 3).map(o => o.name).join(', ');
+        const sufixo = rs.obrasSemRdoOntem.length > 3 ? ` e mais ${rs.obrasSemRdoOntem.length - 3}` : '';
+        alertas.push({ tipo: 'danger', msg: `🔴 ${rs.obrasSemRdoOntem.length} obra(s) sem RDO no último dia útil: ${nomes}${sufixo} — <a href="#/rdos" style="color:inherit;text-decoration:underline;">ver RDOs</a>` });
+      }
+      if (rs.obrasAtrasadas && rs.obrasAtrasadas.length > 0) {
+        alertas.push({ tipo: 'warning', msg: `⚠️ ${rs.obrasAtrasadas.length} obra(s) com mais de 2 dias úteis sem RDO — <a href="#/rdos" style="color:inherit;text-decoration:underline;">ver RDOs</a>` });
+      }
+      if (typeof rs.aderencia7d === 'number' && rs.aderencia7d < 50) {
+        alertas.push({ tipo: 'warning', msg: `⚠️ Aderência de RDOs nos últimos ${rs.diasUteisAvaliados} dias úteis: ${rs.aderencia7d}% — abaixo do esperado` });
+      }
+    }
 
     if (alertas.length === 0) return '';
     return `

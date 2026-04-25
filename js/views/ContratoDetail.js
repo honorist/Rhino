@@ -2021,6 +2021,41 @@ window.ContratoDetail = {
   renderRdoSection(contract) {
     const rdos = (contract.rdos || []).slice().sort((a, b) => (b.data || '').localeCompare(a.data || ''));
 
+    // Compliance: calcula último dia útil e dias úteis sem RDO (cliente-side)
+    const isWeekend = (d) => { const x = d.getDay(); return x === 0 || x === 6; };
+    const toIso = (d) => d.toISOString().split('T')[0];
+    const today = new Date(); today.setHours(12, 0, 0, 0);
+    const todayDow = today.getDay();
+    const ehFimDeSemana = isWeekend(today);
+    const ultDiaUtil = new Date(today);
+    ultDiaUtil.setDate(ultDiaUtil.getDate() - 1);
+    while (isWeekend(ultDiaUtil)) ultDiaUtil.setDate(ultDiaUtil.getDate() - 1);
+    const ultDiaUtilIso = toIso(ultDiaUtil);
+    const ultimoRdo = rdos.length > 0 ? rdos[0].data : null;
+    let diasUteisSem = 0;
+    if (ultimoRdo) {
+      const cur = new Date(ultimoRdo + 'T12:00:00');
+      cur.setDate(cur.getDate() + 1);
+      while (toIso(cur) <= toIso(today)) {
+        if (!isWeekend(cur)) diasUteisSem++;
+        cur.setDate(cur.getDate() + 1);
+      }
+    }
+    const fmtBr = (iso) => { const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : iso; };
+
+    let alertaHtml = '';
+    if (contract.status === 'ativo' && !ehFimDeSemana) {
+      if (!ultimoRdo) {
+        alertaHtml = `<div style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:10px 14px;border-radius:8px;margin-bottom:var(--sp-md);font-size:14px;">⚠ <strong>Esta obra ainda não tem nenhum RDO registrado.</strong> Clique em "+ Novo RDO" para começar.</div>`;
+      } else if (ultimoRdo < ultDiaUtilIso) {
+        alertaHtml = `<div style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;padding:10px 14px;border-radius:8px;margin-bottom:var(--sp-md);font-size:14px;">🔴 <strong>Sem RDO no último dia útil (${fmtBr(ultDiaUtilIso)}).</strong> Último RDO: ${fmtBr(ultimoRdo)} — ${diasUteisSem} dia(s) útil(eis) sem registrar.</div>`;
+      } else if (diasUteisSem > 2) {
+        alertaHtml = `<div style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;padding:10px 14px;border-radius:8px;margin-bottom:var(--sp-md);font-size:14px;">⏰ <strong>${diasUteisSem} dias úteis sem RDO.</strong> Último: ${fmtBr(ultimoRdo)}.</div>`;
+      }
+    } else if (ehFimDeSemana && contract.status === 'ativo') {
+      alertaHtml = `<div style="background:#dbeafe;color:#1e3a8a;border:1px solid #93c5fd;padding:8px 12px;border-radius:8px;margin-bottom:var(--sp-md);font-size:13px;">📅 Hoje é fim de semana — RDO é ocasional, não obrigatório.</div>`;
+    }
+
     const body = rdos.length === 0 ? `
       <div style="text-align:center;padding:var(--sp-2xl) var(--sp-lg);color:var(--color-text-muted);">
         <div style="font-size:38px;margin-bottom:var(--sp-md);opacity:.5;">📋</div>
@@ -2093,6 +2128,7 @@ window.ContratoDetail = {
     setTimeout(() => this._attachRdoListeners(contract), 0);
 
     return `
+      ${alertaHtml}
       <div class="card mb-2xl">
         <div class="card-header">
           <h3 class="card-title">Relatórios Diários de Obra (RDO)</h3>
