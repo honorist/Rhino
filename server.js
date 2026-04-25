@@ -959,23 +959,46 @@ async function handleGetRdosGlobal(res) {
     const setUltimos7 = new Set(ultimos7);
     const ativasIds = new Set(ativas.map(c => c.id));
     let feitos = 0;
+    // Contagem por dia para o gráfico
+    const feitosPorDia = {};
+    for (const d of ultimos7) feitosPorDia[d] = 0;
     for (const r of rdos) {
       if (!ativasIds.has(r.contractId)) continue;
-      if (setUltimos7.has(r.data)) feitos++;
+      if (setUltimos7.has(r.data)) {
+        feitos++;
+        feitosPorDia[r.data] = (feitosPorDia[r.data] || 0) + 1;
+      }
     }
     const esperados = ativas.length * ultimos7.length;
     const aderencia = esperados > 0 ? Math.round((feitos / esperados) * 100) : 100;
+
+    // Série diária (ordenada cronologicamente) para o gráfico
+    const aderenciaDiaria = ultimos7
+      .slice()
+      .sort()
+      .map(d => ({
+        data: d,
+        feitos: feitosPorDia[d] || 0,
+        esperados: ativas.length,
+        pct: ativas.length > 0 ? Math.round((feitosPorDia[d] / ativas.length) * 100) : 100,
+      }));
+
+    // Detecta dia da semana de hoje (0=dom, 6=sáb) para banner relaxado
+    const hojeDow = new Date(hojeISO + 'T12:00:00').getDay();
+    const ehFimDeSemana = hojeDow === 0 || hojeDow === 6;
 
     sendJson(res, {
       rdos,
       stats: {
         ultimoDiaUtil,
         hoje: hojeISO,
+        ehFimDeSemana,
         obrasAtivas: ativas.length,
         obrasSemRdoOntem,
         obrasAtrasadas,
         aderencia7d: aderencia,
         diasUteisAvaliados: ultimos7.length,
+        aderenciaDiaria,
       },
     });
   } catch (e) {

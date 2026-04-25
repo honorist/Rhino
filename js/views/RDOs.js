@@ -54,6 +54,16 @@ const RDOs = {
         <button class="btn btn-primary" id="btnNovoRdoGlobal">+ Novo RDO</button>
       </div>
 
+      ${stats.ehFimDeSemana ? `
+        <div style="background:#dbeafe;color:#1e3a8a;padding:var(--sp-md) var(--sp-lg);border-radius:8px;margin-bottom:var(--sp-lg);border:1px solid #93c5fd;display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;">📅</span>
+          <div>
+            <div style="font-weight:700;font-size:14px;">Hoje é fim de semana — RDO é ocasional, não obrigatório.</div>
+            <div style="font-size:13px;opacity:0.85;">Os alertas abaixo se referem ao último dia útil (${fmtData(stats.ultimoDiaUtil)}).</div>
+          </div>
+        </div>
+      ` : ''}
+
       <!-- KPIs -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:var(--sp-md);margin-bottom:var(--sp-lg);">
         ${kpiCard('Obras ativas', stats.obrasAtivas, '#3b82f6')}
@@ -62,9 +72,20 @@ const RDOs = {
         ${kpiCard(`Aderência ${stats.diasUteisAvaliados} dias úteis`, `${stats.aderencia7d}%`, stats.aderencia7d >= 80 ? '#10b981' : stats.aderencia7d >= 50 ? '#f59e0b' : '#dc2626')}
       </div>
 
+      <!-- Gráfico de aderência diária -->
+      ${stats.aderenciaDiaria && stats.aderenciaDiaria.length > 0 ? `
+        <div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:8px;padding:var(--sp-md);margin-bottom:var(--sp-lg);">
+          <div style="font-weight:700;font-size:14px;margin-bottom:var(--sp-sm);color:var(--color-text);">Aderência diária — últimos ${stats.diasUteisAvaliados} dias úteis</div>
+          <div style="height:180px;"><canvas id="chartAderencia"></canvas></div>
+        </div>
+      ` : ''}
+
       ${stats.obrasSemRdoOntem.length > 0 ? `
         <div style="background:#dc2626;color:#fff;padding:var(--sp-md) var(--sp-lg);border-radius:8px;margin-bottom:var(--sp-lg);box-shadow:0 2px 8px rgba(220,38,38,0.3);">
-          <div style="font-weight:700;font-size:15px;margin-bottom:8px;">⚠ Obras sem RDO no último dia útil (${fmtData(stats.ultimoDiaUtil)}):</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;flex-wrap:wrap;">
+            <div style="font-weight:700;font-size:15px;">⚠ Obras sem RDO no último dia útil (${fmtData(stats.ultimoDiaUtil)}):</div>
+            <button class="btn" id="btnExportSemRdo" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);font-size:13px;padding:4px 12px;">⬇ Exportar CSV</button>
+          </div>
           <ul style="margin:0;padding-left:22px;line-height:1.7;">
             ${stats.obrasSemRdoOntem.map(o => `
               <li>
@@ -79,7 +100,10 @@ const RDOs = {
 
       ${stats.obrasAtrasadas.length > 0 ? `
         <div style="background:#f59e0b;color:#1f1300;padding:var(--sp-md) var(--sp-lg);border-radius:8px;margin-bottom:var(--sp-lg);box-shadow:0 2px 8px rgba(245,158,11,0.3);">
-          <div style="font-weight:700;font-size:15px;margin-bottom:8px;">📋 Obras com mais de 2 dias úteis sem RDO:</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;flex-wrap:wrap;">
+            <div style="font-weight:700;font-size:15px;">📋 Obras com mais de 2 dias úteis sem RDO:</div>
+            <button class="btn" id="btnExportAtrasadas" style="background:rgba(0,0,0,0.15);color:#1f1300;border:1px solid rgba(0,0,0,0.3);font-size:13px;padding:4px 12px;">⬇ Exportar CSV</button>
+          </div>
           <ul style="margin:0;padding-left:22px;line-height:1.7;">
             ${stats.obrasAtrasadas.map(o => `
               <li>
@@ -186,6 +210,94 @@ const RDOs = {
     const next = document.getElementById('btnNext');
     if (prev) prev.addEventListener('click', () => { this._page--; this.draw(); });
     if (next) next.addEventListener('click', () => { this._page++; this.draw(); });
+
+    // Exportar CSV — obras sem RDO ontem
+    const btnExpSem = document.getElementById('btnExportSemRdo');
+    if (btnExpSem) btnExpSem.addEventListener('click', () => {
+      const rows = [['Contrato', 'Cliente', 'Último RDO']];
+      stats.obrasSemRdoOntem.forEach(o => rows.push([o.name || '', o.client || '', o.ultimoRdo || 'nunca']));
+      this._downloadCsv(`obras-sem-rdo-${stats.ultimoDiaUtil}.csv`, rows);
+    });
+
+    // Exportar CSV — obras atrasadas
+    const btnExpAtr = document.getElementById('btnExportAtrasadas');
+    if (btnExpAtr) btnExpAtr.addEventListener('click', () => {
+      const rows = [['Contrato', 'Cliente', 'Dias úteis sem RDO', 'Último RDO']];
+      stats.obrasAtrasadas.forEach(o => rows.push([
+        o.name || '',
+        o.client || '',
+        o.nuncaFezRdo ? 'nunca fez' : String(o.diasUteisSemRdo),
+        o.ultimoRdo || '—',
+      ]));
+      this._downloadCsv(`obras-atrasadas-${stats.hoje}.csv`, rows);
+    });
+
+    // Gráfico de aderência diária
+    if (stats.aderenciaDiaria && stats.aderenciaDiaria.length > 0 && window.Chart) {
+      const canvas = document.getElementById('chartAderencia');
+      if (canvas) {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const txt = isDark ? '#e5e7eb' : '#374151';
+        const grid = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+        const labels = stats.aderenciaDiaria.map(d => fmtData(d.data).slice(0,5));
+        const data = stats.aderenciaDiaria.map(d => d.pct);
+        const colors = data.map(p => p >= 80 ? '#10b981' : p >= 50 ? '#f59e0b' : '#dc2626');
+        if (this._chart) this._chart.destroy();
+        this._chart = new Chart(canvas, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Aderência (%)',
+              data,
+              backgroundColor: colors,
+              borderRadius: 4,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => {
+                    const d = stats.aderenciaDiaria[ctx.dataIndex];
+                    return `${d.feitos}/${d.esperados} obras (${d.pct}%)`;
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: { color: txt, callback: (v) => v + '%' },
+                grid: { color: grid },
+              },
+              x: { ticks: { color: txt }, grid: { display: false } }
+            }
+          }
+        });
+      }
+    }
+  },
+
+  _downloadCsv(filename, rows) {
+    const csv = rows.map(r => r.map(cell => {
+      const s = String(cell ?? '');
+      return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    }).join(';')).join('\r\n');
+    // BOM para Excel reconhecer UTF-8
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   },
 };
 
