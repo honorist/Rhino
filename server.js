@@ -18,6 +18,7 @@ const auth = require('./lib/auth');
 const feriados = require('./lib/feriados');
 const email = require('./lib/email');
 const rateLimit = require('./lib/rate-limit');
+const audit = require('./lib/audit');
 
 // Ensure backups directory exists (used by handleBackup pra dump PG → JSON)
 if (!fs.existsSync(BACKUPS_DIR)) {
@@ -892,6 +893,25 @@ async function handleMe(req, res) {
       acceptedTermsAt: u.acceptedTermsAt || null,
     },
   });
+}
+
+// ============ Auditoria ============
+async function handleGetAudit(query, res) {
+  try {
+    const limit = Math.min(500, parseInt(query.limit) || 100);
+    const offset = Math.max(0, parseInt(query.offset) || 0);
+    const data = await audit.listEvents({
+      user: query.user || null,
+      entity: query.entity || null,
+      action: query.action || null,
+      from: query.from || null,
+      to: query.to || null,
+      limit, offset,
+    });
+    sendJson(res, data);
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 // ============ RDOs (visão global) ============
@@ -2193,7 +2213,7 @@ const server = http.createServer((req, res) => {
   const t0 = Date.now();
   res.setHeader('X-Request-Id', requestId);
 
-  // Hook no res.end pra emitir log + atualizar métricas
+  // Hook no res.end pra emitir log + atualizar métricas + auditoria
   const origEnd = res.end.bind(res);
   res.end = function (...args) {
     const ms = Date.now() - t0;
@@ -2203,9 +2223,12 @@ const server = http.createServer((req, res) => {
     metrics.by_status[bucket]++;
     if (metrics.by_method[req.method] !== undefined) metrics.by_method[req.method]++;
     if (status >= 500) metrics.errors++;
-    // Não loga assets estáticos para não poluir
     if (pathname.startsWith('/api/') || status >= 400) {
       logEvent({ rid: requestId, m: req.method, p: pathname, s: status, ms });
+    }
+    // Auditoria — salva no PG em background (não bloqueia o response)
+    if (['POST', 'PUT', 'DELETE'].includes(req.method) && pathname.startsWith('/api/') && status < 500) {
+      setImmediate(() => audit.log({ req, res, body: req._auditBody, status, durationMs: ms, requestId }).catch(() => {}));
     }
     return origEnd(...args);
   };
@@ -2257,6 +2280,7 @@ const server = http.createServer((req, res) => {
       } catch (e) {
         body = {};
       }
+      req._auditBody = body;
       if (await applyAuthMiddleware(req, res, pathname)) return;
       routeRequest(pathname, req.method, body, res, parsedUrl, req);
     });
@@ -2311,6 +2335,9 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname === '/api/auth/forgot-password' && method === 'POST') return handleForgotPassword(req, body, res);
   if (pathname === '/api/auth/reset-password' && method === 'POST') return handleResetPassword(body, res);
   if (pathname === '/api/auth/accept-terms' && method === 'POST') return handleAcceptTerms(req, res);
+
+  // ============ Auditoria ============
+  if (pathname === '/api/audit' && method === 'GET') return handleGetAudit(parsedUrl.query, res);
 
   // ============ RDOs (visão global) ============
   if (pathname === '/api/rdos' && method === 'GET') return handleGetRdosGlobal(res);

@@ -18,6 +18,7 @@ const routes = {
   '#/base':         { view: window.Base,           label: 'BASE',         icon: '⊟' },
   '#/configuracao': { view: window.Configuracao,   label: 'Configuração', icon: '⊙' },
   '#/usuarios':     { view: window.Usuarios,       label: 'Usuários',     icon: '◍' },
+  '#/auditoria':    { view: window.Auditoria,      label: 'Auditoria',    icon: '⌖' },
   '#/manual':       { view: window.Manual,         label: null,           icon: null }
 };
 
@@ -358,8 +359,8 @@ const perfil = {
     if (!abas) return true;
     // Rotas de detalhe (ex: #/contratos/123) seguem a permissão da rota pai
     const base = route.replace(/(#\/[^/]+).*/, '$1');
-    // Manual, Usuários e RDOs são universais — qualquer perfil autenticado pode abrir
-    if (base === '#/manual' || base === '#/usuarios' || base === '#/rdos') return true;
+    // Manual, Usuários, RDOs e Auditoria são universais — qualquer perfil autenticado pode abrir
+    if (base === '#/manual' || base === '#/usuarios' || base === '#/rdos' || base === '#/auditoria') return true;
     return abas.includes(base);
   },
 

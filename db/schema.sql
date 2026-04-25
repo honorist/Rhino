@@ -356,6 +356,27 @@ ALTER TABLE users
   ADD COLUMN IF NOT EXISTS accepted_terms_at TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS accepted_terms_version TEXT;
 
+-- ============ Auditoria ============
+CREATE TABLE IF NOT EXISTS audit_log (
+  id          BIGSERIAL PRIMARY KEY,
+  ts          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  user_id     TEXT,
+  user_email  TEXT,
+  ip          TEXT,
+  method      TEXT NOT NULL,
+  path        TEXT NOT NULL,
+  entity      TEXT,
+  entity_id   TEXT,
+  action      TEXT,
+  status      INTEGER,
+  duration_ms INTEGER,
+  body        JSONB,
+  request_id  TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log (ts DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log (user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log (entity, entity_id);
+
 -- ============ Trigger genérico de updated_at ============
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
