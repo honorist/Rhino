@@ -2066,7 +2066,7 @@ window.ContratoDetail = {
                 : '<span class="badge" style="background:#FEE2E2;color:#B91C1C;">C/ Afast.</span>';
 
               return `
-                <tr>
+                <tr class="row-rdo" data-id="${r.id}" style="cursor:pointer;">
                   <td><strong style="color:var(--color-primary);">#${r.numero}</strong></td>
                   <td><strong>${fmt(r.data)}</strong>${r.diaSemana ? `<div style="font-size:15px;color:var(--color-text-muted);">${r.diaSemana}</div>` : ''}</td>
                   <td style="font-size:18px;">${climaIcone}</td>
@@ -2108,19 +2108,230 @@ window.ContratoDetail = {
     if (btnNovo) btnNovo.addEventListener('click', () => this.showModalRdo(contract.id));
     document.querySelectorAll('.btn-editar-rdo').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        e.stopPropagation();
         const rdo = (contract.rdos || []).find(r => r.id === e.currentTarget.dataset.id);
         this.showModalRdo(contract.id, rdo);
       });
     });
     document.querySelectorAll('.btn-excluir-rdo').forEach(btn => {
-      btn.addEventListener('click', (e) => this.deleteRdo(contract.id, e.currentTarget.dataset.id));
+      btn.addEventListener('click', (e) => { e.stopPropagation(); this.deleteRdo(contract.id, e.currentTarget.dataset.id); });
     });
     document.querySelectorAll('.btn-pdf-rdo').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        e.stopPropagation();
         const rdo = (contract.rdos || []).find(r => r.id === e.currentTarget.dataset.id);
         if (rdo) this.exportarRdoPdf(rdo, contract);
       });
     });
+    // Click na linha → abre resumo do RDO
+    document.querySelectorAll('.row-rdo').forEach(tr => {
+      tr.addEventListener('click', (e) => {
+        if (e.target.closest('.actions-cell')) return;
+        const rdo = (contract.rdos || []).find(r => r.id === tr.dataset.id);
+        if (rdo) this.showRdoDetail(rdo, contract);
+      });
+    });
+  },
+
+  // ─── Modal de resumo de RDO (reusado pelo Contratos e pela tela RDOs) ───
+  showRdoDetail(rdo, contract) {
+    const fmt = (d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+    const list = (arr) => Array.isArray(arr) ? arr : [];
+
+    const moi  = list(rdo.moi);
+    const mod_ = list(rdo.mod);
+    const terc = list(rdo.terc);
+    const eqp  = list(rdo.equipamentos);
+    const atv  = list(rdo.atividades);
+    const fotos = list(rdo.fotos);
+
+    const totMoi  = moi.reduce((s, x) => s + (parseFloat(x.qtd) || parseFloat(x.quantidade) || 0), 0);
+    const totMod  = mod_.reduce((s, x) => s + (parseFloat(x.qtd) || parseFloat(x.quantidade) || 0), 0);
+    const totTerc = terc.reduce((s, x) => s + (parseFloat(x.qtd) || parseFloat(x.quantidade) || 0), 0);
+    const totEqp  = eqp.reduce((s, x) => s + (parseFloat(x.qtd) || parseFloat(x.quantidade) || 0), 0);
+
+    const seg = rdo.seguranca || {};
+    const acidente = seg.acidente || 'nao_houve';
+    const acidenteLbl = { nao_houve: 'Sem acidentes', sem_afastamento: 'Acidente sem afastamento', com_afastamento: 'Acidente com afastamento' }[acidente] || acidente;
+    const acidenteCor = acidente === 'nao_houve' ? '#10b981' : acidente === 'sem_afastamento' ? '#f59e0b' : '#dc2626';
+
+    const tempoLbl = (t) => {
+      if (!t || t === 'nao_houve' || t === 'sem_expediente') return '—';
+      return ({ bom: '☀️ Bom', nublado: '⛅ Nublado', chuva: '🌧 Chuva' })[t] || t;
+    };
+    const tempo = rdo.tempo || {};
+
+    const renderTabela = (titulo, arr, cols) => {
+      if (arr.length === 0) return '';
+      return `
+        <div style="margin-bottom:var(--sp-md);">
+          <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:6px;">${titulo}</div>
+          <table style="width:100%;font-size:13px;border-collapse:collapse;">
+            <thead><tr style="border-bottom:1px solid var(--color-border);">
+              ${cols.map(c => `<th style="text-align:${c.align || 'left'};padding:6px 8px;color:var(--color-text-muted);font-weight:600;">${c.label}</th>`).join('')}
+            </tr></thead>
+            <tbody>
+              ${arr.map(r => `<tr style="border-bottom:1px solid var(--color-border);">
+                ${cols.map(c => `<td style="text-align:${c.align || 'left'};padding:6px 8px;">${escapeHtml(String(r[c.key] ?? '—'))}</td>`).join('')}
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    };
+
+    const html = `
+      <div class="modal-overlay" id="modalRdoDetail">
+        <div class="modal" style="width:760px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+          <div class="modal-header">
+            <div style="flex:1;min-width:0;">
+              <h2 class="modal-title" style="margin:0;">RDO #${escapeHtml(String(rdo.numero || ''))} — ${fmt(rdo.data)}</h2>
+              <div style="font-size:13px;color:var(--color-text-muted);margin-top:4px;">
+                ${escapeHtml(contract?.name || '')} ${contract?.client ? '· ' + escapeHtml(contract.client) : ''}
+              </div>
+            </div>
+            <button class="modal-close">✕</button>
+          </div>
+          <div class="modal-content">
+            <!-- Cabeçalho do dia -->
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:var(--sp-sm);margin-bottom:var(--sp-md);">
+              <div style="padding:8px 10px;background:var(--color-surface-2);border-radius:6px;">
+                <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">Dia da semana</div>
+                <div style="font-weight:600;">${escapeHtml(rdo.diaSemana || '—')}</div>
+              </div>
+              <div style="padding:8px 10px;background:var(--color-surface-2);border-radius:6px;">
+                <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">OS</div>
+                <div style="font-weight:600;">${escapeHtml(rdo.osNumero || '—')}</div>
+              </div>
+              <div style="padding:8px 10px;background:var(--color-surface-2);border-radius:6px;">
+                <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">Ordem de compra</div>
+                <div style="font-weight:600;">${escapeHtml(rdo.ordemCompra || '—')}</div>
+              </div>
+              <div style="padding:8px 10px;background:var(--color-surface-2);border-radius:6px;">
+                <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">Período</div>
+                <div style="font-weight:600;">${escapeHtml(rdo.periodoTrabalho || '—')}</div>
+              </div>
+            </div>
+
+            <!-- Tempo + Prazo -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-md);margin-bottom:var(--sp-md);">
+              <div style="padding:var(--sp-md);background:var(--color-surface-2);border-radius:8px;">
+                <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:8px;">Tempo</div>
+                <div style="font-size:13px;line-height:1.7;">
+                  <div><strong>Manhã:</strong> ${tempoLbl(tempo.manha?.tempo)} ${tempo.manha?.condicoes ? `· ${tempo.manha.condicoes}` : ''}</div>
+                  <div><strong>Tarde:</strong> ${tempoLbl(tempo.tarde?.tempo)} ${tempo.tarde?.condicoes ? `· ${tempo.tarde.condicoes}` : ''}</div>
+                  <div><strong>Noite ant.:</strong> ${tempoLbl(tempo.noiteAnt?.tempo)} ${tempo.noiteAnt?.condicoes ? `· ${tempo.noiteAnt.condicoes}` : ''}</div>
+                  <div><strong>Precipitação:</strong> ${tempo.precipitacao || 0} mm</div>
+                </div>
+              </div>
+              <div style="padding:var(--sp-md);background:var(--color-surface-2);border-radius:8px;">
+                <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:8px;">Prazo</div>
+                <div style="font-size:13px;line-height:1.7;">
+                  <div><strong>Início:</strong> ${fmt(rdo.prazo?.dataInicial)}</div>
+                  <div><strong>Contratual:</strong> ${rdo.prazo?.contratual || 0} dias</div>
+                  <div><strong>Decorrido:</strong> ${rdo.prazo?.decorrido || 0} dias</div>
+                  <div><strong>Faltante:</strong> ${rdo.prazo?.faltante || 0} dias</div>
+                  <div><strong>% Concluído:</strong> ${rdo.prazo?.pctConcluida || 0}%</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mão de obra -->
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-md);margin-bottom:var(--sp-md);">
+              <div style="padding:10px;background:var(--color-surface-2);border-radius:6px;text-align:center;">
+                <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">MOI</div>
+                <div style="font-size:22px;font-weight:700;color:#3b82f6;">${totMoi}</div>
+                <div style="font-size:11px;color:var(--color-text-muted);">${moi.length} cargo(s)</div>
+              </div>
+              <div style="padding:10px;background:var(--color-surface-2);border-radius:6px;text-align:center;">
+                <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">MOD</div>
+                <div style="font-size:22px;font-weight:700;color:#10b981;">${totMod}</div>
+                <div style="font-size:11px;color:var(--color-text-muted);">${mod_.length} cargo(s)</div>
+              </div>
+              <div style="padding:10px;background:var(--color-surface-2);border-radius:6px;text-align:center;">
+                <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">Terceiros</div>
+                <div style="font-size:22px;font-weight:700;color:#f59e0b;">${totTerc}</div>
+                <div style="font-size:11px;color:var(--color-text-muted);">${terc.length} cargo(s)</div>
+              </div>
+            </div>
+
+            ${renderTabela('Mão de Obra Indireta (MOI)', moi.map(m => ({ cargo: m.cargo, qtd: m.qtd ?? m.quantidade ?? 0, horas: m.horas || 8 })), [
+              { key: 'cargo',  label: 'Cargo' },
+              { key: 'qtd',    label: 'Qtd',   align: 'center' },
+              { key: 'horas',  label: 'Horas', align: 'center' },
+            ])}
+            ${renderTabela('Mão de Obra Direta (MOD)', mod_.map(m => ({ cargo: m.cargo, qtd: m.qtd ?? m.quantidade ?? 0, horas: m.horas || 8 })), [
+              { key: 'cargo',  label: 'Cargo' },
+              { key: 'qtd',    label: 'Qtd',   align: 'center' },
+              { key: 'horas',  label: 'Horas', align: 'center' },
+            ])}
+            ${renderTabela('Terceiros', terc.map(m => ({ empresa: m.empresa || m.cargo, qtd: m.qtd ?? m.quantidade ?? 0 })), [
+              { key: 'empresa', label: 'Empresa/Cargo' },
+              { key: 'qtd',     label: 'Qtd', align: 'center' },
+            ])}
+            ${renderTabela('Equipamentos', eqp.map(e => ({
+              nome: e.nome,
+              qtd: e.qtd ?? e.quantidade ?? 0,
+              horas: e.horasOperando ?? e.horas ?? 0,
+            })), [
+              { key: 'nome',  label: 'Equipamento' },
+              { key: 'qtd',   label: 'Qtd',          align: 'center' },
+              { key: 'horas', label: 'Horas oper.', align: 'center' },
+            ])}
+            ${renderTabela('Atividades do dia', atv.map(a => ({ descricao: a.descricao, pct: (a.pctExecutado ?? a.pct ?? 0) + '%' })), [
+              { key: 'descricao', label: 'Descrição' },
+              { key: 'pct',       label: 'Executado', align: 'center' },
+            ])}
+
+            <!-- Segurança -->
+            <div style="padding:var(--sp-md);background:var(--color-surface-2);border-radius:8px;border-left:3px solid ${acidenteCor};margin-bottom:var(--sp-md);">
+              <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:8px;">Segurança</div>
+              <div style="font-size:13px;line-height:1.7;">
+                <div><strong>Status:</strong> <span style="color:${acidenteCor};font-weight:700;">${acidenteLbl}</span></div>
+                ${seg.diagnostico ? `<div><strong>Diagnóstico:</strong> ${escapeHtml(seg.diagnostico)}</div>` : ''}
+                <div><strong>Admissões:</strong> ${seg.admissoes || 0} · <strong>Demissões:</strong> ${seg.demissoes || 0}</div>
+                ${seg.comentarios ? `<div><strong>Observações:</strong> ${escapeHtml(seg.comentarios)}</div>` : ''}
+              </div>
+            </div>
+
+            ${rdo.fiscalizacaoComentarios ? `
+              <div style="padding:var(--sp-md);background:var(--color-surface-2);border-radius:8px;margin-bottom:var(--sp-md);">
+                <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:6px;">Fiscalização</div>
+                <div style="font-size:13px;white-space:pre-wrap;">${escapeHtml(rdo.fiscalizacaoComentarios)}</div>
+              </div>
+            ` : ''}
+
+            ${fotos.length > 0 ? `
+              <div style="margin-bottom:var(--sp-md);">
+                <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:8px;">Fotos (${fotos.length})</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">
+                  ${fotos.slice(0, 12).map(f => `
+                    <div style="position:relative;aspect-ratio:1;background:var(--color-surface-2);border-radius:6px;overflow:hidden;">
+                      ${f.url ? `<img src="${f.url}" alt="${escapeHtml(f.legenda || '')}" style="width:100%;height:100%;object-fit:cover;">` : `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--color-text-muted);font-size:11px;">📷</div>`}
+                    </div>
+                  `).join('')}
+                </div>
+                ${fotos.length > 12 ? `<div style="text-align:center;margin-top:6px;color:var(--color-text-muted);font-size:13px;">+ ${fotos.length - 12} foto(s)</div>` : ''}
+              </div>
+            ` : ''}
+
+            <div style="font-size:11px;color:var(--color-text-muted);font-family:monospace;text-align:right;">ID: ${escapeHtml(rdo.id)}</div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnRdoClose">Fechar</button>
+            ${contract ? `<button class="btn btn-secondary" id="btnRdoEdit">Editar</button>` : ''}
+            ${contract ? `<button class="btn btn-primary" id="btnRdoPdf">📄 Exportar PDF</button>` : ''}
+          </div>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalRdoDetail');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnRdoClose').addEventListener('click', close);
+    const bEdit = document.getElementById('btnRdoEdit');
+    if (bEdit) bEdit.addEventListener('click', () => { close(); this.showModalRdo(contract.id, rdo); });
+    const bPdf = document.getElementById('btnRdoPdf');
+    if (bPdf) bPdf.addEventListener('click', () => { close(); this.exportarRdoPdf(rdo, contract); });
   },
 
   _autoMoFromOrganograma(contract) {

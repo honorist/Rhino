@@ -126,7 +126,7 @@ const RDOs = {
         <tbody>
           ${slice.length === 0 ? `<tr><td colspan="6" style="text-align:center;color:var(--color-text-muted);padding:var(--sp-xl);">Nenhum RDO</td></tr>` : ''}
           ${slice.map(r => `
-            <tr style="cursor:pointer;" data-contract-id="${r.contractId}">
+            <tr style="cursor:pointer;" class="row-rdo-global" data-rdo-id="${r.id}" data-contract-id="${r.contractId}">
               <td>${fmtData(r.data)}</td>
               <td>${escapeHtml(String(r.numero || ''))}</td>
               <td>${escapeHtml(r.contractName || '')}</td>
@@ -163,9 +163,23 @@ const RDOs = {
       this._page = 0;
       this.draw();
     });
-    document.querySelectorAll('tbody tr[data-contract-id]').forEach(tr => {
-      tr.addEventListener('click', () => {
-        location.hash = '#/contratos/' + tr.dataset.contractId;
+    document.querySelectorAll('tbody tr.row-rdo-global').forEach(tr => {
+      tr.addEventListener('click', async () => {
+        const rdoId = tr.dataset.rdoId;
+        const contractId = tr.dataset.contractId;
+        // Busca o RDO completo via API do contrato (que traz os RDOs aninhados)
+        try {
+          const r = await fetch('/api/contracts').then(res => res.json());
+          const c = (r.contracts || []).find(x => x.id === contractId);
+          const rdo = c ? (c.rdos || []).find(x => x.id === rdoId) : null;
+          if (rdo && c && window.ContratoDetail?.showRdoDetail) {
+            window.ContratoDetail.showRdoDetail(rdo, c);
+          } else {
+            location.hash = '#/contratos/' + contractId;
+          }
+        } catch (e) {
+          location.hash = '#/contratos/' + contractId;
+        }
       });
     });
     const prev = document.getElementById('btnPrev');
