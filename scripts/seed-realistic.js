@@ -138,68 +138,98 @@ async function seedFornecedores() {
   return out;
 }
 
-// ============ Recursos (colaboradores) ============
+// ============ Recursos (colaboradores) — 100 variados ============
 async function seedRecursos() {
-  const profissoes = ['Mecânico Industrial', 'Soldador', 'Caldeireiro', 'Eletricista Industrial', 'Encanador', 'Pintor Industrial', 'Encarregado de Obra', 'Engenheiro Mecânico', 'Técnico de Segurança', 'Almoxarife'];
-  const nomes = [
-    ['Adriano Souza',     'M', '987.654.321-00'],
-    ['Bruno Costa',       'M', '876.543.210-11'],
-    ['Carlos Eduardo Lima','M', '765.432.109-22'],
-    ['Daniel Pereira',    'M', '654.321.098-33'],
-    ['Eduardo Santos',    'M', '543.210.987-44'],
-    ['Fábio Oliveira',    'M', '432.109.876-55'],
-    ['Gustavo Ribeiro',   'M', '321.098.765-66'],
-    ['Henrique Alves',    'M', '210.987.654-77'],
-    ['Isabela Martins',   'F', '109.876.543-88'],
-    ['Jonas Pinto',       'M', '098.765.432-99'],
-    ['Kelly Rodrigues',   'F', '198.765.432-10'],
-    ['Lucas Ferreira',    'M', '298.765.432-11'],
-    ['Marcos Cardoso',    'M', '398.765.432-12'],
-    ['Natália Gomes',     'F', '498.765.432-13'],
-    ['Otávio Mendes',     'M', '598.765.432-14'],
-    ['Patrícia Barros',   'F', '698.765.432-15'],
-    ['Rafael Moura',      'M', '798.765.432-16'],
-    ['Sabrina Tavares',   'F', '898.765.432-17'],
+  // Pools de nomes brasileiros realistas
+  const nomesM = ['Adriano','Alexandre','Anderson','Antonio','Bruno','Carlos','César','Daniel','Diego','Edson','Eduardo','Elias','Fábio','Felipe','Fernando','Geraldo','Gilberto','Gustavo','Henrique','Igor','Ivan','Jair','João','Joaquim','Jonas','Jorge','José','Júlio','Leandro','Leonardo','Lucas','Luciano','Luís','Marcelo','Marco','Marcos','Maurício','Murilo','Nelson','Otávio','Patrick','Paulo','Pedro','Rafael','Rangel','Raul','Renato','Ricardo','Roberto','Rodrigo','Rogério','Romário','Ronaldo','Sandro','Sérgio','Sidney','Tadeu','Tiago','Vagner','Vinícius','Vítor','Wagner','Washington','Wellington','Wesley'];
+  const nomesF = ['Adriana','Aline','Amanda','Ana','Andréa','Beatriz','Bianca','Camila','Carla','Carolina','Cláudia','Daniela','Débora','Denise','Eliana','Fabiana','Fernanda','Flávia','Gabriela','Helena','Isabela','Jaqueline','Joana','Juliana','Karen','Larissa','Letícia','Luana','Luciana','Márcia','Maria','Mariana','Marina','Mônica','Natália','Patrícia','Paula','Priscila','Rafaela','Regina','Renata','Roberta','Rosana','Sabrina','Sandra','Sílvia','Simone','Tatiana','Vanessa','Vera','Yasmin'];
+  const sobrenomes = ['Almeida','Alves','Andrade','Araújo','Barbosa','Barros','Bezerra','Cardoso','Carvalho','Castro','Costa','Cunha','Dias','Duarte','Faria','Ferreira','Fonseca','Freitas','Garcia','Gomes','Gonçalves','Lima','Lopes','Macedo','Machado','Marques','Martins','Melo','Mendes','Monteiro','Moraes','Moreira','Moura','Nascimento','Nunes','Oliveira','Pereira','Pinheiro','Pinto','Pires','Ramos','Reis','Ribeiro','Rocha','Rodrigues','Sales','Santos','Silva','Silveira','Sousa','Souza','Tavares','Teixeira','Vieira','Xavier'];
+  const profissoes = [
+    { p: 'Mecânico Industrial',     cat: 'mod', salMin: 2800, salMax: 5500 },
+    { p: 'Soldador',                cat: 'mod', salMin: 3000, salMax: 6500 },
+    { p: 'Caldeireiro',             cat: 'mod', salMin: 3200, salMax: 6800 },
+    { p: 'Eletricista Industrial',  cat: 'mod', salMin: 3500, salMax: 7000 },
+    { p: 'Encanador Industrial',    cat: 'mod', salMin: 2600, salMax: 5200 },
+    { p: 'Pintor Industrial',       cat: 'mod', salMin: 2400, salMax: 4800 },
+    { p: 'Andaimeiro',              cat: 'mod', salMin: 2200, salMax: 4500 },
+    { p: 'Operador de Munck',       cat: 'mod', salMin: 3800, salMax: 6000 },
+    { p: 'Auxiliar de Manutenção',  cat: 'mod', salMin: 1800, salMax: 2800 },
+    { p: 'Mecânico de Precisão',    cat: 'mod', salMin: 4000, salMax: 7500 },
+    { p: 'Encarregado de Obra',     cat: 'moi', salMin: 5500, salMax: 9000 },
+    { p: 'Engenheiro Mecânico',     cat: 'moi', salMin: 8000, salMax: 14000 },
+    { p: 'Engenheiro Elétrico',     cat: 'moi', salMin: 8000, salMax: 14000 },
+    { p: 'Técnico de Segurança',    cat: 'moi', salMin: 4200, salMax: 7000 },
+    { p: 'Almoxarife',              cat: 'moi', salMin: 2500, salMax: 4200 },
+    { p: 'Apontador',               cat: 'moi', salMin: 2200, salMax: 3800 },
+    { p: 'Líder de Equipe',         cat: 'moi', salMin: 4800, salMax: 8000 },
   ];
+  const enderecos = [
+    'Rua das Flores', 'Av. Beira Mar', 'Rua dos Coqueiros', 'Rua Industrial', 'Av. Central',
+    'Rua das Palmeiras', 'Av. Brasil', 'Rua São João', 'Travessa do Comércio', 'Rua Castro Alves',
+    'Av. Getúlio Vargas', 'Rua Sete de Setembro', 'Rua Rui Barbosa', 'Av. Presidente Vargas',
+    'Rua Bahia', 'Rua Pernambuco', 'Av. Atlântica', 'Rua das Rosas', 'Travessa do Sol',
+  ];
+  const cidades = ['Eunápolis - BA', 'Itabuna - BA', 'Salvador - BA', 'Ilhéus - BA', 'Porto Seguro - BA', 'Itamaraju - BA', 'Teixeira de Freitas - BA'];
+
+  const TOTAL = 100;
   const out = [];
-  for (let i = 0; i < nomes.length; i++) {
-    const [nome, genero, cpf] = nomes[i];
-    const profissao = profissoes[i % profissoes.length];
-    const isAtivo = i < 14; // 14 ativos, 4 desligados
-    const dataAdmissao = daysAgo(randInt(60, 720));
-    const dataDesligamento = isAtivo ? null : daysAgo(randInt(10, 90));
+  const usados = new Set();
+  for (let i = 0; i < TOTAL; i++) {
+    // Mistura 60% M, 40% F
+    const isM = Math.random() < 0.6;
+    const primeiro = pick(isM ? nomesM : nomesF);
+    let sob1 = pick(sobrenomes), sob2 = pick(sobrenomes);
+    while (sob1 === sob2) sob2 = pick(sobrenomes);
+    const nome = `${primeiro} ${sob1} ${sob2}`;
+    if (usados.has(nome)) { i--; continue; } // evita duplicados
+    usados.add(nome);
+
+    const prof = pick(profissoes);
+    // Distribuição de status: 78% funcionário, 12% desligado, 10% candidato
+    const r = Math.random();
+    const status = r < 0.78 ? 'funcionario' : r < 0.90 ? 'desligado' : 'candidato';
+    const dataAdmissao = status === 'candidato' ? null : daysAgo(randInt(30, 1500));
+    const dataDesligamento = status === 'desligado' ? daysAgo(randInt(5, 180)) : null;
+    const cpfNum = String(randInt(10000000, 99999999)).padStart(9, '0') + String(randInt(0, 99)).padStart(2, '0');
+    const cpf = `${cpfNum.slice(0,3)}.${cpfNum.slice(3,6)}.${cpfNum.slice(6,9)}-${cpfNum.slice(9,11)}`;
+    const ddd = pick(['11','21','31','41','51','61','71','73','81','85']);
+
     const recurso = {
       id: rid('rec'),
       nome,
       cpf,
-      dataNascimento: daysAgo(randInt(8000, 16000)),
-      genero,
-      telefone: `(73) 9${randInt(8000,9999)}-${randInt(1000,9999)}`,
-      email: nome.toLowerCase().split(' ')[0] + '.' + nome.toLowerCase().split(' ').pop() + '@rhino.com.br',
-      endereco: pick(['Rua das Flores 123', 'Av. Beira Mar 500', 'Rua dos Coqueiros 88', 'Rua Industrial 200', 'Av. Central 1000']) + ', Eunápolis - BA',
-      lat: '-16.3700', lng: '-39.5800',
-      status: isAtivo ? 'funcionario' : 'desligado',
-      profissao,
+      dataNascimento: daysAgo(randInt(7300, 22000)), // ~20 a ~60 anos
+      genero: isM ? 'M' : 'F',
+      telefone: `(${ddd}) 9${randInt(8000,9999)}-${String(randInt(0, 9999)).padStart(4,'0')}`,
+      email: `${primeiro.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')}.${sob1.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')}@rhino.com.br`,
+      endereco: `${pick(enderecos)} ${randInt(50, 9999)}, ${pick(cidades)}`,
+      lat: (-16.5 - Math.random() * 0.5).toFixed(4),
+      lng: (-39.5 - Math.random() * 0.5).toFixed(4),
+      status,
+      profissao: prof.p,
       dataAdmissao,
-      salario: randInt(2200, 8500) + 0.5,
-      cnh: i % 3 === 0 ? `${randInt(10000000000, 99999999999)}` : '',
+      salario: parseFloat((randInt(prof.salMin, prof.salMax) + Math.random()).toFixed(2)),
+      cnh: Math.random() < 0.35 ? String(randInt(10000000000, 99999999999)) : '',
       pis: `${randInt(100, 999)}.${randInt(10000, 99999)}.${randInt(10, 99)}-${randInt(0,9)}`,
       dataDesligamento,
-      motivoDesligamento: dataDesligamento ? pick(['Pedido próprio', 'Justa causa', 'Acordo', 'Fim de contrato']) : '',
-      obsDesligamento: dataDesligamento ? 'Quitação em dia. Termo de rescisão assinado.' : '',
-      notas: `Profissional ${profissao.toLowerCase()} com experiência. Iniciou em ${dataAdmissao}.`,
-      rdoCategoria: profissao.includes('Engenheiro') || profissao.includes('Encarregado') || profissao.includes('Técnico') ? 'moi' : 'mod',
+      motivoDesligamento: dataDesligamento ? pick(['Pedido próprio', 'Justa causa', 'Acordo', 'Fim de contrato', 'Aposentadoria', 'Mudança de cidade']) : '',
+      obsDesligamento: dataDesligamento ? pick(['Quitação em dia. Termo de rescisão assinado.', 'Verbas pagas integralmente.', 'Aviso prévio cumprido.', 'Sem pendências documentais.']) : '',
+      notas: `${prof.p}. ${status === 'funcionario' ? 'Em atividade.' : status === 'desligado' ? 'Desligado.' : 'Em processo seletivo.'}`,
+      rdoCategoria: prof.cat,
       alocacaoAtual: null,
       historicoAlocacoes: '[]',
       folgas: '[]',
       documentos: '[]',
-      createdAt: isoAt(randInt(180, 720)),
+      createdAt: isoAt(randInt(30, 1500)),
       updatedAt: isoAt(randInt(0, 60)),
     };
     await repos.recursos.create(recurso);
     out.push(recurso);
   }
-  console.log(`  ✓ recursos: ${out.length}`);
+  const ativos = out.filter(r => r.status === 'funcionario').length;
+  const deslig = out.filter(r => r.status === 'desligado').length;
+  const cand   = out.filter(r => r.status === 'candidato').length;
+  console.log(`  ✓ recursos: ${out.length} (${ativos} ativos, ${deslig} desligados, ${cand} candidatos)`);
   return out;
 }
 
@@ -374,18 +404,18 @@ async function seedContracts(clientes) {
     'Sistema de Utilidades','Recuperação Química','Sistema de Vapor','Esteiras Transportadoras','Tanques de Estocagem',
   ];
   const out = [];
-  // 10 contratos com fases diferentes
+  // 10 contratos cobrindo TODOS os status e situações possíveis
   const setups = [
-    { ageStart: 360, duration: 120, status: 'concluido' },   // ano todo já passou — concluído
-    { ageStart: 320, duration: 100, status: 'concluido' },
-    { ageStart: 280, duration: 90,  status: 'concluido' },
-    { ageStart: 240, duration: 180, status: 'ativo' },        // ainda em execução
-    { ageStart: 200, duration: 150, status: 'ativo' },
-    { ageStart: 150, duration: 120, status: 'ativo' },
-    { ageStart: 90,  duration: 200, status: 'ativo' },
-    { ageStart: 60,  duration: 240, status: 'ativo' },
-    { ageStart: 30,  duration: 90,  status: 'ativo' },
-    { ageStart: 10,  duration: 180, status: 'ativo' },
+    { ageStart: 380, duration: 90,  status: 'concluido', tag: 'concluído antigo' },
+    { ageStart: 320, duration: 100, status: 'concluido', tag: 'concluído recente' },
+    { ageStart: 280, duration: 80,  status: 'cancelado', tag: 'cancelado mid-curso' },
+    { ageStart: 240, duration: 180, status: 'ativo',     tag: 'longo prazo, mid-execução' },
+    { ageStart: 200, duration: 150, status: 'ativo',     tag: 'mid-execução' },
+    { ageStart: 150, duration: 120, status: 'pausado',   tag: 'pausado por aditivo' },
+    { ageStart: 90,  duration: 240, status: 'ativo',     tag: 'longo recente' },
+    { ageStart: 60,  duration: 90,  status: 'ativo',     tag: 'curto, perto do fim' },
+    { ageStart: 30,  duration: 365, status: 'ativo',     tag: 'anual, início' },
+    { ageStart: 5,   duration: 180, status: 'prospeccao', tag: 'em prospecção' },
   ];
   for (let i = 0; i < setups.length; i++) {
     const s = setups[i];
@@ -447,22 +477,47 @@ async function seedContracts(clientes) {
 // ============ Organograma + Alocação atual ============
 async function seedOrganograma(contracts, recursos) {
   const ativos = recursos.filter(r => r.status === 'funcionario');
+  // Pool sem repetir entre contratos: cada recurso só fica em UM contrato
+  let pool = [...ativos].sort(() => Math.random() - 0.5);
   let count = 0;
-  // Mapa recursoId → { contractId, dataInicio, cicloTrabalho }
   const alocacoes = {};
   for (const c of contracts) {
     if (c.status === 'concluido') continue;
-    const team = [...ativos].sort(() => Math.random() - 0.5).slice(0, 6);
-    if (team.length < 3) continue;
+    // Tamanho da equipe varia entre 8 e 18 conforme valor do contrato
+    const valor = parseFloat(c.value) || 0;
+    const teamSize = Math.min(pool.length, Math.max(8, Math.min(18, Math.floor(valor / 100000))));
+    if (pool.length < 5) break;
+    const team = pool.slice(0, teamSize);
+    pool = pool.slice(teamSize); // remove do pool
+
     const baseTime = isoAt(60);
-    const encId = rid('org'), lid1Id = rid('org'), lid2Id = rid('org');
-    const [enc, lid1, lid2, ...profs] = team;
-    await repos.organograma.create({ id: encId,  contractId: c.id, recursoId: enc.id,  nivel: 'encarregado', cargo: 'Encarregado de Obra', supervisorId: null, area: null, createdAt: baseTime });
-    await repos.organograma.create({ id: lid1Id, contractId: c.id, recursoId: lid1.id, nivel: 'lider_area',  cargo: 'Líder Mecânica',     supervisorId: null, area: 'Mecânica',     createdAt: baseTime });
-    await repos.organograma.create({ id: lid2Id, contractId: c.id, recursoId: lid2.id, nivel: 'lider_area',  cargo: 'Líder Elétrica',     supervisorId: null, area: 'Elétrica',     createdAt: baseTime });
-    count += 3;
+    const encId = rid('org');
+    const lideres = []; // será preenchido com 2-4 líderes
+    const numLideres = Math.min(team.length - 1, randInt(2, 4));
+    const areasPossiveis = ['Mecânica', 'Elétrica', 'Caldeiraria', 'Tubulação', 'Pintura', 'Instrumentação', 'Civil', 'Andaimes'];
+    const areasUsadas = [];
+
+    // Encarregado (1)
+    const enc = team[0];
+    await repos.organograma.create({ id: encId, contractId: c.id, recursoId: enc.id, nivel: 'encarregado', cargo: 'Encarregado de Obra', supervisorId: null, area: null, createdAt: baseTime });
+    count++;
+
+    // Líderes
+    for (let li = 0; li < numLideres; li++) {
+      const r = team[1 + li];
+      let area;
+      do { area = pick(areasPossiveis); } while (areasUsadas.includes(area));
+      areasUsadas.push(area);
+      const lidId = rid('org');
+      await repos.organograma.create({ id: lidId, contractId: c.id, recursoId: r.id, nivel: 'lider_area', cargo: `Líder ${area}`, supervisorId: null, area, createdAt: baseTime });
+      lideres.push(lidId);
+      count++;
+    }
+
+    // Profissionais (resto da equipe)
+    const profs = team.slice(1 + numLideres);
     for (const p of profs) {
-      await repos.organograma.create({ id: rid('org'), contractId: c.id, recursoId: p.id, nivel: 'profissional', cargo: p.profissao, supervisorId: pick([lid1Id, lid2Id]), area: null, createdAt: baseTime });
+      await repos.organograma.create({ id: rid('org'), contractId: c.id, recursoId: p.id, nivel: 'profissional', cargo: p.profissao, supervisorId: pick(lideres), area: null, createdAt: baseTime });
       count++;
     }
     // Registra alocação atual: primeiro alocado ganha (se recurso já tinha alocação, mantém a primeira)
@@ -584,9 +639,11 @@ async function seedSaidas(contracts) {
   let countSaidas = 0;
   let countNFs = 0;
   for (const c of contracts) {
-    // BMs mensais ao longo da duração
+    // Só ativo, concluído ou cancelado têm BMs (cancelado parou no meio).
+    // Prospecção e pausado: não tem medição.
+    if (!['ativo', 'concluido', 'cancelado'].includes(c.status)) continue;
     const start = new Date(c.startDate);
-    const end = c.status === 'concluido' ? new Date(c.endDate) : new Date();
+    const end = c.status === 'concluido' || c.status === 'cancelado' ? new Date(c.endDate) : new Date();
     let cursor = new Date(start.getFullYear(), start.getMonth() + 1, 5); // dia 5 do mês seguinte ao início
     let bmNum = 1;
     let totalEmitido = 0;

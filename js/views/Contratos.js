@@ -145,11 +145,22 @@ window.Contratos = {
       <div class="modal-overlay" id="modalOverlay">
         <div class="modal" style="width:720px;max-width:95vw;max-height:90vh;overflow-y:auto;">
           <div class="modal-header">
-            <div>
-              <h2 class="modal-title">${escapeHtml(c.name)}</h2>
-              <div style="font-size:14px;color:var(--color-text-muted);margin-top:4px;">
-                ${escapeHtml(c.client)} ${c.contractNumber ? `· <span style="font-family:monospace;">#${escapeHtml(c.contractNumber)}</span>` : ''}
-                <span class="badge badge-${c.status}" style="margin-left:8px;">${c.status}</span>
+            <div style="flex:1;min-width:0;">
+              <h2 class="modal-title" style="margin:0;word-break:break-word;">${escapeHtml(c.name)}</h2>
+              <div style="font-size:14px;color:var(--color-text-muted);margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
+                <span>${escapeHtml(c.client)}</span>
+                ${c.contractNumber ? `<span style="font-family:monospace;color:var(--color-text-muted);">#${escapeHtml(c.contractNumber)}</span>` : ''}
+                ${(() => {
+                  const colors = {
+                    ativo:      { bg: 'rgba(16,185,129,.15)',  fg: '#10b981', border: 'rgba(16,185,129,.4)' },
+                    concluido:  { bg: 'rgba(59,130,246,.15)',  fg: '#3b82f6', border: 'rgba(59,130,246,.4)' },
+                    cancelado:  { bg: 'rgba(220,38,38,.15)',   fg: '#dc2626', border: 'rgba(220,38,38,.4)'  },
+                    pausado:    { bg: 'rgba(245,158,11,.15)',  fg: '#f59e0b', border: 'rgba(245,158,11,.4)' },
+                    prospeccao: { bg: 'rgba(139,92,246,.15)',  fg: '#8b5cf6', border: 'rgba(139,92,246,.4)' },
+                  };
+                  const col = colors[c.status] || { bg: 'var(--color-bg)', fg: 'var(--color-text)', border: 'var(--color-border)' };
+                  return `<span style="background:${col.bg};color:${col.fg};border:1px solid ${col.border};font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.05em;padding:3px 10px;border-radius:99px;">${c.status}</span>`;
+                })()}
               </div>
             </div>
             <button class="modal-close">✕</button>
@@ -157,25 +168,25 @@ window.Contratos = {
 
           <div class="modal-content">
             <!-- KPIs -->
-            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));gap:var(--sp-md);margin-bottom:var(--sp-lg);">
-              <div style="padding:var(--sp-md);background:var(--color-surface);border-radius:8px;border:1px solid var(--color-border);">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:var(--sp-md);margin-bottom:var(--sp-lg);">
+              <div style="padding:var(--sp-md);background:var(--color-surface);border-radius:8px;border:1px solid var(--color-border);min-width:0;">
                 <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Valor do contrato</div>
-                <div style="font-size:20px;font-weight:700;color:#3b82f6;margin-top:4px;">${Store.formatBRL(c.value)}</div>
+                <div style="font-size:18px;font-weight:700;color:#3b82f6;margin-top:4px;word-break:break-all;line-height:1.3;">${Store.formatBRL(c.value)}</div>
               </div>
-              <div style="padding:var(--sp-md);background:var(--color-surface);border-radius:8px;border:1px solid var(--color-border);">
+              <div style="padding:var(--sp-md);background:var(--color-surface);border-radius:8px;border:1px solid var(--color-border);min-width:0;">
                 <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Medido</div>
-                <div style="font-size:20px;font-weight:700;color:#10b981;margin-top:4px;">${Store.formatBRL(totalMedido)}</div>
+                <div style="font-size:18px;font-weight:700;color:#10b981;margin-top:4px;word-break:break-all;line-height:1.3;">${Store.formatBRL(totalMedido)}</div>
                 <div style="font-size:12px;color:var(--color-text-muted);">${saidas.length} medições</div>
               </div>
-              <div style="padding:var(--sp-md);background:var(--color-surface);border-radius:8px;border:1px solid var(--color-border);">
+              <div style="padding:var(--sp-md);background:var(--color-surface);border-radius:8px;border:1px solid var(--color-border);min-width:0;">
                 <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Margem</div>
-                <div style="font-size:20px;font-weight:700;color:${margem >= 0 ? '#10b981' : '#dc2626'};margin-top:4px;">${Store.formatBRL(margem)}</div>
+                <div style="font-size:18px;font-weight:700;color:${margem >= 0 ? '#10b981' : '#dc2626'};margin-top:4px;word-break:break-all;line-height:1.3;">${Store.formatBRL(margem)}</div>
                 <div style="font-size:12px;color:var(--color-text-muted);">${marginPct.toFixed(1)}%</div>
               </div>
-              <div style="padding:var(--sp-md);background:var(--color-surface);border-radius:8px;border:1px solid var(--color-border);">
+              <div style="padding:var(--sp-md);background:var(--color-surface);border-radius:8px;border:1px solid var(--color-border);min-width:0;">
                 <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Prazo</div>
-                <div style="font-size:20px;font-weight:700;color:${diasRestantes === null ? '#999' : diasRestantes < 0 ? '#dc2626' : diasRestantes <= 30 ? '#f59e0b' : '#10b981'};margin-top:4px;">
-                  ${diasRestantes === null ? '—' : diasRestantes < 0 ? `vencido há ${Math.abs(diasRestantes)}d` : `${diasRestantes} dias`}
+                <div style="font-size:18px;font-weight:700;color:${diasRestantes === null ? '#999' : diasRestantes < 0 ? '#dc2626' : diasRestantes <= 30 ? '#f59e0b' : '#10b981'};margin-top:4px;line-height:1.3;">
+                  ${diasRestantes === null ? '—' : diasRestantes < 0 ? `${Math.abs(diasRestantes)}d vencido` : `${diasRestantes} dias`}
                 </div>
                 <div style="font-size:12px;color:var(--color-text-muted);">até ${fmt(c.endDate)}</div>
               </div>
