@@ -18,6 +18,11 @@ function App() {
             <DashV1/>
           </DCArtboard>
         </DCSection>
+        <DCSection id="clientes" title="Clientes">
+          <DCArtboard id="cli" label="Clientes · carteira por cliente" width={1440} height={1000}>
+            <Clientes/>
+          </DCArtboard>
+        </DCSection>
         <DCSection id="contratos" title="Lista de contratos">
           <DCArtboard id="ctlist" label="Contratos · filtros, status, link para detalhe" width={1440} height={1100}>
             <ContractsList/>
