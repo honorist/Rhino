@@ -2941,6 +2941,20 @@ async function bootstrap() {
     const db = require('./db');
     await db.ping();
     console.log('[server] Postgres conectado');
+
+    // Auto-aplicar schema.sql na primeira execução (cloud deploy: Railway/Render).
+    // Idempotente — todos CREATE TABLE são "IF NOT EXISTS".
+    try {
+      const schemaPath = path.join(__dirname, 'db', 'schema.sql');
+      if (fs.existsSync(schemaPath)) {
+        const sql = fs.readFileSync(schemaPath, 'utf8');
+        await db.query(sql);
+        console.log('[server] Schema aplicado');
+      }
+    } catch (e) {
+      console.warn('[server] Aviso ao aplicar schema:', e.message);
+    }
+
     await auth.bootstrapAdmin();
     await auth.purgeExpiredSessions();
     // Limpa sessões expiradas a cada hora
