@@ -175,8 +175,9 @@ window.Dashboard = {
         const deltaCls = opts.deltaTone === 'pos' ? 'rh-kpi-delta-pos'
                        : opts.deltaTone === 'neg' ? 'rh-kpi-delta-neg' : '';
         const sparkSvg = opts.spark ? _spark(opts.spark, opts.deltaTone || tone || 'neutral') : '';
+        const tooltip = opts.tooltip ? ` title="${escapeHtml(opts.tooltip)}"` : '';
         return `
-          <a href="${opts.href || '#'}" class="rh-kpi" style="text-decoration:none;color:inherit;cursor:pointer;" aria-label="${escapeHtml(opts.label + ': ' + opts.value)}">
+          <a href="${opts.href || '#'}" class="rh-kpi" style="text-decoration:none;color:inherit;cursor:pointer;" aria-label="${escapeHtml(opts.label + ': ' + opts.value)}"${tooltip}>
             <div class="rh-kpi-label">${escapeHtml(opts.label)}</div>
             <div class="rh-kpi-value" style="color:${valueColor};">${opts.value}</div>
             <div class="rh-kpi-meta" style="justify-content:space-between;">
@@ -210,7 +211,8 @@ window.Dashboard = {
         const cobScore = Math.min(100, Math.max(0, (cobMeses / 6) * 100)); // 6 meses = 100%
         const periodLabel = hojeD.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
         return `
-          <a href="#/contratos" class="rh-score-card" style="text-decoration:none;color:inherit;display:block;">
+          <a href="#/contratos" class="rh-score-card" style="text-decoration:none;color:inherit;display:block;"
+             title="Score de 0 a 100 calculado a partir de 3 fatores: taxa de despesa, margem média e saldo de caixa. Saudável ≥80, Atenção 60–79, Crítico <60. Vide Manual → Dashboard / Indicadores para detalhes.">
             <div class="rh-row" style="justify-content:space-between;align-items:flex-start;margin-bottom:var(--sp-md);">
               <div>
                 <h3 class="rh-h2" style="margin:0;">Score de saúde financeira</h3>
@@ -235,15 +237,15 @@ window.Dashboard = {
               </div>
             </div>
             <div class="rh-score-bars">
-              <div class="rh-score-bar">
+              <div class="rh-score-bar" title="Média da margem (lucro / receita) de cada contrato ativo. Acima de 20% = saudável, 0–20% = apertado, abaixo de 0% = prejuízo.">
                 <div class="rh-score-bar-h"><span class="rh-muted">Margem operacional</span><b>${margemPct.toFixed(1)}%</b></div>
                 <div class="rh-score-bar-track"><div class="rh-score-bar-fill is-accent" style="width:${Math.min(100, Math.max(0, margemPct * 3))}%;"></div></div>
               </div>
-              <div class="rh-score-bar">
+              <div class="rh-score-bar" title="Total de saídas dos contratos ÷ valor total contratado, em %. Quanto da receita vai para custos. Acima de 80% pesa −40 no score; entre 60–80% pesa −20.">
                 <div class="rh-score-bar-h"><span class="rh-muted">Taxa de despesa</span><b>${taxaPct.toFixed(1)}%</b></div>
                 <div class="rh-score-bar-track"><div class="rh-score-bar-fill" style="width:${Math.min(100, taxaPct)}%;"></div></div>
               </div>
-              <div class="rh-score-bar">
+              <div class="rh-score-bar" title="Quantos meses o saldo atual cobre, dado o gasto médio mensal dos últimos 90 dias. Indicador de runway financeiro. Ideal ≥3 meses.">
                 <div class="rh-score-bar-h"><span class="rh-muted">Cobertura de caixa</span><b>${cobMeses > 0 ? cobMeses.toFixed(1) + ' meses' : '—'}</b></div>
                 <div class="rh-score-bar-track"><div class="rh-score-bar-fill" style="width:${cobScore.toFixed(0)}%;"></div></div>
               </div>
@@ -276,6 +278,7 @@ window.Dashboard = {
               deltaTone: dash.caixaBalance >= 0 ? 'pos' : 'neg',
               meta: dash.caixaBalance >= 0 ? 'caixa positivo' : 'caixa negativo',
               spark: _spark45.saldo,
+              tooltip: 'Saldo bruto histórico: soma de todas as entradas menos todas as saídas registradas no caixa, independente do mês. Mini-gráfico mostra o saldo dia a dia nos últimos 45 dias.',
             })}
             ${_kpi({
               href: '#/notas-fiscais',
@@ -284,6 +287,7 @@ window.Dashboard = {
               meta: `${nfsEmitidas.length} emitidas · ${nfsPendentes.length} pendentes`,
               spark: _spark45.entradasAcum,
               deltaTone: 'pos',
+              tooltip: 'Soma do valor das NFs já emitidas mas ainda sem entrada no caixa associada. Pendentes = NFs cadastradas mas ainda não emitidas.',
             })}
             ${_kpi({
               href: '#/contas-pagar',
@@ -294,6 +298,7 @@ window.Dashboard = {
               deltaTone: 'neg',
               meta: `${cp30d.length} lançamento${cp30d.length !== 1 ? 's' : ''}`,
               spark: _spark45.saidasAcum,
+              tooltip: 'Soma das contas a pagar pendentes que vencem nos próximos 30 dias. Inclui contas vencidas que ainda não foram quitadas.',
             })}
             ${_kpi({
               href: '#/caixa',
@@ -303,6 +308,7 @@ window.Dashboard = {
               deltaTone: deltaFaturadoPct >= 0 ? 'pos' : 'neg',
               meta: faturadoMesAnt > 0 ? `${Math.abs(deltaFaturadoPct).toFixed(1)}% vs mês ant.` : 'sem comparativo',
               spark: _spark45.entradaDia,
+              tooltip: 'Soma das entradas no caixa do mês corrente. A variação compara com o total do mês anterior em %.',
             })}
             ${_kpi({
               href: '#/contratos',
@@ -313,6 +319,7 @@ window.Dashboard = {
               deltaTone: parseFloat(marginMedia) > 0 ? 'pos' : 'neg',
               meta: `${dash.activeContracts} contrato${dash.activeContracts !== 1 ? 's' : ''} ativo${dash.activeContracts !== 1 ? 's' : ''}`,
               spark: _spark45.saldo.map((v, i) => v - (_spark45.saidasAcum[i] || 0)),
+              tooltip: 'Média aritmética simples das margens de cada contrato ativo. Margem por contrato = (valor do contrato − total de saídas) ÷ valor × 100. Atenção: contrato pequeno com margem alta pesa igual a um grande com margem baixa.',
             })}
             ${_kpi({
               href: '#/socios',
@@ -321,6 +328,7 @@ window.Dashboard = {
               meta: 'sócios + empresa',
               spark: _spark45.entradasAcum,
               deltaTone: 'pos',
+              tooltip: 'Soma de todos os aportes registrados (sócios + empresa). Reflete o capital próprio injetado no negócio historicamente.',
             })}
             ${rdoStats ? _kpi({
               href: '#/rdos',
@@ -331,6 +339,7 @@ window.Dashboard = {
               deltaTone: rdoStats.aderencia7d >= 80 ? 'pos' : 'neg',
               meta: rdoStats.obrasSemRdoOntem.length > 0 ? `${rdoStats.obrasSemRdoOntem.length} sem RDO ontem` : 'tudo em dia',
               spark: (rdoStats.aderenciaDiaria || []).map(d => d.pct),
+              tooltip: `Aderência = RDOs lançados ÷ (obras ativas × ${rdoStats.diasUteisAvaliados} dias úteis avaliados) × 100. Verde ≥80%, amarelo 50–79%, vermelho <50%.`,
             }) : ''}
           </div>
         </div>
@@ -350,12 +359,12 @@ window.Dashboard = {
               <div class="rh-muted" style="font-size:13px;margin-bottom:var(--sp-md);">Do trabalho executado ao recebimento</div>
               <div class="rh-pipeline" role="list" aria-label="Estágios do pipeline de medições">
                 ${[
-                  { l: 'Rascunho',        d: pipeline.rascunho,      active: false },
-                  { l: 'Aguard. emissão', d: pipeline.aguardEmissao, active: true },
-                  { l: 'NF emitida',      d: pipeline.nfEmitida,     active: false },
-                  { l: 'Recebida',        d: pipeline.recebida,      active: false },
+                  { l: 'Rascunho',        d: pipeline.rascunho,      active: false, tip: 'Saídas (BMs) cadastradas mas ainda sem NF vinculada. Próximo passo: gerar NF.' },
+                  { l: 'Aguard. emissão', d: pipeline.aguardEmissao, active: true,  tip: 'Saídas com NF cadastrada mas ainda não emitida no sistema fiscal. Bloqueia o recebimento — atenção.' },
+                  { l: 'NF emitida',      d: pipeline.nfEmitida,     active: false, tip: 'NF emitida fiscalmente, aguardando o cliente pagar. O valor entrará no caixa quando vincular um lançamento.' },
+                  { l: 'Recebida',        d: pipeline.recebida,      active: false, tip: 'NF emitida E pagamento recebido (caixa entry vinculada). Ciclo de receita completo.' },
                 ].map(s => `
-                  <div class="rh-pipeline-stage ${s.active ? 'is-active' : ''}" role="listitem">
+                  <div class="rh-pipeline-stage ${s.active ? 'is-active' : ''}" role="listitem" title="${escapeHtml(s.tip)}">
                     <div class="rh-pipeline-stage-label">${s.l}</div>
                     <div class="rh-pipeline-stage-count">${s.d.count}</div>
                     <div class="rh-pipeline-stage-value">${Store.formatBRL(s.d.valor)}</div>
@@ -389,12 +398,12 @@ window.Dashboard = {
             </div>
             <div style="display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:8px 0;">
               <div class="rh-display" style="font-size:42px;font-weight:800;color:${aderColor};line-height:1;grid-row:span 3;align-self:center;">${rdoStats.aderencia7d}%<div style="font-size:11px;font-weight:600;color:var(--rh-ink-500);text-transform:uppercase;letter-spacing:.06em;margin-top:6px;">aderência mês</div></div>
-              <div style="border-top:1px solid var(--rh-ink-200);padding-top:8px;font-size:14px;color:var(--rh-ink-700);">Lançados ontem</div>
-              <div style="border-top:1px solid var(--rh-ink-200);padding-top:8px;font-size:14px;font-weight:700;text-align:right;">${lancados}<span style="color:var(--rh-ink-500);">/${ativas}</span></div>
-              <div style="font-size:14px;color:var(--rh-ink-700);">Sem RDO ontem</div>
-              <div style="text-align:right;"><span class="rh-pill ${sem > 0 ? 'rh-pill-warn' : 'rh-pill-pos'}">${sem}</span></div>
-              <div style="font-size:14px;color:var(--rh-ink-700);">Atrasados &gt;2du</div>
-              <div style="text-align:right;"><span class="rh-pill ${atrasadas.length > 0 ? 'rh-pill-neg' : 'rh-pill-pos'}">${atrasadas.length}</span></div>
+              <div style="border-top:1px solid var(--rh-ink-200);padding-top:8px;font-size:14px;color:var(--rh-ink-700);" title="Quantas obras ativas tiveram RDO lançado no último dia útil, sobre o total de obras ativas previstas.">Lançados ontem</div>
+              <div style="border-top:1px solid var(--rh-ink-200);padding-top:8px;font-size:14px;font-weight:700;text-align:right;" title="X de Y obras ativas com RDO no último dia útil.">${lancados}<span style="color:var(--rh-ink-500);">/${ativas}</span></div>
+              <div style="font-size:14px;color:var(--rh-ink-700);" title="Obras ativas que NÃO tiveram RDO lançado no último dia útil.">Sem RDO ontem</div>
+              <div style="text-align:right;" title="Obras sem RDO ontem."><span class="rh-pill ${sem > 0 ? 'rh-pill-warn' : 'rh-pill-pos'}">${sem}</span></div>
+              <div style="font-size:14px;color:var(--rh-ink-700);" title="Obras com mais de 2 dias úteis sem RDO. Prioridade alta para cobrança.">Atrasados &gt;2du</div>
+              <div style="text-align:right;" title="Obras atrasadas (>2 dias úteis sem RDO)."><span class="rh-pill ${atrasadas.length > 0 ? 'rh-pill-neg' : 'rh-pill-pos'}">${atrasadas.length}</span></div>
             </div>
             ${semList.length > 0 ? `
               <div style="border-top:1px solid var(--rh-ink-200);margin-top:var(--sp-md);padding-top:var(--sp-md);">
