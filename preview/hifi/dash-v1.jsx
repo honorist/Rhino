@@ -80,7 +80,7 @@ const DashV1 = () => {
                 <b>{obrasSemRdo[0].name}</b> sem RDO no último dia útil
                 {obrasSemRdo.length > 1 && <span className="muted"> · e mais {obrasSemRdo.length - 1} obra(s) na mesma situação.</span>}
               </div>
-              <a className="btn btn-sm" href={'/#/contratos/' + obrasSemRdo[0].contractId} target="_top">Abrir contrato</a>
+              <a className="btn btn-sm" href={'#contrato?id=' + obrasSemRdo[0].contractId}>Abrir contrato</a>
             </div>
           )}
 
@@ -260,7 +260,7 @@ const DashV1 = () => {
                           <div className="ct-list-prog-v">{pct}%</div>
                           <div className="progress"><div className={`progress-fill ${st === "crit" ? "neg" : st === "warn" ? "warn" : "accent"}`} style={{ width: `${pct}%` }}/></div>
                         </div>
-                        <a className="btn btn-icon" href={'/#/contratos/' + c.id} target="_top"><Icon name="arrow-right" size={14}/></a>
+                        <a className="btn btn-icon" href={'#contrato?id=' + c.id}><Icon name="arrow-right" size={14}/></a>
                       </div>
                     );
                   })}
@@ -297,7 +297,7 @@ const DashV1 = () => {
                         <b>{o.client || o.name}</b> <span className="muted mono" style={{ fontSize: 11 }}>{o.name}</span>
                         <div className="muted" style={{ fontSize: 11 }}>último RDO: {o.ultimoRdo || 'nunca'}</div>
                       </div>
-                      <a className="btn btn-sm" href={'/#/contratos/' + o.contractId} target="_top">Abrir</a>
+                      <a className="btn btn-sm" href={'#contrato?id=' + o.contractId}>Abrir</a>
                     </div>
                   ))}
                 </>

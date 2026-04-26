@@ -112,7 +112,7 @@ const ContractsList = () => {
                       const nSaidas = (c.saidas || []).length;
                       const nRdos = (c.rdos || []).length;
                       return (
-                        <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => { window.top.location.hash = '#/contratos/' + c.id; }}>
+                        <tr key={c.id} style={{ cursor: 'pointer' }} onClick={() => { window.location.hash = '#contrato?id=' + c.id; }}>
                           <td>
                             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                               <span className="strong">{c.client || '—'}</span>
@@ -127,7 +127,7 @@ const ContractsList = () => {
                           <td className="num-cell tabular">{nSaidas}</td>
                           <td className="num-cell tabular">{nRdos}</td>
                           <td><span className={`tag ${st.tag}`}><span className="tag-dot"/> {st.label}</span></td>
-                          <td><a className="btn btn-icon" onClick={e => e.stopPropagation()} href={'/#/contratos/' + c.id} target="_top"><Icon name="arrow-right" size={14}/></a></td>
+                          <td><a className="btn btn-icon" onClick={e => e.stopPropagation()} href={'#contrato?id=' + c.id}><Icon name="arrow-right" size={14}/></a></td>
                         </tr>
                       );
                     })}

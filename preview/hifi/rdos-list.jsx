@@ -113,7 +113,7 @@ const RdosList = () => {
                           <b>{o.client || o.name}</b> <span className="muted mono" style={{ fontSize: 11 }}>{o.name}</span>
                           <div className="muted" style={{ fontSize: 11 }}>último RDO: {fmtData(o.ultimoRdo) || 'nunca'}</div>
                         </div>
-                        <a className="btn btn-sm" href={'/#/contratos/' + o.contractId} target="_top">Lançar</a>
+                        <a className="btn btn-sm" href={'#contrato?id=' + o.contractId}>Lançar</a>
                       </div>
                     ))}
                   </div>
@@ -170,13 +170,13 @@ const RdosList = () => {
                       <tr><td colSpan="6" style={{ textAlign: 'center', padding: 30, color: 'var(--muted)' }}>Nenhum RDO</td></tr>
                     )}
                     {rdosOrd.slice(0, 50).map(r => (
-                      <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => { window.top.location.hash = '#/contratos/' + r.contractId; }}>
+                      <tr key={r.id} style={{ cursor: 'pointer' }} onClick={() => { window.location.hash = '#contrato?id=' + r.contractId; }}>
                         <td className="tabular strong">{fmtData(r.data)}</td>
                         <td><span className="mono muted">#{r.numero || '—'}</span></td>
                         <td className="strong">{r.contractName}</td>
                         <td className="muted">{r.contractClient || '—'}</td>
                         <td className="mono muted" style={{ fontSize: 12 }}>{r.osNumero || '—'}</td>
-                        <td><a className="btn btn-icon" onClick={e => e.stopPropagation()} href={'/#/contratos/' + r.contractId} target="_top"><Icon name="arrow-right" size={14}/></a></td>
+                        <td><a className="btn btn-icon" onClick={e => e.stopPropagation()} href={'#contrato?id=' + r.contractId}><Icon name="arrow-right" size={14}/></a></td>
                       </tr>
                     ))}
                   </tbody>

@@ -16,19 +16,35 @@ const ROUTES = {
   'base':           () => <Base/>,
 };
 
+// Parse de hash com query: "#contrato?id=abc" → { route: 'contrato', params: { id: 'abc' } }
+const parseHash = () => {
+  const raw = (window.location.hash || '#dashboard').replace(/^#/, '');
+  const [route, qs] = raw.split('?');
+  const params = {};
+  if (qs) {
+    for (const part of qs.split('&')) {
+      const [k, v] = part.split('=');
+      if (k) params[decodeURIComponent(k)] = decodeURIComponent(v || '');
+    }
+  }
+  return { route: route || 'dashboard', params };
+};
+
 const useHashRoute = () => {
-  const get = () => (window.location.hash || '#dashboard').replace(/^#/, '').split('?')[0] || 'dashboard';
-  const [route, setRoute] = React.useState(get());
+  const [state, setState] = React.useState(parseHash());
   React.useEffect(() => {
-    const onHash = () => setRoute(get());
+    const onHash = () => setState(parseHash());
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
-  return route;
+  return state;
 };
 
+// Disponibiliza globalmente para os componentes-tela
+window.usePreviewRoute = useHashRoute;
+
 function App() {
-  const route = useHashRoute();
+  const { route } = useHashRoute();
   const [dark, setDark] = React.useState(false);
 
   React.useEffect(() => {

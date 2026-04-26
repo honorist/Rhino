@@ -1,21 +1,27 @@
 // Rhino Hi-fi V5 — Detalhe de Contrato (conectado aos dados reais)
 
 const ContractV5 = () => {
+  const { params } = (window.usePreviewRoute || (() => ({ params: {} })))();
+  const wantedId = params.id;
   const [contract, setContract] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    setLoading(true);
     fetch('/api/contracts')
       .then(r => r.json())
       .then(({ contracts = [] }) => {
-        // Pega o primeiro ativo (ou primeiro qualquer)
-        const ativos = contracts.filter(c => c.status === 'ativo');
-        const escolhido = ativos[0] || contracts[0];
+        let escolhido = null;
+        if (wantedId) escolhido = contracts.find(c => c.id === wantedId);
+        if (!escolhido) {
+          const ativos = contracts.filter(c => c.status === 'ativo');
+          escolhido = ativos[0] || contracts[0];
+        }
         setContract(escolhido || null);
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, []);
+  }, [wantedId]);
 
   if (loading) return <div style={{ padding: 40, fontFamily: 'var(--font-sans)' }}>Carregando…</div>;
   if (!contract) return <div style={{ padding: 40, fontFamily: 'var(--font-sans)' }}>Nenhum contrato encontrado.</div>;
