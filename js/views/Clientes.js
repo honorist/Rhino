@@ -51,7 +51,7 @@ window.Clientes = {
                     ${termo ? 'Nenhum cliente encontrado para a busca' : 'Nenhum cliente cadastrado'}
                   </td></tr>
                 ` : filtrados.map(c => `
-                  <tr>
+                  <tr class="row-cliente" data-id="${c.id}" style="cursor:pointer;" title="Clique para ver detalhes">
                     <td><strong>${escapeHtml(c.nome) || '—'}</strong></td>
                     <td>${escapeHtml(c.empresa) || '—'}</td>
                     <td>
@@ -59,8 +59,8 @@ window.Clientes = {
                       ${c.setor ? `<div style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(c.setor)}</div>` : ''}
                       ${!c.cargo && !c.setor ? '—' : ''}
                     </td>
-                    <td>${c.telefone ? `<a href="tel:${escapeHtml(c.telefone)}" style="color:var(--color-primary);text-decoration:none;">${escapeHtml(c.telefone)}</a>` : '—'}</td>
-                    <td>${c.email ? `<a href="mailto:${escapeHtml(c.email)}" style="color:var(--color-primary);text-decoration:none;">${escapeHtml(c.email)}</a>` : '—'}</td>
+                    <td>${c.telefone ? `<a href="tel:${escapeHtml(c.telefone)}" style="color:var(--color-primary);text-decoration:none;" onclick="event.stopPropagation()">${escapeHtml(c.telefone)}</a>` : '—'}</td>
+                    <td>${c.email ? `<a href="mailto:${escapeHtml(c.email)}" style="color:var(--color-primary);text-decoration:none;" onclick="event.stopPropagation()">${escapeHtml(c.email)}</a>` : '—'}</td>
                     <td>
                       <div class="actions-cell">
                         <a class="action-link btn-editar" data-id="${c.id}">Editar</a>
@@ -85,12 +85,113 @@ window.Clientes = {
         this._tBusca = setTimeout(() => this.render(), 250);
       });
 
-      document.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', e => this.showModal(e.target.dataset.id)));
-      document.querySelectorAll('.btn-excluir').forEach(b => b.addEventListener('click', e => this.deleteCliente(e.target.dataset.id)));
+      document.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); this.showModal(e.target.dataset.id); }));
+      document.querySelectorAll('.btn-excluir').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); this.deleteCliente(e.target.dataset.id); }));
+
+      // Click na linha → abre modal de detalhe (read-only)
+      document.querySelectorAll('.row-cliente').forEach(tr => {
+        tr.addEventListener('click', (e) => {
+          if (e.target.closest('.actions-cell') || e.target.tagName === 'A') return;
+          this.showDetail(tr.dataset.id);
+        });
+      });
     } catch (e) {
       console.error(e);
       app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar clientes. Tente novamente.</p></div>';
     }
+  },
+
+  // Modal de detalhe do cliente (read-only). Mesmo estilo do detalhe de colaborador.
+  showDetail(clienteId) {
+    const c = Store.state.clientes.find(x => x.id === clienteId);
+    if (!c) return;
+
+    // Busca contratos vinculados a este cliente
+    const contratosCliente = (Store.state.contracts || []).filter(ct => ct.clientId === clienteId || ct.client === c.nome || ct.client === c.empresa);
+    const totalCarteira = contratosCliente.reduce((s, ct) => s + (parseFloat(ct.value) || 0), 0);
+    const ativos = contratosCliente.filter(ct => ct.status === 'ativo').length;
+
+    const fmtPhone = window.formatPhoneBR ? window.formatPhoneBR(c.telefone || '') : (c.telefone || '');
+    const linha = (label, value, link) => value ? `
+      <div style="padding:10px 0;border-bottom:1px solid var(--rh-ink-200);display:flex;justify-content:space-between;gap:12px;">
+        <span class="rh-meta" style="flex-shrink:0;">${escapeHtml(label)}</span>
+        <span style="text-align:right;font-weight:600;">${link ? `<a href="${link}" style="color:var(--rh-brand-500);text-decoration:none;">${escapeHtml(value)}</a>` : escapeHtml(value)}</span>
+      </div>
+    ` : '';
+
+    const html = `
+      <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" style="width:640px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">${escapeHtml(c.nome || '—')}</h2>
+              <div class="rh-meta" style="margin-top:2px;">${escapeHtml(c.empresa || 'Sem empresa cadastrada')}${c.cargo ? ' · ' + escapeHtml(c.cargo) : ''}</div>
+            </div>
+            <button class="modal-close">✕</button>
+          </div>
+          <div class="modal-content">
+            <!-- KPIs do relacionamento -->
+            <div class="rh-grid-3" style="margin-bottom:var(--sp-md);">
+              <div class="rh-pipeline-stage" style="text-align:left;">
+                <div class="rh-pipeline-stage-label">Contratos</div>
+                <div class="rh-pipeline-stage-count">${contratosCliente.length}</div>
+                <div class="rh-pipeline-stage-value">${ativos} ativo${ativos !== 1 ? 's' : ''}</div>
+              </div>
+              <div class="rh-pipeline-stage" style="text-align:left;">
+                <div class="rh-pipeline-stage-label">Carteira total</div>
+                <div class="rh-pipeline-stage-count" style="font-size:22px;">${Store.formatBRL(totalCarteira)}</div>
+                <div class="rh-pipeline-stage-value">soma dos contratos</div>
+              </div>
+              <div class="rh-pipeline-stage" style="text-align:left;">
+                <div class="rh-pipeline-stage-label">Cadastro</div>
+                <div class="rh-pipeline-stage-count" style="font-size:14px;">${c.createdAt ? new Date(c.createdAt).toLocaleDateString('pt-BR') : '—'}</div>
+                <div class="rh-pipeline-stage-value">data de criação</div>
+              </div>
+            </div>
+
+            <!-- Dados do contato -->
+            <h3 class="rh-h3" style="margin:var(--sp-md) 0 8px;">Dados do contato</h3>
+            ${linha('Nome', c.nome)}
+            ${linha('Empresa', c.empresa)}
+            ${linha('Cargo', c.cargo)}
+            ${linha('Setor', c.setor)}
+            ${linha('Telefone', fmtPhone, c.telefone ? 'tel:' + c.telefone : null)}
+            ${linha('Email', c.email, c.email ? 'mailto:' + c.email : null)}
+            ${linha('Endereço', c.endereco)}
+            ${c.notas ? `
+              <h3 class="rh-h3" style="margin:var(--sp-md) 0 8px;">Notas</h3>
+              <div style="padding:10px;background:var(--rh-ink-100);border-radius:6px;font-size:14px;white-space:pre-wrap;">${escapeHtml(c.notas)}</div>
+            ` : ''}
+
+            ${contratosCliente.length > 0 ? `
+              <h3 class="rh-h3" style="margin:var(--sp-md) 0 8px;">Contratos</h3>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                ${contratosCliente.map(ct => `
+                  <a href="#/contratos/${ct.id}" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--rh-ink-200);border-radius:var(--rh-r-sm);text-decoration:none;color:inherit;background:var(--rh-paper);">
+                    <div style="min-width:0;">
+                      <div style="font-weight:600;font-size:14px;">${escapeHtml(ct.name || '—')}</div>
+                      <div class="rh-meta-xs">${ct.status === 'ativo' ? 'ativo' : escapeHtml(ct.status || '—')}${ct.endDate ? ' · até ' + new Date(ct.endDate).toLocaleDateString('pt-BR') : ''}</div>
+                    </div>
+                    <div style="font-weight:700;text-align:right;">${Store.formatBRL(parseFloat(ct.value) || 0)}</div>
+                  </a>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnFechar">Fechar</button>
+            <button class="btn btn-primary" id="btnEditarDet">Editar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalOverlay');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnFechar').addEventListener('click', close);
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    document.getElementById('btnEditarDet').addEventListener('click', () => { close(); this.showModal(clienteId); });
   },
 
   showModal(clienteId) {
