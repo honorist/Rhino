@@ -551,43 +551,63 @@ window.ContratoDetail = {
         ${this._tab === 'rdo' ? this.renderRdoSection(contract) : ''}
 
         <!-- Composição do Gasto - Gráfico em Pizza -->
-        ${this._tab === 'visao' ? `
+        ${this._tab === 'visao' ? (() => {
+          const saldoRestante = Math.max(0, contract.value - totalRealizado);
+          const pctConsumido = contract.value > 0 ? (totalRealizado / contract.value) * 100 : 0;
+          const pctSaldo = contract.value > 0 ? (saldoRestante / contract.value) * 100 : 0;
+          const segLegenda = [];
+          Object.entries(realizadoPorTipo).forEach(([key, value]) => {
+            if (value > 0) {
+              segLegenda.push({ key, label: TIPOS_LABEL[key], value, color: TIPOS_COLOR[key], isSaldo: false });
+            }
+          });
+          segLegenda.push({ key: 'saldo', label: 'Saldo Restante', value: saldoRestante, color: '#2E7D52', isSaldo: true });
+          return `
         <div class="card mb-2xl">
           <div class="card-header">
-            <h3 class="card-title">Composição do Gasto</h3>
-            <span class="rh-meta">Passe o mouse sobre a pizza para ver os valores</span>
+            <div>
+              <h3 class="card-title">Composição do Gasto</h3>
+              <div class="rh-meta-xs" style="margin-top:2px;">Valor do contrato (${Store.formatBRL(contract.value)}) − gastos lançados = saldo restante</div>
+            </div>
+            <div class="rh-text-right">
+              <div class="rh-meta-xs">Consumido</div>
+              <div style="font-weight:800;font-size:16px;color:${pctConsumido > 100 ? 'var(--color-danger)' : pctConsumido >= 80 ? 'var(--color-warning)' : 'var(--color-text)'};">${pctConsumido.toFixed(1)}%</div>
+            </div>
+          </div>
+          <!-- Resumo: Contrato − Gastos = Saldo -->
+          <div style="display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:var(--sp-md);align-items:center;padding:var(--sp-md);background:var(--color-surface-2);border-radius:8px;margin-bottom:var(--sp-lg);">
+            <div class="rh-text-center">
+              <div class="rh-meta-xs">Valor do Contrato</div>
+              <div style="font-weight:800;font-size:18px;">${Store.formatBRL(contract.value)}</div>
+            </div>
+            <div style="font-size:24px;color:var(--color-text-muted);font-weight:300;">−</div>
+            <div class="rh-text-center">
+              <div class="rh-meta-xs">Gastos Lançados</div>
+              <div style="font-weight:800;font-size:18px;color:var(--color-danger);">${Store.formatBRL(totalRealizado)}</div>
+            </div>
+            <div style="font-size:24px;color:var(--color-text-muted);font-weight:300;">=</div>
+            <div class="rh-text-center">
+              <div class="rh-meta-xs">Saldo Restante</div>
+              <div style="font-weight:800;font-size:18px;color:${saldoRestante > 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${saldoRestante >= 0 ? Store.formatBRL(saldoRestante) : '− ' + Store.formatBRL(-saldoRestante)}</div>
+            </div>
           </div>
           <div style="display:grid;grid-template-columns:320px 1fr;gap:var(--sp-xl);align-items:center;">
-            <!-- Canvas da pizza -->
             <div style="position:relative;height:320px;">
               <canvas id="chartPizzaContrato"></canvas>
             </div>
-            <!-- Legenda com valores -->
             <div style="display:flex;flex-direction:column;gap:var(--sp-sm);">
-              ${[
-                { label: 'Mão de Obra',       value: saidasByType.mao_de_obra,       color: '#7C3AED', previsto: 0 },
-                { label: 'Material',           value: saidasByType.material,          color: '#D97706', previsto: 0 },
-                { label: 'Hospedagem',         value: saidasByType.hospedagem,        color: '#0891B2', previsto: 0 },
-                { label: 'Transporte',         value: saidasByType.transporte,        color: '#059669', previsto: 0 },
-                { label: '✈ Passagens',        value: totalPassagensRealizadas,       color: '#A855F7', previsto: totalPassagensPendentes, isPrevisto: true },
-                { label: 'BASE Alocada',       value: totalBase,                      color: '#3182CE', previsto: 0 },
-                { label: 'Saldo Restante',     value: Math.max(0, margin),            color: '#2E7D52', previsto: 0 }
-              ].filter(seg => seg.value > 0 || seg.previsto > 0 || seg.label === 'Saldo Restante').map(seg => {
+              ${segLegenda.map(seg => {
                 const pct = contract.value > 0 ? ((seg.value / contract.value) * 100).toFixed(1) : 0;
-                const clicavel = seg.label !== 'Saldo Restante';
+                const clicavel = !seg.isSaldo;
                 return `
-                  <div class="composicao-item" data-tipo="${seg.label}" style="display:flex;align-items:center;gap:var(--sp-md);padding:var(--sp-sm) var(--sp-md);border-radius:6px;${clicavel ? 'cursor:pointer;' : ''}${seg.value > 0 ? `background:${seg.color}08;border-left:3px solid ${seg.color};` : seg.previsto > 0 ? `background:${seg.color}05;border-left:3px dashed ${seg.color};` : 'opacity:0.5;'}transition:filter .15s;" onmouseenter="${clicavel ? `this.style.filter='brightness(1.08)'` : ''}" onmouseleave="this.style.filter=''">
-                    <div style="width:14px;height:14px;border-radius:3px;background:${seg.value > 0 ? seg.color : 'transparent'};border:2px ${seg.value > 0 ? 'solid' : 'dashed'} ${seg.color};flex-shrink:0;"></div>
+                  <div class="composicao-item" data-tipo="${escapeHtml(seg.key)}" style="display:flex;align-items:center;gap:var(--sp-md);padding:var(--sp-sm) var(--sp-md);border-radius:6px;${clicavel ? 'cursor:pointer;' : ''}background:${seg.color}10;border-left:3px solid ${seg.color};transition:filter .15s;" onmouseenter="${clicavel ? `this.style.filter='brightness(1.08)'` : ''}" onmouseleave="this.style.filter=''">
+                    <div style="width:14px;height:14px;border-radius:3px;background:${seg.color};flex-shrink:0;"></div>
                     <div style="flex:1;">
-                      <div style="font-size:15px;font-weight:600;">${seg.label}${clicavel ? `<span style="font-size:15px;color:var(--color-text-muted);margin-left:4px;">›</span>` : ''}</div>
-                      <div class="rh-meta">
-                        ${seg.value > 0 ? `${pct}% do contrato` : ''}
-                        ${seg.previsto > 0 ? `<span style="color:#7C3AED;"> + ${Store.formatBRL(seg.previsto)} previsto</span>` : ''}
-                      </div>
+                      <div style="font-size:15px;font-weight:600;">${escapeHtml(seg.label || seg.key)}${clicavel ? `<span class="rh-meta" style="margin-left:4px;">›</span>` : ''}</div>
+                      <div class="rh-meta">${pct}% do contrato</div>
                     </div>
                     <div class="rh-text-right">
-                      ${seg.value > 0 ? `<div style="font-weight:700;font-size:15px;color:${seg.color};">${Store.formatBRL(seg.value)}</div>` : ''}
-                      ${seg.previsto > 0 ? `<div style="font-size:15px;font-weight:600;color:#7C3AED;opacity:.8;">⏳ ${Store.formatBRL(seg.previsto)}</div>` : ''}
+                      <div style="font-weight:700;font-size:15px;color:${seg.color};">${Store.formatBRL(seg.value)}</div>
                     </div>
                   </div>
                 `;
@@ -595,8 +615,7 @@ window.ContratoDetail = {
             </div>
           </div>
         </div>
-
-        ` : ''}
+        `;})() : ''}
 
         <!-- Saídas Classificadas (inclui saídas diretas + alocações BASE) -->
         ${this._tab === 'financeiro' ? `
@@ -794,21 +813,30 @@ window.ContratoDetail = {
         });
       });
 
-      // Renderiza gráfico de pizza APÓS innerHTML
+      // Renderiza gráfico de pizza APÓS innerHTML.
+      // Composição do gasto = valor do contrato dividido em categorias gastas + saldo restante.
+      // Saldo restante = contract.value - totalRealizado (gastos efetivos).
+      const saldoRestante = Math.max(0, contract.value - totalRealizado);
       this.renderPizza({
-        maoDeObra:  saidasByType.mao_de_obra,
-        material:   saidasByType.material,
-        hospedagem: saidasByType.hospedagem,
-        transporte: saidasByType.transporte,
-        passagens:  totalPassagensRealizadas,
-        base:       totalBase,
-        saldo:      Math.max(0, margin)
+        categorias: realizadoPorTipo,  // dict dinâmico { mao_de_obra, material, equipamento, ... }
+        labelMap:   TIPOS_LABEL,
+        colorMap:   TIPOS_COLOR,
+        saldo:      saldoRestante,
+        contractValue: contract.value
       });
       this.renderPizzaOrcamento(orcadoPorTipo, totalOrcado);
       this.renderBarrasOrcado(tiposComparar, orcadoPorTipo, realizadoPorTipo);
 
       // Event listeners (guardados — botões podem não existir conforme a aba)
       document.getElementById('btnEditarDados')?.addEventListener('click', () => this.showModalEditarDados(contract));
+
+      // Click em linha da Equipe alocada (visão geral) → abre modal de detalhe do colaborador
+      document.querySelectorAll('.row-equipe-visao').forEach(tr => {
+        tr.addEventListener('click', (e) => {
+          const id = tr.dataset.recursoId;
+          if (id && this.showDetalheColaborador) this.showDetalheColaborador(id);
+        });
+      });
       document.getElementById('btnNovaSaida')?.addEventListener('click', () => this.showModalSaida(contractId));
       document.getElementById('btnNovoItemOrcamento')?.addEventListener('click', () => this.showModalOrcamento(contractId));
       document.querySelectorAll('.btn-editar-saida').forEach(btn => {
@@ -854,15 +882,22 @@ window.ContratoDetail = {
     const _pvv = !window.perfil || typeof window.perfil.podeVerValores !== 'function' || window.perfil.podeVerValores();
     const fmt = v => _pvv ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v) : 'R$ ●●●●●';
 
-    const segments = [
-      { label: 'Mão de Obra',    value: dados.maoDeObra,  color: '#7C3AED' },
-      { label: 'Material',       value: dados.material,   color: '#D97706' },
-      { label: 'Hospedagem',     value: dados.hospedagem, color: '#0891B2' },
-      { label: 'Transporte',     value: dados.transporte, color: '#059669' },
-      { label: '✈ Passagens',    value: dados.passagens,  color: '#A855F7' },
-      { label: 'BASE Alocada',   value: dados.base,       color: '#3182CE' },
-      { label: 'Saldo Restante', value: dados.saldo,      color: '#2E7D52' }
-    ].filter(s => s.value > 0);
+    // Categorias dinâmicas (vêm de realizadoPorTipo que inclui qualquer category lançada)
+    const segments = [];
+    const cats = dados.categorias || {};
+    Object.entries(cats).forEach(([key, value]) => {
+      if (value > 0) {
+        segments.push({
+          label: dados.labelMap ? dados.labelMap[key] : key,
+          value: value,
+          color: dados.colorMap ? dados.colorMap[key] : '#9CA3AF',
+        });
+      }
+    });
+    // Saldo restante = parte do contrato ainda não consumida
+    if (dados.saldo > 0) {
+      segments.push({ label: 'Saldo Restante', value: dados.saldo, color: '#2E7D52' });
+    }
 
     if (segments.length === 0) {
       canvas.parentElement.innerHTML = '<p style="text-align:center;color:var(--color-text-muted);padding:var(--sp-xl);">Nenhum dado para exibir</p>';
@@ -1123,7 +1158,7 @@ window.ContratoDetail = {
                   const doc = docStatus(r);
                   const sta = statusOps(r);
                   return `
-                    <tr>
+                    <tr class="row-equipe-visao" data-recurso-id="${r?.id || ''}" style="${r?.id ? 'cursor:pointer;' : ''}" title="${r?.id ? 'Clique para ver detalhes' : 'Recurso não cadastrado'}">
                       <td>
                         <div class="rh-row-sm">
                           <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--rh-ink-100);font-size:10px;font-weight:700;color:var(--rh-ink-700);">${iniciais}</span>
