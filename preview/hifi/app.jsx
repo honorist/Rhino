@@ -1,88 +1,54 @@
-// Rhino Hi-fi — Canvas com 3 telas
-function App() {
-  const [tweaks, setTweak] = useTweaks(/*EDITMODE-BEGIN*/{
-    "dark": false
-  }/*EDITMODE-END*/);
+// Rhino Hi-fi — SPA com router por hash
+// Cada rota renderiza UMA tela (sidebar fica fixa).
+
+const ROUTES = {
+  'dashboard':      () => <DashV1/>,
+  'clientes':       () => <Clientes/>,
+  'fornecedores':   () => <Fornecedores/>,
+  'contratos':      () => <ContractsList/>,
+  'contrato':       () => <ContractV5/>,
+  'rdos':           () => <RdosList/>,
+  'notas-fiscais':  () => <NotasFiscais/>,
+  'contas-pagar':   () => <ContasPagar/>,
+  'caixa':          () => <CaixaV6/>,
+  'recursos':       () => <Recursos/>,
+  'socios':         () => <Socios/>,
+  'base':           () => <Base/>,
+};
+
+const useHashRoute = () => {
+  const get = () => (window.location.hash || '#dashboard').replace(/^#/, '').split('?')[0] || 'dashboard';
+  const [route, setRoute] = React.useState(get());
   React.useEffect(() => {
-    document.documentElement.classList.toggle("dark", tweaks.dark);
-  }, [tweaks.dark]);
+    const onHash = () => setRoute(get());
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  return route;
+};
 
-  return (
-    <>
-      <DesignCanvas
-        title="Rhino — Hi-fi v1"
-        subtitle="ERP de contratos industriais · 3 telas profissionais"
-      >
-        <DCSection id="dashboard" title="Dashboard executivo">
-          <DCArtboard id="v1" label="Dashboard · score, fluxo, contratos, RDO, eventos" width={1440} height={1900}>
-            <DashV1/>
-          </DCArtboard>
-        </DCSection>
-        <DCSection id="clientes" title="Clientes">
-          <DCArtboard id="cli" label="Clientes · carteira por cliente" width={1440} height={1000}>
-            <Clientes/>
-          </DCArtboard>
-        </DCSection>
-        <DCSection id="fornecedores" title="Fornecedores">
-          <DCArtboard id="forn" label="Fornecedores · gasto e contas pendentes" width={1440} height={1000}>
-            <Fornecedores/>
-          </DCArtboard>
-        </DCSection>
-        <DCSection id="contratos" title="Lista de contratos">
-          <DCArtboard id="ctlist" label="Contratos · filtros, status, link para detalhe" width={1440} height={1100}>
-            <ContractsList/>
-          </DCArtboard>
-        </DCSection>
-        <DCSection id="contrato" title="Detalhe de contrato">
-          <DCArtboard id="v5" label="Primeiro contrato ativo · Visão geral" width={1440} height={1280}>
-            <ContractV5/>
-          </DCArtboard>
-        </DCSection>
-        <DCSection id="rdos" title="RDOs · Todos os contratos">
-          <DCArtboard id="rdolist" label="RDOs global · KPIs de aderência e alertas" width={1440} height={1300}>
-            <RdosList/>
-          </DCArtboard>
-        </DCSection>
-        <DCSection id="notas-fiscais" title="Notas fiscais">
-          <DCArtboard id="nf" label="NFs · pipeline rascunho/emitida/recebida" width={1440} height={1100}>
-            <NotasFiscais/>
-          </DCArtboard>
-        </DCSection>
-        <DCSection id="contas-pagar" title="Contas a pagar">
-          <DCArtboard id="cp" label="Contas a pagar · KPIs, alertas e lista filtravel" width={1440} height={1100}>
-            <ContasPagar/>
-          </DCArtboard>
-        </DCSection>
-        <DCSection id="recursos" title="Recursos">
-          <DCArtboard id="rec" label="Recursos · pessoas, alocacao, documentos" width={1440} height={1100}>
-            <Recursos/>
-          </DCArtboard>
-        </DCSection>
-        <DCSection id="socios" title="Sócios e Aportes">
-          <DCArtboard id="soc" label="Socios e aportes · participacao, aportes recentes" width={1440} height={950}>
-            <Socios/>
-          </DCArtboard>
-        </DCSection>
-        <DCSection id="base" title="BASE">
-          <DCArtboard id="base" label="BASE · capital geral, alocacoes em obras" width={1440} height={1100}>
-            <Base/>
-          </DCArtboard>
-        </DCSection>
-        <DCSection id="caixa" title="Livro caixa">
-          <DCArtboard id="v6" label="Caixa unificado · entradas/saídas com vínculos" width={1440} height={1100}>
-            <CaixaV6/>
-          </DCArtboard>
-        </DCSection>
-      </DesignCanvas>
+function App() {
+  const route = useHashRoute();
+  const [dark, setDark] = React.useState(false);
 
-      <TweaksPanel title="Tweaks">
-        <TweakSection title="Visual">
-          <TweakToggle label="Modo escuro" value={tweaks.dark} onChange={(v) => setTweak("dark", v)}/>
-        </TweakSection>
-      </TweaksPanel>
-    </>
-  );
+  React.useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark);
+  }, [dark]);
+
+  React.useEffect(() => {
+    // Sincroniza botão dark no topbar externo (preview.html)
+    const btn = document.getElementById('btnDark');
+    if (btn) btn.textContent = dark ? '☀️ Modo claro' : '🌙 Modo escuro';
+  }, [dark]);
+
+  // Permite que o botão externo (preview.html) chame nosso toggle
+  React.useEffect(() => {
+    window.__previewToggleDark = () => setDark(d => !d);
+  }, []);
+
+  const Render = ROUTES[route] || ROUTES['dashboard'];
+  return Render();
 }
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
+const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App/>);

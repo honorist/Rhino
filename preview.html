@@ -33,29 +33,16 @@
 </head>
 <body>
   <div class="preview-bar">
-    <a href="/">← Voltar ao app</a>
+    <a href="/">← Voltar ao app real</a>
     <span class="accent">Preview do design hi-fi</span>
     <span style="opacity:.6;">·</span>
-    <a href="#dashboard">Dashboard</a>
-    <a href="#clientes">Clientes</a>
-    <a href="#fornecedores">Fornecedores</a>
-    <a href="#contratos">Contratos</a>
-    <a href="#contrato">Detalhe</a>
-    <a href="#rdos">RDOs</a>
-    <a href="#notas-fiscais">NFs</a>
-    <a href="#contas-pagar">Contas a Pagar</a>
-    <a href="#caixa">Caixa</a>
-    <a href="#recursos">Recursos</a>
-    <a href="#socios">Sócios</a>
-    <a href="#base">BASE</a>
+    <span style="opacity:.7;font-size:12px;">use a barra lateral para navegar</span>
     <div class="right">
       <button class="toggle" id="btnDark">🌙 Modo escuro</button>
     </div>
   </div>
   <div id="root"></div>
 
-  <script type="text/babel" src="./preview/design-canvas.jsx"></script>
-  <script type="text/babel" src="./preview/tweaks-panel.jsx"></script>
   <script type="text/babel" src="./preview/hifi/shared.jsx"></script>
   <script type="text/babel" src="./preview/hifi/dash-v1.jsx"></script>
   <script type="text/babel" src="./preview/hifi/clientes.jsx"></script>
@@ -73,9 +60,13 @@
 
   <script>
     document.getElementById('btnDark').addEventListener('click', () => {
-      document.documentElement.classList.toggle('dark');
-      document.getElementById('btnDark').textContent =
-        document.documentElement.classList.contains('dark') ? '☀️ Modo claro' : '🌙 Modo escuro';
+      if (typeof window.__previewToggleDark === 'function') {
+        window.__previewToggleDark();
+      } else {
+        document.documentElement.classList.toggle('dark');
+        document.getElementById('btnDark').textContent =
+          document.documentElement.classList.contains('dark') ? '☀️ Modo claro' : '🌙 Modo escuro';
+      }
     });
   </script>
 </body>

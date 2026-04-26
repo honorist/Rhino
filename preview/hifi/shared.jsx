@@ -47,20 +47,41 @@ const RhinoLogo = () => (
 );
 
 // ---------- Sidebar ----------
+// Mapa: label da sidebar → hash de rota
+const SIDEBAR_ROUTES = {
+  "Dashboard":      "#dashboard",
+  "Clientes":       "#clientes",
+  "Fornecedores":   "#fornecedores",
+  "Contratos":      "#contratos",
+  "RDOs":           "#rdos",
+  "Notas Fiscais":  "#notas-fiscais",
+  "Contas a Pagar": "#contas-pagar",
+  "Caixa":          "#caixa",
+  "Recursos":       "#recursos",
+  "Aportes":        "#socios",
+  "BASE":           "#base",
+};
+
 const Sidebar = ({ active }) => {
   const items = [
     ["Dashboard","home", null],
+    ["Clientes","users", null],
+    ["Fornecedores","building", null],
     ["Contratos","doc", null],
-    ["RDOs","list", "2"],
-    ["Saídas / BMs","ruler", null],
+    ["RDOs","list", null],
     ["Notas Fiscais","receipt", null],
     ["Contas a Pagar","money", null],
     ["Caixa","book", null],
     ["Recursos","users", null],
     ["Aportes","wallet", null],
     ["BASE","building", null],
-    ["Relatórios","chart", null],
   ];
+  // Estado do usuário logado (busca uma vez)
+  const [me, setMe] = React.useState(null);
+  React.useEffect(() => {
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => setMe(d?.user)).catch(() => {});
+  }, []);
+  const initials = (me?.name || me?.email || 'U?').split(' ').map(s => s[0]).slice(0, 2).join('').toUpperCase();
   return (
     <aside className="side">
       <div className="side-brand">
@@ -70,28 +91,26 @@ const Sidebar = ({ active }) => {
           <div className="side-brand-sub">Contratos · Industrial</div>
         </div>
       </div>
-      <div className="side-search">
-        <Icon name="search" size={14}/>
-        <span>Buscar...</span>
-        <span className="side-search-k">⌘K</span>
-      </div>
       <div className="side-section">Geral</div>
       <nav className="side-nav">
-        {items.map(([t, ic, badge], i) => (
-          <a key={i} className={`side-i ${t === active ? "on" : ""}`}>
-            <span className="side-icon"><Icon name={ic} size={16}/></span>
-            <span>{t}</span>
-            {badge && <span className="side-badge">{badge}</span>}
-          </a>
-        ))}
+        {items.map(([t, ic, badge], i) => {
+          const href = SIDEBAR_ROUTES[t] || '#';
+          return (
+            <a key={i} href={href} className={`side-i ${t === active ? "on" : ""}`}>
+              <span className="side-icon"><Icon name={ic} size={16}/></span>
+              <span>{t}</span>
+              {badge && <span className="side-badge">{badge}</span>}
+            </a>
+          );
+        })}
       </nav>
       <div className="side-foot">
-        <div className="side-avatar">JR</div>
+        <div className="side-avatar">{initials}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="side-foot-name">João R.</div>
-          <div className="side-foot-role">Gestor</div>
+          <div className="side-foot-name">{me?.name || me?.email || 'Visitante'}</div>
+          <div className="side-foot-role">{me ? 'Logado' : 'Não autenticado'}</div>
         </div>
-        <button className="topbar-btn btn-icon"><Icon name="settings" size={14}/></button>
+        <a className="topbar-btn btn-icon" href="/" target="_top" title="Ir ao app real"><Icon name="settings" size={14}/></a>
       </div>
     </aside>
   );
