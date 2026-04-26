@@ -56,6 +56,23 @@ window.Store = {
     }).format(value);
   },
 
+  // Formato abreviado para KPIs/dashboards: 1.234.567 → R$ 1,23M  · 12.345 → R$ 12,3k
+  // Mantém precisão razoável (1 casa) e respeita máscara de permissão.
+  formatBRLk(value) {
+    if (window.perfil && typeof window.perfil.podeVerValores === 'function' && !window.perfil.podeVerValores()) {
+      return 'R$ ●●●';
+    }
+    const v = Number(value) || 0;
+    const sign = v < 0 ? '−' : '';
+    const abs = Math.abs(v);
+    const fmt = (n, d) => n.toLocaleString('pt-BR', { minimumFractionDigits: d, maximumFractionDigits: d });
+    if (abs >= 1_000_000_000) return `${sign}R$ ${fmt(abs / 1_000_000_000, 2)}B`;
+    if (abs >= 1_000_000)     return `${sign}R$ ${fmt(abs / 1_000_000, 2)}M`;
+    if (abs >= 10_000)        return `${sign}R$ ${fmt(abs / 1_000, 0)}k`;
+    if (abs >= 1_000)         return `${sign}R$ ${fmt(abs / 1_000, 1)}k`;
+    return `${sign}R$ ${fmt(abs, 2)}`;
+  },
+
   async loadAll() {
     try {
       this.state.loading = true;

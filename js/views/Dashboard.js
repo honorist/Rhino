@@ -272,43 +272,43 @@ window.Dashboard = {
             ${_kpi({
               href: '#/caixa',
               label: 'Saldo em caixa',
-              value: Store.formatBRL(dash.caixaBalance),
+              value: Store.formatBRLk(dash.caixaBalance),
               tone: dash.caixaBalance >= 0 ? 'pos' : 'neg',
               deltaIcon: 'arrow-up',
               deltaTone: dash.caixaBalance >= 0 ? 'pos' : 'neg',
               meta: dash.caixaBalance >= 0 ? 'caixa positivo' : 'caixa negativo',
               spark: _spark45.saldo,
-              tooltip: 'Saldo bruto histórico: soma de todas as entradas menos todas as saídas registradas no caixa, independente do mês. Mini-gráfico mostra o saldo dia a dia nos últimos 45 dias.',
+              tooltip: `${Store.formatBRL(dash.caixaBalance)} · Saldo bruto histórico: soma de todas as entradas menos todas as saídas, independente do mês.`,
             })}
             ${_kpi({
               href: '#/notas-fiscais',
               label: 'A receber (NFs)',
-              value: Store.formatBRL(totalAReceber),
+              value: Store.formatBRLk(totalAReceber),
               meta: `${nfsEmitidas.length} emitidas · ${nfsPendentes.length} pendentes`,
               spark: _spark45.entradasAcum,
               deltaTone: 'pos',
-              tooltip: 'Soma do valor das NFs já emitidas mas ainda sem entrada no caixa associada. Pendentes = NFs cadastradas mas ainda não emitidas.',
+              tooltip: `${Store.formatBRL(totalAReceber)} · NFs emitidas mas ainda sem entrada no caixa.`,
             })}
             ${_kpi({
               href: '#/contas-pagar',
               label: 'A pagar (30d)',
-              value: Store.formatBRL(totalAPagar30d),
+              value: Store.formatBRLk(totalAPagar30d),
               tone: totalAPagar30d > 0 ? 'warn' : '',
               deltaIcon: cp30d.length > 0 ? 'arrow-down' : '',
               deltaTone: 'neg',
               meta: `${cp30d.length} lançamento${cp30d.length !== 1 ? 's' : ''}`,
               spark: _spark45.saidasAcum,
-              tooltip: 'Soma das contas a pagar pendentes que vencem nos próximos 30 dias. Inclui contas vencidas que ainda não foram quitadas.',
+              tooltip: `${Store.formatBRL(totalAPagar30d)} · Contas pendentes nos próximos 30 dias (incluindo vencidas).`,
             })}
             ${_kpi({
               href: '#/caixa',
               label: 'Faturado (mês)',
-              value: Store.formatBRL(faturadoMes),
+              value: Store.formatBRLk(faturadoMes),
               deltaIcon: faturadoMesAnt > 0 ? (deltaFaturadoPct >= 0 ? 'arrow-up' : 'arrow-down') : '',
               deltaTone: deltaFaturadoPct >= 0 ? 'pos' : 'neg',
               meta: faturadoMesAnt > 0 ? `${Math.abs(deltaFaturadoPct).toFixed(1)}% vs mês ant.` : 'sem comparativo',
               spark: _spark45.entradaDia,
-              tooltip: 'Soma das entradas no caixa do mês corrente. A variação compara com o total do mês anterior em %.',
+              tooltip: `${Store.formatBRL(faturadoMes)} · Entradas do mês. Variação compara com mês anterior.`,
             })}
             ${_kpi({
               href: '#/contratos',
@@ -319,16 +319,16 @@ window.Dashboard = {
               deltaTone: parseFloat(marginMedia) > 0 ? 'pos' : 'neg',
               meta: `${dash.activeContracts} contrato${dash.activeContracts !== 1 ? 's' : ''} ativo${dash.activeContracts !== 1 ? 's' : ''}`,
               spark: _spark45.saldo.map((v, i) => v - (_spark45.saidasAcum[i] || 0)),
-              tooltip: 'Média aritmética simples das margens de cada contrato ativo. Margem por contrato = (valor do contrato − total de saídas) ÷ valor × 100. Atenção: contrato pequeno com margem alta pesa igual a um grande com margem baixa.',
+              tooltip: 'Média aritmética simples das margens dos contratos ativos. Margem = (valor − saídas) ÷ valor × 100.',
             })}
             ${_kpi({
               href: '#/socios',
               label: 'Aportes acumulados',
-              value: Store.formatBRL(aportesTotal),
+              value: Store.formatBRLk(aportesTotal),
               meta: 'sócios + empresa',
               spark: _spark45.entradasAcum,
               deltaTone: 'pos',
-              tooltip: 'Soma de todos os aportes registrados (sócios + empresa). Reflete o capital próprio injetado no negócio historicamente.',
+              tooltip: `${Store.formatBRL(aportesTotal)} · Capital próprio injetado historicamente (sócios + empresa).`,
             })}
             ${rdoStats ? _kpi({
               href: '#/rdos',
