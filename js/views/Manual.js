@@ -227,6 +227,7 @@ window.Manual = {
   _secoes() {
     return [
       { k: 'inicio',     icon: '🏠', label: 'Início', },
+      { k: 'dashboard',  icon: '📊', label: 'Dashboard / Indicadores' },
       { k: 'auth',       icon: '🔐', label: 'Login e Acesso' },
       { k: 'contratos',  icon: '📋', label: 'Contratos' },
       { k: 'rdos',       icon: '📝', label: 'RDOs' },
@@ -269,6 +270,88 @@ window.Manual = {
 
         <div class="man-tip">
           <strong>Atalho rápido:</strong> use o menu lateral (esquerda) ou os ícones nas seções para navegar. Cada tela tem botões "+ Novo" no canto superior direito.
+        </div>
+      `,
+
+      dashboard: `
+        <h1 class="man-h1">📊 Dashboard / Indicadores</h1>
+        <p class="man-p">O Dashboard concentra os indicadores-chave da operação. Cada card mostra um valor atual + variação + mini-gráfico dos últimos 45 dias. Abaixo está como cada indicador é calculado.</p>
+
+        <h2 class="man-h2">🎯 Score de saúde financeira (0–100)</h2>
+        <p class="man-p">Pontuação consolidada da saúde do negócio. Começa em <strong>100 pontos</strong> e perde pontos conforme indicadores entram em zona de risco:</p>
+        <table class="man-table">
+          <thead><tr><th>Condição</th><th>Penalidade</th></tr></thead>
+          <tbody>
+            <tr><td>Taxa de despesa &gt; 80%</td><td>−40 pontos</td></tr>
+            <tr><td>Taxa de despesa entre 60% e 80%</td><td>−20 pontos</td></tr>
+            <tr><td>Margem média negativa (&lt; 0%)</td><td>−30 pontos</td></tr>
+            <tr><td>Margem média entre 0% e 10%</td><td>−15 pontos</td></tr>
+            <tr><td>Saldo em caixa negativo</td><td>−20 pontos</td></tr>
+          </tbody>
+        </table>
+        <p class="man-p">Classificação por faixa:</p>
+        <ul class="man-ol">
+          <li><strong style="color:#16A34A;">Saudável (≥ 80)</strong> — operação no azul, margens confortáveis</li>
+          <li><strong style="color:#D97706;">Atenção (60–79)</strong> — algum indicador em alerta, monitorar</li>
+          <li><strong style="color:#DC2626;">Crítico (&lt; 60)</strong> — múltiplos sinais de risco simultâneos</li>
+        </ul>
+        <p class="man-p">As 3 barras abaixo do score quebram o cálculo:</p>
+        <ul class="man-ol">
+          <li><strong>Margem operacional</strong> — média da margem dos contratos ativos (mesmo cálculo de "Margem média" abaixo)</li>
+          <li><strong>Taxa de despesa</strong> — total de saídas dos contratos ÷ valor total contratado, em %</li>
+          <li><strong>Cobertura de caixa</strong> — quantos meses o saldo atual cobre, dado o gasto médio mensal dos últimos 90 dias. Indicador de runway.</li>
+        </ul>
+
+        <h2 class="man-h2">💰 Saldo em caixa</h2>
+        <p class="man-p">Soma de todos os lançamentos de caixa: <code>Σ(entradas) − Σ(saídas)</code>. Independe do mês — é o saldo bruto histórico até hoje. Mini-gráfico mostra o saldo acumulado dia a dia nos últimos 45 dias.</p>
+
+        <h2 class="man-h2">📥 A receber (NFs)</h2>
+        <p class="man-p">Soma do valor das NFs <strong>já emitidas mas ainda não recebidas</strong> (sem entrada no caixa associada). Mostra também a contagem: <em>X emitidas · Y pendentes</em> (pendentes = ainda não emitidas mas cadastradas).</p>
+
+        <h2 class="man-h2">📤 A pagar (30d)</h2>
+        <p class="man-p">Soma das contas a pagar pendentes que vencem nos <strong>próximos 30 dias</strong>. Inclui contas vencidas que ainda não foram pagas.</p>
+
+        <h2 class="man-h2">📈 Faturado (mês)</h2>
+        <p class="man-p">Soma das <strong>entradas de caixa</strong> (type='entrada') do mês corrente. Compara com o mês anterior em % (Δ vs mês ant.). Mini-gráfico mostra o faturamento diário.</p>
+
+        <h2 class="man-h2">📊 Margem média</h2>
+        <p class="man-p">Calculada para cada contrato ativo:</p>
+        <pre class="man-code">margem do contrato = (valor do contrato − total de saídas do contrato) ÷ valor do contrato × 100</pre>
+        <p class="man-p">A "margem média" exibida é a <strong>média aritmética simples</strong> das margens de todos os contratos ativos. Por isso um contrato pequeno com margem alta tem o mesmo peso que um grande com margem baixa — fique atento à composição.</p>
+        <p class="man-p">Faixas:</p>
+        <ul class="man-ol">
+          <li><strong style="color:#16A34A;">&gt; 20%</strong> — margem saudável (verde)</li>
+          <li><strong style="color:#D97706;">0% a 20%</strong> — margem apertada (amarelo)</li>
+          <li><strong style="color:#DC2626;">&lt; 0%</strong> — operação no prejuízo (vermelho)</li>
+        </ul>
+
+        <h2 class="man-h2">⬆️ Aportes acumulados</h2>
+        <p class="man-p">Soma de todos os aportes lançados em <strong>Sócios + Investimentos</strong> com origem da empresa. Reflete o capital próprio injetado historicamente.</p>
+
+        <h2 class="man-h2">📅 Aderência RDO</h2>
+        <p class="man-p">Percentual de RDOs lançados nos últimos N dias úteis (default 7 dias). Calculado como:</p>
+        <pre class="man-code">aderência = RDOs lançados ÷ (obras ativas × dias úteis avaliados) × 100</pre>
+        <p class="man-p">Card lateral mostra:</p>
+        <ul class="man-ol">
+          <li><strong>Lançados ontem (X / Y)</strong> — quantas obras ativas tiveram RDO no último dia útil, sobre o total esperado</li>
+          <li><strong>Sem RDO ontem</strong> — obras ativas sem RDO no último dia útil</li>
+          <li><strong>Atrasados &gt; 2du</strong> — obras com mais de 2 dias úteis sem RDO (prioridade alta para cobrança)</li>
+        </ul>
+
+        <h2 class="man-h2">🔄 Pipeline de medições</h2>
+        <p class="man-p">Funil das saídas (BMs) do mês corrente, do trabalho executado ao recebimento financeiro:</p>
+        <ol class="man-ol">
+          <li><strong>Rascunho</strong> — saída cadastrada sem NF vinculada</li>
+          <li><strong>Aguard. emissão</strong> — saída com NF mas NF ainda não emitida (atenção: bloqueia o recebimento)</li>
+          <li><strong>NF emitida</strong> — NF emitida mas pagamento ainda não caiu no caixa</li>
+          <li><strong>Recebida</strong> — pagamento entrou no caixa (caixa entry vinculada à NF)</li>
+        </ol>
+
+        <h2 class="man-h2">📉 Mini-gráficos (sparklines)</h2>
+        <p class="man-p">Cada KPI exibe um mini-gráfico SVG dos <strong>últimos 45 dias</strong>. A cor segue o tom do indicador (verde/amarelo/vermelho). Não tem eixos nem números — é leitura visual rápida da tendência.</p>
+
+        <div class="man-tip">
+          <strong>Dica:</strong> clique em qualquer KPI para ir direto à página relacionada (saldo → caixa, NFs → notas-fiscais, etc).
         </div>
       `,
 
@@ -598,6 +681,15 @@ window.Manual = {
         .man-warn {
           background: rgba(245,158,11,.1); border-left: 3px solid #f59e0b;
           padding: 12px 16px; border-radius: 6px; margin: var(--sp-md) 0; font-size: 14px;
+        }
+        .man-code {
+          background: var(--color-bg); border: 1px solid var(--color-border);
+          border-radius: 6px; padding: 10px 14px; margin: var(--sp-sm) 0;
+          font-family: 'Courier New', monospace; font-size: 13px;
+          color: var(--color-text); white-space: pre-wrap; word-break: break-word;
+        }
+        code { background: var(--color-bg); border: 1px solid var(--color-border);
+          border-radius: 4px; padding: 1px 6px; font-size: 13px; font-family: 'Courier New', monospace;
         }
         code {
           background: var(--color-bg); padding: 2px 6px; border-radius: 3px;

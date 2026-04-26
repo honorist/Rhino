@@ -335,33 +335,38 @@ window.Dashboard = {
           </div>
         </div>
 
-        <!-- Contas a Receber / Contas a Pagar (estilo Akaunting) -->
-        ${this.renderReceivablesPayables()}
+        <!-- 2 colunas: ESQUERDA = Receivables/Pagar + Pipeline · DIREITA = RDO -->
+        <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:var(--sp-lg);margin-bottom:var(--sp-xl);align-items:start;">
+          <div style="display:flex;flex-direction:column;gap:var(--sp-lg);">
+            <!-- Contas a Receber / Contas a Pagar -->
+            ${this.renderReceivablesPayables()}
 
-        <!-- Pipeline de Medições -->
-        <div class="card mb-2xl">
-          <div class="card-header">
-            <h3 class="card-title rh-h2">Pipeline de medições — ${hojeD.toLocaleDateString('pt-BR', { month: 'long' })}</h3>
-            <a href="#/contratos" class="rh-muted" style="text-decoration:none;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:var(--rh-brand-500);">Ver saídas ${_icon('arrow-right', 14)}</a>
-          </div>
-          <div class="rh-muted" style="font-size:13px;margin-bottom:var(--sp-md);">Do trabalho executado ao recebimento</div>
-          <div class="rh-pipeline" role="list" aria-label="Estágios do pipeline de medições">
-            ${[
-              { l: 'Rascunho',        d: pipeline.rascunho,      active: false },
-              { l: 'Aguard. emissão', d: pipeline.aguardEmissao, active: true },
-              { l: 'NF emitida',      d: pipeline.nfEmitida,     active: false },
-              { l: 'Recebida',        d: pipeline.recebida,      active: false },
-            ].map(s => `
-              <div class="rh-pipeline-stage ${s.active ? 'is-active' : ''}" role="listitem">
-                <div class="rh-pipeline-stage-label">${s.l}</div>
-                <div class="rh-pipeline-stage-count">${s.d.count}</div>
-                <div class="rh-pipeline-stage-value">${Store.formatBRL(s.d.valor)}</div>
+            <!-- Pipeline de Medições -->
+            <div class="card" style="margin-bottom:0;">
+              <div class="card-header">
+                <h3 class="card-title rh-h2">Pipeline de medições — ${hojeD.toLocaleDateString('pt-BR', { month: 'long' })}</h3>
+                <a href="#/contratos" class="rh-muted" style="text-decoration:none;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:var(--rh-brand-500);">Ver saídas ${_icon('arrow-right', 14)}</a>
               </div>
-            `).join('')}
+              <div class="rh-muted" style="font-size:13px;margin-bottom:var(--sp-md);">Do trabalho executado ao recebimento</div>
+              <div class="rh-pipeline" role="list" aria-label="Estágios do pipeline de medições">
+                ${[
+                  { l: 'Rascunho',        d: pipeline.rascunho,      active: false },
+                  { l: 'Aguard. emissão', d: pipeline.aguardEmissao, active: true },
+                  { l: 'NF emitida',      d: pipeline.nfEmitida,     active: false },
+                  { l: 'Recebida',        d: pipeline.recebida,      active: false },
+                ].map(s => `
+                  <div class="rh-pipeline-stage ${s.active ? 'is-active' : ''}" role="listitem">
+                    <div class="rh-pipeline-stage-label">${s.l}</div>
+                    <div class="rh-pipeline-stage-count">${s.d.count}</div>
+                    <div class="rh-pipeline-stage-value">${Store.formatBRL(s.d.valor)}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
           </div>
-        </div>
 
-        <!-- Aderência RDO (estilo compacto vertical) -->
+          <!-- Aderência RDO -->
+          <div>
         ${rdoStats ? (() => {
           const ativas = rdoStats.obrasAtivas || 0;
           const sem = (rdoStats.obrasSemRdoOntem || []).length;
@@ -372,7 +377,7 @@ window.Dashboard = {
                           : 'var(--rh-neg-strong)';
           const semList = rdoStats.obrasSemRdoOntem || [];
           return `
-          <div class="card mb-2xl" style="max-width:560px;">
+          <div class="card" style="margin-bottom:0;">
             <div class="rh-between" style="margin-bottom:var(--sp-md);">
               <div>
                 <h3 class="rh-h2" style="margin:0;">RDOs</h3>
@@ -424,6 +429,8 @@ window.Dashboard = {
           </div>
           `;
         })() : ''}
+          </div>
+        </div>
 
         <!-- Alertas -->
         ${this.renderAlertas(dash)}
