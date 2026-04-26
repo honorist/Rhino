@@ -1,25 +1,26 @@
-// Route definitions
+// Route definitions — icons via rhIcon() (Lucide-style SVG)
+const _ic = (n) => (window.rhIcon ? window.rhIcon(n, 18) : '');
 const routes = {
-  '#/dashboard':    { view: window.Dashboard,     label: 'Dashboard',    icon: '▦' },
-  '#/proposta':     { view: null,                 label: 'Proposta',     icon: '◧', soon: true },
-  '#/contratos':    { view: window.Contratos,      label: 'Contratos',    icon: '≣' },
-  '#/contratos/:id':{ view: window.ContratoDetail, label: null,           icon: null },
-  '#/rdos':         { view: window.RDOs,           label: 'RDOs',         icon: '⊟' },
-  '#/obras':        { view: window.Obras,          label: 'Mapa de Obras',icon: '⊚' },
-  '#/clientes':     { view: window.Clientes,       label: 'Clientes',     icon: '◎', group: 'rh' },
-  '#/recursos':     { view: window.Recursos,       label: 'Recursos',     icon: '◉', group: 'rh' },
-  '#/documentos':   { view: window.Documentos,     label: 'Documentação', icon: '⊞', group: 'rh' },
-  '#/fornecedores': { view: window.Fornecedores,   label: 'Fornecedores', icon: '⬡', group: 'rh' },
-  '#/caixa':        { view: window.Caixa,          label: 'Caixa',        icon: '◇',  group: 'financeiro' },
-  '#/contas-pagar': { view: window.ContasPagar,    label: 'Contas a Pagar', icon: '⊖', group: 'financeiro' },
-  '#/notas-fiscais':{ view: window.NotasFiscais,   label: 'Contas a Receber',icon: '☐',  group: 'financeiro' },
-  '#/socios':       { view: window.Socios,         label: 'Sócios',       icon: '⊕',  group: 'financeiro' },
-  '#/investimentos':{ view: window.Investimentos,  label: 'Aportes',      icon: '△',  group: 'financeiro' },
-  '#/base':         { view: window.Base,           label: 'BASE',         icon: '⊟' },
-  '#/configuracao': { view: window.Configuracao,   label: 'Configuração', icon: '⊙' },
-  '#/usuarios':     { view: window.Usuarios,       label: 'Usuários',     icon: '◍' },
-  '#/auditoria':    { view: window.Auditoria,      label: 'Auditoria',    icon: '⌖' },
-  '#/manual':       { view: window.Manual,         label: null,           icon: null }
+  '#/dashboard':    { view: window.Dashboard,      label: 'Dashboard',       icon: _ic('home') },
+  '#/proposta':     { view: null,                  label: 'Proposta',        icon: _ic('file-text'), soon: true },
+  '#/contratos':    { view: window.Contratos,      label: 'Contratos',       icon: _ic('briefcase') },
+  '#/contratos/:id':{ view: window.ContratoDetail, label: null,              icon: null },
+  '#/rdos':         { view: window.RDOs,           label: 'RDOs',            icon: _ic('clipboard-check') },
+  '#/obras':        { view: window.Obras,          label: 'Mapa de Obras',   icon: _ic('map-pin') },
+  '#/clientes':     { view: window.Clientes,       label: 'Clientes',        icon: _ic('users'),       group: 'rh' },
+  '#/recursos':     { view: window.Recursos,       label: 'Recursos',        icon: _ic('user-plus'),   group: 'rh' },
+  '#/documentos':   { view: window.Documentos,     label: 'Documentação',    icon: _ic('file-text'),   group: 'rh' },
+  '#/fornecedores': { view: window.Fornecedores,   label: 'Fornecedores',    icon: _ic('truck'),       group: 'rh' },
+  '#/caixa':        { view: window.Caixa,          label: 'Caixa',           icon: _ic('wallet'),      group: 'financeiro' },
+  '#/contas-pagar': { view: window.ContasPagar,    label: 'Contas a Pagar',  icon: _ic('minus-circle'),group: 'financeiro' },
+  '#/notas-fiscais':{ view: window.NotasFiscais,   label: 'Contas a Receber',icon: _ic('receipt'),     group: 'financeiro' },
+  '#/socios':       { view: window.Socios,         label: 'Sócios',          icon: _ic('users'),       group: 'financeiro' },
+  '#/investimentos':{ view: window.Investimentos,  label: 'Aportes',         icon: _ic('plus-circle'), group: 'financeiro' },
+  '#/base':         { view: window.Base,           label: 'BASE',            icon: _ic('database') },
+  '#/configuracao': { view: window.Configuracao,   label: 'Configuração',    icon: _ic('settings') },
+  '#/usuarios':     { view: window.Usuarios,       label: 'Usuários',        icon: _ic('user-plus') },
+  '#/auditoria':    { view: window.Auditoria,      label: 'Auditoria',       icon: _ic('eye') },
+  '#/manual':       { view: window.Manual,         label: null,              icon: null }
 };
 
 // Sidebar group open/close state (persisted)
@@ -626,8 +627,8 @@ function renderSidebar() {
 
   // Definição de grupos da sidebar (RH e Financeiro). Cada grupo é dropdown.
   const groups = [
-    { key: 'rh',         label: 'RH',         icon: '👥', alertCount: recAlerts + docAlerts, btnId: 'btnRH' },
-    { key: 'financeiro', label: 'Financeiro', icon: '◈',  alertCount: nfAlerts + cpAlerts,   btnId: 'btnFinanceiro' },
+    { key: 'rh',         label: 'RH',         icon: _ic('users'),       alertCount: recAlerts + docAlerts, btnId: 'btnRH' },
+    { key: 'financeiro', label: 'Financeiro', icon: _ic('dollar-sign'), alertCount: nfAlerts + cpAlerts,   btnId: 'btnFinanceiro' },
   ];
   const groupLinks = Object.fromEntries(groups.map(g => [g.key, []]));
   const topLinks = [];
@@ -681,8 +682,8 @@ function renderSidebar() {
     </ul>
     <div class="sidebar-footer">
       ${auth.user() ? `
-        <button id="btn-logout" class="theme-toggle-btn" title="Sair (${auth.user().email})" style="margin-bottom:4px;">
-          <span style="font-size:15px;">🚪</span>
+        <button id="btn-logout" class="theme-toggle-btn" title="Sair (${auth.user().email})" style="margin-bottom:4px;" aria-label="Sair">
+          <span class="theme-toggle-icon">${_ic('log-out')}</span>
           <span style="font-weight:600;">${auth.user().name || auth.user().email}</span>
           <span style="margin-left:auto;font-size:13px;color:var(--color-text-muted);">sair</span>
         </button>
@@ -702,12 +703,12 @@ function renderSidebar() {
           </button>
         `
       ) : ''}
-      <button id="theme-toggle" class="theme-toggle-btn" title="${isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}">
-        <span class="theme-toggle-icon">${isDark ? '☀' : '☾'}</span>
+      <button id="theme-toggle" class="theme-toggle-btn" title="${isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}" aria-label="${isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}">
+        <span class="theme-toggle-icon">${_ic(isDark ? 'sun' : 'moon')}</span>
         <span>${isDark ? 'Tema Claro' : 'Tema Escuro'}</span>
       </button>
       <a href="#/manual" id="btn-manual" class="theme-toggle-btn" title="Abrir Manual do Usuário" style="text-decoration:none;">
-        <span class="theme-toggle-icon">📖</span>
+        <span class="theme-toggle-icon">${_ic('book')}</span>
         <span>Manual</span>
       </a>
       <div class="zoom-control" title="Ajustar tamanho da interface">
