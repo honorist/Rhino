@@ -94,12 +94,13 @@ window.Contratos = {
                     </td>
                     <td><span class="badge badge-${c.status}">${c.status}</span></td>
                     <td>
-                      ${_podeEditar ? `
                       <div class="actions-cell">
-                        <a class="action-link btn-editar" data-id="${c.id}">Editar</a>
-                        <a class="action-link danger btn-excluir" data-id="${c.id}">Excluir</a>
+                        <a class="action-link btn-abrir" data-id="${c.id}">Abrir</a>
+                        ${_podeEditar ? `
+                          <a class="action-link btn-editar" data-id="${c.id}">Editar</a>
+                          <a class="action-link danger btn-excluir" data-id="${c.id}">Excluir</a>
+                        ` : ''}
                       </div>
-                      ` : '<span class="rh-meta">—</span>'}
                     </td>
                   </tr>
                 `;}).join('')}
@@ -124,6 +125,14 @@ window.Contratos = {
         tr.addEventListener('click', (e) => {
           if (e.target.closest('.actions-cell')) return;
           this.showOverview(tr.dataset.id);
+        });
+      });
+
+      // "Abrir" — navega para o detalhe do contrato (mesma ação de clicar na linha)
+      document.querySelectorAll('.btn-abrir').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          location.hash = '#/contratos/' + e.target.dataset.id;
         });
       });
 
