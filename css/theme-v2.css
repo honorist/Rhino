@@ -159,6 +159,69 @@ textarea:focus-visible,
   background: currentColor;
 }
 
+/* ─── Sparkline (mini gráfico inline SVG) ─── */
+.rh-spark {
+  width: 80px;
+  height: 26px;
+  flex-shrink: 0;
+  display: block;
+}
+.rh-spark-pos { stroke: var(--rh-pos-strong); }
+.rh-spark-neg { stroke: var(--rh-neg-strong); }
+.rh-spark-warn { stroke: var(--rh-warn-strong); }
+.rh-spark-neutral { stroke: var(--rh-brand-500); }
+
+/* ─── Score / Gauge ─── */
+.rh-gauge {
+  width: 92px; height: 92px;
+  position: relative;
+  flex-shrink: 0;
+}
+.rh-gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.rh-gauge-bg { stroke: var(--rh-ink-200); fill: none; }
+.rh-gauge-fg {
+  fill: none;
+  stroke: var(--rh-accent-500);
+  stroke-linecap: round;
+  transition: stroke-dashoffset .6s ease;
+}
+.rh-gauge-num {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  font-family: var(--rh-font-display);
+  font-weight: 800;
+  color: var(--rh-ink-900);
+}
+.rh-gauge-num-val { font-size: 22px; line-height: 1; }
+.rh-gauge-num-max { font-size: 10px; color: var(--rh-ink-500); margin-top: 2px; }
+
+/* ─── Score Card hero ─── */
+.rh-score-card {
+  background: var(--rh-paper);
+  border: 1px solid var(--rh-ink-200);
+  border-radius: var(--rh-r-md);
+  padding: 18px;
+  box-shadow: var(--rh-shadow-sm);
+}
+.rh-score-bars {
+  margin-top: var(--sp-md);
+  padding-top: var(--sp-md);
+  border-top: 1px solid var(--rh-ink-200);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rh-score-bar { display: flex; flex-direction: column; gap: 4px; }
+.rh-score-bar-h { display: flex; justify-content: space-between; font-size: 13px; }
+.rh-score-bar-h b { font-variant-numeric: tabular-nums; color: var(--rh-ink-900); }
+.rh-score-bar-track { height: 4px; background: var(--rh-ink-200); border-radius: 99px; overflow: hidden; }
+.rh-score-bar-fill { height: 100%; background: var(--rh-ink-700); border-radius: 99px; transition: width .4s ease; }
+.rh-score-bar-fill.is-accent { background: var(--rh-accent-500); }
+
 /* ─── KPI Card v2 ─── */
 .rh-kpi {
   display: flex;

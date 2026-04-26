@@ -126,6 +126,46 @@ window.Dashboard = {
       const saudeScore = this.calcularScore(parseFloat(taxaDespesa), parseFloat(marginMedia), dash.caixaBalance);
 
       const _icon = (name, size) => (window.rhIcon ? window.rhIcon(name, size || 16) : '');
+
+      // Sparkline SVG inline a partir de um array de números (45 pontos ideal)
+      const _spark = (values, tone) => {
+        if (!values || values.length < 2) return '';
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        const range = (max - min) || 1;
+        const w = 80, h = 26, p = 2;
+        const stepX = (w - p * 2) / (values.length - 1);
+        const points = values.map((v, i) => {
+          const x = p + i * stepX;
+          const y = h - p - ((v - min) / range) * (h - p * 2);
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(' ');
+        const cls = ({ pos: 'rh-spark-pos', neg: 'rh-spark-neg', warn: 'rh-spark-warn' })[tone] || 'rh-spark-neutral';
+        return `<svg class="rh-spark ${cls}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${points}" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+      };
+
+      // Calcula séries diárias (últimos 45 dias) para sparklines a partir de caixaEntries
+      const _spark45 = (() => {
+        const days = 45;
+        const arr = [];
+        for (let i = days - 1; i >= 0; i--) {
+          const d = new Date(); d.setDate(d.getDate() - i);
+          arr.push(d.toISOString().split('T')[0]);
+        }
+        const sumByDay = (filterFn) => arr.map(date =>
+          caixaEntries.filter(e => e.date <= date && filterFn(e)).reduce((s, e) => s + (parseFloat(e.value) || 0), 0)
+        );
+        return {
+          saldo: arr.map(date => caixaEntries.filter(e => e.date <= date)
+            .reduce((s, e) => s + (e.type === 'entrada' ? 1 : -1) * (parseFloat(e.value) || 0), 0)),
+          entradasAcum: sumByDay(e => e.type === 'entrada'),
+          saidasAcum: sumByDay(e => e.type === 'saida'),
+          // diferença diária (não acumulado) para "faturado mês"
+          entradaDia: arr.map(date => caixaEntries.filter(e => e.date === date && e.type === 'entrada')
+            .reduce((s, e) => s + (parseFloat(e.value) || 0), 0)),
+        };
+      })();
+
       const _kpi = (opts) => {
         const tone = opts.tone || '';
         const valueColor = tone === 'pos' ? 'var(--rh-pos-strong)'
@@ -134,13 +174,79 @@ window.Dashboard = {
                          : 'var(--rh-ink-900)';
         const deltaCls = opts.deltaTone === 'pos' ? 'rh-kpi-delta-pos'
                        : opts.deltaTone === 'neg' ? 'rh-kpi-delta-neg' : '';
+        const sparkSvg = opts.spark ? _spark(opts.spark, opts.deltaTone || tone || 'neutral') : '';
         return `
           <a href="${opts.href || '#'}" class="rh-kpi" style="text-decoration:none;color:inherit;cursor:pointer;" aria-label="${escapeHtml(opts.label + ': ' + opts.value)}">
             <div class="rh-kpi-label">${escapeHtml(opts.label)}</div>
             <div class="rh-kpi-value" style="color:${valueColor};">${opts.value}</div>
-            <div class="rh-kpi-meta">
-              ${opts.deltaIcon ? `<span class="${deltaCls}">${_icon(opts.deltaIcon, 12)}</span>` : ''}
-              <span>${opts.meta || ''}</span>
+            <div class="rh-kpi-meta" style="justify-content:space-between;">
+              <div class="rh-row-sm" style="min-width:0;flex:1;">
+                ${opts.deltaIcon ? `<span class="${deltaCls}">${_icon(opts.deltaIcon, 12)}</span>` : ''}
+                <span style="overflow:hidden;text-overflow:ellipsis;">${opts.meta || ''}</span>
+              </div>
+              ${sparkSvg}
+            </div>
+          </a>
+        `;
+      };
+
+      // Score card especial (estilo hero) com gauge + sub-bars
+      const _scoreCard = () => {
+        const score = parseFloat(saudeScore.label.match(/\d+/)?.[0] || '0') || (() => {
+          // calcula pontos como em calcularScore
+          let p = 100;
+          if (parseFloat(taxaDespesa) > 80) p -= 40; else if (parseFloat(taxaDespesa) > 60) p -= 20;
+          if (parseFloat(marginMedia) < 0) p -= 30; else if (parseFloat(marginMedia) < 10) p -= 15;
+          if (dash.caixaBalance < 0) p -= 20;
+          return p;
+        })();
+        const scoreLabel = score >= 80 ? 'Saudável' : score >= 60 ? 'Atenção' : 'Crítico';
+        const scoreColor = score >= 80 ? 'var(--rh-pos-strong)' : score >= 60 ? 'var(--rh-warn-strong)' : 'var(--rh-neg-strong)';
+        const r = 36, c = 2 * Math.PI * r;
+        const offset = c - (score / 100) * c;
+        const margemPct = parseFloat(marginMedia) || 0;
+        const taxaPct = parseFloat(taxaDespesa) || 0;
+        const cobMeses = coberturaMeses;
+        const cobScore = Math.min(100, Math.max(0, (cobMeses / 6) * 100)); // 6 meses = 100%
+        const periodLabel = hojeD.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+        return `
+          <a href="#/contratos" class="rh-score-card" style="text-decoration:none;color:inherit;display:block;">
+            <div class="rh-row" style="justify-content:space-between;align-items:flex-start;margin-bottom:var(--sp-md);">
+              <div>
+                <h3 class="rh-h2" style="margin:0;">Score de saúde financeira</h3>
+                <div class="rh-meta">${periodLabel.replace('.', '')} · ${dash.activeContracts} contrato${dash.activeContracts !== 1 ? 's' : ''} ativo${dash.activeContracts !== 1 ? 's' : ''}</div>
+              </div>
+            </div>
+            <div class="rh-row" style="gap:18px;">
+              <div class="rh-gauge">
+                <svg viewBox="0 0 80 80">
+                  <circle class="rh-gauge-bg" cx="40" cy="40" r="${r}" stroke-width="6"/>
+                  <circle class="rh-gauge-fg" cx="40" cy="40" r="${r}" stroke-width="6" stroke-dasharray="${c}" stroke-dashoffset="${offset}" style="stroke:${scoreColor};"/>
+                </svg>
+                <div class="rh-gauge-num">
+                  <span class="rh-gauge-num-val">${score}</span>
+                  <span class="rh-gauge-num-max">/100</span>
+                </div>
+              </div>
+              <div style="flex:1;">
+                <div class="rh-label" style="margin-bottom:4px;">${scoreLabel}</div>
+                <div class="rh-display" style="font-size:34px;font-weight:800;color:${scoreColor};line-height:1;">${score}</div>
+                <div class="rh-row-sm" style="margin-top:6px;">${_icon('arrow-up', 12)}<span class="rh-meta">aderência atual</span></div>
+              </div>
+            </div>
+            <div class="rh-score-bars">
+              <div class="rh-score-bar">
+                <div class="rh-score-bar-h"><span class="rh-muted">Margem operacional</span><b>${margemPct.toFixed(1)}%</b></div>
+                <div class="rh-score-bar-track"><div class="rh-score-bar-fill is-accent" style="width:${Math.min(100, Math.max(0, margemPct * 3))}%;"></div></div>
+              </div>
+              <div class="rh-score-bar">
+                <div class="rh-score-bar-h"><span class="rh-muted">Taxa de despesa</span><b>${taxaPct.toFixed(1)}%</b></div>
+                <div class="rh-score-bar-track"><div class="rh-score-bar-fill" style="width:${Math.min(100, taxaPct)}%;"></div></div>
+              </div>
+              <div class="rh-score-bar">
+                <div class="rh-score-bar-h"><span class="rh-muted">Cobertura de caixa</span><b>${cobMeses > 0 ? cobMeses.toFixed(1) + ' meses' : '—'}</b></div>
+                <div class="rh-score-bar-track"><div class="rh-score-bar-fill" style="width:${cobScore.toFixed(0)}%;"></div></div>
+              </div>
             </div>
           </a>
         `;
@@ -157,67 +263,76 @@ window.Dashboard = {
           </div>
         </div>
 
-        <!-- Camada 1: KPIs principais -->
-        <div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
-          ${_kpi({
-            href: '#/caixa',
-            label: 'Saldo em caixa',
-            value: Store.formatBRL(dash.caixaBalance),
-            tone: dash.caixaBalance >= 0 ? 'pos' : 'neg',
-            meta: dash.caixaBalance >= 0 ? 'caixa positivo' : 'caixa negativo',
-          })}
-          ${_kpi({
-            href: '#/notas-fiscais',
-            label: 'A receber (NFs)',
-            value: Store.formatBRL(totalAReceber),
-            meta: `${nfsEmitidas.length} emitidas · ${nfsPendentes.length} pendentes`,
-          })}
-          ${_kpi({
-            href: '#/contas-pagar',
-            label: 'A pagar (30d)',
-            value: Store.formatBRL(totalAPagar30d),
-            tone: totalAPagar30d > 0 ? 'warn' : '',
-            meta: `${cp30d.length} lançamento${cp30d.length !== 1 ? 's' : ''}`,
-          })}
-          ${_kpi({
-            href: '#/caixa',
-            label: 'Faturado (mês)',
-            value: Store.formatBRL(faturadoMes),
-            deltaIcon: faturadoMesAnt > 0 ? (deltaFaturadoPct >= 0 ? 'arrow-up' : 'arrow-down') : '',
-            deltaTone: deltaFaturadoPct >= 0 ? 'pos' : 'neg',
-            meta: faturadoMesAnt > 0 ? `${Math.abs(deltaFaturadoPct).toFixed(1)}% vs mês ant.` : 'sem comparativo',
-          })}
-        </div>
-
-        <!-- Camada 2: KPIs operacionais -->
-        <div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-bottom:var(--sp-xl);">
-          ${_kpi({
-            href: '#/contratos',
-            label: 'Margem média',
-            value: marginMedia + '%',
-            tone: parseFloat(marginMedia) > 20 ? 'pos' : parseFloat(marginMedia) > 0 ? 'warn' : 'neg',
-            meta: `${dash.activeContracts} contrato${dash.activeContracts !== 1 ? 's' : ''} ativo${dash.activeContracts !== 1 ? 's' : ''}`,
-          })}
-          ${_kpi({
-            href: '#/socios',
-            label: 'Aportes acumulados',
-            value: Store.formatBRL(aportesTotal),
-            meta: `sócios ${Store.formatBRL(aportesSocios)} + empresa ${Store.formatBRL(aportesEmpresa)}`,
-          })}
-          ${_kpi({
-            href: '#/caixa',
-            label: 'Cobertura de caixa',
-            value: coberturaMeses > 0 ? coberturaMeses.toFixed(1) + ' meses' : '—',
-            tone: coberturaMeses >= 3 ? 'pos' : coberturaMeses >= 1 ? 'warn' : 'neg',
-            meta: 'saldo ÷ saída média',
-          })}
-          ${rdoStats ? _kpi({
-            href: '#/rdos',
-            label: `Aderência RDO ${rdoStats.diasUteisAvaliados}d`,
-            value: rdoStats.aderencia7d + '%',
-            tone: rdoStats.aderencia7d >= 80 ? 'pos' : rdoStats.aderencia7d >= 50 ? 'warn' : 'neg',
-            meta: rdoStats.obrasSemRdoOntem.length > 0 ? `${rdoStats.obrasSemRdoOntem.length} sem RDO ontem` : 'tudo em dia',
-          }) : ''}
+        <!-- Hero: Score card + grid de KPIs com sparklines -->
+        <div style="display:grid;grid-template-columns:minmax(320px, 1fr) minmax(0, 2fr);gap:var(--sp-lg);margin-bottom:var(--sp-xl);">
+          ${_scoreCard()}
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--sp-md);">
+            ${_kpi({
+              href: '#/caixa',
+              label: 'Saldo em caixa',
+              value: Store.formatBRL(dash.caixaBalance),
+              tone: dash.caixaBalance >= 0 ? 'pos' : 'neg',
+              deltaIcon: 'arrow-up',
+              deltaTone: dash.caixaBalance >= 0 ? 'pos' : 'neg',
+              meta: dash.caixaBalance >= 0 ? 'caixa positivo' : 'caixa negativo',
+              spark: _spark45.saldo,
+            })}
+            ${_kpi({
+              href: '#/notas-fiscais',
+              label: 'A receber (NFs)',
+              value: Store.formatBRL(totalAReceber),
+              meta: `${nfsEmitidas.length} emitidas · ${nfsPendentes.length} pendentes`,
+              spark: _spark45.entradasAcum,
+              deltaTone: 'pos',
+            })}
+            ${_kpi({
+              href: '#/contas-pagar',
+              label: 'A pagar (30d)',
+              value: Store.formatBRL(totalAPagar30d),
+              tone: totalAPagar30d > 0 ? 'warn' : '',
+              deltaIcon: cp30d.length > 0 ? 'arrow-down' : '',
+              deltaTone: 'neg',
+              meta: `${cp30d.length} lançamento${cp30d.length !== 1 ? 's' : ''}`,
+              spark: _spark45.saidasAcum,
+            })}
+            ${_kpi({
+              href: '#/caixa',
+              label: 'Faturado (mês)',
+              value: Store.formatBRL(faturadoMes),
+              deltaIcon: faturadoMesAnt > 0 ? (deltaFaturadoPct >= 0 ? 'arrow-up' : 'arrow-down') : '',
+              deltaTone: deltaFaturadoPct >= 0 ? 'pos' : 'neg',
+              meta: faturadoMesAnt > 0 ? `${Math.abs(deltaFaturadoPct).toFixed(1)}% vs mês ant.` : 'sem comparativo',
+              spark: _spark45.entradaDia,
+            })}
+            ${_kpi({
+              href: '#/contratos',
+              label: 'Margem média',
+              value: marginMedia + '%',
+              tone: parseFloat(marginMedia) > 20 ? 'pos' : parseFloat(marginMedia) > 0 ? 'warn' : 'neg',
+              deltaIcon: parseFloat(marginMedia) > 0 ? 'arrow-up' : 'arrow-down',
+              deltaTone: parseFloat(marginMedia) > 0 ? 'pos' : 'neg',
+              meta: `${dash.activeContracts} contrato${dash.activeContracts !== 1 ? 's' : ''} ativo${dash.activeContracts !== 1 ? 's' : ''}`,
+              spark: _spark45.saldo.map((v, i) => v - (_spark45.saidasAcum[i] || 0)),
+            })}
+            ${_kpi({
+              href: '#/socios',
+              label: 'Aportes acumulados',
+              value: Store.formatBRL(aportesTotal),
+              meta: 'sócios + empresa',
+              spark: _spark45.entradasAcum,
+              deltaTone: 'pos',
+            })}
+            ${rdoStats ? _kpi({
+              href: '#/rdos',
+              label: `Aderência RDO ${rdoStats.diasUteisAvaliados}d`,
+              value: rdoStats.aderencia7d + '%',
+              tone: rdoStats.aderencia7d >= 80 ? 'pos' : rdoStats.aderencia7d >= 50 ? 'warn' : 'neg',
+              deltaIcon: rdoStats.aderencia7d >= 80 ? 'arrow-up' : 'arrow-down',
+              deltaTone: rdoStats.aderencia7d >= 80 ? 'pos' : 'neg',
+              meta: rdoStats.obrasSemRdoOntem.length > 0 ? `${rdoStats.obrasSemRdoOntem.length} sem RDO ontem` : 'tudo em dia',
+              spark: (rdoStats.aderenciaDiaria || []).map(d => d.pct),
+            }) : ''}
+          </div>
         </div>
 
         <!-- Contas a Receber / Contas a Pagar (estilo Akaunting) -->
