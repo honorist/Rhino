@@ -998,7 +998,14 @@ window.Dashboard = {
     const canvas = document.getElementById('chartSaude');
     if (!canvas || typeof Chart === 'undefined') return;
 
-    const fmt = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+    const podeVerValores = !window.perfil || typeof window.perfil.podeVerValores !== 'function' || window.perfil.podeVerValores();
+    const fmt = v => podeVerValores ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v) : 'R$ ●●●●●';
+    const fmtTick = v => {
+      if (!podeVerValores) return '●●●';
+      if (v >= 1000000) return 'R$' + (v/1000000).toFixed(1) + 'M';
+      if (v >= 1000) return 'R$' + (v/1000).toFixed(0) + 'k';
+      return 'R$' + v;
+    };
     const hoje = new Date().toISOString().split('T')[0];
 
     // Cores adaptáveis ao tema (light/dark)
@@ -1113,7 +1120,7 @@ window.Dashboard = {
             ticks: {
               color: tc.text,
               font: { size: 13, weight: '500' },
-              callback: v => v >= 1000000 ? 'R$' + (v/1000000).toFixed(1) + 'M' : v >= 1000 ? 'R$' + (v/1000).toFixed(0) + 'k' : 'R$' + v
+              callback: v => fmtTick(v)
             }
           }
         }

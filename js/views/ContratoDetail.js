@@ -849,7 +849,8 @@ window.ContratoDetail = {
     const canvas = document.getElementById('chartPizzaContrato');
     if (!canvas || typeof Chart === 'undefined') return;
 
-    const fmt = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+    const _pvv = !window.perfil || typeof window.perfil.podeVerValores !== 'function' || window.perfil.podeVerValores();
+    const fmt = v => _pvv ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v) : 'R$ ●●●●●';
 
     const segments = [
       { label: 'Mão de Obra',    value: dados.maoDeObra,  color: '#7C3AED' },
@@ -921,7 +922,8 @@ window.ContratoDetail = {
     const orcado = tipos.map(t => orcadoPorTipo[t] || 0);
     const real   = tipos.map(t => realizadoPorTipo[t] || 0);
 
-    const fmt = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+    const _pvv = !window.perfil || typeof window.perfil.podeVerValores !== 'function' || window.perfil.podeVerValores();
+    const fmt = v => _pvv ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v) : 'R$ ●●●●●';
 
     this.chartBarras = new Chart(canvas.getContext('2d'), {
       type: 'bar',
@@ -989,7 +991,8 @@ window.ContratoDetail = {
       return;
     }
 
-    const fmt = v => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+    const _pvv = !window.perfil || typeof window.perfil.podeVerValores !== 'function' || window.perfil.podeVerValores();
+    const fmt = v => _pvv ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v) : 'R$ ●●●●●';
 
     this.chartOrcamento = new Chart(canvas.getContext('2d'), {
       type: 'doughnut',
