@@ -123,7 +123,13 @@ async function showLoginModal() {
           </div>
           <div class="form-group">
             <label class="form-label">Senha</label>
-            <input class="form-control" name="password" type="password" autocomplete="current-password" required>
+            <div style="position:relative;">
+              <input class="form-control" name="password" id="loginPwd" type="password" autocomplete="current-password" required style="padding-right:40px;">
+              <button type="button" id="togglePwd" aria-label="Mostrar senha" title="Mostrar senha"
+                      style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:transparent;border:none;cursor:pointer;padding:6px;display:inline-flex;align-items:center;color:var(--rh-ink-500, #64748B);">
+                ${window.rhIcon ? window.rhIcon('eye', 18) : '👁'}
+              </button>
+            </div>
           </div>
           <div id="loginError" style="display:none;color:#c33;font-size:13px;margin-bottom:var(--sp-md);"></div>
           <button class="btn btn-primary" type="submit" style="width:100%;">Entrar</button>
@@ -139,6 +145,19 @@ async function showLoginModal() {
       const forgotForm = document.getElementById('forgotForm');
       if (form) {
         const err = document.getElementById('loginError');
+        // Toggle mostrar/ocultar senha
+        const pwdInput = document.getElementById('loginPwd');
+        const pwdBtn   = document.getElementById('togglePwd');
+        if (pwdInput && pwdBtn) {
+          pwdBtn.addEventListener('click', () => {
+            const showing = pwdInput.type === 'text';
+            pwdInput.type = showing ? 'password' : 'text';
+            pwdBtn.innerHTML = window.rhIcon ? window.rhIcon(showing ? 'eye' : 'eye-off', 18) : (showing ? '👁' : '🙈');
+            pwdBtn.setAttribute('aria-label', showing ? 'Mostrar senha' : 'Ocultar senha');
+            pwdBtn.title = showing ? 'Mostrar senha' : 'Ocultar senha';
+            pwdInput.focus();
+          });
+        }
         form.addEventListener('submit', async (e) => {
           e.preventDefault();
           err.style.display = 'none';
