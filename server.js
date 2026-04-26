@@ -682,6 +682,42 @@ async function handleDashboard(res, query) {
       .filter(c => c.status === 'pendente' && c.dataVencimento && c.dataVencimento <= hojeStrCP)
       .reduce((s, c) => s + (parseFloat(c.valor) || 0), 0);
     const saldoProjetado = [];
+    // Recorrências virtuais (BASE items com metadata.recurrence) — ainda não materializadas
+    // Idempotência: descarta ocorrências cujo (base_item_id, data) já existe no caixa
+    const baseItemsRecorrentes = base.items.filter(b => b.metadata?.recurrence?.active);
+    const caixaPorBaseDate = new Set(
+      caixa.entries.filter(e => e.baseItemId).map(e => `${e.baseItemId}|${e.date}`)
+    );
+    const ocorrenciasVirtuais = []; // { data, valor, baseItemId, descricao }
+    const addUnits = (d, n, freq) => {
+      const x = new Date(d);
+      if (freq === 'weekly')         x.setDate(x.getDate() + 7 * n);
+      else if (freq === 'quarterly') x.setMonth(x.getMonth() + 3 * n);
+      else if (freq === 'yearly')    x.setFullYear(x.getFullYear() + n);
+      else                           x.setMonth(x.getMonth() + n);
+      return x;
+    };
+    const hojeDt = new Date(); hojeDt.setHours(0,0,0,0);
+    baseItemsRecorrentes.forEach(item => {
+      const rec = item.metadata.recurrence;
+      const startD = new Date(rec.startDate + 'T12:00:00');
+      const endD   = rec.endDate ? new Date(rec.endDate + 'T12:00:00') : null;
+      for (let i = 0; i < 1000; i++) {
+        const d = addUnits(startD, i, rec.frequency || 'monthly');
+        if (endD && d > endD) break;
+        if (d > new Date(hojeDt.getTime() + projDays * 86400000)) break;
+        if (d < hojeDt) continue;
+        const ds = d.toISOString().split('T')[0];
+        if (caixaPorBaseDate.has(`${item.id}|${ds}`)) continue; // já materializado
+        ocorrenciasVirtuais.push({
+          data: ds,
+          valor: parseFloat(item.value) || 0,
+          baseItemId: item.id,
+          descricao: item.description || '',
+        });
+      }
+    });
+
     let saldoAcumulado = caixaBalance - contasVencidasTotal;
     // Agregação: até 60 dias semanal (7), 60-90 semanal, 90+ quinzenal
     const stepAt = (i) => (projDays <= 30 ? 3 : projDays <= 60 ? 7 : 7);
@@ -696,6 +732,11 @@ async function handleDashboard(res, query) {
         .filter(c => c.status === 'pendente' && c.dataVencimento === diaStr)
         .reduce((s, c) => s + (parseFloat(c.valor) || 0), 0);
       if (saidasCP > 0) saldoAcumulado -= saidasCP;
+      // Saídas virtuais de recorrências BASE
+      const saidasVirt = ocorrenciasVirtuais
+        .filter(o => o.data === diaStr)
+        .reduce((s, o) => s + o.valor, 0);
+      if (saidasVirt > 0) saldoAcumulado -= saidasVirt;
       if (i === 1 || i % step === 0 || i === projDays) {
         saldoProjetado.push({ data: diaStr, saldo: saldoAcumulado });
       }
@@ -715,7 +756,8 @@ async function handleDashboard(res, query) {
       projecaoFutura,
       saldoProjetado,
       projDays,
-      contasPagarStatus
+      contasPagarStatus,
+      ocorrenciasVirtuais,
     };
 
     res.writeHead(200, { 'Content-Type': 'application/json' });

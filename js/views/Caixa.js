@@ -129,9 +129,19 @@ window.Caixa = {
             </div>
           </div>
           <div class="table-wrap">
+            ${virtualOcorrencias.length > 0 ? `
+              <div style="display:flex;align-items:center;gap:var(--sp-md);padding:var(--sp-sm) var(--sp-md);background:var(--rh-info-bg);border-radius:6px;margin-bottom:var(--sp-sm);">
+                <label class="rh-row-sm" style="cursor:pointer;font-size:13px;font-weight:600;">
+                  <input type="checkbox" id="virtSelectAll" style="width:14px;height:14px;cursor:pointer;">
+                  Selecionar todas as ocorrências previstas (${virtualOcorrencias.length})
+                </label>
+                <button class="btn btn-primary btn-sm" id="btnMaterializarBulk" disabled style="margin-left:auto;">Materializar selecionadas</button>
+              </div>
+            ` : ''}
             <table>
               <thead>
                 <tr>
+                  <th style="width:36px;"></th>
                   <th>Data</th>
                   <th>Descrição</th>
                   <th>Tipo</th>
@@ -160,6 +170,9 @@ window.Caixa = {
                   })),
                 ].sort((a, b) => a.date.localeCompare(b.date)).map(item => `
                   <tr style="opacity:0.8;">
+                    <td>
+                      ${item.virtual ? `<input type="checkbox" class="virt-checkbox" data-source="${item.virtualMeta.sourceId}" data-date="${item.virtualMeta.date}" data-value="${item.virtualMeta.value}" data-desc="${escapeHtml(item.desc)}" data-type-key="${item.virtualMeta.sourceTypeKey || ''}" style="width:14px;height:14px;cursor:pointer;">` : ''}
+                    </td>
                     <td style="color:var(--color-text-muted);font-style:italic;">${item.date && item.date !== '9999-99-99' ? new Date(item.date + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
                     <td style="color:var(--color-text-muted);">
                       ${escapeHtml(item.desc)}
@@ -168,7 +181,7 @@ window.Caixa = {
                     <td><span class="badge" style="background:${item.tipo === 'entrada' ? 'rgba(56,161,105,.12)' : 'rgba(229,62,62,.12)'};color:${item.tipo === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};border:1px dashed ${item.tipo === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};">${item.tipo}</span></td>
                     <td style="font-size:15px;color:var(--color-text-muted);">
                       ${item.origem}
-                      ${item.virtual ? `<button class="btn btn-sm btn-secondary btn-realizar-recorrencia" data-source="${item.virtualMeta.sourceId}" data-date="${item.virtualMeta.date}" data-value="${item.virtualMeta.value}" data-desc="${escapeHtml(item.desc)}" data-type-key="${item.virtualMeta.sourceTypeKey || ''}" style="margin-left:8px;font-size:11px;padding:3px 8px;">marcar como realizado</button>` : ''}
+                      ${item.virtual ? `<button class="btn btn-sm btn-secondary btn-realizar-recorrencia" data-source="${item.virtualMeta.sourceId}" data-date="${item.virtualMeta.date}" data-value="${item.virtualMeta.value}" data-desc="${escapeHtml(item.desc)}" data-type-key="${item.virtualMeta.sourceTypeKey || ''}" style="margin-left:8px;font-size:11px;padding:3px 8px;">ajustar e materializar</button>` : ''}
                     </td>
                     <td style="text-align:right;font-weight:700;color:${item.tipo === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};">
                       ${item.tipo === 'entrada' ? '+' : '-'}${Store.formatBRL(item.valor)}
@@ -332,33 +345,67 @@ window.Caixa = {
 
       app.innerHTML = html;
 
-      // Listener: "marcar como realizado" em ocorrência virtual de recorrência
+      // Listener: "ajustar e materializar" — abre modal pré-preenchido
       document.querySelectorAll('.btn-realizar-recorrencia').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
+        btn.addEventListener('click', (e) => {
           e.stopPropagation();
           const b = e.currentTarget;
-          const data = {
-            type: 'saida',
-            description: b.dataset.desc,
-            value: parseFloat(b.dataset.value) || 0,
+          this.showModalMaterializeRecurrence({
+            sourceId: b.dataset.source,
             date: b.dataset.date,
-            category: b.dataset.typeKey || null,
-            baseItemId: b.dataset.source,  // link para o item BASE recorrente (idempotência)
-            notes: 'Materializado da recorrência BASE',
-          };
-          b.disabled = true;
-          b.textContent = 'criando...';
-          try {
-            await Store.createCaixaEntry(data);
-            window.showToast('Lançamento criado com sucesso', 'success');
-            this.render();
-          } catch (err) {
-            window.showToast('Erro: ' + (err.message || err), 'error');
-            b.disabled = false;
-            b.textContent = 'marcar como realizado';
-          }
+            value: parseFloat(b.dataset.value) || 0,
+            description: b.dataset.desc,
+            category: b.dataset.typeKey || '',
+          });
         });
       });
+
+      // Listener: bulk select all
+      const selectAll = document.getElementById('virtSelectAll');
+      const bulkBtn = document.getElementById('btnMaterializarBulk');
+      const updateBulkBtn = () => {
+        if (!bulkBtn) return;
+        const checked = document.querySelectorAll('.virt-checkbox:checked').length;
+        bulkBtn.disabled = checked === 0;
+        bulkBtn.textContent = checked === 0
+          ? 'Materializar selecionadas'
+          : `Materializar ${checked} selecionada${checked !== 1 ? 's' : ''}`;
+      };
+      if (selectAll) {
+        selectAll.addEventListener('change', () => {
+          document.querySelectorAll('.virt-checkbox').forEach(cb => { cb.checked = selectAll.checked; });
+          updateBulkBtn();
+        });
+      }
+      document.querySelectorAll('.virt-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateBulkBtn);
+      });
+      if (bulkBtn) {
+        bulkBtn.addEventListener('click', async () => {
+          const checked = [...document.querySelectorAll('.virt-checkbox:checked')];
+          if (checked.length === 0) return;
+          if (!confirm(`Materializar ${checked.length} ocorrência(s) com os valores e datas previstos?`)) return;
+          bulkBtn.disabled = true;
+          bulkBtn.textContent = 'Criando...';
+          let ok = 0, fail = 0;
+          for (const cb of checked) {
+            try {
+              await Store.createCaixaEntry({
+                type: 'saida',
+                description: cb.dataset.desc,
+                value: parseFloat(cb.dataset.value) || 0,
+                date: cb.dataset.date,
+                category: cb.dataset.typeKey || null,
+                baseItemId: cb.dataset.source,
+                notes: 'Materializado em lote da recorrência BASE',
+              });
+              ok++;
+            } catch (err) { fail++; }
+          }
+          window.showToast(`${ok} criado${ok !== 1 ? 's' : ''}${fail > 0 ? ` · ${fail} falha${fail !== 1 ? 's' : ''}` : ''}`, fail > 0 ? 'warning' : 'success');
+          this.render();
+        });
+      }
 
       // Listeners de filtros
       document.getElementById('filterMes').addEventListener('change', e => {
@@ -469,6 +516,79 @@ window.Caixa = {
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnDetClose').addEventListener('click', close);
     document.getElementById('btnDetEdit').addEventListener('click', () => { close(); this.showModal(e.id); });
+  },
+
+  // Modal pré-preenchido para materializar uma ocorrência virtual de recorrência.
+  // Permite editar valor/data/descrição antes de criar o caixa entry.
+  showModalMaterializeRecurrence(prefill) {
+    const html = `
+      <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+          <div class="modal-header">
+            <h2 class="modal-title">Materializar recorrência</h2>
+            <button class="modal-close">✕</button>
+          </div>
+          <form id="formMatRec" class="modal-content">
+            <div class="rh-meta" style="margin-bottom:var(--sp-md);">
+              Ajuste valor/data se a saída real diferiu do previsto. O lançamento será vinculado à recorrência (não duplica).
+            </div>
+            <div class="form-group">
+              <label class="form-label">Descrição *</label>
+              <input class="form-control" name="description" value="${escapeHtml(prefill.description)}" required>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Data *</label>
+                <input class="form-control" name="date" type="date" value="${prefill.date}" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Valor (BRL) *</label>
+                <input class="form-control" name="value" type="text" data-currency inputmode="numeric" value="${window.BRLInput.toDisplay(prefill.value)}" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Categoria</label>
+              <input class="form-control" name="category" value="${escapeHtml(prefill.category || '')}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Vincular a Contrato (opcional)</label>
+              <select class="form-control" name="contractId">
+                <option value="">Nenhum</option>
+                ${(Store.state.contracts || []).map(c => `<option value="${c.id}">${escapeHtml(c.name)} — ${escapeHtml(c.client)}</option>`).join('')}
+              </select>
+            </div>
+          </form>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnCancelar">Cancelar</button>
+            <button class="btn btn-primary" id="btnSalvar">Materializar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalOverlay');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnCancelar').addEventListener('click', close);
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+    document.getElementById('btnSalvar').addEventListener('click', async () => {
+      const fd = new FormData(document.getElementById('formMatRec'));
+      const data = Object.fromEntries(fd);
+      data.value = window.BRLInput.parse(data.value);
+      data.contractId = data.contractId || null;
+      data.type = 'saida';
+      data.baseItemId = prefill.sourceId;
+      data.notes = 'Materializado da recorrência BASE';
+      try {
+        await Store.createCaixaEntry(data);
+        window.showToast('Lançamento criado', 'success');
+        close();
+        this.render();
+      } catch (err) {
+        window.showToast('Erro: ' + (err.message || err), 'error');
+      }
+    });
   },
 
   showModal(entryId) {
