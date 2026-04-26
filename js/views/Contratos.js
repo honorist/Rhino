@@ -22,13 +22,14 @@ window.Contratos = {
       const semRdoIds = new Set((rdoStats?.obrasSemRdoOntem || []).map(o => o.contractId));
       const atrasadasMap = new Map((rdoStats?.obrasAtrasadas || []).map(o => [o.contractId, o]));
 
+      const _podeEditar = !window.perfil || !window.perfil.podeEditar || window.perfil.podeEditar('#/contratos');
       const html = `
         <div class="page-header">
           <div>
             <h1 class="page-title">Contratos</h1>
             <p class="page-subtitle">Gerenciar contratos de serviços</p>
           </div>
-          <button class="btn btn-primary btn-lg" id="btnNovoContrato">+ Novo Contrato</button>
+          ${_podeEditar ? `<button class="btn btn-primary btn-lg" id="btnNovoContrato">+ Novo Contrato</button>` : ''}
         </div>
 
         ${rdoStats && !rdoStats.ehFimDeSemana && rdoStats.obrasSemRdoOntem.length > 0 ? `
@@ -93,10 +94,12 @@ window.Contratos = {
                     </td>
                     <td><span class="badge badge-${c.status}">${c.status}</span></td>
                     <td>
+                      ${_podeEditar ? `
                       <div class="actions-cell">
                         <a class="action-link btn-editar" data-id="${c.id}">Editar</a>
                         <a class="action-link danger btn-excluir" data-id="${c.id}">Excluir</a>
                       </div>
+                      ` : '<span class="rh-meta">—</span>'}
                     </td>
                   </tr>
                 `;}).join('')}
@@ -109,7 +112,8 @@ window.Contratos = {
       app.innerHTML = html;
 
       // Event listeners
-      document.getElementById('btnNovoContrato').addEventListener('click', () => this.showModal());
+      const btnNovo = document.getElementById('btnNovoContrato');
+      if (btnNovo) btnNovo.addEventListener('click', () => this.showModal());
       document.getElementById('filterStatus').addEventListener('change', (e) => {
         this.currentFilter = e.target.value;
         this.render();

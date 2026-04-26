@@ -182,19 +182,37 @@ window.Configuracao = {
 
     const grupos = ['Principal', 'Obras', 'RH', 'Financeiro', 'Sistema', 'Restrições especiais'];
 
-    const renderCheckbox = (nivel, aba, indented) => {
-      const checked = (nivel.abas || []).includes(aba.route);
+    const renderRow = (nivel, aba, indented) => {
+      const verRoute = aba.route;
+      const editRoute = 'edit:' + aba.route;
+      const verChecked  = (nivel.abas || []).includes(verRoute);
+      const editChecked = (nivel.abas || []).includes(editRoute);
+      const isSpecial = aba.route.startsWith('special:') || aba.route.startsWith('contrato-tab:');
+      // Itens especiais (special:/contrato-tab:) são apenas flags binárias — não têm coluna Editar
       return `
-        <label style="display:flex;align-items:center;gap:var(--sp-sm);padding:6px var(--sp-sm);${indented ? 'padding-left:32px;' : ''}border-radius:5px;cursor:pointer;transition:background .12s;"
-               onmouseenter="this.style.background='var(--color-bg)'"
-               onmouseleave="this.style.background='transparent'">
-          <input type="checkbox" class="nivel-checkbox"
-                 data-nivel="${nivel.id}" data-route="${aba.route}"
-                 ${checked ? 'checked' : ''}
-                 style="width:15px;height:15px;accent-color:${nivel.cor};cursor:pointer;">
-          <span style="display:inline-flex;align-items:center;color:var(--rh-ink-500);min-width:20px;">${aba.icon}</span>
-          <span style="font-size:14px;font-weight:${checked ? '600' : '400'};color:${checked ? 'var(--color-text)' : 'var(--color-text-muted)'};">${aba.label}</span>
-        </label>
+        <div style="display:grid;grid-template-columns:1fr 60px 60px;gap:8px;align-items:center;padding:6px var(--sp-sm);${indented ? 'padding-left:32px;' : ''}border-radius:5px;transition:background .12s;"
+             onmouseenter="this.style.background='var(--color-bg)'"
+             onmouseleave="this.style.background='transparent'">
+          <div style="display:flex;align-items:center;gap:var(--sp-sm);min-width:0;">
+            <span style="display:inline-flex;align-items:center;color:var(--rh-ink-500);min-width:20px;">${aba.icon}</span>
+            <span style="font-size:14px;font-weight:${verChecked ? '600' : '400'};color:${verChecked ? 'var(--color-text)' : 'var(--color-text-muted)'};">${aba.label}</span>
+          </div>
+          <label style="display:flex;justify-content:center;cursor:pointer;" title="Pode ver ${aba.label}">
+            <input type="checkbox" class="nivel-checkbox"
+                   data-nivel="${nivel.id}" data-route="${verRoute}"
+                   ${verChecked ? 'checked' : ''}
+                   style="width:15px;height:15px;accent-color:${nivel.cor};cursor:pointer;">
+          </label>
+          ${isSpecial ? '<span></span>' : `
+            <label style="display:flex;justify-content:center;cursor:${verChecked ? 'pointer' : 'not-allowed'};opacity:${verChecked ? '1' : '0.3'};" title="Pode editar / criar / excluir em ${aba.label}">
+              <input type="checkbox" class="nivel-checkbox"
+                     data-nivel="${nivel.id}" data-route="${editRoute}"
+                     ${editChecked ? 'checked' : ''}
+                     ${verChecked ? '' : 'disabled'}
+                     style="width:15px;height:15px;accent-color:${nivel.cor};cursor:${verChecked ? 'pointer' : 'not-allowed'};">
+            </label>
+          `}
+        </div>
       `;
     };
 
@@ -229,14 +247,20 @@ window.Configuracao = {
             </div>
 
             <div style="display:flex;flex-direction:column;gap:var(--sp-xs);" id="nivel-${nivel.id}">
+              <!-- Cabeçalho das colunas -->
+              <div style="display:grid;grid-template-columns:1fr 60px 60px;gap:8px;padding:0 var(--sp-sm) 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--rh-ink-500);border-bottom:1px solid var(--color-border);margin-bottom:6px;">
+                <span></span>
+                <span style="text-align:center;" title="Pode visualizar a aba">Ver</span>
+                <span style="text-align:center;" title="Pode criar / editar / excluir">Editar</span>
+              </div>
               ${grupos.map(grupo => {
                 const abasGrupo = todasAbas.filter(a => a.grupo === grupo);
                 return `
                   <div style="margin-bottom:var(--sp-sm);">
                     <div class="rh-label" style="padding:var(--sp-xs) 0;border-bottom:1px solid var(--color-border);margin-bottom:var(--sp-xs);">${grupo}</div>
                     ${abasGrupo.map(aba => `
-                      ${renderCheckbox(nivel, aba, false)}
-                      ${(aba.children || []).map(child => renderCheckbox(nivel, child, true)).join('')}
+                      ${renderRow(nivel, aba, false)}
+                      ${(aba.children || []).map(child => renderRow(nivel, child, true)).join('')}
                     `).join('')}
                   </div>
                 `;

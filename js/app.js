@@ -393,6 +393,18 @@ const perfil = {
     return !abas.includes('special:nao-ver-valores');
   },
 
+  // Pode editar/criar/excluir nesta rota?
+  // Convenção: para autorizar edição, o perfil deve ter 'edit:#/contratos' (etc) nas abas.
+  // Se sem perfil ativo (admin), libera por padrão.
+  podeEditar(route) {
+    const abas = this.abas();
+    if (!abas) return true;
+    if (!route) return false;
+    // Detalhe (#/contratos/123) usa permissão da rota pai
+    const base = route.replace(/(#\/[^/]+).*/, '$1');
+    return abas.includes('edit:' + base);
+  },
+
   // Verifica se uma sub-aba dentro do contrato está liberada para este perfil.
   // Convenção: abas com prefixo "contrato-tab:" no array niveis.abas.
   // Se o perfil não tem NENHUMA contrato-tab configurada, libera todas (compat).

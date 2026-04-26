@@ -68,6 +68,10 @@ window.ContratoDetail = {
   _organogramaView: 'hierarquia',
   _tab: 'visao',  // visao | financeiro | equipe | pendencias
 
+  _podeEditar() {
+    return !window.perfil || !window.perfil.podeEditar || window.perfil.podeEditar('#/contratos');
+  },
+
   async render(params) {
     const app = document.getElementById('app');
     const contractId = params?.id;
@@ -196,7 +200,7 @@ window.ContratoDetail = {
               ${contract.contractNumber ? `<p class="text-muted font-sm">Contrato #${contract.contractNumber}</p>` : ''}
             </div>
             <div class="btn-group">
-              <button class="btn btn-primary" id="btnEditarDados">✏️ Editar Dados</button>
+              ${this._podeEditar() ? `<button class="btn btn-primary" id="btnEditarDados">✏️ Editar Dados</button>` : ''}
               <a href="#/contratos" class="btn btn-secondary">← Voltar</a>
             </div>
           </div>
@@ -282,10 +286,21 @@ window.ContratoDetail = {
               <div style="font-size:22px;font-weight:800;color:var(--color-warning);">${Store.formatBRL(totalAMedir)}</div>
               <div class="text-muted font-sm mt-sm">trava ativa no contrato</div>
             </div>
-            <div style="padding:var(--sp-lg);border-top:3px solid ${margemAtual >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">
+            <div style="padding:var(--sp-lg);border-top:3px solid ${(() => {
+              const META = 20;
+              if (totalMedido <= 0) return 'var(--color-text-muted)';
+              if (pctMargem >= META) return 'var(--color-success)';
+              if (pctMargem >= 0)    return 'var(--color-warning)';
+              return 'var(--color-danger)';
+            })()};">
               <div class="text-muted font-sm mb-md" style="">Resultado parcial</div>
               <div style="font-size:22px;font-weight:800;color:${margemAtual >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${margemAtual >= 0 ? '+ ' : ''}${Store.formatBRL(margemAtual)}</div>
-              <div class="text-muted font-sm mt-sm">${totalMedido > 0 ? 'margem ' + pctMargem.toFixed(1) + '%' : 'sem medição'}</div>
+              <div class="text-muted font-sm mt-sm">
+                ${totalMedido > 0 ? `
+                  margem ${pctMargem.toFixed(1)}% · meta 20%
+                  ${pctMargem < 20 ? `<div style="margin-top:4px;display:inline-flex;align-items:center;gap:4px;color:${pctMargem < 0 ? 'var(--color-danger)' : 'var(--color-warning)'};font-weight:700;">⚠ ${pctMargem < 0 ? 'PREJUÍZO' : 'abaixo da meta (' + (20 - pctMargem).toFixed(1) + 'pp)'}</div>` : '<div style="margin-top:4px;color:var(--color-success);font-weight:700;">✓ acima da meta</div>'}
+                ` : 'sem medição'}
+              </div>
             </div>
           </div>
         </div>
@@ -361,7 +376,7 @@ window.ContratoDetail = {
         <div class="card mb-2xl">
           <div class="card-header">
             <h3 class="card-title">Orçamento — Composição de Custo Planejado</h3>
-            <button class="btn btn-primary btn-sm" id="btnNovoItemOrcamento" ${totalOrcado >= contract.value && contract.value > 0 ? 'disabled title="Valor total do contrato já foi orçado"' : ''}>+ Adicionar Item</button>
+            ${this._podeEditar() ? `<button class="btn btn-primary btn-sm" id="btnNovoItemOrcamento" ${totalOrcado >= contract.value && contract.value > 0 ? 'disabled title="Valor total do contrato já foi orçado"' : ''}>+ Adicionar Item</button>` : ''}
           </div>
           ${contract.value > 0 ? (() => {
             const pct = (totalOrcado / contract.value) * 100;
@@ -601,7 +616,7 @@ window.ContratoDetail = {
         <div class="card mb-2xl">
           <div class="card-header">
             <h3 class="card-title">Saídas Classificadas</h3>
-            <button class="btn btn-primary btn-sm" id="btnNovaSaida">+ Adicionar Saída</button>
+            ${this._podeEditar() ? `<button class="btn btn-primary btn-sm" id="btnNovaSaida">+ Adicionar Saída</button>` : ''}
           </div>
 
           ${saidas.length === 0 && baseAllocations.length === 0 ? `
@@ -678,11 +693,11 @@ window.ContratoDetail = {
                       ? `<span class="rh-meta">Gerenciar em <a href="#/recursos" class="rh-link">Recursos</a></span>`
                       : isCompra
                       ? `<span class="rh-meta">Gerenciar em <a href="#/caixa" class="rh-link">Caixa</a></span>`
-                      : `<div class="rh-row-sm" style="flex-wrap:wrap;">
+                      : (this._podeEditar() ? `<div class="rh-row-sm" style="flex-wrap:wrap;">
                           <button class="btn btn-sm btn-secondary btn-gerar-bm" data-id="${linha.id}" title="Gerar Boletim de Medição">BM</button>
                           <button class="btn btn-sm btn-secondary btn-editar-saida" data-id="${linha.id}" title="Editar">Editar</button>
                           <button class="btn btn-sm btn-danger btn-excluir-saida" data-id="${linha.id}" title="Excluir">Excluir</button>
-                        </div>`;
+                        </div>` : '<span class="rh-meta">—</span>');
 
                     const rowBg = isBase ? 'background:rgba(49,130,206,.03);'
                                 : isPassagem ? 'background:rgba(124,58,237,.03);'
