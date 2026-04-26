@@ -68,5 +68,17 @@ function App() {
   return Render();
 }
 
+// Logout helper acessível via sidebar
+window.__rhinoLogout = async () => {
+  try {
+    await fetch('/api/auth/logout', { method: 'POST' });
+  } catch (_) {}
+  location.reload();
+};
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<App/>);
+root.render(
+  <AuthGate>
+    <App/>
+  </AuthGate>
+);

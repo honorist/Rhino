@@ -1,82 +1,71 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script>
-    // Garante que URLs relativas resolvam corretamente em subpastas (ex: GitHub Pages /Rhino/)
-    (function(){
-      var p = location.pathname;
-      // Se pathname não termina em barra e não é um arquivo, adiciona barra
-      if (!p.endsWith('/') && !/\.[a-z0-9]+$/i.test(p)) {
-        history.replaceState(null, '', p + '/' + location.search + location.hash);
-      }
-      var dir = location.pathname.replace(/[^/]*$/, '');
-      document.write('<base href="' + dir + '">');
-    })();
-  </script>
-  <title>Rhino — Gestão Empresarial</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Rhino — Gestão de contratos industriais</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="./css/main.css?v=hifi1">
-  <link rel="stylesheet" href="./css/components.css?v=hifi1">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./preview/hifi/styles.css">
   <style>
-    .leaflet-container { background: #E5E7EB; }
-    .obra-popup { font-family: inherit; min-width: 200px; }
-    .obra-popup h4 { margin: 0 0 4px; font-size:15px; font-weight: 700; color: #1F2937; }
-    .obra-popup .pop-sub { font-size:15px; color: #374151; margin-bottom: 6px; }
-    .obra-popup .pop-val { font-size: 15px; font-weight: 700; color: #55588B; }
-    .nominatim-dropdown { position:absolute;z-index:9999;background:var(--color-surface);border:1px solid var(--color-border);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.3);max-height:220px;overflow-y:auto;width:100%; }
-    .nominatim-item { padding:10px 14px;cursor:pointer;font-size:15px;border-bottom:1px solid var(--color-border);transition:background .1s; }
-    .nominatim-item:last-child { border-bottom:none; }
-    .nominatim-item:hover { background:var(--color-bg); }
-    .nominatim-item strong { display:block;font-size:15px;margin-bottom:1px; }
-    .nominatim-item span { font-size:15px;color:var(--color-text-muted); }
+    .preview-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--ink); color: var(--paper);
+      padding: 10px 18px; display: flex; align-items: center; gap: 14px;
+      font-family: var(--font-sans); font-size: 13px;
+      border-bottom: 1px solid var(--ink-2);
+    }
+    .preview-bar a { color: var(--paper); text-decoration: none; opacity: .9; }
+    .preview-bar a:hover { opacity: 1; }
+    .preview-bar .accent { color: var(--accent); font-weight: 600; }
+    .preview-bar .right { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+    .preview-bar .toggle {
+      background: transparent; border: 1px solid rgba(255,255,255,.25);
+      color: var(--paper); padding: 4px 10px; border-radius: 6px;
+      font-family: var(--font-sans); font-size: 12px; cursor: pointer;
+    }
+    .preview-bar .toggle:hover { background: rgba(255,255,255,.08); }
   </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
-  <div id="shell">
-    <nav id="sidebar"></nav>
-    <main id="app">
-      <div class="loading-spinner">Iniciando aplicação...</div>
-    </main>
-  </div>
+  <div id="root"></div>
+  <button id="btnDark" style="position:fixed;bottom:14px;right:14px;z-index:50;background:var(--paper);border:1px solid var(--line);color:var(--ink-2);padding:6px 12px;border-radius:6px;font-family:var(--font-sans);font-size:12px;cursor:pointer;box-shadow:var(--shadow-sm);" title="Alternar tema">🌙</button>
 
-  <!-- Load libraries first -->
-  <script src="./js/lib/chart.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script type="text/babel" src="./preview/hifi/shared.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/auth-gate.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/modal.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/modals.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/modal-rdo.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/dash-v1.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/clientes.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/fornecedores.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/contracts-list.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/contract-v5.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/rdos-list.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/notas-fiscais.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/contas-pagar.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/caixa-v6.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/recursos.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/socios.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/base.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/auditoria.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/usuarios.jsx"></script>
+  <script type="text/babel" src="./preview/hifi/app.jsx"></script>
 
-  <!-- Modo local (browser-only) descontinuado: agora rodamos sempre contra o servidor real
-       (server.js + Postgres). Para reativar o modo offline com localStorage,
-       descomente a linha abaixo — mas note que o apiMock NÃO suporta /api/auth/* nem
-       o schema atual do PG. -->
-  <!-- <script src="./js/apiMock.js"></script> -->
-
-  <!-- Load in dependency order: store first, views second, app last -->
-  <script src="./js/store.js"></script>
-  <script src="./js/views/Dashboard.js"></script>
-  <script src="./js/views/Contratos.js"></script>
-  <script src="./js/views/ContratoDetail.js"></script>
-  <script src="./js/views/Clientes.js"></script>
-  <script src="./js/views/Fornecedores.js"></script>
-  <script src="./js/views/Caixa.js"></script>
-  <script src="./js/views/Socios.js"></script>
-  <script src="./js/views/Investimentos.js"></script>
-  <script src="./js/views/NotasFiscais.js"></script>
-  <script src="./js/views/ContasPagar.js"></script>
-  <script src="./js/views/Base.js"></script>
-  <script src="./js/views/Configuracao.js"></script>
-  <script src="./js/views/Usuarios.js"></script>
-  <script src="./js/views/RDOs.js"></script>
-  <script src="./js/views/Auditoria.js"></script>
-  <script src="./js/views/Obras.js"></script>
-  <script src="./js/views/Recursos.js"></script>
-  <script src="./js/views/Documentos.js"></script>
-  <script src="./js/views/Manual.js"></script>
-  <script src="./js/bm.js"></script>
-  <script src="./js/app.js"></script>
+  <script>
+    document.getElementById('btnDark').addEventListener('click', () => {
+      if (typeof window.__previewToggleDark === 'function') {
+        window.__previewToggleDark();
+      } else {
+        document.documentElement.classList.toggle('dark');
+        document.getElementById('btnDark').textContent =
+          document.documentElement.classList.contains('dark') ? '☀️ Modo claro' : '🌙 Modo escuro';
+      }
+    });
+  </script>
 </body>
 </html>

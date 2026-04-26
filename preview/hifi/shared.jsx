@@ -114,7 +114,7 @@ const Sidebar = ({ active }) => {
           <div className="side-foot-name">{me?.name || me?.email || 'Visitante'}</div>
           <div className="side-foot-role">{me ? 'Logado' : 'Não autenticado'}</div>
         </div>
-        <a className="topbar-btn btn-icon" href="/" target="_top" title="Ir ao app real"><Icon name="settings" size={14}/></a>
+        <button className="topbar-btn btn-icon" onClick={() => window.__rhinoLogout && window.__rhinoLogout()} title="Sair"><Icon name="arrow-right" size={14}/></button>
       </div>
     </aside>
   );

@@ -11,6 +11,7 @@ COPY server.js ./
 COPY analyze.js ./
 COPY index.html ./
 COPY preview.html ./
+COPY legacy.html ./
 COPY css ./css
 COPY js ./js
 COPY assets ./assets
