@@ -45,6 +45,8 @@
     'truck':          '<rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
     'minus-circle':   '<circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/>',
     'plus-circle':    '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>',
+    'menu':           '<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>',
+    'x':              '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
   };
 
   function rhIcon(name, size) {
@@ -88,13 +90,61 @@
     document.body.appendChild(btn);
   }
 
+  // Detecta mobile e adiciona botão burger + classe no body
+  function rhInitMobile() {
+    const apply = () => {
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
+      document.body.classList.toggle('rh-mobile', isMobile);
+      if (!isMobile) document.body.classList.remove('rh-sidebar-open');
+    };
+    apply();
+    window.matchMedia('(max-width: 768px)').addEventListener('change', apply);
+
+    // Burger button (criado uma vez, fica oculto fora do mobile via CSS)
+    if (!document.querySelector('.rh-mobile-burger')) {
+      const btn = document.createElement('button');
+      btn.className = 'rh-mobile-burger';
+      btn.type = 'button';
+      btn.setAttribute('aria-label', 'Abrir menu');
+      btn.innerHTML = rhIcon('menu', 22);
+      btn.addEventListener('click', () => {
+        document.body.classList.toggle('rh-sidebar-open');
+        const open = document.body.classList.contains('rh-sidebar-open');
+        btn.innerHTML = rhIcon(open ? 'x' : 'menu', 22);
+        btn.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu');
+      });
+      document.body.appendChild(btn);
+
+      // Fecha ao clicar fora ou em link da sidebar
+      document.addEventListener('click', (e) => {
+        if (!document.body.classList.contains('rh-sidebar-open')) return;
+        const sidebar = document.getElementById('sidebar');
+        if (e.target.closest('.rh-mobile-burger')) return;
+        if (sidebar && sidebar.contains(e.target)) {
+          // Se clicou em link de navegação, fecha
+          if (e.target.closest('a[href]') || e.target.closest('.nav-link')) {
+            document.body.classList.remove('rh-sidebar-open');
+            btn.innerHTML = rhIcon('menu', 22);
+          }
+          return;
+        }
+        // Clicou fora da sidebar
+        document.body.classList.remove('rh-sidebar-open');
+        btn.innerHTML = rhIcon('menu', 22);
+      });
+    }
+  }
+
   window.rhIcon = rhIcon;
   window.rhStatusPill = rhStatusPill;
   window.rhInitTheme = rhInitTheme;
+  window.rhInitMobile = rhInitMobile;
+
+  function bootAll() { rhInitTheme(); rhInitMobile(); }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', rhInitTheme);
+    document.addEventListener('DOMContentLoaded', bootAll);
   } else {
-    rhInitTheme();
+    bootAll();
   }
 })();

@@ -447,3 +447,111 @@ textarea:focus-visible,
   min-width: 44px;
 }
 .btn-sm { min-height: 36px; }  /* exceção para botões dentro de listas densas */
+
+/* ─── KPI / Valores: previne overflow em telas estreitas ─── */
+.rh-kpi-value, .stat-value, .rh-pipeline-stage-count {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+}
+.rh-kpi { min-width: 0; }
+.rh-kpi-value {
+  font-size: clamp(20px, 4vw, 28px);
+  line-height: 1.05;
+}
+.rh-pipeline-stage-count { font-size: clamp(16px, 3vw, 22px); }
+
+/* ─── Responsividade — Tablet (≤1024px) ─── */
+@media (max-width: 1024px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .rh-grid-3, .rh-grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ─── Responsividade — Mobile (≤768px) ─── */
+@media (max-width: 768px) {
+  /* Sidebar fora da tela com toggle */
+  body.rh-mobile #shell { grid-template-columns: 1fr; }
+  body.rh-mobile #sidebar {
+    position: fixed !important;
+    top: 0; left: 0; bottom: 0;
+    width: 280px !important;
+    height: 100vh !important;
+    max-height: none !important;
+    z-index: 9000;
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    box-shadow: 4px 0 24px rgba(0,0,0,.18);
+    overflow-y: auto;
+  }
+  body.rh-mobile.rh-sidebar-open #sidebar { transform: translateX(0); }
+  body.rh-mobile.rh-sidebar-open::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 8500;
+  }
+  /* Botão hamburger flutuante */
+  .rh-mobile-burger {
+    position: fixed; top: 8px; left: 8px; z-index: 9100;
+    width: 44px; height: 44px;
+    background: var(--rh-paper);
+    border: 1px solid var(--rh-ink-200);
+    border-radius: var(--rh-r-sm);
+    box-shadow: var(--rh-shadow-sm);
+    display: none;
+    align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--rh-ink-900);
+  }
+  body.rh-mobile .rh-mobile-burger { display: inline-flex; }
+
+  #app { padding: 12px !important; padding-top: 60px !important; }
+
+  /* Stat grids viram coluna única */
+  .stat-grid, .rh-grid-2, .rh-grid-3, .rh-grid-4 { grid-template-columns: 1fr !important; }
+
+  /* Headers compactam */
+  .page-title, .rh-h1 { font-size: 20px !important; }
+  .page-subtitle { font-size: 13px !important; }
+  .page-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+
+  /* Cards: padding menor */
+  .card { padding: var(--sp-md); border-radius: var(--rh-r-sm); }
+
+  /* KPI valores ainda menores no mobile */
+  .rh-kpi-value { font-size: clamp(18px, 6vw, 24px); }
+  .stat-value { font-size: clamp(20px, 6vw, 26px); }
+
+  /* Tabelas: scroll horizontal explicito */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 540px; font-size: 13px; }
+
+  /* Tabs do contrato com scroll */
+  .ctd-tabs { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+
+  /* Pipeline mobile: stages em coluna */
+  .rh-pipeline { grid-template-columns: 1fr !important; }
+  .rh-pipeline-stage-count { font-size: 22px !important; }
+
+  /* Modal: tela cheia em mobile */
+  .modal {
+    width: calc(100% - 16px) !important;
+    max-width: none !important;
+    margin: 8px;
+    max-height: calc(100vh - 16px) !important;
+  }
+
+  /* Theme toggle não fica em cima do conteúdo */
+  .rh-theme-toggle { bottom: 12px; right: 12px; }
+
+  /* Ações de tabela em coluna */
+  .actions-cell { flex-direction: column; align-items: flex-start; gap: 4px; }
+}
+
+/* ─── Mobile pequeno (≤480px) ─── */
+@media (max-width: 480px) {
+  :root { --sp-xl: 16px; --sp-2xl: 24px; }
+  .rh-h1 { font-size: 18px !important; }
+  .rh-h2 { font-size: 16px !important; }
+  body { font-size: 14px; }
+}
