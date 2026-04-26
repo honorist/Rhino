@@ -1512,66 +1512,99 @@ window.ContratoDetail = {
           to   { opacity: 1; transform: translateY(0); }
         }
 
+        /* ─────────────────────────────────────────
+           Padrão clássico de árvore CSS (Thiebaud Weksteen)
+           - inline-block ao invés de flex (siblings auto-fluem)
+           - 2 pseudos por li formam um conector "T":
+             ::before = metade DIREITA do horizontal + border-right desce
+             ::after  = metade ESQUERDA do horizontal + border-left desce
+           - ul::before adiciona o drop do pai para o T das crianças
+           ─────────────────────────────────────────── */
         .org-tree {
           padding: var(--sp-2xl) var(--sp-lg);
-          overflow-x: auto;
+          overflow: auto;
           min-height: 120px;
           background: var(--color-surface-2);
           border: 1px solid var(--color-border);
           border-radius: 12px;
+          text-align: center;
         }
 
         .org-tree ul.org-root,
         .org-tree ul.org-ul {
-          display: flex;
-          justify-content: center;
-          align-items: flex-start;
-          padding: 40px 0 0 0;
+          padding: 0;
           margin: 0;
           list-style: none;
           position: relative;
+          white-space: nowrap;
         }
-        .org-tree ul.org-root { padding-top: 0; }
+        .org-tree ul.org-ul { padding-top: 24px; }
 
         .org-tree li.org-li {
-          flex: none;
+          display: inline-block;
+          vertical-align: top;
           text-align: center;
           list-style: none;
-          margin: 0 14px;
-          padding: 32px 6px 0 6px;
+          padding: 24px 12px 0 12px;
           position: relative;
+          white-space: normal;
         }
 
-        /* Linhas conectoras — sólidas e contínuas (sem gap entre níveis).
-           Vertical estende -40px (preenche o padding-top da ul) +32px (padding da li) = 72px total. */
-        .org-tree li.org-li::before {
+        /* T-conector: metade direita do horizontal + vertical descendo */
+        .org-tree li.org-li::before,
+        .org-tree li.org-li::after {
           content: '';
           position: absolute;
-          top: -40px; left: 50%;
-          width: 2px; height: 72px;
-          background: var(--rh-brand-500, #55588B);
-          transform: translateX(-50%);
-          border-radius: 0;
+          top: 0;
+          right: 50%;
+          border-top: 2px solid var(--rh-brand-500, #55588B);
+          width: 50%;
+          height: 24px;
         }
-        /* Horizontal estendida -14px para cobrir o margin entre li's e ligar siblings */
-        .org-tree ul.org-ul > li.org-li::after {
+        /* Metade esquerda do horizontal + vertical descendo */
+        .org-tree li.org-li::after {
+          right: auto;
+          left: 50%;
+          border-left: 2px solid var(--rh-brand-500, #55588B);
+        }
+
+        /* Filho único: sem horizontal, mantém só vertical */
+        .org-tree li.org-li:only-child::after,
+        .org-tree li.org-li:only-child::before {
+          display: none;
+        }
+        .org-tree li.org-li:only-child { padding-top: 24px; }
+
+        /* Primeiro filho: remove metade ESQUERDA do horizontal (não tem irmão à esquerda) */
+        .org-tree li.org-li:first-child::before { border: 0 none; }
+        /* Último filho: remove metade DIREITA do horizontal */
+        .org-tree li.org-li:last-child::after  { border: 0 none; }
+        /* Cantos arredondados nos extremos para suavizar a junção */
+        .org-tree li.org-li:last-child::before {
+          border-right: 2px solid var(--rh-brand-500, #55588B);
+          border-radius: 0 6px 0 0;
+        }
+        .org-tree li.org-li:first-child::after {
+          border-radius: 6px 0 0 0;
+        }
+
+        /* Drop vertical do pai para os filhos: ul::before */
+        .org-tree ul.org-ul::before {
           content: '';
           position: absolute;
-          top: 0; left: -14px; right: -14px;
-          height: 2px;
-          background: var(--rh-brand-500, #55588B);
+          top: 0;
+          left: 50%;
+          border-left: 2px solid var(--rh-brand-500, #55588B);
+          width: 0;
+          height: 24px;
         }
-        /* Primeiro filho: linha começa no centro do li (50%) e vai até a direita estendida */
-        .org-tree ul.org-ul > li.org-li:first-child::after { left: 50%; right: -14px; }
-        /* Último filho: linha vai da esquerda estendida até o centro do li */
-        .org-tree ul.org-ul > li.org-li:last-child::after  { left: -14px; right: 50%; }
-        /* Filho único: sem barra horizontal */
-        .org-tree ul.org-ul > li.org-li:only-child::after  { display: none; }
-        .org-tree ul.org-ul > li.org-li:only-child::before {
-          top: -40px; height: 72px;
-        }
+
+        /* Raiz: sem linhas vindo de cima */
         .org-tree ul.org-root > li.org-li::before,
-        .org-tree ul.org-root > li.org-li::after { display: none; }
+        .org-tree ul.org-root > li.org-li::after {
+          display: none;
+        }
+        .org-tree ul.org-root > li.org-li { padding-top: 0; }
 
         /* Card base — Akaunting light clean */
         .org-node {
