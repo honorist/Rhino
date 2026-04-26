@@ -134,32 +134,50 @@ window.ContratoDetail = {
       // Orçamento
       const budget = contract.budget || [];
       const totalOrcado = budget.reduce((s, b) => s + b.value, 0);
-      const TIPOS_LABEL = {
+      // Labels/cores fixos para tipos canônicos. Para tipos customizados (equipamento,
+      // servico etc), busca em Store.state.tipos_base (cadastrados pelo usuário).
+      const TIPOS_FIXOS_LABEL = {
         mao_de_obra: 'Mão de Obra', material: 'Material',
         hospedagem: 'Hospedagem',   transporte: 'Transporte',
         base: 'Custo BASE',         outros: 'Outros'
       };
-      const TIPOS_COLOR = {
+      const TIPOS_FIXOS_COLOR = {
         mao_de_obra: '#A78BFA', material: '#FB923C',
         hospedagem: '#22D3EE',  transporte: '#34D399',
         base: '#60A5FA',        outros: '#9CA3AF'
       };
-      // Realizado por tipo (inclui BASE + passagens + compras avulsas categorizadas)
-      const comprasByType = comprasContrato.reduce((acc, e) => {
-        const k = e.category || 'outros';
-        const valid = ['mao_de_obra','material','hospedagem','transporte','base','outros'].includes(k);
-        const key = valid ? k : 'outros';
-        acc[key] = (acc[key] || 0) + (parseFloat(e.value) || 0);
-        return acc;
-      }, {});
+      const tiposBaseMap = Object.fromEntries((Store.state.tipos_base || []).map(t => [t.key, t]));
+      const TIPOS_LABEL = new Proxy(TIPOS_FIXOS_LABEL, {
+        get(target, key) {
+          if (target[key]) return target[key];
+          if (tiposBaseMap[key]) return tiposBaseMap[key].label;
+          return key ? key.toString().replace(/_/g, ' ') : '—';
+        }
+      });
+      const TIPOS_COLOR = new Proxy(TIPOS_FIXOS_COLOR, {
+        get(target, key) {
+          if (target[key]) return target[key];
+          if (tiposBaseMap[key] && tiposBaseMap[key].cor) return tiposBaseMap[key].cor;
+          return '#9CA3AF';
+        }
+      });
+      // Realizado por tipo — DINÂMICO: aceita qualquer category vinda de compras
+      // (não força em 6 buckets fixos). Soma saidasByType + base + passagens + compras.
       const realizadoPorTipo = {
-        mao_de_obra: saidasByType.mao_de_obra + (comprasByType.mao_de_obra || 0),
-        material:    saidasByType.material    + (comprasByType.material    || 0),
-        hospedagem:  saidasByType.hospedagem  + (comprasByType.hospedagem  || 0),
-        transporte:  saidasByType.transporte  + totalPassagensRealizadas + (comprasByType.transporte || 0),
+        mao_de_obra: saidasByType.mao_de_obra || 0,
+        material:    saidasByType.material    || 0,
+        hospedagem:  saidasByType.hospedagem  || 0,
+        transporte:  (saidasByType.transporte || 0) + totalPassagensRealizadas,
         base:        totalBase,
-        outros:      (comprasByType.outros || 0)
       };
+      comprasContrato.forEach(e => {
+        const k = (e.category || 'outros').toString();
+        realizadoPorTipo[k] = (realizadoPorTipo[k] || 0) + (parseFloat(e.value) || 0);
+      });
+      // Garante que 'outros' exista como bucket
+      if (!realizadoPorTipo.outros) realizadoPorTipo.outros = 0;
+      // Total realizado consolidado (para TOTAL real)
+      const totalRealizado = totalSaidas + totalBase + totalPassagensRealizadas + totalCompras;
       // Orçado por tipo
       const orcadoPorTipo = {};
       budget.forEach(b => { orcadoPorTipo[b.type] = (orcadoPorTipo[b.type] || 0) + b.value; });
@@ -326,8 +344,8 @@ window.ContratoDetail = {
             <div style="display:flex;justify-content:space-between;align-items:baseline;">
               <div>
                 <div class="text-muted font-sm mb-md" style="">Custos Acumulados</div>
-                <div style="font-size: 22px; font-weight: 700; color: var(--color-danger);">${Store.formatBRL(totalSaidas + totalBase + totalPassagensRealizadas)}</div>
-                <div class="text-muted font-sm mt-sm">saídas + BASE alocada + passagens</div>
+                <div style="font-size: 22px; font-weight: 700; color: var(--color-danger);">${Store.formatBRL(totalRealizado)}</div>
+                <div class="text-muted font-sm mt-sm">saídas + BASE + passagens + compras</div>
               </div>
               <a href="#/contratos/${contract.id}" onclick="window.ContratoDetail._tab='financeiro';window.ContratoDetail.render('${contract.id}');event.preventDefault();" style="font-size:15px;color:var(--color-primary);text-decoration:none;">Ver detalhes →</a>
             </div>
@@ -448,13 +466,13 @@ window.ContratoDetail = {
                 <div style="padding:10px var(--sp-md);border-radius:6px;border:1px solid var(--color-border);margin-top:4px;">
                   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
                     <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;">Total</div>
-                    <div style="font-size:13px;font-weight:700;color:${(totalSaidas+totalBase)>totalOrcado?'var(--color-danger)':'var(--color-success)'};">
-                      ${(totalSaidas+totalBase) > totalOrcado ? '▼' : '▲'} ${Store.formatBRL(Math.abs(totalOrcado - totalSaidas - totalBase))}
+                    <div style="font-size:13px;font-weight:700;color:${totalRealizado>totalOrcado?'var(--color-danger)':'var(--color-success)'};">
+                      ${totalRealizado > totalOrcado ? '▼' : '▲'} ${Store.formatBRL(Math.abs(totalOrcado - totalRealizado))}
                     </div>
                   </div>
                   <div style="display:flex;justify-content:space-between;font-size:13px;">
                     <div><span class="rh-muted">Orç:</span> <strong style="margin-left:4px;">${Store.formatBRL(totalOrcado)}</strong></div>
-                    <div><span class="rh-muted">Real:</span> <strong style="margin-left:4px;color:${(totalSaidas+totalBase)>totalOrcado?'var(--color-danger)':'var(--color-text)'};">${Store.formatBRL(totalSaidas + totalBase)}</strong></div>
+                    <div><span class="rh-muted">Real:</span> <strong style="margin-left:4px;color:${totalRealizado>totalOrcado?'var(--color-danger)':'var(--color-text)'};">${Store.formatBRL(totalRealizado)}</strong></div>
                   </div>
                 </div>
                 </div>

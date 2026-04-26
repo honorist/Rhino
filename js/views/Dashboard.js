@@ -246,72 +246,64 @@ window.Dashboard = {
           </div>
         </div>
 
-        <!-- Aderência RDO -->
+        <!-- Aderência RDO (estilo compacto vertical) -->
         ${rdoStats ? (() => {
           const ativas = rdoStats.obrasAtivas || 0;
-          // "Ontem" = último dia útil. Lançados = obras que NÃO estão em obrasSemRdoOntem.
           const sem = (rdoStats.obrasSemRdoOntem || []).length;
           const lancados = Math.max(0, ativas - sem);
           const atrasadas = rdoStats.obrasAtrasadas || [];
           const aderColor = rdoStats.aderencia7d >= 80 ? 'var(--rh-pos-strong)'
                           : rdoStats.aderencia7d >= 50 ? 'var(--rh-warn-strong)'
                           : 'var(--rh-neg-strong)';
+          const semList = rdoStats.obrasSemRdoOntem || [];
           return `
-          <div class="card mb-2xl">
-            <div class="card-header">
-              <h3 class="card-title rh-h2">Aderência RDO</h3>
-              <a href="#/rdos" style="text-decoration:none;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:var(--rh-brand-500);">Ver todos ${_icon('arrow-right', 14)}</a>
+          <div class="card mb-2xl" style="max-width:560px;">
+            <div class="rh-between" style="margin-bottom:var(--sp-md);">
+              <div>
+                <h3 class="rh-h2" style="margin:0;">RDOs</h3>
+                <div class="rh-meta">Aderência mensal</div>
+              </div>
+              ${atrasadas.length > 0
+                ? `<span class="rh-pill rh-pill-warn"><span class="rh-pill-dot"></span>${atrasadas.length} atrasado${atrasadas.length !== 1 ? 's' : ''}</span>`
+                : `<span class="rh-pill rh-pill-pos"><span class="rh-pill-dot"></span>em dia</span>`}
             </div>
-            <div class="rh-grid-3" style="margin-bottom:var(--sp-lg);">
-              <div class="rh-pipeline-stage" style="text-align:left;">
-                <div class="rh-pipeline-stage-label">Lançados ontem</div>
-                <div class="rh-pipeline-stage-count" style="color:var(--rh-pos-strong);">${lancados}<span style="color:var(--rh-ink-500);font-size:18px;font-weight:600;"> / ${ativas}</span></div>
-                <div class="rh-pipeline-stage-value">obras ativas previstas (último dia útil${rdoStats.ehFimDeSemana ? ' · hoje é fim de semana' : ''})</div>
-              </div>
-              <div class="rh-pipeline-stage ${sem > 0 ? 'is-active' : ''}" style="text-align:left;${sem === 0 ? 'border-left-color:var(--rh-pos-strong);' : ''}">
-                <div class="rh-pipeline-stage-label">Sem RDO ontem</div>
-                <div class="rh-pipeline-stage-count" style="color:${sem > 0 ? 'var(--rh-warn-strong)' : 'var(--rh-pos-strong)'};">${sem}</div>
-                <div class="rh-pipeline-stage-value">${sem === 0 ? 'tudo em dia' : 'obra(s) sem lançamento'}</div>
-              </div>
-              <div class="rh-pipeline-stage" style="text-align:left;border-left-color:${atrasadas.length > 0 ? 'var(--rh-neg-strong)' : 'var(--rh-pos-strong)'};">
-                <div class="rh-pipeline-stage-label">Atrasadas (+2 dias úteis)</div>
-                <div class="rh-pipeline-stage-count" style="color:${atrasadas.length > 0 ? 'var(--rh-neg-strong)' : 'var(--rh-pos-strong)'};">${atrasadas.length}</div>
-                <div class="rh-pipeline-stage-value">aderência 7d: <strong style="color:${aderColor};">${rdoStats.aderencia7d}%</strong></div>
-              </div>
+            <div style="display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:8px 0;">
+              <div class="rh-display" style="font-size:42px;font-weight:800;color:${aderColor};line-height:1;grid-row:span 3;align-self:center;">${rdoStats.aderencia7d}%<div style="font-size:11px;font-weight:600;color:var(--rh-ink-500);text-transform:uppercase;letter-spacing:.06em;margin-top:6px;">aderência mês</div></div>
+              <div style="border-top:1px solid var(--rh-ink-200);padding-top:8px;font-size:14px;color:var(--rh-ink-700);">Lançados ontem</div>
+              <div style="border-top:1px solid var(--rh-ink-200);padding-top:8px;font-size:14px;font-weight:700;text-align:right;">${lancados}<span style="color:var(--rh-ink-500);">/${ativas}</span></div>
+              <div style="font-size:14px;color:var(--rh-ink-700);">Sem RDO ontem</div>
+              <div style="text-align:right;"><span class="rh-pill ${sem > 0 ? 'rh-pill-warn' : 'rh-pill-pos'}">${sem}</span></div>
+              <div style="font-size:14px;color:var(--rh-ink-700);">Atrasados &gt;2du</div>
+              <div style="text-align:right;"><span class="rh-pill ${atrasadas.length > 0 ? 'rh-pill-neg' : 'rh-pill-pos'}">${atrasadas.length}</span></div>
             </div>
-            ${atrasadas.length > 0 ? `
-              <div class="rh-divider" style="border-bottom:1px solid var(--rh-ink-200);padding-bottom:8px;margin-bottom:8px;">
-                <span class="rh-label">Obras com pendência crítica</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:8px;">
-                ${atrasadas.slice(0, 8).map(o => `
-                  <a href="#/contratos/${o.contractId}" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--rh-ink-200);border-radius:var(--rh-r-sm);text-decoration:none;color:inherit;background:var(--rh-paper);transition:border-color .15s;" onmouseenter="this.style.borderColor='var(--rh-neg-strong)'" onmouseleave="this.style.borderColor='var(--rh-ink-200)'">
-                    <span class="rh-pill-dot" style="background:var(--rh-neg-strong);width:8px;height:8px;flex-shrink:0;"></span>
-                    <div style="flex:1;min-width:0;">
-                      <div style="font-weight:700;font-size:14px;color:var(--rh-ink-900);">${escapeHtml(o.name)}</div>
-                      <div class="rh-meta">${escapeHtml(o.client || '—')}</div>
-                    </div>
-                    <div style="text-align:right;">
-                      <div style="font-weight:700;color:var(--rh-neg-strong);font-size:14px;">${o.nuncaFezRdo ? 'sem RDO' : `${o.diasUteisSemRdo} dia${o.diasUteisSemRdo !== 1 ? 's' : ''} úteis`}</div>
-                      <div class="rh-meta-xs">${o.ultimoRdo ? `último: ${new Date(o.ultimoRdo + 'T12:00:00').toLocaleDateString('pt-BR')}` : 'nunca lançou'}</div>
-                    </div>
-                  </a>
-                `).join('')}
-                ${atrasadas.length > 8 ? `<div class="rh-meta" style="text-align:center;padding:8px;">+ ${atrasadas.length - 8} obra(s) — <a href="#/rdos" class="rh-link">ver todas</a></div>` : ''}
-              </div>
-            ` : ''}
-            ${atrasadas.length === 0 && sem > 0 ? `
-              <div class="rh-divider"><span class="rh-label">Sem RDO no último dia útil</span></div>
-              <div style="display:flex;flex-direction:column;gap:8px;">
-                ${(rdoStats.obrasSemRdoOntem || []).slice(0, 6).map(o => `
-                  <a href="#/contratos/${o.contractId}" style="display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--rh-ink-200);border-radius:var(--rh-r-sm);text-decoration:none;color:inherit;background:var(--rh-paper);">
-                    <span class="rh-pill-dot" style="background:var(--rh-warn-strong);width:8px;height:8px;flex-shrink:0;"></span>
-                    <div style="flex:1;min-width:0;">
-                      <div style="font-weight:600;font-size:14px;">${escapeHtml(o.name)}</div>
-                      <div class="rh-meta">${escapeHtml(o.client || '—')} · último RDO: ${o.ultimoRdo ? new Date(o.ultimoRdo + 'T12:00:00').toLocaleDateString('pt-BR') : 'nunca'}</div>
-                    </div>
-                  </a>
-                `).join('')}
+            ${semList.length > 0 ? `
+              <div style="border-top:1px solid var(--rh-ink-200);margin-top:var(--sp-md);padding-top:var(--sp-md);">
+                <div class="rh-label" style="margin-bottom:8px;">Obras sem RDO ontem</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  ${semList.slice(0, 6).map(o => {
+                    // Tenta achar diasUteisSemRdo na lista de atrasadas
+                    const a = atrasadas.find(x => x.contractId === o.contractId);
+                    const dias = a ? (a.nuncaFezRdo ? null : a.diasUteisSemRdo) : null;
+                    const sub = dias != null ? `sem lançamento há ${dias} dia${dias !== 1 ? 's' : ''} úteis` : 'sem lançamento ontem';
+                    const ctCode = o.contractNumber || (o.name ? o.name.slice(0, 8) : '');
+                    return `
+                      <div class="rh-row" style="justify-content:space-between;">
+                        <div class="rh-row-sm" style="min-width:0;">
+                          <span class="rh-pill-dot" style="background:var(--rh-neg-strong);"></span>
+                          <div style="min-width:0;">
+                            <div style="font-weight:700;font-size:14px;color:var(--rh-ink-900);">
+                              ${escapeHtml(o.client || o.name)}
+                              ${ctCode ? `<span class="rh-meta-xs" style="margin-left:6px;font-family:monospace;">${escapeHtml(ctCode)}</span>` : ''}
+                            </div>
+                            <div class="rh-meta-xs">${sub}</div>
+                          </div>
+                        </div>
+                        <a href="#/contratos/${o.contractId}" class="btn btn-secondary btn-sm" style="white-space:nowrap;">Cobrar</a>
+                      </div>
+                    `;
+                  }).join('')}
+                  ${semList.length > 6 ? `<div class="rh-meta" style="text-align:center;padding-top:4px;">+ ${semList.length - 6} — <a href="#/rdos" class="rh-link">ver todas</a></div>` : ''}
+                </div>
               </div>
             ` : ''}
           </div>
