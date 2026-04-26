@@ -345,29 +345,34 @@ window.Dashboard = {
         </div>
 
         <!-- 2 colunas: ESQUERDA = Receivables/Pagar + Pipeline · DIREITA = RDO -->
-        <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:var(--sp-lg);margin-bottom:var(--sp-xl);align-items:start;">
+        <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:var(--sp-lg);margin-bottom:var(--sp-xl);align-items:stretch;">
           <div style="display:flex;flex-direction:column;gap:var(--sp-lg);">
             <!-- Contas a Receber / Contas a Pagar -->
             ${this.renderReceivablesPayables()}
 
-            <!-- Pipeline de Medições -->
-            <div class="card" style="margin-bottom:0;">
-              <div class="card-header">
-                <h3 class="card-title rh-h2">Pipeline de medições — ${hojeD.toLocaleDateString('pt-BR', { month: 'long' })}</h3>
-                <a href="#/contratos" class="rh-muted" style="text-decoration:none;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:var(--rh-brand-500);">Ver saídas ${_icon('arrow-right', 14)}</a>
+            <!-- Pipeline de Medições — slim, alinhado no rodapé via margin-top:auto -->
+            <div class="card" style="margin-bottom:0;margin-top:auto;padding:12px 16px;">
+              <div class="rh-between" style="margin-bottom:8px;">
+                <div class="rh-row-sm">
+                  <h3 class="rh-h3" style="margin:0;">Pipeline de medições</h3>
+                  <span class="rh-meta-xs">— ${hojeD.toLocaleDateString('pt-BR', { month: 'long' })}</span>
+                </div>
+                <a href="#/contratos" style="text-decoration:none;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;color:var(--rh-brand-500);">Ver saídas ${_icon('arrow-right', 12)}</a>
               </div>
-              <div class="rh-muted" style="font-size:13px;margin-bottom:var(--sp-md);">Do trabalho executado ao recebimento</div>
-              <div class="rh-pipeline" role="list" aria-label="Estágios do pipeline de medições">
+              <div role="list" aria-label="Estágios do pipeline" style="display:grid;grid-template-columns:repeat(4, 1fr);gap:8px;">
                 ${[
-                  { l: 'Rascunho',        d: pipeline.rascunho,      active: false, tip: 'Saídas (BMs) cadastradas mas ainda sem NF vinculada. Próximo passo: gerar NF.' },
-                  { l: 'Aguard. emissão', d: pipeline.aguardEmissao, active: true,  tip: 'Saídas com NF cadastrada mas ainda não emitida no sistema fiscal. Bloqueia o recebimento — atenção.' },
-                  { l: 'NF emitida',      d: pipeline.nfEmitida,     active: false, tip: 'NF emitida fiscalmente, aguardando o cliente pagar. O valor entrará no caixa quando vincular um lançamento.' },
-                  { l: 'Recebida',        d: pipeline.recebida,      active: false, tip: 'NF emitida E pagamento recebido (caixa entry vinculada). Ciclo de receita completo.' },
+                  { l: 'Rascunho',        d: pipeline.rascunho,      active: false, tip: 'Saídas (BMs) cadastradas mas ainda sem NF vinculada.' },
+                  { l: 'Aguard. emissão', d: pipeline.aguardEmissao, active: true,  tip: 'Saídas com NF cadastrada mas ainda não emitida.' },
+                  { l: 'NF emitida',      d: pipeline.nfEmitida,     active: false, tip: 'NF emitida, aguardando recebimento.' },
+                  { l: 'Recebida',        d: pipeline.recebida,      active: false, tip: 'Pagamento recebido — ciclo completo.' },
                 ].map(s => `
-                  <div class="rh-pipeline-stage ${s.active ? 'is-active' : ''}" role="listitem" title="${escapeHtml(s.tip)}">
-                    <div class="rh-pipeline-stage-label">${s.l}</div>
-                    <div class="rh-pipeline-stage-count">${s.d.count}</div>
-                    <div class="rh-pipeline-stage-value">${Store.formatBRL(s.d.valor)}</div>
+                  <div role="listitem" title="${escapeHtml(s.tip)}"
+                       style="padding:8px 10px;border-radius:6px;border:1px solid var(--rh-ink-200);${s.active ? 'background:var(--rh-warn-bg);border-left:3px solid var(--rh-warn-strong);' : 'border-left:3px solid var(--rh-ink-300);'}">
+                    <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:${s.active ? 'var(--rh-warn-text)' : 'var(--rh-ink-500)'};line-height:1.2;">${s.l}</div>
+                    <div class="rh-row" style="justify-content:space-between;align-items:baseline;margin-top:4px;gap:6px;">
+                      <span style="font-family:var(--rh-font-display);font-size:18px;font-weight:800;line-height:1;color:var(--rh-ink-900);">${s.d.count}</span>
+                      <span class="rh-meta-xs" style="font-variant-numeric:tabular-nums;">${Store.formatBRL(s.d.valor).replace('R$ ', '')}</span>
+                    </div>
                   </div>
                 `).join('')}
               </div>
