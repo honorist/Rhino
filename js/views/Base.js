@@ -188,9 +188,25 @@ window.Base = {
                   const info = this.TIPOS[tipoKey];
                   return `
                     <tr>
-                      <td><strong>${escapeHtml(item.description)}</strong></td>
+                      <td>
+                        <strong>${escapeHtml(item.description)}</strong>
+                        ${(() => {
+                          const r = item?.metadata?.recurrence;
+                          if (!r || !r.active) return '';
+                          const fmap = { weekly: 'semanal', monthly: 'mensal', quarterly: 'trimestral', yearly: 'anual' };
+                          return `<div style="margin-top:4px;"><span class="rh-pill rh-pill-info"><span class="rh-pill-dot"></span>recorrente · ${fmap[r.frequency] || r.frequency}</span></div>`;
+                        })()}
+                      </td>
                       <td><span class="badge badge-${tipoKey}">${info.icon} ${info.label}</span></td>
-                      <td>${item.date ? new Date(item.date + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+                      <td>
+                        ${item.date ? new Date(item.date + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
+                        ${(() => {
+                          const r = item?.metadata?.recurrence;
+                          if (!r || !r.active) return '';
+                          const fmt = (d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+                          return `<div class="rh-meta-xs" style="margin-top:2px;">${fmt(r.startDate)} → ${fmt(r.endDate)}</div>`;
+                        })()}
+                      </td>
                       <td style="text-align:right;font-weight:600;">${Store.formatBRL(item.value)}</td>
                       <td style="min-width:260px;">
                         ${(item.allocations || []).length === 0 ? `
@@ -338,6 +354,44 @@ window.Base = {
               <label class="form-label">Data *</label>
               <input class="form-control" name="date" type="date" value="${item?.date || new Date().toISOString().split('T')[0]}" required>
             </div>
+
+            <!-- Recorrência -->
+            ${(() => {
+              const rec = item?.metadata?.recurrence || {};
+              const isRec = !!rec.active;
+              return `
+              <div class="form-group" style="border-top:1px solid var(--color-border);padding-top:var(--sp-md);">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;">
+                  <input type="checkbox" id="recAtivo" name="recAtivo" ${isRec ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer;">
+                  <span>Item recorrente</span>
+                  <span class="rh-meta" style="font-weight:400;">(repete automaticamente até a data final)</span>
+                </label>
+              </div>
+              <div id="recCampos" style="display:${isRec ? 'block' : 'none'};">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">Início *</label>
+                    <input class="form-control" name="recInicio" type="date" value="${rec.startDate || ''}">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Fim *</label>
+                    <input class="form-control" name="recFim" type="date" value="${rec.endDate || ''}">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Frequência *</label>
+                  <select class="form-control" name="recFreq">
+                    <option value="weekly"     ${rec.frequency === 'weekly'     ? 'selected' : ''}>Semanal</option>
+                    <option value="monthly"    ${rec.frequency === 'monthly' || !rec.frequency ? 'selected' : ''}>Mensal</option>
+                    <option value="quarterly"  ${rec.frequency === 'quarterly'  ? 'selected' : ''}>Trimestral</option>
+                    <option value="yearly"     ${rec.frequency === 'yearly'     ? 'selected' : ''}>Anual</option>
+                  </select>
+                  <div class="form-helper">O valor informado acima é aplicado a cada ocorrência.</div>
+                </div>
+              </div>
+              `;
+            })()}
+
             <div class="form-group">
               <label class="form-label">Observações</label>
               <textarea class="form-control" name="notes">${item?.notes || ''}</textarea>
@@ -360,10 +414,44 @@ window.Base = {
     document.getElementById('btnCancelar').addEventListener('click', closeModal);
     overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
 
+    // Toggle dos campos de recorrência
+    const recAtivo = document.getElementById('recAtivo');
+    const recCampos = document.getElementById('recCampos');
+    if (recAtivo && recCampos) {
+      recAtivo.addEventListener('change', () => {
+        recCampos.style.display = recAtivo.checked ? 'block' : 'none';
+      });
+    }
+
     document.getElementById('btnSalvar').addEventListener('click', async () => {
       const fd = new FormData(document.getElementById('formItem'));
       const data = Object.fromEntries(fd);
       data.value = window.BRLInput.parse(data.value);
+
+      // Monta metadata.recurrence se ativo
+      const recurrenceActive = !!data.recAtivo;
+      const meta = (item && item.metadata) ? { ...item.metadata } : {};
+      if (recurrenceActive) {
+        if (!data.recInicio || !data.recFim) {
+          window.showToast('Informe as datas de início e fim da recorrência', 'error');
+          return;
+        }
+        if (data.recFim < data.recInicio) {
+          window.showToast('Data final deve ser igual ou posterior à inicial', 'error');
+          return;
+        }
+        meta.recurrence = {
+          active: true,
+          startDate: data.recInicio,
+          endDate: data.recFim,
+          frequency: data.recFreq || 'monthly',
+        };
+      } else {
+        delete meta.recurrence;
+      }
+      data.metadata = meta;
+      // Limpa campos auxiliares (não vão para o backend)
+      delete data.recAtivo; delete data.recInicio; delete data.recFim; delete data.recFreq;
 
       try {
         if (item) {
