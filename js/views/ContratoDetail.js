@@ -133,7 +133,10 @@ window.ContratoDetail = {
       const pctMedido     = contract.value > 0 ? (totalMedido / contract.value * 100) : 0;
       const pctEmitido    = contract.value > 0 ? (totalEmitido / contract.value * 100) : 0;
       const margemAtual   = totalMedido - totalSaidas - totalBase - totalPassagensRealizadas - totalCompras;
-      const pctMargem     = totalMedido > 0 ? (margemAtual / totalMedido * 100) : 0;
+      // pctMargem agora é sobre o VALOR DO CONTRATO (meta 20% do contrato).
+      const pctMargem     = contract.value > 0 ? (margemAtual / contract.value * 100) : 0;
+      const metaMargemReais = contract.value * 0.20;
+      const margemFaltante  = Math.max(0, metaMargemReais - margemAtual);
 
       // Orçamento
       const budget = contract.budget || [];
@@ -287,19 +290,20 @@ window.ContratoDetail = {
               <div class="text-muted font-sm mt-sm">trava ativa no contrato</div>
             </div>
             <div style="padding:var(--sp-lg);border-top:3px solid ${(() => {
-              const META = 20;
-              if (totalMedido <= 0) return 'var(--color-text-muted)';
-              if (pctMargem >= META) return 'var(--color-success)';
-              if (pctMargem >= 0)    return 'var(--color-warning)';
+              if (contract.value <= 0) return 'var(--color-text-muted)';
+              if (pctMargem >= 20) return 'var(--color-success)';
+              if (pctMargem >= 0)  return 'var(--color-warning)';
               return 'var(--color-danger)';
             })()};">
               <div class="text-muted font-sm mb-md" style="">Resultado parcial</div>
               <div style="font-size:22px;font-weight:800;color:${margemAtual >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${margemAtual >= 0 ? '+ ' : ''}${Store.formatBRL(margemAtual)}</div>
               <div class="text-muted font-sm mt-sm">
-                ${totalMedido > 0 ? `
-                  margem ${pctMargem.toFixed(1)}% · meta 20%
-                  ${pctMargem < 20 ? `<div style="margin-top:4px;display:inline-flex;align-items:center;gap:4px;color:${pctMargem < 0 ? 'var(--color-danger)' : 'var(--color-warning)'};font-weight:700;">⚠ ${pctMargem < 0 ? 'PREJUÍZO' : 'abaixo da meta (' + (20 - pctMargem).toFixed(1) + 'pp)'}</div>` : '<div style="margin-top:4px;color:var(--color-success);font-weight:700;">✓ acima da meta</div>'}
-                ` : 'sem medição'}
+                ${contract.value > 0 ? `
+                  ${pctMargem.toFixed(1)}% do contrato · meta ≥20% (${Store.formatBRL(metaMargemReais)})
+                  ${pctMargem < 20
+                    ? `<div style="margin-top:4px;display:inline-flex;align-items:center;gap:4px;color:${pctMargem < 0 ? 'var(--color-danger)' : 'var(--color-warning)'};font-weight:700;">⚠ ${pctMargem < 0 ? 'PREJUÍZO' : `faltam ${(20 - pctMargem).toFixed(1)}pp · ${Store.formatBRL(margemFaltante)}`}</div>`
+                    : '<div style="margin-top:4px;color:var(--color-success);font-weight:700;">✓ acima da meta</div>'}
+                ` : 'sem valor de contrato'}
               </div>
             </div>
           </div>
