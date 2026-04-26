@@ -2,12 +2,13 @@
 // Cada modal segue o padrão: <ModalNomeXxx onClose onSaved/>
 
 // =================== CONTRATO ===================
-const ModalContrato = ({ onClose, onSaved, clientes = [] }) => (
-  <Modal title="+ Novo Contrato" onClose={onClose} width={640}>
+const ModalContrato = ({ onClose, onSaved, clientes = [], initial = null }) => (
+  <Modal title={initial?.id ? 'Editar contrato' : '+ Novo Contrato'} onClose={onClose} width={640}>
     <Form
-      submitLabel="Criar contrato"
+      submitLabel={initial?.id ? 'Salvar' : 'Criar contrato'}
       onCancel={onClose}
       layout="grid-2"
+      initial={initial || {}}
       fields={[
         { name: 'name', label: 'Nome / Escopo', required: true, full: true, placeholder: 'Ex: Manutenção parada planta 2' },
         { name: 'contractNumber', label: 'Código', placeholder: 'CT-014' },
@@ -27,8 +28,8 @@ const ModalContrato = ({ onClose, onSaved, clientes = [] }) => (
         { name: 'notes', label: 'Observações', type: 'textarea', full: true },
       ]}
       onSubmit={async (v) => {
-        await apiSubmit('POST', '/api/contracts', v);
-        showToast('Contrato criado!');
+        await apiSave('/api/contracts', v, initial);
+        showToast(initial?.id ? 'Contrato atualizado!' : 'Contrato criado!');
         onSaved?.();
         onClose();
       }}
@@ -37,12 +38,13 @@ const ModalContrato = ({ onClose, onSaved, clientes = [] }) => (
 );
 
 // =================== LANÇAMENTO DE CAIXA ===================
-const ModalCaixa = ({ onClose, onSaved, contracts = [] }) => (
-  <Modal title="+ Novo lançamento de caixa" onClose={onClose} width={560}>
+const ModalCaixa = ({ onClose, onSaved, contracts = [], initial = null }) => (
+  <Modal title={initial?.id ? 'Editar lançamento' : '+ Novo lançamento de caixa'} onClose={onClose} width={560}>
     <Form
       submitLabel="Lançar"
       onCancel={onClose}
       layout="grid-2"
+      initial={initial || {}}
       fields={[
         { name: 'type', label: 'Tipo', type: 'select', required: true, default: 'entrada',
           options: [
@@ -65,8 +67,8 @@ const ModalCaixa = ({ onClose, onSaved, contracts = [] }) => (
         { name: 'notes', label: 'Notas', type: 'textarea', full: true },
       ]}
       onSubmit={async (v) => {
-        await apiSubmit('POST', '/api/caixa', v);
-        showToast('Lançamento criado!');
+        await apiSave('/api/caixa', v, initial);
+        showToast(initial?.id ? 'Lançamento atualizado!' : 'Lançamento criado!');
         onSaved?.();
         onClose();
       }}
@@ -75,12 +77,13 @@ const ModalCaixa = ({ onClose, onSaved, contracts = [] }) => (
 );
 
 // =================== CONTA A PAGAR ===================
-const ModalContaPagar = ({ onClose, onSaved, fornecedores = [], contracts = [] }) => (
-  <Modal title="+ Nova conta a pagar" onClose={onClose} width={620}>
+const ModalContaPagar = ({ onClose, onSaved, fornecedores = [], contracts = [], initial = null }) => (
+  <Modal title={initial?.id ? 'Editar conta a pagar' : '+ Nova conta a pagar'} onClose={onClose} width={620}>
     <Form
       submitLabel="Criar conta"
       onCancel={onClose}
       layout="grid-2"
+      initial={initial || {}}
       fields={[
         { name: 'descricao', label: 'Descrição', required: true, full: true, placeholder: 'Ex: Folha quinzenal' },
         { name: 'valor', label: 'Valor (R$)', type: 'number', required: true, step: '0.01' },
@@ -102,8 +105,8 @@ const ModalContaPagar = ({ onClose, onSaved, fornecedores = [], contracts = [] }
         { name: 'observacoes', label: 'Observações', type: 'textarea', full: true },
       ]}
       onSubmit={async (v) => {
-        await apiSubmit('POST', '/api/contas-pagar', v);
-        showToast('Conta a pagar criada!');
+        await apiSave('/api/contas-pagar', v, initial);
+        showToast(initial?.id ? 'Conta atualizada!' : 'Conta a pagar criada!');
         onSaved?.();
         onClose();
       }}
@@ -112,12 +115,13 @@ const ModalContaPagar = ({ onClose, onSaved, fornecedores = [], contracts = [] }
 );
 
 // =================== NOTA FISCAL ===================
-const ModalNF = ({ onClose, onSaved, contracts = [] }) => (
-  <Modal title="+ Nova nota fiscal" onClose={onClose} width={560}>
+const ModalNF = ({ onClose, onSaved, contracts = [], initial = null }) => (
+  <Modal title={initial?.id ? 'Editar NF' : '+ Nova nota fiscal'} onClose={onClose} width={560}>
     <Form
       submitLabel="Emitir NF"
       onCancel={onClose}
       layout="grid-2"
+      initial={initial || {}}
       fields={[
         { name: 'numero', label: 'Número', required: true, placeholder: 'NF-846' },
         { name: 'contractId', label: 'Contrato', type: 'select', required: true,
@@ -128,8 +132,8 @@ const ModalNF = ({ onClose, onSaved, contracts = [] }) => (
         { name: 'observacoes', label: 'Observações', type: 'textarea', full: true },
       ]}
       onSubmit={async (v) => {
-        await apiSubmit('POST', '/api/notas-fiscais', v);
-        showToast('NF criada!');
+        await apiSave('/api/notas-fiscais', v, initial);
+        showToast(initial?.id ? 'NF atualizada!' : 'NF criada!');
         onSaved?.();
         onClose();
       }}
@@ -144,6 +148,7 @@ const ModalSaida = ({ onClose, onSaved, contracts = [] }) => (
       submitLabel="Criar saída"
       onCancel={onClose}
       layout="grid-2"
+      initial={initial || {}}
       fields={[
         { name: 'contractId', label: 'Contrato', type: 'select', required: true, full: true,
           options: contracts.filter(c => c.status === 'ativo').map(c => ({ value: c.id, label: (c.codigo || '') + ' · ' + (c.client || c.name) })) },
@@ -163,12 +168,13 @@ const ModalSaida = ({ onClose, onSaved, contracts = [] }) => (
 );
 
 // =================== CLIENTE ===================
-const ModalCliente = ({ onClose, onSaved }) => (
-  <Modal title="+ Novo cliente" onClose={onClose} width={620}>
+const ModalCliente = ({ onClose, onSaved, initial = null }) => (
+  <Modal title={initial?.id ? 'Editar cliente' : '+ Novo cliente'} onClose={onClose} width={620}>
     <Form
       submitLabel="Criar cliente"
       onCancel={onClose}
       layout="grid-2"
+      initial={initial || {}}
       fields={[
         { name: 'empresa', label: 'Empresa', required: true, full: true, placeholder: 'Ex: Veracel Celulose' },
         { name: 'nome', label: 'Contato', placeholder: 'Pessoa de contato' },
@@ -180,8 +186,8 @@ const ModalCliente = ({ onClose, onSaved }) => (
         { name: 'notas', label: 'Notas', type: 'textarea', full: true },
       ]}
       onSubmit={async (v) => {
-        await apiSubmit('POST', '/api/clientes', v);
-        showToast('Cliente criado!');
+        await apiSave('/api/clientes', v, initial);
+        showToast(initial?.id ? 'Cliente atualizado!' : 'Cliente criado!');
         onSaved?.();
         onClose();
       }}
@@ -190,12 +196,13 @@ const ModalCliente = ({ onClose, onSaved }) => (
 );
 
 // =================== FORNECEDOR ===================
-const ModalFornecedor = ({ onClose, onSaved }) => (
-  <Modal title="+ Novo fornecedor" onClose={onClose} width={640}>
+const ModalFornecedor = ({ onClose, onSaved, initial = null }) => (
+  <Modal title={initial?.id ? 'Editar fornecedor' : '+ Novo fornecedor'} onClose={onClose} width={640}>
     <Form
       submitLabel="Criar fornecedor"
       onCancel={onClose}
       layout="grid-2"
+      initial={initial || {}}
       fields={[
         { name: 'nome', label: 'Razão social', required: true, full: true },
         { name: 'cnpj', label: 'CNPJ', placeholder: '00.000.000/0000-00' },
@@ -214,8 +221,8 @@ const ModalFornecedor = ({ onClose, onSaved }) => (
         if (v.notas && !v.materiais) {
           v.materiais = v.notas.split(',').map(s => s.trim()).filter(Boolean);
         }
-        await apiSubmit('POST', '/api/fornecedores', v);
-        showToast('Fornecedor criado!');
+        await apiSave('/api/fornecedores', v, initial);
+        showToast(initial?.id ? 'Fornecedor atualizado!' : 'Fornecedor criado!');
         onSaved?.();
         onClose();
       }}
@@ -224,12 +231,13 @@ const ModalFornecedor = ({ onClose, onSaved }) => (
 );
 
 // =================== RECURSO ===================
-const ModalRecurso = ({ onClose, onSaved }) => (
-  <Modal title="+ Novo recurso" onClose={onClose} width={640}>
+const ModalRecurso = ({ onClose, onSaved, initial = null }) => (
+  <Modal title={initial?.id ? 'Editar recurso' : '+ Novo recurso'} onClose={onClose} width={640}>
     <Form
       submitLabel="Criar pessoa"
       onCancel={onClose}
       layout="grid-2"
+      initial={initial || {}}
       fields={[
         { name: 'nome', label: 'Nome completo', required: true, full: true },
         { name: 'cpf', label: 'CPF', placeholder: '000.000.000-00' },
@@ -256,8 +264,8 @@ const ModalRecurso = ({ onClose, onSaved }) => (
         { name: 'cnh', label: 'CNH' },
       ]}
       onSubmit={async (v) => {
-        await apiSubmit('POST', '/api/recursos', v);
-        showToast('Recurso criado!');
+        await apiSave('/api/recursos', v, initial);
+        showToast(initial?.id ? 'Recurso atualizado!' : 'Recurso criado!');
         onSaved?.();
         onClose();
       }}
@@ -266,12 +274,13 @@ const ModalRecurso = ({ onClose, onSaved }) => (
 );
 
 // =================== APORTE ===================
-const ModalAporte = ({ onClose, onSaved, socios = [], contracts = [] }) => (
-  <Modal title="+ Novo aporte" onClose={onClose} width={580}>
+const ModalAporte = ({ onClose, onSaved, socios = [], contracts = [], initial = null }) => (
+  <Modal title={initial?.id ? 'Editar aporte' : '+ Novo aporte'} onClose={onClose} width={580}>
     <Form
       submitLabel="Lançar aporte"
       onCancel={onClose}
       layout="grid-2"
+      initial={initial || {}}
       fields={[
         { name: 'socioId', label: 'Sócio', type: 'select', required: true, full: true,
           options: socios.map(s => ({ value: s.id, label: s.name })) },
@@ -293,8 +302,8 @@ const ModalAporte = ({ onClose, onSaved, socios = [], contracts = [] }) => (
         { name: 'description', label: 'Descrição', full: true, placeholder: 'Ex: capital de giro out/26' },
       ]}
       onSubmit={async (v) => {
-        await apiSubmit('POST', '/api/investimentos', v);
-        showToast('Aporte lançado!');
+        await apiSave('/api/investimentos', v, initial);
+        showToast(initial?.id ? 'Aporte atualizado!' : 'Aporte lançado!');
         onSaved?.();
         onClose();
       }}
@@ -303,12 +312,13 @@ const ModalAporte = ({ onClose, onSaved, socios = [], contracts = [] }) => (
 );
 
 // =================== ITEM BASE ===================
-const ModalBase = ({ onClose, onSaved, tipos = [] }) => (
-  <Modal title="+ Novo item da BASE" onClose={onClose} width={560}>
+const ModalBase = ({ onClose, onSaved, tipos = [], initial = null }) => (
+  <Modal title={initial?.id ? 'Editar item BASE' : '+ Novo item da BASE'} onClose={onClose} width={560}>
     <Form
       submitLabel="Criar item"
       onCancel={onClose}
       layout="grid-2"
+      initial={initial || {}}
       fields={[
         { name: 'description', label: 'Descrição', required: true, full: true },
         { name: 'value', label: 'Valor (R$)', type: 'number', required: true, step: '0.01' },
@@ -320,8 +330,8 @@ const ModalBase = ({ onClose, onSaved, tipos = [] }) => (
         { name: 'notes', label: 'Notas', type: 'textarea', full: true },
       ]}
       onSubmit={async (v) => {
-        await apiSubmit('POST', '/api/base', v);
-        showToast('Item BASE criado!');
+        await apiSave('/api/base', v, initial);
+        showToast(initial?.id ? 'Item BASE atualizado!' : 'Item BASE criado!');
         onSaved?.();
         onClose();
       }}
@@ -330,12 +340,13 @@ const ModalBase = ({ onClose, onSaved, tipos = [] }) => (
 );
 
 // =================== SÓCIO ===================
-const ModalSocio = ({ onClose, onSaved }) => (
-  <Modal title="+ Novo sócio" onClose={onClose} width={560}>
+const ModalSocio = ({ onClose, onSaved, initial = null }) => (
+  <Modal title={initial?.id ? 'Editar sócio' : '+ Novo sócio'} onClose={onClose} width={560}>
     <Form
       submitLabel="Criar sócio"
       onCancel={onClose}
       layout="grid-2"
+      initial={initial || {}}
       fields={[
         { name: 'name', label: 'Nome', required: true, full: true },
         { name: 'document', label: 'CPF/CNPJ' },
@@ -345,8 +356,8 @@ const ModalSocio = ({ onClose, onSaved }) => (
         { name: 'notes', label: 'Notas', type: 'textarea', full: true },
       ]}
       onSubmit={async (v) => {
-        await apiSubmit('POST', '/api/socios', v);
-        showToast('Sócio criado!');
+        await apiSave('/api/socios', v, initial);
+        showToast(initial?.id ? 'Sócio atualizado!' : 'Sócio criado!');
         onSaved?.();
         onClose();
       }}

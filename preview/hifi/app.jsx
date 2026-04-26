@@ -14,6 +14,8 @@ const ROUTES = {
   'recursos':       () => <Recursos/>,
   'socios':         () => <Socios/>,
   'base':           () => <Base/>,
+  'auditoria':      () => <Auditoria/>,
+  'usuarios':       () => <Usuarios/>,
 };
 
 // Parse de hash com query: "#contrato?id=abc" → { route: 'contrato', params: { id: 'abc' } }

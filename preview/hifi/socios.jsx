@@ -4,6 +4,7 @@ const Socios = () => {
   const [data, setData] = React.useState(null);
   const [busca, setBusca] = React.useState('');
   const [modal, setModal] = React.useState(null);
+  const [editing, setEditing] = React.useState(null);
   const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
@@ -94,6 +95,7 @@ const Socios = () => {
             </div>
             {modal === 'socio' && <ModalSocio onClose={() => setModal(null)} onSaved={() => setTick(t => t + 1)}/>}
             {modal === 'aporte' && <ModalAporte onClose={() => setModal(null)} onSaved={() => setTick(t => t + 1)} socios={data.socios} contracts={data.contracts}/>}
+            {editing && <ModalSocio onClose={() => setEditing(null)} onSaved={() => setTick(t => t + 1)} initial={editing}/>}
 
             {Math.abs(total.participacao - 100) > 0.01 && total.socios > 0 && (
               <div className="alert-bar">
@@ -153,6 +155,7 @@ const Socios = () => {
                         <th className="num-cell">Aportes</th>
                         <th className="num-cell">Total aportado</th>
                         <th>Último aporte</th>
+                        <th></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -176,6 +179,7 @@ const Socios = () => {
                             {s._stats.total > 0 ? fmtBRLk(s._stats.total) : '—'}
                           </td>
                           <td className="muted tabular" style={{ fontSize: 12 }}>{fmtData(s._stats.ultimoAporte)}</td>
+                          <td><button className="btn btn-sm" onClick={() => setEditing(s)}>Editar</button></td>
                         </tr>
                       ))}
                     </tbody>

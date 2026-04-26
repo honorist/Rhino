@@ -4,6 +4,7 @@ const Clientes = () => {
   const [data, setData] = React.useState(null);
   const [busca, setBusca] = React.useState('');
   const [showModal, setShowModal] = React.useState(false);
+  const [editing, setEditing] = React.useState(null);
   const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
@@ -81,6 +82,7 @@ const Clientes = () => {
               </div>
             </div>
             {showModal && <ModalCliente onClose={() => setShowModal(false)} onSaved={() => setTick(t => t + 1)}/>}
+            {editing && <ModalCliente onClose={() => setEditing(null)} onSaved={() => setTick(t => t + 1)} initial={editing}/>}
 
             <div className="dash-kpis" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
               <div className="card kpi-card">
@@ -160,7 +162,10 @@ const Clientes = () => {
                           <td className="num-cell tabular" style={{ color: cli._stats.nfsAReceber > 0 ? 'var(--pos)' : 'var(--muted)' }}>
                             {cli._stats.nfsAReceber > 0 ? fmtBRLk(cli._stats.nfsAReceber) : '—'}
                           </td>
-                          <td><span className={`tag ${tag}`}><span className="tag-dot"/> {label}</span></td>
+                          <td>
+                            <span className={`tag ${tag}`}><span className="tag-dot"/> {label}</span>
+                            <button className="btn btn-sm" style={{ marginLeft: 8 }} onClick={() => setEditing(cli)}>Editar</button>
+                          </td>
                         </tr>
                       );
                     })}

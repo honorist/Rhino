@@ -4,6 +4,7 @@ const Fornecedores = () => {
   const [data, setData] = React.useState(null);
   const [busca, setBusca] = React.useState('');
   const [showModal, setShowModal] = React.useState(false);
+  const [editing, setEditing] = React.useState(null);
   const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
@@ -99,6 +100,7 @@ const Fornecedores = () => {
               </div>
             </div>
             {showModal && <ModalFornecedor onClose={() => setShowModal(false)} onSaved={() => setTick(t => t + 1)}/>}
+            {editing && <ModalFornecedor onClose={() => setEditing(null)} onSaved={() => setTick(t => t + 1)} initial={editing}/>}
 
             {total.comVencidas > 0 && (
               <div className="alert-bar">
@@ -199,7 +201,10 @@ const Fornecedores = () => {
                           <td className="num-cell tabular" style={{ color: f._stats.totalPendente > 0 ? 'var(--neg)' : 'var(--muted)' }}>
                             {f._stats.totalPendente > 0 ? fmtBRLk(f._stats.totalPendente) : '—'}
                           </td>
-                          <td><span className={`tag ${tag}`}><span className="tag-dot"/> {label}</span></td>
+                          <td>
+                            <span className={`tag ${tag}`}><span className="tag-dot"/> {label}</span>
+                            <button className="btn btn-sm" style={{ marginLeft: 8 }} onClick={() => setEditing(f)}>Editar</button>
+                          </td>
                         </tr>
                       );
                     })}

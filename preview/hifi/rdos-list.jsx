@@ -3,11 +3,19 @@
 const RdosList = () => {
   const [data, setData] = React.useState(null);
   const [filtroContrato, setFiltroContrato] = React.useState('');
+  const [showModal, setShowModal] = React.useState(false);
+  const [contracts, setContracts] = React.useState([]);
+  const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
-    fetch('/api/rdos').then(r => r.json()).catch(() => ({ rdos: [], stats: null }))
-      .then(d => setData({ rdos: d.rdos || [], stats: d.stats }));
-  }, []);
+    Promise.all([
+      fetch('/api/rdos').then(r => r.json()).catch(() => ({ rdos: [], stats: null })),
+      fetch('/api/contracts').then(r => r.json()).catch(() => ({ contracts: [] })),
+    ]).then(([d, c]) => {
+      setData({ rdos: d.rdos || [], stats: d.stats });
+      setContracts(c.contracts || []);
+    });
+  }, [tick]);
 
   if (!data) return <div style={{ padding: 40, fontFamily: 'var(--font-sans)' }}>Carregando…</div>;
 
@@ -45,9 +53,11 @@ const RdosList = () => {
                 <p className="muted" style={{ margin: "4px 0 0", fontSize: 13 }}>{data.rdos.length} RDOs · {stats.obrasAtivas || 0} obras ativas</p>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
+                <button className="btn btn-primary" onClick={() => setShowModal(true)}><Icon name="plus" size={14}/> Novo RDO</button>
                 <a className="btn" href="/#/rdos" target="_top"><Icon name="arrow-right" size={14}/> Abrir no app</a>
               </div>
             </div>
+            {showModal && <ModalRDO onClose={() => setShowModal(false)} onSaved={() => setTick(t => t + 1)} contracts={contracts}/>}
 
             {ehFimDeSemana && (
               <div className="alert-bar" style={{ background: 'linear-gradient(180deg, #dbeafe, transparent)', borderColor: '#93c5fd' }}>

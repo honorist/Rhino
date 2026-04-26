@@ -5,6 +5,7 @@ const ContractsList = () => {
   const [filtroStatus, setFiltroStatus] = React.useState('ativo');
   const [busca, setBusca] = React.useState('');
   const [showModal, setShowModal] = React.useState(false);
+  const [editing, setEditing] = React.useState(null);
   const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
@@ -73,6 +74,7 @@ const ContractsList = () => {
               </div>
             </div>
             {showModal && <ModalContrato onClose={() => setShowModal(false)} onSaved={() => setTick(t => t + 1)}/>}
+            {editing && <ModalContrato onClose={() => setEditing(null)} onSaved={() => setTick(t => t + 1)} initial={editing}/>}
 
             <div className="card">
               <div className="filter-bar" style={{ borderBottom: "1px solid var(--line)" }}>
@@ -131,7 +133,9 @@ const ContractsList = () => {
                           <td className="num-cell tabular">{nSaidas}</td>
                           <td className="num-cell tabular">{nRdos}</td>
                           <td><span className={`tag ${st.tag}`}><span className="tag-dot"/> {st.label}</span></td>
-                          <td><a className="btn btn-icon" onClick={e => e.stopPropagation()} href={'#contrato?id=' + c.id}><Icon name="arrow-right" size={14}/></a></td>
+                          <td>
+                            <button className="btn btn-sm" onClick={e => { e.stopPropagation(); setEditing(c); }}>Editar</button>
+                          </td>
                         </tr>
                       );
                     })}

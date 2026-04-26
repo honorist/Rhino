@@ -5,6 +5,7 @@ const Recursos = () => {
   const [filtroStatus, setFiltroStatus] = React.useState('funcionario');
   const [busca, setBusca] = React.useState('');
   const [showModal, setShowModal] = React.useState(false);
+  const [editing, setEditing] = React.useState(null);
   const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
@@ -81,6 +82,7 @@ const Recursos = () => {
               </div>
             </div>
             {showModal && <ModalRecurso onClose={() => setShowModal(false)} onSaved={() => setTick(t => t + 1)}/>}
+            {editing && <ModalRecurso onClose={() => setEditing(null)} onSaved={() => setTick(t => t + 1)} initial={editing}/>}
 
             {counts.docVencidos > 0 && (
               <div className="alert-bar">
@@ -179,7 +181,10 @@ const Recursos = () => {
                               doc.type === 'prox' ? <span className="doc-badge warn">{doc.label}</span> :
                               <span className="doc-badge">OK</span>}
                           </td>
-                          <td><span className={`tag ${stTag}`}><span className="tag-dot"/> {stLabel}</span></td>
+                          <td>
+                            <span className={`tag ${stTag}`}><span className="tag-dot"/> {stLabel}</span>
+                            <button className="btn btn-sm" style={{ marginLeft: 8 }} onClick={() => setEditing(r)}>Editar</button>
+                          </td>
                         </tr>
                       );
                     })}

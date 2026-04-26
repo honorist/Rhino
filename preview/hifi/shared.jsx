@@ -60,6 +60,8 @@ const SIDEBAR_ROUTES = {
   "Recursos":       "#recursos",
   "Aportes":        "#socios",
   "BASE":           "#base",
+  "Usuários":       "#usuarios",
+  "Auditoria":      "#auditoria",
 };
 
 const Sidebar = ({ active }) => {
@@ -75,6 +77,8 @@ const Sidebar = ({ active }) => {
     ["Recursos","users", null],
     ["Aportes","wallet", null],
     ["BASE","building", null],
+    ["Usuários","users", null],
+    ["Auditoria","list", null],
   ];
   // Estado do usuário logado (busca uma vez)
   const [me, setMe] = React.useState(null);

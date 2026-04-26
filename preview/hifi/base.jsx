@@ -5,6 +5,7 @@ const Base = () => {
   const [filtroTipo, setFiltroTipo] = React.useState('todos');
   const [busca, setBusca] = React.useState('');
   const [showModal, setShowModal] = React.useState(false);
+  const [editing, setEditing] = React.useState(null);
   const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
@@ -95,6 +96,7 @@ const Base = () => {
               </div>
             </div>
             {showModal && <ModalBase onClose={() => setShowModal(false)} onSaved={() => setTick(t => t + 1)} tipos={data.tipos}/>}
+            {editing && <ModalBase onClose={() => setEditing(null)} onSaved={() => setTick(t => t + 1)} tipos={data.tipos} initial={editing}/>}
 
             <div className="dash-kpis" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
               <div className="card kpi-card">

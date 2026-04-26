@@ -7,6 +7,7 @@ const ContractV5 = () => {
   const [loading, setLoading] = React.useState(true);
   const [allContracts, setAllContracts] = React.useState([]);
   const [showSaida, setShowSaida] = React.useState(false);
+  const [showRDO, setShowRDO] = React.useState(false);
   const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
@@ -95,10 +96,12 @@ const ContractV5 = () => {
                 </div>
               </div>
               <div className="ct-header-actions">
+                <button className="btn" onClick={() => setShowRDO(true)}><Icon name="plus" size={14}/> Novo RDO</button>
                 <button className="btn" onClick={() => setShowSaida(true)}><Icon name="plus" size={14}/> Nova saída/BM</button>
                 <a className="btn btn-primary" href={'/#/contratos/' + contract.id} target="_top"><Icon name="arrow-right" size={14}/> Abrir no app</a>
               </div>
               {showSaida && <ModalSaida onClose={() => setShowSaida(false)} onSaved={() => setTick(t => t + 1)} contracts={[contract, ...allContracts.filter(c => c.id !== contract.id && c.status === 'ativo')]}/>}
+              {showRDO && <ModalRDO onClose={() => setShowRDO(false)} onSaved={() => setTick(t => t + 1)} contracts={[contract, ...allContracts.filter(c => c.id !== contract.id && c.status === 'ativo')]} initialContractId={contract.id}/>}
             </div>
 
             <div className="tabs">

@@ -144,6 +144,14 @@ const Form = ({ fields, initial = {}, submitLabel = 'Salvar', onSubmit, onCancel
   );
 };
 
+// Helper: roteia POST (criar) ou PUT (editar) baseado em initial.id
+const apiSave = async (endpointBase, values, initial) => {
+  if (initial && initial.id) {
+    return apiSubmit('PUT', endpointBase + '/' + initial.id, values);
+  }
+  return apiSubmit('POST', endpointBase, values);
+};
+
 // Helper: POST/PUT pra API e tratar resposta
 const apiSubmit = async (method, url, body) => {
   const r = await fetch(url, {
@@ -180,4 +188,5 @@ window.Modal = Modal;
 window.Form = Form;
 window.Field = Field;
 window.apiSubmit = apiSubmit;
+window.apiSave = apiSave;
 window.showToast = showToast;
