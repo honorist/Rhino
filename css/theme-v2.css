@@ -323,7 +323,53 @@ textarea:focus-visible,
   .rh-pipeline { grid-template-columns: 1fr; }
 }
 
-/* ─── Visually hidden (a11y) ─── */
+/* ─── Utilitários para reduzir inline styles ─── */
+.rh-row     { display: flex; align-items: center; gap: 8px; }
+.rh-row-sm  { display: flex; align-items: center; gap: 6px; }
+.rh-row-lg  { display: flex; align-items: center; gap: 16px; }
+.rh-col     { display: flex; flex-direction: column; gap: 8px; }
+.rh-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rh-end     { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.rh-wrap    { flex-wrap: wrap; }
+
+.rh-grid-2  { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.rh-grid-3  { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.rh-grid-4  { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media (max-width: 768px) {
+  .rh-grid-3, .rh-grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .rh-grid-2, .rh-grid-3, .rh-grid-4 { grid-template-columns: 1fr; }
+}
+
+.rh-text-right  { text-align: right; }
+.rh-text-center { text-align: center; }
+
+.rh-label   { font-size: var(--rh-fs-xs); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; color: var(--rh-ink-500); }
+.rh-meta    { font-size: var(--rh-fs-sm); color: var(--rh-ink-500); }
+.rh-meta-xs { font-size: var(--rh-fs-xs); color: var(--rh-ink-500); }
+.rh-strong  { font-weight: 700; color: var(--rh-ink-900); }
+.rh-money   { font-variant-numeric: tabular-nums; font-weight: 700; }
+
+.rh-tone-pos  { color: var(--rh-pos-strong); }
+.rh-tone-warn { color: var(--rh-warn-strong); }
+.rh-tone-neg  { color: var(--rh-neg-strong); }
+
+.rh-link {
+  color: var(--rh-brand-500);
+  text-decoration: none;
+  font-size: var(--rh-fs-sm);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color .15s;
+}
+.rh-link:hover { color: var(--rh-brand-700); text-decoration: underline; }
+
+.rh-divider { border-bottom: 1px solid var(--rh-ink-200); padding-bottom: 12px; margin-bottom: 12px; }
+
+/* Visually hidden (a11y) */
 .rh-sr-only {
   position: absolute !important;
   width: 1px !important; height: 1px !important;

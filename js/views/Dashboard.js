@@ -254,14 +254,14 @@ window.Dashboard = {
           <div class="card-header">
             <h3 class="card-title">Fluxo de Caixa — ${this._periodoLabel()}</h3>
             <div style="display:flex;align-items:center;gap:var(--sp-lg);flex-wrap:wrap;">
-              <div style="display:flex;align-items:center;gap:6px;">
+              <div class="rh-row-sm">
                 <div style="width:24px;height:3px;background:#F0B429;border-radius:2px;"></div>
-                <span style="font-size:15px;color:var(--color-text-muted);">Realizado</span>
+                <span class="rh-meta">Realizado</span>
               </div>
               ${this.periodo.modo === 'recente' ? `
-              <div style="display:flex;align-items:center;gap:6px;">
+              <div class="rh-row-sm">
                 <div style="width:24px;height:3px;background:#60A5FA;border-radius:2px;border-top:2px dashed #60A5FA;"></div>
-                <span style="font-size:15px;color:var(--color-text-muted);">Projetado (NFs)</span>
+                <span class="rh-meta">Projetado (NFs)</span>
               </div>
               <div id="projDaysCtrl" style="display:inline-flex;border:1px solid var(--color-border);border-radius:6px;overflow:hidden;">
                 ${[30, 60, 90].map(d => `
@@ -282,39 +282,39 @@ window.Dashboard = {
           </div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--sp-lg);padding-top:var(--sp-lg);border-top:1px solid var(--color-border);">
             <div>
-              <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--sp-sm);">Saldo Atual</div>
+              <div class="rh-label" style="margin-bottom:var(--sp-sm);">Saldo Atual</div>
               <div style="font-size:22px;font-weight:700;color:${dash.caixaBalance >= 0 ? 'var(--color-success)' : 'var(--color-danger)'}">
                 ${Store.formatBRL(dash.caixaBalance)}
               </div>
-              <div style="font-size:15px;color:var(--color-text-muted);margin-top:4px;">Caixa hoje</div>
+              <div class="rh-meta" style="margin-top:4px;">Caixa hoje</div>
             </div>
             <div>
-              <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--sp-sm);">Entradas Previstas</div>
+              <div class="rh-label" style="margin-bottom:var(--sp-sm);">Entradas Previstas</div>
               <div style="font-size:22px;font-weight:700;color:var(--color-info)">
                 +${Store.formatBRL(dash.projecaoFutura.reduce((s, p) => s + p.totalEntradas, 0))}
               </div>
-              <div style="font-size:15px;color:var(--color-text-muted);margin-top:4px;">Via NFs (próx. ${this.projDays} dias)</div>
+              <div class="rh-meta" style="margin-top:4px;">Via NFs (próx. ${this.projDays} dias)</div>
             </div>
             <div>
-              <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--sp-sm);">Saídas Previstas</div>
+              <div class="rh-label" style="margin-bottom:var(--sp-sm);">Saídas Previstas</div>
               <div style="font-size:22px;font-weight:700;color:${dash.contasPagarStatus?.totalPendente > 0 ? 'var(--color-danger)' : 'var(--color-text-muted)'}">
                 -${Store.formatBRL(dash.contasPagarStatus?.totalPendente || 0)}
               </div>
-              <div style="font-size:15px;color:var(--color-text-muted);margin-top:4px;">${dash.contasPagarStatus?.pendentes || 0} conta(s) a pagar pendente(s)</div>
+              <div class="rh-meta" style="margin-top:4px;">${dash.contasPagarStatus?.pendentes || 0} conta(s) a pagar pendente(s)</div>
             </div>
             <div>
-              <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--sp-sm);">Margem Média</div>
+              <div class="rh-label" style="margin-bottom:var(--sp-sm);">Margem Média</div>
               <div style="font-size:22px;font-weight:700;color:${parseFloat(marginMedia) > 30 ? 'var(--color-success)' : parseFloat(marginMedia) > 10 ? 'var(--color-warning)' : 'var(--color-danger)'}">
                 ${marginMedia}%
               </div>
-              <div style="font-size:15px;color:var(--color-text-muted);margin-top:4px;">Lucro esperado médio</div>
+              <div class="rh-meta" style="margin-top:4px;">Lucro esperado médio</div>
             </div>
             <div>
-              <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--sp-sm);">Taxa de Despesa</div>
+              <div class="rh-label" style="margin-bottom:var(--sp-sm);">Taxa de Despesa</div>
               <div style="font-size:22px;font-weight:700;color:${parseFloat(taxaDespesa) > 80 ? 'var(--color-danger)' : parseFloat(taxaDespesa) > 60 ? 'var(--color-warning)' : 'var(--color-success)'}">
                 ${taxaDespesa}%
               </div>
-              <div style="font-size:15px;color:var(--color-text-muted);margin-top:4px;">Saídas ÷ Faturamento</div>
+              <div class="rh-meta" style="margin-top:4px;">Saídas ÷ Faturamento</div>
             </div>
           </div>
         </div>
@@ -345,10 +345,10 @@ window.Dashboard = {
                       <tr class="row-dash-fut" data-nf-id="${e.nfId}" style="cursor:pointer;">
                         <td>
                           <strong style="color:${urgCor};">${new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR')}</strong>
-                          <div style="font-size:15px;color:var(--color-text-muted);">em ${diasAte} dias</div>
+                          <div class="rh-meta">em ${diasAte} dias</div>
                         </td>
                         <td><strong>NF ${escapeHtml(e.numero)}</strong></td>
-                        <td>${escapeHtml(contract?.name || '—')}<div style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(contract?.client || '')}</div></td>
+                        <td>${escapeHtml(contract?.name || '—')}<div class="rh-meta">${escapeHtml(contract?.client || '')}</div></td>
                         <td>${e.prazoRecebimento}d após emissão</td>
                         <td style="text-align:right;font-weight:700;color:var(--color-success);font-size:15px;">
                           +${Store.formatBRL(e.valor)}
@@ -366,7 +366,7 @@ window.Dashboard = {
         <div class="card mb-2xl">
           <div class="card-header">
             <h3 class="card-title">Notas Fiscais — Situação</h3>
-            <a href="#/notas-fiscais" style="color:var(--color-primary); text-decoration:none; font-size:15px; font-weight:600;">Ver todas →</a>
+            <a href="#/notas-fiscais" class="rh-link">Ver todas →</a>
           </div>
           <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-md);">
             ${[
@@ -376,7 +376,7 @@ window.Dashboard = {
               { tone: 'info', label: 'Emitidas',     value: dash.nfsStatus.emitidas || 0 },
             ].map(s => `
               <div class="rh-pipeline-stage ${s.value > 0 && s.tone === 'neg' ? 'is-active' : ''}" style="text-align:left;">
-                <div class="rh-pipeline-stage-label" style="display:flex;align-items:center;gap:6px;">${window.rhStatusPill ? window.rhStatusPill(s.tone, s.label) : s.label}</div>
+                <div class="rh-pipeline-stage-label rh-row-sm">${window.rhStatusPill ? window.rhStatusPill(s.tone, s.label) : s.label}</div>
                 <div class="rh-pipeline-stage-count">${s.value}</div>
               </div>
             `).join('')}
@@ -396,7 +396,7 @@ window.Dashboard = {
               { tone: 'pos',  label: 'No prazo',     value: (dash.contasPagarStatus?.pendentes || 0) - (dash.contasPagarStatus?.vencidas || 0) - (dash.contasPagarStatus?.proximasVencer || 0) },
             ].map(s => `
               <div class="rh-pipeline-stage ${s.value > 0 && s.tone === 'neg' ? 'is-active' : ''}" style="text-align:left;">
-                <div class="rh-pipeline-stage-label" style="display:flex;align-items:center;gap:6px;">${window.rhStatusPill ? window.rhStatusPill(s.tone, s.label) : s.label}</div>
+                <div class="rh-pipeline-stage-label rh-row-sm">${window.rhStatusPill ? window.rhStatusPill(s.tone, s.label) : s.label}</div>
                 <div class="rh-pipeline-stage-count">${s.value}</div>
               </div>
             `).join('')}
@@ -421,11 +421,11 @@ window.Dashboard = {
                   <div style="display:flex; justify-content:space-between; align-items:center; padding:var(--sp-md); background:${c.diasRestantes <= 7 ? 'rgba(229,62,62,.06)' : 'rgba(214,158,46,.06)'}; border-radius:6px; border-left:3px solid ${c.diasRestantes <= 7 ? 'var(--color-danger)' : 'var(--color-warning)'};">
                     <div>
                       <a href="#/contratos/${c.id}" style="font-weight:600; color:var(--color-primary); text-decoration:none;">${escapeHtml(c.name)}</a>
-                      <div style="font-size:15px; color:var(--color-text-muted);">${escapeHtml(c.client)}</div>
+                      <div class="rh-meta">${escapeHtml(c.client)}</div>
                     </div>
                     <div style="text-align:right;">
                       <div style="font-weight:700; color:${c.diasRestantes <= 7 ? 'var(--color-danger)' : 'var(--color-warning)'};">${c.diasRestantes}d</div>
-                      <div style="font-size:15px; color:var(--color-text-muted);">${new Date(c.endDate).toLocaleDateString('pt-BR')}</div>
+                      <div class="rh-meta">${new Date(c.endDate).toLocaleDateString('pt-BR')}</div>
                     </div>
                   </div>
                 `).join('')}
@@ -456,7 +456,7 @@ window.Dashboard = {
                       <tr>
                         <td>
                           <a href="#/contratos/${c.id}" style="color:var(--color-primary); text-decoration:none; font-weight:500;">${escapeHtml(c.name)}</a>
-                          <div style="font-size:15px; color:var(--color-text-muted);">${escapeHtml(c.client)}</div>
+                          <div class="rh-meta">${escapeHtml(c.client)}</div>
                         </td>
                         <td>${Store.formatBRL(c.totalSaidas)}</td>
                         <td>
@@ -498,7 +498,7 @@ window.Dashboard = {
                     ">${b.l}</button>
                   `).join('')}
                 </div>
-                <a href="#/caixa" style="color:var(--color-primary); text-decoration:none; font-size:15px; font-weight:600;">Ver todos →</a>
+                <a href="#/caixa" class="rh-link">Ver todos →</a>
               </div>
             </div>
             ${filtradas.length === 0 ? `
@@ -509,7 +509,7 @@ window.Dashboard = {
                   <div class="row-dash-mov" data-id="${e.id}" style="display:flex; justify-content:space-between; align-items:center; padding:var(--sp-md) 0; border-bottom:1px solid var(--color-border); cursor:pointer;">
                     <div>
                       <div style="font-weight:500;">${escapeHtml(e.description)}</div>
-                      <div style="font-size:15px; color:var(--color-text-muted);">${new Date(e.date).toLocaleDateString('pt-BR')}${e.formaPagamento ? ' · ' + escapeHtml(e.formaPagamento) : ''}${e.category ? ' · ' + escapeHtml(e.category) : ''}</div>
+                      <div class="rh-meta">${new Date(e.date).toLocaleDateString('pt-BR')}${e.formaPagamento ? ' · ' + escapeHtml(e.formaPagamento) : ''}${e.category ? ' · ' + escapeHtml(e.category) : ''}</div>
                     </div>
                     <div style="text-align:right;">
                       <div style="font-weight:700; font-size:15px; color:${e.type === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};">

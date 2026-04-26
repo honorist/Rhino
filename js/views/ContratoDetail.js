@@ -233,22 +233,22 @@ window.ContratoDetail = {
         <div class="card mb-2xl" style="padding:0;overflow:hidden;">
           <div style="display:grid;grid-template-columns:repeat(4,1fr);">
             <div style="padding:var(--sp-lg);border-right:1px solid var(--color-border);border-top:3px solid var(--color-primary);">
-              <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Valor do Contrato</div>
+              <div class="text-muted font-sm mb-md" style="">Valor do Contrato</div>
               <div style="font-size:22px;font-weight:800;">${Store.formatBRL(contract.value)}</div>
               <div class="text-muted font-sm mt-sm">valor vendido</div>
             </div>
             <div style="padding:var(--sp-lg);border-right:1px solid var(--color-border);border-top:3px solid var(--color-success);">
-              <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Já faturado</div>
+              <div class="text-muted font-sm mb-md" style="">Já faturado</div>
               <div style="font-size:22px;font-weight:800;color:var(--color-success);">${Store.formatBRL(totalEmitido)}</div>
               <div class="text-muted font-sm mt-sm">${pctEmitido.toFixed(1)}% executado · ${nfsEmitidas.length} NF${nfsEmitidas.length !== 1 ? 's' : ''}</div>
             </div>
             <div style="padding:var(--sp-lg);border-right:1px solid var(--color-border);border-top:3px solid var(--color-warning);">
-              <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Disponível para BM</div>
+              <div class="text-muted font-sm mb-md" style="">Disponível para BM</div>
               <div style="font-size:22px;font-weight:800;color:var(--color-warning);">${Store.formatBRL(totalAMedir)}</div>
               <div class="text-muted font-sm mt-sm">trava ativa no contrato</div>
             </div>
             <div style="padding:var(--sp-lg);border-top:3px solid ${margemAtual >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">
-              <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Resultado parcial</div>
+              <div class="text-muted font-sm mb-md" style="">Resultado parcial</div>
               <div style="font-size:22px;font-weight:800;color:${margemAtual >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${margemAtual >= 0 ? '+ ' : ''}${Store.formatBRL(margemAtual)}</div>
               <div class="text-muted font-sm mt-sm">${totalMedido > 0 ? 'margem ' + pctMargem.toFixed(1) + '%' : 'sem medição'}</div>
             </div>
@@ -299,7 +299,7 @@ window.ContratoDetail = {
           <div class="card">
             <div style="display:flex;justify-content:space-between;align-items:baseline;">
               <div>
-                <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Equipe da Obra</div>
+                <div class="text-muted font-sm mb-md" style="">Equipe da Obra</div>
                 <div style="font-size: 22px; font-weight: 700;">${(contract.organograma || []).length} <span style="font-size:15px;font-weight:400;color:var(--color-text-muted);">pessoa(s)</span></div>
               </div>
               <a href="#/contratos/${contract.id}" onclick="window.ContratoDetail._tab='equipe';window.ContratoDetail.render('${contract.id}');event.preventDefault();" style="font-size:15px;color:var(--color-primary);text-decoration:none;">Ver equipe →</a>
@@ -308,7 +308,7 @@ window.ContratoDetail = {
           <div class="card">
             <div style="display:flex;justify-content:space-between;align-items:baseline;">
               <div>
-                <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Custos Acumulados</div>
+                <div class="text-muted font-sm mb-md" style="">Custos Acumulados</div>
                 <div style="font-size: 22px; font-weight: 700; color: var(--color-danger);">${Store.formatBRL(totalSaidas + totalBase + totalPassagensRealizadas)}</div>
                 <div class="text-muted font-sm mt-sm">saídas + BASE alocada + passagens</div>
               </div>
@@ -343,15 +343,15 @@ window.ContratoDetail = {
                     <span style="font-size:15px;color:var(--color-text-muted);min-width:42px;">${pct.toFixed(1)}%</span>
                   </div>
                 </div>
-                <div style="text-align:right;">
+                <div class="rh-text-right">
                   <div style="font-size:15px;color:var(--color-text-muted);margin-bottom:2px;">Orçado</div>
                   <div style="font-size:15px;font-weight:600;font-family:'Nunito',sans-serif;">${Store.formatBRL(totalOrcado)}</div>
                 </div>
-                <div style="text-align:right;">
+                <div class="rh-text-right">
                   <div style="font-size:15px;color:var(--color-text-muted);margin-bottom:2px;">Contrato</div>
                   <div style="font-size:15px;font-weight:600;font-family:'Nunito',sans-serif;">${Store.formatBRL(contract.value)}</div>
                 </div>
-                <div style="text-align:right;">
+                <div class="rh-text-right">
                   <div style="font-size:15px;color:var(--color-text-muted);margin-bottom:2px;">${excedeu ? 'Excedeu' : 'Disponível'}</div>
                   <div style="font-size:15px;font-weight:700;color:${excedeu ? 'var(--color-danger)' : 'var(--color-success)'};">
                     ${excedeu ? '▼' : '▲'} ${Store.formatBRL(Math.abs(contract.value - totalOrcado))}
@@ -415,11 +415,11 @@ window.ContratoDetail = {
                       <!-- Valores: Orçado / Realizado lado a lado -->
                       <div style="display:flex;justify-content:space-between;font-size:13px;">
                         <div>
-                          <span style="color:var(--color-text-muted);">Orç:</span>
+                          <span class="rh-muted">Orç:</span>
                           <span style="font-weight:600;margin-left:4px;">${orc > 0 ? Store.formatBRL(orc) : '<span style="color:var(--color-text-muted)">—</span>'}</span>
                         </div>
                         <div>
-                          <span style="color:var(--color-text-muted);">Real:</span>
+                          <span class="rh-muted">Real:</span>
                           <span style="font-weight:600;margin-left:4px;color:${real>0?'var(--color-text)':'var(--color-text-muted)'};">${real > 0 ? Store.formatBRL(real) : '—'}</span>
                         </div>
                       </div>
@@ -436,8 +436,8 @@ window.ContratoDetail = {
                     </div>
                   </div>
                   <div style="display:flex;justify-content:space-between;font-size:13px;">
-                    <div><span style="color:var(--color-text-muted);">Orç:</span> <strong style="margin-left:4px;">${Store.formatBRL(totalOrcado)}</strong></div>
-                    <div><span style="color:var(--color-text-muted);">Real:</span> <strong style="margin-left:4px;color:${(totalSaidas+totalBase)>totalOrcado?'var(--color-danger)':'var(--color-text)'};">${Store.formatBRL(totalSaidas + totalBase)}</strong></div>
+                    <div><span class="rh-muted">Orç:</span> <strong style="margin-left:4px;">${Store.formatBRL(totalOrcado)}</strong></div>
+                    <div><span class="rh-muted">Real:</span> <strong style="margin-left:4px;color:${(totalSaidas+totalBase)>totalOrcado?'var(--color-danger)':'var(--color-text)'};">${Store.formatBRL(totalSaidas + totalBase)}</strong></div>
                   </div>
                 </div>
                 </div>
@@ -461,7 +461,7 @@ window.ContratoDetail = {
                         <div style="display:grid;grid-template-columns:14px 1fr auto;gap:8px;align-items:center;font-size:15px;">
                           <div style="width:10px;height:10px;background:${cor};border-radius:2px;"></div>
                           <div>${TIPOS_LABEL[tipo] || tipo}</div>
-                          <div style="color:var(--color-text-muted);">${pctDoOrc.toFixed(1)}%</div>
+                          <div class="rh-muted">${pctDoOrc.toFixed(1)}%</div>
                         </div>
                       `;
                     }).join('')}
@@ -478,7 +478,7 @@ window.ContratoDetail = {
                     <tr>
                       <th>Descrição</th>
                       <th>Categoria</th>
-                      <th style="text-align:right;">Valor Orçado</th>
+                      <th class="rh-text-right">Valor Orçado</th>
                       <th style="text-align:center;width:140px;">Ações</th>
                     </tr>
                   </thead>
@@ -487,7 +487,7 @@ window.ContratoDetail = {
                       const cor = TIPOS_COLOR[b.type] || '#9CA3AF';
                       return `
                         <tr>
-                          <td><strong>${escapeHtml(b.description)}</strong>${b.notes ? `<div style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(b.notes)}</div>` : ''}</td>
+                          <td><strong>${escapeHtml(b.description)}</strong>${b.notes ? `<div class="rh-meta">${escapeHtml(b.notes)}</div>` : ''}</td>
                           <td><span class="badge" style="background:${cor}18;color:${cor};">${TIPOS_LABEL[b.type] || b.type}</span></td>
                           <td style="text-align:right;font-weight:600;font-family:'Nunito',sans-serif;">${Store.formatBRL(b.value)}</td>
                           <td style="text-align:center;white-space:nowrap;">
@@ -518,7 +518,7 @@ window.ContratoDetail = {
         <div class="card mb-2xl">
           <div class="card-header">
             <h3 class="card-title">Composição do Gasto</h3>
-            <span style="font-size:15px;color:var(--color-text-muted);">Passe o mouse sobre a pizza para ver os valores</span>
+            <span class="rh-meta">Passe o mouse sobre a pizza para ver os valores</span>
           </div>
           <div style="display:grid;grid-template-columns:320px 1fr;gap:var(--sp-xl);align-items:center;">
             <!-- Canvas da pizza -->
@@ -543,12 +543,12 @@ window.ContratoDetail = {
                     <div style="width:14px;height:14px;border-radius:3px;background:${seg.value > 0 ? seg.color : 'transparent'};border:2px ${seg.value > 0 ? 'solid' : 'dashed'} ${seg.color};flex-shrink:0;"></div>
                     <div style="flex:1;">
                       <div style="font-size:15px;font-weight:600;">${seg.label}${clicavel ? `<span style="font-size:15px;color:var(--color-text-muted);margin-left:4px;">›</span>` : ''}</div>
-                      <div style="font-size:15px;color:var(--color-text-muted);">
+                      <div class="rh-meta">
                         ${seg.value > 0 ? `${pct}% do contrato` : ''}
                         ${seg.previsto > 0 ? `<span style="color:#7C3AED;"> + ${Store.formatBRL(seg.previsto)} previsto</span>` : ''}
                       </div>
                     </div>
-                    <div style="text-align:right;">
+                    <div class="rh-text-right">
                       ${seg.value > 0 ? `<div style="font-weight:700;font-size:15px;color:${seg.color};">${Store.formatBRL(seg.value)}</div>` : ''}
                       ${seg.previsto > 0 ? `<div style="font-size:15px;font-weight:600;color:#7C3AED;opacity:.8;">⏳ ${Store.formatBRL(seg.previsto)}</div>` : ''}
                     </div>
@@ -623,11 +623,11 @@ window.ContratoDetail = {
                       ? `<span style="font-size:15px;color:var(--color-info);font-weight:600;">Rateio BASE</span>`
                       : isPassagem
                       ? `<span style="font-size:15px;color:#7C3AED;font-weight:600;">✈ Passagem</span>`
-                      : `<span style="font-size:15px;color:var(--color-text-muted);">Saída direta</span>`;
+                      : `<span class="rh-meta">Saída direta</span>`;
                     const acoes = isBase
-                      ? `<span style="font-size:15px;color:var(--color-text-muted);">Gerenciar em <a href="#/base" style="color:var(--color-primary);">BASE</a></span>`
+                      ? `<span class="rh-meta">Gerenciar em <a href="#/base" style="color:var(--color-primary);">BASE</a></span>`
                       : isPassagem
-                      ? `<span style="font-size:15px;color:var(--color-text-muted);">Gerenciar em <a href="#/recursos" style="color:var(--color-primary);">Recursos</a></span>`
+                      ? `<span class="rh-meta">Gerenciar em <a href="#/recursos" style="color:var(--color-primary);">Recursos</a></span>`
                       : `<div style="display:flex;gap:4px;flex-wrap:wrap;">
                           <button class="btn btn-sm btn-secondary btn-gerar-bm" data-id="${linha.id}" title="Gerar Boletim de Medição">📄 BM</button>
                           <button class="btn btn-sm btn-secondary btn-editar-saida" data-id="${linha.id}" title="Editar">✏️</button>
@@ -684,7 +684,7 @@ window.ContratoDetail = {
                   <th>Colaborador</th>
                   <th>Descrição</th>
                   <th>Vencimento</th>
-                  <th style="text-align:right;">Valor Previsto</th>
+                  <th class="rh-text-right">Valor Previsto</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -694,7 +694,7 @@ window.ContratoDetail = {
                   const vencido = cp.dataVencimento && cp.dataVencimento < hoje;
                   return `<tr style="background:rgba(124,58,237,.03);">
                     <td><strong style="font-size:15px;">${escapeHtml(cp.descricao)}</strong></td>
-                    <td style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(cp.observacoes || '—')}</td>
+                    <td class="rh-meta">${escapeHtml(cp.observacoes || '—')}</td>
                     <td style="font-size:15px;">${cp.dataVencimento ? new Date(cp.dataVencimento + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
                     <td style="text-align:right;font-weight:700;color:#7C3AED;">${Store.formatBRL(cp.valor)}</td>
                     <td>
@@ -723,7 +723,7 @@ window.ContratoDetail = {
         <div class="card" style="text-align:center;padding:var(--sp-2xl) var(--sp-lg);">
           <div style="font-size:38px;margin-bottom:var(--sp-md);opacity:.5;">✓</div>
           <div style="font-size:16px;font-weight:600;color:var(--color-text);margin-bottom:4px;">Nenhuma pendência</div>
-          <div style="font-size:15px;color:var(--color-text-muted);">Este contrato não possui passagens pendentes nem outros itens a resolver no momento.</div>
+          <div class="rh-meta">Este contrato não possui passagens pendentes nem outros itens a resolver no momento.</div>
         </div>
         ` : ''}
 
@@ -1009,7 +1009,7 @@ window.ContratoDetail = {
                     <div style="font-weight:600;font-size:14px;">BM ${escapeHtml(nf.numero || '—')}</div>
                     <div style="font-size:12px;color:var(--color-text-muted);">${nf.dataLimite ? new Date(nf.dataLimite + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</div>
                   </div>
-                  <div style="text-align:right;">
+                  <div class="rh-text-right">
                     <div style="font-weight:700;font-size:14px;">${Store.formatBRL(parseFloat(nf.valor) || 0)}</div>
                     <div style="font-size:11px;color:${cor};font-weight:600;">${status}</div>
                   </div>
@@ -1575,7 +1575,7 @@ window.ContratoDetail = {
     `;
 
     if (raizes.length === 0) {
-      return treeCss + '<div class="org-tree"><p class="text-muted" style="text-align:center;">Nenhum membro cadastrado.</p></div>';
+      return treeCss + '<div class="org-tree"><p class="text-muted rh-text-center">Nenhum membro cadastrado.</p></div>';
     }
 
     return treeCss + `
@@ -1675,7 +1675,7 @@ window.ContratoDetail = {
         <div style="padding:var(--sp-md);background:${cor}14;border-left:3px solid ${cor};border-radius:6px;margin-bottom:var(--sp-md);">
           <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Próxima Folga</div>
           <div style="font-size:18px;font-weight:700;color:${cor};margin-top:2px;">${label}</div>
-          <div style="font-size:15px;color:var(--color-text-muted);">Prevista para ${fmt(dataProxima)}</div>
+          <div class="rh-meta">Prevista para ${fmt(dataProxima)}</div>
         </div>
       `;
     }
@@ -1700,7 +1700,7 @@ window.ContratoDetail = {
               <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:6px;">
                 <div>
                   <div style="font-size: 15px;font-weight:600;">${escapeHtml(d.tipo || 'Documento')}</div>
-                  ${d.dataVencimento ? `<div style="font-size:15px;color:var(--color-text-muted);">Venc.: ${fmt(d.dataVencimento)}</div>` : ''}
+                  ${d.dataVencimento ? `<div class="rh-meta">Venc.: ${fmt(d.dataVencimento)}</div>` : ''}
                 </div>
                 <span style="font-size:15px;font-weight:700;color:${statusCor};">${statusLbl}</span>
               </div>
@@ -2189,10 +2189,10 @@ window.ContratoDetail = {
               <th style="width:60px;">Nº</th>
               <th>Data</th>
               <th>Clima</th>
-              <th style="text-align:center;">MO Total</th>
-              <th style="text-align:center;">Equip.</th>
-              <th style="text-align:center;">Atividades</th>
-              <th style="text-align:center;">Fotos</th>
+              <th class="rh-text-center">MO Total</th>
+              <th class="rh-text-center">Equip.</th>
+              <th class="rh-text-center">Atividades</th>
+              <th class="rh-text-center">Fotos</th>
               <th>Segurança</th>
               <th>Ações</th>
             </tr>
@@ -2222,12 +2222,12 @@ window.ContratoDetail = {
               return `
                 <tr class="row-rdo" data-id="${r.id}" style="cursor:pointer;">
                   <td><strong style="color:var(--color-primary);">#${r.numero}</strong></td>
-                  <td><strong>${fmt(r.data)}</strong>${r.diaSemana ? `<div style="font-size:15px;color:var(--color-text-muted);">${r.diaSemana}</div>` : ''}</td>
+                  <td><strong>${fmt(r.data)}</strong>${r.diaSemana ? `<div class="rh-meta">${r.diaSemana}</div>` : ''}</td>
                   <td style="font-size:18px;">${climaIcone}</td>
                   <td style="text-align:center;font-weight:700;">${moTotal}</td>
-                  <td style="text-align:center;">${eqpTotal}</td>
-                  <td style="text-align:center;">${atvCount}</td>
-                  <td style="text-align:center;">${fotoCount > 0 ? `📷 ${fotoCount}` : '—'}</td>
+                  <td class="rh-text-center">${eqpTotal}</td>
+                  <td class="rh-text-center">${atvCount}</td>
+                  <td class="rh-text-center">${fotoCount > 0 ? `📷 ${fotoCount}` : '—'}</td>
                   <td>${segBadge}</td>
                   <td>
                     <div class="actions-cell">
@@ -2350,19 +2350,19 @@ window.ContratoDetail = {
             <!-- Cabeçalho do dia -->
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:var(--sp-sm);margin-bottom:var(--sp-md);">
               <div style="padding:8px 10px;background:var(--color-surface-2);border-radius:6px;">
-                <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">Dia da semana</div>
+                <div class="rh-label">Dia da semana</div>
                 <div style="font-weight:600;">${escapeHtml(rdo.diaSemana || '—')}</div>
               </div>
               <div style="padding:8px 10px;background:var(--color-surface-2);border-radius:6px;">
-                <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">OS</div>
+                <div class="rh-label">OS</div>
                 <div style="font-weight:600;">${escapeHtml(rdo.osNumero || '—')}</div>
               </div>
               <div style="padding:8px 10px;background:var(--color-surface-2);border-radius:6px;">
-                <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">Ordem de compra</div>
+                <div class="rh-label">Ordem de compra</div>
                 <div style="font-weight:600;">${escapeHtml(rdo.ordemCompra || '—')}</div>
               </div>
               <div style="padding:8px 10px;background:var(--color-surface-2);border-radius:6px;">
-                <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">Período</div>
+                <div class="rh-label">Período</div>
                 <div style="font-weight:600;">${escapeHtml(rdo.periodoTrabalho || '—')}</div>
               </div>
             </div>
@@ -2393,17 +2393,17 @@ window.ContratoDetail = {
             <!-- Mão de obra -->
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-md);margin-bottom:var(--sp-md);">
               <div style="padding:10px;background:var(--color-surface-2);border-radius:6px;text-align:center;">
-                <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">MOI</div>
+                <div class="rh-label">MOI</div>
                 <div style="font-size:22px;font-weight:700;color:#3b82f6;">${totMoi}</div>
                 <div style="font-size:11px;color:var(--color-text-muted);">${moi.length} cargo(s)</div>
               </div>
               <div style="padding:10px;background:var(--color-surface-2);border-radius:6px;text-align:center;">
-                <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">MOD</div>
+                <div class="rh-label">MOD</div>
                 <div style="font-size:22px;font-weight:700;color:#10b981;">${totMod}</div>
                 <div style="font-size:11px;color:var(--color-text-muted);">${mod_.length} cargo(s)</div>
               </div>
               <div style="padding:10px;background:var(--color-surface-2);border-radius:6px;text-align:center;">
-                <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;">Terceiros</div>
+                <div class="rh-label">Terceiros</div>
                 <div style="font-size:22px;font-weight:700;color:#f59e0b;">${totTerc}</div>
                 <div style="font-size:11px;color:var(--color-text-muted);">${terc.length} cargo(s)</div>
               </div>
@@ -2841,9 +2841,9 @@ window.ContratoDetail = {
           <table style="width:100%;border-collapse:collapse;">
             <thead>
               <tr style="background:var(--color-surface-2);">
-                <th style="text-align:left;padding:8px;font-size:15px;font-weight:600;color:var(--color-text-muted);">Cargo</th>
-                <th style="text-align:left;padding:8px;font-size:15px;font-weight:600;color:var(--color-text-muted);">Qtd</th>
-                <th style="text-align:left;padding:8px;font-size:15px;font-weight:600;color:var(--color-text-muted);">Horas</th>
+                <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Cargo</th>
+                <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Qtd</th>
+                <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Horas</th>
                 <th style="text-align:right;padding:8px;font-size:15px;font-weight:600;color:var(--color-text-muted);">H×H</th>
                 <th></th>
               </tr>
@@ -2864,10 +2864,10 @@ window.ContratoDetail = {
         <table style="width:100%;border-collapse:collapse;">
           <thead>
             <tr style="background:var(--color-surface-2);">
-              <th style="text-align:left;padding:8px;font-size:15px;font-weight:600;color:var(--color-text-muted);">Empresa</th>
-              <th style="text-align:left;padding:8px;font-size:15px;font-weight:600;color:var(--color-text-muted);">Cargo</th>
-              <th style="text-align:left;padding:8px;font-size:15px;font-weight:600;color:var(--color-text-muted);">Qtd</th>
-              <th style="text-align:left;padding:8px;font-size:15px;font-weight:600;color:var(--color-text-muted);">Horas</th>
+              <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Empresa</th>
+              <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Cargo</th>
+              <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Qtd</th>
+              <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Horas</th>
               <th></th>
             </tr>
           </thead>
@@ -2898,9 +2898,9 @@ window.ContratoDetail = {
       <table style="width:100%;border-collapse:collapse;">
         <thead>
           <tr style="background:var(--color-surface-2);">
-            <th style="text-align:left;padding:8px;font-size:15px;font-weight:600;color:var(--color-text-muted);">Equipamento</th>
-            <th style="text-align:left;padding:8px;font-size:15px;font-weight:600;color:var(--color-text-muted);">Qtd</th>
-            <th style="text-align:left;padding:8px;font-size:15px;font-weight:600;color:var(--color-text-muted);">Horas</th>
+            <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Equipamento</th>
+            <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Qtd</th>
+            <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Horas</th>
             <th style="text-align:right;padding:8px;font-size:15px;font-weight:600;color:var(--color-text-muted);">Eqp×H</th>
             <th></th>
           </tr>
@@ -4408,7 +4408,7 @@ window.ContratoDetail = {
                       <th>Data</th>
                       <th>Descrição</th>
                       <th>Status</th>
-                      <th style="text-align:right;">Valor</th>
+                      <th class="rh-text-right">Valor</th>
                     </tr>
                   </thead>
                   <tbody>
