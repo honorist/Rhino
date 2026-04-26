@@ -4,6 +4,8 @@ const Base = () => {
   const [data, setData] = React.useState(null);
   const [filtroTipo, setFiltroTipo] = React.useState('todos');
   const [busca, setBusca] = React.useState('');
+  const [showModal, setShowModal] = React.useState(false);
+  const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
     Promise.all([
@@ -20,7 +22,7 @@ const Base = () => {
         contracts: c.contracts || [],
       });
     });
-  }, []);
+  }, [tick]);
 
   if (!data) return <div style={{ padding: 40, fontFamily: 'var(--font-sans)' }}>Carregando…</div>;
 
@@ -88,9 +90,11 @@ const Base = () => {
                 </p>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
+                <button className="btn btn-primary" onClick={() => setShowModal(true)}><Icon name="plus" size={14}/> Novo item</button>
                 <a className="btn" href="/#/base" target="_top"><Icon name="arrow-right" size={14}/> Abrir no app</a>
               </div>
             </div>
+            {showModal && <ModalBase onClose={() => setShowModal(false)} onSaved={() => setTick(t => t + 1)} tipos={data.tipos}/>}
 
             <div className="dash-kpis" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
               <div className="card kpi-card">

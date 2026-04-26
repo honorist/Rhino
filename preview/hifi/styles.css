@@ -622,3 +622,8 @@ html.dark .equipe-cat.MOI { background: #1e2b4a; color: #93b4ff; }
   background: var(--paper); border: 1px solid var(--line);
   color: var(--muted);
 }
+
+/* Modal animations */
+@keyframes modalSlide { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.hifi-modal-overlay { animation: modalSlide .15s; }

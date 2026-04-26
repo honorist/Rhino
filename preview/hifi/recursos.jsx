@@ -4,13 +4,15 @@ const Recursos = () => {
   const [data, setData] = React.useState(null);
   const [filtroStatus, setFiltroStatus] = React.useState('funcionario');
   const [busca, setBusca] = React.useState('');
+  const [showModal, setShowModal] = React.useState(false);
+  const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
     Promise.all([
       fetch('/api/recursos').then(r => r.json()).catch(() => ({ recursos: [] })),
       fetch('/api/contracts').then(r => r.json()).catch(() => ({ contracts: [] })),
     ]).then(([r, c]) => setData({ recursos: r.recursos || [], contracts: c.contracts || [] }));
-  }, []);
+  }, [tick]);
 
   if (!data) return <div style={{ padding: 40, fontFamily: 'var(--font-sans)' }}>Carregando…</div>;
 
@@ -74,9 +76,11 @@ const Recursos = () => {
                 </p>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
+                <button className="btn btn-primary" onClick={() => setShowModal(true)}><Icon name="plus" size={14}/> Novo recurso</button>
                 <a className="btn" href="/#/recursos" target="_top"><Icon name="arrow-right" size={14}/> Abrir no app</a>
               </div>
             </div>
+            {showModal && <ModalRecurso onClose={() => setShowModal(false)} onSaved={() => setTick(t => t + 1)}/>}
 
             {counts.docVencidos > 0 && (
               <div className="alert-bar">

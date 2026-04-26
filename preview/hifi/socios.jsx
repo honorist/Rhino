@@ -3,6 +3,8 @@
 const Socios = () => {
   const [data, setData] = React.useState(null);
   const [busca, setBusca] = React.useState('');
+  const [modal, setModal] = React.useState(null);
+  const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
     Promise.all([
@@ -16,7 +18,7 @@ const Socios = () => {
         contracts: c.contracts || [],
       });
     });
-  }, []);
+  }, [tick]);
 
   if (!data) return <div style={{ padding: 40, fontFamily: 'var(--font-sans)' }}>Carregando…</div>;
 
@@ -85,9 +87,13 @@ const Socios = () => {
                 </p>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
+                <button className="btn" onClick={() => setModal('socio')}><Icon name="plus" size={14}/> Novo sócio</button>
+                <button className="btn btn-primary" onClick={() => setModal('aporte')}><Icon name="plus" size={14}/> Novo aporte</button>
                 <a className="btn" href="/#/socios" target="_top"><Icon name="arrow-right" size={14}/> Abrir no app</a>
               </div>
             </div>
+            {modal === 'socio' && <ModalSocio onClose={() => setModal(null)} onSaved={() => setTick(t => t + 1)}/>}
+            {modal === 'aporte' && <ModalAporte onClose={() => setModal(null)} onSaved={() => setTick(t => t + 1)} socios={data.socios} contracts={data.contracts}/>}
 
             {Math.abs(total.participacao - 100) > 0.01 && total.socios > 0 && (
               <div className="alert-bar">

@@ -4,14 +4,19 @@ const CaixaV6 = () => {
   const [data, setData] = React.useState(null);
   const [filtro, setFiltro] = React.useState('tudo');
   const [busca, setBusca] = React.useState('');
+  const [showModal, setShowModal] = React.useState(false);
+  const [contracts, setContracts] = React.useState([]);
+  const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
     Promise.all([
       fetch('/api/caixa').then(r => r.json()).catch(() => ({ entries: [] })),
-    ]).then(([cx]) => {
+      fetch('/api/contracts').then(r => r.json()).catch(() => ({ contracts: [] })),
+    ]).then(([cx, c]) => {
       setData({ entries: cx.entries || [] });
+      setContracts(c.contracts || []);
     });
-  }, []);
+  }, [tick]);
 
   if (!data) return <div style={{ padding: 40, fontFamily: 'var(--font-sans)' }}>Carregando…</div>;
 
@@ -74,9 +79,11 @@ const CaixaV6 = () => {
                 <p className="muted" style={{ margin: "4px 0 0", fontSize: 13 }}>{meses[mes]} {ano} · {noMes.length} movimentações no período</p>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
+                <button className="btn btn-primary" onClick={() => setShowModal(true)}><Icon name="plus" size={14}/> Novo lançamento</button>
                 <a className="btn" href="/#/caixa" target="_top"><Icon name="arrow-right" size={14}/> Abrir no app</a>
               </div>
             </div>
+            {showModal && <ModalCaixa onClose={() => setShowModal(false)} onSaved={() => setTick(t => t + 1)} contracts={contracts}/>}
 
             <div className="caixa-summary">
               <div className="card caixa-c">

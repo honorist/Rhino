@@ -4,13 +4,15 @@ const ContractsList = () => {
   const [data, setData] = React.useState(null);
   const [filtroStatus, setFiltroStatus] = React.useState('ativo');
   const [busca, setBusca] = React.useState('');
+  const [showModal, setShowModal] = React.useState(false);
+  const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
     Promise.all([
       fetch('/api/contracts').then(r => r.json()).catch(() => ({ contracts: [] })),
       fetch('/api/rdos').then(r => r.json()).catch(() => ({ stats: null })),
     ]).then(([c, r]) => setData({ contracts: c.contracts || [], rdoStats: r.stats }));
-  }, []);
+  }, [tick]);
 
   if (!data) return <div style={{ padding: 40, fontFamily: 'var(--font-sans)' }}>Carregando…</div>;
 
@@ -66,9 +68,11 @@ const ContractsList = () => {
                 <p className="muted" style={{ margin: "4px 0 0", fontSize: 13 }}>{filtrados.length} contratos · {fmtBRLk(totalCarteira)} em carteira</p>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
+                <button className="btn btn-primary" onClick={() => setShowModal(true)}><Icon name="plus" size={14}/> Novo contrato</button>
                 <a className="btn" href="/#/contratos" target="_top"><Icon name="arrow-right" size={14}/> Abrir no app</a>
               </div>
             </div>
+            {showModal && <ModalContrato onClose={() => setShowModal(false)} onSaved={() => setTick(t => t + 1)}/>}
 
             <div className="card">
               <div className="filter-bar" style={{ borderBottom: "1px solid var(--line)" }}>

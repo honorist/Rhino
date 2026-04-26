@@ -5,12 +5,16 @@ const ContractV5 = () => {
   const wantedId = params.id;
   const [contract, setContract] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
+  const [allContracts, setAllContracts] = React.useState([]);
+  const [showSaida, setShowSaida] = React.useState(false);
+  const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
     setLoading(true);
     fetch('/api/contracts')
       .then(r => r.json())
       .then(({ contracts = [] }) => {
+        setAllContracts(contracts);
         let escolhido = null;
         if (wantedId) escolhido = contracts.find(c => c.id === wantedId);
         if (!escolhido) {
@@ -21,7 +25,7 @@ const ContractV5 = () => {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [wantedId]);
+  }, [wantedId, tick]);
 
   if (loading) return <div style={{ padding: 40, fontFamily: 'var(--font-sans)' }}>Carregando…</div>;
   if (!contract) return <div style={{ padding: 40, fontFamily: 'var(--font-sans)' }}>Nenhum contrato encontrado.</div>;
@@ -91,8 +95,10 @@ const ContractV5 = () => {
                 </div>
               </div>
               <div className="ct-header-actions">
+                <button className="btn" onClick={() => setShowSaida(true)}><Icon name="plus" size={14}/> Nova saída/BM</button>
                 <a className="btn btn-primary" href={'/#/contratos/' + contract.id} target="_top"><Icon name="arrow-right" size={14}/> Abrir no app</a>
               </div>
+              {showSaida && <ModalSaida onClose={() => setShowSaida(false)} onSaved={() => setTick(t => t + 1)} contracts={[contract, ...allContracts.filter(c => c.id !== contract.id && c.status === 'ativo')]}/>}
             </div>
 
             <div className="tabs">

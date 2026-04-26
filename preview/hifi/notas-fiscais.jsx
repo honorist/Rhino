@@ -4,6 +4,8 @@ const NotasFiscais = () => {
   const [data, setData] = React.useState(null);
   const [filtro, setFiltro] = React.useState('todos');
   const [busca, setBusca] = React.useState('');
+  const [showModal, setShowModal] = React.useState(false);
+  const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
     Promise.all([
@@ -15,7 +17,7 @@ const NotasFiscais = () => {
         contracts: c.contracts || [],
       });
     });
-  }, []);
+  }, [tick]);
 
   if (!data) return <div style={{ padding: 40, fontFamily: 'var(--font-sans)' }}>Carregando…</div>;
 
@@ -91,9 +93,11 @@ const NotasFiscais = () => {
                 </p>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
+                <button className="btn btn-primary" onClick={() => setShowModal(true)}><Icon name="plus" size={14}/> Nova NF</button>
                 <a className="btn" href="/#/notas-fiscais" target="_top"><Icon name="arrow-right" size={14}/> Abrir no app</a>
               </div>
             </div>
+            {showModal && <ModalNF onClose={() => setShowModal(false)} onSaved={() => setTick(t => t + 1)} contracts={data.contracts}/>}
 
             {counts.atrasadas > 0 && (
               <div className="alert-bar">

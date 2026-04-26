@@ -3,6 +3,8 @@
 const Clientes = () => {
   const [data, setData] = React.useState(null);
   const [busca, setBusca] = React.useState('');
+  const [showModal, setShowModal] = React.useState(false);
+  const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
     Promise.all([
@@ -16,7 +18,7 @@ const Clientes = () => {
         notas: nf.notas_fiscais || nf.notasFiscais || [],
       });
     });
-  }, []);
+  }, [tick]);
 
   if (!data) return <div style={{ padding: 40, fontFamily: 'var(--font-sans)' }}>Carregando…</div>;
 
@@ -74,9 +76,11 @@ const Clientes = () => {
                 </p>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
+                <button className="btn btn-primary" onClick={() => setShowModal(true)}><Icon name="plus" size={14}/> Novo cliente</button>
                 <a className="btn" href="/#/clientes" target="_top"><Icon name="arrow-right" size={14}/> Abrir no app</a>
               </div>
             </div>
+            {showModal && <ModalCliente onClose={() => setShowModal(false)} onSaved={() => setTick(t => t + 1)}/>}
 
             <div className="dash-kpis" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
               <div className="card kpi-card">
