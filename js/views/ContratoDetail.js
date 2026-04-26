@@ -238,46 +238,61 @@ window.ContratoDetail = {
               <div class="text-muted font-sm mt-sm">valor vendido</div>
             </div>
             <div style="padding:var(--sp-lg);border-right:1px solid var(--color-border);border-top:3px solid var(--color-success);">
-              <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Medido</div>
-              <div style="font-size:22px;font-weight:800;color:var(--color-success);">${Store.formatBRL(totalMedido)}</div>
-              <div class="text-muted font-sm mt-sm">${pctMedido.toFixed(1)}% · ${nfsContrato.length} BM${nfsContrato.length !== 1 ? 's' : ''}</div>
+              <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Já faturado</div>
+              <div style="font-size:22px;font-weight:800;color:var(--color-success);">${Store.formatBRL(totalEmitido)}</div>
+              <div class="text-muted font-sm mt-sm">${pctEmitido.toFixed(1)}% executado · ${nfsEmitidas.length} NF${nfsEmitidas.length !== 1 ? 's' : ''}</div>
             </div>
             <div style="padding:var(--sp-lg);border-right:1px solid var(--color-border);border-top:3px solid var(--color-warning);">
-              <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">A Medir</div>
+              <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Disponível para BM</div>
               <div style="font-size:22px;font-weight:800;color:var(--color-warning);">${Store.formatBRL(totalAMedir)}</div>
-              <div class="text-muted font-sm mt-sm">${(100 - pctMedido).toFixed(1)}% restante</div>
+              <div class="text-muted font-sm mt-sm">trava ativa no contrato</div>
             </div>
             <div style="padding:var(--sp-lg);border-top:3px solid ${margemAtual >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">
-              <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Margem Atual</div>
-              <div style="font-size:22px;font-weight:800;color:${margemAtual >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${Store.formatBRL(margemAtual)}</div>
-              <div class="text-muted font-sm mt-sm">${totalMedido > 0 ? pctMargem.toFixed(1) + '% sobre medido' : 'sem medição'}</div>
+              <div class="text-muted font-sm mb-md" style="text-transform: uppercase; letter-spacing: 0.04em;">Resultado parcial</div>
+              <div style="font-size:22px;font-weight:800;color:${margemAtual >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${margemAtual >= 0 ? '+ ' : ''}${Store.formatBRL(margemAtual)}</div>
+              <div class="text-muted font-sm mt-sm">${totalMedido > 0 ? 'margem ' + pctMargem.toFixed(1) + '%' : 'sem medição'}</div>
             </div>
           </div>
         </div>
 
-        <!-- Barra de progresso de medição -->
-        <div class="card mb-2xl" style="padding: var(--sp-lg);">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
-            <div>
-              <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600;">Progresso de Medição (BM)</div>
-              <div style="font-size:15px;color:var(--color-text);margin-top:4px;">
-                <span style="color:var(--color-success);font-weight:600;">${Store.formatBRL(totalEmitido)} emitido</span>
-                · <span style="color:var(--color-warning);">${Store.formatBRL(totalMedido - totalEmitido)} a emitir</span>
-                · <span style="color:var(--color-text-muted);">${Store.formatBRL(totalAMedir)} a medir</span>
+        <!-- Orçamento — uso do contrato (barra empilhada Recebido / NF emitida / Rascunho / Disponível) -->
+        ${(() => {
+          const totalRecebido = nfsEmitidas
+            .filter(nf => nf.caixaEntryId || nf.caixa_entry_id)
+            .reduce((s, nf) => s + (parseFloat(nf.valor) || 0), 0);
+          const totalNFAberta = totalEmitido - totalRecebido;
+          const totalRascunho = totalMedido - totalEmitido;
+          const totalDisponivel = Math.max(0, contract.value - totalMedido);
+          const v = contract.value > 0 ? contract.value : 1;
+          const pctRec  = (totalRecebido / v) * 100;
+          const pctNF   = (totalNFAberta / v) * 100;
+          const pctRasc = (totalRascunho / v) * 100;
+          const pctDisp = Math.max(0, 100 - pctRec - pctNF - pctRasc);
+          const fmtPct = (p) => p > 0 ? `${p.toFixed(0)}%` : '';
+          return `
+          <div class="card mb-2xl" style="padding: var(--sp-lg);">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+              <div>
+                <div style="font-size:15px;color:var(--color-text);text-transform:uppercase;letter-spacing:.04em;font-weight:700;">Orçamento — uso do contrato</div>
+                <div style="font-size:13px;color:var(--color-text-muted);margin-top:2px;">novas saídas não podem ultrapassar ${Store.formatBRL(contract.value)}</div>
               </div>
+              <div style="font-size:13px;color:var(--color-text-muted);">${pctMedido.toFixed(1)}% medido</div>
             </div>
-            <div style="font-size:28px;font-weight:800;color:var(--color-success);">${pctMedido.toFixed(1)}%</div>
+            <div style="height:22px;background:var(--color-surface-2);border-radius:99px;overflow:hidden;display:flex;margin-top:var(--sp-md);">
+              <div title="Recebido" style="height:100%;width:${Math.min(100, pctRec)}%;background:#10B981;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;">${pctRec >= 8 ? Store.formatBRL(totalRecebido).replace('R$ ', 'R$') : ''}</div>
+              <div title="NF emitida" style="height:100%;width:${Math.min(100, pctNF)}%;background:#F59E0B;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;">${pctNF >= 8 ? Store.formatBRL(totalNFAberta).replace('R$ ', 'R$') : ''}</div>
+              <div title="Rascunho" style="height:100%;width:${Math.min(100, pctRasc)}%;background:#FCA5A5;display:flex;align-items:center;justify-content:center;color:#7F1D1D;font-size:11px;font-weight:700;">${pctRasc >= 8 ? Store.formatBRL(totalRascunho).replace('R$ ', 'R$') : ''}</div>
+              <div title="Disponível" style="height:100%;width:${Math.min(100, pctDisp)}%;background:rgba(0,0,0,.06);"></div>
+            </div>
+            <div style="display:flex;gap:var(--sp-lg);margin-top:var(--sp-md);font-size:13px;flex-wrap:wrap;">
+              <span><span style="display:inline-block;width:10px;height:10px;background:#10B981;border-radius:2px;margin-right:6px;"></span>Recebido (${pctRec.toFixed(0)}%)</span>
+              <span><span style="display:inline-block;width:10px;height:10px;background:#F59E0B;border-radius:2px;margin-right:6px;"></span>NF emitida (${pctNF.toFixed(0)}%)</span>
+              <span><span style="display:inline-block;width:10px;height:10px;background:#FCA5A5;border-radius:2px;margin-right:6px;"></span>Rascunho (${pctRasc.toFixed(0)}%)</span>
+              <span><span style="display:inline-block;width:10px;height:10px;background:rgba(0,0,0,.12);border-radius:2px;margin-right:6px;"></span>Disponível (${pctDisp.toFixed(0)}%)</span>
+            </div>
           </div>
-          <div style="height:14px;background:var(--color-surface-2);border-radius:99px;overflow:hidden;display:flex;">
-            <div style="height:100%;width:${Math.min(100, pctEmitido)}%;background:linear-gradient(90deg, var(--color-success), #047857);"></div>
-            <div style="height:100%;width:${Math.min(100, pctMedido - pctEmitido)}%;background:linear-gradient(90deg, var(--color-warning), #B45309);"></div>
-          </div>
-          <div style="display:flex;gap:var(--sp-lg);margin-top:var(--sp-md);font-size:15px;">
-            <span><span style="display:inline-block;width:10px;height:10px;background:var(--color-success);border-radius:50%;margin-right:6px;"></span>Emitido</span>
-            <span><span style="display:inline-block;width:10px;height:10px;background:var(--color-warning);border-radius:50%;margin-right:6px;"></span>Cadastrado (não emitido)</span>
-            <span><span style="display:inline-block;width:10px;height:10px;background:var(--color-surface-2);border:1px solid var(--color-border);border-radius:50%;margin-right:6px;"></span>A medir</span>
-          </div>
-        </div>
+          `;
+        })()}
 
         <!-- Equipe + Custos (linha secundária) -->
         <div class="grid-2 mb-2xl">
@@ -301,6 +316,9 @@ window.ContratoDetail = {
             </div>
           </div>
         </div>
+
+        <!-- Resumo operacional: Saídas/BMs + Pendências + RDO de hoje -->
+        ${this._renderOperationalSummary(contract, nfsContrato, passagensPendentes)}
         ` : ''}
 
         <!-- ─── Orçamento ─── -->
@@ -953,6 +971,107 @@ window.ContratoDetail = {
         }
       }
     });
+  },
+
+  // ═══════════ RESUMO OPERACIONAL (Saídas/BMs + Pendências + RDO de hoje) ═══════════
+  _renderOperationalSummary(contract, nfsContrato, passagensPendentes) {
+    const rdos = (contract.rdos || []).slice().sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+    const hojeStr = new Date().toISOString().split('T')[0];
+    const rdoHoje = rdos.find(r => r.data === hojeStr) || null;
+    const totaisHoje = rdoHoje?.totais || {};
+    const hhDia = parseFloat(totaisHoje.hh_dia || totaisHoje.hhDia || 0);
+    const pessoasHoje = (rdoHoje?.moi?.length || 0) + (rdoHoje?.mod?.length || 0) + (rdoHoje?.terc?.length || 0);
+    const avancoHoje = parseFloat(totaisHoje.avanco || totaisHoje.avanco_pct || 0);
+
+    const bmsRecentes = nfsContrato.slice().sort((a, b) => (b.dataLimite || '').localeCompare(a.dataLimite || '')).slice(0, 5);
+
+    const docCount = (passagensPendentes || []).length;
+
+    return `
+    <div class="grid-3 mb-2xl">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Saídas / BMs</h3>
+          <a href="#/contratos/${contract.id}" onclick="window.ContratoDetail._tab='financeiro';window.ContratoDetail.render('${contract.id}');event.preventDefault();" style="font-size:13px;color:var(--color-primary);text-decoration:none;">Ver todas →</a>
+        </div>
+        ${bmsRecentes.length === 0 ? `
+          <p class="text-muted font-sm" style="padding:var(--sp-md) 0;">Nenhum BM emitido</p>
+        ` : `
+          <div style="display:flex;flex-direction:column;gap:var(--sp-sm);">
+            ${bmsRecentes.map(nf => {
+              const recebida = !!(nf.caixaEntryId || nf.caixa_entry_id);
+              const emitida = !!nf.emitida;
+              const status = recebida ? 'Recebida' : emitida ? 'NF emitida' : 'Rascunho';
+              const cor = recebida ? 'var(--color-success)' : emitida ? 'var(--color-info)' : 'var(--color-text-muted)';
+              return `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--color-border);">
+                  <div>
+                    <div style="font-weight:600;font-size:14px;">BM ${escapeHtml(nf.numero || '—')}</div>
+                    <div style="font-size:12px;color:var(--color-text-muted);">${nf.dataLimite ? new Date(nf.dataLimite + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div style="font-weight:700;font-size:14px;">${Store.formatBRL(parseFloat(nf.valor) || 0)}</div>
+                    <div style="font-size:11px;color:${cor};font-weight:600;">${status}</div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `}
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Pendências</h3>
+          ${docCount > 0 ? `<span class="badge" style="background:rgba(229,62,62,.12);color:var(--color-danger);">${docCount} aberta${docCount !== 1 ? 's' : ''}</span>` : ''}
+        </div>
+        ${docCount === 0 ? `
+          <p class="text-muted font-sm" style="padding:var(--sp-md) 0;">Nenhuma pendência</p>
+        ` : `
+          <div style="display:flex;flex-direction:column;gap:var(--sp-sm);">
+            ${passagensPendentes.slice(0, 5).map(p => {
+              const dias = p.dataVencimento ? Math.floor((new Date() - new Date(p.dataVencimento)) / 86400000) : 0;
+              return `
+                <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--color-border);">
+                  <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--color-danger);margin-top:6px;"></span>
+                  <div style="flex:1;">
+                    <div style="font-weight:600;font-size:14px;">${escapeHtml(p.descricao || 'Conta a pagar')}</div>
+                    <div style="font-size:12px;color:var(--color-text-muted);">${Store.formatBRL(parseFloat(p.valor) || 0)} · ${dias > 0 ? `atrasada ${dias}d` : 'agendada'}</div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `}
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">RDO de hoje</h3>
+          <span class="badge" style="background:${rdoHoje ? 'rgba(56,161,105,.12)' : 'rgba(214,158,46,.12)'};color:${rdoHoje ? 'var(--color-success)' : 'var(--color-warning)'};">${rdoHoje ? '● Lançado' : '○ Pendente'}</span>
+        </div>
+        ${rdoHoje ? `
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-md);">
+            <div>
+              <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">HH dia</div>
+              <div style="font-size:20px;font-weight:800;margin-top:4px;">${hhDia ? hhDia.toFixed(0) + 'h' : '—'}</div>
+            </div>
+            <div>
+              <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Pessoas</div>
+              <div style="font-size:20px;font-weight:800;margin-top:4px;">${pessoasHoje || '—'}</div>
+            </div>
+            <div>
+              <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Avanço</div>
+              <div style="font-size:20px;font-weight:800;color:${avancoHoje > 0 ? 'var(--color-success)' : 'var(--color-text)'};margin-top:4px;">${avancoHoje ? '+' + avancoHoje.toFixed(1) + 'pp' : '—'}</div>
+            </div>
+          </div>
+        ` : `
+          <p class="text-muted font-sm" style="padding:var(--sp-md) 0;">RDO ainda não lançado para ${new Date().toLocaleDateString('pt-BR')}</p>
+          <a href="#/contratos/${contract.id}" onclick="window.ContratoDetail._tab='rdo';window.ContratoDetail.render('${contract.id}');event.preventDefault();" class="btn btn-primary btn-sm">+ Novo RDO</a>
+        `}
+      </div>
+    </div>
+    `;
   },
 
   // ═══════════ ORGANOGRAMA ═══════════

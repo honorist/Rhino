@@ -37,6 +37,84 @@ window.Dashboard = {
       } catch (_) {}
       this._rdoStats = rdoStats;
 
+      // Dados extra para novas seções (não bloqueia se falhar)
+      let nfsList = [], saidasList = [], cpList = [], sociosList = [], investList = [];
+      try {
+        const [nfR, cpR, socR, invR] = await Promise.all([
+          fetch('/api/notas-fiscais').then(r => r.ok ? r.json() : { notasFiscais: [] }).catch(() => ({ notasFiscais: [] })),
+          fetch('/api/contas-pagar').then(r => r.ok ? r.json() : { contasPagar: [] }).catch(() => ({ contasPagar: [] })),
+          fetch('/api/socios').then(r => r.ok ? r.json() : { socios: [] }).catch(() => ({ socios: [] })),
+          fetch('/api/investimentos').then(r => r.ok ? r.json() : { investimentos: [] }).catch(() => ({ investimentos: [] })),
+        ]);
+        nfsList = nfR.notasFiscais || nfR.notas_fiscais || [];
+        cpList = cpR.contasPagar || cpR.contas || [];
+        sociosList = socR.socios || [];
+        investList = invR.investimentos || [];
+        saidasList = Store.state.saidas || [];
+      } catch (_) {}
+
+      // Pipeline de medições (mês corrente)
+      const pipeline = this._calcPipeline(nfsList, saidasList);
+
+      // Aportes acumulados (sócios + investimentos com origem 'empresa')
+      const aportesSocios = sociosList.reduce((s, x) => s + (parseFloat(x.aporteTotal || x.aporte_total || x.aporte) || 0), 0);
+      const aportesEmpresa = investList
+        .filter(i => (i.origem || '').toLowerCase() === 'empresa')
+        .reduce((s, i) => s + (parseFloat(i.value || i.valor) || 0), 0);
+      const aportesTotal = aportesSocios + aportesEmpresa;
+
+      // A receber (NFs emitidas, valor + contagens)
+      const nfsEmitidas = nfsList.filter(n => n.emitida || n.status === 'emitida');
+      const nfsPendentes = nfsList.filter(n => !n.emitida && n.status !== 'emitida');
+      const totalAReceber = nfsEmitidas
+        .filter(n => !n.caixaEntryId && !n.caixa_entry_id) // emitidas mas ainda não recebidas
+        .reduce((s, n) => s + (parseFloat(n.valor || n.totalLiquido || n.valorTotal) || 0), 0);
+
+      // A pagar próximos 30 dias
+      const hojeStr2 = new Date().toISOString().split('T')[0];
+      const em30str = (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split('T')[0]; })();
+      const cpPendentes = cpList.filter(c => c.status === 'pendente' || c.status === 'aberto');
+      const cp30d = cpPendentes.filter(c => {
+        const v = c.dataVencimento || c.data_vencimento;
+        return v && v <= em30str;
+      });
+      const totalAPagar30d = cp30d.reduce((s, c) => s + (parseFloat(c.valor) || 0), 0);
+
+      // Faturado mês corrente (entradas no caixa) e mês anterior para delta
+      const hojeD = new Date();
+      const mesIni = new Date(hojeD.getFullYear(), hojeD.getMonth(), 1).toISOString().split('T')[0];
+      const mesAntIni = new Date(hojeD.getFullYear(), hojeD.getMonth() - 1, 1).toISOString().split('T')[0];
+      const mesAntFim = new Date(hojeD.getFullYear(), hojeD.getMonth(), 0).toISOString().split('T')[0];
+      const caixaEntries = (Store.state.caixa && Store.state.caixa.entries) || [];
+      const faturadoMes = caixaEntries
+        .filter(e => e.type === 'entrada' && e.date >= mesIni)
+        .reduce((s, e) => s + (parseFloat(e.value) || 0), 0);
+      const faturadoMesAnt = caixaEntries
+        .filter(e => e.type === 'entrada' && e.date >= mesAntIni && e.date <= mesAntFim)
+        .reduce((s, e) => s + (parseFloat(e.value) || 0), 0);
+      const deltaFaturadoPct = faturadoMesAnt > 0 ? (((faturadoMes - faturadoMesAnt) / faturadoMesAnt) * 100) : 0;
+
+      // Cobertura de caixa (saldo / saídas médias mensais últimos 3 meses)
+      const tres30 = new Date(); tres30.setDate(tres30.getDate() - 90);
+      const tres30str = tres30.toISOString().split('T')[0];
+      const saidasUlt90 = caixaEntries
+        .filter(e => e.type === 'saida' && e.date >= tres30str)
+        .reduce((s, e) => s + (parseFloat(e.value) || 0), 0);
+      const saidaMediaMensal = saidasUlt90 / 3;
+      const coberturaMeses = saidaMediaMensal > 0 ? (dash.caixaBalance / saidaMediaMensal) : 0;
+
+      // Saudação dinâmica
+      const horaH = hojeD.getHours();
+      const saudacaoTxt = horaH < 12 ? 'Bom dia' : horaH < 18 ? 'Boa tarde' : 'Boa noite';
+      const userObj = (window.auth && window.auth.user && window.auth.user()) || null;
+      const primeiroNome = ((userObj?.name || userObj?.email || '').split(/[\s@]/)[0]) || 'visitante';
+      const subParts = [];
+      subParts.push(dash.caixaBalance >= 0 ? 'Caixa positivo' : 'Caixa negativo');
+      const bmsAguard = pipeline.aguardEmissao.count;
+      if (bmsAguard > 0) subParts.push(`${bmsAguard} BM${bmsAguard !== 1 ? 's' : ''} aguardando emissão`);
+      const semRdoCount = (rdoStats?.obrasSemRdoOntem || []).length;
+      if (semRdoCount > 0) subParts.push(`${semRdoCount} RDO${semRdoCount !== 1 ? 's' : ''} sem lançamento ontem`);
+
       const totalSaidas = Store.state.saidas.reduce((sum, s) => sum + s.value, 0);
       const taxaDespesa = dash.totalContractValue > 0
         ? ((totalSaidas / dash.totalContractValue) * 100).toFixed(1)
@@ -50,8 +128,8 @@ window.Dashboard = {
       const html = `
         <div class="page-header">
           <div>
-            <h1 class="page-title">Dashboard</h1>
-            <p class="page-subtitle">Visão geral · ${new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <h1 class="page-title">${saudacaoTxt}, ${escapeHtml(primeiroNome)}</h1>
+            <p class="page-subtitle">${subParts.join(' · ')}</p>
           </div>
           <div id="dash-periodo-ctrl" style="display:flex;align-items:center;gap:var(--sp-sm);">
             ${this._renderPeriodoCtrl()}
@@ -90,8 +168,57 @@ window.Dashboard = {
           ` : ''}
         </div>
 
+        <!-- KPIs financeiros adicionais (A receber, A pagar 30d, Faturado mês, Aportes) -->
+        <div class="stat-grid" style="margin-bottom:var(--sp-xl);">
+          <a href="#/notas-fiscais" class="card stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
+            <div class="stat-value" style="color:var(--color-success);">${Store.formatBRL(totalAReceber)}</div>
+            <div class="stat-label">A receber (NFs) · ${nfsEmitidas.length} emitidas · ${nfsPendentes.length} pendentes</div>
+          </a>
+          <a href="#/contas-pagar" class="card stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
+            <div class="stat-value" style="color:var(--color-danger);">${Store.formatBRL(totalAPagar30d)}</div>
+            <div class="stat-label">A pagar (30d) · ${cp30d.length} lançamento${cp30d.length !== 1 ? 's' : ''}</div>
+          </a>
+          <a href="#/caixa" class="card stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
+            <div class="stat-value">${Store.formatBRL(faturadoMes)}</div>
+            <div class="stat-label">Faturado (mês) · ${faturadoMesAnt > 0 ? `${deltaFaturadoPct >= 0 ? '↑' : '↓'} ${Math.abs(deltaFaturadoPct).toFixed(1)}% vs mês ant.` : 'sem comparativo'}</div>
+          </a>
+          <a href="#/socios" class="card stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
+            <div class="stat-value">${Store.formatBRL(aportesTotal)}</div>
+            <div class="stat-label">Aportes acumulados · sócios ${Store.formatBRL(aportesSocios)} + empresa ${Store.formatBRL(aportesEmpresa)}</div>
+          </a>
+          <a href="#/caixa" class="card stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
+            <div class="stat-value" style="color:${coberturaMeses >= 3 ? 'var(--color-success)' : coberturaMeses >= 1 ? 'var(--color-warning)' : 'var(--color-danger)'};">
+              ${coberturaMeses > 0 ? coberturaMeses.toFixed(1) + ' meses' : '—'}
+            </div>
+            <div class="stat-label">Cobertura de caixa · saldo ÷ saída média</div>
+          </a>
+        </div>
+
         <!-- Contas a Receber / Contas a Pagar (estilo Akaunting) -->
         ${this.renderReceivablesPayables()}
+
+        <!-- Pipeline de Medições -->
+        <div class="card mb-2xl">
+          <div class="card-header">
+            <h3 class="card-title">Pipeline de medições — ${hojeD.toLocaleDateString('pt-BR', { month: 'long' })}</h3>
+            <a href="#/contratos" style="color:var(--color-primary);text-decoration:none;font-size:15px;font-weight:600;">Ver saídas →</a>
+          </div>
+          <div style="font-size:15px;color:var(--color-text-muted);margin-bottom:var(--sp-md);">Do trabalho executado ao recebimento</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-md);">
+            ${[
+              { k: 'rascunho',      l: 'Rascunho',         d: pipeline.rascunho,       cor: 'var(--color-text-muted)' },
+              { k: 'aguardEmissao', l: 'Aguard. emissão',  d: pipeline.aguardEmissao,  cor: 'var(--color-warning)', destaque: true },
+              { k: 'nfEmitida',     l: 'NF emitida',       d: pipeline.nfEmitida,      cor: 'var(--color-info)' },
+              { k: 'recebida',      l: 'Recebida',         d: pipeline.recebida,       cor: 'var(--color-success)' },
+            ].map(s => `
+              <div style="padding:var(--sp-lg);border-radius:8px;background:${s.destaque ? 'rgba(214,158,46,.08)' : 'var(--color-surface-2)'};border-left:3px solid ${s.cor};">
+                <div style="font-size:13px;color:${s.cor};font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--sp-sm);">${s.l}</div>
+                <div style="font-size:28px;font-weight:800;line-height:1;">${s.d.count}</div>
+                <div style="font-size:14px;color:var(--color-text-muted);margin-top:6px;">${Store.formatBRL(s.d.valor)}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
 
         <!-- Alertas -->
         ${this.renderAlertas(dash)}
@@ -485,6 +612,39 @@ window.Dashboard = {
         if (window.NotasFiscais?.showDetail) window.NotasFiscais.showDetail(nfId);
       });
     });
+  },
+
+  // Pipeline de medições (mês corrente): Rascunho → Aguard. emissão → NF emitida → Recebida
+  // - Rascunho: saída sem nf_id
+  // - Aguard. emissão: saída com nf_id mas NF não emitida
+  // - NF emitida: NF.emitida=true mas sem caixa_entry_id (não recebida)
+  // - Recebida: NF.emitida=true E com caixa_entry_id
+  _calcPipeline(nfsList, saidasList) {
+    const hoje = new Date();
+    const mesIni = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    const inMes = (dStr) => dStr && new Date(dStr) >= mesIni;
+    const nfById = new Map(nfsList.map(n => [n.id, n]));
+    const stats = {
+      rascunho:      { count: 0, valor: 0 },
+      aguardEmissao: { count: 0, valor: 0 },
+      nfEmitida:     { count: 0, valor: 0 },
+      recebida:      { count: 0, valor: 0 },
+    };
+    saidasList.filter(s => inMes(s.date)).forEach(s => {
+      const v = parseFloat(s.value) || 0;
+      const nfId = s.nfId || s.nf_id;
+      const nf = nfId ? nfById.get(nfId) : null;
+      if (!nf) {
+        stats.rascunho.count++; stats.rascunho.valor += v;
+      } else if (!nf.emitida && nf.status !== 'emitida') {
+        stats.aguardEmissao.count++; stats.aguardEmissao.valor += v;
+      } else if (!(nf.caixaEntryId || nf.caixa_entry_id)) {
+        stats.nfEmitida.count++; stats.nfEmitida.valor += v;
+      } else {
+        stats.recebida.count++; stats.recebida.valor += v;
+      }
+    });
+    return stats;
   },
 
   calcularScore(taxaDespesa, marginMedia, saldoCaixa) {
