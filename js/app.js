@@ -18,8 +18,8 @@ const routes = {
   '#/investimentos':{ view: window.Investimentos,  label: 'Aportes',         icon: _ic('plus-circle'), group: 'financeiro' },
   '#/base':         { view: window.Base,           label: 'BASE',            icon: _ic('database') },
   '#/configuracao': { view: window.Configuracao,   label: 'Configuração',    icon: _ic('settings') },
-  '#/usuarios':     { view: window.Usuarios,       label: 'Usuários',        icon: _ic('user-plus') },
-  '#/auditoria':    { view: window.Auditoria,      label: 'Auditoria',       icon: _ic('eye') },
+  '#/usuarios':     { view: window.Usuarios,       label: null,              icon: null },  // acessível via Configuração
+  '#/auditoria':    { view: window.Auditoria,      label: null,              icon: null },  // acessível via Configuração
   '#/manual':       { view: window.Manual,         label: null,              icon: null }
 };
 

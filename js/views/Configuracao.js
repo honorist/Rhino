@@ -25,7 +25,10 @@ window.Configuracao = {
             ${this.renderMenuItem('niveis_acesso', '🔐', 'Níveis de Acesso')}
             ${this.renderMenuItem('doc_templates', '📋', 'Templates de Docs')}
             <a href="#/usuarios" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;text-decoration:none;color:var(--color-text);margin-top:4px;border-top:1px solid var(--color-border);padding-top:14px;">
-              <span>👥</span><span>Usuários e Logins</span>
+              <span style="display:inline-flex;align-items:center;color:var(--rh-ink-500);">${window.rhIcon ? window.rhIcon('user-plus', 16) : ''}</span><span>Usuários e Logins</span>
+            </a>
+            <a href="#/auditoria" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;text-decoration:none;color:var(--color-text);">
+              <span style="display:inline-flex;align-items:center;color:var(--rh-ink-500);">${window.rhIcon ? window.rhIcon('eye', 16) : ''}</span><span>Auditoria</span>
             </a>
           </nav>
 
@@ -146,30 +149,53 @@ window.Configuracao = {
 
   renderNiveisAcesso() {
     const niveis = Store.state.niveis_acesso || [];
+    const ic = (n) => window.rhIcon ? window.rhIcon(n, 14) : '';
+    // Estrutura: páginas com sub-itens internos aninhados (children).
+    // Os children têm prefixo 'contrato-tab:' e ficam indentados sob a página pai.
     const todasAbas = [
-      { route: '#/dashboard',     label: 'Dashboard',       icon: '▦', grupo: 'Principal' },
-      { route: '#/contratos',     label: 'Contratos',       icon: '≣', grupo: 'Principal' },
-      { route: '#/rdos',          label: 'RDOs (todos)',    icon: '⊟', grupo: 'Principal' },
-      { route: '#/obras',         label: 'Mapa de Obras',   icon: '⊚', grupo: 'Principal' },
-      { route: '#/base',          label: 'BASE',            icon: '⊟', grupo: 'Principal' },
-      { route: '#/clientes',      label: 'Clientes',        icon: '◎', grupo: 'RH' },
-      { route: '#/fornecedores',  label: 'Fornecedores',    icon: '⬡', grupo: 'RH' },
-      { route: '#/recursos',      label: 'Recursos',        icon: '◉', grupo: 'RH' },
-      { route: '#/documentos',    label: 'Documentação',    icon: '⊞', grupo: 'RH' },
-      { route: '#/caixa',         label: 'Caixa',           icon: '◇', grupo: 'Financeiro' },
-      { route: '#/contas-pagar',  label: 'Contas a Pagar',  icon: '⊖', grupo: 'Financeiro' },
-      { route: '#/notas-fiscais', label: 'Notas Fiscais',   icon: '☐', grupo: 'Financeiro' },
-      { route: '#/socios',        label: 'Sócios',          icon: '⊕', grupo: 'Financeiro' },
-      { route: '#/investimentos', label: 'Aportes',         icon: '△', grupo: 'Financeiro' },
-      { route: '#/configuracao',  label: 'Configuração',    icon: '⊙', grupo: 'Sistema' },
-      { route: 'contrato-tab:visao',      label: 'Visão Geral',  icon: '◉', grupo: 'Abas dentro do Contrato' },
-      { route: 'contrato-tab:financeiro', label: 'Financeiro',   icon: '◈', grupo: 'Abas dentro do Contrato' },
-      { route: 'contrato-tab:equipe',     label: 'Equipe',       icon: '◎', grupo: 'Abas dentro do Contrato' },
-      { route: 'contrato-tab:rdo',        label: 'RDO',          icon: '📋', grupo: 'Abas dentro do Contrato' },
-      { route: 'contrato-tab:pendencias', label: 'Pendências',   icon: '⚠', grupo: 'Abas dentro do Contrato' },
+      { route: '#/dashboard',     label: 'Dashboard',       icon: ic('home'),            grupo: 'Principal' },
+      { route: '#/contratos',     label: 'Contratos',       icon: ic('briefcase'),       grupo: 'Principal',
+        children: [
+          { route: 'contrato-tab:visao',      label: 'Aba Visão Geral',  icon: ic('eye') },
+          { route: 'contrato-tab:financeiro', label: 'Aba Financeiro',   icon: ic('dollar-sign') },
+          { route: 'contrato-tab:equipe',     label: 'Aba Equipe',       icon: ic('users') },
+          { route: 'contrato-tab:rdo',        label: 'Aba RDO',          icon: ic('clipboard-check') },
+          { route: 'contrato-tab:pendencias', label: 'Aba Pendências',   icon: ic('alert-triangle') },
+        ] },
+      { route: '#/rdos',          label: 'RDOs (todos)',    icon: ic('clipboard-check'), grupo: 'Principal' },
+      { route: '#/obras',         label: 'Mapa de Obras',   icon: ic('map-pin'),         grupo: 'Principal' },
+      { route: '#/base',          label: 'BASE',            icon: ic('database'),        grupo: 'Principal' },
+      { route: '#/clientes',      label: 'Clientes',        icon: ic('users'),           grupo: 'RH' },
+      { route: '#/fornecedores',  label: 'Fornecedores',    icon: ic('truck'),           grupo: 'RH' },
+      { route: '#/recursos',      label: 'Recursos',        icon: ic('user-plus'),       grupo: 'RH' },
+      { route: '#/documentos',    label: 'Documentação',    icon: ic('file-text'),       grupo: 'RH' },
+      { route: '#/caixa',         label: 'Caixa',           icon: ic('wallet'),          grupo: 'Financeiro' },
+      { route: '#/contas-pagar',  label: 'Contas a Pagar',  icon: ic('minus-circle'),    grupo: 'Financeiro' },
+      { route: '#/notas-fiscais', label: 'Notas Fiscais',   icon: ic('receipt'),         grupo: 'Financeiro' },
+      { route: '#/socios',        label: 'Sócios',          icon: ic('users'),           grupo: 'Financeiro' },
+      { route: '#/investimentos', label: 'Aportes',         icon: ic('plus-circle'),     grupo: 'Financeiro' },
+      { route: '#/configuracao',  label: 'Configuração',    icon: ic('settings'),        grupo: 'Sistema' },
+      { route: '#/usuarios',      label: 'Usuários',        icon: ic('user-plus'),       grupo: 'Sistema' },
+      { route: '#/auditoria',     label: 'Auditoria',       icon: ic('eye'),             grupo: 'Sistema' },
     ];
 
-    const grupos = ['Principal', 'RH', 'Financeiro', 'Sistema', 'Abas dentro do Contrato'];
+    const grupos = ['Principal', 'RH', 'Financeiro', 'Sistema'];
+
+    const renderCheckbox = (nivel, aba, indented) => {
+      const checked = (nivel.abas || []).includes(aba.route);
+      return `
+        <label style="display:flex;align-items:center;gap:var(--sp-sm);padding:6px var(--sp-sm);${indented ? 'padding-left:32px;' : ''}border-radius:5px;cursor:pointer;transition:background .12s;"
+               onmouseenter="this.style.background='var(--color-bg)'"
+               onmouseleave="this.style.background='transparent'">
+          <input type="checkbox" class="nivel-checkbox"
+                 data-nivel="${nivel.id}" data-route="${aba.route}"
+                 ${checked ? 'checked' : ''}
+                 style="width:15px;height:15px;accent-color:${nivel.cor};cursor:pointer;">
+          <span style="display:inline-flex;align-items:center;color:var(--rh-ink-500);min-width:20px;">${aba.icon}</span>
+          <span style="font-size:14px;font-weight:${checked ? '600' : '400'};color:${checked ? 'var(--color-text)' : 'var(--color-text-muted)'};">${aba.label}</span>
+        </label>
+      `;
+    };
 
     return `
       <div class="page-header" style="margin-bottom:var(--sp-lg);">
@@ -206,22 +232,11 @@ window.Configuracao = {
                 const abasGrupo = todasAbas.filter(a => a.grupo === grupo);
                 return `
                   <div style="margin-bottom:var(--sp-sm);">
-                    <div style="font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.06em;padding:var(--sp-xs) 0;border-bottom:1px solid var(--color-border);margin-bottom:var(--sp-xs);">${grupo}</div>
-                    ${abasGrupo.map(aba => {
-                      const checked = (nivel.abas || []).includes(aba.route);
-                      return `
-                        <label style="display:flex;align-items:center;gap:var(--sp-sm);padding:6px var(--sp-sm);border-radius:5px;cursor:pointer;transition:background .12s;"
-                               onmouseenter="this.style.background='var(--color-bg)'"
-                               onmouseleave="this.style.background='transparent'">
-                          <input type="checkbox" class="nivel-checkbox"
-                                 data-nivel="${nivel.id}" data-route="${aba.route}"
-                                 ${checked ? 'checked' : ''}
-                                 style="width:15px;height:15px;accent-color:${nivel.cor};cursor:pointer;">
-                          <span style="font-size:15px;color:var(--color-text-muted);min-width:20px;">${aba.icon}</span>
-                          <span style="font-size:15px;font-weight:${checked ? '600' : '400'};color:${checked ? 'var(--color-text)' : 'var(--color-text-muted)'};">${aba.label}</span>
-                        </label>
-                      `;
-                    }).join('')}
+                    <div class="rh-label" style="padding:var(--sp-xs) 0;border-bottom:1px solid var(--color-border);margin-bottom:var(--sp-xs);">${grupo}</div>
+                    ${abasGrupo.map(aba => `
+                      ${renderCheckbox(nivel, aba, false)}
+                      ${(aba.children || []).map(child => renderCheckbox(nivel, child, true)).join('')}
+                    `).join('')}
                   </div>
                 `;
               }).join('')}

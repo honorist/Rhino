@@ -34,6 +34,63 @@ window.Auditoria = {
     return map[e] || e || '—';
   },
 
+  // Resolve entityId para um nome humano lendo do Store.
+  // Retorna string descritiva (ex: 'Veracel Celulose') ou '' se não encontrar.
+  _entityFriendlyName(entity, entityId) {
+    if (!entityId) return '';
+    const s = (window.Store && Store.state) || {};
+    const find = (arr, key) => Array.isArray(arr) ? (arr.find(x => x?.id === entityId) || {})[key] : '';
+    switch (entity) {
+      case 'contracts':
+      case 'contracts.saidas':
+      case 'contracts.budget':
+      case 'contracts.organograma':
+      case 'contracts.rdos':
+        return find(s.contracts, 'name');
+      case 'clientes':
+        return find(s.clientes, 'nome');
+      case 'fornecedores':
+        return find(s.fornecedores, 'nome');
+      case 'recursos':
+      case 'recursos.folgas':
+      case 'recursos.documentos':
+      case 'recursos.passagem':
+        return find(s.recursos, 'nome');
+      case 'notas-fiscais': {
+        const nf = (s.notas_fiscais || []).find(x => x?.id === entityId);
+        return nf ? `nº ${nf.numero || ''}` : '';
+      }
+      case 'contas-pagar': {
+        const cp = (s.contas_pagar || []).find(x => x?.id === entityId);
+        return cp ? cp.descricao || '' : '';
+      }
+      case 'caixa': {
+        const ca = (s.caixa || []).find(x => x?.id === entityId);
+        return ca ? ca.description || '' : '';
+      }
+      case 'investimentos': {
+        const inv = (s.investimentos || []).find(x => x?.id === entityId);
+        return inv ? (inv.description || `${inv.origem || ''} → ${inv.destino || ''}`).trim() : '';
+      }
+      case 'socios':
+        return find(s.socios, 'name');
+      case 'base':
+        return find(s.base, 'description');
+      case 'tipos-base':
+        return find(s.tipos_base, 'label');
+      case 'niveis-acesso':
+        return find(s.niveis_acesso, 'label');
+      case 'doc-templates':
+        return find(s.doc_templates, 'nome');
+      case 'users': {
+        const u = (s.users || []).find(x => x?.id === entityId);
+        return u ? (u.email || u.name || '') : '';
+      }
+      default:
+        return '';
+    }
+  },
+
   // Tradução de ação técnica → verbo amigável
   _actionVerb(a) {
     const map = {
@@ -73,6 +130,8 @@ window.Auditoria = {
   async render() {
     const root = document.getElementById('app');
     root.innerHTML = '<div class="loading-spinner">Carregando...</div>';
+    // Carrega entidades em paralelo para resolver nomes amigáveis
+    try { if (window.Store && Store.loadAll) await Store.loadAll(); } catch (_) {}
     await this._fetch();
     this._draw();
   },
@@ -175,8 +234,13 @@ window.Auditoria = {
                 </td>
                 <td>
                   <span style="background:${verbInfo.bg};color:${verbInfo.cor};padding:2px 10px;border-radius:99px;font-weight:600;font-size:13px;margin-right:6px;">${verbInfo.verbo}</span>
-                  <strong>${escapeHtml(entLabel)}</strong>
-                  ${r.entityId ? `<span style="font-size:12px;color:var(--color-text-muted);font-family:monospace;margin-left:6px;">${escapeHtml(r.entityId).slice(0, 16)}${r.entityId.length > 16 ? '…' : ''}</span>` : ''}
+                  <strong>${escapeHtml(entLabel.toLowerCase())}</strong>
+                  ${(() => {
+                    const friendly = this._entityFriendlyName(r.entity, r.entityId);
+                    if (friendly) return ` <strong>${escapeHtml(friendly)}</strong>`;
+                    if (r.entityId) return ` <span style="font-size:12px;color:var(--color-text-muted);font-style:italic;">(removido)</span>`;
+                    return '';
+                  })()}
                 </td>
                 <td style="text-align:center;">
                   <span style="color:${statusInfo.cor};font-weight:600;font-size:13px;">${statusInfo.texto}</span>

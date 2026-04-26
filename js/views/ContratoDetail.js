@@ -1273,13 +1273,13 @@ window.ContratoDetail = {
           position: relative;
         }
 
-        /* Linhas conectoras — gradient slate-purple→sage→gray (Akaunting) */
+        /* Linhas conectoras — sólidas para visibilidade clara */
         .org-tree li.org-li::before {
           content: '';
           position: absolute;
           top: 0; left: 50%;
           width: 2px; height: 32px;
-          background: linear-gradient(to bottom, rgba(85,88,139,.5), rgba(109,148,128,.32), rgba(156,163,175,.2));
+          background: var(--rh-brand-500, #55588B);
           transform: translateX(-50%);
           border-radius: 2px;
         }
@@ -1288,7 +1288,7 @@ window.ContratoDetail = {
           position: absolute;
           top: 0; left: 0; right: 0;
           height: 2px;
-          background: linear-gradient(to right, transparent 0%, rgba(109,148,128,.35) 15%, rgba(109,148,128,.35) 85%, transparent 100%);
+          background: var(--rh-brand-500, #55588B);
         }
         .org-tree ul.org-root > li.org-li::before,
         .org-tree ul.org-root > li.org-li::after { display: none; }
@@ -1578,16 +1578,74 @@ window.ContratoDetail = {
       return treeCss + '<div class="org-tree"><p class="text-muted rh-text-center">Nenhum membro cadastrado.</p></div>';
     }
 
-    return treeCss + `
-      <div class="org-tree">
-        <ul class="org-root">
-          ${raizes.map(r => this._renderNodeOrg(r, membros)).join('')}
-        </ul>
-        <div class="org-tree-hint">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/>
-          </svg>
-          Arraste um card sobre outro para alterar o supervisor direto. Clique no nome para ver detalhes.
+    const zoomCtrlCss = `
+      <style>
+        .org-zoom-bar {
+          position: sticky; top: 8px; z-index: 5;
+          display: inline-flex; gap: 4px;
+          background: var(--rh-paper, #fff);
+          border: 1px solid var(--rh-ink-200, #E2E8F0);
+          border-radius: var(--rh-r-sm, 6px);
+          padding: 4px;
+          box-shadow: var(--rh-shadow-sm, 0 1px 2px rgba(0,0,0,.06));
+          margin-bottom: 12px;
+        }
+        .org-zoom-btn {
+          width: 32px; height: 32px;
+          border: none;
+          background: transparent;
+          color: var(--rh-ink-700, #334155);
+          border-radius: 4px;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          font-weight: 600;
+          transition: background .12s;
+        }
+        .org-zoom-btn:hover { background: var(--rh-ink-100, #F1F5F9); }
+        .org-zoom-btn:disabled { opacity: .35; cursor: not-allowed; }
+        .org-zoom-label {
+          min-width: 48px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--rh-ink-500, #64748B);
+          font-variant-numeric: tabular-nums;
+        }
+        .org-zoom-wrap {
+          overflow: auto;
+          max-width: 100%;
+        }
+        .org-zoom-content {
+          transform-origin: top left;
+          transition: transform .15s ease;
+        }
+      </style>
+    `;
+    return treeCss + zoomCtrlCss + `
+      <div class="org-zoom-bar" role="toolbar" aria-label="Controles de zoom do organograma">
+        <button class="org-zoom-btn" id="orgZoomOut" aria-label="Diminuir zoom" title="Zoom −">−</button>
+        <span class="org-zoom-label" id="orgZoomLabel">100%</span>
+        <button class="org-zoom-btn" id="orgZoomIn" aria-label="Aumentar zoom" title="Zoom +">+</button>
+        <button class="org-zoom-btn" id="orgZoomReset" aria-label="Restaurar zoom 100%" title="Restaurar 100%" style="font-size:13px;">⟲</button>
+      </div>
+      <div class="org-zoom-wrap">
+        <div class="org-zoom-content" id="orgZoomContent">
+          <div class="org-tree">
+            <ul class="org-root">
+              ${raizes.map(r => this._renderNodeOrg(r, membros)).join('')}
+            </ul>
+            <div class="org-tree-hint">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/>
+              </svg>
+              Arraste um card sobre outro para alterar o supervisor direto. Clique no nome para ver detalhes. Use os botões de zoom para ver a equipe inteira.
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -1603,6 +1661,32 @@ window.ContratoDetail = {
 
     const btnNovo = document.getElementById('btnNovoMembroOrg');
     if (btnNovo) btnNovo.addEventListener('click', () => this.showModalOrganograma(contractId));
+
+    // Zoom do organograma — persiste em sessionStorage
+    const ZOOM_KEY = 'rhino-org-zoom';
+    const ZOOM_MIN = 0.4, ZOOM_MAX = 1.5, ZOOM_STEP = 0.1;
+    const content = document.getElementById('orgZoomContent');
+    const label   = document.getElementById('orgZoomLabel');
+    const btnIn   = document.getElementById('orgZoomIn');
+    const btnOut  = document.getElementById('orgZoomOut');
+    const btnRst  = document.getElementById('orgZoomReset');
+    if (content && label && btnIn && btnOut) {
+      let zoom = parseFloat(sessionStorage.getItem(ZOOM_KEY) || '1') || 1;
+      const apply = () => {
+        zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, zoom));
+        content.style.transform = `scale(${zoom})`;
+        // Reserva espaço pra evitar corte: ajusta altura/width do wrap
+        content.style.width = (100 / zoom) + '%';
+        label.textContent = Math.round(zoom * 100) + '%';
+        btnIn.disabled  = zoom >= ZOOM_MAX;
+        btnOut.disabled = zoom <= ZOOM_MIN;
+        sessionStorage.setItem(ZOOM_KEY, String(zoom));
+      };
+      btnIn.addEventListener('click',  () => { zoom += ZOOM_STEP; apply(); });
+      btnOut.addEventListener('click', () => { zoom -= ZOOM_STEP; apply(); });
+      if (btnRst) btnRst.addEventListener('click', () => { zoom = 1; apply(); });
+      apply();
+    }
 
     this._attachOrgRowListeners(contract);
   },
