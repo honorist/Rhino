@@ -1273,15 +1273,16 @@ window.ContratoDetail = {
           position: relative;
         }
 
-        /* Linhas conectoras — sólidas para visibilidade clara */
+        /* Linhas conectoras — sólidas e contínuas (sem gap entre níveis).
+           Vertical estende -40px (preenche o padding-top da ul) +32px (padding da li) = 72px total. */
         .org-tree li.org-li::before {
           content: '';
           position: absolute;
-          top: 0; left: 50%;
-          width: 2px; height: 32px;
+          top: -40px; left: 50%;
+          width: 2px; height: 72px;
           background: var(--rh-brand-500, #55588B);
           transform: translateX(-50%);
-          border-radius: 2px;
+          border-radius: 0;
         }
         .org-tree ul.org-ul > li.org-li::after {
           content: '';
@@ -1289,6 +1290,11 @@ window.ContratoDetail = {
           top: 0; left: 0; right: 0;
           height: 2px;
           background: var(--rh-brand-500, #55588B);
+        }
+        /* Filho único: não precisa de barra horizontal, só vertical */
+        .org-tree ul.org-ul > li.org-li:only-child::before {
+          /* mantém a vertical contínua do pai ao filho */
+          top: -40px; height: 72px;
         }
         .org-tree ul.org-root > li.org-li::before,
         .org-tree ul.org-root > li.org-li::after { display: none; }
