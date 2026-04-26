@@ -162,9 +162,9 @@ window.Configuracao = {
           { route: 'contrato-tab:rdo',        label: 'Aba RDO',          icon: ic('clipboard-check') },
           { route: 'contrato-tab:pendencias', label: 'Aba Pendências',   icon: ic('alert-triangle') },
         ] },
-      { route: '#/rdos',          label: 'RDOs (todos)',    icon: ic('clipboard-check'), grupo: 'Principal' },
-      { route: '#/obras',         label: 'Mapa de Obras',   icon: ic('map-pin'),         grupo: 'Principal' },
-      { route: '#/base',          label: 'BASE',            icon: ic('database'),        grupo: 'Principal' },
+      { route: '#/rdos',          label: 'RDOs (todos)',    icon: ic('clipboard-check'), grupo: 'Obras' },
+      { route: '#/obras',         label: 'Mapa de Obras',   icon: ic('map-pin'),         grupo: 'Obras' },
+      { route: '#/base',          label: 'BASE',            icon: ic('database'),        grupo: 'Financeiro' },
       { route: '#/clientes',      label: 'Clientes',        icon: ic('users'),           grupo: 'RH' },
       { route: '#/fornecedores',  label: 'Fornecedores',    icon: ic('truck'),           grupo: 'RH' },
       { route: '#/recursos',      label: 'Recursos',        icon: ic('user-plus'),       grupo: 'RH' },
@@ -180,7 +180,7 @@ window.Configuracao = {
       { route: 'special:nao-ver-valores', label: 'Ocultar valores monetários (R$)', icon: ic('eye-off'), grupo: 'Restrições especiais' },
     ];
 
-    const grupos = ['Principal', 'RH', 'Financeiro', 'Sistema', 'Restrições especiais'];
+    const grupos = ['Principal', 'Obras', 'RH', 'Financeiro', 'Sistema', 'Restrições especiais'];
 
     const renderCheckbox = (nivel, aba, indented) => {
       const checked = (nivel.abas || []).includes(aba.route);

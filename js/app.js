@@ -5,8 +5,8 @@ const routes = {
   '#/proposta':     { view: null,                  label: 'Proposta',        icon: _ic('file-text'), soon: true },
   '#/contratos':    { view: window.Contratos,      label: 'Contratos',       icon: _ic('briefcase') },
   '#/contratos/:id':{ view: window.ContratoDetail, label: null,              icon: null },
-  '#/rdos':         { view: window.RDOs,           label: 'RDOs',            icon: _ic('clipboard-check') },
-  '#/obras':        { view: window.Obras,          label: 'Mapa de Obras',   icon: _ic('map-pin') },
+  '#/rdos':         { view: window.RDOs,           label: 'RDOs',            icon: _ic('clipboard-check'), group: 'obras' },
+  '#/obras':        { view: window.Obras,          label: 'Mapa de Obras',   icon: _ic('map-pin'),         group: 'obras' },
   '#/clientes':     { view: window.Clientes,       label: 'Clientes',        icon: _ic('users'),       group: 'rh' },
   '#/recursos':     { view: window.Recursos,       label: 'Recursos',        icon: _ic('user-plus'),   group: 'rh' },
   '#/documentos':   { view: window.Documentos,     label: 'Documentação',    icon: _ic('file-text'),   group: 'rh' },
@@ -16,7 +16,7 @@ const routes = {
   '#/notas-fiscais':{ view: window.NotasFiscais,   label: 'Contas a Receber',icon: _ic('receipt'),     group: 'financeiro' },
   '#/socios':       { view: window.Socios,         label: 'Sócios',          icon: _ic('users'),       group: 'financeiro' },
   '#/investimentos':{ view: window.Investimentos,  label: 'Aportes',         icon: _ic('plus-circle'), group: 'financeiro' },
-  '#/base':         { view: window.Base,           label: 'BASE',            icon: _ic('database') },
+  '#/base':         { view: window.Base,           label: 'BASE',            icon: _ic('database'),    group: 'financeiro' },
   '#/configuracao': { view: window.Configuracao,   label: 'Configuração',    icon: _ic('settings') },
   '#/usuarios':     { view: window.Usuarios,       label: null,              icon: null },  // acessível via Configuração
   '#/auditoria':    { view: window.Auditoria,      label: null,              icon: null },  // acessível via Configuração
@@ -655,6 +655,7 @@ function renderSidebar() {
 
   // Definição de grupos da sidebar (RH e Financeiro). Cada grupo é dropdown.
   const groups = [
+    { key: 'obras',      label: 'Obras',      icon: _ic('map-pin'),     alertCount: 0,                     btnId: 'btnObras' },
     { key: 'rh',         label: 'RH',         icon: _ic('users'),       alertCount: recAlerts + docAlerts, btnId: 'btnRH' },
     { key: 'financeiro', label: 'Financeiro', icon: _ic('dollar-sign'), alertCount: nfAlerts + cpAlerts,   btnId: 'btnFinanceiro' },
   ];
