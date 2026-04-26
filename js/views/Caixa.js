@@ -57,10 +57,19 @@ window.Caixa = {
           };
         });
 
+      // Recorrências virtuais (BASE items recorrentes) — próximos 90 dias
+      const projUntil = (() => { const d = new Date(); d.setDate(d.getDate() + 90); return d.toISOString().split('T')[0]; })();
+      const baseItems = Store.state.base || [];
+      const virtualOcorrencias = (window.RhinoRecurrence
+        ? window.RhinoRecurrence.expandAll(baseItems, hojeStr, projUntil)
+        : []
+      ).filter(o => !window.RhinoRecurrence.isMaterialized(o, Store.state.caixa || []));
+
       const totalFutEntradas = futEntradas.reduce((s, e) => s + num(e.value), 0)
                              + nfsFuturas.reduce((s, e) => s + e.valor, 0);
       const totalFutSaidas   = futSaidas.reduce((s, e) => s + num(e.value), 0)
-                             + contasFuturas.reduce((s, c) => s + num(c.valor), 0);
+                             + contasFuturas.reduce((s, c) => s + num(c.valor), 0)
+                             + virtualOcorrencias.reduce((s, o) => s + (parseFloat(o.value) || 0), 0);
       const saldoProjetado   = saldoGeral + totalFutEntradas - totalFutSaidas;
 
       // Lista de meses disponíveis (somente passado/hoje)
@@ -139,13 +148,28 @@ window.Caixa = {
                     const dias = Math.floor((new Date(c.dataVencimento) - new Date()) / 86400000);
                     const label = dias < 0 ? `${Math.abs(dias)}d vencida` : dias === 0 ? 'vence hoje' : `em ${dias}d`;
                     return { date: c.dataVencimento || '9999-99-99', desc: c.descricao + (c.numeroNF ? ` — NF ${c.numeroNF}` : ''), tipo: 'saida', origem: `Conta a Pagar · ${label}`, valor: num(c.valor) };
-                  })
+                  }),
+                  ...virtualOcorrencias.map(o => ({
+                    date: o.date,
+                    desc: o.sourceDescription,
+                    tipo: 'saida',
+                    origem: `Recorrência BASE · ${window.RhinoRecurrence.frequencyLabel(o.frequency)}`,
+                    valor: o.value,
+                    virtual: true,
+                    virtualMeta: o,
+                  })),
                 ].sort((a, b) => a.date.localeCompare(b.date)).map(item => `
                   <tr style="opacity:0.8;">
                     <td style="color:var(--color-text-muted);font-style:italic;">${item.date && item.date !== '9999-99-99' ? new Date(item.date + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
-                    <td style="color:var(--color-text-muted);">${escapeHtml(item.desc)}</td>
+                    <td style="color:var(--color-text-muted);">
+                      ${escapeHtml(item.desc)}
+                      ${item.virtual ? `<span class="rh-pill rh-pill-info" style="margin-left:8px;"><span class="rh-pill-dot"></span>previsto</span>` : ''}
+                    </td>
                     <td><span class="badge" style="background:${item.tipo === 'entrada' ? 'rgba(56,161,105,.12)' : 'rgba(229,62,62,.12)'};color:${item.tipo === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};border:1px dashed ${item.tipo === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};">${item.tipo}</span></td>
-                    <td style="font-size:15px;color:var(--color-text-muted);">${item.origem}</td>
+                    <td style="font-size:15px;color:var(--color-text-muted);">
+                      ${item.origem}
+                      ${item.virtual ? `<button class="btn btn-sm btn-secondary btn-realizar-recorrencia" data-source="${item.virtualMeta.sourceId}" data-date="${item.virtualMeta.date}" data-value="${item.virtualMeta.value}" data-desc="${escapeHtml(item.desc)}" data-type-key="${item.virtualMeta.sourceTypeKey || ''}" style="margin-left:8px;font-size:11px;padding:3px 8px;">marcar como realizado</button>` : ''}
+                    </td>
                     <td style="text-align:right;font-weight:700;color:${item.tipo === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};">
                       ${item.tipo === 'entrada' ? '+' : '-'}${Store.formatBRL(item.valor)}
                     </td>
@@ -307,6 +331,34 @@ window.Caixa = {
       `;
 
       app.innerHTML = html;
+
+      // Listener: "marcar como realizado" em ocorrência virtual de recorrência
+      document.querySelectorAll('.btn-realizar-recorrencia').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const b = e.currentTarget;
+          const data = {
+            type: 'saida',
+            description: b.dataset.desc,
+            value: parseFloat(b.dataset.value) || 0,
+            date: b.dataset.date,
+            category: b.dataset.typeKey || null,
+            baseItemId: b.dataset.source,  // link para o item BASE recorrente (idempotência)
+            notes: 'Materializado da recorrência BASE',
+          };
+          b.disabled = true;
+          b.textContent = 'criando...';
+          try {
+            await Store.createCaixaEntry(data);
+            window.showToast('Lançamento criado com sucesso', 'success');
+            this.render();
+          } catch (err) {
+            window.showToast('Erro: ' + (err.message || err), 'error');
+            b.disabled = false;
+            b.textContent = 'marcar como realizado';
+          }
+        });
+      });
 
       // Listeners de filtros
       document.getElementById('filterMes').addEventListener('change', e => {
