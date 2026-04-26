@@ -44,6 +44,10 @@ window.Store = {
   },
 
   formatBRL(value) {
+    // Mascara valor se o perfil atual não tem permissão de ver valores
+    if (window.perfil && typeof window.perfil.podeVerValores === 'function' && !window.perfil.podeVerValores()) {
+      return 'R$ ●●●●●';
+    }
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',

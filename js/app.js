@@ -384,6 +384,15 @@ const perfil = {
     return abas.includes(base);
   },
 
+  // Pode ver valores monetários? Se o perfil tem 'special:nao-ver-valores'
+  // nas abas, todos os valores R$ são mascarados como R$ ●●●●●.
+  // Se NÃO houver perfil ativo (admin sem perfil escolhido), libera por padrão.
+  podeVerValores() {
+    const abas = this.abas();
+    if (!abas) return true;
+    return !abas.includes('special:nao-ver-valores');
+  },
+
   // Verifica se uma sub-aba dentro do contrato está liberada para este perfil.
   // Convenção: abas com prefixo "contrato-tab:" no array niveis.abas.
   // Se o perfil não tem NENHUMA contrato-tab configurada, libera todas (compat).

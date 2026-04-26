@@ -177,9 +177,10 @@ window.Configuracao = {
       { route: '#/configuracao',  label: 'Configuração',    icon: ic('settings'),        grupo: 'Sistema' },
       { route: '#/usuarios',      label: 'Usuários',        icon: ic('user-plus'),       grupo: 'Sistema' },
       { route: '#/auditoria',     label: 'Auditoria',       icon: ic('eye'),             grupo: 'Sistema' },
+      { route: 'special:nao-ver-valores', label: 'Ocultar valores monetários (R$)', icon: ic('eye-off'), grupo: 'Restrições especiais' },
     ];
 
-    const grupos = ['Principal', 'RH', 'Financeiro', 'Sistema'];
+    const grupos = ['Principal', 'RH', 'Financeiro', 'Sistema', 'Restrições especiais'];
 
     const renderCheckbox = (nivel, aba, indented) => {
       const checked = (nivel.abas || []).includes(aba.route);
