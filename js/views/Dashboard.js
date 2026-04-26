@@ -85,7 +85,7 @@ window.Dashboard = {
       const mesIni = new Date(hojeD.getFullYear(), hojeD.getMonth(), 1).toISOString().split('T')[0];
       const mesAntIni = new Date(hojeD.getFullYear(), hojeD.getMonth() - 1, 1).toISOString().split('T')[0];
       const mesAntFim = new Date(hojeD.getFullYear(), hojeD.getMonth(), 0).toISOString().split('T')[0];
-      const caixaEntries = (Store.state.caixa && Store.state.caixa.entries) || [];
+      const caixaEntries = Array.isArray(Store.state.caixa) ? Store.state.caixa : (Store.state.caixa?.entries || []);
       const faturadoMes = caixaEntries
         .filter(e => e.type === 'entrada' && e.date >= mesIni)
         .reduce((s, e) => s + (parseFloat(e.value) || 0), 0);
