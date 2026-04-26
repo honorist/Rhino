@@ -125,10 +125,31 @@ window.Dashboard = {
 
       const saudeScore = this.calcularScore(parseFloat(taxaDespesa), parseFloat(marginMedia), dash.caixaBalance);
 
+      const _icon = (name, size) => (window.rhIcon ? window.rhIcon(name, size || 16) : '');
+      const _kpi = (opts) => {
+        const tone = opts.tone || '';
+        const valueColor = tone === 'pos' ? 'var(--rh-pos-strong)'
+                         : tone === 'neg' ? 'var(--rh-neg-strong)'
+                         : tone === 'warn' ? 'var(--rh-warn-strong)'
+                         : 'var(--rh-ink-900)';
+        const deltaCls = opts.deltaTone === 'pos' ? 'rh-kpi-delta-pos'
+                       : opts.deltaTone === 'neg' ? 'rh-kpi-delta-neg' : '';
+        return `
+          <a href="${opts.href || '#'}" class="rh-kpi" style="text-decoration:none;color:inherit;cursor:pointer;" aria-label="${escapeHtml(opts.label + ': ' + opts.value)}">
+            <div class="rh-kpi-label">${escapeHtml(opts.label)}</div>
+            <div class="rh-kpi-value" style="color:${valueColor};">${opts.value}</div>
+            <div class="rh-kpi-meta">
+              ${opts.deltaIcon ? `<span class="${deltaCls}">${_icon(opts.deltaIcon, 12)}</span>` : ''}
+              <span>${opts.meta || ''}</span>
+            </div>
+          </a>
+        `;
+      };
+
       const html = `
         <div class="page-header">
           <div>
-            <h1 class="page-title">${saudacaoTxt}, ${escapeHtml(primeiroNome)}</h1>
+            <h1 class="page-title rh-h1">${saudacaoTxt}, ${escapeHtml(primeiroNome)}</h1>
             <p class="page-subtitle">${subParts.join(' · ')}</p>
           </div>
           <div id="dash-periodo-ctrl" style="display:flex;align-items:center;gap:var(--sp-sm);">
@@ -136,62 +157,67 @@ window.Dashboard = {
           </div>
         </div>
 
-        <!-- KPIs principais -->
-        <div class="stat-grid">
-          <a href="#/contratos" class="card stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
-            <div class="stat-value">${dash.activeContracts}</div>
-            <div class="stat-label">Contratos Ativos →</div>
-          </a>
-          <a href="#/contratos" class="card stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
-            <div class="stat-value">${Store.formatBRL(dash.totalContractValue)}</div>
-            <div class="stat-label">Faturamento Total →</div>
-          </a>
-          <a href="#/caixa" class="card stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
-            <div class="stat-value" style="color: ${dash.caixaBalance >= 0 ? 'var(--color-success)' : 'var(--color-danger)'}">
-              ${Store.formatBRL(dash.caixaBalance)}
-            </div>
-            <div class="stat-label">Saldo em Caixa → Ver Lançamentos</div>
-          </a>
-          <a href="#/contratos" class="card stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
-            <div class="stat-value" style="color: ${parseFloat(marginMedia) > 20 ? 'var(--color-success)' : parseFloat(marginMedia) > 0 ? 'var(--color-warning)' : 'var(--color-danger)'}">
-              ${marginMedia}%
-            </div>
-            <div class="stat-label">Margem Média →</div>
-          </a>
-          ${rdoStats ? `
-            <a href="#/rdos" class="card stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
-              <div class="stat-value" style="color: ${rdoStats.aderencia7d >= 80 ? 'var(--color-success)' : rdoStats.aderencia7d >= 50 ? 'var(--color-warning)' : 'var(--color-danger)'}">
-                ${rdoStats.aderencia7d}%
-              </div>
-              <div class="stat-label">Aderência RDO ${rdoStats.diasUteisAvaliados}d → ${rdoStats.obrasSemRdoOntem.length > 0 ? `<span style="color:var(--color-danger);">${rdoStats.obrasSemRdoOntem.length} sem RDO ontem</span>` : 'tudo em dia'}</div>
-            </a>
-          ` : ''}
+        <!-- Camada 1: KPIs principais -->
+        <div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));">
+          ${_kpi({
+            href: '#/caixa',
+            label: 'Saldo em caixa',
+            value: Store.formatBRL(dash.caixaBalance),
+            tone: dash.caixaBalance >= 0 ? 'pos' : 'neg',
+            meta: dash.caixaBalance >= 0 ? 'caixa positivo' : 'caixa negativo',
+          })}
+          ${_kpi({
+            href: '#/notas-fiscais',
+            label: 'A receber (NFs)',
+            value: Store.formatBRL(totalAReceber),
+            meta: `${nfsEmitidas.length} emitidas · ${nfsPendentes.length} pendentes`,
+          })}
+          ${_kpi({
+            href: '#/contas-pagar',
+            label: 'A pagar (30d)',
+            value: Store.formatBRL(totalAPagar30d),
+            tone: totalAPagar30d > 0 ? 'warn' : '',
+            meta: `${cp30d.length} lançamento${cp30d.length !== 1 ? 's' : ''}`,
+          })}
+          ${_kpi({
+            href: '#/caixa',
+            label: 'Faturado (mês)',
+            value: Store.formatBRL(faturadoMes),
+            deltaIcon: faturadoMesAnt > 0 ? (deltaFaturadoPct >= 0 ? 'arrow-up' : 'arrow-down') : '',
+            deltaTone: deltaFaturadoPct >= 0 ? 'pos' : 'neg',
+            meta: faturadoMesAnt > 0 ? `${Math.abs(deltaFaturadoPct).toFixed(1)}% vs mês ant.` : 'sem comparativo',
+          })}
         </div>
 
-        <!-- KPIs financeiros adicionais (A receber, A pagar 30d, Faturado mês, Aportes) -->
-        <div class="stat-grid" style="margin-bottom:var(--sp-xl);">
-          <a href="#/notas-fiscais" class="card stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
-            <div class="stat-value" style="color:var(--color-success);">${Store.formatBRL(totalAReceber)}</div>
-            <div class="stat-label">A receber (NFs) · ${nfsEmitidas.length} emitidas · ${nfsPendentes.length} pendentes</div>
-          </a>
-          <a href="#/contas-pagar" class="card stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
-            <div class="stat-value" style="color:var(--color-danger);">${Store.formatBRL(totalAPagar30d)}</div>
-            <div class="stat-label">A pagar (30d) · ${cp30d.length} lançamento${cp30d.length !== 1 ? 's' : ''}</div>
-          </a>
-          <a href="#/caixa" class="card stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
-            <div class="stat-value">${Store.formatBRL(faturadoMes)}</div>
-            <div class="stat-label">Faturado (mês) · ${faturadoMesAnt > 0 ? `${deltaFaturadoPct >= 0 ? '↑' : '↓'} ${Math.abs(deltaFaturadoPct).toFixed(1)}% vs mês ant.` : 'sem comparativo'}</div>
-          </a>
-          <a href="#/socios" class="card stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
-            <div class="stat-value">${Store.formatBRL(aportesTotal)}</div>
-            <div class="stat-label">Aportes acumulados · sócios ${Store.formatBRL(aportesSocios)} + empresa ${Store.formatBRL(aportesEmpresa)}</div>
-          </a>
-          <a href="#/caixa" class="card stat-card" style="text-decoration:none;color:inherit;cursor:pointer;">
-            <div class="stat-value" style="color:${coberturaMeses >= 3 ? 'var(--color-success)' : coberturaMeses >= 1 ? 'var(--color-warning)' : 'var(--color-danger)'};">
-              ${coberturaMeses > 0 ? coberturaMeses.toFixed(1) + ' meses' : '—'}
-            </div>
-            <div class="stat-label">Cobertura de caixa · saldo ÷ saída média</div>
-          </a>
+        <!-- Camada 2: KPIs operacionais -->
+        <div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-bottom:var(--sp-xl);">
+          ${_kpi({
+            href: '#/contratos',
+            label: 'Margem média',
+            value: marginMedia + '%',
+            tone: parseFloat(marginMedia) > 20 ? 'pos' : parseFloat(marginMedia) > 0 ? 'warn' : 'neg',
+            meta: `${dash.activeContracts} contrato${dash.activeContracts !== 1 ? 's' : ''} ativo${dash.activeContracts !== 1 ? 's' : ''}`,
+          })}
+          ${_kpi({
+            href: '#/socios',
+            label: 'Aportes acumulados',
+            value: Store.formatBRL(aportesTotal),
+            meta: `sócios ${Store.formatBRL(aportesSocios)} + empresa ${Store.formatBRL(aportesEmpresa)}`,
+          })}
+          ${_kpi({
+            href: '#/caixa',
+            label: 'Cobertura de caixa',
+            value: coberturaMeses > 0 ? coberturaMeses.toFixed(1) + ' meses' : '—',
+            tone: coberturaMeses >= 3 ? 'pos' : coberturaMeses >= 1 ? 'warn' : 'neg',
+            meta: 'saldo ÷ saída média',
+          })}
+          ${rdoStats ? _kpi({
+            href: '#/rdos',
+            label: `Aderência RDO ${rdoStats.diasUteisAvaliados}d`,
+            value: rdoStats.aderencia7d + '%',
+            tone: rdoStats.aderencia7d >= 80 ? 'pos' : rdoStats.aderencia7d >= 50 ? 'warn' : 'neg',
+            meta: rdoStats.obrasSemRdoOntem.length > 0 ? `${rdoStats.obrasSemRdoOntem.length} sem RDO ontem` : 'tudo em dia',
+          }) : ''}
         </div>
 
         <!-- Contas a Receber / Contas a Pagar (estilo Akaunting) -->
@@ -200,21 +226,21 @@ window.Dashboard = {
         <!-- Pipeline de Medições -->
         <div class="card mb-2xl">
           <div class="card-header">
-            <h3 class="card-title">Pipeline de medições — ${hojeD.toLocaleDateString('pt-BR', { month: 'long' })}</h3>
-            <a href="#/contratos" style="color:var(--color-primary);text-decoration:none;font-size:15px;font-weight:600;">Ver saídas →</a>
+            <h3 class="card-title rh-h2">Pipeline de medições — ${hojeD.toLocaleDateString('pt-BR', { month: 'long' })}</h3>
+            <a href="#/contratos" class="rh-muted" style="text-decoration:none;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:var(--rh-brand-500);">Ver saídas ${_icon('arrow-right', 14)}</a>
           </div>
-          <div style="font-size:15px;color:var(--color-text-muted);margin-bottom:var(--sp-md);">Do trabalho executado ao recebimento</div>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-md);">
+          <div class="rh-muted" style="font-size:13px;margin-bottom:var(--sp-md);">Do trabalho executado ao recebimento</div>
+          <div class="rh-pipeline" role="list" aria-label="Estágios do pipeline de medições">
             ${[
-              { k: 'rascunho',      l: 'Rascunho',         d: pipeline.rascunho,       cor: 'var(--color-text-muted)' },
-              { k: 'aguardEmissao', l: 'Aguard. emissão',  d: pipeline.aguardEmissao,  cor: 'var(--color-warning)', destaque: true },
-              { k: 'nfEmitida',     l: 'NF emitida',       d: pipeline.nfEmitida,      cor: 'var(--color-info)' },
-              { k: 'recebida',      l: 'Recebida',         d: pipeline.recebida,       cor: 'var(--color-success)' },
+              { l: 'Rascunho',        d: pipeline.rascunho,      active: false },
+              { l: 'Aguard. emissão', d: pipeline.aguardEmissao, active: true },
+              { l: 'NF emitida',      d: pipeline.nfEmitida,     active: false },
+              { l: 'Recebida',        d: pipeline.recebida,      active: false },
             ].map(s => `
-              <div style="padding:var(--sp-lg);border-radius:8px;background:${s.destaque ? 'rgba(214,158,46,.08)' : 'var(--color-surface-2)'};border-left:3px solid ${s.cor};">
-                <div style="font-size:13px;color:${s.cor};font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:var(--sp-sm);">${s.l}</div>
-                <div style="font-size:28px;font-weight:800;line-height:1;">${s.d.count}</div>
-                <div style="font-size:14px;color:var(--color-text-muted);margin-top:6px;">${Store.formatBRL(s.d.valor)}</div>
+              <div class="rh-pipeline-stage ${s.active ? 'is-active' : ''}" role="listitem">
+                <div class="rh-pipeline-stage-label">${s.l}</div>
+                <div class="rh-pipeline-stage-count">${s.d.count}</div>
+                <div class="rh-pipeline-stage-value">${Store.formatBRL(s.d.valor)}</div>
               </div>
             `).join('')}
           </div>
@@ -343,47 +369,40 @@ window.Dashboard = {
             <a href="#/notas-fiscais" style="color:var(--color-primary); text-decoration:none; font-size:15px; font-weight:600;">Ver todas →</a>
           </div>
           <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-md);">
-            <div style="text-align:center; padding:var(--sp-lg); background:rgba(229,62,62,.08); border-radius:8px; border:1px solid rgba(229,62,62,.2);">
-              <div style="font-size:28px; font-weight:800; color:var(--color-danger);">${dash.nfsStatus.vencidas}</div>
-              <div style="font-size:15px; color:var(--color-danger); font-weight:600; margin-top:4px;">🔴 VENCIDAS</div>
-            </div>
-            <div style="text-align:center; padding:var(--sp-lg); background:rgba(214,158,46,.08); border-radius:8px; border:1px solid rgba(214,158,46,.2);">
-              <div style="font-size:28px; font-weight:800; color:var(--color-warning);">${dash.nfsStatus.proximasVencer}</div>
-              <div style="font-size:15px; color:var(--color-warning); font-weight:600; margin-top:4px;">⚠️ PRÓX. 7 DIAS</div>
-            </div>
-            <div style="text-align:center; padding:var(--sp-lg); background:rgba(56,161,105,.08); border-radius:8px; border:1px solid rgba(56,161,105,.2);">
-              <div style="font-size:28px; font-weight:800; color:var(--color-success);">${dash.nfsStatus.noPrazo}</div>
-              <div style="font-size:15px; color:var(--color-success); font-weight:600; margin-top:4px;">🟢 NO PRAZO</div>
-            </div>
-            <div style="text-align:center; padding:var(--sp-lg); background:rgba(49,130,206,.08); border-radius:8px; border:1px solid rgba(49,130,206,.2);">
-              <div style="font-size:28px; font-weight:800; color:var(--color-info);">${dash.nfsStatus.emitidas || 0}</div>
-              <div style="font-size:15px; color:var(--color-info); font-weight:600; margin-top:4px;">📤 EMITIDAS</div>
-            </div>
+            ${[
+              { tone: 'neg',  label: 'Vencidas',     value: dash.nfsStatus.vencidas },
+              { tone: 'warn', label: 'Próx. 7 dias', value: dash.nfsStatus.proximasVencer },
+              { tone: 'pos',  label: 'No prazo',     value: dash.nfsStatus.noPrazo },
+              { tone: 'info', label: 'Emitidas',     value: dash.nfsStatus.emitidas || 0 },
+            ].map(s => `
+              <div class="rh-pipeline-stage ${s.value > 0 && s.tone === 'neg' ? 'is-active' : ''}" style="text-align:left;">
+                <div class="rh-pipeline-stage-label" style="display:flex;align-items:center;gap:6px;">${window.rhStatusPill ? window.rhStatusPill(s.tone, s.label) : s.label}</div>
+                <div class="rh-pipeline-stage-count">${s.value}</div>
+              </div>
+            `).join('')}
           </div>
         </div>
 
         <!-- Contas a Pagar — Situação -->
         <div class="card mb-2xl">
           <div class="card-header">
-            <h3 class="card-title">Contas a Pagar — Situação</h3>
-            <a href="#/contas-pagar" style="color:var(--color-primary); text-decoration:none; font-size:15px; font-weight:600;">Ver todas →</a>
+            <h3 class="card-title rh-h2">Contas a Pagar — Situação</h3>
+            <a href="#/contas-pagar" style="text-decoration:none;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:var(--rh-brand-500);">Ver todas ${_icon('arrow-right', 14)}</a>
           </div>
           <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-md);">
-            <div style="text-align:center; padding:var(--sp-lg); background:rgba(229,62,62,.08); border-radius:8px; border:1px solid rgba(229,62,62,.2);">
-              <div style="font-size:28px; font-weight:800; color:var(--color-danger);">${dash.contasPagarStatus?.vencidas || 0}</div>
-              <div style="font-size:15px; color:var(--color-danger); font-weight:600; margin-top:4px;">🔴 VENCIDAS</div>
-            </div>
-            <div style="text-align:center; padding:var(--sp-lg); background:rgba(214,158,46,.08); border-radius:8px; border:1px solid rgba(214,158,46,.2);">
-              <div style="font-size:28px; font-weight:800; color:var(--color-warning);">${dash.contasPagarStatus?.proximasVencer || 0}</div>
-              <div style="font-size:15px; color:var(--color-warning); font-weight:600; margin-top:4px;">⚠️ PRÓX. 7 DIAS</div>
-            </div>
-            <div style="text-align:center; padding:var(--sp-lg); background:rgba(56,161,105,.08); border-radius:8px; border:1px solid rgba(56,161,105,.2);">
-              <div style="font-size:28px; font-weight:800; color:var(--color-success);">${(dash.contasPagarStatus?.pendentes || 0) - (dash.contasPagarStatus?.vencidas || 0) - (dash.contasPagarStatus?.proximasVencer || 0)}</div>
-              <div style="font-size:15px; color:var(--color-success); font-weight:600; margin-top:4px;">🟢 NO PRAZO</div>
-            </div>
-            <div style="text-align:center; padding:var(--sp-lg); background:rgba(229,62,62,.05); border-radius:8px; border:1px solid rgba(229,62,62,.15);">
-              <div style="font-size:20px; font-weight:800; color:var(--color-danger);">${Store.formatBRL(dash.contasPagarStatus?.totalPendente || 0)}</div>
-              <div style="font-size:15px; color:var(--color-danger); font-weight:600; margin-top:4px;">💸 TOTAL PENDENTE</div>
+            ${[
+              { tone: 'neg',  label: 'Vencidas',     value: dash.contasPagarStatus?.vencidas || 0 },
+              { tone: 'warn', label: 'Próx. 7 dias', value: dash.contasPagarStatus?.proximasVencer || 0 },
+              { tone: 'pos',  label: 'No prazo',     value: (dash.contasPagarStatus?.pendentes || 0) - (dash.contasPagarStatus?.vencidas || 0) - (dash.contasPagarStatus?.proximasVencer || 0) },
+            ].map(s => `
+              <div class="rh-pipeline-stage ${s.value > 0 && s.tone === 'neg' ? 'is-active' : ''}" style="text-align:left;">
+                <div class="rh-pipeline-stage-label" style="display:flex;align-items:center;gap:6px;">${window.rhStatusPill ? window.rhStatusPill(s.tone, s.label) : s.label}</div>
+                <div class="rh-pipeline-stage-count">${s.value}</div>
+              </div>
+            `).join('')}
+            <div class="rh-pipeline-stage" style="text-align:left;border-left-color:var(--rh-neg-strong);">
+              <div class="rh-pipeline-stage-label" style="color:var(--rh-neg-text);">Total pendente</div>
+              <div class="rh-pipeline-stage-count" style="font-size:22px;color:var(--rh-neg-strong);">${Store.formatBRL(dash.contasPagarStatus?.totalPendente || 0)}</div>
             </div>
           </div>
         </div>

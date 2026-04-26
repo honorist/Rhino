@@ -176,16 +176,16 @@ window.ContratoDetail = {
         </div>
 
         <!-- Tabs executivas (filtradas pelo nível de acesso) -->
-        <div class="ctd-tabs">
+        <div class="ctd-tabs" role="tablist" aria-label="Seções do contrato">
           ${[
-            { k:'visao',     l:'Visão Geral',  i:'◉' },
-            { k:'financeiro',l:'Financeiro',   i:'◈' },
-            { k:'equipe',    l:'Equipe',       i:'◎' },
-            { k:'rdo',       l:'RDO',          i:'📋', badge: (contract.rdos || []).length },
-            { k:'pendencias',l:'Pendências',   i:'⚠', badge: passagensPendentes.length }
+            { k:'visao',     l:'Visão Geral',  icon:'eye' },
+            { k:'financeiro',l:'Financeiro',   icon:'dollar-sign' },
+            { k:'equipe',    l:'Equipe',       icon:'users' },
+            { k:'rdo',       l:'RDO',          icon:'clipboard', badge: (contract.rdos || []).length },
+            { k:'pendencias',l:'Pendências',   icon:'alert-triangle', badge: passagensPendentes.length }
           ].filter(t => (window.perfil ? window.perfil.podeContractTab(t.k) : true)).map(t => `
-            <button class="ctd-tab ${this._tab === t.k ? 'active' : ''}" data-ctd-tab="${t.k}">
-              <span style="opacity:.7;font-size:.85em;">${t.i}</span>
+            <button class="ctd-tab ${this._tab === t.k ? 'active' : ''}" data-ctd-tab="${t.k}" role="tab" aria-selected="${this._tab === t.k}" aria-label="${t.l}${t.badge ? ' (' + t.badge + ')' : ''}">
+              <span aria-hidden="true" style="display:inline-flex;align-items:center;color:currentColor;">${window.rhIcon ? window.rhIcon(t.icon, 16) : ''}</span>
               ${t.l}
               ${t.badge ? `<span class="ctd-tab-badge">${t.badge}</span>` : ''}
             </button>
