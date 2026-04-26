@@ -107,8 +107,18 @@ window.ContratoDetail = {
       const totalPassagensRealizadas = passagensRealizadas.reduce((s, e) => s + (parseFloat(e.value) || 0), 0);
       const totalPassagensPendentes  = passagensPendentes.reduce((s, c)  => s + (parseFloat(c.valor) || 0), 0);
 
-      const margin = contract.value - totalSaidas - totalBase - totalPassagensRealizadas;
-      const spentPct = ((totalSaidas + totalPassagensRealizadas) / contract.value * 100).toFixed(1);
+      // Compras / saídas avulsas: qualquer caixa entry SAÍDA vinculada ao contrato
+      // que NÃO seja passagem (já listadas) e NÃO seja saida cadastrada via tabela `saidas`
+      // (essas vêm pelo Store.getSaidasByContract). Inclui contas a pagar pagas com contract_id.
+      const comprasContrato = (Store.state.caixa || []).filter(e =>
+        e.contractId === contractId &&
+        e.type === 'saida' &&
+        e.category !== 'passagem'
+      );
+      const totalCompras = comprasContrato.reduce((s, e) => s + (parseFloat(e.value) || 0), 0);
+
+      const margin = contract.value - totalSaidas - totalBase - totalPassagensRealizadas - totalCompras;
+      const spentPct = ((totalSaidas + totalPassagensRealizadas + totalCompras) / contract.value * 100).toFixed(1);
 
       // Boletins de Medição = Notas Fiscais vinculadas ao contrato
       const nfsContrato = (Store.state.notas_fiscais || []).filter(nf => nf.contractId === contractId);
@@ -118,7 +128,7 @@ window.ContratoDetail = {
       const totalAMedir   = Math.max(0, contract.value - totalMedido);
       const pctMedido     = contract.value > 0 ? (totalMedido / contract.value * 100) : 0;
       const pctEmitido    = contract.value > 0 ? (totalEmitido / contract.value * 100) : 0;
-      const margemAtual   = totalMedido - totalSaidas - totalBase - totalPassagensRealizadas;
+      const margemAtual   = totalMedido - totalSaidas - totalBase - totalPassagensRealizadas - totalCompras;
       const pctMargem     = totalMedido > 0 ? (margemAtual / totalMedido * 100) : 0;
 
       // Orçamento
@@ -134,14 +144,21 @@ window.ContratoDetail = {
         hospedagem: '#22D3EE',  transporte: '#34D399',
         base: '#60A5FA',        outros: '#9CA3AF'
       };
-      // Realizado por tipo (inclui BASE + passagens realizadas em transporte)
+      // Realizado por tipo (inclui BASE + passagens + compras avulsas categorizadas)
+      const comprasByType = comprasContrato.reduce((acc, e) => {
+        const k = e.category || 'outros';
+        const valid = ['mao_de_obra','material','hospedagem','transporte','base','outros'].includes(k);
+        const key = valid ? k : 'outros';
+        acc[key] = (acc[key] || 0) + (parseFloat(e.value) || 0);
+        return acc;
+      }, {});
       const realizadoPorTipo = {
-        mao_de_obra: saidasByType.mao_de_obra,
-        material:    saidasByType.material,
-        hospedagem:  saidasByType.hospedagem,
-        transporte:  saidasByType.transporte + totalPassagensRealizadas,
+        mao_de_obra: saidasByType.mao_de_obra + (comprasByType.mao_de_obra || 0),
+        material:    saidasByType.material    + (comprasByType.material    || 0),
+        hospedagem:  saidasByType.hospedagem  + (comprasByType.hospedagem  || 0),
+        transporte:  saidasByType.transporte  + totalPassagensRealizadas + (comprasByType.transporte || 0),
         base:        totalBase,
-        outros:      0
+        outros:      (comprasByType.outros || 0)
       };
       // Orçado por tipo
       const orcadoPorTipo = {};
@@ -612,35 +629,53 @@ window.ContratoDetail = {
                       type: 'transporte',
                       value: parseFloat(e.value) || 0,
                       id: e.id
+                    })),
+                    // Compras / saídas avulsas vinculadas ao contrato (caixa entries com contractId)
+                    ...comprasContrato.map(e => ({
+                      kind: 'compra',
+                      date: e.date,
+                      description: e.description,
+                      type: e.category || 'outros',
+                      value: parseFloat(e.value) || 0,
+                      id: e.id,
+                      origemDetalhe: e.contaPagarId ? 'Conta a pagar quitada' : 'Compra direta',
                     }))
                   ].sort((a, b) => new Date(b.date) - new Date(a.date)).map(linha => {
                     const isBase     = linha.kind === 'base';
                     const isPassagem = linha.kind === 'passagem';
+                    const isCompra   = linha.kind === 'compra';
                     const tipoBadge = isBase
-                      ? `<span class="badge" style="background:rgba(49,130,206,.15);color:#3182CE;">⚙️ BASE</span>`
-                      : `<span class="badge badge-${linha.type}">${linha.type.replace(/_/g, ' ')}</span>`;
+                      ? `<span class="badge" style="background:rgba(49,130,206,.15);color:#3182CE;">BASE</span>`
+                      : `<span class="badge badge-${linha.type}">${(linha.type || '—').toString().replace(/_/g, ' ')}</span>`;
                     const origemBadge = isBase
                       ? `<span style="font-size:15px;color:var(--color-info);font-weight:600;">Rateio BASE</span>`
                       : isPassagem
-                      ? `<span style="font-size:15px;color:#7C3AED;font-weight:600;">✈ Passagem</span>`
+                      ? `<span style="font-size:15px;color:#7C3AED;font-weight:600;">Passagem</span>`
+                      : isCompra
+                      ? `<span style="font-size:15px;color:#0891B2;font-weight:600;">${escapeHtml(linha.origemDetalhe || 'Compra')}</span>`
                       : `<span class="rh-meta">Saída direta</span>`;
                     const acoes = isBase
-                      ? `<span class="rh-meta">Gerenciar em <a href="#/base" style="color:var(--color-primary);">BASE</a></span>`
+                      ? `<span class="rh-meta">Gerenciar em <a href="#/base" class="rh-link">BASE</a></span>`
                       : isPassagem
-                      ? `<span class="rh-meta">Gerenciar em <a href="#/recursos" style="color:var(--color-primary);">Recursos</a></span>`
-                      : `<div style="display:flex;gap:4px;flex-wrap:wrap;">
-                          <button class="btn btn-sm btn-secondary btn-gerar-bm" data-id="${linha.id}" title="Gerar Boletim de Medição">📄 BM</button>
-                          <button class="btn btn-sm btn-secondary btn-editar-saida" data-id="${linha.id}" title="Editar">✏️</button>
-                          <button class="btn btn-sm btn-danger btn-excluir-saida" data-id="${linha.id}" title="Excluir">🗑️</button>
+                      ? `<span class="rh-meta">Gerenciar em <a href="#/recursos" class="rh-link">Recursos</a></span>`
+                      : isCompra
+                      ? `<span class="rh-meta">Gerenciar em <a href="#/caixa" class="rh-link">Caixa</a></span>`
+                      : `<div class="rh-row-sm" style="flex-wrap:wrap;">
+                          <button class="btn btn-sm btn-secondary btn-gerar-bm" data-id="${linha.id}" title="Gerar Boletim de Medição">BM</button>
+                          <button class="btn btn-sm btn-secondary btn-editar-saida" data-id="${linha.id}" title="Editar">Editar</button>
+                          <button class="btn btn-sm btn-danger btn-excluir-saida" data-id="${linha.id}" title="Excluir">Excluir</button>
                         </div>`;
 
+                    const rowBg = isBase ? 'background:rgba(49,130,206,.03);'
+                                : isPassagem ? 'background:rgba(124,58,237,.03);'
+                                : isCompra ? 'background:rgba(8,145,178,.03);' : '';
                     return `
-                      <tr ${isBase ? 'style="background:rgba(49,130,206,.03);"' : isPassagem ? 'style="background:rgba(124,58,237,.03);"' : ''}>
+                      <tr ${rowBg ? `style="${rowBg}"` : ''}>
                         <td>${new Date(linha.date + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                         <td><strong>${escapeHtml(linha.description)}</strong></td>
                         <td>${tipoBadge}</td>
                         <td>${origemBadge}</td>
-                        <td style="text-align: right; font-weight: 600; ${isBase ? 'color:var(--color-info);' : ''}">${Store.formatBRL(linha.value)}</td>
+                        <td style="text-align: right; font-weight: 600; ${isBase ? 'color:var(--color-info);' : isCompra ? 'color:#0891B2;' : ''}">${Store.formatBRL(linha.value)}</td>
                         <td>${acoes}</td>
                       </tr>
                     `;
@@ -1284,23 +1319,25 @@ window.ContratoDetail = {
           transform: translateX(-50%);
           border-radius: 0;
         }
+        /* Horizontal estendida -14px para cobrir o margin entre li's e ligar siblings */
         .org-tree ul.org-ul > li.org-li::after {
           content: '';
           position: absolute;
-          top: 0; left: 0; right: 0;
+          top: 0; left: -14px; right: -14px;
           height: 2px;
           background: var(--rh-brand-500, #55588B);
         }
-        /* Filho único: não precisa de barra horizontal, só vertical */
+        /* Primeiro filho: linha começa no centro do li (50%) e vai até a direita estendida */
+        .org-tree ul.org-ul > li.org-li:first-child::after { left: 50%; right: -14px; }
+        /* Último filho: linha vai da esquerda estendida até o centro do li */
+        .org-tree ul.org-ul > li.org-li:last-child::after  { left: -14px; right: 50%; }
+        /* Filho único: sem barra horizontal */
+        .org-tree ul.org-ul > li.org-li:only-child::after  { display: none; }
         .org-tree ul.org-ul > li.org-li:only-child::before {
-          /* mantém a vertical contínua do pai ao filho */
           top: -40px; height: 72px;
         }
         .org-tree ul.org-root > li.org-li::before,
         .org-tree ul.org-root > li.org-li::after { display: none; }
-        .org-tree ul.org-ul > li.org-li:first-child::after { left: 50%; }
-        .org-tree ul.org-ul > li.org-li:last-child::after  { right: 50%; }
-        .org-tree ul.org-ul > li.org-li:only-child::after  { display: none; }
 
         /* Card base — Akaunting light clean */
         .org-node {
