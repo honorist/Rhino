@@ -173,17 +173,95 @@ flowchart TD
       { k: 'dashboard',  icon: '📊', label: 'Dashboard / Indicadores' },
       { k: 'auth',       icon: '🔐', label: 'Login e Acesso' },
       { k: 'contratos',  icon: '📋', label: 'Contratos' },
+      { k: 'cronograma', icon: '📅', label: 'Cronograma / Gantt' },
       { k: 'rdos',       icon: '📝', label: 'RDOs' },
+      { k: 'assinaturas',icon: '✍️', label: 'Assinatura no RDO' },
       { k: 'saidas-bm',  icon: '🧾', label: 'Saídas e BMs' },
       { k: 'nfs',        icon: '✅', label: 'NFs / Faturamento' },
       { k: 'contas-pg',  icon: '💸', label: 'Contas a Pagar' },
       { k: 'caixa',      icon: '💰', label: 'Caixa' },
       { k: 'recursos',   icon: '👥', label: 'Recursos e Folgas' },
+      { k: 'estoque',    icon: '📦', label: 'Almoxarifado / Estoque' },
       { k: 'aportes',    icon: '⬆️', label: 'Aportes / Investimentos' },
       { k: 'base',       icon: '🏢', label: 'BASE' },
       { k: 'usuarios',   icon: '🛡️', label: 'Usuários e Permissões' },
+      { k: 'personalizar',icon: '🎨', label: 'Personalizar Dashboard' },
       { k: 'glossario',  icon: '📚', label: 'Glossário' },
     ];
+  },
+
+  // ═════════════ Fluxogramas das novas features ═════════════
+  _flowCronograma() {
+    return `
+<pre class="mermaid">
+flowchart TD
+    A[Abrir Contrato]:::start --> B[Aba Cronograma]
+    B --> C[Adicionar etapa]:::start
+    C --> D[Definir nome, datas plan,<br/>peso % e custo planejado]
+    D --> E[Atualizar % executado<br/>conforme avanço da obra]:::ok
+    E --> F[Gantt mostra:<br/>planejado x real x atraso]:::ok
+    F --> G[Soma de pesos das etapas<br/>deve fechar 100%]:::note
+    classDef start fill:#1d4ed8,stroke:#3b82f6,color:#fff,font-weight:bold;
+    classDef ok    fill:#065f46,stroke:#10b981,color:#fff;
+    classDef note  fill:#1e293b,stroke:#475569,color:#cbd5e1,font-style:italic;
+</pre>`;
+  },
+
+  _flowAssinatura() {
+    return `
+<pre class="mermaid">
+flowchart TD
+    A[Abrir RDO concluído]:::start --> B[Seção Assinaturas]
+    B --> C[+ Adicionar assinatura]:::start
+    C --> D[Escolher papel<br/>encarregado / cliente / fiscal]
+    D --> E[Informar nome<br/>de quem assina]
+    E --> F[Desenhar no canvas<br/>com mouse ou dedo]
+    F --> G[Salvar]:::ok
+    G --> H[PNG armazenado no banco<br/>BYTEA, sem disco externo]:::note
+    H --> I[Aparece no PDF do RDO<br/>com data e papel]:::ok
+    classDef start fill:#1d4ed8,stroke:#3b82f6,color:#fff,font-weight:bold;
+    classDef ok    fill:#065f46,stroke:#10b981,color:#fff;
+    classDef note  fill:#1e293b,stroke:#475569,color:#cbd5e1,font-style:italic;
+</pre>`;
+  },
+
+  _flowEstoque() {
+    return `
+<pre class="mermaid">
+flowchart TD
+    A[Cadastrar Item<br/>código, descrição, unidade]:::start --> B[Cadastrar Almoxarifado<br/>central ou de obra]:::start
+    B --> C[Movimentação]:::start
+    C --> D{Tipo?}
+    D -- entrada --> E[Soma destino +<br/>recalcula custo médio]:::ok
+    D -- saída --> F[Subtrai origem<br/>vincula a obra opcional]:::warn
+    D -- transferência --> G[Subtrai origem +<br/>soma destino atomic]
+    D -- ajuste --> H[Perda ou encontrou<br/>positivo ou negativo]:::warn
+    E --> I[Saldo atualizado<br/>matriz item × almox]:::ok
+    F --> I
+    G --> I
+    H --> I
+    I --> J[Alerta vermelho<br/>se < estoque mínimo]:::bad
+    classDef start fill:#1d4ed8,stroke:#3b82f6,color:#fff,font-weight:bold;
+    classDef ok    fill:#065f46,stroke:#10b981,color:#fff;
+    classDef warn  fill:#92400e,stroke:#f59e0b,color:#fff;
+    classDef bad   fill:#7f1d1d,stroke:#dc2626,color:#fff;
+</pre>`;
+  },
+
+  _flowPersonalizar() {
+    return `
+<pre class="mermaid">
+flowchart TD
+    A[Abrir Dashboard]:::start --> B[Botão Personalizar<br/>no canto superior direito]
+    B --> C[Modal com lista de seções]
+    C --> D[Marcar/desmarcar<br/>seções desejadas]
+    D --> E[Salvar]:::ok
+    E --> F[Preferência salva por usuário<br/>banco + localStorage]:::ok
+    F --> G[Cada usuário vê<br/>seu próprio dashboard]:::note
+    classDef start fill:#1d4ed8,stroke:#3b82f6,color:#fff,font-weight:bold;
+    classDef ok    fill:#065f46,stroke:#10b981,color:#fff;
+    classDef note  fill:#1e293b,stroke:#475569,color:#cbd5e1,font-style:italic;
+</pre>`;
   },
 
   _conteudo() {
@@ -555,6 +633,139 @@ flowchart TD
 
         <div class="man-warn">
           <strong>Admin master:</strong> usuário <strong>sem nível</strong> tem acesso universal. Crie pelo menos um sempre. Por padrão o sistema cria <code>admin@rhino.local</code> no primeiro boot (env <code>ADMIN_EMAIL/ADMIN_PASSWORD</code>).
+        </div>
+      `,
+
+      cronograma: `
+        <h1 class="man-h1">📅 Cronograma físico-financeiro</h1>
+        <p class="man-p">Planejamento de etapas (engenharia, aquisições, montagem, comissionamento) com peso, datas, custo e % executado. Aparece como nova aba dentro de cada contrato.</p>
+
+        ${this._flowCronograma()}
+
+        <h2 class="man-h2">Conceitos</h2>
+        <table class="man-table">
+          <tr><th>Campo</th><th>O que significa</th></tr>
+          <tr><td><strong>Peso %</strong></td><td>Quanto essa etapa representa do total da obra. A soma das etapas deve dar 100%</td></tr>
+          <tr><td><strong>Início / Fim planejado</strong></td><td>Datas do plano original — não muda mesmo se a obra atrasar</td></tr>
+          <tr><td><strong>% Executado</strong></td><td>0 a 100. Quanto da etapa já foi feito (subjetivo, atualizado pela engenharia)</td></tr>
+          <tr><td><strong>Custo planejado</strong></td><td>Quanto a etapa deveria custar — base de comparação com o realizado</td></tr>
+          <tr><td><strong>Avanço físico ponderado</strong></td><td>Σ(peso × execução) ÷ 100. Mostra quanto da obra foi feita considerando o peso de cada etapa</td></tr>
+        </table>
+
+        <h2 class="man-h2">Como ler o Gantt</h2>
+        <ul class="man-ul">
+          <li>Cada linha é uma etapa, posicionada por data planejada</li>
+          <li><strong>Barra cinza</strong> = duração planejada da etapa</li>
+          <li><strong>Barra colorida</strong> = quanto já foi executado, sobreposta à planejada</li>
+          <li>Cor da barra: cinza (0%) → amarelo (&lt;50%) → azul (&lt;100%) → verde (100%)</li>
+          <li><strong>Linha vermelha vertical</strong> = hoje, ajuda a ver atraso visualmente</li>
+        </ul>
+
+        <div class="man-tip">
+          <strong>Boa prática:</strong> atualize % executado semanalmente. Sem isso, o Gantt fica obsoleto e não ajuda na gestão.
+        </div>
+
+        <div class="man-warn">
+          <strong>Atenção:</strong> a soma dos pesos das etapas deve fechar 100%. Se não fechar, o resumo mostra alerta amarelo. Garante que o avanço físico ponderado faça sentido.
+        </div>
+      `,
+
+      assinaturas: `
+        <h1 class="man-h1">✍️ Assinatura digital no RDO</h1>
+        <p class="man-p">Encarregado, cliente e fiscal podem assinar o RDO direto no celular ou tablet. A assinatura fica salva como imagem no banco e aparece em qualquer relatório do RDO.</p>
+
+        ${this._flowAssinatura()}
+
+        <h2 class="man-h2">Por que usar</h2>
+        <ul class="man-ul">
+          <li><strong>Comprovação legal</strong> — em caso de discussão (acidente, atraso, retrabalho), há registro de quem aprovou cada dia</li>
+          <li><strong>Engajamento do fiscal</strong> — o cliente vê que o sistema é sério e participa da gestão</li>
+          <li><strong>Sem papel</strong> — substitui assinatura impressa em diário de obras físico</li>
+        </ul>
+
+        <h2 class="man-h2">Papéis disponíveis</h2>
+        <table class="man-table">
+          <tr><th>Papel</th><th>Quem usa</th></tr>
+          <tr><td><strong>Encarregado</strong></td><td>Responsável pela equipe da empresa naquela obra</td></tr>
+          <tr><td><strong>Cliente</strong></td><td>Representante do contratante (síndico, gerente, dono)</td></tr>
+          <tr><td><strong>Fiscal</strong></td><td>Fiscal de contrato do cliente, em obras com fiscalização ativa</td></tr>
+          <tr><td><strong>Engenheiro</strong></td><td>Engenheiro responsável pela obra (CREA)</td></tr>
+          <tr><td><strong>Outro</strong></td><td>Para casos não-padrão (testemunha, auditor)</td></tr>
+        </table>
+
+        <h2 class="man-h2">Onde fica armazenado</h2>
+        <p class="man-p">A imagem (PNG) fica gravada como BYTEA dentro do Postgres, junto do RDO. Não usa disco externo nem serviço de storage. Backup do banco já cobre as assinaturas.</p>
+
+        <div class="man-tip">
+          <strong>Múltiplas assinaturas:</strong> você pode adicionar quantas precisar no mesmo RDO (encarregado + cliente + fiscal numa única visita). Cada uma vira um registro separado.
+        </div>
+      `,
+
+      estoque: `
+        <h1 class="man-h1">📦 Almoxarifado / Estoque</h1>
+        <p class="man-p">Controle de itens (parafusos, EPIs, ferramentas, materiais) com saldo por almoxarifado, movimentações de entrada/saída/transferência e custo médio ponderado.</p>
+
+        ${this._flowEstoque()}
+
+        <h2 class="man-h2">Estrutura</h2>
+        <table class="man-table">
+          <tr><th>Conceito</th><th>O que é</th></tr>
+          <tr><td><strong>Item</strong></td><td>Coisa que se controla. Tem código, descrição, unidade (pç/kg/m), categoria, estoque mínimo</td></tr>
+          <tr><td><strong>Almoxarifado</strong></td><td>Local físico onde o item fica. Pode ser <em>central</em> ou <em>de obra</em> (vinculado a contrato)</td></tr>
+          <tr><td><strong>Saldo</strong></td><td>Quantidade atual de cada item em cada almoxarifado (matriz)</td></tr>
+          <tr><td><strong>Movimentação</strong></td><td>Cada entrada/saída/transferência registrada — gera histórico</td></tr>
+          <tr><td><strong>Custo médio</strong></td><td>Custo ponderado do item, atualizado a cada entrada nova com NF</td></tr>
+        </table>
+
+        <h2 class="man-h2">Tipos de movimentação</h2>
+        <table class="man-table">
+          <tr><th>Tipo</th><th>Como funciona</th></tr>
+          <tr><td>🟢 <strong>Entrada</strong></td><td>Compra ou recebimento. Soma na quantidade do almoxarifado destino + atualiza custo médio se informar custo unitário</td></tr>
+          <tr><td>🔴 <strong>Saída</strong></td><td>Consumo. Subtrai do almoxarifado origem. Vinculo opcional com obra registra como custo dela</td></tr>
+          <tr><td>🔵 <strong>Transferência</strong></td><td>Mudança de almoxarifado (ex: do central pra obra). Subtrai origem + soma destino — sempre atômico</td></tr>
+          <tr><td>🟡 <strong>Ajuste</strong></td><td>Perda, quebra, contagem inicial. Pode ser positivo ou negativo</td></tr>
+        </table>
+
+        <h2 class="man-h2">Custo médio ponderado (CMV)</h2>
+        <p class="man-p">A cada <strong>entrada com custo unitário</strong>, o sistema recalcula:</p>
+        <div class="man-code">novo_custo_medio = (saldo_anterior × custo_anterior + qtd_entrada × custo_entrada) / saldo_total</div>
+        <p class="man-p">Quando você dá uma <strong>saída</strong>, ela é valorizada pelo custo médio atual. O valor total em estoque (soma de todas as quantidades × custo médio de cada item) é mostrado no painel principal.</p>
+
+        <h2 class="man-h2">Alertas</h2>
+        <ul class="man-ul">
+          <li><strong>Linha vermelha</strong> na tela de Saldo Atual: item com quantidade total abaixo do mínimo cadastrado</li>
+          <li>O painel mostra contagem total de itens abaixo do mínimo no topo</li>
+          <li>Use isso pra disparar pedido de reposição com fornecedor</li>
+        </ul>
+
+        <div class="man-tip">
+          <strong>Vinculando ao contrato:</strong> ao fazer uma saída, escolha a obra. Isso registra o consumo no custo do contrato (aparece na composição do gasto).
+        </div>
+      `,
+
+      personalizar: `
+        <h1 class="man-h1">🎨 Personalizar Dashboard</h1>
+        <p class="man-p">Cada usuário pode escolher quais seções aparecem no seu dashboard. Útil quando perfis diferentes querem ver coisas diferentes (financeiro vs operacional).</p>
+
+        ${this._flowPersonalizar()}
+
+        <h2 class="man-h2">Como personalizar</h2>
+        <ol class="man-ol">
+          <li>Vá no <strong>Dashboard</strong> (página inicial)</li>
+          <li>Clique no botão <strong>🎨 Personalizar</strong> no canto superior direito</li>
+          <li>Marque/desmarque as seções que quer ver</li>
+          <li>Clique em <strong>💾 Salvar</strong></li>
+        </ol>
+
+        <h2 class="man-h2">Onde fica salvo</h2>
+        <p class="man-p">A preferência fica gravada por usuário no banco de dados. Cada login vê seu próprio layout. Cache local (localStorage) acelera a aplicação na próxima visita.</p>
+
+        <div class="man-tip">
+          <strong>Restaurar padrão:</strong> dentro do modal, o botão "Restaurar padrão" reativa todas as seções de uma vez. Útil quando você quer ver tudo de novo.
+        </div>
+
+        <div class="man-warn">
+          <strong>Atenção:</strong> ocultar uma seção não apaga seus dados — só esconde do dashboard. Os dados continuam acessíveis em suas telas dedicadas.
         </div>
       `,
 
