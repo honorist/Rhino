@@ -381,8 +381,10 @@ const perfil = {
     if (!abas) return true;
     // Rotas de detalhe (ex: #/contratos/123) seguem a permissão da rota pai
     const base = route.replace(/(#\/[^/]+).*/, '$1');
-    // Manual, Usuários, RDOs e Auditoria são universais — qualquer perfil autenticado pode abrir
-    if (base === '#/manual' || base === '#/usuarios' || base === '#/rdos' || base === '#/auditoria') return true;
+    // Rotas universais — qualquer perfil autenticado pode abrir
+    // (controle fino fica em cada tela, ex: ver/editar)
+    const universais = ['#/manual', '#/usuarios', '#/rdos', '#/auditoria', '#/estoque', '#/comparativo'];
+    if (universais.includes(base)) return true;
     return abas.includes(base);
   },
 
