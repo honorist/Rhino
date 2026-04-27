@@ -578,9 +578,9 @@ body .page-subtitle                { font-size: 16.5px; }
 
 @media (max-width: 768px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  /* Sidebar mobile = drawer lateral (regras detalhadas em theme-v2.css com body.rh-mobile) */
   #shell { grid-template-columns: 1fr; }
-  #sidebar { position: fixed; width: 100%; height: auto; max-height: 50vh; bottom: 0; }
-  #app { padding: var(--sp-md); }
+  #app { padding: var(--sp-md); max-height: none; overflow-y: visible; }
 }
 
 /* ─── Dark Theme Override (opcional via toggle) ─── */

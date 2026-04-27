@@ -555,3 +555,201 @@ textarea:focus-visible,
   .rh-h2 { font-size: 16px !important; }
   body { font-size: 14px; }
 }
+
+/* ═══════════════════════════════════════════════════════
+   MOBILE PACKAGE — melhorias específicas pra navegação no celular
+   (aplicado em ≤768px para complementar as regras acima)
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* iOS evita zoom automático em inputs se font-size >= 16px */
+  body.rh-mobile input,
+  body.rh-mobile select,
+  body.rh-mobile textarea,
+  body.rh-mobile .form-control {
+    font-size: 16px !important;
+  }
+
+  /* Touch targets: garante mínimo de 40-44px em controles importantes */
+  body.rh-mobile .btn,
+  body.rh-mobile .nav-link,
+  body.rh-mobile .nav-group-header,
+  body.rh-mobile .form-control,
+  body.rh-mobile button:not(.btn-sm):not(.modal-close):not(.btn-link-rdo-ass-del):not(.zoom-btn) {
+    min-height: 40px;
+  }
+  body.rh-mobile .btn-sm {
+    min-height: 32px;
+    padding: 6px 10px;
+  }
+
+  /* Sidebar drawer: largura adapta a telas muito estreitas */
+  body.rh-mobile #sidebar {
+    width: min(280px, 85vw) !important;
+  }
+  /* Logo da sidebar ocupa menos espaço em telas pequenas */
+  body.rh-mobile .sidebar-logo-img {
+    max-height: 36px !important;
+  }
+
+  /* Botão hamburger: melhor visibilidade */
+  body.rh-mobile .rh-mobile-burger {
+    background: var(--color-primary, #1d6b3f) !important;
+    color: #fff !important;
+    border-color: var(--color-primary-dark, #134d2c) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  }
+
+  /* page-header: botões da direita ficam full-width abaixo do título */
+  body.rh-mobile .page-header > div:last-child:not(:only-child),
+  body.rh-mobile .page-header .btn-group {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  body.rh-mobile .page-header .btn-group > .btn,
+  body.rh-mobile .page-header .btn-group > a.btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: center;
+    justify-content: center;
+  }
+
+  /* Cards: padding interno menor pra ganhar espaço */
+  body.rh-mobile .card {
+    padding: 12px !important;
+  }
+  body.rh-mobile .card-header {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* KPI grids: fonte ainda menor pra caber em telas estreitas */
+  body.rh-mobile .stat-value,
+  body.rh-mobile .rh-display { font-size: 18px !important; }
+  body.rh-mobile .rh-kpi-value { font-size: 16px !important; }
+
+  /* Tabelas: scroll mais óbvio (sombra nas bordas) */
+  body.rh-mobile .table-wrap,
+  body.rh-mobile .card > div[style*="overflow-x"] {
+    background:
+      linear-gradient(to right, var(--color-surface) 30%, rgba(0,0,0,0)) 0 0/40px 100% no-repeat,
+      linear-gradient(to left,  var(--color-surface) 30%, rgba(0,0,0,0)) 100% 0/40px 100% no-repeat,
+      linear-gradient(to right, rgba(0,0,0,.15), rgba(0,0,0,0)) 0 0/16px 100% no-repeat,
+      linear-gradient(to left,  rgba(0,0,0,.15), rgba(0,0,0,0)) 100% 0/16px 100% no-repeat;
+    background-attachment: local, local, scroll, scroll;
+  }
+
+  /* Tabs do contrato: tabs com largura mínima e mais respiração */
+  body.rh-mobile .ctd-tab {
+    padding: 9px 14px !important;
+    font-size: 14px !important;
+    flex: 0 0 auto;
+  }
+
+  /* Modais: padding menor + content mais espaço */
+  body.rh-mobile .modal {
+    width: calc(100% - 8px) !important;
+    margin: 4px !important;
+    max-height: calc(100vh - 8px) !important;
+    border-radius: 10px !important;
+  }
+  body.rh-mobile .modal-header {
+    padding: 12px 14px !important;
+  }
+  body.rh-mobile .modal-content {
+    padding: 14px !important;
+  }
+  body.rh-mobile .modal-footer {
+    padding: 10px 14px !important;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  body.rh-mobile .modal-footer > .btn {
+    flex: 1 1 calc(50% - 3px);
+    min-width: 0;
+  }
+  body.rh-mobile .modal-footer > .btn:only-child {
+    flex: 1 1 100%;
+  }
+
+  /* Form-row dentro de modais já vira coluna única em components.css */
+  /* Inputs de date: fica largo com width 100% */
+  body.rh-mobile input[type="date"] {
+    width: 100%;
+  }
+
+  /* Estoque: matriz horizontal com botões de ação empilhados */
+  body.rh-mobile .btn-acao-est {
+    flex: 1 1 calc(50% - 4px);
+    min-height: 36px;
+    font-size: 12px !important;
+    padding: 6px 8px !important;
+    margin: 2px 1px !important;
+  }
+
+  /* Comparativo de contratos: tabela larga vira card empilhado em mobile.
+     Como a tabela usa muitas colunas, deixa scroll horizontal mais óbvio */
+  body.rh-mobile [data-view="comparativo"] table {
+    font-size: 12px !important;
+  }
+
+  /* Dashboard customização: botão Personalizar no header não estoura */
+  body.rh-mobile #btnCustomizarDash {
+    width: 100%;
+    margin-top: 6px;
+  }
+
+  /* Mermaid (manual): não corta lateralmente em telas pequenas */
+  body.rh-mobile pre.mermaid {
+    padding: 10px !important;
+  }
+
+  /* Footer da sidebar: botões compactos */
+  body.rh-mobile .theme-toggle-btn {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  /* Tabela de saldo do estoque: header de coluna fica mais compacto */
+  body.rh-mobile .table th {
+    font-size: 11px !important;
+    padding: 8px 6px !important;
+  }
+  body.rh-mobile .table td {
+    padding: 8px 6px !important;
+  }
+
+  /* Remove sticky horizontal em mobile pra não atrapalhar scroll */
+  body.rh-mobile .table th[style*="sticky"],
+  body.rh-mobile .table td[style*="sticky"] {
+    position: static !important;
+  }
+
+  /* Filtros bar: empilha em uma coluna */
+  body.rh-mobile .filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  body.rh-mobile .filter-group {
+    width: 100%;
+  }
+}
+
+/* ─── Mobile muito pequeno (≤380px — iPhone SE 1ª geração e similares) ─── */
+@media (max-width: 380px) {
+  body.rh-mobile .page-title { font-size: 18px !important; }
+  body.rh-mobile .modal-title { font-size: 16px !important; }
+  body.rh-mobile .stat-value { font-size: 16px !important; }
+  body.rh-mobile #app { padding: 8px !important; padding-top: 56px !important; }
+  body.rh-mobile .card { padding: 10px !important; }
+  body.rh-mobile .ctd-tab {
+    padding: 8px 10px !important;
+    font-size: 13px !important;
+  }
+  /* Botões de ação do Estoque empilham vertical em telas muito estreitas */
+  body.rh-mobile .btn-acao-est {
+    flex: 1 1 100% !important;
+  }
+}
