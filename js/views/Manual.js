@@ -587,7 +587,13 @@ flowchart TD
     return `
       <style>
         .man-root { font-family: 'Nunito', sans-serif; }
-        .man-layout { display: grid; grid-template-columns: 240px 1fr; gap: var(--sp-lg); }
+        /* min-width:0 propaga pelo shell pra permitir overflow-x funcionar nos descendentes
+           (sem isso, fluxogramas largos do Mermaid empurram o grid e cortam à direita). */
+        .man-root { min-width: 0; max-width: 100%; }
+        .man-layout {
+          display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: var(--sp-lg);
+          min-width: 0;
+        }
         .man-menu {
           background: var(--color-surface); border: 1px solid var(--color-border);
           border-radius: 10px; padding: var(--sp-sm); height: fit-content;
@@ -640,11 +646,13 @@ flowchart TD
           font-family: monospace; font-size: 13px; color: var(--color-primary);
         }
         /* Mermaid: contêiner com fundo escuro.
-           Vertical: deixa o SVG crescer (sem max-height — evita corte embaixo).
+           Width: 100% obriga o pre a respeitar a largura da coluna.
+           Vertical: cresce com o conteúdo (sem max-height = sem corte embaixo).
            Horizontal: scroll se fluxograma for muito largo. */
         pre.mermaid {
           background: #0f172a; border-radius: 10px; padding: var(--sp-lg);
           margin: var(--sp-md) 0;
+          width: 100%; max-width: 100%; box-sizing: border-box;
           overflow-x: auto; overflow-y: visible;
           border: 1px solid #1e293b;
           font-family: inherit !important;
