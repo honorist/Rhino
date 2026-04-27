@@ -1,14 +1,13 @@
-// Almoxarifado / Estoque — itens, almoxarifados, movimentações, saldo
+// Almoxarifado / Estoque — versão simplificada com matriz Central × Obras + ações em linguagem natural.
+// Backend cria Central automaticamente e gera almox de obra on-the-fly via "auto-obra:<contractId>".
 window.Estoque = {
-  _tab: 'saldo',  // saldo | itens | almoxarifados | movimentacoes
-  _itens: [],
-  _almoxarifados: [],
-  _movimentacoes: [],
-  _saldo: { itens: [] },
+  _almoxs: [],          // [{ id, nome, contract_id, contract_name, endereco }]
+  _itens: [],           // [{ id, codigo, descricao, ..., custo_medio, saldos: [{almoxId, qtd}] }]
+  _historico: [],       // últimas movimentações
   _busca: '',
+  _filtroCategoria: '',
+  _tab: 'geral',        // geral | historico
 
-  // Categorias padrão para almoxarifado de manutenção industrial.
-  // Usuário pode digitar livremente também (datalist é sugestão, não obrigação).
   CATEGORIAS_PADRAO: [
     'Material de Consumo',
     'EPI (Equipamento de Proteção)',
@@ -27,7 +26,6 @@ window.Estoque = {
     'Outros',
   ],
 
-  // Unidades padrão também
   UNIDADES_PADRAO: ['pç', 'kg', 'm', 'm²', 'm³', 'l', 'cx', 'pacote', 'rolo', 'galão', 'par', 'jogo'],
 
   async render() {
@@ -42,44 +40,60 @@ window.Estoque = {
   },
 
   async _loadAll() {
-    const safe = (p) => p.then(r => r.ok ? r.json() : { itens: [], almoxarifados: [], movimentacoes: [] }).catch(() => ({}));
-    const [itens, almox, saldo, movs, contratos] = await Promise.all([
-      safe(fetch('/api/estoque/itens')),
-      safe(fetch('/api/estoque/almoxarifados')),
-      safe(fetch('/api/estoque/saldo')),
-      safe(fetch('/api/estoque/movimentacoes?limit=100')),
-      Store.loadAll().catch(() => null),
+    const safe = (p) => p.then(r => r.ok ? r.json() : null).catch(() => null);
+    const [visao, movs, _] = await Promise.all([
+      safe(fetch('/api/estoque/visao-geral')),
+      safe(fetch('/api/estoque/movimentacoes?limit=200')),
+      Store.loadAll().catch(() => null),  // contratos pra modais
     ]);
-    this._itens = itens.itens || [];
-    this._almoxarifados = almox.almoxarifados || [];
-    this._saldo = saldo;
-    this._movimentacoes = movs.movimentacoes || [];
+    this._almoxs = visao?.almoxarifados || [];
+    this._itens = visao?.itens || [];
+    this._historico = movs?.movimentacoes || [];
+  },
+
+  // Helpers de saldo
+  _saldoEm(item, almoxId) {
+    const s = (item.saldos || []).find(x => x.almoxId === almoxId);
+    return s ? parseFloat(s.qtd) || 0 : 0;
+  },
+  _saldoTotal(item) {
+    return (item.saldos || []).reduce((s, x) => s + (parseFloat(x.qtd) || 0), 0);
+  },
+  _saldoCentral(item) {
+    const central = this._almoxs.find(a => !a.contractId);
+    return central ? this._saldoEm(item, central.id) : 0;
+  },
+  _idCentral() {
+    return this._almoxs.find(a => !a.contractId)?.id || null;
+  },
+  _almoxsObras() {
+    return this._almoxs.filter(a => a.contractId);
+  },
+  _contratosAtivos() {
+    return (Store.state.contracts || []).filter(c => c.status === 'ativo' || c.status === 'pausado');
   },
 
   _draw() {
     const app = document.getElementById('app');
     const fmt = (v) => Store.formatBRL(v);
-    const totalItens = (this._saldo.itens || []).length;
-    const valorTotal = (this._saldo.itens || []).reduce((s, i) => s + (i.totalValor || 0), 0);
-    const abaixoMin = (this._saldo.itens || []).filter(i => i.abaixoMinimo).length;
+    const totalItens = this._itens.length;
+    const valorTotal = this._itens.reduce((s, i) => s + this._saldoTotal(i) * (parseFloat(i.custoMedio) || 0), 0);
+    const abaixoMin = this._itens.filter(i => this._saldoTotal(i) < (parseFloat(i.estoqueMinimo) || 0)).length;
+    const obras = this._almoxsObras();
 
     app.innerHTML = `
       <div class="page-header">
         <div>
           <h1 class="page-title">📦 Almoxarifado</h1>
-          <p class="page-subtitle">Controle de estoque, movimentações e custo médio</p>
+          <p class="page-subtitle">Controle simples — Central + 1 almoxarifado por obra (criado automaticamente)</p>
         </div>
-        <button class="btn btn-primary" id="btnNovaMovimentacao">+ Nova movimentação</button>
+        <button class="btn btn-primary" id="btnNovoItem">+ Novo item</button>
       </div>
 
       <!-- KPIs -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:var(--sp-md);">
         <div class="card" style="padding:12px;border-left:3px solid #3b82f6;">
           <div class="text-muted font-sm">Itens cadastrados</div>
-          <div style="font-size:22px;font-weight:800;">${this._itens.length}</div>
-        </div>
-        <div class="card" style="padding:12px;border-left:3px solid #10b981;">
-          <div class="text-muted font-sm">Itens com saldo</div>
           <div style="font-size:22px;font-weight:800;">${totalItens}</div>
         </div>
         <div class="card" style="padding:12px;border-left:3px solid #8b5cf6;">
@@ -91,142 +105,108 @@ window.Estoque = {
           <div style="font-size:22px;font-weight:800;color:${abaixoMin > 0 ? 'var(--color-danger)' : 'var(--color-success)'};">${abaixoMin}</div>
         </div>
         <div class="card" style="padding:12px;border-left:3px solid #f59e0b;">
-          <div class="text-muted font-sm">Almoxarifados ativos</div>
-          <div style="font-size:22px;font-weight:800;">${this._almoxarifados.length}</div>
+          <div class="text-muted font-sm">Obras com estoque</div>
+          <div style="font-size:22px;font-weight:800;">${obras.length}</div>
         </div>
       </div>
 
       <!-- Tabs -->
       <div style="display:flex;gap:2px;margin-bottom:var(--sp-md);border-bottom:1px solid var(--color-border);">
         ${[
-          { k: 'saldo',         l: '📊 Saldo Atual' },
-          { k: 'itens',         l: '🏷️ Itens' },
-          { k: 'almoxarifados', l: '🏬 Almoxarifados' },
-          { k: 'movimentacoes', l: '🔁 Movimentações' },
+          { k: 'geral',     l: '📊 Visão geral' },
+          { k: 'historico', l: '🔁 Histórico' },
         ].map(t => `
           <button class="btn-tab-est" data-tab="${t.k}" style="padding:10px 16px;background:${this._tab === t.k ? 'var(--color-primary)' : 'transparent'};color:${this._tab === t.k ? '#fff' : 'var(--color-text)'};border:none;border-radius:6px 6px 0 0;cursor:pointer;font-weight:${this._tab === t.k ? '700' : '500'};">${t.l}</button>
         `).join('')}
       </div>
 
       <div id="estoqueConteudo">
-        ${this._tab === 'saldo'         ? this._renderSaldo() : ''}
-        ${this._tab === 'itens'         ? this._renderItens() : ''}
-        ${this._tab === 'almoxarifados' ? this._renderAlmoxarifados() : ''}
-        ${this._tab === 'movimentacoes' ? this._renderMovimentacoes() : ''}
+        ${this._tab === 'geral'     ? this._renderGeral() : ''}
+        ${this._tab === 'historico' ? this._renderHistorico() : ''}
       </div>
     `;
 
     document.querySelectorAll('.btn-tab-est').forEach(b => {
       b.addEventListener('click', () => { this._tab = b.dataset.tab; this._draw(); });
     });
-    document.getElementById('btnNovaMovimentacao').addEventListener('click', () => this._showModalMovimentacao());
-    this._attachTabListeners();
+    document.getElementById('btnNovoItem').addEventListener('click', () => this._modalNovoItem());
+    this._attachListenersGeral();
+    this._attachListenersHistorico();
   },
 
-  _attachTabListeners() {
-    if (this._tab === 'itens') {
-      document.getElementById('btnNovoItem')?.addEventListener('click', () => this._showModalItem());
-      document.querySelectorAll('.btn-edit-item').forEach(b => b.addEventListener('click', () => {
-        const item = this._itens.find(x => x.id === b.dataset.id);
-        if (item) this._showModalItem(item);
-      }));
-      document.querySelectorAll('.btn-del-item').forEach(b => b.addEventListener('click', async () => {
-        if (!confirm(`Inativar item "${b.dataset.nome}"? Histórico de movimentações será preservado.`)) return;
-        try {
-          const r = await fetch(`/api/estoque/itens/${b.dataset.id}`, { method: 'DELETE' });
-          if (!r.ok) throw new Error(await r.text());
-          window.showToast('Item inativado', 'success');
-          await this._loadAll(); this._draw();
-        } catch (e) { window.showToast(e.message, 'error'); }
-      }));
+  // ─────────── Visão Geral (matriz item × almoxarifado) ───────────
+  _renderGeral() {
+    if (this._itens.length === 0) {
+      return `
+        <div class="card" style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">
+          <div style="font-size:48px;margin-bottom:8px;">📦</div>
+          <div style="font-weight:600;font-size:16px;margin-bottom:4px;">Nenhum item cadastrado</div>
+          <div style="font-size:13px;margin-bottom:16px;">Comece cadastrando um item no botão acima</div>
+        </div>`;
     }
-    if (this._tab === 'almoxarifados') {
-      document.getElementById('btnNovoAlmox')?.addEventListener('click', () => this._showModalAlmoxarifado());
-      document.querySelectorAll('.btn-edit-almox').forEach(b => b.addEventListener('click', () => {
-        const a = this._almoxarifados.find(x => x.id === b.dataset.id);
-        if (a) this._showModalAlmoxarifado(a);
-      }));
-      document.querySelectorAll('.btn-del-almox').forEach(b => b.addEventListener('click', async () => {
-        if (!confirm(`Inativar almoxarifado "${b.dataset.nome}"?`)) return;
-        try {
-          const r = await fetch(`/api/estoque/almoxarifados/${b.dataset.id}`, { method: 'DELETE' });
-          if (!r.ok) throw new Error(await r.text());
-          window.showToast('Almoxarifado inativado', 'success');
-          await this._loadAll(); this._draw();
-        } catch (e) { window.showToast(e.message, 'error'); }
-      }));
-    }
-    if (this._tab === 'movimentacoes') {
-      document.querySelectorAll('.btn-del-mov').forEach(b => b.addEventListener('click', async () => {
-        if (!confirm('Reverter esta movimentação? O saldo será ajustado de volta.')) return;
-        try {
-          const r = await fetch(`/api/estoque/movimentacoes/${b.dataset.id}`, { method: 'DELETE' });
-          if (!r.ok) throw new Error(await r.text());
-          window.showToast('Movimentação revertida', 'success');
-          await this._loadAll(); this._draw();
-        } catch (e) { window.showToast(e.message, 'error'); }
-      }));
-    }
-  },
 
-  _renderSaldo() {
-    const itens = this._saldo.itens || [];
-    if (itens.length === 0) {
-      return `<div class="card" style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">
-        Nenhum item cadastrado. Vá na aba <strong>Itens</strong> para cadastrar.</div>`;
-    }
-    const fmt = (v) => Store.formatBRL(v);
+    const central = this._almoxs.find(a => !a.contractId);
+    const obras = this._almoxsObras();
     const filtro = this._busca.toLowerCase();
-    const filtrados = filtro
-      ? itens.filter(i =>
-          (i.descricao || '').toLowerCase().includes(filtro) ||
-          (i.codigo || '').toLowerCase().includes(filtro) ||
-          (i.categoria || '').toLowerCase().includes(filtro))
-      : itens;
+    const filtrados = this._itens.filter(i => {
+      if (this._filtroCategoria && i.categoria !== this._filtroCategoria) return false;
+      if (!filtro) return true;
+      return (i.descricao || '').toLowerCase().includes(filtro)
+          || (i.codigo || '').toLowerCase().includes(filtro)
+          || (i.categoria || '').toLowerCase().includes(filtro);
+    });
+
+    const categorias = [...new Set(this._itens.map(i => i.categoria).filter(Boolean))].sort();
 
     return `
-      <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-md);">
-        <input class="form-control" id="inputBuscaSaldo" placeholder="🔎 Buscar por descrição, código ou categoria..." value="${escapeHtml(this._busca)}">
+      <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-md);display:grid;grid-template-columns:1fr 220px;gap:8px;">
+        <input class="form-control" id="inputBuscaEstoque" placeholder="🔎 Buscar por descrição, código ou categoria..." value="${escapeHtml(this._busca)}">
+        <select class="form-control" id="filtroCategoriaEstoque">
+          <option value="">Todas categorias</option>
+          ${categorias.map(c => `<option value="${escapeHtml(c)}" ${c === this._filtroCategoria ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
+        </select>
       </div>
+
       <div class="card" style="padding:0;overflow:hidden;">
         <div style="overflow-x:auto;">
-          <table class="table" style="margin:0;">
+          <table class="table" style="margin:0;min-width:800px;">
             <thead>
-              <tr>
-                <th>Item</th>
+              <tr style="background:var(--color-surface-2);">
+                <th style="position:sticky;left:0;background:var(--color-surface-2);z-index:1;min-width:240px;">Item</th>
                 <th>Categoria</th>
-                <th style="text-align:right;">Saldo total</th>
-                <th style="text-align:right;">Mínimo</th>
+                <th style="text-align:center;background:rgba(59,130,246,.1);">🏠 Central</th>
+                ${obras.map(o => `<th style="text-align:center;background:rgba(245,158,11,.08);" title="${escapeHtml(o.endereco || '')}">🏗️ ${escapeHtml(o.contractName || o.nome)}</th>`).join('')}
+                <th style="text-align:center;background:var(--color-surface-2);">Σ Total</th>
                 <th style="text-align:right;">Custo médio</th>
-                <th style="text-align:right;">Valor total</th>
-                <th>Detalhe por almox.</th>
+                <th style="text-align:center;width:280px;">Ações</th>
               </tr>
             </thead>
             <tbody>
-              ${filtrados.length === 0 ? `<tr><td colspan="7" style="text-align:center;color:var(--color-text-muted);padding:var(--sp-md);">Nenhum resultado para "${escapeHtml(this._busca)}"</td></tr>` : ''}
-              ${filtrados.map(i => {
-                const semMov = i.semMovimentacao;
-                const corLinha = semMov ? 'rgba(245,158,11,.06)' : (i.abaixoMinimo ? 'rgba(220,38,38,.06)' : 'transparent');
+              ${filtrados.length === 0 ? `<tr><td colspan="${5 + obras.length + 2}" style="text-align:center;color:var(--color-text-muted);padding:var(--sp-md);">Nenhum item no filtro</td></tr>` : ''}
+              ${filtrados.map(item => {
+                const total = this._saldoTotal(item);
+                const min = parseFloat(item.estoqueMinimo) || 0;
+                const abaixo = total < min && min > 0;
+                const corLinha = abaixo ? 'rgba(220,38,38,.05)' : 'transparent';
+                const saldoCentral = central ? this._saldoEm(item, central.id) : 0;
+
                 return `
                 <tr style="background:${corLinha};">
-                  <td>
-                    <strong>${escapeHtml(i.descricao || '')}</strong>
-                    ${i.codigo ? `<div class="text-muted font-sm">cod. ${escapeHtml(i.codigo)}</div>` : ''}
+                  <td style="position:sticky;left:0;background:${abaixo ? 'rgba(220,38,38,.05)' : 'var(--color-surface)'};z-index:1;">
+                    <strong>${escapeHtml(item.descricao || '')}</strong>
+                    ${item.codigo ? `<div class="text-muted font-sm">cod. ${escapeHtml(item.codigo)} · ${escapeHtml(item.unidade || '')}</div>` : `<div class="text-muted font-sm">${escapeHtml(item.unidade || '')}</div>`}
+                    ${abaixo ? `<div style="font-size:11px;color:var(--color-danger);">⚠ abaixo do mínimo (${min})</div>` : ''}
                   </td>
-                  <td>${escapeHtml(i.categoria || '—')}</td>
-                  <td style="text-align:right;font-weight:700;color:${i.abaixoMinimo ? 'var(--color-danger)' : 'var(--color-text)'};">
-                    ${i.totalQtd.toFixed(2)} ${escapeHtml(i.unidade || '')}
-                    ${semMov
-                      ? '<div style="font-size:11px;color:#F59E0B;">⚠ sem movimentação</div>'
-                      : (i.abaixoMinimo ? '<div style="font-size:11px;color:var(--color-danger);">⚠ abaixo do mín.</div>' : '')}
-                  </td>
-                  <td style="text-align:right;">${i.estoqueMinimo.toFixed(2)}</td>
-                  <td style="text-align:right;">${fmt(i.custoMedio)}</td>
-                  <td style="text-align:right;font-weight:600;">${fmt(i.totalValor)}</td>
-                  <td style="font-size:13px;">
-                    ${i.porAlmox.length === 0
-                      ? '<span class="text-muted">—</span>'
-                      : i.porAlmox.map(a => `<div>${escapeHtml(a.almoxNome)}: <strong>${a.quantidade.toFixed(2)}</strong></div>`).join('')}
+                  <td><span class="badge" style="background:var(--color-surface-2);font-size:11px;">${escapeHtml(item.categoria || '—')}</span></td>
+                  <td style="text-align:center;font-weight:700;background:rgba(59,130,246,.04);">${saldoCentral.toFixed(2)}</td>
+                  ${obras.map(o => `<td style="text-align:center;background:rgba(245,158,11,.03);">${this._saldoEm(item, o.id).toFixed(2)}</td>`).join('')}
+                  <td style="text-align:center;font-weight:700;background:var(--color-surface-2);">${total.toFixed(2)}</td>
+                  <td style="text-align:right;">${Store.formatBRL(parseFloat(item.custoMedio) || 0)}</td>
+                  <td style="text-align:center;white-space:nowrap;">
+                    <button class="btn-acao-est btn-comprei" data-id="${item.id}" title="Comprei / Recebi" style="background:#10b981;color:#fff;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;margin:1px;">🟢 Comprei</button>
+                    <button class="btn-acao-est btn-enviar" data-id="${item.id}" title="Enviar para obra" ${saldoCentral <= 0 ? 'disabled' : ''} style="background:${saldoCentral > 0 ? '#3b82f6' : '#94a3b8'};color:#fff;border:none;border-radius:4px;padding:4px 8px;cursor:${saldoCentral > 0 ? 'pointer' : 'not-allowed'};font-size:11px;margin:1px;">🔵 Enviar</button>
+                    <button class="btn-acao-est btn-usei" data-id="${item.id}" title="Usei na obra" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;margin:1px;">🔴 Usei</button>
+                    <button class="btn-acao-est btn-mais" data-id="${item.id}" title="Mais opções" style="background:var(--color-surface-2);color:var(--color-text);border:1px solid var(--color-border);border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;margin:1px;">⋯</button>
                   </td>
                 </tr>
               `;}).join('')}
@@ -234,44 +214,100 @@ window.Estoque = {
           </table>
         </div>
       </div>
-      <script>
-        document.getElementById('inputBuscaSaldo')?.addEventListener('input', (e) => {
-          window.Estoque._busca = e.target.value;
-          window.Estoque._draw();
-          const inp = document.getElementById('inputBuscaSaldo');
-          if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
-        });
-      </script>
+
+      <div class="text-muted font-sm" style="margin-top:var(--sp-md);padding:var(--sp-md);background:var(--color-surface-2);border-radius:6px;">
+        <strong>Como usar:</strong>
+        <span style="color:#10b981;">🟢 Comprei</span> entra mercadoria no Central ·
+        <span style="color:#3b82f6;">🔵 Enviar</span> transfere Central → Obra ·
+        <span style="color:#dc2626;">🔴 Usei</span> consome na obra (lança custo no contrato) ·
+        <span>⋯</span> Voltar da obra · Ajustar saldo · Editar item
+      </div>
     `;
   },
 
-  _renderItens() {
+  _attachListenersGeral() {
+    if (this._tab !== 'geral') return;
+    const inp = document.getElementById('inputBuscaEstoque');
+    if (inp) {
+      inp.addEventListener('input', (e) => {
+        this._busca = e.target.value;
+        this._draw();
+        const inp2 = document.getElementById('inputBuscaEstoque');
+        if (inp2) { inp2.focus(); inp2.setSelectionRange(inp2.value.length, inp2.value.length); }
+      });
+    }
+    const sel = document.getElementById('filtroCategoriaEstoque');
+    if (sel) sel.addEventListener('change', (e) => { this._filtroCategoria = e.target.value; this._draw(); });
+
+    document.querySelectorAll('.btn-comprei').forEach(b => b.addEventListener('click', () => {
+      const item = this._itens.find(x => x.id === b.dataset.id);
+      if (item) this._modalComprei(item);
+    }));
+    document.querySelectorAll('.btn-enviar:not([disabled])').forEach(b => b.addEventListener('click', () => {
+      const item = this._itens.find(x => x.id === b.dataset.id);
+      if (item) this._modalEnviarObra(item);
+    }));
+    document.querySelectorAll('.btn-usei').forEach(b => b.addEventListener('click', () => {
+      const item = this._itens.find(x => x.id === b.dataset.id);
+      if (item) this._modalUseiObra(item);
+    }));
+    document.querySelectorAll('.btn-mais').forEach(b => b.addEventListener('click', (e) => {
+      const item = this._itens.find(x => x.id === b.dataset.id);
+      if (item) this._modalMaisOpcoes(item, e);
+    }));
+  },
+
+  // ─────────── Histórico ───────────
+  _renderHistorico() {
+    if (this._historico.length === 0) {
+      return `<div class="card" style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">
+        Nenhuma movimentação ainda. Use os botões verdes/azuis/vermelhos da Visão Geral.</div>`;
+    }
+    const fmtData = (s) => s ? new Date(s + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+    const central = this._almoxs.find(a => !a.contractId);
+    const isCentral = (almoxId) => central && almoxId === central.id;
+    const nomeAlmox = (almoxId) => {
+      if (!almoxId) return '—';
+      if (isCentral(almoxId)) return '🏠 Central';
+      const a = this._almoxs.find(x => x.id === almoxId);
+      return a ? `🏗️ ${a.contractName || a.nome}` : 'Almox removido';
+    };
+    const friendlyMov = (m) => {
+      const itemDesc = `<strong>${escapeHtml(m.itemDesc || '?')}</strong>`;
+      const qtd = `${parseFloat(m.quantidade).toFixed(2)} ${escapeHtml(m.unidade || '')}`;
+      if (m.tipo === 'entrada') {
+        return `🟢 <strong>Recebi</strong> ${qtd} de ${itemDesc} no ${nomeAlmox(m.almoxarifadoDestinoId)}` +
+               (m.custoUnit > 0 ? ` — R$ ${parseFloat(m.custoUnit).toFixed(2)}/un` : '') +
+               (m.documento ? ` — ${escapeHtml(m.documento)}` : '');
+      }
+      if (m.tipo === 'saida') {
+        return `🔴 <strong>Usei</strong> ${qtd} de ${itemDesc} em ${escapeHtml(m.contractName || nomeAlmox(m.almoxarifadoOrigemId))}` +
+               (m.notas ? ` — ${escapeHtml(m.notas).slice(0, 60)}` : '');
+      }
+      if (m.tipo === 'transferencia') {
+        const sentidoIcon = isCentral(m.almoxarifadoOrigemId) ? '🔵' : '🟡';
+        const verbo = isCentral(m.almoxarifadoOrigemId) ? 'Enviei' : 'Voltou';
+        return `${sentidoIcon} <strong>${verbo}</strong> ${qtd} de ${itemDesc}: ${nomeAlmox(m.almoxarifadoOrigemId)} → ${nomeAlmox(m.almoxarifadoDestinoId)}`;
+      }
+      if (m.tipo === 'ajuste') {
+        return `🟠 <strong>Ajuste</strong> de ${qtd} em ${itemDesc} (${nomeAlmox(m.almoxarifadoDestinoId || m.almoxarifadoOrigemId)})`;
+      }
+      return `${m.tipo} — ${itemDesc}`;
+    };
+
     return `
-      <div style="display:flex;justify-content:flex-end;margin-bottom:var(--sp-md);">
-        <button class="btn btn-primary" id="btnNovoItem">+ Novo item</button>
-      </div>
       <div class="card" style="padding:0;overflow:hidden;">
         <table class="table" style="margin:0;">
           <thead>
-            <tr>
-              <th>Código</th><th>Descrição</th><th>Categoria</th><th>Unidade</th>
-              <th style="text-align:right;">Mínimo</th><th style="text-align:right;">Custo médio</th>
-              <th style="text-align:center;">Ações</th>
-            </tr>
+            <tr><th style="width:120px;">Data</th><th>Movimentação</th><th style="text-align:center;width:80px;">Ação</th></tr>
           </thead>
           <tbody>
-            ${this._itens.length === 0 ? `<tr><td colspan="7" style="text-align:center;color:var(--color-text-muted);padding:var(--sp-xl);">Nenhum item cadastrado</td></tr>` : ''}
-            ${this._itens.map(i => `
+            ${this._historico.map(m => `
               <tr>
-                <td><code>${escapeHtml(i.codigo || '—')}</code></td>
-                <td><strong>${escapeHtml(i.descricao)}</strong></td>
-                <td>${escapeHtml(i.categoria || '—')}</td>
-                <td>${escapeHtml(i.unidade || '—')}</td>
-                <td style="text-align:right;">${(parseFloat(i.estoqueMinimo) || 0).toFixed(2)}</td>
-                <td style="text-align:right;">${Store.formatBRL(parseFloat(i.custoMedio) || 0)}</td>
+                <td style="white-space:nowrap;">${fmtData(m.data)}</td>
+                <td>${friendlyMov(m)}</td>
                 <td style="text-align:center;">
-                  <button class="btn btn-sm btn-secondary btn-edit-item" data-id="${i.id}" title="Editar">✏️</button>
-                  <button class="btn btn-sm btn-danger btn-del-item" data-id="${i.id}" data-nome="${escapeHtml(i.descricao)}" title="Inativar">🗑️</button>
+                  <button class="btn btn-sm btn-secondary btn-rev-mov" data-id="${m.id}" title="Reverter movimentação (devolve saldo)">↩️</button>
                 </td>
               </tr>
             `).join('')}
@@ -281,125 +317,69 @@ window.Estoque = {
     `;
   },
 
-  _renderAlmoxarifados() {
-    return `
-      <div style="display:flex;justify-content:flex-end;margin-bottom:var(--sp-md);">
-        <button class="btn btn-primary" id="btnNovoAlmox">+ Novo almoxarifado</button>
-      </div>
-      <div class="card" style="padding:0;overflow:hidden;">
-        <table class="table" style="margin:0;">
-          <thead>
-            <tr><th>Nome</th><th>Vínculo</th><th>Endereço</th><th style="text-align:center;">Ações</th></tr>
-          </thead>
-          <tbody>
-            ${this._almoxarifados.length === 0 ? `<tr><td colspan="4" style="text-align:center;color:var(--color-text-muted);padding:var(--sp-xl);">Nenhum almoxarifado. Cadastre um para começar.</td></tr>` : ''}
-            ${this._almoxarifados.map(a => `
-              <tr>
-                <td><strong>${escapeHtml(a.nome)}</strong></td>
-                <td>${a.contractName ? `<span class="badge" style="background:rgba(59,130,246,.15);color:#3b82f6;">obra: ${escapeHtml(a.contractName)}</span>` : '<span class="text-muted">central</span>'}</td>
-                <td>${escapeHtml(a.endereco || '—')}</td>
-                <td style="text-align:center;">
-                  <button class="btn btn-sm btn-secondary btn-edit-almox" data-id="${a.id}" title="Editar">✏️</button>
-                  <button class="btn btn-sm btn-danger btn-del-almox" data-id="${a.id}" data-nome="${escapeHtml(a.nome)}" title="Inativar">🗑️</button>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
+  _attachListenersHistorico() {
+    if (this._tab !== 'historico') return;
+    document.querySelectorAll('.btn-rev-mov').forEach(b => b.addEventListener('click', async () => {
+      if (!confirm('Reverter esta movimentação? O saldo será ajustado de volta.')) return;
+      try {
+        const r = await fetch(`/api/estoque/movimentacoes/${b.dataset.id}`, { method: 'DELETE' });
+        if (!r.ok) throw new Error(await r.text());
+        window.showToast('Movimentação revertida', 'success');
+        await this._loadAll(); this._draw();
+      } catch (e) { window.showToast(e.message, 'error'); }
+    }));
   },
 
-  _renderMovimentacoes() {
-    const tipoCor = { entrada: '#10b981', saida: '#dc2626', transferencia: '#3b82f6', ajuste: '#f59e0b' };
-    const tipoLbl = { entrada: '🟢 Entrada', saida: '🔴 Saída', transferencia: '🔵 Transferência', ajuste: '🟡 Ajuste' };
+  // ═════════════ Modais ═════════════
 
-    return `
-      <div class="card" style="padding:0;overflow:hidden;">
-        <table class="table" style="margin:0;">
-          <thead>
-            <tr>
-              <th>Data</th><th>Tipo</th><th>Item</th><th style="text-align:right;">Qtd</th>
-              <th>Origem</th><th>Destino</th><th>Obra</th><th>Doc.</th>
-              <th style="text-align:center;">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${this._movimentacoes.length === 0 ? `<tr><td colspan="9" style="text-align:center;color:var(--color-text-muted);padding:var(--sp-xl);">Nenhuma movimentação ainda</td></tr>` : ''}
-            ${this._movimentacoes.map(m => `
-              <tr>
-                <td>${new Date(m.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                <td><span style="color:${tipoCor[m.tipo]};font-weight:700;font-size:13px;">${tipoLbl[m.tipo]}</span></td>
-                <td>${escapeHtml(m.itemDesc || '—')}</td>
-                <td style="text-align:right;font-weight:700;">${parseFloat(m.quantidade).toFixed(2)} ${escapeHtml(m.unidade || '')}</td>
-                <td>${escapeHtml(m.origemNome || '—')}</td>
-                <td>${escapeHtml(m.destinoNome || '—')}</td>
-                <td>${escapeHtml(m.contractName || '—')}</td>
-                <td>${escapeHtml(m.documento || '—')}</td>
-                <td style="text-align:center;">
-                  <button class="btn btn-sm btn-danger btn-del-mov" data-id="${m.id}" title="Reverter">↩️</button>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-  },
-
-  // ───── Modais ─────
-  _showModalItem(item) {
+  // Modal: + Novo item (simples, só dados do item — sem estoque inicial)
+  _modalNovoItem(item) {
     const editing = !!item;
     const datalistCat = this.CATEGORIAS_PADRAO.map(c => `<option value="${escapeHtml(c)}">`).join('');
     const datalistUnid = this.UNIDADES_PADRAO.map(u => `<option value="${escapeHtml(u)}">`).join('');
 
-    // Se editando, busca saldo atual deste item nos saldos já carregados
-    const saldoInfo = editing
-      ? (this._saldo.itens || []).find(s => s.itemId === item.id)
-      : null;
-    const fmtBRL = (v) => Store.formatBRL(v || 0);
+    // Saldo info pra modo edição
+    const saldoTotal = editing ? this._saldoTotal(item) : 0;
+    const valorTotal = editing ? saldoTotal * (parseFloat(item.custoMedio) || 0) : 0;
 
     const html = `
       <div class="modal-overlay" id="modalItem">
-        <div class="modal" style="width:620px;max-height:90vh;display:flex;flex-direction:column;">
+        <div class="modal" style="width:560px;max-height:90vh;display:flex;flex-direction:column;">
           <div class="modal-header" style="flex-shrink:0;">
             <h2 class="modal-title">${editing ? '✏️ Editar' : '+ Novo'} item</h2>
             <button class="modal-close">✕</button>
           </div>
           <form id="formItem" class="modal-content" style="overflow-y:auto;flex:1;">
 
-            ${editing && saldoInfo ? `
-              <!-- Painel de info do estoque atual -->
-              <div style="background:linear-gradient(135deg, rgba(59,130,246,.08), rgba(139,92,246,.08));border:1px solid var(--color-border);border-radius:8px;padding:var(--sp-md);margin-bottom:var(--sp-lg);">
-                <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:var(--sp-sm);">
-                  <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);">📊 Estoque atual</div>
-                  <a href="#" class="btn btn-sm btn-secondary" id="btnFazerAjuste" style="text-decoration:none;">+ Movimentação</a>
-                </div>
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-sm);margin-top:var(--sp-sm);">
+            ${editing ? `
+              <div style="background:linear-gradient(135deg,rgba(59,130,246,.08),rgba(139,92,246,.08));border:1px solid var(--color-border);border-radius:8px;padding:var(--sp-md);margin-bottom:var(--sp-lg);">
+                <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:8px;">📊 Estoque atual</div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-sm);">
                   <div>
                     <div class="text-muted font-sm">Saldo total</div>
-                    <div style="font-size:20px;font-weight:800;color:${saldoInfo.abaixoMinimo ? 'var(--color-danger)' : 'var(--color-success)'};">${saldoInfo.totalQtd.toFixed(2)} <span style="font-size:13px;font-weight:600;">${escapeHtml(item.unidade || '')}</span></div>
+                    <div style="font-size:20px;font-weight:800;">${saldoTotal.toFixed(2)} <span style="font-size:13px;font-weight:600;">${escapeHtml(item.unidade || '')}</span></div>
                   </div>
                   <div>
                     <div class="text-muted font-sm">Custo médio</div>
-                    <div style="font-size:18px;font-weight:700;">${fmtBRL(saldoInfo.custoMedio)}</div>
+                    <div style="font-size:18px;font-weight:700;">${Store.formatBRL(parseFloat(item.custoMedio) || 0)}</div>
                   </div>
                   <div>
                     <div class="text-muted font-sm">Valor total</div>
-                    <div style="font-size:18px;font-weight:700;">${fmtBRL(saldoInfo.totalValor)}</div>
+                    <div style="font-size:18px;font-weight:700;">${Store.formatBRL(valorTotal)}</div>
                   </div>
                 </div>
-                ${saldoInfo.porAlmox.length > 0 ? `
-                  <div style="margin-top:var(--sp-sm);padding-top:var(--sp-sm);border-top:1px solid var(--color-border);font-size:13px;">
-                    <strong>Por almoxarifado:</strong>
-                    ${saldoInfo.porAlmox.map(a => `<span style="margin-right:12px;">${escapeHtml(a.almoxNome)}: <strong>${a.quantidade.toFixed(2)}</strong></span>`).join('')}
-                  </div>
-                ` : `<div style="margin-top:var(--sp-sm);font-size:13px;color:#F59E0B;">⚠ Sem movimentações registradas</div>`}
-                <div style="margin-top:8px;font-size:12px;color:var(--color-text-muted);">
-                  💡 Para alterar o estoque, use uma <strong>movimentação</strong> (entrada/saída/ajuste) — preserva o histórico contábil
+                <div style="margin-top:var(--sp-sm);padding-top:var(--sp-sm);border-top:1px solid var(--color-border);font-size:13px;">
+                  ${(item.saldos || []).filter(s => s.qtd > 0).map(s => {
+                    const a = this._almoxs.find(x => x.id === s.almoxId);
+                    return `<span style="margin-right:12px;">${a && !a.contractId ? '🏠' : '🏗️'} ${escapeHtml(a?.contractName || a?.nome || '?')}: <strong>${parseFloat(s.qtd).toFixed(2)}</strong></span>`;
+                  }).join('') || '<span class="text-muted">Sem saldo</span>'}
                 </div>
               </div>
-            ` : ''}
+            ` : `
+              <div style="background:rgba(59,130,246,.08);border-left:3px solid #3b82f6;border-radius:6px;padding:10px 14px;margin-bottom:var(--sp-md);font-size:13px;">
+                💡 <strong>Após criar o item</strong>, use o botão <span style="background:#10b981;color:#fff;padding:1px 6px;border-radius:3px;font-size:11px;">🟢 Comprei</span> na lista para adicionar saldo no Central.
+              </div>
+            `}
 
             <div class="form-row">
               <div class="form-group">
@@ -421,46 +401,20 @@ window.Estoque = {
                 <label class="form-label">Categoria *</label>
                 <input class="form-control" name="categoria" list="categorias-estoque" required placeholder="Selecione ou digite..." value="${escapeHtml(item?.categoria || '')}">
                 <datalist id="categorias-estoque">${datalistCat}</datalist>
-                <span style="font-size:12px;color:var(--color-text-muted);">Selecione da lista ou crie nova</span>
               </div>
               <div class="form-group">
                 <label class="form-label">Estoque mínimo</label>
                 <input class="form-control" type="number" step="0.01" min="0" name="estoqueMinimo" value="${item?.estoqueMinimo || 0}">
-                <span style="font-size:12px;color:var(--color-text-muted);">Alerta quando saldo for menor</span>
+                <span style="font-size:12px;color:var(--color-text-muted);">Alerta vermelho quando saldo total for menor</span>
               </div>
             </div>
-
-            ${editing ? '' : `
-              <div style="border-top:1px solid var(--color-border);padding-top:var(--sp-md);margin-top:var(--sp-md);">
-                <h4 style="font-size:14px;margin:0 0 var(--sp-sm) 0;color:var(--color-text);">Estoque inicial (opcional)</h4>
-                <p style="font-size:12px;color:var(--color-text-muted);margin:0 0 var(--sp-md) 0;">Se você já tem este item em estoque, informe a quantidade e custo. Será criada uma movimentação de entrada inicial.</p>
-                <div class="form-row">
-                  <div class="form-group">
-                    <label class="form-label">Quantidade inicial</label>
-                    <input class="form-control" type="number" step="0.001" min="0" name="qtdInicial" value="0" placeholder="0">
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label">Custo unitário (R$)</label>
-                    <input class="form-control" type="number" step="0.01" min="0" name="custoInicial" value="0" placeholder="0,00">
-                  </div>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Almoxarifado para o estoque inicial</label>
-                  <select class="form-control" name="almoxarifadoInicial">
-                    <option value="">— (sem estoque inicial) —</option>
-                    ${this._almoxarifados.map(a => `<option value="${a.id}">${escapeHtml(a.nome)}${a.contractName ? ' (obra: ' + escapeHtml(a.contractName) + ')' : ' (central)'}</option>`).join('')}
-                  </select>
-                  ${this._almoxarifados.length === 0 ? '<span style="font-size:12px;color:#F59E0B;">⚠ Cadastre um almoxarifado primeiro pra adicionar estoque inicial</span>' : ''}
-                </div>
-              </div>
-            `}
-
             <div class="form-group">
               <label class="form-label">Notas</label>
               <textarea class="form-control" name="notas" rows="2" placeholder="Observações sobre o item">${escapeHtml(item?.notas || '')}</textarea>
             </div>
           </form>
           <div class="modal-footer" style="flex-shrink:0;">
+            ${editing ? `<button class="btn btn-danger" id="btnInativarItem" style="margin-right:auto;">Inativar item</button>` : ''}
             <button class="btn btn-secondary" id="btnCancelItem">Cancelar</button>
             <button class="btn btn-primary" id="btnSaveItem">${editing ? 'Salvar' : 'Criar item'}</button>
           </div>
@@ -473,207 +427,459 @@ window.Estoque = {
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnCancelItem').addEventListener('click', close);
 
-    // Botão "Movimentação" (só quando editing)
-    document.getElementById('btnFazerAjuste')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      close();
-      this._showModalMovimentacao();
+    document.getElementById('btnInativarItem')?.addEventListener('click', async () => {
+      if (!confirm(`Inativar "${item.descricao}"? Histórico e saldos preservados.`)) return;
+      try {
+        const r = await fetch(`/api/estoque/itens/${item.id}`, { method: 'DELETE' });
+        if (!r.ok) throw new Error(await r.text());
+        window.showToast('Item inativado', 'success');
+        close();
+        await this._loadAll(); this._draw();
+      } catch (e) { window.showToast(e.message, 'error'); }
     });
 
     document.getElementById('btnSaveItem').addEventListener('click', async () => {
       const fd = new FormData(document.getElementById('formItem'));
       const data = Object.fromEntries(fd);
       if (!data.descricao?.trim()) { window.showToast('Descrição obrigatória', 'error'); return; }
-      if (!data.unidade?.trim()) { window.showToast('Unidade obrigatória', 'error'); return; }
+      if (!data.unidade?.trim())   { window.showToast('Unidade obrigatória', 'error'); return; }
       if (!data.categoria?.trim()) { window.showToast('Categoria obrigatória', 'error'); return; }
-
-      // Validação cruzada do estoque inicial
-      if (!editing) {
-        const qtd = parseFloat(data.qtdInicial) || 0;
-        if (qtd > 0 && !data.almoxarifadoInicial) {
-          window.showToast('Selecione o almoxarifado para o estoque inicial', 'error');
-          return;
-        }
-      }
-
       try {
         const url = editing ? `/api/estoque/itens/${item.id}` : `/api/estoque/itens`;
         const method = editing ? 'PUT' : 'POST';
-        // Inicializa custo médio com o custo unitário inicial se informado
-        if (!editing && parseFloat(data.custoInicial) > 0) {
-          data.custoMedio = data.custoInicial;
-        }
         const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
         if (!r.ok) throw new Error(await r.text());
-        const itemSalvo = await r.json();
-
-        // Estoque inicial: cria movimentação de entrada se houver quantidade > 0
-        if (!editing) {
-          const qtd = parseFloat(data.qtdInicial) || 0;
-          const custo = parseFloat(data.custoInicial) || 0;
-          if (qtd > 0 && data.almoxarifadoInicial) {
-            const movRes = await fetch('/api/estoque/movimentacoes', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                tipo: 'entrada',
-                itemId: itemSalvo.id,
-                almoxarifadoDestinoId: data.almoxarifadoInicial,
-                quantidade: qtd,
-                custoUnit: custo,
-                data: new Date().toISOString().split('T')[0],
-                documento: 'Estoque inicial',
-                notas: 'Movimentação criada automaticamente no cadastro do item',
-              }),
-            });
-            if (!movRes.ok) {
-              const errMsg = await movRes.text();
-              window.showToast(`Item criado, MAS estoque inicial falhou: ${errMsg}. Adicione manualmente em Movimentações.`, 'error');
-              close();
-              await this._loadAll(); this._draw();
-              return;
-            }
-          }
-        }
-
-        window.showToast(editing ? 'Item atualizado' : (parseFloat(data.qtdInicial) > 0 ? 'Item criado com estoque inicial' : 'Item criado'), 'success');
+        window.showToast(editing ? 'Item atualizado' : 'Item criado', 'success');
         close();
         await this._loadAll(); this._draw();
       } catch (e) { window.showToast(e.message, 'error'); }
     });
   },
 
-  _showModalAlmoxarifado(almox) {
-    const editing = !!almox;
-    const contracts = (Store.state.contracts || []).filter(c => c.status === 'ativo' || c.status === 'pausado');
+  // Modal: 🟢 Comprei / Recebi (entrada no Central)
+  _modalComprei(item) {
+    const hoje = new Date().toISOString().split('T')[0];
+    const fornecedores = (Store.state.fornecedores || []).filter(f => f.ativo !== false);
     const html = `
-      <div class="modal-overlay" id="modalAlmox">
+      <div class="modal-overlay" id="modalCompra">
         <div class="modal" style="width:520px;">
           <div class="modal-header">
-            <h2 class="modal-title">${editing ? '✏️ Editar' : '+ Novo'} almoxarifado</h2>
+            <h2 class="modal-title">🟢 Comprei / Recebi</h2>
             <button class="modal-close">✕</button>
           </div>
-          <form id="formAlmox" class="modal-content">
-            <div class="form-group">
-              <label class="form-label">Nome *</label>
-              <input class="form-control" name="nome" required value="${escapeHtml(almox?.nome || '')}" placeholder="Ex: Almox Central, Almox Obra X">
+          <form id="formCompra" class="modal-content">
+            <div style="background:rgba(16,185,129,.08);border-left:3px solid #10b981;border-radius:6px;padding:10px 14px;margin-bottom:var(--sp-md);">
+              <strong>${escapeHtml(item.descricao)}</strong>
+              <div style="font-size:13px;color:var(--color-text-muted);">Saldo Central atual: ${this._saldoCentral(item).toFixed(2)} ${escapeHtml(item.unidade || '')}</div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Quantidade *</label>
+                <input class="form-control" type="number" step="0.001" min="0.001" name="quantidade" id="qtdComprei" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Custo unitário (R$)</label>
+                <input class="form-control" type="number" step="0.01" min="0" name="custoUnit" id="custoComprei" placeholder="0,00">
+              </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Vinculado a contrato (opcional)</label>
-              <select class="form-control" name="contractId" id="almoxContractSelect">
-                <option value="">— Almoxarifado central (sem contrato) —</option>
-                ${contracts.map(c => `<option value="${c.id}" ${almox?.contractId === c.id ? 'selected' : ''} data-endereco="${escapeHtml(c.endereco || c.clientAddress || '')}">${escapeHtml(c.name)}</option>`).join('')}
-              </select>
-              <span style="font-size:12px;color:var(--color-text-muted);">Se vincular a uma obra, o endereço será preenchido automaticamente com o endereço dela</span>
+              <label class="form-label">Custo total</label>
+              <div id="custoTotal" style="padding:8px 12px;background:var(--color-surface-2);border-radius:6px;font-weight:700;font-size:18px;">R$ 0,00</div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Fornecedor</label>
+                <input class="form-control" name="fornecedor" list="fornecedores-list" placeholder="Nome ou selecione...">
+                <datalist id="fornecedores-list">${fornecedores.map(f => `<option value="${escapeHtml(f.nome)}">`).join('')}</datalist>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nº Nota Fiscal</label>
+                <input class="form-control" name="nfNumero" placeholder="Ex: 12345">
+              </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Endereço</label>
-              <input class="form-control" name="endereco" id="almoxEnderecoInput" value="${escapeHtml(almox?.endereco || '')}" placeholder="Endereço do depósito">
-              <span id="almoxEnderecoHint" style="font-size:12px;color:var(--color-text-muted);display:none;">📍 Endereço sincronizado da obra — desvincule o contrato pra editar</span>
+              <label class="form-label">Data</label>
+              <input class="form-control" type="date" name="data" value="${hoje}">
             </div>
           </form>
           <div class="modal-footer">
-            <button class="btn btn-secondary" id="btnCancelAlmox">Cancelar</button>
-            <button class="btn btn-primary" id="btnSaveAlmox">${editing ? 'Salvar' : 'Criar'}</button>
+            <button class="btn btn-secondary" id="btnCancelCompra">Cancelar</button>
+            <button class="btn btn-primary" id="btnSaveCompra" style="background:#10b981;border-color:#10b981;">🟢 Confirmar entrada</button>
           </div>
         </div>
       </div>
     `;
     document.body.insertAdjacentHTML('beforeend', html);
-    const overlay = document.getElementById('modalAlmox');
+    const overlay = document.getElementById('modalCompra');
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
-    document.getElementById('btnCancelAlmox').addEventListener('click', close);
+    document.getElementById('btnCancelCompra').addEventListener('click', close);
 
-    // Sincroniza endereço quando muda o contrato selecionado
-    const sel = document.getElementById('almoxContractSelect');
-    const inpEnd = document.getElementById('almoxEnderecoInput');
-    const hint = document.getElementById('almoxEnderecoHint');
-
-    const sincronizarEndereco = () => {
-      const opt = sel.options[sel.selectedIndex];
-      const enderecoObra = opt?.dataset?.endereco || '';
-      if (sel.value && enderecoObra) {
-        inpEnd.value = enderecoObra;
-        inpEnd.readOnly = true;
-        inpEnd.style.background = 'var(--color-surface-2)';
-        inpEnd.style.cursor = 'not-allowed';
-        hint.style.display = 'block';
-      } else if (sel.value && !enderecoObra) {
-        // Contrato selecionado mas sem endereço cadastrado
-        inpEnd.readOnly = false;
-        inpEnd.style.background = '';
-        inpEnd.style.cursor = '';
-        hint.style.display = 'none';
-        if (!editing) inpEnd.value = '';
-        inpEnd.placeholder = 'Obra sem endereço cadastrado — informe aqui';
-      } else {
-        inpEnd.readOnly = false;
-        inpEnd.style.background = '';
-        inpEnd.style.cursor = '';
-        hint.style.display = 'none';
-        inpEnd.placeholder = 'Endereço do depósito';
-      }
+    // Cálculo de custo total em tempo real
+    const calcTotal = () => {
+      const q = parseFloat(document.getElementById('qtdComprei').value) || 0;
+      const c = parseFloat(document.getElementById('custoComprei').value) || 0;
+      document.getElementById('custoTotal').textContent = Store.formatBRL(q * c);
     };
-    sel.addEventListener('change', sincronizarEndereco);
-    // Aplica logo na abertura (caso esteja editando um já vinculado)
-    sincronizarEndereco();
+    document.getElementById('qtdComprei').addEventListener('input', calcTotal);
+    document.getElementById('custoComprei').addEventListener('input', calcTotal);
 
-    document.getElementById('btnSaveAlmox').addEventListener('click', async () => {
-      const fd = new FormData(document.getElementById('formAlmox'));
+    document.getElementById('btnSaveCompra').addEventListener('click', async () => {
+      const fd = new FormData(document.getElementById('formCompra'));
       const data = Object.fromEntries(fd);
-      if (!data.nome?.trim()) { window.showToast('Nome obrigatório', 'error'); return; }
+      const qtd = parseFloat(data.quantidade);
+      if (!(qtd > 0)) { window.showToast('Quantidade obrigatória', 'error'); return; }
       try {
-        const url = editing ? `/api/estoque/almoxarifados/${almox.id}` : `/api/estoque/almoxarifados`;
-        const method = editing ? 'PUT' : 'POST';
-        const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        const docs = [data.fornecedor, data.nfNumero ? `NF ${data.nfNumero}` : ''].filter(Boolean).join(' - ');
+        const r = await fetch('/api/estoque/movimentacoes', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tipo: 'entrada',
+            itemId: item.id,
+            almoxarifadoDestinoId: 'auto-central',
+            quantidade: qtd,
+            custoUnit: parseFloat(data.custoUnit) || 0,
+            data: data.data || new Date().toISOString().split('T')[0],
+            documento: docs || 'Compra/Recebimento',
+            notas: null,
+          }),
+        });
         if (!r.ok) throw new Error(await r.text());
-        window.showToast(editing ? 'Almoxarifado atualizado' : 'Almoxarifado criado', 'success');
+        window.showToast(`Entrada registrada: ${qtd} ${escapeHtml(item.unidade || '')} no Central`, 'success');
         close();
         await this._loadAll(); this._draw();
       } catch (e) { window.showToast(e.message, 'error'); }
     });
   },
 
-  _showModalMovimentacao() {
-    if (this._itens.length === 0 || this._almoxarifados.length === 0) {
-      window.showToast('Cadastre itens e almoxarifados antes de movimentar', 'error');
-      return;
-    }
-    const contracts = (Store.state.contracts || []).filter(c => c.status === 'ativo' || c.status === 'pausado');
+  // Modal: 🔵 Enviar para obra (transferência Central → Almox da Obra)
+  _modalEnviarObra(item) {
+    const central = this._almoxs.find(a => !a.contractId);
+    if (!central) { window.showToast('Central não disponível', 'error'); return; }
+    const saldoCentral = this._saldoEm(item, central.id);
+    if (saldoCentral <= 0) { window.showToast('Sem saldo no Central pra enviar', 'error'); return; }
+    const contratos = this._contratosAtivos();
+    if (contratos.length === 0) { window.showToast('Sem obras ativas pra enviar', 'error'); return; }
     const hoje = new Date().toISOString().split('T')[0];
 
     const html = `
-      <div class="modal-overlay" id="modalMov">
-        <div class="modal" style="width:600px;">
-          <div class="modal-header">
-            <h2 class="modal-title">+ Nova movimentação de estoque</h2>
+      <div class="modal-overlay" id="modalEnviar">
+        <div class="modal" style="width:540px;max-height:90vh;display:flex;flex-direction:column;">
+          <div class="modal-header" style="flex-shrink:0;">
+            <h2 class="modal-title">🔵 Enviar para obra</h2>
             <button class="modal-close">✕</button>
           </div>
-          <form id="formMov" class="modal-content">
+          <form id="formEnviar" class="modal-content" style="overflow-y:auto;flex:1;">
+            <div style="background:rgba(59,130,246,.08);border-left:3px solid #3b82f6;border-radius:6px;padding:10px 14px;margin-bottom:var(--sp-md);">
+              <strong>${escapeHtml(item.descricao)}</strong>
+              <div style="font-size:13px;color:var(--color-text-muted);">Disponível no Central: <strong>${saldoCentral.toFixed(2)} ${escapeHtml(item.unidade || '')}</strong></div>
+            </div>
             <div class="form-group">
-              <label class="form-label">Tipo *</label>
-              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
-                <label style="cursor:pointer;text-align:center;padding:10px;border:1px solid var(--color-border);border-radius:6px;">
-                  <input type="radio" name="tipo" value="entrada" checked style="margin-right:4px;">🟢 Entrada
-                </label>
-                <label style="cursor:pointer;text-align:center;padding:10px;border:1px solid var(--color-border);border-radius:6px;">
-                  <input type="radio" name="tipo" value="saida" style="margin-right:4px;">🔴 Saída
-                </label>
-                <label style="cursor:pointer;text-align:center;padding:10px;border:1px solid var(--color-border);border-radius:6px;">
-                  <input type="radio" name="tipo" value="transferencia" style="margin-right:4px;">🔵 Transf.
-                </label>
-                <label style="cursor:pointer;text-align:center;padding:10px;border:1px solid var(--color-border);border-radius:6px;">
-                  <input type="radio" name="tipo" value="ajuste" style="margin-right:4px;">🟡 Ajuste
-                </label>
+              <label class="form-label">Quantidade a enviar *</label>
+              <input class="form-control" type="number" step="0.001" min="0.001" max="${saldoCentral}" name="quantidade" required>
+              <span style="font-size:12px;color:var(--color-text-muted);">Máximo: ${saldoCentral.toFixed(2)}</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Para qual obra? *</label>
+              <div style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;border:1px solid var(--color-border);border-radius:6px;padding:8px;">
+                ${contratos.map((c, i) => `
+                  <label style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--color-surface-2);border-radius:4px;cursor:pointer;">
+                    <input type="radio" name="contractId" value="${c.id}" ${i === 0 ? 'checked' : ''}>
+                    <div style="flex:1;">
+                      <strong>${escapeHtml(c.name)}</strong>
+                      <div class="text-muted font-sm">${escapeHtml(c.client || '')}</div>
+                    </div>
+                  </label>
+                `).join('')}
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Item *</label>
-                <select class="form-control" name="itemId" required>
-                  <option value="">Selecione...</option>
-                  ${this._itens.map(i => `<option value="${i.id}">${escapeHtml(i.descricao)}${i.unidade ? ' (' + escapeHtml(i.unidade) + ')' : ''}</option>`).join('')}
+                <label class="form-label">Data</label>
+                <input class="form-control" type="date" name="data" value="${hoje}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Quem retirou (opcional)</label>
+                <input class="form-control" name="quemRetirou" placeholder="Nome do colaborador">
+              </div>
+            </div>
+          </form>
+          <div class="modal-footer" style="flex-shrink:0;">
+            <button class="btn btn-secondary" id="btnCancelEnviar">Cancelar</button>
+            <button class="btn btn-primary" id="btnSaveEnviar" style="background:#3b82f6;border-color:#3b82f6;">🔵 Confirmar envio</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalEnviar');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnCancelEnviar').addEventListener('click', close);
+
+    document.getElementById('btnSaveEnviar').addEventListener('click', async () => {
+      const fd = new FormData(document.getElementById('formEnviar'));
+      const data = Object.fromEntries(fd);
+      const qtd = parseFloat(data.quantidade);
+      if (!(qtd > 0)) { window.showToast('Quantidade obrigatória', 'error'); return; }
+      if (qtd > saldoCentral) { window.showToast(`Saldo insuficiente (máx ${saldoCentral.toFixed(2)})`, 'error'); return; }
+      if (!data.contractId)  { window.showToast('Escolha a obra', 'error'); return; }
+      try {
+        const r = await fetch('/api/estoque/movimentacoes', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tipo: 'transferencia',
+            itemId: item.id,
+            almoxarifadoOrigemId: central.id,
+            almoxarifadoDestinoId: `auto-obra:${data.contractId}`,
+            quantidade: qtd,
+            data: data.data || new Date().toISOString().split('T')[0],
+            documento: 'Envio pra obra',
+            notas: data.quemRetirou ? `Retirou: ${data.quemRetirou}` : null,
+          }),
+        });
+        if (!r.ok) throw new Error(await r.text());
+        window.showToast(`Enviado: ${qtd} ${escapeHtml(item.unidade || '')} pra obra`, 'success');
+        close();
+        await this._loadAll(); this._draw();
+      } catch (e) { window.showToast(e.message, 'error'); }
+    });
+  },
+
+  // Modal: 🔴 Usei na obra (saída com vínculo a contrato)
+  _modalUseiObra(item) {
+    const obras = this._almoxsObras().map(a => ({
+      almoxId: a.id, contractId: a.contractId, name: a.contractName || a.nome,
+      saldo: this._saldoEm(item, a.id),
+    })).filter(o => o.saldo > 0);
+
+    if (obras.length === 0) {
+      const total = this._saldoTotal(item);
+      const msg = total > 0
+        ? 'Esse item só tem saldo no Central. Use 🔵 Enviar pra obra primeiro.'
+        : 'Sem saldo desse item em nenhum lugar. Use 🟢 Comprei primeiro.';
+      window.showToast(msg, 'warning');
+      return;
+    }
+    const hoje = new Date().toISOString().split('T')[0];
+
+    const html = `
+      <div class="modal-overlay" id="modalUsei">
+        <div class="modal" style="width:520px;max-height:90vh;display:flex;flex-direction:column;">
+          <div class="modal-header" style="flex-shrink:0;">
+            <h2 class="modal-title">🔴 Usei na obra</h2>
+            <button class="modal-close">✕</button>
+          </div>
+          <form id="formUsei" class="modal-content" style="overflow-y:auto;flex:1;">
+            <div style="background:rgba(220,38,38,.08);border-left:3px solid #dc2626;border-radius:6px;padding:10px 14px;margin-bottom:var(--sp-md);">
+              <strong>${escapeHtml(item.descricao)}</strong>
+              <div style="font-size:13px;color:var(--color-text-muted);">Custo médio: ${Store.formatBRL(parseFloat(item.custoMedio) || 0)}/un</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">De qual obra? *</label>
+              <div style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;border:1px solid var(--color-border);border-radius:6px;padding:8px;">
+                ${obras.map((o, i) => `
+                  <label style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--color-surface-2);border-radius:4px;cursor:pointer;">
+                    <input type="radio" name="obra" value="${o.almoxId}|${o.contractId}|${o.saldo}" ${i === 0 ? 'checked' : ''}>
+                    <div style="flex:1;">
+                      <strong>🏗️ ${escapeHtml(o.name)}</strong>
+                      <div class="text-muted font-sm">Disponível: ${o.saldo.toFixed(2)} ${escapeHtml(item.unidade || '')}</div>
+                    </div>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Quantidade usada *</label>
+              <input class="form-control" type="number" step="0.001" min="0.001" name="quantidade" id="qtdUsei" required>
+              <div id="custoLancado" style="margin-top:4px;font-size:13px;color:var(--color-text-muted);">Custo a lançar na obra: R$ 0,00</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Atividade / serviço</label>
+              <input class="form-control" name="atividade" placeholder="Ex: Montagem painel elétrico">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Data</label>
+              <input class="form-control" type="date" name="data" value="${hoje}">
+            </div>
+          </form>
+          <div class="modal-footer" style="flex-shrink:0;">
+            <button class="btn btn-secondary" id="btnCancelUsei">Cancelar</button>
+            <button class="btn btn-primary" id="btnSaveUsei" style="background:#dc2626;border-color:#dc2626;">🔴 Confirmar consumo</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalUsei');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnCancelUsei').addEventListener('click', close);
+
+    const recalc = () => {
+      const q = parseFloat(document.getElementById('qtdUsei').value) || 0;
+      const c = parseFloat(item.custoMedio) || 0;
+      document.getElementById('custoLancado').textContent = `Custo a lançar na obra: ${Store.formatBRL(q * c)}`;
+    };
+    document.getElementById('qtdUsei').addEventListener('input', recalc);
+
+    document.getElementById('btnSaveUsei').addEventListener('click', async () => {
+      const fd = new FormData(document.getElementById('formUsei'));
+      const data = Object.fromEntries(fd);
+      const qtd = parseFloat(data.quantidade);
+      if (!(qtd > 0)) { window.showToast('Quantidade obrigatória', 'error'); return; }
+      if (!data.obra) { window.showToast('Escolha a obra', 'error'); return; }
+      const [almoxId, contractId, saldoStr] = data.obra.split('|');
+      const saldo = parseFloat(saldoStr);
+      if (qtd > saldo) { window.showToast(`Saldo insuficiente nessa obra (máx ${saldo.toFixed(2)})`, 'error'); return; }
+      try {
+        const r = await fetch('/api/estoque/movimentacoes', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tipo: 'saida',
+            itemId: item.id,
+            almoxarifadoOrigemId: almoxId,
+            quantidade: qtd,
+            data: data.data || new Date().toISOString().split('T')[0],
+            contractId,
+            documento: 'Consumo em obra',
+            notas: data.atividade || null,
+          }),
+        });
+        if (!r.ok) throw new Error(await r.text());
+        window.showToast(`Consumido: ${qtd} ${escapeHtml(item.unidade || '')} na obra`, 'success');
+        close();
+        await this._loadAll(); this._draw();
+      } catch (e) { window.showToast(e.message, 'error'); }
+    });
+  },
+
+  // Modal: 🟡 Voltou da obra (transferência Obra → Central)
+  _modalVoltouObra(item) {
+    const central = this._almoxs.find(a => !a.contractId);
+    if (!central) { window.showToast('Central não disponível', 'error'); return; }
+    const obras = this._almoxsObras().map(a => ({
+      almoxId: a.id, name: a.contractName || a.nome,
+      saldo: this._saldoEm(item, a.id),
+    })).filter(o => o.saldo > 0);
+    if (obras.length === 0) { window.showToast('Nenhuma obra tem saldo desse item', 'warning'); return; }
+    const hoje = new Date().toISOString().split('T')[0];
+
+    const html = `
+      <div class="modal-overlay" id="modalVoltou">
+        <div class="modal" style="width:520px;max-height:90vh;display:flex;flex-direction:column;">
+          <div class="modal-header" style="flex-shrink:0;">
+            <h2 class="modal-title">🟡 Voltou da obra</h2>
+            <button class="modal-close">✕</button>
+          </div>
+          <form id="formVoltou" class="modal-content" style="overflow-y:auto;flex:1;">
+            <div style="background:rgba(245,158,11,.08);border-left:3px solid #f59e0b;border-radius:6px;padding:10px 14px;margin-bottom:var(--sp-md);">
+              <strong>${escapeHtml(item.descricao)}</strong>
+              <div style="font-size:13px;color:var(--color-text-muted);">Esta ação devolve mercadoria da obra para o Central</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Voltou de qual obra? *</label>
+              <div style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;border:1px solid var(--color-border);border-radius:6px;padding:8px;">
+                ${obras.map((o, i) => `
+                  <label style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--color-surface-2);border-radius:4px;cursor:pointer;">
+                    <input type="radio" name="obra" value="${o.almoxId}|${o.saldo}" ${i === 0 ? 'checked' : ''}>
+                    <div style="flex:1;">
+                      <strong>🏗️ ${escapeHtml(o.name)}</strong>
+                      <div class="text-muted font-sm">Disponível: ${o.saldo.toFixed(2)} ${escapeHtml(item.unidade || '')}</div>
+                    </div>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Quantidade *</label>
+                <input class="form-control" type="number" step="0.001" min="0.001" name="quantidade" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Data</label>
+                <input class="form-control" type="date" name="data" value="${hoje}">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Motivo (opcional)</label>
+              <input class="form-control" name="motivo" placeholder="Ex: Sobra de obra concluída">
+            </div>
+          </form>
+          <div class="modal-footer" style="flex-shrink:0;">
+            <button class="btn btn-secondary" id="btnCancelVoltou">Cancelar</button>
+            <button class="btn btn-primary" id="btnSaveVoltou" style="background:#f59e0b;border-color:#f59e0b;">🟡 Confirmar retorno</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalVoltou');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnCancelVoltou').addEventListener('click', close);
+
+    document.getElementById('btnSaveVoltou').addEventListener('click', async () => {
+      const fd = new FormData(document.getElementById('formVoltou'));
+      const data = Object.fromEntries(fd);
+      const qtd = parseFloat(data.quantidade);
+      if (!(qtd > 0))     { window.showToast('Quantidade obrigatória', 'error'); return; }
+      if (!data.obra)     { window.showToast('Escolha a obra', 'error'); return; }
+      const [almoxId, saldoStr] = data.obra.split('|');
+      const saldo = parseFloat(saldoStr);
+      if (qtd > saldo)    { window.showToast(`Saldo insuficiente (máx ${saldo.toFixed(2)})`, 'error'); return; }
+      try {
+        const r = await fetch('/api/estoque/movimentacoes', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tipo: 'transferencia',
+            itemId: item.id,
+            almoxarifadoOrigemId: almoxId,
+            almoxarifadoDestinoId: central.id,
+            quantidade: qtd,
+            data: data.data || new Date().toISOString().split('T')[0],
+            documento: 'Retorno da obra',
+            notas: data.motivo || null,
+          }),
+        });
+        if (!r.ok) throw new Error(await r.text());
+        window.showToast(`Retornado: ${qtd} ${escapeHtml(item.unidade || '')} pro Central`, 'success');
+        close();
+        await this._loadAll(); this._draw();
+      } catch (e) { window.showToast(e.message, 'error'); }
+    });
+  },
+
+  // Modal: 🟠 Ajustar saldo (correção/inventário)
+  _modalAjuste(item) {
+    const hoje = new Date().toISOString().split('T')[0];
+    const html = `
+      <div class="modal-overlay" id="modalAjuste">
+        <div class="modal" style="width:520px;">
+          <div class="modal-header">
+            <h2 class="modal-title">🟠 Corrigir saldo (ajuste)</h2>
+            <button class="modal-close">✕</button>
+          </div>
+          <form id="formAjuste" class="modal-content">
+            <div style="background:rgba(245,158,11,.08);border-left:3px solid #f59e0b;border-radius:6px;padding:10px 14px;margin-bottom:var(--sp-md);font-size:13px;">
+              <strong>⚠️ Use só pra correções</strong>: contagem física, perda, quebra. Movimentações normais use os outros botões (verde/azul/vermelho).
+            </div>
+            <div class="form-group">
+              <label class="form-label">Item</label>
+              <input class="form-control" disabled value="${escapeHtml(item.descricao)}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Em qual almoxarifado? *</label>
+              <select class="form-control" name="almoxId" required>
+                ${this._almoxs.map(a => `<option value="${a.id}">${a.contractId ? '🏗️' : '🏠'} ${escapeHtml(a.contractName || a.nome)} (saldo: ${this._saldoEm(item, a.id).toFixed(2)})</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Sinal</label>
+                <select class="form-control" name="sinal">
+                  <option value="+">+ (encontrou / contagem maior)</option>
+                  <option value="-">− (perda / quebra / contagem menor)</option>
                 </select>
               </div>
               <div class="form-group">
@@ -681,87 +887,88 @@ window.Estoque = {
                 <input class="form-control" type="number" step="0.001" min="0.001" name="quantidade" required>
               </div>
             </div>
-            <div class="form-row">
-              <div class="form-group" id="grpOrigem">
-                <label class="form-label">Almoxarifado origem</label>
-                <select class="form-control" name="almoxarifadoOrigemId">
-                  <option value="">—</option>
-                  ${this._almoxarifados.map(a => `<option value="${a.id}">${escapeHtml(a.nome)}</option>`).join('')}
-                </select>
-              </div>
-              <div class="form-group" id="grpDestino">
-                <label class="form-label">Almoxarifado destino</label>
-                <select class="form-control" name="almoxarifadoDestinoId">
-                  <option value="">—</option>
-                  ${this._almoxarifados.map(a => `<option value="${a.id}">${escapeHtml(a.nome)}</option>`).join('')}
-                </select>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Custo unitário (R$)</label>
-                <input class="form-control" type="number" step="0.01" min="0" name="custoUnit" placeholder="Atualiza custo médio em entradas">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Data</label>
-                <input class="form-control" type="date" name="data" value="${hoje}">
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Vincular a obra (saída/transf.)</label>
-                <select class="form-control" name="contractId">
-                  <option value="">—</option>
-                  ${contracts.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Documento (NF, OC, RM)</label>
-                <input class="form-control" name="documento">
-              </div>
+            <div class="form-group">
+              <label class="form-label">Motivo *</label>
+              <input class="form-control" name="motivo" required placeholder="Ex: Inventário 04/2026 — perda por quebra">
             </div>
             <div class="form-group">
-              <label class="form-label">Observações</label>
-              <textarea class="form-control" name="notas" rows="2"></textarea>
+              <label class="form-label">Data</label>
+              <input class="form-control" type="date" name="data" value="${hoje}">
             </div>
           </form>
           <div class="modal-footer">
-            <button class="btn btn-secondary" id="btnCancelMov">Cancelar</button>
-            <button class="btn btn-primary" id="btnSaveMov">Registrar movimentação</button>
+            <button class="btn btn-secondary" id="btnCancelAjuste">Cancelar</button>
+            <button class="btn btn-primary" id="btnSaveAjuste" style="background:#f59e0b;border-color:#f59e0b;">🟠 Aplicar ajuste</button>
           </div>
         </div>
       </div>
     `;
     document.body.insertAdjacentHTML('beforeend', html);
-    const overlay = document.getElementById('modalMov');
+    const overlay = document.getElementById('modalAjuste');
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
-    document.getElementById('btnCancelMov').addEventListener('click', close);
+    document.getElementById('btnCancelAjuste').addEventListener('click', close);
 
-    // Mostra/esconde campos conforme tipo
-    const updateCampos = () => {
-      const tipo = document.querySelector('input[name="tipo"]:checked').value;
-      const grpOrig = document.getElementById('grpOrigem');
-      const grpDest = document.getElementById('grpDestino');
-      grpOrig.style.opacity = (tipo === 'entrada') ? '0.4' : '1';
-      grpDest.style.opacity = (tipo === 'saida')   ? '0.4' : '1';
-    };
-    document.querySelectorAll('input[name="tipo"]').forEach(r => r.addEventListener('change', updateCampos));
-    updateCampos();
-
-    document.getElementById('btnSaveMov').addEventListener('click', async () => {
-      const fd = new FormData(document.getElementById('formMov'));
+    document.getElementById('btnSaveAjuste').addEventListener('click', async () => {
+      const fd = new FormData(document.getElementById('formAjuste'));
       const data = Object.fromEntries(fd);
-      if (!data.itemId || !data.quantidade) { window.showToast('Item e quantidade obrigatórios', 'error'); return; }
+      const qtd = parseFloat(data.quantidade);
+      if (!(qtd > 0))      { window.showToast('Quantidade obrigatória', 'error'); return; }
+      if (!data.motivo?.trim()) { window.showToast('Motivo obrigatório', 'error'); return; }
       try {
         const r = await fetch('/api/estoque/movimentacoes', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tipo: 'ajuste',
+            itemId: item.id,
+            almoxarifadoDestinoId: data.almoxId,
+            quantidade: qtd,
+            sinal: data.sinal,
+            data: data.data || new Date().toISOString().split('T')[0],
+            documento: 'Ajuste manual',
+            notas: data.motivo,
+          }),
         });
         if (!r.ok) throw new Error(await r.text());
-        window.showToast('Movimentação registrada', 'success');
+        window.showToast('Ajuste aplicado', 'success');
         close();
         await this._loadAll(); this._draw();
       } catch (e) { window.showToast(e.message, 'error'); }
+    });
+  },
+
+  // Menu "⋯" de opções avançadas (popover ao lado do botão)
+  _modalMaisOpcoes(item, ev) {
+    // Remove popover anterior se houver
+    document.getElementById('popMaisOpc')?.remove();
+    const x = ev.clientX, y = ev.clientY;
+    const html = `
+      <div id="popMaisOpc" style="position:fixed;top:${y}px;left:${x - 170}px;z-index:9999;background:var(--color-surface);border:1px solid var(--color-border);border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:180px;">
+        <button class="pop-opt" data-act="voltou" style="width:100%;text-align:left;padding:10px 14px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--color-text);">🟡 Voltou da obra</button>
+        <button class="pop-opt" data-act="ajuste" style="width:100%;text-align:left;padding:10px 14px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--color-text);">🟠 Corrigir saldo</button>
+        <hr style="margin:0;border:0;border-top:1px solid var(--color-border);">
+        <button class="pop-opt" data-act="editar" style="width:100%;text-align:left;padding:10px 14px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--color-text);">✏️ Editar item</button>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const pop = document.getElementById('popMaisOpc');
+
+    const closePop = () => pop?.remove();
+    setTimeout(() => {
+      document.addEventListener('click', closePop, { once: true });
+    }, 50);
+
+    pop.querySelectorAll('.pop-opt').forEach(b => {
+      b.addEventListener('mouseover', () => b.style.background = 'var(--color-surface-2)');
+      b.addEventListener('mouseout', () => b.style.background = 'none');
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closePop();
+        const act = b.dataset.act;
+        if (act === 'voltou') this._modalVoltouObra(item);
+        else if (act === 'ajuste') this._modalAjuste(item);
+        else if (act === 'editar') this._modalNovoItem(item);
+      });
     });
   },
 };
