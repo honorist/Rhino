@@ -419,7 +419,7 @@ const perfil = {
 
   // Primeira sub-aba do contrato liberada
   primeiraContractTab() {
-    const ordem = ['visao', 'financeiro', 'equipe', 'rdo', 'pendencias'];
+    const ordem = ['visao', 'financeiro', 'cronograma', 'equipe', 'rdo', 'pendencias'];
     return ordem.find(k => this.podeContractTab(k)) || 'visao';
   },
 

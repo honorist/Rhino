@@ -382,6 +382,28 @@ ALTER TABLE audit_log
   ADD COLUMN IF NOT EXISTS before_state JSONB,
   ADD COLUMN IF NOT EXISTS entity_label TEXT;
 
+-- ============ Cronograma fisico-financeiro (atividades por contrato) ============
+CREATE TABLE IF NOT EXISTS atividades (
+  id                TEXT PRIMARY KEY,
+  contract_id       TEXT NOT NULL REFERENCES contracts(id) ON DELETE CASCADE,
+  parent_id         TEXT REFERENCES atividades(id) ON DELETE CASCADE,
+  ordem             INTEGER DEFAULT 0,
+  nome              TEXT NOT NULL,
+  data_inicio_plan  DATE,
+  data_fim_plan     DATE,
+  data_inicio_real  DATE,
+  data_fim_real     DATE,
+  peso_pct          NUMERIC(5,2) DEFAULT 0,        -- % no total da obra (filhos somam 100 dentro do pai)
+  exec_pct          NUMERIC(5,2) DEFAULT 0,        -- 0-100, o quanto foi feito
+  custo_plan        NUMERIC(15,2) DEFAULT 0,
+  predecessoras     TEXT[] DEFAULT '{}',
+  notas             TEXT,
+  created_at        TIMESTAMPTZ DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_ativ_contract ON atividades (contract_id);
+CREATE INDEX IF NOT EXISTS idx_ativ_parent   ON atividades (parent_id);
+
 -- ============ Assinaturas digitais nos RDOs ============
 -- Encarregado, cliente, fiscal assinam o RDO no celular (canvas com dedo).
 -- PNG armazenado como BYTEA — backup junto do PG, sem dependência de disco.
