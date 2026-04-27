@@ -673,12 +673,15 @@ function renderSidebar() {
   ];
   const groupLinks = Object.fromEntries(groups.map(g => [g.key, []]));
   const topLinks = [];
+  let configLink = null; // Configuração é renderizada SEMPRE por último, não pela ordem
 
   for (const [pattern, config] of Object.entries(routes)) {
     if (!config.label || pattern.includes(':id')) continue;
     if (!perfil.podeAcessar(pattern)) continue;
     const item = { href: pattern, label: config.label, icon: config.icon, soon: config.soon || false, docAlerts: pattern === '#/documentos' ? docAlerts : 0 };
-    if (config.group && groupLinks[config.group]) {
+    if (pattern === '#/configuracao') {
+      configLink = item;
+    } else if (config.group && groupLinks[config.group]) {
       groupLinks[config.group].push(item);
     } else {
       topLinks.push(item);
@@ -705,9 +708,7 @@ function renderSidebar() {
       </li>`;
   }
 
-  // Layout: 3 primeiros top-links (Dashboard, Proposta, Contratos) → grupos (Obras/RH/Financeiro) → resto (Configuração por último).
-  const topBefore = topLinks.filter((_, i) => i < 3);
-  const topAfter  = topLinks.filter((_, i) => i >= 3);
+  // Layout: top-links (Dashboard, Proposta, Contratos…) → grupos (Obras/RH/Financeiro) → Configuração SEMPRE por último.
   const groupsHtml = groups.map(renderGroup).join('');
 
   const html = `
@@ -717,9 +718,9 @@ function renderSidebar() {
       </div>
     </div>
     <ul class="nav-links">
-      ${topBefore.map(l => renderNavItem(l, nfAlerts, cpAlerts, recAlerts)).join('')}
+      ${topLinks.map(l => renderNavItem(l, nfAlerts, cpAlerts, recAlerts)).join('')}
       ${groupsHtml}
-      ${topAfter.map(l => renderNavItem(l, nfAlerts, cpAlerts, recAlerts)).join('')}
+      ${configLink ? renderNavItem(configLink, nfAlerts, cpAlerts, recAlerts) : ''}
     </ul>
     <div class="sidebar-footer">
       ${auth.user() ? `
