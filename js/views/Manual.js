@@ -1,4 +1,4 @@
-// Manual do Usuário — versão 2.0 com fluxogramas SVG profissionais.
+// Manual do Usuário — versão 3.0 com fluxogramas Mermaid (declarativos, sempre alinhados).
 window.Manual = {
   _secao: 'inicio',
 
@@ -6,221 +6,164 @@ window.Manual = {
     const app = document.getElementById('app');
     app.innerHTML = this._buildHtml();
     this._attachListeners();
+    this._renderMermaid();
   },
 
-  // ═════════════ Helpers de SVG ═════════════
-  _svgDefs() {
-    return `
-      <defs>
-        <marker id="m-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
-        </marker>
-        <marker id="m-arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981"/>
-        </marker>
-        <marker id="m-arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626"/>
-        </marker>
-      </defs>`;
-  },
-
-  _box(x, y, w, h, label, opts = {}) {
-    const fill = opts.fill || '#1e293b';
-    const stroke = opts.stroke || '#475569';
-    const textColor = opts.text || '#f1f5f9';
-    const rounded = opts.r ?? 8;
-    const fs = opts.fs || 13;
-    const lines = String(label).split('\n');
-    const lh = fs + 4;
-    const startY = y + h/2 - ((lines.length - 1) * lh / 2);
-    return `
-      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rounded}" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-      ${lines.map((l, i) => `<text x="${x + w/2}" y="${startY + i*lh}" text-anchor="middle" dominant-baseline="middle" fill="${textColor}" font-size="${fs}" font-weight="${opts.bold ? 700 : 600}" font-family="Nunito, sans-serif">${this._esc(l)}</text>`).join('')}
-    `;
-  },
-
-  _diamond(cx, cy, w, h, label, opts = {}) {
-    const fill = opts.fill || '#92400e';
-    const stroke = opts.stroke || '#f59e0b';
-    const text = opts.text || '#fff';
-    const points = `${cx},${cy - h/2} ${cx + w/2},${cy} ${cx},${cy + h/2} ${cx - w/2},${cy}`;
-    return `
-      <polygon points="${points}" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-      <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="middle" fill="${text}" font-size="12" font-weight="700" font-family="Nunito, sans-serif">${this._esc(label)}</text>
-    `;
-  },
-
-  _arrow(x1, y1, x2, y2, opts = {}) {
-    const color = opts.color || '#64748b';
-    const marker = opts.color === '#10b981' ? 'm-arrow-green' : opts.color === '#dc2626' ? 'm-arrow-red' : 'm-arrow';
-    let path;
-    if (opts.curve) {
-      const mx = (x1 + x2) / 2;
-      const my = (y1 + y2) / 2 + (opts.curve || 0);
-      path = `M ${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}`;
-    } else {
-      path = `M ${x1} ${y1} L ${x2} ${y2}`;
+  // Renderiza qualquer .mermaid recém-inserido no DOM.
+  // Cada bloco recebe ID único pra evitar colisão entre re-renderizações.
+  async _renderMermaid() {
+    if (!window.mermaid) {
+      // Mermaid carrega assíncrono via CDN; tenta de novo se ainda não está pronto.
+      setTimeout(() => this._renderMermaid(), 200);
+      return;
     }
-    return `
-      <path d="${path}" fill="none" stroke="${color}" stroke-width="2" marker-end="url(#${marker})" ${opts.dashed ? 'stroke-dasharray="6 4"' : ''}/>
-      ${opts.label ? `<text x="${(x1+x2)/2}" y="${(y1+y2)/2 + (opts.labelOffset || -8)}" text-anchor="middle" fill="${opts.labelColor || color}" font-size="11" font-weight="700" font-family="Nunito, sans-serif" style="paint-order:stroke;stroke:#0f172a;stroke-width:3px;stroke-linejoin:round;">${this._esc(opts.label)}</text>` : ''}
-    `;
+    try {
+      const blocks = document.querySelectorAll('.mermaid:not([data-processed])');
+      blocks.forEach((el, i) => {
+        el.id = `mmd-${this._secao}-${i}-${Date.now()}`;
+        el.removeAttribute('data-processed');
+      });
+      await window.mermaid.run({ nodes: blocks });
+    } catch (e) {
+      console.warn('[Manual] erro ao renderizar mermaid:', e.message);
+    }
   },
 
-  _esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); },
+  // ═════════════ Fluxogramas (Mermaid) ═════════════
+  // Convenções de classe:
+  //   start  — caixa azul (ponto de entrada)
+  //   ok     — caixa verde (estado positivo / sucesso)
+  //   warn   — caixa amarela (atenção / opcional)
+  //   bad    — caixa vermelha (erro / negativo)
+  //   note   — caixa cinza (anotação)
 
-  // ═════════════ Fluxogramas ═════════════
   _flowAuth() {
     return `
-      <svg viewBox="0 0 700 280" style="width:100%;max-width:700px;background:#0f172a;border-radius:8px;">
-        ${this._svgDefs()}
-        ${this._box(20, 20, 140, 50, 'Acesso ao app',     { fill: '#1d4ed8', stroke: '#3b82f6', bold: true })}
-        ${this._box(220, 20, 160, 50, 'Tela de login\n(email + senha)')}
-        ${this._diamond(490, 45, 130, 60, 'Credenciais\nválidas?')}
-        ${this._box(580, 145, 100, 50, 'Erro:\n401 não autenticado', { fill: '#7f1d1d', stroke: '#dc2626' })}
-        ${this._box(220, 145, 160, 50, 'Sessão criada\n(cookie httpOnly)', { fill: '#065f46', stroke: '#10b981' })}
-        ${this._box(20, 145, 140, 50, 'App carrega\n+ perfil de acesso', { fill: '#065f46', stroke: '#10b981' })}
-        ${this._box(20, 220, 660, 40, 'Cookie expira em 30 dias · sessões em memória no Postgres · logout limpa tudo', { fill: '#1e293b', stroke: '#475569', fs: 12 })}
-        ${this._arrow(160, 45, 220, 45)}
-        ${this._arrow(380, 45, 425, 45)}
-        ${this._arrow(490, 75, 490, 145, { label: 'sim', color: '#10b981' })}
-        ${this._arrow(555, 75, 580, 145, { label: 'não',  color: '#dc2626' })}
-        ${this._arrow(490, 170, 380, 170, { color: '#10b981' })}
-        ${this._arrow(220, 170, 160, 170, { color: '#10b981' })}
-      </svg>`;
+<pre class="mermaid">
+flowchart LR
+    A[Acesso ao app]:::start --> B[Tela de login<br/>email + senha]
+    B --> C{Credenciais<br/>válidas?}
+    C -- sim --> D[Sessão criada<br/>cookie httpOnly]:::ok
+    C -- não --> E[Erro 401<br/>não autenticado]:::bad
+    D --> F[App carrega<br/>perfil de acesso]:::ok
+    F --> G[Cookie dura 30 dias.<br/>Logout limpa tudo.]:::note
+    classDef start fill:#1d4ed8,stroke:#3b82f6,color:#fff,font-weight:bold;
+    classDef ok    fill:#065f46,stroke:#10b981,color:#fff;
+    classDef bad   fill:#7f1d1d,stroke:#dc2626,color:#fff;
+    classDef warn  fill:#92400e,stroke:#f59e0b,color:#fff;
+    classDef note  fill:#1e293b,stroke:#475569,color:#cbd5e1,font-style:italic;
+</pre>`;
   },
 
   _flowSaida() {
     return `
-      <svg viewBox="0 0 760 380" style="width:100%;max-width:760px;background:#0f172a;border-radius:8px;">
-        ${this._svgDefs()}
-        ${this._box(20, 20, 140, 50, 'Adicionar saída\nno contrato', { fill: '#1d4ed8', stroke: '#3b82f6', bold: true })}
-        ${this._box(220, 20, 160, 50, 'Informa valor + data\n+ prazo de recebimento')}
-        ${this._diamond(500, 45, 160, 70, 'Já existe NF\nmesmo dia, não\nemitida?')}
-        ${this._box(220, 150, 160, 50, 'Cria nova NF/BM\nseparada', { fill: '#1e293b', stroke: '#3b82f6' })}
-        ${this._box(500, 150, 160, 50, 'Soma valor à NF\nexistente', { fill: '#1e293b', stroke: '#3b82f6' })}
-        ${this._box(360, 240, 200, 50, 'Saída fica vinculada à NF\n(numeroBM, nfId)', { fill: '#065f46', stroke: '#10b981' })}
-        ${this._box(20, 320, 720, 40, 'Quando a NF é emitida → entrada agendada no caixa em (dataEmissão + prazo)', { fill: '#1e293b', stroke: '#475569', fs: 12 })}
-        ${this._arrow(160, 45, 220, 45)}
-        ${this._arrow(380, 45, 420, 45)}
-        ${this._arrow(440, 80, 300, 150, { label: 'não', color: '#dc2626' })}
-        ${this._arrow(560, 80, 580, 150, { label: 'sim', color: '#10b981' })}
-        ${this._arrow(300, 200, 400, 240, { color: '#10b981' })}
-        ${this._arrow(580, 200, 480, 240, { color: '#10b981' })}
-      </svg>`;
+<pre class="mermaid">
+flowchart LR
+    A[Adicionar saída<br/>no contrato]:::start --> B[Informa valor,<br/>data e prazo]
+    B --> C{Já existe NF<br/>mesmo dia<br/>não emitida?}
+    C -- não --> D[Cria nova NF/BM<br/>separada]
+    C -- sim --> E[Soma valor à NF<br/>existente]
+    D --> F[Saída vinculada à NF<br/>numeroBM, nfId]:::ok
+    E --> F
+    F --> G[Quando NF for emitida:<br/>entrada agendada no caixa<br/>data emissão + prazo]:::note
+    classDef start fill:#1d4ed8,stroke:#3b82f6,color:#fff,font-weight:bold;
+    classDef ok    fill:#065f46,stroke:#10b981,color:#fff;
+    classDef note  fill:#1e293b,stroke:#475569,color:#cbd5e1,font-style:italic;
+</pre>`;
   },
 
   _flowNF() {
     return `
-      <svg viewBox="0 0 760 280" style="width:100%;max-width:760px;background:#0f172a;border-radius:8px;">
-        ${this._svgDefs()}
-        ${this._box(20, 20, 130, 50, 'NF criada\n(BM pendente)', { fill: '#92400e', stroke: '#f59e0b', bold: true })}
-        ${this._box(200, 20, 130, 50, 'Editar prazo\nse necessário')}
-        ${this._box(380, 20, 130, 50, 'Marcar Emitida\n(informa data real)', { fill: '#1d4ed8', stroke: '#3b82f6', bold: true })}
-        ${this._box(560, 20, 180, 50, 'Cria entrada no caixa\n(prevista futura)', { fill: '#065f46', stroke: '#10b981' })}
-        ${this._box(380, 130, 130, 50, 'Receber NF\n(caixa lança)', { fill: '#065f46', stroke: '#10b981', bold: true })}
-        ${this._box(560, 130, 180, 50, 'Saldo do caixa\nefetivamente entra')}
-        ${this._box(380, 220, 130, 40, 'Cancelar emissão\n(estorno)', { fill: '#7f1d1d', stroke: '#dc2626', fs: 12 })}
-        ${this._box(560, 220, 180, 40, 'Remove entrada do caixa\n(volta a status BM)', { fill: '#1e293b', stroke: '#dc2626', fs: 12 })}
-        ${this._arrow(150, 45, 200, 45)}
-        ${this._arrow(330, 45, 380, 45)}
-        ${this._arrow(510, 45, 560, 45, { color: '#10b981' })}
-        ${this._arrow(650, 70, 650, 130, { color: '#10b981', dashed: true, label: 'no prazo', labelOffset: -4 })}
-        ${this._arrow(510, 155, 560, 155, { color: '#10b981' })}
-        ${this._arrow(445, 70, 445, 220, { color: '#dc2626', dashed: true, label: 'opcional', labelOffset: -4 })}
-        ${this._arrow(510, 240, 560, 240, { color: '#dc2626' })}
-      </svg>`;
+<pre class="mermaid">
+flowchart TD
+    A[NF criada<br/>BM pendente]:::warn --> B[Editar prazo<br/>se necessário]
+    B --> C[Marcar Emitida<br/>informa data real]:::start
+    C --> D[Cria entrada<br/>no caixa - prevista]:::ok
+    D --> E[Receber NF<br/>caixa lança]:::ok
+    E --> F[Saldo entra<br/>efetivamente]:::ok
+    C -. opcional .-> G[Cancelar emissão<br/>estorno]:::bad
+    G --> H[Remove entrada do caixa<br/>volta a BM]:::bad
+    classDef start fill:#1d4ed8,stroke:#3b82f6,color:#fff,font-weight:bold;
+    classDef ok    fill:#065f46,stroke:#10b981,color:#fff;
+    classDef warn  fill:#92400e,stroke:#f59e0b,color:#fff;
+    classDef bad   fill:#7f1d1d,stroke:#dc2626,color:#fff;
+</pre>`;
   },
 
   _flowContaPagar() {
     return `
-      <svg viewBox="0 0 760 320" style="width:100%;max-width:760px;background:#0f172a;border-radius:8px;">
-        ${this._svgDefs()}
-        ${this._box(20, 20, 140, 50, 'Lançar conta\na pagar', { fill: '#1d4ed8', stroke: '#3b82f6', bold: true })}
-        ${this._box(220, 20, 160, 50, 'Status: Pendente\nValor + vencimento')}
-        ${this._diamond(500, 45, 130, 60, 'Vencimento\npassou?')}
-        ${this._box(620, 130, 130, 50, 'Vencida\n(alerta vermelho)', { fill: '#7f1d1d', stroke: '#dc2626' })}
-        ${this._box(220, 130, 160, 50, 'Botão "Pagar"\n(informa data/valor/forma)', { fill: '#1d4ed8', stroke: '#3b82f6', bold: true })}
-        ${this._box(20, 130, 140, 50, 'Cria saída no caixa\n+ marca como Pago', { fill: '#065f46', stroke: '#10b981' })}
-        ${this._box(220, 230, 160, 50, 'Estornar\n(desfaz pagamento)', { fill: '#92400e', stroke: '#f59e0b' })}
-        ${this._box(20, 230, 140, 50, 'Remove entrada\nde caixa\n+ volta Pendente', { fill: '#1e293b', stroke: '#dc2626' })}
-        ${this._arrow(160, 45, 220, 45)}
-        ${this._arrow(380, 45, 435, 45)}
-        ${this._arrow(565, 45, 620, 130, { color: '#dc2626', label: 'sim', labelOffset: -2 })}
-        ${this._arrow(490, 75, 350, 130, { color: '#10b981', label: 'não', labelOffset: -4 })}
-        ${this._arrow(220, 155, 160, 155, { color: '#10b981' })}
-        ${this._arrow(300, 180, 300, 230, { color: '#dc2626', dashed: true })}
-        ${this._arrow(220, 255, 160, 255, { color: '#dc2626' })}
-      </svg>`;
+<pre class="mermaid">
+flowchart TD
+    A[Lançar conta a pagar]:::start --> B[Status: Pendente<br/>valor + vencimento]
+    B --> C{Vencimento<br/>passou?}
+    C -- sim --> D[Vencida<br/>alerta vermelho]:::bad
+    C -- não --> E[Botão Pagar<br/>data, valor, forma]:::start
+    D --> E
+    E --> F[Cria saída no caixa<br/>marca Pago]:::ok
+    F -. estorno .-> G[Volta a Pendente<br/>remove entrada do caixa]:::warn
+    classDef start fill:#1d4ed8,stroke:#3b82f6,color:#fff,font-weight:bold;
+    classDef ok    fill:#065f46,stroke:#10b981,color:#fff;
+    classDef warn  fill:#92400e,stroke:#f59e0b,color:#fff;
+    classDef bad   fill:#7f1d1d,stroke:#dc2626,color:#fff;
+</pre>`;
   },
 
   _flowFolga() {
     return `
-      <svg viewBox="0 0 800 380" style="width:100%;max-width:800px;background:#0f172a;border-radius:8px;">
-        ${this._svgDefs()}
-        ${this._box(20, 20, 160, 50, 'Recurso alocado\nno contrato', { fill: '#1d4ed8', stroke: '#3b82f6', bold: true })}
-        ${this._box(240, 20, 180, 50, 'Próxima folga calculada\n(data início + ciclo)')}
-        ${this._box(480, 20, 180, 50, 'Cadastrar folga\n(início + fim + obs.)')}
-        ${this._box(680, 20, 100, 50, 'Folga\nregistrada', { fill: '#065f46', stroke: '#10b981' })}
-        ${this._box(480, 110, 180, 50, 'Comprar passagem\n(ida e/ou volta)', { fill: '#1d4ed8', stroke: '#3b82f6', bold: true })}
-        ${this._diamond(180, 230, 180, 80, 'Quem paga?\n(financiadoPor)')}
-        ${this._diamond(480, 230, 180, 80, 'Como lançar?\n(tipoLancamento)')}
-        ${this._box(20, 320, 160, 40, 'Caixa empresa\n(sem contrato)', { fill: '#1e293b', stroke: '#3b82f6', fs: 12 })}
-        ${this._box(200, 320, 160, 40, 'Contrato específico\n(reduz margem)', { fill: '#1e293b', stroke: '#3b82f6', fs: 12 })}
-        ${this._box(380, 320, 160, 40, 'Saída direta no caixa\n(saldo cai já)', { fill: '#065f46', stroke: '#10b981', fs: 12 })}
-        ${this._box(560, 320, 160, 40, 'Conta a pagar pendente\n(saldo só cai depois)', { fill: '#92400e', stroke: '#f59e0b', fs: 12 })}
-        ${this._arrow(180, 45, 240, 45)}
-        ${this._arrow(420, 45, 480, 45)}
-        ${this._arrow(660, 45, 680, 45)}
-        ${this._arrow(570, 70, 570, 110)}
-        ${this._arrow(480, 135, 250, 195)}
-        ${this._arrow(570, 160, 480, 195)}
-        ${this._arrow(120, 270, 90, 320)}
-        ${this._arrow(240, 270, 270, 320)}
-        ${this._arrow(420, 270, 450, 320)}
-        ${this._arrow(540, 270, 620, 320)}
-      </svg>`;
+<pre class="mermaid">
+flowchart TD
+    A[Recurso alocado<br/>no contrato]:::start --> B[Próxima folga<br/>calculada pelo ciclo]
+    B --> C[Cadastrar folga<br/>início + fim]
+    C --> D[Folga registrada]:::ok
+    D --> E[Comprar passagem<br/>ida e/ou volta]:::start
+    E --> F{Quem paga?}
+    F -- empresa --> G[Caixa empresa<br/>sem contrato]
+    F -- contrato --> H[Contrato específico<br/>reduz margem]
+    E --> I{Como lançar?}
+    I -- à vista --> J[Saída direta no caixa<br/>saldo cai já]:::ok
+    I -- a prazo --> K[Conta a pagar pendente<br/>saldo só cai depois]:::warn
+    classDef start fill:#1d4ed8,stroke:#3b82f6,color:#fff,font-weight:bold;
+    classDef ok    fill:#065f46,stroke:#10b981,color:#fff;
+    classDef warn  fill:#92400e,stroke:#f59e0b,color:#fff;
+</pre>`;
   },
 
   _flowAporte() {
     return `
-      <svg viewBox="0 0 800 320" style="width:100%;max-width:800px;background:#0f172a;border-radius:8px;">
-        ${this._svgDefs()}
-        ${this._box(20, 20, 140, 50, 'Aporte criado',           { fill: '#1d4ed8', stroke: '#3b82f6', bold: true })}
-        ${this._diamond(290, 45, 160, 70, 'Origem?')}
-        ${this._diamond(550, 45, 160, 70, 'Destino?')}
-        ${this._box(20,  150, 220, 50, 'Sócio: registra histórico\nde aportes (sem caixa)',  { fill: '#1e293b', stroke: '#3b82f6' })}
-        ${this._box(260, 150, 220, 50, 'Caixa empresa: cria saída\ncontábil automática',     { fill: '#7f1d1d', stroke: '#dc2626' })}
-        ${this._box(500, 150, 280, 50, 'Contrato: marca contractId\n(não cria item BASE)',   { fill: '#1e293b', stroke: '#3b82f6' })}
-        ${this._box(500, 220, 280, 50, 'BASE: cria item da BASE rastreável\n(allocations vazias)', { fill: '#065f46', stroke: '#10b981' })}
-        ${this._box(20, 240, 460, 40, 'Aporte preserva referência (caixaEntryId, baseItemId, contractId) p/ rastreio.', { fill: '#1e293b', stroke: '#475569', fs: 12 })}
-        ${this._arrow(160, 45, 220, 45)}
-        ${this._arrow(355, 45, 475, 45)}
-        ${this._arrow(245, 80, 130, 150, { label: 'sócio',  labelOffset: -4 })}
-        ${this._arrow(335, 80, 370, 150, { label: 'caixa', labelOffset: -4, color: '#dc2626' })}
-        ${this._arrow(550, 80, 600, 150, { label: 'contrato', labelOffset: -4 })}
-        ${this._arrow(610, 80, 640, 220, { label: 'BASE', labelOffset: -4, color: '#10b981' })}
-      </svg>`;
+<pre class="mermaid">
+flowchart TD
+    A[Aporte criado]:::start --> B{Origem?}
+    B -- sócio --> C{Destino?}
+    B -- caixa --> C
+    C -- sócio --> D[Histórico de aportes<br/>sem caixa]
+    C -- caixa --> E[Saída contábil<br/>automática no caixa]:::bad
+    C -- contrato --> F[Marca contractId<br/>não cria item BASE]
+    C -- BASE --> G[Cria item BASE<br/>rastreável]:::ok
+    D --> Z[Aporte preserva referências:<br/>caixaEntryId, baseItemId, contractId]:::note
+    E --> Z
+    F --> Z
+    G --> Z
+    classDef start fill:#1d4ed8,stroke:#3b82f6,color:#fff,font-weight:bold;
+    classDef ok    fill:#065f46,stroke:#10b981,color:#fff;
+    classDef bad   fill:#7f1d1d,stroke:#dc2626,color:#fff;
+    classDef note  fill:#1e293b,stroke:#475569,color:#cbd5e1,font-style:italic;
+</pre>`;
   },
 
   _flowRDO() {
     return `
-      <svg viewBox="0 0 760 280" style="width:100%;max-width:760px;background:#0f172a;border-radius:8px;">
-        ${this._svgDefs()}
-        ${this._box(20, 20, 140, 50, 'Contrato ativo', { fill: '#1d4ed8', stroke: '#3b82f6', bold: true })}
-        ${this._box(220, 20, 160, 50, 'Diariamente em\ndia útil')}
-        ${this._diamond(490, 45, 130, 70, 'É feriado\nnacional?')}
-        ${this._box(620, 130, 130, 50, 'RDO opcional\n(não conta)', { fill: '#1e293b', stroke: '#475569' })}
-        ${this._box(220, 130, 160, 50, 'Criar RDO do dia\n(MOI/MOD/equip./atividades)', { fill: '#065f46', stroke: '#10b981', bold: true })}
-        ${this._box(20, 130, 140, 50, 'Anexar fotos\n(opcional)')}
-        ${this._box(20, 220, 720, 40, 'Aba "RDOs" mostra alerta para obras ativas que não fizeram RDO no último dia útil.', { fill: '#1e293b', stroke: '#475569', fs: 12 })}
-        ${this._arrow(160, 45, 220, 45)}
-        ${this._arrow(380, 45, 425, 45)}
-        ${this._arrow(490, 80, 490, 130, { color: '#10b981', label: 'não', labelOffset: -4 })}
-        ${this._arrow(555, 75, 620, 130, { color: '#dc2626', label: 'sim', labelOffset: -4 })}
-        ${this._arrow(380, 155, 410, 155, { color: '#10b981', dashed: true })}
-        ${this._arrow(220, 155, 160, 155, { color: '#10b981' })}
-      </svg>`;
+<pre class="mermaid">
+flowchart LR
+    A[Contrato ativo]:::start --> B[Diariamente<br/>em dia útil]
+    B --> C{É feriado<br/>nacional?}
+    C -- não --> D[Criar RDO do dia<br/>MOI / MOD / equip. / atividades]:::ok
+    C -- sim --> E[RDO opcional<br/>não conta]:::note
+    D --> F[Anexar fotos<br/>opcional]
+    F --> G[Aba RDOs alerta obras ativas<br/>sem RDO no último dia útil]:::note
+    classDef start fill:#1d4ed8,stroke:#3b82f6,color:#fff,font-weight:bold;
+    classDef ok    fill:#065f46,stroke:#10b981,color:#fff;
+    classDef note  fill:#1e293b,stroke:#475569,color:#cbd5e1,font-style:italic;
+</pre>`;
   },
 
   // ═════════════ Conteúdo ═════════════
@@ -694,6 +637,19 @@ window.Manual = {
         code {
           background: var(--color-bg); padding: 2px 6px; border-radius: 3px;
           font-family: monospace; font-size: 13px; color: var(--color-primary);
+        }
+        /* Mermaid: contêiner com fundo escuro, fluxograma centralizado */
+        pre.mermaid {
+          background: #0f172a; border-radius: 10px; padding: var(--sp-lg);
+          margin: var(--sp-md) 0; text-align: center; overflow-x: auto;
+          border: 1px solid #1e293b;
+        }
+        pre.mermaid svg { max-width: 100%; height: auto; }
+        /* Texto dos nodes: melhor contraste no dark */
+        pre.mermaid .nodeLabel { font-size: 14px !important; }
+        pre.mermaid .edgeLabel {
+          background: #0f172a !important; color: #f1f5f9 !important;
+          padding: 2px 6px !important; border-radius: 3px;
         }
       </style>
 

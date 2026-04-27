@@ -51,6 +51,28 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <!-- Mermaid: fluxogramas declarativos no Manual -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    window.mermaid = mermaid;
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'base',
+      securityLevel: 'loose',
+      flowchart: { htmlLabels: true, curve: 'basis', padding: 16, nodeSpacing: 50, rankSpacing: 60 },
+      themeVariables: {
+        background: '#0f172a',
+        primaryColor: '#1e293b',
+        primaryTextColor: '#f1f5f9',
+        primaryBorderColor: '#475569',
+        lineColor: '#94a3b8',
+        secondaryColor: '#1d4ed8',
+        tertiaryColor: '#065f46',
+        fontFamily: 'Nunito, sans-serif',
+        fontSize: '15px',
+      },
+    });
+  </script>
 
   <!-- Modo local (browser-only) descontinuado: agora rodamos sempre contra o servidor real
        (server.js + Postgres). Para reativar o modo offline com localStorage,
