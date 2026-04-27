@@ -415,6 +415,8 @@ const perfil = {
   podeContractTab(tabKey) {
     const abas = this.abas();
     if (!abas) return true; // sem perfil → tudo liberado
+    // Sub-abas universais (adicionadas depois do cadastro inicial dos perfis):
+    if (['cronograma'].includes(tabKey)) return true;
     const contractTabs = abas.filter(a => typeof a === 'string' && a.startsWith('contrato-tab:'));
     if (contractTabs.length === 0) return true; // nada configurado → tudo liberado (legado)
     return contractTabs.includes('contrato-tab:' + tabKey);

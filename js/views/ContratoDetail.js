@@ -366,15 +366,13 @@ window.ContratoDetail = {
         <div class="card mb-2xl">
           <div class="card-header">
             <h3 class="card-title">📈 Curva S — Planejado × Realizado</h3>
-            <span class="text-muted font-sm">Acumulado mês a mês (% do valor do contrato)</span>
+            <span class="text-muted font-sm" id="curvaSFonte">Acumulado mês a mês (carregando...)</span>
           </div>
           <div style="position:relative;height:320px;padding:var(--sp-md);">
             <canvas id="canvasCurvaS"></canvas>
           </div>
-          <div class="text-muted font-sm" style="padding:0 var(--sp-md) var(--sp-md);">
-            <strong>Planejado:</strong> distribuição linear do valor entre início e término ·
-            <strong>Medido:</strong> acumulado dos BMs ·
-            <strong>Custo:</strong> acumulado de saídas + base + compras + passagens
+          <div class="text-muted font-sm" style="padding:0 var(--sp-md) var(--sp-md);" id="curvaSLegenda">
+            Carregando legenda...
           </div>
         </div>
         ` : ''}
@@ -1043,8 +1041,8 @@ window.ContratoDetail = {
     });
   },
 
-  // Curva S: planejado linear (start → end) vs medido (BMs por mês) vs custo realizado
-  renderCurvaS(contract, nfsContrato, saidas, totalBase, totalPassagens, totalCompras) {
+  // Curva S: planejado (linear OU baseado nas etapas do Cronograma) × medido (BMs por mês) × custo realizado
+  async renderCurvaS(contract, nfsContrato, saidas, totalBase, totalPassagens, totalCompras) {
     if (this.chartCurvaS) { this.chartCurvaS.destroy(); this.chartCurvaS = null; }
     const canvas = document.getElementById('canvasCurvaS');
     if (!canvas || typeof Chart === 'undefined') return;
@@ -1053,6 +1051,15 @@ window.ContratoDetail = {
     const start = new Date(contract.startDate + 'T12:00:00');
     const end   = new Date(contract.endDate + 'T12:00:00');
     if (isNaN(start) || isNaN(end) || end <= start) return;
+
+    // Busca atividades do contrato — se houver, usa pra montar curva não-linear
+    let atividades = [];
+    try {
+      const r = await fetch(`/api/contracts/${contract.id}/atividades`);
+      if (r.ok) atividades = (await r.json()).atividades || [];
+    } catch {}
+    const usaEtapas = atividades.length > 0
+      && atividades.some(a => a.dataInicioPlan && a.dataFimPlan && parseFloat(a.pesoPct) > 0);
 
     // Gera array de meses: [{ ym: "AAAA-MM", label: "abr/26", date: Date(1ºdia) }]
     const meses = [];
@@ -1070,8 +1077,44 @@ window.ContratoDetail = {
     const valor = parseFloat(contract.value) || 0;
     const totalMeses = meses.length;
 
-    // Planejado: distribuição linear (curva S simplificada — meta acumulada por mês)
-    const planejadoAcum = meses.map((_, i) => valor * ((i + 1) / totalMeses));
+    // Planejado: monta curva acumulada
+    let planejadoAcum;
+    let fontePlan;
+    if (usaEtapas) {
+      // ── Curva S real baseada nas etapas do Cronograma ──
+      // Para cada etapa, distribui seu peso linearmente entre data_inicio_plan e data_fim_plan.
+      // Soma todos os pesos parciais por mês e converte em valor acumulado.
+      const pesoPorMes = new Map();
+      for (const a of atividades) {
+        if (!a.dataInicioPlan || !a.dataFimPlan) continue;
+        const peso = parseFloat(a.pesoPct) || 0;
+        if (peso <= 0) continue;
+        const aIni = new Date(a.dataInicioPlan + 'T12:00:00');
+        const aFim = new Date(a.dataFimPlan + 'T12:00:00');
+        const durMeses = Math.max(1, ((aFim.getFullYear() - aIni.getFullYear()) * 12) + (aFim.getMonth() - aIni.getMonth()) + 1);
+        const pesoPorMesEtapa = peso / durMeses;
+        // Distribui entre os meses cobertos
+        const c = new Date(aIni.getFullYear(), aIni.getMonth(), 1);
+        const f = new Date(aFim.getFullYear(), aFim.getMonth(), 1);
+        while (c <= f) {
+          const ym = `${c.getFullYear()}-${String(c.getMonth() + 1).padStart(2, '0')}`;
+          pesoPorMes.set(ym, (pesoPorMes.get(ym) || 0) + pesoPorMesEtapa);
+          c.setMonth(c.getMonth() + 1);
+        }
+      }
+      // Acumula por mês na ordem dos meses do contrato
+      let acum = 0;
+      planejadoAcum = meses.map(m => {
+        acum += (pesoPorMes.get(m.ym) || 0);
+        // Converte % → valor R$
+        return valor * Math.min(100, acum) / 100;
+      });
+      fontePlan = `Curva S real (${atividades.length} etapas do Cronograma)`;
+    } else {
+      // ── Fallback: distribuição linear ──
+      planejadoAcum = meses.map((_, i) => valor * ((i + 1) / totalMeses));
+      fontePlan = 'Linear (sem etapas no Cronograma)';
+    }
 
     // Medido: NFs por mês (dataLimite)
     const medidoPorMes = new Map();
@@ -1120,13 +1163,13 @@ window.ContratoDetail = {
         labels: meses.map(m => m.label),
         datasets: [
           {
-            label: 'Planejado (linear)',
+            label: usaEtapas ? 'Planejado (etapas)' : 'Planejado (linear)',
             data: planejadoAcum,
-            borderColor: '#9CA3AF',
-            borderDash: [6, 4],
+            borderColor: usaEtapas ? '#3b82f6' : '#9CA3AF',
+            borderDash: usaEtapas ? [4, 2] : [6, 4],
             backgroundColor: 'transparent',
-            tension: 0,
-            pointRadius: 2,
+            tension: usaEtapas ? 0.25 : 0,
+            pointRadius: usaEtapas ? 3 : 2,
             borderWidth: 2,
           },
           {
@@ -1180,6 +1223,22 @@ window.ContratoDetail = {
         },
       },
     });
+
+    // Atualiza textos da legenda com a fonte usada
+    const elFonte = document.getElementById('curvaSFonte');
+    const elLeg = document.getElementById('curvaSLegenda');
+    if (elFonte) elFonte.textContent = `Acumulado mês a mês — Planejado: ${fontePlan}`;
+    if (elLeg) {
+      elLeg.innerHTML = usaEtapas
+        ? `<strong>Planejado:</strong> curva S real baseada nas etapas do Cronograma (peso × duração) ·
+           <strong>Medido:</strong> acumulado dos BMs ·
+           <strong>Custo:</strong> saídas + base + compras + passagens
+           <div style="margin-top:6px;color:var(--color-success);"><strong>✓ Usando suas etapas do Cronograma.</strong> Edite as etapas pra ajustar a curva.</div>`
+        : `<strong>Planejado:</strong> distribuição linear do valor entre início e término ·
+           <strong>Medido:</strong> acumulado dos BMs ·
+           <strong>Custo:</strong> saídas + base + compras + passagens
+           <div style="margin-top:6px;color:#F59E0B;"><strong>💡 Dica:</strong> cadastre etapas na aba <a href="#" onclick="event.preventDefault();window.ContratoDetail._tab='cronograma';window.ContratoDetail.render({id:'${contract.id}'});return false;" style="color:var(--color-primary);font-weight:700;">Cronograma</a> com peso e datas — a curva ficará realista (não-linear).</div>`;
+    }
   },
 
   renderPizzaOrcamento(orcadoPorTipo, totalOrcado) {
