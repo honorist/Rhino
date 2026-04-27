@@ -603,6 +603,7 @@ flowchart TD
         .man-content {
           background: var(--color-surface); border: 1px solid var(--color-border);
           border-radius: 10px; padding: var(--sp-xl); line-height: 1.6;
+          min-width: 0; /* permite que filhos com overflow-x funcionem dentro do grid */
         }
         .man-h1 { font-size: 28px; font-weight: 800; margin: 0 0 var(--sp-md); color: var(--color-text); }
         .man-h2 { font-size: 18px; font-weight: 700; margin: var(--sp-xl) 0 var(--sp-sm); color: var(--color-text); }
@@ -638,19 +639,23 @@ flowchart TD
           background: var(--color-bg); padding: 2px 6px; border-radius: 3px;
           font-family: monospace; font-size: 13px; color: var(--color-primary);
         }
-        /* Mermaid: contêiner com fundo escuro + scroll quando necessário (não corta) */
+        /* Mermaid: contêiner com fundo escuro.
+           Vertical: deixa o SVG crescer (sem max-height — evita corte embaixo).
+           Horizontal: scroll se fluxograma for muito largo. */
         pre.mermaid {
           background: #0f172a; border-radius: 10px; padding: var(--sp-lg);
-          margin: var(--sp-md) 0; overflow: auto; max-height: 80vh;
+          margin: var(--sp-md) 0;
+          overflow-x: auto; overflow-y: visible;
           border: 1px solid #1e293b;
-          font-family: inherit !important; /* sobrescreve o monospace padrão de <pre> */
-          white-space: normal !important;  /* libera o reflow do SVG renderizado */
+          font-family: inherit !important;
+          white-space: normal !important;
           text-align: center;
+          min-height: 120px;
         }
-        /* SVG em tamanho natural — não encolhe (evita texto cortado).
-           Container faz scroll horizontal/vertical se o fluxo for grande. */
+        /* SVG renderiza no tamanho natural — não encolhe (evita texto cortado). */
         pre.mermaid svg {
           max-width: none !important;
+          width: auto !important;
           height: auto !important;
           display: inline-block;
           margin: 0 auto;
