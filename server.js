@@ -2840,6 +2840,7 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname === '/api/estoque/movimentacoes' && method === 'POST') return handlePostMovimentacao(body, res);
   if (pathname.match(/^\/api\/estoque\/movimentacoes\/[^/]+$/) && method === 'DELETE') return handleDeleteMovimentacao(pathname.split('/')[4], res);
   if (pathname === '/api/estoque/saldo' && method === 'GET') return handleGetSaldoEstoque(parsedUrl.query, res);
+  if (pathname === '/api/estoque/visao-geral' && method === 'GET') return handleGetVisaoGeral(res);
 
   // Dashboard layouts (por usuário)
   if (pathname === '/api/dashboard/layouts' && method === 'GET')  return handleListDashLayouts(req, res);
@@ -3406,6 +3407,82 @@ async function handleDeleteDashLayout(req, id, res) {
 
 // ============ Almoxarifado / Estoque ============
 
+// ── Helpers de auto-criação ──
+// Garante que o almoxarifado Central existe (1 só, sem contract_id).
+// Chamado no startup e no GET /api/estoque/visao-geral.
+async function ensureAlmoxarifadoCentral() {
+  const existe = await db.getOne(
+    `SELECT id FROM almoxarifados WHERE contract_id IS NULL AND ativo = TRUE ORDER BY created_at ASC LIMIT 1`
+  );
+  if (existe) return existe.id;
+  const id = generateId('almox');
+  await db.query(
+    `INSERT INTO almoxarifados (id, nome, contract_id, ativo) VALUES ($1, 'Central', NULL, TRUE)`,
+    [id]
+  );
+  return id;
+}
+
+// Cria almoxarifado de obra automaticamente quando precisar movimentar pra ela.
+// Reusa o existente se já houver. Endereço puxado do contract.
+async function ensureAlmoxarifadoObra(contractId) {
+  if (!contractId) return null;
+  const existe = await db.getOne(
+    `SELECT id FROM almoxarifados WHERE contract_id = $1 AND ativo = TRUE LIMIT 1`,
+    [contractId]
+  );
+  if (existe) return existe.id;
+  const contract = await db.getOne('SELECT name, endereco FROM contracts WHERE id = $1', [contractId]);
+  if (!contract) return null;
+  const id = generateId('almox');
+  await db.query(
+    `INSERT INTO almoxarifados (id, nome, contract_id, endereco, ativo) VALUES ($1, $2, $3, $4, TRUE)`,
+    [id, `Almox - ${contract.name || 'Obra'}`, contractId, contract.endereco || null]
+  );
+  return id;
+}
+
+// Resolve aliases especiais pra IDs reais de almoxarifado:
+//   "auto-central"          → id do Central (cria se preciso)
+//   "auto-obra:<contractId>"→ id do almox da obra (cria se preciso)
+//   <id normal>             → passa direto
+async function _resolveAlmoxId(rawId) {
+  if (!rawId || typeof rawId !== 'string') return rawId || null;
+  if (rawId === 'auto-central') return await ensureAlmoxarifadoCentral();
+  const m = rawId.match(/^auto-obra:(.+)$/);
+  if (m) return await ensureAlmoxarifadoObra(m[1]);
+  return rawId;
+}
+
+// Visão geral: matriz item × almoxarifado pronta pra render.
+// Garante o Central existindo. Inclui contract_name pros almox de obra.
+async function handleGetVisaoGeral(res) {
+  try {
+    await ensureAlmoxarifadoCentral();
+    const almoxs = await db.getMany(
+      `SELECT a.id, a.nome, a.contract_id, a.endereco, a.ativo, c.name AS contract_name
+       FROM almoxarifados a LEFT JOIN contracts c ON c.id = a.contract_id
+       WHERE a.ativo = TRUE
+       ORDER BY (a.contract_id IS NULL) DESC, c.name ASC, a.nome ASC`
+    );
+    const itens = await db.getMany(
+      `SELECT i.id, i.codigo, i.descricao, i.unidade, i.categoria, i.estoque_minimo, i.custo_medio,
+              i.notas,
+              COALESCE(json_agg(
+                json_build_object('almoxId', s.almoxarifado_id, 'qtd', s.quantidade)
+                ORDER BY s.almoxarifado_id
+              ) FILTER (WHERE s.id IS NOT NULL), '[]'::json) AS saldos
+       FROM itens_estoque i
+       LEFT JOIN estoque_saldo s ON s.item_id = i.id
+       WHERE i.ativo = TRUE
+       GROUP BY i.id ORDER BY i.descricao ASC`
+    );
+    sendJson(res, { almoxarifados: almoxs, itens });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
 // ── Itens ──
 async function handleListItensEstoque(res) {
   try {
@@ -3552,8 +3629,9 @@ async function handlePostMovimentacao(body, res) {
     const custo = parseFloat(body.custoUnit) || 0;
     if (!itemId || !(qtd > 0)) return sendError(res, 400, 'Item e quantidade são obrigatórios');
 
-    const origemId  = body.almoxarifadoOrigemId || null;
-    const destinoId = body.almoxarifadoDestinoId || null;
+    // Resolve "auto-obra:<contractId>" e "auto-central" antes de prosseguir
+    const origemId  = await _resolveAlmoxId(body.almoxarifadoOrigemId);
+    const destinoId = await _resolveAlmoxId(body.almoxarifadoDestinoId);
     if (tipo === 'entrada' && !destinoId) return sendError(res, 400, 'Entrada precisa almoxarifado destino');
     if (tipo === 'saida'   && !origemId)  return sendError(res, 400, 'Saída precisa almoxarifado origem');
     if (tipo === 'transferencia' && (!origemId || !destinoId)) return sendError(res, 400, 'Transferência precisa origem e destino');
@@ -3974,6 +4052,8 @@ async function bootstrap() {
 
     await auth.bootstrapAdmin();
     await auth.purgeExpiredSessions();
+    // Garante que o almoxarifado Central exista (idempotente)
+    try { await ensureAlmoxarifadoCentral(); } catch (e) { console.warn('[server] Aviso ao criar almox central:', e.message); }
     // Limpa sessões expiradas a cada hora
     setInterval(() => auth.purgeExpiredSessions().catch(() => {}), 60 * 60 * 1000);
   } catch (e) {
