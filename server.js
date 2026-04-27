@@ -3631,41 +3631,50 @@ async function handleDeleteMovimentacao(id, res) {
 // Saldo: matriz item × almoxarifado
 async function handleGetSaldoEstoque(query, res) {
   try {
-    const rows = await db.getMany(
-      `SELECT s.*, i.codigo, i.descricao, i.unidade, i.categoria, i.estoque_minimo, i.custo_medio,
-              a.nome AS almox_nome, a.contract_id AS almox_contract_id
-       FROM estoque_saldo s
-       LEFT JOIN itens_estoque i ON i.id = s.item_id
-       LEFT JOIN almoxarifados a ON a.id = s.almoxarifado_id
-       WHERE i.ativo = TRUE AND a.ativo = TRUE
-       ORDER BY i.descricao ASC, a.nome ASC`
+    // 1. Lista TODOS os itens ativos (mesmo os sem saldo ainda)
+    const itensAtivos = await db.getMany(
+      `SELECT id, codigo, descricao, unidade, categoria, estoque_minimo, custo_medio
+       FROM itens_estoque WHERE ativo = TRUE ORDER BY descricao ASC`
     );
-    // Calcula totais e alertas
-    const porItem = new Map();
-    for (const r of rows) {
-      if (!porItem.has(r.itemId)) {
-        porItem.set(r.itemId, {
-          itemId: r.itemId, codigo: r.codigo, descricao: r.descricao,
-          unidade: r.unidade, categoria: r.categoria,
-          estoqueMinimo: parseFloat(r.estoqueMinimo) || 0,
-          custoMedio: parseFloat(r.custoMedio) || 0,
-          totalQtd: 0, totalValor: 0,
-          porAlmox: [],
-        });
-      }
-      const it = porItem.get(r.itemId);
-      const q = parseFloat(r.quantidade) || 0;
-      it.totalQtd += q;
-      it.totalValor += q * (parseFloat(r.custoMedio) || 0);
-      it.porAlmox.push({
-        almoxarifadoId: r.almoxarifadoId, almoxNome: r.almoxNome,
-        almoxContractId: r.almoxContractId, quantidade: q,
+    // 2. Pega saldos reais por item × almoxarifado (excluindo almox inativos)
+    const saldos = await db.getMany(
+      `SELECT s.*, a.nome AS almox_nome, a.contract_id AS almox_contract_id
+       FROM estoque_saldo s
+       INNER JOIN almoxarifados a ON a.id = s.almoxarifado_id
+       WHERE a.ativo = TRUE`
+    );
+    // 3. Agrupa saldos por item
+    const saldosPorItem = new Map();
+    for (const s of saldos) {
+      if (!saldosPorItem.has(s.itemId)) saldosPorItem.set(s.itemId, []);
+      saldosPorItem.get(s.itemId).push({
+        almoxarifadoId: s.almoxarifadoId,
+        almoxNome: s.almoxNome,
+        almoxContractId: s.almoxContractId,
+        quantidade: parseFloat(s.quantidade) || 0,
       });
     }
-    const itens = Array.from(porItem.values()).map(it => ({
-      ...it,
-      abaixoMinimo: it.totalQtd < it.estoqueMinimo,
-    }));
+    // 4. Monta lista final — todos os itens ativos, com seus saldos (ou vazio se nunca houve movimentação)
+    const itens = itensAtivos.map(i => {
+      const porAlmox = saldosPorItem.get(i.id) || [];
+      const totalQtd = porAlmox.reduce((s, a) => s + a.quantidade, 0);
+      const custoMedio = parseFloat(i.custoMedio) || 0;
+      const estoqueMinimo = parseFloat(i.estoqueMinimo) || 0;
+      return {
+        itemId: i.id,
+        codigo: i.codigo,
+        descricao: i.descricao,
+        unidade: i.unidade,
+        categoria: i.categoria,
+        estoqueMinimo,
+        custoMedio,
+        totalQtd,
+        totalValor: totalQtd * custoMedio,
+        porAlmox,
+        abaixoMinimo: totalQtd < estoqueMinimo,
+        semMovimentacao: porAlmox.length === 0,
+      };
+    });
     sendJson(res, { itens, total: itens.length });
   } catch (e) { sendError(res, 500, e.message); }
 }

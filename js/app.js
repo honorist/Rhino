@@ -731,9 +731,11 @@ function renderSidebar() {
   function renderGroup(g) {
     const links = groupLinks[g.key];
     if (!links.length) return '';
+    // Respeita estritamente a preferência do usuário (default: aberto).
+    // Antes forçava aberto quando havia rota ativa, ignorando o toggle.
     const isOpen = sidebarGroups.get(g.key);
     const isActive = links.some(l => currentHash.startsWith(l.href));
-    const open = isOpen || isActive;
+    const open = isOpen;
     return `
       <li class="nav-group-item">
         <button class="nav-group-header" id="${g.btnId}" data-group="${g.key}">
@@ -812,7 +814,8 @@ function renderSidebar() {
     });
   });
 
-  // Group toggles (genérico — funciona para RH, Financeiro e novos grupos)
+  // Group toggles (genérico — funciona para Obras, RH, Financeiro e novos grupos)
+  // Sempre permite toggle, mesmo se há rota ativa dentro do grupo (consistente com Financeiro).
   document.querySelectorAll('.nav-group-header[data-group]').forEach(btn => {
     btn.addEventListener('click', () => {
       const groupKey = btn.dataset.group;
@@ -821,10 +824,6 @@ function renderSidebar() {
       const arrow = item?.querySelector('.nav-group-arrow');
       if (!children || !arrow) return;
       const isOpen = children.classList.contains('open');
-      // Não fecha se há rota ativa neste grupo
-      const links = groupLinks[groupKey] || [];
-      const currentlyActive = links.some(l => (location.hash || '').startsWith(l.href));
-      if (currentlyActive && isOpen) return;
       if (isOpen) {
         children.classList.remove('open');
         arrow.classList.remove('open');

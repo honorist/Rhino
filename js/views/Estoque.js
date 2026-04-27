@@ -173,17 +173,20 @@ window.Estoque = {
     const itens = this._saldo.itens || [];
     if (itens.length === 0) {
       return `<div class="card" style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">
-        Nenhum item com saldo. Cadastre itens e faça uma entrada de estoque.</div>`;
+        Nenhum item cadastrado. Vá na aba <strong>Itens</strong> para cadastrar.</div>`;
     }
     const fmt = (v) => Store.formatBRL(v);
     const filtro = this._busca.toLowerCase();
     const filtrados = filtro
-      ? itens.filter(i => (i.descricao || '').toLowerCase().includes(filtro) || (i.codigo || '').toLowerCase().includes(filtro))
+      ? itens.filter(i =>
+          (i.descricao || '').toLowerCase().includes(filtro) ||
+          (i.codigo || '').toLowerCase().includes(filtro) ||
+          (i.categoria || '').toLowerCase().includes(filtro))
       : itens;
 
     return `
       <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-md);">
-        <input class="form-control" id="inputBuscaSaldo" placeholder="🔎 Buscar item..." value="${escapeHtml(this._busca)}">
+        <input class="form-control" id="inputBuscaSaldo" placeholder="🔎 Buscar por descrição, código ou categoria..." value="${escapeHtml(this._busca)}">
       </div>
       <div class="card" style="padding:0;overflow:hidden;">
         <div style="overflow-x:auto;">
@@ -200,8 +203,12 @@ window.Estoque = {
               </tr>
             </thead>
             <tbody>
-              ${filtrados.map(i => `
-                <tr style="background:${i.abaixoMinimo ? 'rgba(220,38,38,.06)' : 'transparent'};">
+              ${filtrados.length === 0 ? `<tr><td colspan="7" style="text-align:center;color:var(--color-text-muted);padding:var(--sp-md);">Nenhum resultado para "${escapeHtml(this._busca)}"</td></tr>` : ''}
+              ${filtrados.map(i => {
+                const semMov = i.semMovimentacao;
+                const corLinha = semMov ? 'rgba(245,158,11,.06)' : (i.abaixoMinimo ? 'rgba(220,38,38,.06)' : 'transparent');
+                return `
+                <tr style="background:${corLinha};">
                   <td>
                     <strong>${escapeHtml(i.descricao || '')}</strong>
                     ${i.codigo ? `<div class="text-muted font-sm">cod. ${escapeHtml(i.codigo)}</div>` : ''}
@@ -209,16 +216,20 @@ window.Estoque = {
                   <td>${escapeHtml(i.categoria || '—')}</td>
                   <td style="text-align:right;font-weight:700;color:${i.abaixoMinimo ? 'var(--color-danger)' : 'var(--color-text)'};">
                     ${i.totalQtd.toFixed(2)} ${escapeHtml(i.unidade || '')}
-                    ${i.abaixoMinimo ? '<div style="font-size:11px;color:var(--color-danger);">⚠ abaixo do mín.</div>' : ''}
+                    ${semMov
+                      ? '<div style="font-size:11px;color:#F59E0B;">⚠ sem movimentação</div>'
+                      : (i.abaixoMinimo ? '<div style="font-size:11px;color:var(--color-danger);">⚠ abaixo do mín.</div>' : '')}
                   </td>
                   <td style="text-align:right;">${i.estoqueMinimo.toFixed(2)}</td>
                   <td style="text-align:right;">${fmt(i.custoMedio)}</td>
                   <td style="text-align:right;font-weight:600;">${fmt(i.totalValor)}</td>
                   <td style="font-size:13px;">
-                    ${i.porAlmox.map(a => `<div>${escapeHtml(a.almoxNome)}: <strong>${a.quantidade.toFixed(2)}</strong></div>`).join('')}
+                    ${i.porAlmox.length === 0
+                      ? '<span class="text-muted">—</span>'
+                      : i.porAlmox.map(a => `<div>${escapeHtml(a.almoxNome)}: <strong>${a.quantidade.toFixed(2)}</strong></div>`).join('')}
                   </td>
                 </tr>
-              `).join('')}
+              `;}).join('')}
             </tbody>
           </table>
         </div>
@@ -341,14 +352,55 @@ window.Estoque = {
     const editing = !!item;
     const datalistCat = this.CATEGORIAS_PADRAO.map(c => `<option value="${escapeHtml(c)}">`).join('');
     const datalistUnid = this.UNIDADES_PADRAO.map(u => `<option value="${escapeHtml(u)}">`).join('');
+
+    // Se editando, busca saldo atual deste item nos saldos já carregados
+    const saldoInfo = editing
+      ? (this._saldo.itens || []).find(s => s.itemId === item.id)
+      : null;
+    const fmtBRL = (v) => Store.formatBRL(v || 0);
+
     const html = `
       <div class="modal-overlay" id="modalItem">
-        <div class="modal" style="width:600px;">
-          <div class="modal-header">
+        <div class="modal" style="width:620px;max-height:90vh;display:flex;flex-direction:column;">
+          <div class="modal-header" style="flex-shrink:0;">
             <h2 class="modal-title">${editing ? '✏️ Editar' : '+ Novo'} item</h2>
             <button class="modal-close">✕</button>
           </div>
-          <form id="formItem" class="modal-content">
+          <form id="formItem" class="modal-content" style="overflow-y:auto;flex:1;">
+
+            ${editing && saldoInfo ? `
+              <!-- Painel de info do estoque atual -->
+              <div style="background:linear-gradient(135deg, rgba(59,130,246,.08), rgba(139,92,246,.08));border:1px solid var(--color-border);border-radius:8px;padding:var(--sp-md);margin-bottom:var(--sp-lg);">
+                <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:var(--sp-sm);">
+                  <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);">📊 Estoque atual</div>
+                  <a href="#" class="btn btn-sm btn-secondary" id="btnFazerAjuste" style="text-decoration:none;">+ Movimentação</a>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-sm);margin-top:var(--sp-sm);">
+                  <div>
+                    <div class="text-muted font-sm">Saldo total</div>
+                    <div style="font-size:20px;font-weight:800;color:${saldoInfo.abaixoMinimo ? 'var(--color-danger)' : 'var(--color-success)'};">${saldoInfo.totalQtd.toFixed(2)} <span style="font-size:13px;font-weight:600;">${escapeHtml(item.unidade || '')}</span></div>
+                  </div>
+                  <div>
+                    <div class="text-muted font-sm">Custo médio</div>
+                    <div style="font-size:18px;font-weight:700;">${fmtBRL(saldoInfo.custoMedio)}</div>
+                  </div>
+                  <div>
+                    <div class="text-muted font-sm">Valor total</div>
+                    <div style="font-size:18px;font-weight:700;">${fmtBRL(saldoInfo.totalValor)}</div>
+                  </div>
+                </div>
+                ${saldoInfo.porAlmox.length > 0 ? `
+                  <div style="margin-top:var(--sp-sm);padding-top:var(--sp-sm);border-top:1px solid var(--color-border);font-size:13px;">
+                    <strong>Por almoxarifado:</strong>
+                    ${saldoInfo.porAlmox.map(a => `<span style="margin-right:12px;">${escapeHtml(a.almoxNome)}: <strong>${a.quantidade.toFixed(2)}</strong></span>`).join('')}
+                  </div>
+                ` : `<div style="margin-top:var(--sp-sm);font-size:13px;color:#F59E0B;">⚠ Sem movimentações registradas</div>`}
+                <div style="margin-top:8px;font-size:12px;color:var(--color-text-muted);">
+                  💡 Para alterar o estoque, use uma <strong>movimentação</strong> (entrada/saída/ajuste) — preserva o histórico contábil
+                </div>
+              </div>
+            ` : ''}
+
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Código</label>
@@ -381,7 +433,7 @@ window.Estoque = {
             ${editing ? '' : `
               <div style="border-top:1px solid var(--color-border);padding-top:var(--sp-md);margin-top:var(--sp-md);">
                 <h4 style="font-size:14px;margin:0 0 var(--sp-sm) 0;color:var(--color-text);">Estoque inicial (opcional)</h4>
-                <p style="font-size:12px;color:var(--color-text-muted);margin:0 0 var(--sp-md) 0;">Se você já tem este item em estoque, informe a quantidade e custo. Será criada uma movimentação de ajuste inicial.</p>
+                <p style="font-size:12px;color:var(--color-text-muted);margin:0 0 var(--sp-md) 0;">Se você já tem este item em estoque, informe a quantidade e custo. Será criada uma movimentação de entrada inicial.</p>
                 <div class="form-row">
                   <div class="form-group">
                     <label class="form-label">Quantidade inicial</label>
@@ -408,7 +460,7 @@ window.Estoque = {
               <textarea class="form-control" name="notas" rows="2" placeholder="Observações sobre o item">${escapeHtml(item?.notas || '')}</textarea>
             </div>
           </form>
-          <div class="modal-footer">
+          <div class="modal-footer" style="flex-shrink:0;">
             <button class="btn btn-secondary" id="btnCancelItem">Cancelar</button>
             <button class="btn btn-primary" id="btnSaveItem">${editing ? 'Salvar' : 'Criar item'}</button>
           </div>
@@ -421,12 +473,28 @@ window.Estoque = {
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnCancelItem').addEventListener('click', close);
 
+    // Botão "Movimentação" (só quando editing)
+    document.getElementById('btnFazerAjuste')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      close();
+      this._showModalMovimentacao();
+    });
+
     document.getElementById('btnSaveItem').addEventListener('click', async () => {
       const fd = new FormData(document.getElementById('formItem'));
       const data = Object.fromEntries(fd);
       if (!data.descricao?.trim()) { window.showToast('Descrição obrigatória', 'error'); return; }
       if (!data.unidade?.trim()) { window.showToast('Unidade obrigatória', 'error'); return; }
       if (!data.categoria?.trim()) { window.showToast('Categoria obrigatória', 'error'); return; }
+
+      // Validação cruzada do estoque inicial
+      if (!editing) {
+        const qtd = parseFloat(data.qtdInicial) || 0;
+        if (qtd > 0 && !data.almoxarifadoInicial) {
+          window.showToast('Selecione o almoxarifado para o estoque inicial', 'error');
+          return;
+        }
+      }
 
       try {
         const url = editing ? `/api/estoque/itens/${item.id}` : `/api/estoque/itens`;
@@ -459,12 +527,16 @@ window.Estoque = {
               }),
             });
             if (!movRes.ok) {
-              window.showToast('Item criado, mas falhou estoque inicial: ' + await movRes.text(), 'warning');
+              const errMsg = await movRes.text();
+              window.showToast(`Item criado, MAS estoque inicial falhou: ${errMsg}. Adicione manualmente em Movimentações.`, 'error');
+              close();
+              await this._loadAll(); this._draw();
+              return;
             }
           }
         }
 
-        window.showToast(editing ? 'Item atualizado' : 'Item criado', 'success');
+        window.showToast(editing ? 'Item atualizado' : (parseFloat(data.qtdInicial) > 0 ? 'Item criado com estoque inicial' : 'Item criado'), 'success');
         close();
         await this._loadAll(); this._draw();
       } catch (e) { window.showToast(e.message, 'error'); }
