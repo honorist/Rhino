@@ -229,22 +229,23 @@ flowchart TD
     return `
 <pre class="mermaid">
 flowchart TD
-    A[Cadastrar Item<br/>código, descrição, unidade]:::start --> B[Cadastrar Almoxarifado<br/>central ou de obra]:::start
-    B --> C[Movimentação]:::start
-    C --> D{Tipo?}
-    D -- entrada --> E[Soma destino +<br/>recalcula custo médio]:::ok
-    D -- saída --> F[Subtrai origem<br/>vincula a obra opcional]:::warn
-    D -- transferência --> G[Subtrai origem +<br/>soma destino atomic]
-    D -- ajuste --> H[Perda ou encontrou<br/>positivo ou negativo]:::warn
-    E --> I[Saldo atualizado<br/>matriz item × almox]:::ok
-    F --> I
-    G --> I
-    H --> I
-    I --> J[Alerta vermelho<br/>se < estoque mínimo]:::bad
+    A[Cadastrar Item<br/>código, descrição, unidade]:::start --> B[🟢 Comprei / Recebi<br/>Mercadoria entra no Central]:::ok
+    B --> C[🔵 Enviar pra obra<br/>Central → Almox da Obra]:::start
+    C --> D{O que aconteceu<br/>na obra?}
+    D -- usou --> E[🔴 Usei na obra<br/>Saída + custo no contrato]:::bad
+    D -- sobrou --> F[🟡 Voltou da obra<br/>Almox da Obra → Central]:::warn
+    F --> C
+    G[🟠 Corrigir saldo<br/>contagem / perda / quebra]:::warn -.-> H[Saldo atualizado]:::ok
+    E --> H
+    H --> I[Alerta vermelho<br/>se < estoque mínimo]:::bad
+
+    Z[💡 Almox Central e<br/>Almox de Obra são criados<br/>automaticamente pelo sistema]:::note
+
     classDef start fill:#1d4ed8,stroke:#3b82f6,color:#fff,font-weight:bold;
     classDef ok    fill:#065f46,stroke:#10b981,color:#fff;
     classDef warn  fill:#92400e,stroke:#f59e0b,color:#fff;
     classDef bad   fill:#7f1d1d,stroke:#dc2626,color:#fff;
+    classDef note  fill:#1e293b,stroke:#475569,color:#cbd5e1,font-style:italic;
 </pre>`;
   },
 
@@ -703,43 +704,71 @@ flowchart TD
 
       estoque: `
         <h1 class="man-h1">📦 Almoxarifado / Estoque</h1>
-        <p class="man-p">Controle de itens (parafusos, EPIs, ferramentas, materiais) com saldo por almoxarifado, movimentações de entrada/saída/transferência e custo médio ponderado.</p>
+        <p class="man-p">Controle de materiais com modelo simples: <strong>Almox Central</strong> (depósito principal da empresa) + <strong>Almox de cada obra</strong> (criado automaticamente quando você envia material pra uma obra). Sem complicação contábil — você só usa botões em linguagem natural.</p>
 
         ${this._flowEstoque()}
 
-        <h2 class="man-h2">Estrutura</h2>
+        <h2 class="man-h2">Os 4 botões que você vai usar 99% do tempo</h2>
         <table class="man-table">
-          <tr><th>Conceito</th><th>O que é</th></tr>
-          <tr><td><strong>Item</strong></td><td>Coisa que se controla. Tem código, descrição, unidade (pç/kg/m), categoria, estoque mínimo</td></tr>
-          <tr><td><strong>Almoxarifado</strong></td><td>Local físico onde o item fica. Pode ser <em>central</em> ou <em>de obra</em> (vinculado a contrato)</td></tr>
-          <tr><td><strong>Saldo</strong></td><td>Quantidade atual de cada item em cada almoxarifado (matriz)</td></tr>
-          <tr><td><strong>Movimentação</strong></td><td>Cada entrada/saída/transferência registrada — gera histórico</td></tr>
-          <tr><td><strong>Custo médio</strong></td><td>Custo ponderado do item, atualizado a cada entrada nova com NF</td></tr>
+          <tr><th>Botão</th><th>Quando usar</th><th>O que acontece</th></tr>
+          <tr>
+            <td>🟢 <strong>Comprei / Recebi</strong></td>
+            <td>Comprou material novo. Mercadoria chegando da nota fiscal.</td>
+            <td>Soma quantidade no <strong>Central</strong>. Pede o custo unitário (atualiza o custo médio do item) e dados da nota fiscal.</td>
+          </tr>
+          <tr>
+            <td>🔵 <strong>Enviar pra obra</strong></td>
+            <td>Vai mandar material do depósito central pra uma obra.</td>
+            <td>Tira do Central, coloca no <strong>Almox da Obra</strong> (criado automático na 1ª vez). Não vira custo ainda — é só movimentação.</td>
+          </tr>
+          <tr>
+            <td>🔴 <strong>Usei na obra</strong></td>
+            <td>O material foi consumido na execução da obra (parafuso virou parte da estrutura, EPI foi entregue ao colaborador).</td>
+            <td>Tira do almox da obra. <strong>Lança o custo no contrato</strong> (qtd × custo médio). Aparece na composição de gasto da obra.</td>
+          </tr>
+          <tr>
+            <td>🟡 <strong>Voltou da obra</strong></td>
+            <td>Sobra de obra concluída ou material errado que precisa voltar.</td>
+            <td>Tira do almox da obra, devolve pro Central. (em "Mais opções" do botão ⋯)</td>
+          </tr>
         </table>
 
-        <h2 class="man-h2">Tipos de movimentação</h2>
-        <table class="man-table">
-          <tr><th>Tipo</th><th>Como funciona</th></tr>
-          <tr><td>🟢 <strong>Entrada</strong></td><td>Compra ou recebimento. Soma na quantidade do almoxarifado destino + atualiza custo médio se informar custo unitário</td></tr>
-          <tr><td>🔴 <strong>Saída</strong></td><td>Consumo. Subtrai do almoxarifado origem. Vinculo opcional com obra registra como custo dela</td></tr>
-          <tr><td>🔵 <strong>Transferência</strong></td><td>Mudança de almoxarifado (ex: do central pra obra). Subtrai origem + soma destino — sempre atômico</td></tr>
-          <tr><td>🟡 <strong>Ajuste</strong></td><td>Perda, quebra, contagem inicial. Pode ser positivo ou negativo</td></tr>
-        </table>
+        <h2 class="man-h2">Estrutura — entenda em 30 segundos</h2>
+        <ul class="man-ul">
+          <li><strong>1 Almox Central</strong> — único, criado pelo sistema. Recebe todas as compras.</li>
+          <li><strong>N Almox de Obra</strong> — um por contrato. Sistema cria automaticamente quando você usa "Enviar pra obra" pela 1ª vez. Endereço sincronizado com a obra.</li>
+          <li><strong>Item</strong> — cadastra uma vez. Mesmo item pode ter saldo em vários almoxarifados ao mesmo tempo (matriz).</li>
+        </ul>
+
+        <h2 class="man-h2">Como cadastrar um item novo</h2>
+        <ol class="man-ol">
+          <li>Botão <strong>+ Novo item</strong></li>
+          <li>Preenche: descrição, unidade (pç/kg/m), categoria — só dados do item, sem mexer em estoque ainda</li>
+          <li>Salva. O item aparece na lista com <strong>saldo zero</strong></li>
+          <li>Use <strong>🟢 Comprei</strong> pra adicionar a primeira entrada (informa qtd + custo + nota fiscal)</li>
+        </ol>
 
         <h2 class="man-h2">Custo médio ponderado (CMV)</h2>
-        <p class="man-p">A cada <strong>entrada com custo unitário</strong>, o sistema recalcula:</p>
+        <p class="man-p">A cada <strong>🟢 Comprei</strong> com custo unitário, o sistema recalcula:</p>
         <div class="man-code">novo_custo_medio = (saldo_anterior × custo_anterior + qtd_entrada × custo_entrada) / saldo_total</div>
-        <p class="man-p">Quando você dá uma <strong>saída</strong>, ela é valorizada pelo custo médio atual. O valor total em estoque (soma de todas as quantidades × custo médio de cada item) é mostrado no painel principal.</p>
+        <p class="man-p">Exemplo: você tinha 10un a R$ 5,00 (custo médio). Comprou 20un a R$ 6,00. Novo custo médio = (10×5 + 20×6) / 30 = 5,67. Quando você usa material na obra (🔴), o sistema lança qtd × R$ 5,67 no contrato.</p>
 
         <h2 class="man-h2">Alertas</h2>
         <ul class="man-ul">
-          <li><strong>Linha vermelha</strong> na tela de Saldo Atual: item com quantidade total abaixo do mínimo cadastrado</li>
-          <li>O painel mostra contagem total de itens abaixo do mínimo no topo</li>
-          <li>Use isso pra disparar pedido de reposição com fornecedor</li>
+          <li><strong>Linha vermelha</strong> na lista: item com saldo total abaixo do mínimo cadastrado</li>
+          <li>KPI no topo da tela: contagem de itens "Abaixo do mínimo"</li>
+          <li>Use pra disparar pedido de reposição com fornecedor</li>
         </ul>
 
+        <h2 class="man-h2">Histórico</h2>
+        <p class="man-p">Aba <strong>🔁 Histórico</strong> mostra todas movimentações em linguagem clara: <em>"Recebi 100un de Parafuso M8x30 no Central — NF 12345 — R$ 1,20/un"</em>. Cada linha tem botão <strong>↩️ Reverter</strong> que devolve o saldo (transação atômica — desfaz inclusive transferências entre almoxarifados).</p>
+
         <div class="man-tip">
-          <strong>Vinculando ao contrato:</strong> ao fazer uma saída, escolha a obra. Isso registra o consumo no custo do contrato (aparece na composição do gasto).
+          <strong>Fluxo recomendado:</strong> 🟢 Comprei (no Central) → 🔵 Enviar pra obra X → 🔴 Usei na obra X. Esse é o fluxo padrão. Aporta o custo certinho no contrato e mantém histórico rastreável.
+        </div>
+
+        <div class="man-warn">
+          <strong>Quando usar 🟠 Corrigir saldo (em "Mais opções"):</strong> só pra correções de inventário (contagem física, perda, quebra). Para movimentações normais (compra/envio/uso), use sempre os botões coloridos — preserva o histórico contábil.
         </div>
       `,
 
