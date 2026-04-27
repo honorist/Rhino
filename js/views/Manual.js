@@ -638,19 +638,43 @@ flowchart LR
           background: var(--color-bg); padding: 2px 6px; border-radius: 3px;
           font-family: monospace; font-size: 13px; color: var(--color-primary);
         }
-        /* Mermaid: contêiner com fundo escuro, fluxograma centralizado */
+        /* Mermaid: contêiner com fundo escuro + scroll quando necessário (não corta) */
         pre.mermaid {
           background: #0f172a; border-radius: 10px; padding: var(--sp-lg);
-          margin: var(--sp-md) 0; text-align: center; overflow-x: auto;
+          margin: var(--sp-md) 0; overflow: auto; max-height: 80vh;
           border: 1px solid #1e293b;
+          font-family: inherit !important; /* sobrescreve o monospace padrão de <pre> */
+          white-space: normal !important;  /* libera o reflow do SVG renderizado */
+          text-align: center;
         }
-        pre.mermaid svg { max-width: 100%; height: auto; }
-        /* Texto dos nodes: melhor contraste no dark */
-        pre.mermaid .nodeLabel { font-size: 14px !important; }
-        pre.mermaid .edgeLabel {
+        /* SVG em tamanho natural — não encolhe (evita texto cortado).
+           Container faz scroll horizontal/vertical se o fluxo for grande. */
+        pre.mermaid svg {
+          max-width: none !important;
+          height: auto !important;
+          display: inline-block;
+          margin: 0 auto;
+        }
+        /* Texto dos nodes: melhor contraste e tamanho legível */
+        pre.mermaid .nodeLabel,
+        pre.mermaid .nodeLabel p,
+        pre.mermaid foreignObject div {
+          font-size: 14px !important;
+          line-height: 1.4 !important;
+          color: #f1f5f9 !important;
+          font-family: 'Nunito', sans-serif !important;
+        }
+        pre.mermaid .edgeLabel,
+        pre.mermaid .edgeLabel p {
           background: #0f172a !important; color: #f1f5f9 !important;
           padding: 2px 6px !important; border-radius: 3px;
+          font-size: 13px !important;
         }
+        /* Hint de scroll pro usuário quando o fluxograma extrapola */
+        pre.mermaid::-webkit-scrollbar { height: 10px; width: 10px; }
+        pre.mermaid::-webkit-scrollbar-track { background: #1e293b; border-radius: 5px; }
+        pre.mermaid::-webkit-scrollbar-thumb { background: #475569; border-radius: 5px; }
+        pre.mermaid::-webkit-scrollbar-thumb:hover { background: #64748b; }
       </style>
 
       <div class="man-root">

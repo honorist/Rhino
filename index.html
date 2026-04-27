@@ -59,7 +59,15 @@
       startOnLoad: false,
       theme: 'base',
       securityLevel: 'loose',
-      flowchart: { htmlLabels: true, curve: 'basis', padding: 16, nodeSpacing: 50, rankSpacing: 60 },
+      flowchart: {
+        htmlLabels: true,
+        curve: 'basis',
+        padding: 20,
+        nodeSpacing: 60,
+        rankSpacing: 80,
+        useMaxWidth: false,   // SVG no tamanho natural (com scroll), não comprime e corta texto
+        wrappingWidth: 200,   // largura máxima por node antes de quebrar linha
+      },
       themeVariables: {
         background: '#0f172a',
         primaryColor: '#1e293b',
