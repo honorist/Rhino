@@ -14,6 +14,7 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 const repos = require('./db/repos');
+const db = require('./db');
 const auth = require('./lib/auth');
 const feriados = require('./lib/feriados');
 const email = require('./lib/email');
@@ -2326,6 +2327,18 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Multipart (upload de arquivo de documento de recurso) — também precisa pular body parser
+  const isRecursoDocArqUpload = req.method === 'POST'
+    && /^\/api\/recursos\/[^/]+\/documentos\/[^/]+\/arquivo$/.test(pathname);
+  if (isRecursoDocArqUpload) {
+    (async () => {
+      if (await applyAuthMiddleware(req, res, pathname)) return;
+      const parts = pathname.split('/');
+      handlePostRecursoDocArquivo(parts[3], parts[5], req, res);
+    })();
+    return;
+  }
+
   // Parse body for POST/PUT requests
   const MAX_BODY_BYTES = 1_000_000; // 1 MB
   let body = '';
@@ -2656,6 +2669,20 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname.match(/^\/api\/recursos\/[^/]+\/documentos$/) && method === 'POST') return handleAddDocumento(pathname.split('/')[3], body, res);
   if (pathname.match(/^\/api\/recursos\/[^/]+\/documentos\/[^/]+$/) && method === 'PUT') return handlePutDocumento(pathname.split('/')[3], pathname.split('/')[5], body, res);
   if (pathname.match(/^\/api\/recursos\/[^/]+\/documentos\/[^/]+$/) && method === 'DELETE') return handleDeleteDocumento(pathname.split('/')[3], pathname.split('/')[5], res);
+  // Arquivos anexados a documentos (BYTEA no PG)
+  if (pathname.match(/^\/api\/recursos\/[^/]+\/documentos\/[^/]+\/arquivo$/) && method === 'POST') {
+    return handlePostRecursoDocArquivo(pathname.split('/')[3], pathname.split('/')[5], req, res);
+  }
+  if (pathname.match(/^\/api\/recursos\/[^/]+\/documentos\/[^/]+\/arquivo$/) && method === 'GET') {
+    return handleGetRecursoDocArquivo(pathname.split('/')[3], pathname.split('/')[5], res);
+  }
+  if (pathname.match(/^\/api\/recursos\/[^/]+\/documentos\/[^/]+\/arquivo$/) && method === 'DELETE') {
+    return handleDeleteRecursoDocArquivo(pathname.split('/')[3], pathname.split('/')[5], res);
+  }
+  // Admin: lista todos os arquivos do sistema
+  if (pathname === '/api/admin/arquivos' && method === 'GET') {
+    return handleGetAdminArquivos(res);
+  }
 
   // Doc Templates routes
   if (pathname === '/api/doc-templates' && method === 'GET') return handleGetDocTemplates(res);
@@ -2988,11 +3015,200 @@ async function handleDeleteDocumento(recursoId, docId, res) {
     const rec = await repos.recursos.findById(recursoId);
     if (!rec) return sendError(res, 404, 'Recurso não encontrado');
     const docs = (rec.documentos || []).filter(d => d.id !== docId);
+    // Apaga também o arquivo físico (BYTEA) vinculado, se houver
+    await db.query('DELETE FROM recurso_doc_arquivos WHERE recurso_id = $1 AND doc_id = $2', [recursoId, docId]);
     const { envelope } = await writeCollection('recursos', 'recursos',
       (repo) => repo.updateById(recursoId, { documentos: JSON.stringify(docs), updatedAt: new Date().toISOString() })
     );
     sendJson(res, envelope);
   } catch (e) { sendError(res, 400, e.message); }
+}
+
+// ============ Arquivos de documentos de recursos (BYTEA no PG) ============
+const ARQ_DOC_ALLOWED_TYPES = [
+  'application/pdf',
+  'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
+];
+const ARQ_DOC_MAX_BYTES = 10 * 1024 * 1024; // 10 MB por arquivo
+
+function _slugifyForFilename(s) {
+  return String(s || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')   // remove acentos
+    .replace(/[^a-zA-Z0-9]+/g, '_')                       // não-alfanum → _
+    .replace(/^_+|_+$/g, '');                             // trim _
+}
+
+// Formato: AAAA_MM_DD_TipoDoc_Nome_Pessoa.ext
+function _buildArquivoFilename({ nomeRecurso, tipoDoc, filenameOriginal }) {
+  const d = new Date();
+  const ano = d.getFullYear();
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  const tipo   = _slugifyForFilename(tipoDoc) || 'Doc';
+  const pessoa = _slugifyForFilename(nomeRecurso) || 'Pessoa';
+  const m = String(filenameOriginal || '').match(/\.[a-zA-Z0-9]+$/);
+  const ext = m ? m[0].toLowerCase() : '.bin';
+  return `${ano}_${mes}_${dia}_${tipo}_${pessoa}${ext}`;
+}
+
+function handlePostRecursoDocArquivo(recursoId, docId, req, res) {
+  const contentType = req.headers['content-type'] || '';
+  const mBoundary = contentType.match(/boundary=(.+)$/);
+  if (!mBoundary) return sendError(res, 400, 'Content-Type multipart esperado');
+  const boundary = mBoundary[1].replace(/^"|"$/g, '');
+
+  const chunks = [];
+  let totalSize = 0;
+  const MAX_TOTAL = ARQ_DOC_MAX_BYTES + 64 * 1024; // file + overhead multipart
+
+  req.on('data', c => {
+    totalSize += c.length;
+    if (totalSize > MAX_TOTAL) {
+      req.destroy();
+      sendError(res, 413, `Arquivo muito grande (máximo ${Math.floor(ARQ_DOC_MAX_BYTES / 1024 / 1024)} MB)`);
+    } else {
+      chunks.push(c);
+    }
+  });
+
+  req.on('end', async () => {
+    try {
+      const body = Buffer.concat(chunks);
+      const parts = parseMultipart(body, boundary);
+      const arq = parts.find(p => p.filename && p.data && p.data.length > 0);
+      if (!arq) return sendError(res, 400, 'Nenhum arquivo enviado');
+      if (arq.contentType && !ARQ_DOC_ALLOWED_TYPES.includes(arq.contentType)) {
+        return sendError(res, 400, `Tipo não permitido. Use: PDF, JPG ou PNG`);
+      }
+      if (arq.data.length > ARQ_DOC_MAX_BYTES) {
+        return sendError(res, 413, `Arquivo excede ${Math.floor(ARQ_DOC_MAX_BYTES / 1024 / 1024)} MB`);
+      }
+
+      const rec = await repos.recursos.findById(recursoId);
+      if (!rec) return sendError(res, 404, 'Recurso não encontrado');
+      const docs = rec.documentos || [];
+      const docIdx = docs.findIndex(d => d.id === docId);
+      if (docIdx === -1) return sendError(res, 404, 'Documento não encontrado');
+      const doc = docs[docIdx];
+
+      // Renomeia: AAAA_MM_DD_Tipo_Nome.ext
+      const filename = _buildArquivoFilename({
+        nomeRecurso: rec.nome,
+        tipoDoc: doc.tipoLabel || doc.tipo || 'Documento',
+        filenameOriginal: arq.filename,
+      });
+
+      // Apaga arquivo anterior do mesmo doc (se existir) — substitui
+      await db.query('DELETE FROM recurso_doc_arquivos WHERE recurso_id = $1 AND doc_id = $2', [recursoId, docId]);
+
+      const arqId = generateId('arq');
+      await db.query(
+        `INSERT INTO recurso_doc_arquivos
+         (id, recurso_id, doc_id, filename, filename_original, mime_type, size_bytes, data)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [arqId, recursoId, docId, filename, arq.filename || null, arq.contentType || 'application/octet-stream', arq.data.length, arq.data]
+      );
+
+      // Atualiza JSONB do doc com referência ao arquivo (sem o BYTEA)
+      docs[docIdx] = {
+        ...doc,
+        arquivo: {
+          id: arqId,
+          filename,
+          filenameOriginal: arq.filename || null,
+          mimeType: arq.contentType || 'application/octet-stream',
+          sizeBytes: arq.data.length,
+          uploadedAt: new Date().toISOString(),
+        },
+        nomeArquivo: filename, // mantém compat com campo legado
+        updatedAt: new Date().toISOString(),
+      };
+      await repos.recursos.updateById(recursoId, {
+        documentos: JSON.stringify(docs),
+        updatedAt: new Date().toISOString(),
+      });
+
+      sendJson(res, { ok: true, arquivo: docs[docIdx].arquivo });
+    } catch (e) {
+      sendError(res, 400, e.message);
+    }
+  });
+}
+
+async function handleGetRecursoDocArquivo(recursoId, docId, res) {
+  try {
+    const row = await db.getOne(
+      `SELECT filename, mime_type, data FROM recurso_doc_arquivos
+       WHERE recurso_id = $1 AND doc_id = $2 ORDER BY created_at DESC LIMIT 1`,
+      [recursoId, docId]
+    );
+    if (!row) return sendError(res, 404, 'Arquivo não encontrado');
+    res.writeHead(200, {
+      'Content-Type': row.mimeType || 'application/octet-stream',
+      'Content-Disposition': `inline; filename="${encodeURIComponent(row.filename)}"`,
+      'Content-Length': row.data.length,
+      'Cache-Control': 'private, max-age=300',
+    });
+    res.end(row.data);
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handleDeleteRecursoDocArquivo(recursoId, docId, res) {
+  try {
+    const rec = await repos.recursos.findById(recursoId);
+    if (!rec) return sendError(res, 404, 'Recurso não encontrado');
+    await db.query('DELETE FROM recurso_doc_arquivos WHERE recurso_id = $1 AND doc_id = $2', [recursoId, docId]);
+    // Remove referência do JSONB do doc
+    const docs = rec.documentos || [];
+    const dIdx = docs.findIndex(d => d.id === docId);
+    if (dIdx !== -1) {
+      const { arquivo, nomeArquivo, ...rest } = docs[dIdx];
+      docs[dIdx] = { ...rest, updatedAt: new Date().toISOString() };
+      await repos.recursos.updateById(recursoId, {
+        documentos: JSON.stringify(docs),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+    sendJson(res, { ok: true });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+// Lista TODOS os arquivos do sistema com tamanho (sem o BYTEA)
+async function handleGetAdminArquivos(res) {
+  try {
+    const rows = await db.getMany(
+      `SELECT a.id, a.recurso_id, a.doc_id, a.filename, a.filename_original,
+              a.mime_type, a.size_bytes, a.created_at,
+              r.nome AS recurso_nome
+       FROM recurso_doc_arquivos a
+       LEFT JOIN recursos r ON r.id = a.recurso_id
+       ORDER BY a.created_at DESC`
+    );
+    // Resolve tipoDoc a partir do JSONB documentos do recurso
+    const recursosIds = [...new Set(rows.map(r => r.recursoId).filter(Boolean))];
+    const tipoPorDocId = new Map();
+    if (recursosIds.length > 0) {
+      const ph = recursosIds.map((_, i) => `$${i + 1}`).join(', ');
+      const recs = await db.getMany(`SELECT id, documentos FROM recursos WHERE id IN (${ph})`, recursosIds);
+      for (const rec of recs) {
+        for (const d of (rec.documentos || [])) {
+          tipoPorDocId.set(d.id, d.tipoLabel || d.tipo || '—');
+        }
+      }
+    }
+    const total = rows.reduce((s, r) => s + (r.sizeBytes || 0), 0);
+    sendJson(res, {
+      arquivos: rows.map(r => ({ ...r, tipoDoc: tipoPorDocId.get(r.docId) || '—' })),
+      totalBytes: total,
+      count: rows.length,
+    });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 async function handleGetDocumentosStatus(res) {

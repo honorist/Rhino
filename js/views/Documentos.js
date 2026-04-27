@@ -387,9 +387,29 @@ window.Documentos = {
             </div>
 
             <div class="form-group">
-              <label class="form-label">Referência do Arquivo</label>
-              <input class="form-control" name="nomeArquivo" placeholder="Ex: ASO_joao_2025.pdf" value="${escapeHtml(doc?.nomeArquivo || '')}">
-              <span style="font-size:15px;color:var(--color-text-muted);">Upload e validação automática com IA disponíveis após configurar a chave de API</span>
+              <label class="form-label">📎 Arquivo Anexado</label>
+              ${doc?.arquivo ? `
+                <div id="arquivoAnexadoInfo" style="padding:10px 12px;background:var(--color-surface-2);border:1px solid var(--color-border);border-radius:6px;display:flex;align-items:center;gap:var(--sp-sm);margin-bottom:var(--sp-sm);">
+                  <span style="font-size:20px;">${(doc.arquivo.mimeType || '').includes('pdf') ? '📄' : '🖼️'}</span>
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-weight:600;font-size:14px;word-break:break-all;">${escapeHtml(doc.arquivo.filename)}</div>
+                    <div style="font-size:12px;color:var(--color-text-muted);">${this._formatBytes(doc.arquivo.sizeBytes)}</div>
+                  </div>
+                  <a href="/api/recursos/${recursoId}/documentos/${doc.id}/arquivo" target="_blank" class="btn btn-sm btn-secondary" style="text-decoration:none;">⬇️ Baixar</a>
+                  <button type="button" class="btn btn-sm btn-danger" id="btnRemoverArquivo" data-rid="${recursoId}" data-did="${doc.id}">🗑️ Remover</button>
+                </div>
+              ` : ''}
+              <input
+                type="file"
+                id="inputArquivoDoc"
+                name="arquivo"
+                accept="application/pdf,image/jpeg,image/png,image/webp"
+                class="form-control"
+                style="padding:6px;">
+              <span style="font-size:13px;color:var(--color-text-muted);">
+                ${doc?.arquivo ? 'Selecione um arquivo para SUBSTITUIR o atual.' : 'PDF, JPG ou PNG (até 10 MB)'}
+                Será renomeado: <strong>AAAA_MM_DD_Tipo_Nome.ext</strong>
+              </span>
             </div>
 
             <div style="display:flex;gap:var(--sp-sm);justify-content:flex-end;margin-top:var(--sp-lg);">
@@ -423,6 +443,25 @@ window.Documentos = {
     selectTipo.addEventListener('change', calcVenc);
     inputEmissao.addEventListener('change', calcVenc);
 
+    // Botão remover arquivo anexado
+    const btnRemArq = document.getElementById('btnRemoverArquivo');
+    if (btnRemArq) {
+      btnRemArq.addEventListener('click', async () => {
+        if (!confirm('Remover o arquivo anexado deste documento? O documento em si permanece.')) return;
+        try {
+          const res = await fetch(`/api/recursos/${recursoId}/documentos/${docId}/arquivo`, { method: 'DELETE' });
+          if (!res.ok) throw new Error(await res.text());
+          showToast('Arquivo removido');
+          await Store.loadAll();
+          overlay.remove();
+          this.showModalDocumento(recursoId, docId);
+        } catch (err) {
+          showToast('Erro ao remover arquivo', 'error');
+          console.error(err);
+        }
+      });
+    }
+
     document.getElementById('formDocumento').addEventListener('submit', async e => {
       e.preventDefault();
       const fd = new FormData(e.target);
@@ -437,24 +476,56 @@ window.Documentos = {
         responsavel:    fd.get('responsavel') || '',
         resultado:      fd.get('resultado') || '',
         observacoes:    fd.get('observacoes') || '',
-        nomeArquivo:    fd.get('nomeArquivo') || null,
       };
 
+      const fileInput = document.getElementById('inputArquivoDoc');
+      const arquivo = fileInput?.files?.[0] || null;
+      if (arquivo && arquivo.size > 10 * 1024 * 1024) {
+        showToast('Arquivo excede 10 MB', 'error');
+        return;
+      }
+
       try {
+        // 1) Salva os metadados do documento (POST cria, PUT edita) — recebe o id
+        let savedDocId = docId;
         if (doc) {
           await Store.updateDocumento(recursoId, docId, payload);
         } else {
-          await Store.addDocumento(recursoId, payload);
+          const result = await Store.addDocumento(recursoId, payload);
+          // Pega o id do doc recém-criado (último doc do recurso)
+          const rec = (Store.state.recursos || []).find(x => x.id === recursoId);
+          const ultimo = (rec?.documentos || []).slice(-1)[0];
+          savedDocId = ultimo?.id || null;
         }
+
+        // 2) Se há arquivo, faz upload multipart
+        if (arquivo && savedDocId) {
+          const fdUp = new FormData();
+          fdUp.append('file', arquivo);
+          const upRes = await fetch(`/api/recursos/${recursoId}/documentos/${savedDocId}/arquivo`, {
+            method: 'POST', body: fdUp,
+          });
+          if (!upRes.ok) throw new Error(await upRes.text());
+          await Store.loadAll();
+        }
+
         overlay.remove();
         showToast(doc ? 'Documento atualizado!' : 'Documento adicionado!');
         this.showDocumentos(recursoId);
         this._renderLista();
       } catch (err) {
-        showToast('Erro ao salvar documento', 'error');
+        showToast('Erro ao salvar documento: ' + (err.message || ''), 'error');
         console.error(err);
       }
     });
+  },
+
+  _formatBytes(b) {
+    if (!b) return '0 B';
+    const n = Number(b);
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    return `${(n / 1024 / 1024).toFixed(2)} MB`;
   },
 
   async _deleteDocumento(recursoId, docId, parentOverlay) {

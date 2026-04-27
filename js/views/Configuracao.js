@@ -24,6 +24,7 @@ window.Configuracao = {
             ${this.renderMenuItem('tipos_custo', '🏷️', 'Tipos de Custo')}
             ${this.renderMenuItem('niveis_acesso', '🔐', 'Níveis de Acesso')}
             ${this.renderMenuItem('doc_templates', '📋', 'Templates de Docs')}
+            ${this.renderMenuItem('arquivos', '📁', 'Arquivos do Sistema')}
             <a href="#/usuarios" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;text-decoration:none;color:var(--color-text);margin-top:4px;border-top:1px solid var(--color-border);padding-top:14px;">
               <span style="display:inline-flex;align-items:center;color:var(--rh-ink-500);">${window.rhIcon ? window.rhIcon('user-plus', 16) : ''}</span><span>Usuários e Logins</span>
             </a>
@@ -37,6 +38,7 @@ window.Configuracao = {
             ${this.currentSection === 'tipos_custo'    ? this.renderTiposCusto() : ''}
             ${this.currentSection === 'niveis_acesso'  ? this.renderNiveisAcesso() : ''}
             ${this.currentSection === 'doc_templates'  ? this.renderDocTemplates() : ''}
+            ${this.currentSection === 'arquivos'       ? this.renderArquivos() : ''}
           </div>
         </div>
       `;
@@ -315,6 +317,7 @@ window.Configuracao = {
     });
 
     if (this.currentSection === 'doc_templates') this.attachDocTemplateListeners();
+    if (this.currentSection === 'arquivos') this.attachArquivosListeners();
   },
 
   showModalTipo(tipoId) {
@@ -667,5 +670,148 @@ window.Configuracao = {
       window.showToast('Template excluído', 'success');
       this.render();
     } catch (e) { window.showToast(e.message, 'error'); }
+  },
+
+  // ─── Arquivos do Sistema ───
+  _arquivosData: { arquivos: [], totalBytes: 0, count: 0 },
+  _arquivosFiltro: '',
+
+  _formatBytes(b) {
+    const n = Number(b) || 0;
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(2)} MB`;
+    return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`;
+  },
+
+  renderArquivos() {
+    return `
+      <div id="arquivosLoading" style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">
+        Carregando arquivos do sistema...
+      </div>
+      <div id="arquivosContent" style="display:none;"></div>
+    `;
+  },
+
+  async attachArquivosListeners() {
+    try {
+      const r = await fetch('/api/admin/arquivos');
+      if (!r.ok) throw new Error(await r.text());
+      this._arquivosData = await r.json();
+    } catch (e) {
+      const div = document.getElementById('arquivosContent');
+      if (div) div.innerHTML = `<div class="card"><p class="text-danger">Erro ao carregar arquivos: ${escapeHtml(e.message)}</p></div>`;
+      const ld = document.getElementById('arquivosLoading'); if (ld) ld.style.display = 'none';
+      const ct = document.getElementById('arquivosContent'); if (ct) ct.style.display = 'block';
+      return;
+    }
+    this._desenharArquivos();
+  },
+
+  _desenharArquivos() {
+    const ld = document.getElementById('arquivosLoading');
+    const ct = document.getElementById('arquivosContent');
+    if (!ct) return;
+    if (ld) ld.style.display = 'none';
+    ct.style.display = 'block';
+
+    const { arquivos, totalBytes, count } = this._arquivosData;
+    const filtro = (this._arquivosFiltro || '').toLowerCase().trim();
+    const filtrados = filtro
+      ? arquivos.filter(a =>
+          (a.filename || '').toLowerCase().includes(filtro) ||
+          (a.recursoNome || '').toLowerCase().includes(filtro) ||
+          (a.tipoDoc || '').toLowerCase().includes(filtro))
+      : arquivos;
+
+    const fmtData = (s) => s ? new Date(s).toLocaleString('pt-BR') : '—';
+
+    ct.innerHTML = `
+      <div class="page-header" style="margin-bottom:var(--sp-lg);">
+        <div>
+          <h2 style="font-size:20px;font-weight:700;margin:0;">📁 Arquivos do Sistema</h2>
+          <p class="page-subtitle" style="margin:4px 0 0 0;">
+            ${count} arquivo${count !== 1 ? 's' : ''} · Total: <strong>${this._formatBytes(totalBytes)}</strong>
+          </p>
+        </div>
+      </div>
+
+      <div class="card" style="padding:var(--sp-lg);margin-bottom:var(--sp-md);">
+        <input class="form-control" id="inputBuscaArquivos"
+          placeholder="🔎 Buscar por nome do arquivo, pessoa ou tipo..."
+          value="${escapeHtml(this._arquivosFiltro)}">
+      </div>
+
+      ${filtrados.length === 0 ? `
+        <div class="card" style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">
+          ${arquivos.length === 0
+            ? 'Nenhum arquivo anexado ainda. Anexe documentos via Recursos → Documentação.'
+            : 'Nenhum arquivo encontrado para o filtro.'}
+        </div>
+      ` : `
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="overflow-x:auto;">
+            <table class="table" style="margin:0;">
+              <thead>
+                <tr>
+                  <th>Arquivo</th>
+                  <th>Pessoa</th>
+                  <th>Tipo</th>
+                  <th style="text-align:right;">Tamanho</th>
+                  <th>Enviado em</th>
+                  <th style="text-align:center;width:200px;">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filtrados.map(a => `
+                  <tr>
+                    <td style="word-break:break-all;max-width:300px;">
+                      <span style="font-size:18px;margin-right:6px;">${(a.mimeType || '').includes('pdf') ? '📄' : '🖼️'}</span>
+                      <span style="font-family:monospace;font-size:13px;">${escapeHtml(a.filename)}</span>
+                    </td>
+                    <td>${escapeHtml(a.recursoNome || '—')}</td>
+                    <td><span class="badge" style="background:var(--color-surface-2);">${escapeHtml(a.tipoDoc || '—')}</span></td>
+                    <td style="text-align:right;font-family:monospace;">${this._formatBytes(a.sizeBytes)}</td>
+                    <td style="font-size:13px;color:var(--color-text-muted);">${fmtData(a.createdAt)}</td>
+                    <td style="text-align:center;">
+                      <a href="/api/recursos/${a.recursoId}/documentos/${a.docId}/arquivo"
+                         target="_blank"
+                         class="btn btn-sm btn-secondary"
+                         style="text-decoration:none;margin-right:4px;">⬇️ Baixar</a>
+                      <button class="btn btn-sm btn-danger btn-excluir-arq"
+                        data-rid="${a.recursoId}" data-did="${a.docId}" data-fn="${escapeHtml(a.filename)}">🗑️</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `}
+    `;
+
+    const inp = document.getElementById('inputBuscaArquivos');
+    if (inp) {
+      inp.addEventListener('input', (e) => {
+        this._arquivosFiltro = e.target.value;
+        this._desenharArquivos();
+        const inp2 = document.getElementById('inputBuscaArquivos');
+        if (inp2) { inp2.focus(); inp2.setSelectionRange(inp2.value.length, inp2.value.length); }
+      });
+    }
+    document.querySelectorAll('.btn-excluir-arq').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const fn = btn.dataset.fn;
+        if (!confirm(`Excluir o arquivo "${fn}"? O registro do documento permanece, apenas o anexo é removido.`)) return;
+        try {
+          const r = await fetch(`/api/recursos/${btn.dataset.rid}/documentos/${btn.dataset.did}/arquivo`, { method: 'DELETE' });
+          if (!r.ok) throw new Error(await r.text());
+          window.showToast('Arquivo excluído', 'success');
+          await this.attachArquivosListeners();
+        } catch (e) {
+          window.showToast('Erro ao excluir: ' + e.message, 'error');
+        }
+      });
+    });
   }
 };

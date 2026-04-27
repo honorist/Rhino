@@ -377,6 +377,23 @@ CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log (ts DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log (user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log (entity, entity_id);
 
+-- ============ Arquivos anexados a documentos de recursos ============
+-- Armazena PDFs/imagens dos documentos de RH (ASO, NR-35, CNH...) como BYTEA.
+-- Backup do PG cobre os arquivos automaticamente. Sem dependência de volume/disco.
+CREATE TABLE IF NOT EXISTS recurso_doc_arquivos (
+  id                TEXT PRIMARY KEY,
+  recurso_id        TEXT NOT NULL REFERENCES recursos(id) ON DELETE CASCADE,
+  doc_id            TEXT NOT NULL,
+  filename          TEXT NOT NULL,
+  filename_original TEXT,
+  mime_type         TEXT NOT NULL,
+  size_bytes        INTEGER NOT NULL,
+  data              BYTEA NOT NULL,
+  created_at        TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_rda_recurso ON recurso_doc_arquivos (recurso_id);
+CREATE INDEX IF NOT EXISTS idx_rda_doc     ON recurso_doc_arquivos (recurso_id, doc_id);
+
 -- ============ Trigger genérico de updated_at ============
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
