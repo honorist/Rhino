@@ -377,6 +377,11 @@ CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log (ts DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_log (user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_log (entity, entity_id);
 
+-- Detalhamento (adicionado depois): nome amigável + estado antes da operação
+ALTER TABLE audit_log
+  ADD COLUMN IF NOT EXISTS before_state JSONB,
+  ADD COLUMN IF NOT EXISTS entity_label TEXT;
+
 -- ============ Arquivos anexados a documentos de recursos ============
 -- Armazena PDFs/imagens dos documentos de RH (ASO, NR-35, CNH...) como BYTEA.
 -- Backup do PG cobre os arquivos automaticamente. Sem dependência de volume/disco.

@@ -236,10 +236,23 @@ window.Auditoria = {
                   <span style="background:${verbInfo.bg};color:${verbInfo.cor};padding:2px 10px;border-radius:99px;font-weight:600;font-size:13px;margin-right:6px;">${verbInfo.verbo}</span>
                   <strong>${escapeHtml(entLabel.toLowerCase())}</strong>
                   ${(() => {
-                    const friendly = this._entityFriendlyName(r.entity, r.entityId);
+                    // Prioridade: label gravado no audit (mais confiável p/ deletados) > Store atual > "(removido)"
+                    const labelGravado = r.entityLabel;
+                    const friendly = labelGravado || this._entityFriendlyName(r.entity, r.entityId);
                     if (friendly) return ` <strong>${escapeHtml(friendly)}</strong>`;
                     if (r.entityId) return ` <span style="font-size:12px;color:var(--color-text-muted);font-style:italic;">(removido)</span>`;
                     return '';
+                  })()}
+                  ${(() => {
+                    // Para UPDATE: mostra resumo do que mudou (até 2 campos)
+                    if (r.action !== 'update' || !r.beforeState || !r.body) return '';
+                    const diffs = this._computeDiff(r.beforeState, r.body);
+                    if (diffs.length === 0) return '';
+                    const preview = diffs.slice(0, 2).map(d =>
+                      `<span style="font-size:12px;color:var(--color-text-muted);">${escapeHtml(this._fieldLabel(d.key))}: <strong>${escapeHtml(this._fmtVal(d.before))}</strong> → <strong style="color:var(--color-primary);">${escapeHtml(this._fmtVal(d.after))}</strong></span>`
+                    ).join(' · ');
+                    const extra = diffs.length > 2 ? ` <span style="font-size:11px;color:var(--color-text-muted);">+${diffs.length - 2} mudanças</span>` : '';
+                    return `<div style="margin-top:4px;">${preview}${extra}</div>`;
                   })()}
                 </td>
                 <td style="text-align:center;">
@@ -296,6 +309,74 @@ window.Auditoria = {
     if (next) next.addEventListener('click', () => { this._page++; this.render(); });
   },
 
+  // Calcula diff between before e after (after = body do PUT). Retorna [{key, before, after}].
+  // Ignora campos de timestamp e ids internos.
+  _computeDiff(before, after) {
+    if (!before || !after) return [];
+    const skip = new Set(['id', 'createdAt', 'updatedAt', 'created_at', 'updated_at', 'metadata']);
+    const diffs = [];
+    const keys = Object.keys(after);
+    for (const k of keys) {
+      if (skip.has(k)) continue;
+      const a = after[k];
+      const b = before[k];
+      // Compara JSON pra cobrir objetos/arrays
+      if (JSON.stringify(a) !== JSON.stringify(b)) {
+        diffs.push({ key: k, before: b, after: a });
+      }
+    }
+    return diffs;
+  },
+
+  // Tradução de nomes técnicos de campo → português amigável
+  _fieldLabel(k) {
+    const map = {
+      nome: 'Nome', name: 'Nome', email: 'Email', telefone: 'Telefone', phone: 'Telefone',
+      cpf: 'CPF', cnpj: 'CNPJ', endereco: 'Endereço', address: 'Endereço',
+      value: 'Valor', valor: 'Valor', valorPago: 'Valor pago', preco: 'Preço',
+      status: 'Status', tipo: 'Tipo', type: 'Tipo', categoria: 'Categoria', category: 'Categoria',
+      descricao: 'Descrição', description: 'Descrição', notes: 'Observações', observacoes: 'Observações',
+      startDate: 'Início', endDate: 'Término', tendencyDate: 'Tendência',
+      dataVencimento: 'Vencimento', dataEmissao: 'Emissão', dataPagamento: 'Pagamento',
+      data_vencimento: 'Vencimento', data_emissao: 'Emissão', data_pagamento: 'Pagamento',
+      contractNumber: 'Nº contrato', client: 'Cliente', clientId: 'Cliente',
+      profissao: 'Profissão', salario: 'Salário', dataAdmissao: 'Admissão',
+      contractId: 'Contrato', recursoId: 'Recurso', fornecedorId: 'Fornecedor',
+      cargo: 'Cargo', nivel: 'Nível', area: 'Área',
+      responsavel: 'Responsável', resultado: 'Resultado', emitida: 'Emitida',
+      formaPagamento: 'Forma pagamento', forma_pagamento: 'Forma pagamento',
+    };
+    return map[k] || k.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase()).trim();
+  },
+
+  // Formata um valor pra exibir no diff (date, número, booleano, etc)
+  _fmtVal(v) {
+    if (v === null || v === undefined || v === '') return '—';
+    if (typeof v === 'boolean') return v ? 'Sim' : 'Não';
+    if (typeof v === 'number') {
+      // Detecta valor monetário (>100 e com casas decimais ou inteiro grande)
+      if (Number.isFinite(v) && Math.abs(v) >= 1) {
+        return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+      }
+      return String(v);
+    }
+    if (typeof v === 'string') {
+      // Data ISO?
+      if (/^\d{4}-\d{2}-\d{2}/.test(v)) {
+        try {
+          const d = new Date(v);
+          if (!isNaN(d.getTime())) return d.toLocaleDateString('pt-BR');
+        } catch {}
+      }
+      // String muito longa?
+      if (v.length > 80) return v.slice(0, 77) + '...';
+      return v;
+    }
+    if (Array.isArray(v)) return `[${v.length} item${v.length !== 1 ? 'ns' : ''}]`;
+    if (typeof v === 'object') return '{...}';
+    return String(v);
+  },
+
   _showDetail(ev) {
     const fmtDT = (s) => s ? new Date(s).toLocaleString('pt-BR') : '—';
     const verbInfo = this._actionVerb(ev.action);
@@ -304,7 +385,71 @@ window.Auditoria = {
     const bodyJson = ev.body ? JSON.stringify(ev.body, null, 2) : '(sem dados enviados)';
 
     const userName = (ev.userEmail || '').split('@')[0] || ev.userId || 'Desconhecido';
-    const frase = `${userName} ${verbInfo.verbo.toLowerCase()} ${entLabel.toLowerCase()}`;
+    const nomeAlvo = ev.entityLabel || this._entityFriendlyName(ev.entity, ev.entityId) || '';
+    const frase = nomeAlvo
+      ? `${userName} ${verbInfo.verbo.toLowerCase()} ${entLabel.toLowerCase()} "${nomeAlvo}"`
+      : `${userName} ${verbInfo.verbo.toLowerCase()} ${entLabel.toLowerCase()}`;
+
+    // Diff (só pra UPDATE) ou snapshot do que foi excluído (DELETE)
+    let secaoMudancas = '';
+    if (ev.action === 'update' && ev.beforeState && ev.body) {
+      const diffs = this._computeDiff(ev.beforeState, ev.body);
+      if (diffs.length > 0) {
+        secaoMudancas = `
+          <div style="margin-bottom:var(--sp-md);">
+            <h4 style="font-size:14px;font-weight:600;margin:0 0 var(--sp-sm) 0;">📝 O que mudou (${diffs.length} ${diffs.length === 1 ? 'campo' : 'campos'})</h4>
+            <table class="data-table" style="margin:0;">
+              <thead><tr><th>Campo</th><th>Antes</th><th>Depois</th></tr></thead>
+              <tbody>
+                ${diffs.map(d => `
+                  <tr>
+                    <td><strong>${escapeHtml(this._fieldLabel(d.key))}</strong></td>
+                    <td style="color:var(--color-text-muted);text-decoration:line-through;">${escapeHtml(this._fmtVal(d.before))}</td>
+                    <td style="color:var(--color-primary);font-weight:600;">${escapeHtml(this._fmtVal(d.after))}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } else {
+        secaoMudancas = `<div style="padding:var(--sp-md);background:var(--color-surface-2);border-radius:6px;color:var(--color-text-muted);font-size:13px;">Nenhum campo mudou (provavelmente um save sem alterações).</div>`;
+      }
+    } else if (ev.action === 'delete' && ev.beforeState) {
+      const camposVisiveis = Object.entries(ev.beforeState)
+        .filter(([k, v]) => !['id', 'createdAt', 'updatedAt', 'created_at', 'updated_at', 'metadata', 'documentos', 'folgas', 'budget'].includes(k))
+        .filter(([k, v]) => v !== null && v !== undefined && v !== '');
+      if (camposVisiveis.length > 0) {
+        secaoMudancas = `
+          <div style="margin-bottom:var(--sp-md);">
+            <h4 style="font-size:14px;font-weight:600;margin:0 0 var(--sp-sm) 0;">🗑️ Dados que foram excluídos</h4>
+            <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;font-size:13px;padding:var(--sp-md);background:var(--color-surface-2);border-radius:6px;border-left:3px solid var(--color-danger);">
+              ${camposVisiveis.map(([k, v]) => `
+                <div style="color:var(--color-text-muted);">${escapeHtml(this._fieldLabel(k))}</div>
+                <div style="font-weight:500;">${escapeHtml(this._fmtVal(v))}</div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+    } else if (ev.action === 'create' && ev.body) {
+      const camposVisiveis = Object.entries(ev.body)
+        .filter(([k, v]) => !['id', 'createdAt', 'updatedAt'].includes(k))
+        .filter(([k, v]) => v !== null && v !== undefined && v !== '');
+      if (camposVisiveis.length > 0) {
+        secaoMudancas = `
+          <div style="margin-bottom:var(--sp-md);">
+            <h4 style="font-size:14px;font-weight:600;margin:0 0 var(--sp-sm) 0;">✨ Dados informados na criação</h4>
+            <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;font-size:13px;padding:var(--sp-md);background:var(--color-surface-2);border-radius:6px;border-left:3px solid var(--color-success);">
+              ${camposVisiveis.map(([k, v]) => `
+                <div style="color:var(--color-text-muted);">${escapeHtml(this._fieldLabel(k))}</div>
+                <div style="font-weight:500;">${escapeHtml(this._fmtVal(v))}</div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+    }
 
     const html = `
       <div class="modal-overlay" id="modalAudit">
@@ -342,11 +487,14 @@ window.Auditoria = {
               </div>
             </div>
 
-            <!-- Dados enviados (quando faz sentido) -->
+            <!-- Mudanças amigáveis (diff / snapshot / dados criados) -->
+            ${secaoMudancas}
+
+            <!-- Dados técnicos (recolhido por padrão) -->
             ${ev.body && Object.keys(ev.body || {}).length > 0 ? `
-              <details>
-                <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">
-                  Detalhes técnicos (dados enviados)
+              <details style="margin-top:var(--sp-md);">
+                <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">
+                  Detalhes técnicos (JSON)
                 </summary>
                 <pre style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:6px;padding:var(--sp-md);font-size:12px;font-family:monospace;overflow:auto;max-height:300px;white-space:pre-wrap;margin-top:8px;">${escapeHtml(bodyJson)}</pre>
               </details>

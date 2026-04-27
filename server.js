@@ -26,6 +26,50 @@ if (!fs.existsSync(BACKUPS_DIR)) {
   fs.mkdirSync(BACKUPS_DIR, { recursive: true });
 }
 
+// ─── Auditoria detalhada: captura estado ANTES de PUT/DELETE ───
+// Mapa de prefixo de rota → função que busca a entidade pelo id.
+// Usado para registrar before_state em audit_log (mostrar "Excluiu cliente X" / "valor de A para B").
+const AUDIT_BEFORE_LOOKUP = {
+  'clientes':       (id) => repos.clientes && repos.clientes.findById && repos.clientes.findById(id),
+  'fornecedores':   (id) => repos.fornecedores && repos.fornecedores.findById && repos.fornecedores.findById(id),
+  'recursos':       (id) => repos.recursos && repos.recursos.findById && repos.recursos.findById(id),
+  'contracts':      (id) => repos.contracts && repos.contracts.findById && repos.contracts.findById(id),
+  'contas-pagar':   (id) => repos.contasPagar && repos.contasPagar.findById && repos.contasPagar.findById(id),
+  'notas-fiscais':  (id) => repos.notasFiscais && repos.notasFiscais.findById && repos.notasFiscais.findById(id),
+  'caixa':          (id) => repos.caixa && repos.caixa.findById && repos.caixa.findById(id),
+  'base':           (id) => repos.baseItems && repos.baseItems.findById && repos.baseItems.findById(id),
+  'socios':         (id) => repos.socios && repos.socios.findById && repos.socios.findById(id),
+  'investimentos':  (id) => repos.investimentos && repos.investimentos.findById && repos.investimentos.findById(id),
+  'saidas':         (id) => repos.saidas && repos.saidas.findById && repos.saidas.findById(id),
+  'tipos-base':     (id) => repos.tiposBase && repos.tiposBase.findById && repos.tiposBase.findById(id),
+  'niveis-acesso':  (id) => repos.niveisAcesso && repos.niveisAcesso.findById && repos.niveisAcesso.findById(id),
+  'doc-templates':  (id) => repos.docTemplates && repos.docTemplates.findById && repos.docTemplates.findById(id),
+  'users':          (id) => repos.users && repos.users.findById && repos.users.findById(id),
+};
+
+function _auditFriendlyLabel(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+  return obj.nome || obj.name || obj.label || obj.descricao || obj.description ||
+         obj.numero || obj.email || obj.tipoLabel || obj.tipo || null;
+}
+
+async function captureAuditBefore(req, pathname) {
+  try {
+    if (!['PUT', 'DELETE'].includes(req.method)) return;
+    // Match /api/{tipo}/{id}  (ignora sub-recursos por enquanto — só raiz)
+    const m = pathname.match(/^\/api\/([^/]+)\/([^/]+)$/);
+    if (!m) return;
+    const lookup = AUDIT_BEFORE_LOOKUP[m[1]];
+    if (!lookup) return;
+    const before = await lookup(m[2]);
+    if (!before) return;
+    req._auditBefore = before;
+    req._auditEntityLabel = _auditFriendlyLabel(before);
+  } catch {
+    // silencioso — auditoria não pode quebrar a requisição
+  }
+}
+
 function generateId(prefix) {
   const timestamp = Date.now().toString(36);
   const random = crypto.randomBytes(4).toString('hex');
@@ -2362,11 +2406,13 @@ const server = http.createServer((req, res) => {
       }
       req._auditBody = body;
       if (await applyAuthMiddleware(req, res, pathname)) return;
+      await captureAuditBefore(req, pathname);
       routeRequest(pathname, req.method, body, res, parsedUrl, req);
     });
   } else {
     (async () => {
       if (await applyAuthMiddleware(req, res, pathname)) return;
+      await captureAuditBefore(req, pathname);
       routeRequest(pathname, req.method, null, res, parsedUrl, req);
     })();
   }
