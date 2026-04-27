@@ -730,6 +730,11 @@ window.Dashboard = {
 
       app.innerHTML = html;
 
+      // Customização: marca seções identificáveis e aplica preferências do usuário
+      this._marcarWidgets();
+      this._aplicarPreferenciasDash();
+      this._injetarBotaoCustomizar();
+
       this.renderChart(dash);
       this._bindPeriodoCtrl();
 
@@ -1131,5 +1136,148 @@ window.Dashboard = {
         }
       }
     });
-  }
+  },
+
+  // ═════════════ Customização do Dashboard ═════════════
+  _widgetsDetected: [],
+  _prefs: null,
+
+  // Detecta automaticamente as seções principais e marca cada uma com data-widget-id
+  _marcarWidgets() {
+    const app = document.getElementById('app');
+    if (!app) return;
+    this._widgetsDetected = [];
+    let idx = 0;
+    Array.from(app.children).forEach(el => {
+      if (el.classList.contains('page-header')) return; // header sempre visível
+      // Extrai título textual da seção (h1/h2/h3/.card-title/.rh-h2)
+      const titleEl = el.querySelector('.card-title, .rh-h2, h2, h3');
+      const fallbackText = el.textContent?.trim().split('\n')[0]?.slice(0, 50);
+      const label = titleEl?.textContent?.trim() || fallbackText || `Seção ${idx + 1}`;
+      if (!label || label.length < 3) return;
+      const id = `w-${idx++}`;
+      el.dataset.widgetId = id;
+      this._widgetsDetected.push({ id, label: label.slice(0, 60) });
+    });
+  },
+
+  // Carrega preferências do usuário (servidor → localStorage → padrão)
+  async _carregarPrefs() {
+    if (this._prefs) return this._prefs;
+    let prefs = null;
+    try {
+      const r = await fetch('/api/dashboard/layouts');
+      if (r.ok) {
+        const j = await r.json();
+        const def = (j.layouts || []).find(l => l.isDefault) || (j.layouts || [])[0];
+        if (def) prefs = { id: def.id, nome: def.nome, widgets: def.widgets };
+      }
+    } catch { /* fallback */ }
+    if (!prefs) {
+      try { prefs = JSON.parse(localStorage.getItem('rhino-dash-prefs') || 'null'); } catch {}
+    }
+    this._prefs = prefs || { widgets: [] };
+    return this._prefs;
+  },
+
+  async _aplicarPreferenciasDash() {
+    const prefs = await this._carregarPrefs();
+    const ocultos = (prefs.widgets || []).filter(w => w.visivel === false).map(w => w.id);
+    ocultos.forEach(id => {
+      const el = document.querySelector(`[data-widget-id="${id}"]`);
+      if (el) el.style.display = 'none';
+    });
+  },
+
+  // Adiciona botão "🎨 Personalizar" no header do dashboard
+  _injetarBotaoCustomizar() {
+    const ctrl = document.getElementById('dash-periodo-ctrl');
+    if (!ctrl || document.getElementById('btnCustomizarDash')) return;
+    const btn = document.createElement('button');
+    btn.id = 'btnCustomizarDash';
+    btn.className = 'btn btn-secondary btn-sm';
+    btn.innerHTML = '🎨 Personalizar';
+    btn.title = 'Mostrar/ocultar seções do dashboard';
+    btn.addEventListener('click', () => this._showModalCustomizar());
+    ctrl.appendChild(btn);
+  },
+
+  _showModalCustomizar() {
+    const widgets = this._widgetsDetected || [];
+    const prefs = this._prefs || { widgets: [] };
+    const visMap = new Map((prefs.widgets || []).map(w => [w.id, w.visivel !== false]));
+
+    const html = `
+      <div class="modal-overlay" id="modalDashCust">
+        <div class="modal" style="width:560px;max-height:85vh;display:flex;flex-direction:column;">
+          <div class="modal-header">
+            <h2 class="modal-title">🎨 Personalizar Dashboard</h2>
+            <button class="modal-close">✕</button>
+          </div>
+          <div class="modal-content" style="overflow-y:auto;flex:1;">
+            <p class="text-muted font-sm">Escolha quais seções aparecem no seu dashboard. As alterações são salvas na sua conta.</p>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-top:var(--sp-md);">
+              ${widgets.length === 0 ? '<p class="text-muted">Nenhuma seção detectada</p>' : ''}
+              ${widgets.map(w => {
+                const visivel = visMap.has(w.id) ? visMap.get(w.id) : true;
+                return `
+                  <label style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--color-surface-2);border-radius:6px;cursor:pointer;">
+                    <input type="checkbox" data-wid="${w.id}" ${visivel ? 'checked' : ''}>
+                    <span style="flex:1;">${escapeHtml(w.label)}</span>
+                  </label>
+                `;
+              }).join('')}
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnDashCustReset">Restaurar padrão</button>
+            <button class="btn btn-primary" id="btnDashCustSave">💾 Salvar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalDashCust');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+
+    document.getElementById('btnDashCustReset').addEventListener('click', () => {
+      overlay.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+    });
+
+    document.getElementById('btnDashCustSave').addEventListener('click', async () => {
+      const widgetsConfig = Array.from(overlay.querySelectorAll('input[type="checkbox"]')).map(cb => ({
+        id: cb.dataset.wid,
+        visivel: cb.checked,
+      }));
+      const novasPrefs = { ...prefs, widgets: widgetsConfig };
+
+      // Salva no localStorage como cache imediato
+      try { localStorage.setItem('rhino-dash-prefs', JSON.stringify(novasPrefs)); } catch {}
+
+      // Sincroniza com servidor
+      try {
+        const url = prefs.id ? `/api/dashboard/layouts/${prefs.id}` : `/api/dashboard/layouts`;
+        const method = prefs.id ? 'PUT' : 'POST';
+        const r = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nome: prefs.nome || 'Padrão', widgets: widgetsConfig, isDefault: true }),
+        });
+        if (r.ok) {
+          const saved = await r.json();
+          this._prefs = { id: saved.id, nome: saved.nome, widgets: saved.widgets };
+        }
+      } catch (e) { console.warn('Falha ao salvar layout no servidor:', e.message); }
+
+      // Aplica imediatamente: esconde/mostra os widgets
+      widgetsConfig.forEach(w => {
+        const el = document.querySelector(`[data-widget-id="${w.id}"]`);
+        if (el) el.style.display = w.visivel ? '' : 'none';
+      });
+
+      window.showToast('Dashboard personalizado!', 'success');
+      close();
+    });
+  },
 };

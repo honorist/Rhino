@@ -382,6 +382,18 @@ ALTER TABLE audit_log
   ADD COLUMN IF NOT EXISTS before_state JSONB,
   ADD COLUMN IF NOT EXISTS entity_label TEXT;
 
+-- ============ Dashboards customizaveis (preferencias por usuario) ============
+CREATE TABLE IF NOT EXISTS dashboard_layouts (
+  id          TEXT PRIMARY KEY,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  nome        TEXT NOT NULL,
+  widgets     JSONB NOT NULL DEFAULT '[]'::jsonb,    -- [{type, ordem, config}]
+  is_default  BOOLEAN DEFAULT FALSE,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_dash_user ON dashboard_layouts (user_id);
+
 -- ============ Almoxarifado / Estoque ============
 CREATE TABLE IF NOT EXISTS itens_estoque (
   id              TEXT PRIMARY KEY,

@@ -2841,6 +2841,12 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname.match(/^\/api\/estoque\/movimentacoes\/[^/]+$/) && method === 'DELETE') return handleDeleteMovimentacao(pathname.split('/')[4], res);
   if (pathname === '/api/estoque/saldo' && method === 'GET') return handleGetSaldoEstoque(parsedUrl.query, res);
 
+  // Dashboard layouts (por usuário)
+  if (pathname === '/api/dashboard/layouts' && method === 'GET')  return handleListDashLayouts(req, res);
+  if (pathname === '/api/dashboard/layouts' && method === 'POST') return handlePostDashLayout(req, body, res);
+  if (pathname.match(/^\/api\/dashboard\/layouts\/[^/]+$/) && method === 'PUT')    return handlePutDashLayout(req, pathname.split('/')[4], body, res);
+  if (pathname.match(/^\/api\/dashboard\/layouts\/[^/]+$/) && method === 'DELETE') return handleDeleteDashLayout(req, pathname.split('/')[4], res);
+
   // Doc Templates routes
   if (pathname === '/api/doc-templates' && method === 'GET') return handleGetDocTemplates(res);
   if (pathname === '/api/doc-templates' && method === 'POST') return handlePostDocTemplate(body, res);
@@ -3332,6 +3338,70 @@ async function handleDeleteRecursoDocArquivo(recursoId, docId, res) {
   } catch (e) {
     sendError(res, 400, e.message);
   }
+}
+
+// ============ Dashboard layouts (preferências por usuário) ============
+async function handleListDashLayouts(req, res) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return sendError(res, 401, 'Não autenticado');
+    const rows = await db.getMany(
+      'SELECT id, nome, widgets, is_default FROM dashboard_layouts WHERE user_id = $1 ORDER BY is_default DESC, nome ASC',
+      [userId]
+    );
+    sendJson(res, { layouts: rows });
+  } catch (e) { sendError(res, 500, e.message); }
+}
+
+async function handlePostDashLayout(req, body, res) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return sendError(res, 401, 'Não autenticado');
+    const id = generateId('dash');
+    const widgets = Array.isArray(body.widgets) ? body.widgets : [];
+    const row = await db.getOne(
+      `INSERT INTO dashboard_layouts (id, user_id, nome, widgets, is_default)
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [id, userId, String(body.nome || 'Layout').slice(0, 60), JSON.stringify(widgets), body.isDefault === true]
+    );
+    if (body.isDefault === true) {
+      await db.query(
+        'UPDATE dashboard_layouts SET is_default = FALSE WHERE user_id = $1 AND id != $2',
+        [userId, id]
+      );
+    }
+    sendJson(res, row);
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handlePutDashLayout(req, id, body, res) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return sendError(res, 401, 'Não autenticado');
+    const widgets = Array.isArray(body.widgets) ? body.widgets : [];
+    const row = await db.getOne(
+      `UPDATE dashboard_layouts SET nome = $3, widgets = $4, is_default = $5, updated_at = NOW()
+       WHERE id = $1 AND user_id = $2 RETURNING *`,
+      [id, userId, String(body.nome || 'Layout').slice(0, 60), JSON.stringify(widgets), body.isDefault === true]
+    );
+    if (!row) return sendError(res, 404, 'Layout não encontrado');
+    if (body.isDefault === true) {
+      await db.query(
+        'UPDATE dashboard_layouts SET is_default = FALSE WHERE user_id = $1 AND id != $2',
+        [userId, id]
+      );
+    }
+    sendJson(res, row);
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handleDeleteDashLayout(req, id, res) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return sendError(res, 401, 'Não autenticado');
+    await db.query('DELETE FROM dashboard_layouts WHERE id = $1 AND user_id = $2', [id, userId]);
+    sendJson(res, { ok: true });
+  } catch (e) { sendError(res, 400, e.message); }
 }
 
 // ============ Almoxarifado / Estoque ============
