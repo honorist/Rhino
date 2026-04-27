@@ -5,6 +5,7 @@ const routes = {
   '#/proposta':     { view: null,                  label: 'Proposta',        icon: _ic('file-text'), soon: true },
   '#/contratos':    { view: window.Contratos,      label: 'Contratos',       icon: _ic('briefcase') },
   '#/contratos/:id':{ view: window.ContratoDetail, label: null,              icon: null },
+  '#/comparativo':  { view: window.Comparativo,   label: null,              icon: null },
   '#/rdos':         { view: window.RDOs,           label: 'RDOs',            icon: _ic('clipboard-check'), group: 'obras' },
   '#/obras':        { view: window.Obras,          label: 'Mapa de Obras',   icon: _ic('map-pin'),         group: 'obras' },
   '#/clientes':     { view: window.Clientes,       label: 'Clientes',        icon: _ic('users'),       group: 'rh' },

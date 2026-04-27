@@ -360,6 +360,24 @@ window.ContratoDetail = {
         })()}
         ` : ''}
 
+        <!-- ─── Curva S de Execução ─── -->
+        ${this._tab === 'financeiro' && contract.value > 0 && contract.startDate && contract.endDate ? `
+        <div class="card mb-2xl">
+          <div class="card-header">
+            <h3 class="card-title">📈 Curva S — Planejado × Realizado</h3>
+            <span class="text-muted font-sm">Acumulado mês a mês (% do valor do contrato)</span>
+          </div>
+          <div style="position:relative;height:320px;padding:var(--sp-md);">
+            <canvas id="canvasCurvaS"></canvas>
+          </div>
+          <div class="text-muted font-sm" style="padding:0 var(--sp-md) var(--sp-md);">
+            <strong>Planejado:</strong> distribuição linear do valor entre início e término ·
+            <strong>Medido:</strong> acumulado dos BMs ·
+            <strong>Custo:</strong> acumulado de saídas + base + compras + passagens
+          </div>
+        </div>
+        ` : ''}
+
         <!-- ─── Orçamento ─── -->
         ${this._tab === 'financeiro' ? `
         <div class="card mb-2xl">
@@ -828,6 +846,7 @@ window.ContratoDetail = {
       });
       this.renderPizzaOrcamento(orcadoPorTipo, totalOrcado);
       this.renderBarrasOrcado(tiposComparar, orcadoPorTipo, realizadoPorTipo);
+      this.renderCurvaS(contract, nfsContrato, saidas, totalBase, totalPassagensRealizadas, totalCompras);
 
       // Event listeners (guardados — botões podem não existir conforme a aba)
       document.getElementById('btnEditarDados')?.addEventListener('click', () => this.showModalEditarDados(contract));
@@ -1011,6 +1030,145 @@ window.ContratoDetail = {
           }
         }
       }
+    });
+  },
+
+  // Curva S: planejado linear (start → end) vs medido (BMs por mês) vs custo realizado
+  renderCurvaS(contract, nfsContrato, saidas, totalBase, totalPassagens, totalCompras) {
+    if (this.chartCurvaS) { this.chartCurvaS.destroy(); this.chartCurvaS = null; }
+    const canvas = document.getElementById('canvasCurvaS');
+    if (!canvas || typeof Chart === 'undefined') return;
+    if (!contract.startDate || !contract.endDate || !(contract.value > 0)) return;
+
+    const start = new Date(contract.startDate + 'T12:00:00');
+    const end   = new Date(contract.endDate + 'T12:00:00');
+    if (isNaN(start) || isNaN(end) || end <= start) return;
+
+    // Gera array de meses: [{ ym: "AAAA-MM", label: "abr/26", date: Date(1ºdia) }]
+    const meses = [];
+    const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+    const fim = new Date(end.getFullYear(), end.getMonth(), 1);
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    while (cursor <= fim) {
+      const ym = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`;
+      const label = cursor.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).replace('.', '');
+      meses.push({ ym, label, date: new Date(cursor) });
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+    if (meses.length === 0) return;
+
+    const valor = parseFloat(contract.value) || 0;
+    const totalMeses = meses.length;
+
+    // Planejado: distribuição linear (curva S simplificada — meta acumulada por mês)
+    const planejadoAcum = meses.map((_, i) => valor * ((i + 1) / totalMeses));
+
+    // Medido: NFs por mês (dataLimite)
+    const medidoPorMes = new Map();
+    for (const nf of (nfsContrato || [])) {
+      if (!nf.dataLimite) continue;
+      const d = new Date(nf.dataLimite + 'T12:00:00');
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      medidoPorMes.set(ym, (medidoPorMes.get(ym) || 0) + (parseFloat(nf.valor) || 0));
+    }
+    let acumMedido = 0;
+    const medidoAcum = meses.map(m => {
+      acumMedido += medidoPorMes.get(m.ym) || 0;
+      // Só desenha até o mês atual (deixa null nos futuros pra linha cortar)
+      if (m.date > hoje) return null;
+      return acumMedido;
+    });
+
+    // Custo realizado por mês: agrega saidas + base proporcional + compras + passagens
+    const custoPorMes = new Map();
+    for (const s of (saidas || [])) {
+      if (!s.date) continue;
+      const d = new Date(s.date + 'T12:00:00');
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      custoPorMes.set(ym, (custoPorMes.get(ym) || 0) + (parseFloat(s.value) || 0));
+    }
+    // Caixa (compras + passagens vinculadas ao contrato)
+    const caixaContrato = (Store.state.caixa || []).filter(e => e.contractId === contract.id && e.type === 'saida');
+    for (const e of caixaContrato) {
+      if (!e.date) continue;
+      const d = new Date(e.date + 'T12:00:00');
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      custoPorMes.set(ym, (custoPorMes.get(ym) || 0) + (parseFloat(e.value) || 0));
+    }
+    let acumCusto = 0;
+    const custoAcum = meses.map(m => {
+      acumCusto += custoPorMes.get(m.ym) || 0;
+      if (m.date > hoje) return null;
+      return acumCusto;
+    });
+
+    const fmt = (v) => Store.formatBRLk ? Store.formatBRLk(v) : `R$ ${(v / 1000).toFixed(0)}k`;
+
+    this.chartCurvaS = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: meses.map(m => m.label),
+        datasets: [
+          {
+            label: 'Planejado (linear)',
+            data: planejadoAcum,
+            borderColor: '#9CA3AF',
+            borderDash: [6, 4],
+            backgroundColor: 'transparent',
+            tension: 0,
+            pointRadius: 2,
+            borderWidth: 2,
+          },
+          {
+            label: 'Medido (BMs)',
+            data: medidoAcum,
+            borderColor: '#1D6B3F',
+            backgroundColor: 'rgba(29,107,63,.08)',
+            tension: 0.25,
+            pointRadius: 3,
+            borderWidth: 3,
+            fill: true,
+            spanGaps: false,
+          },
+          {
+            label: 'Custo realizado',
+            data: custoAcum,
+            borderColor: '#DC2626',
+            backgroundColor: 'transparent',
+            tension: 0.25,
+            pointRadius: 2,
+            borderWidth: 2,
+            spanGaps: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { position: 'top', labels: { boxWidth: 12, font: { size: 12 } } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                if (ctx.parsed.y === null) return null;
+                const pct = valor > 0 ? ((ctx.parsed.y / valor) * 100).toFixed(1) : '0';
+                return `${ctx.dataset.label}: ${Store.formatBRL(ctx.parsed.y)} (${pct}%)`;
+              },
+            },
+          },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { callback: v => fmt(v) },
+            grid: { color: 'rgba(0,0,0,.06)' },
+          },
+          x: {
+            grid: { display: false },
+          },
+        },
+      },
     });
   },
 
@@ -2149,6 +2307,88 @@ window.ContratoDetail = {
           }).join('')}
         </div>`;
 
+    // ─── Métricas de Aderência / Histórico ───
+    const calcDias = (ini, fim) => {
+      if (!ini) return 0;
+      const di = new Date(ini + 'T12:00:00');
+      const df = fim ? new Date(fim + 'T12:00:00') : hoje;
+      return Math.max(0, Math.round((df - di) / 86400000));
+    };
+    const diasNaEmpresa = r.dataAdmissao
+      ? calcDias(r.dataAdmissao, r.status === 'ex_funcionario' ? r.dataDesligamento : null)
+      : 0;
+    const historico = Array.isArray(r.historicoAlocacoes) ? r.historicoAlocacoes : [];
+    const obrasPassadas = historico.length + (r.alocacaoAtual?.contractId ? 1 : 0);
+    let diasTrabalhadosObras = 0;
+    historico.forEach(h => { diasTrabalhadosObras += calcDias(h.dataInicio, h.dataFim); });
+    if (r.alocacaoAtual?.dataInicio) diasTrabalhadosObras += calcDias(r.alocacaoAtual.dataInicio, null);
+
+    let diasEmFolga = 0;
+    folgas.forEach(f => { if (f.dataInicio && f.dataFim) diasEmFolga += calcDias(f.dataInicio, f.dataFim); });
+
+    const docsVigentes = docs.filter(d => {
+      if (!d.dataVencimento) return false;
+      return new Date(d.dataVencimento + 'T12:00:00') >= hoje;
+    }).length;
+    const docsVencidos = docs.filter(d => {
+      if (!d.dataVencimento) return false;
+      return new Date(d.dataVencimento + 'T12:00:00') < hoje;
+    }).length;
+    const aderenciaDocs = docs.length > 0 ? Math.round((docsVigentes / docs.length) * 100) : 0;
+    const corAderencia = aderenciaDocs >= 90 ? 'var(--color-success)' : aderenciaDocs >= 70 ? '#F59E0B' : 'var(--color-danger)';
+
+    const fmtDias = (d) => {
+      if (d < 30) return `${d} dia${d !== 1 ? 's' : ''}`;
+      if (d < 365) return `${(d / 30).toFixed(1)} meses`;
+      return `${(d / 365).toFixed(1)} anos`;
+    };
+
+    const aderenciaHtml = `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:var(--sp-lg);">
+        <div style="padding:10px;background:var(--color-surface-2);border-radius:6px;border-left:3px solid #3B82F6;">
+          <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Tempo na empresa</div>
+          <div style="font-size:18px;font-weight:700;margin-top:4px;">${diasNaEmpresa > 0 ? fmtDias(diasNaEmpresa) : '—'}</div>
+        </div>
+        <div style="padding:10px;background:var(--color-surface-2);border-radius:6px;border-left:3px solid #8B5CF6;">
+          <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Obras realizadas</div>
+          <div style="font-size:18px;font-weight:700;margin-top:4px;">${obrasPassadas}</div>
+          <div style="font-size:11px;color:var(--color-text-muted);">${historico.length} concluída${historico.length !== 1 ? 's' : ''}${r.alocacaoAtual ? ' + 1 atual' : ''}</div>
+        </div>
+        <div style="padding:10px;background:var(--color-surface-2);border-radius:6px;border-left:3px solid #10B981;">
+          <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Dias em obra</div>
+          <div style="font-size:18px;font-weight:700;margin-top:4px;">${diasTrabalhadosObras}</div>
+          <div style="font-size:11px;color:var(--color-text-muted);">${diasEmFolga} dias em folga</div>
+        </div>
+        <div style="padding:10px;background:var(--color-surface-2);border-radius:6px;border-left:3px solid ${corAderencia};">
+          <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Aderência docs</div>
+          <div style="font-size:18px;font-weight:700;margin-top:4px;color:${corAderencia};">${docs.length > 0 ? aderenciaDocs + '%' : '—'}</div>
+          <div style="font-size:11px;color:var(--color-text-muted);">${docsVigentes} vigente${docsVigentes !== 1 ? 's' : ''}${docsVencidos > 0 ? `, ${docsVencidos} venc.` : ''}</div>
+        </div>
+      </div>
+    `;
+
+    // Histórico de obras (em formato compacto)
+    const historicoObrasHtml = (historico.length === 0 && !r.alocacaoAtual)
+      ? `<p class="text-muted" style="font-size:13px;">Sem histórico de alocações.</p>`
+      : `<div style="max-height:160px;overflow-y:auto;">
+          ${r.alocacaoAtual?.contractId ? (() => {
+            const c = (Store.state.contracts || []).find(x => x.id === r.alocacaoAtual.contractId);
+            const dias = calcDias(r.alocacaoAtual.dataInicio, null);
+            return `<div style="padding:8px 10px;background:rgba(34,197,94,.08);border-left:3px solid var(--color-success);border-radius:4px;margin-bottom:4px;font-size:13px;">
+              <strong>${escapeHtml(c?.name || 'Obra atual')}</strong>
+              <span class="text-muted"> · em andamento · ${dias} dia${dias !== 1 ? 's' : ''}</span>
+            </div>`;
+          })() : ''}
+          ${historico.slice().reverse().map(h => {
+            const c = (Store.state.contracts || []).find(x => x.id === h.contractId);
+            const dias = calcDias(h.dataInicio, h.dataFim);
+            return `<div style="padding:8px 10px;background:var(--color-bg);border-left:3px solid var(--color-text-muted);border-radius:4px;margin-bottom:4px;font-size:13px;">
+              <strong>${escapeHtml(c?.name || h.contractName || 'Obra removida')}</strong>
+              <div class="text-muted" style="font-size:12px;">${fmt(h.dataInicio)} → ${fmt(h.dataFim)} · ${dias} dia${dias !== 1 ? 's' : ''}</div>
+            </div>`;
+          }).join('')}
+        </div>`;
+
     const folgasHtml = folgas.length === 0
       ? `<p class="text-muted" style="font-size:15px;">Nenhuma folga registrada.</p>`
       : `<div style="max-height:180px;overflow-y:auto;">
@@ -2222,15 +2462,29 @@ window.ContratoDetail = {
               </div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-lg);">
+            <!-- Aderência / Histórico -->
+            <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.07em;font-weight:700;margin-bottom:var(--sp-sm);">📊 Aderência & Histórico</div>
+            ${aderenciaHtml}
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-lg);margin-bottom:var(--sp-lg);">
               <div>
-                <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.07em;font-weight:700;margin-bottom:var(--sp-sm);">📅 Histórico de Folgas</div>
+                <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:var(--sp-sm);">🏗️ Obras realizadas</div>
+                ${historicoObrasHtml}
+              </div>
+              <div>
+                <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:var(--sp-sm);">📅 Histórico de Folgas</div>
                 ${folgasHtml}
               </div>
-              <div>
-                <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.07em;font-weight:700;margin-bottom:var(--sp-sm);">📋 Documentação</div>
-                ${docsHtml}
-              </div>
+            </div>
+
+            <div>
+              <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:var(--sp-sm);">📋 Documentação</div>
+              ${docsHtml}
+            </div>
+
+            <div class="text-muted" style="font-size:12px;margin-top:var(--sp-md);padding:8px 12px;background:var(--color-surface-2);border-radius:4px;">
+              ℹ️ Métricas baseadas em alocações registradas. RDOs hoje agrupam presença por cargo, não por nome — para
+              "presença diária por pessoa", precisa adicionar registro nominal no RDO.
             </div>
           </div>
 

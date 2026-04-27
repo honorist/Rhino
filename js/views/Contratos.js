@@ -29,7 +29,10 @@ window.Contratos = {
             <h1 class="page-title">Contratos</h1>
             <p class="page-subtitle">Gerenciar contratos de serviços</p>
           </div>
-          ${_podeEditar ? `<button class="btn btn-primary btn-lg" id="btnNovoContrato">+ Novo Contrato</button>` : ''}
+          <div style="display:flex;gap:8px;">
+            <a href="#/comparativo" class="btn btn-secondary" style="text-decoration:none;">📊 Comparativo</a>
+            ${_podeEditar ? `<button class="btn btn-primary btn-lg" id="btnNovoContrato">+ Novo Contrato</button>` : ''}
+          </div>
         </div>
 
         ${rdoStats && !rdoStats.ehFimDeSemana && rdoStats.obrasSemRdoOntem.length > 0 ? `
