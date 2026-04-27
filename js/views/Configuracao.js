@@ -25,6 +25,7 @@ window.Configuracao = {
             ${this.renderMenuItem('niveis_acesso', '🔐', 'Níveis de Acesso')}
             ${this.renderMenuItem('doc_templates', '📋', 'Templates de Docs')}
             ${this.renderMenuItem('arquivos', '📁', 'Arquivos do Sistema')}
+            ${this.renderMenuItem('backup', '💾', 'Backup do Sistema')}
             <a href="#/usuarios" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;text-decoration:none;color:var(--color-text);margin-top:4px;border-top:1px solid var(--color-border);padding-top:14px;">
               <span style="display:inline-flex;align-items:center;color:var(--rh-ink-500);">${window.rhIcon ? window.rhIcon('user-plus', 16) : ''}</span><span>Usuários e Logins</span>
             </a>
@@ -39,6 +40,7 @@ window.Configuracao = {
             ${this.currentSection === 'niveis_acesso'  ? this.renderNiveisAcesso() : ''}
             ${this.currentSection === 'doc_templates'  ? this.renderDocTemplates() : ''}
             ${this.currentSection === 'arquivos'       ? this.renderArquivos() : ''}
+            ${this.currentSection === 'backup'         ? this.renderBackup() : ''}
           </div>
         </div>
       `;
@@ -690,6 +692,49 @@ window.Configuracao = {
         Carregando arquivos do sistema...
       </div>
       <div id="arquivosContent" style="display:none;"></div>
+    `;
+  },
+
+  renderBackup() {
+    return `
+      <div class="page-header" style="margin-bottom:var(--sp-lg);">
+        <div>
+          <h2 style="font-size:20px;font-weight:700;margin:0;">💾 Backup do Sistema</h2>
+          <p class="page-subtitle" style="margin:4px 0 0 0;">Baixe um snapshot completo dos dados</p>
+        </div>
+      </div>
+
+      <div class="card" style="padding:var(--sp-xl);max-width:720px;">
+        <div style="display:flex;align-items:start;gap:var(--sp-lg);margin-bottom:var(--sp-lg);">
+          <div style="font-size:48px;line-height:1;">💾</div>
+          <div style="flex:1;">
+            <h3 style="margin:0 0 8px 0;font-size:17px;">Backup completo (JSON)</h3>
+            <p style="margin:0;color:var(--color-text-muted);font-size:14px;line-height:1.6;">
+              Inclui contratos, RDOs, organograma, saídas, caixa, contas a pagar/receber,
+              recursos (sem senhas), clientes, fornecedores, BASE, sócios, aportes e configurações.
+              <strong>Não inclui</strong> arquivos anexados (PDFs/imagens) — esses são armazenados separados no banco.
+            </p>
+          </div>
+        </div>
+
+        <div style="padding:var(--sp-md);background:rgba(245,158,11,.08);border-left:3px solid #F59E0B;border-radius:6px;margin-bottom:var(--sp-lg);font-size:13px;line-height:1.6;">
+          <strong style="color:#92400E;">⚠️ Atenção:</strong> O arquivo contém dados sensíveis (CPFs, salários, valores).
+          Guarde em local seguro e não compartilhe externamente. Recomendado: 1 backup/semana.
+        </div>
+
+        <a href="/api/backup/download" class="btn btn-primary" download style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;">
+          <span>⬇️</span> Baixar backup agora
+        </a>
+
+        <div style="margin-top:var(--sp-xl);padding-top:var(--sp-lg);border-top:1px solid var(--color-border);">
+          <h4 style="margin:0 0 8px 0;font-size:14px;">Como restaurar?</h4>
+          <p style="margin:0;color:var(--color-text-muted);font-size:13px;line-height:1.6;">
+            Use <code style="background:var(--color-surface-2);padding:1px 6px;border-radius:3px;">scripts/migrate-json-to-pg.js</code>
+            apontando para o JSON baixado. O Postgres do Railway também faz snapshot automático
+            (Database → Settings → Backups).
+          </p>
+        </div>
+      </div>
     `;
   },
 

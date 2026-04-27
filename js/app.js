@@ -598,19 +598,46 @@ function getRecursosAlertCount() {
   } catch { return 0; }
 }
 
+// Conta colaboradores ativos com problema documental:
+// vencidos (já passou) — alerta vermelho
+// vencendo (até 30 dias) — alerta amarelo
 function getDocumentosAlertCount() {
   try {
     const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-    let count = 0;
+    let vencidos = 0, vencendo = 0;
     (Store.state.recursos || []).filter(r => r.status === 'funcionario').forEach(r => {
-      const temVencido = (r.documentos || []).some(doc => {
-        if (!doc.dataVencimento) return false;
-        return Math.ceil((new Date(doc.dataVencimento + 'T12:00:00') - hoje) / 86400000) < 0;
-      });
-      if (temVencido) count++;
+      let temVencido = false, temVencendo = false;
+      for (const doc of (r.documentos || [])) {
+        if (!doc.dataVencimento) continue;
+        const dias = Math.ceil((new Date(doc.dataVencimento + 'T12:00:00') - hoje) / 86400000);
+        if (dias < 0) temVencido = true;
+        else if (dias <= 30) temVencendo = true;
+      }
+      if (temVencido) vencidos++;
+      else if (temVencendo) vencendo++; // só conta como "vencendo" se ainda não tem nenhum vencido
     });
-    return count;
+    return vencidos + vencendo; // total — usado em groupAlertCount
   } catch { return 0; }
+}
+
+// Detalhe (vencidos vs vencendo) — usado na badge da Documentação para escolher cor
+function getDocumentosAlertDetail() {
+  try {
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    let vencidos = 0, vencendo = 0;
+    (Store.state.recursos || []).filter(r => r.status === 'funcionario').forEach(r => {
+      let temVencido = false, temVencendo = false;
+      for (const doc of (r.documentos || [])) {
+        if (!doc.dataVencimento) continue;
+        const dias = Math.ceil((new Date(doc.dataVencimento + 'T12:00:00') - hoje) / 86400000);
+        if (dias < 0) temVencido = true;
+        else if (dias <= 30) temVencendo = true;
+      }
+      if (temVencido) vencidos++;
+      else if (temVencendo) vencendo++;
+    });
+    return { vencidos, vencendo, total: vencidos + vencendo };
+  } catch { return { vencidos: 0, vencendo: 0, total: 0 }; }
 }
 
 function getContasPagarAlertCount() {
@@ -642,7 +669,13 @@ function renderNavItem(link, nfAlerts, cpAlerts, recAlerts) {
   } else if (link.href === '#/recursos' && recAlerts > 0) {
     badge = `<span class="nav-badge-alert">${recAlerts}</span>`;
   } else if (link.href === '#/documentos' && link.docAlerts > 0) {
-    badge = `<span class="nav-badge-alert">${link.docAlerts}</span>`;
+    // Cor diferente: vermelho se há vencidos, amarelo se só vencendo
+    const det = link.docAlertDetail || { vencidos: 0, vencendo: 0 };
+    const cor = det.vencidos > 0 ? 'var(--color-danger)' : '#F59E0B';
+    const titulo = det.vencidos > 0
+      ? `${det.vencidos} colaborador${det.vencidos !== 1 ? 'es' : ''} com docs vencidos${det.vencendo ? ` (+${det.vencendo} vencendo)` : ''}`
+      : `${det.vencendo} colaborador${det.vencendo !== 1 ? 'es' : ''} com docs vencendo nos próximos 30 dias`;
+    badge = `<span class="nav-badge-alert" style="background:${cor};" title="${titulo}">${link.docAlerts}</span>`;
   }
 
   return `
@@ -661,6 +694,7 @@ function renderSidebar() {
   const cpAlerts  = getContasPagarAlertCount();
   const recAlerts = getRecursosAlertCount();
   const docAlerts = getDocumentosAlertCount();
+  const docAlertDetail = getDocumentosAlertDetail();
   const isDark = getTheme() === 'dark';
   const currentHash = location.hash || '#/dashboard';
   const perfilAtual = perfil.get();
@@ -678,7 +712,7 @@ function renderSidebar() {
   for (const [pattern, config] of Object.entries(routes)) {
     if (!config.label || pattern.includes(':id')) continue;
     if (!perfil.podeAcessar(pattern)) continue;
-    const item = { href: pattern, label: config.label, icon: config.icon, soon: config.soon || false, docAlerts: pattern === '#/documentos' ? docAlerts : 0 };
+    const item = { href: pattern, label: config.label, icon: config.icon, soon: config.soon || false, docAlerts: pattern === '#/documentos' ? docAlerts : 0, docAlertDetail: pattern === '#/documentos' ? docAlertDetail : null };
     if (pattern === '#/configuracao') {
       configLink = item;
     } else if (config.group && groupLinks[config.group]) {

@@ -837,6 +837,57 @@ async function handleBackup(res) {
   }
 }
 
+// Backup completo COM DOWNLOAD: retorna 1 JSON consolidado de TUDO no banco.
+// Pensado pra recuperação de desastre — pode importar de volta via scripts/migrate-json-to-pg.js.
+async function handleBackupDownload(res) {
+  try {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    const safe = async (fn) => { try { return await fn(); } catch { return []; } };
+
+    const payload = {
+      _meta: {
+        version: process.env.APP_VERSION || 'dev',
+        generatedAt: new Date().toISOString(),
+        format: 'rhino-backup-v1',
+      },
+      contracts:           await safe(() => repos.contracts.findAllWithChildren()),
+      saidas:              await safe(() => repos.saidas.findAll()),
+      caixa:               await safe(() => repos.caixa.findAll()),
+      base:                await safe(() => repos.baseItems.findAll()),
+      socios:              await safe(() => repos.socios.findAll()),
+      investimentos:       await safe(() => repos.investimentos.findAll()),
+      notas_fiscais:       await safe(() => repos.notasFiscais.findAll()),
+      tipos_base:          await safe(() => repos.tiposBase.findAll()),
+      clientes:            await safe(() => repos.clientes.findAll()),
+      fornecedores:        await safe(() => repos.fornecedores.findAll()),
+      contas_pagar:        await safe(() => repos.contasPagar.findAll()),
+      niveis_acesso:       await safe(() => repos.niveisAcesso.findAll()),
+      recursos:            await safe(() => repos.recursos.findAll()),
+      doc_templates:       await safe(() => repos.docTemplates.findAll()),
+      users:               await safe(() => (repos.users.findAll ? repos.users.findAll() : [])),
+    };
+
+    // Remove campos sensíveis (hash de senha, tokens)
+    if (Array.isArray(payload.users)) {
+      payload.users = payload.users.map(u => {
+        const { passwordHash, password_hash, resetToken, reset_token, ...safe } = u;
+        return safe;
+      });
+    }
+
+    const json = JSON.stringify(payload, null, 2);
+    const filename = `rhino-backup-${timestamp}.json`;
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': Buffer.byteLength(json),
+    });
+    res.end(json);
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
 async function handleHealth(res) {
   const result = {
     app: 'ok',
@@ -2589,6 +2640,9 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   }
   if (pathname === '/api/backup' && method === 'POST') {
     return handleBackup(res);
+  }
+  if (pathname === '/api/backup/download' && method === 'GET') {
+    return handleBackupDownload(res);
   }
   if (pathname === '/api/health' && method === 'GET') {
     return handleHealth(res);
