@@ -98,6 +98,22 @@ async function findByIdWithChildren(id) {
   return { ...contract, organograma, rdos };
 }
 
+// Apaga o contrato e TUDO que está vinculado a ele.
+// FK CASCADE remove saidas/organograma_membros/rdos automaticamente.
+// Aqui apagamos manualmente o que está como ON DELETE SET NULL no schema:
+// notas_fiscais (BMs/Contas a Receber), contas_pagar, caixa, investimentos.
+// Tudo dentro de uma transação — ou apaga tudo, ou nada.
+async function removeByIdCascade(id) {
+  return db.withTransaction(async (client) => {
+    await client.query('DELETE FROM caixa WHERE contract_id = $1', [id]);
+    await client.query('DELETE FROM contas_pagar WHERE contract_id = $1', [id]);
+    await client.query('DELETE FROM notas_fiscais WHERE contract_id = $1', [id]);
+    await client.query('DELETE FROM investimentos WHERE contract_id = $1', [id]);
+    const r = await client.query('DELETE FROM contracts WHERE id = $1', [id]);
+    return r.rowCount > 0;
+  });
+}
+
 // Envelope no shape do contracts.json: { contracts: [...], saidas: [...] }
 async function getEnvelope() {
   const [contracts, saidas] = await Promise.all([
@@ -115,4 +131,5 @@ module.exports = {
   findAllWithChildren,
   findByIdWithChildren,
   getEnvelope,
+  removeByIdCascade,
 };

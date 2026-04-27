@@ -123,8 +123,10 @@ async function handlePutContract(id, body, res) {
 
 async function handleDeleteContract(id, res) {
   try {
-    // FK CASCADE remove saidas/organograma/rdos automaticamente
-    await repos.contracts.removeById(id);
+    // Apaga TUDO vinculado ao contrato (financeiro + operacional) numa transação:
+    // FK CASCADE remove saidas/organograma/rdos automaticamente; o cascade manual
+    // (no repo) limpa caixa, contas_pagar, notas_fiscais e investimentos do contrato.
+    await repos.contracts.removeByIdCascade(id);
     sendJson(res, await repos.contracts.getEnvelope());
   } catch (e) {
     sendError(res, 400, e.message);

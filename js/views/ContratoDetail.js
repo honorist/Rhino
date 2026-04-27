@@ -4573,13 +4573,17 @@ window.ContratoDetail = {
             </div>
             <div style="padding: var(--sp-md); background: rgba(220, 38, 38, 0.08); border-radius: 6px; margin-bottom: var(--sp-lg); border: 1px solid rgba(220, 38, 38, 0.3);">
               <p style="margin: 0; font-size: 13px; color: var(--color-danger); font-weight: 600;">
-                Esta ação é IRREVERSÍVEL. Os seguintes dados serão removidos junto:
+                Esta ação é IRREVERSÍVEL. TODOS os dados abaixo serão apagados:
               </p>
               <ul style="margin: 8px 0 0 20px; font-size: 13px; color: var(--color-text-muted);">
-                <li>Saídas e medições (BMs)</li>
+                <li>Saídas e medições</li>
                 <li>Organograma e equipe alocada</li>
                 <li>RDOs e fotos vinculadas</li>
                 <li>Itens de orçamento</li>
+                <li><strong>Notas fiscais / Contas a Receber</strong> deste contrato</li>
+                <li><strong>Contas a Pagar</strong> vinculadas</li>
+                <li><strong>Lançamentos de Caixa</strong> deste contrato (saldo do caixa será recalculado)</li>
+                <li>Aportes/Investimentos vinculados</li>
               </ul>
             </div>
             <div class="form-group" style="margin-bottom: 0;">
@@ -4635,6 +4639,9 @@ window.ContratoDetail = {
       btnConfirmar.textContent = 'Excluindo...';
       try {
         await Store.deleteContract(contract.id);
+        // Recarrega tudo: o cascade apaga caixa/contas_pagar/notas_fiscais/investimentos
+        // que o endpoint não devolve no envelope — sem reload o Store fica com dados zumbis.
+        await Store.loadAll();
         window.showToast('Contrato excluído com sucesso', 'success');
         closeModal();
         location.hash = '#/contratos';
