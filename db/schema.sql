@@ -382,6 +382,60 @@ ALTER TABLE audit_log
   ADD COLUMN IF NOT EXISTS before_state JSONB,
   ADD COLUMN IF NOT EXISTS entity_label TEXT;
 
+-- ============ Almoxarifado / Estoque ============
+CREATE TABLE IF NOT EXISTS itens_estoque (
+  id              TEXT PRIMARY KEY,
+  codigo          TEXT,
+  descricao       TEXT NOT NULL,
+  unidade         TEXT,                              -- pç, kg, m, l, cx
+  categoria       TEXT,
+  estoque_minimo  NUMERIC(15,3) DEFAULT 0,
+  custo_medio     NUMERIC(15,4) DEFAULT 0,           -- atualiza a cada entrada (média ponderada)
+  notas           TEXT,
+  ativo           BOOLEAN DEFAULT TRUE,
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_itens_codigo  ON itens_estoque (codigo);
+CREATE INDEX IF NOT EXISTS idx_itens_categoria ON itens_estoque (categoria);
+
+CREATE TABLE IF NOT EXISTS almoxarifados (
+  id          TEXT PRIMARY KEY,
+  nome        TEXT NOT NULL,
+  contract_id TEXT REFERENCES contracts(id) ON DELETE SET NULL,
+  endereco    TEXT,
+  ativo       BOOLEAN DEFAULT TRUE,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_almox_contract ON almoxarifados (contract_id);
+
+CREATE TABLE IF NOT EXISTS estoque_saldo (
+  id              TEXT PRIMARY KEY,
+  item_id         TEXT NOT NULL REFERENCES itens_estoque(id) ON DELETE CASCADE,
+  almoxarifado_id TEXT NOT NULL REFERENCES almoxarifados(id) ON DELETE CASCADE,
+  quantidade      NUMERIC(15,3) DEFAULT 0,
+  UNIQUE (item_id, almoxarifado_id)
+);
+
+CREATE TABLE IF NOT EXISTS estoque_movimentacoes (
+  id                       TEXT PRIMARY KEY,
+  item_id                  TEXT NOT NULL REFERENCES itens_estoque(id) ON DELETE RESTRICT,
+  almoxarifado_origem_id   TEXT REFERENCES almoxarifados(id),
+  almoxarifado_destino_id  TEXT REFERENCES almoxarifados(id),
+  tipo                     TEXT NOT NULL CHECK (tipo IN ('entrada','saida','transferencia','ajuste')),
+  quantidade               NUMERIC(15,3) NOT NULL,
+  custo_unit               NUMERIC(15,4),
+  contract_id              TEXT REFERENCES contracts(id) ON DELETE SET NULL,
+  data                     DATE NOT NULL,
+  documento                TEXT,
+  user_id                  TEXT,
+  notas                    TEXT,
+  created_at               TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_mov_item ON estoque_movimentacoes (item_id, data);
+CREATE INDEX IF NOT EXISTS idx_mov_contract ON estoque_movimentacoes (contract_id);
+CREATE INDEX IF NOT EXISTS idx_mov_data ON estoque_movimentacoes (data DESC);
+
 -- ============ Cronograma fisico-financeiro (atividades por contrato) ============
 CREATE TABLE IF NOT EXISTS atividades (
   id                TEXT PRIMARY KEY,

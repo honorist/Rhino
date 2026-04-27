@@ -2827,6 +2827,20 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
     return handleGetAdminArquivos(res);
   }
 
+  // ── Estoque ──
+  if (pathname === '/api/estoque/itens' && method === 'GET')  return handleListItensEstoque(res);
+  if (pathname === '/api/estoque/itens' && method === 'POST') return handlePostItemEstoque(body, res);
+  if (pathname.match(/^\/api\/estoque\/itens\/[^/]+$/) && method === 'PUT')    return handlePutItemEstoque(pathname.split('/')[4], body, res);
+  if (pathname.match(/^\/api\/estoque\/itens\/[^/]+$/) && method === 'DELETE') return handleDeleteItemEstoque(pathname.split('/')[4], res);
+  if (pathname === '/api/estoque/almoxarifados' && method === 'GET')  return handleListAlmoxarifados(res);
+  if (pathname === '/api/estoque/almoxarifados' && method === 'POST') return handlePostAlmoxarifado(body, res);
+  if (pathname.match(/^\/api\/estoque\/almoxarifados\/[^/]+$/) && method === 'PUT')    return handlePutAlmoxarifado(pathname.split('/')[4], body, res);
+  if (pathname.match(/^\/api\/estoque\/almoxarifados\/[^/]+$/) && method === 'DELETE') return handleDeleteAlmoxarifado(pathname.split('/')[4], res);
+  if (pathname === '/api/estoque/movimentacoes' && method === 'GET')  return handleListMovimentacoes(parsedUrl.query, res);
+  if (pathname === '/api/estoque/movimentacoes' && method === 'POST') return handlePostMovimentacao(body, res);
+  if (pathname.match(/^\/api\/estoque\/movimentacoes\/[^/]+$/) && method === 'DELETE') return handleDeleteMovimentacao(pathname.split('/')[4], res);
+  if (pathname === '/api/estoque/saldo' && method === 'GET') return handleGetSaldoEstoque(parsedUrl.query, res);
+
   // Doc Templates routes
   if (pathname === '/api/doc-templates' && method === 'GET') return handleGetDocTemplates(res);
   if (pathname === '/api/doc-templates' && method === 'POST') return handlePostDocTemplate(body, res);
@@ -3318,6 +3332,272 @@ async function handleDeleteRecursoDocArquivo(recursoId, docId, res) {
   } catch (e) {
     sendError(res, 400, e.message);
   }
+}
+
+// ============ Almoxarifado / Estoque ============
+
+// ── Itens ──
+async function handleListItensEstoque(res) {
+  try {
+    const rows = await db.getMany(
+      `SELECT * FROM itens_estoque WHERE ativo = TRUE ORDER BY descricao ASC`
+    );
+    sendJson(res, { itens: rows });
+  } catch (e) { sendError(res, 500, e.message); }
+}
+
+async function handlePostItemEstoque(body, res) {
+  try {
+    const id = generateId('item');
+    const row = await db.getOne(
+      `INSERT INTO itens_estoque (id, codigo, descricao, unidade, categoria, estoque_minimo, custo_medio, notas, ativo)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,TRUE) RETURNING *`,
+      [id, body.codigo || null, String(body.descricao || '').slice(0, 200),
+       body.unidade || null, body.categoria || null,
+       parseFloat(body.estoqueMinimo) || 0, parseFloat(body.custoMedio) || 0,
+       body.notas || null]
+    );
+    sendJson(res, row);
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handlePutItemEstoque(id, body, res) {
+  try {
+    const row = await db.getOne(
+      `UPDATE itens_estoque SET
+         codigo=$2, descricao=$3, unidade=$4, categoria=$5,
+         estoque_minimo=$6, notas=$7, ativo=$8, updated_at=NOW()
+       WHERE id=$1 RETURNING *`,
+      [id, body.codigo || null, String(body.descricao || '').slice(0, 200),
+       body.unidade || null, body.categoria || null,
+       parseFloat(body.estoqueMinimo) || 0,
+       body.notas || null, body.ativo !== false]
+    );
+    if (!row) return sendError(res, 404, 'Item não encontrado');
+    sendJson(res, row);
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handleDeleteItemEstoque(id, res) {
+  try {
+    // Soft delete (preserva histórico de movimentações)
+    await db.query('UPDATE itens_estoque SET ativo=FALSE, updated_at=NOW() WHERE id=$1', [id]);
+    sendJson(res, { ok: true });
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+// ── Almoxarifados ──
+async function handleListAlmoxarifados(res) {
+  try {
+    const rows = await db.getMany(
+      `SELECT a.*, c.name AS contract_name
+       FROM almoxarifados a LEFT JOIN contracts c ON c.id = a.contract_id
+       WHERE a.ativo = TRUE ORDER BY a.nome ASC`
+    );
+    sendJson(res, { almoxarifados: rows });
+  } catch (e) { sendError(res, 500, e.message); }
+}
+
+async function handlePostAlmoxarifado(body, res) {
+  try {
+    const id = generateId('almox');
+    const row = await db.getOne(
+      `INSERT INTO almoxarifados (id, nome, contract_id, endereco, ativo)
+       VALUES ($1,$2,$3,$4,TRUE) RETURNING *`,
+      [id, String(body.nome || '').slice(0, 100), body.contractId || null, body.endereco || null]
+    );
+    sendJson(res, row);
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handlePutAlmoxarifado(id, body, res) {
+  try {
+    const row = await db.getOne(
+      `UPDATE almoxarifados SET nome=$2, contract_id=$3, endereco=$4, ativo=$5
+       WHERE id=$1 RETURNING *`,
+      [id, String(body.nome || '').slice(0, 100), body.contractId || null,
+       body.endereco || null, body.ativo !== false]
+    );
+    if (!row) return sendError(res, 404, 'Almoxarifado não encontrado');
+    sendJson(res, row);
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handleDeleteAlmoxarifado(id, res) {
+  try {
+    await db.query('UPDATE almoxarifados SET ativo=FALSE WHERE id=$1', [id]);
+    sendJson(res, { ok: true });
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+// ── Movimentações (núcleo do módulo) ──
+async function handleListMovimentacoes(query, res) {
+  try {
+    const conds = [];
+    const vals = [];
+    if (query.itemId)    { vals.push(query.itemId);    conds.push(`m.item_id = $${vals.length}`); }
+    if (query.almoxId)   { vals.push(query.almoxId);   conds.push(`(m.almoxarifado_origem_id = $${vals.length} OR m.almoxarifado_destino_id = $${vals.length})`); }
+    if (query.contractId){ vals.push(query.contractId);conds.push(`m.contract_id = $${vals.length}`); }
+    if (query.tipo)      { vals.push(query.tipo);      conds.push(`m.tipo = $${vals.length}`); }
+    if (query.from)      { vals.push(query.from);      conds.push(`m.data >= $${vals.length}`); }
+    if (query.to)        { vals.push(query.to);        conds.push(`m.data <= $${vals.length}`); }
+    const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
+    const lim = Math.min(parseInt(query.limit) || 200, 1000);
+    const rows = await db.getMany(
+      `SELECT m.*, i.descricao AS item_desc, i.unidade,
+              ao.nome AS origem_nome, ad.nome AS destino_nome,
+              c.name AS contract_name
+       FROM estoque_movimentacoes m
+       LEFT JOIN itens_estoque i ON i.id = m.item_id
+       LEFT JOIN almoxarifados ao ON ao.id = m.almoxarifado_origem_id
+       LEFT JOIN almoxarifados ad ON ad.id = m.almoxarifado_destino_id
+       LEFT JOIN contracts c ON c.id = m.contract_id
+       ${where} ORDER BY m.data DESC, m.created_at DESC LIMIT ${lim}`,
+      vals
+    );
+    sendJson(res, { movimentacoes: rows });
+  } catch (e) { sendError(res, 500, e.message); }
+}
+
+// Ajusta saldo (insere ou atualiza UPSERT)
+async function _ajustarSaldo(client, itemId, almoxId, delta) {
+  if (!almoxId) return;
+  await client.query(
+    `INSERT INTO estoque_saldo (id, item_id, almoxarifado_id, quantidade)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (item_id, almoxarifado_id)
+     DO UPDATE SET quantidade = estoque_saldo.quantidade + $4`,
+    [`saldo_${itemId}_${almoxId}`, itemId, almoxId, delta]
+  );
+}
+
+async function handlePostMovimentacao(body, res) {
+  try {
+    const tipo = body.tipo;
+    if (!['entrada', 'saida', 'transferencia', 'ajuste'].includes(tipo)) {
+      return sendError(res, 400, 'Tipo inválido');
+    }
+    const itemId = body.itemId;
+    const qtd = parseFloat(body.quantidade);
+    const custo = parseFloat(body.custoUnit) || 0;
+    if (!itemId || !(qtd > 0)) return sendError(res, 400, 'Item e quantidade são obrigatórios');
+
+    const origemId  = body.almoxarifadoOrigemId || null;
+    const destinoId = body.almoxarifadoDestinoId || null;
+    if (tipo === 'entrada' && !destinoId) return sendError(res, 400, 'Entrada precisa almoxarifado destino');
+    if (tipo === 'saida'   && !origemId)  return sendError(res, 400, 'Saída precisa almoxarifado origem');
+    if (tipo === 'transferencia' && (!origemId || !destinoId)) return sendError(res, 400, 'Transferência precisa origem e destino');
+    if (tipo === 'transferencia' && origemId === destinoId) return sendError(res, 400, 'Origem e destino não podem ser iguais');
+
+    const result = await db.withTransaction(async (client) => {
+      const id = generateId('mov');
+      const movRow = (await client.query(
+        `INSERT INTO estoque_movimentacoes
+          (id, item_id, almoxarifado_origem_id, almoxarifado_destino_id, tipo,
+           quantidade, custo_unit, contract_id, data, documento, user_id, notas)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+        [id, itemId, origemId, destinoId, tipo, qtd, custo,
+         body.contractId || null, body.data || new Date().toISOString().split('T')[0],
+         body.documento || null, body.userId || null, body.notas || null]
+      )).rows[0];
+
+      // Atualiza saldos por tipo
+      if (tipo === 'entrada')        await _ajustarSaldo(client, itemId, destinoId, qtd);
+      else if (tipo === 'saida')     await _ajustarSaldo(client, itemId, origemId, -qtd);
+      else if (tipo === 'transferencia') {
+        await _ajustarSaldo(client, itemId, origemId, -qtd);
+        await _ajustarSaldo(client, itemId, destinoId, qtd);
+      } else if (tipo === 'ajuste') {
+        // ajuste: quantidade pode ser negativa (perda) ou positiva (encontrou)
+        await _ajustarSaldo(client, itemId, destinoId || origemId, qtd * (body.sinal === '-' ? -1 : 1));
+      }
+
+      // Atualiza custo médio ponderado em entradas (CMV)
+      if (tipo === 'entrada' && custo > 0) {
+        const item = (await client.query('SELECT custo_medio FROM itens_estoque WHERE id = $1', [itemId])).rows[0];
+        const saldoTotal = (await client.query(
+          'SELECT COALESCE(SUM(quantidade), 0) AS s FROM estoque_saldo WHERE item_id = $1',
+          [itemId]
+        )).rows[0].s;
+        // Saldo já foi atualizado acima — saldoAnterior = saldoTotal - qtd
+        const saldoAnt = parseFloat(saldoTotal) - qtd;
+        const custoMedAnt = parseFloat(item?.custo_medio) || 0;
+        const novoCustoMedio = saldoTotal > 0
+          ? ((saldoAnt * custoMedAnt) + (qtd * custo)) / parseFloat(saldoTotal)
+          : custo;
+        await client.query(
+          'UPDATE itens_estoque SET custo_medio = $2, updated_at = NOW() WHERE id = $1',
+          [itemId, novoCustoMedio]
+        );
+      }
+      return movRow;
+    });
+
+    sendJson(res, db.rowToCamel(result));
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handleDeleteMovimentacao(id, res) {
+  try {
+    // Reverte o saldo antes de apagar (transação)
+    await db.withTransaction(async (client) => {
+      const m = (await client.query('SELECT * FROM estoque_movimentacoes WHERE id = $1', [id])).rows[0];
+      if (!m) return;
+      const qtd = parseFloat(m.quantidade);
+      if (m.tipo === 'entrada')              await _ajustarSaldo(client, m.item_id, m.almoxarifado_destino_id, -qtd);
+      else if (m.tipo === 'saida')           await _ajustarSaldo(client, m.item_id, m.almoxarifado_origem_id, qtd);
+      else if (m.tipo === 'transferencia') {
+        await _ajustarSaldo(client, m.item_id, m.almoxarifado_origem_id, qtd);
+        await _ajustarSaldo(client, m.item_id, m.almoxarifado_destino_id, -qtd);
+      } else if (m.tipo === 'ajuste') {
+        await _ajustarSaldo(client, m.item_id, m.almoxarifado_destino_id || m.almoxarifado_origem_id, -qtd);
+      }
+      await client.query('DELETE FROM estoque_movimentacoes WHERE id = $1', [id]);
+    });
+    sendJson(res, { ok: true });
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+// Saldo: matriz item × almoxarifado
+async function handleGetSaldoEstoque(query, res) {
+  try {
+    const rows = await db.getMany(
+      `SELECT s.*, i.codigo, i.descricao, i.unidade, i.categoria, i.estoque_minimo, i.custo_medio,
+              a.nome AS almox_nome, a.contract_id AS almox_contract_id
+       FROM estoque_saldo s
+       LEFT JOIN itens_estoque i ON i.id = s.item_id
+       LEFT JOIN almoxarifados a ON a.id = s.almoxarifado_id
+       WHERE i.ativo = TRUE AND a.ativo = TRUE
+       ORDER BY i.descricao ASC, a.nome ASC`
+    );
+    // Calcula totais e alertas
+    const porItem = new Map();
+    for (const r of rows) {
+      if (!porItem.has(r.itemId)) {
+        porItem.set(r.itemId, {
+          itemId: r.itemId, codigo: r.codigo, descricao: r.descricao,
+          unidade: r.unidade, categoria: r.categoria,
+          estoqueMinimo: parseFloat(r.estoqueMinimo) || 0,
+          custoMedio: parseFloat(r.custoMedio) || 0,
+          totalQtd: 0, totalValor: 0,
+          porAlmox: [],
+        });
+      }
+      const it = porItem.get(r.itemId);
+      const q = parseFloat(r.quantidade) || 0;
+      it.totalQtd += q;
+      it.totalValor += q * (parseFloat(r.custoMedio) || 0);
+      it.porAlmox.push({
+        almoxarifadoId: r.almoxarifadoId, almoxNome: r.almoxNome,
+        almoxContractId: r.almoxContractId, quantidade: q,
+      });
+    }
+    const itens = Array.from(porItem.values()).map(it => ({
+      ...it,
+      abaixoMinimo: it.totalQtd < it.estoqueMinimo,
+    }));
+    sendJson(res, { itens, total: itens.length });
+  } catch (e) { sendError(res, 500, e.message); }
 }
 
 // ============ Cronograma físico-financeiro (atividades) ============

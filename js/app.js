@@ -18,6 +18,7 @@ const routes = {
   '#/socios':       { view: window.Socios,         label: 'Sócios',          icon: _ic('users'),       group: 'financeiro' },
   '#/investimentos':{ view: window.Investimentos,  label: 'Aportes',         icon: _ic('plus-circle'), group: 'financeiro' },
   '#/base':         { view: window.Base,           label: 'BASE',            icon: _ic('database'),    group: 'financeiro' },
+  '#/estoque':      { view: window.Estoque,        label: 'Almoxarifado',    icon: _ic('package'),     group: 'obras' },
   '#/configuracao': { view: window.Configuracao,   label: 'Configuração',    icon: _ic('settings') },
   '#/usuarios':     { view: window.Usuarios,       label: null,              icon: null },  // acessível via Configuração
   '#/auditoria':    { view: window.Auditoria,      label: null,              icon: null },  // acessível via Configuração
