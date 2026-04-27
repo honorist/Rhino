@@ -3164,6 +3164,17 @@ window.ContratoDetail = {
               </div>
             ` : ''}
 
+            <!-- Assinaturas Digitais -->
+            <div style="margin-bottom:var(--sp-md);" id="rdoAssinaturasSecao">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);">✍️ Assinaturas</div>
+                ${contract && this._podeEditar() ? `<button class="btn btn-sm btn-primary" id="btnAddAssinatura">+ Adicionar assinatura</button>` : ''}
+              </div>
+              <div id="rdoAssinaturasLista" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--sp-sm);">
+                <div style="color:var(--color-text-muted);font-size:13px;padding:var(--sp-md);text-align:center;background:var(--color-surface-2);border-radius:6px;grid-column:1/-1;">Carregando...</div>
+              </div>
+            </div>
+
             <div style="font-size:11px;color:var(--color-text-muted);font-family:monospace;text-align:right;">ID: ${escapeHtml(rdo.id)}</div>
           </div>
           <div class="modal-footer">
@@ -3182,6 +3193,158 @@ window.ContratoDetail = {
     if (bEdit) bEdit.addEventListener('click', () => { close(); this.showModalRdo(contract.id, rdo); });
     const bPdf = document.getElementById('btnRdoPdf');
     if (bPdf) bPdf.addEventListener('click', () => { close(); this.exportarRdoPdf(rdo, contract); });
+
+    // Assinaturas: carrega e habilita botão de adicionar
+    this._loadRdoAssinaturas(rdo.id, contract);
+    const bAddAss = document.getElementById('btnAddAssinatura');
+    if (bAddAss) bAddAss.addEventListener('click', () => this._showModalAddAssinatura(rdo.id, contract));
+  },
+
+  // Carrega lista de assinaturas do RDO via API
+  async _loadRdoAssinaturas(rdoId, contract) {
+    const lista = document.getElementById('rdoAssinaturasLista');
+    if (!lista) return;
+    try {
+      const r = await fetch(`/api/contracts/${contract?.id || '_'}/rdos/${rdoId}/assinaturas`);
+      if (!r.ok) throw new Error(await r.text());
+      const { assinaturas = [] } = await r.json();
+      if (assinaturas.length === 0) {
+        lista.innerHTML = `<div style="color:var(--color-text-muted);font-size:13px;padding:var(--sp-md);text-align:center;background:var(--color-surface-2);border-radius:6px;grid-column:1/-1;">Nenhuma assinatura registrada</div>`;
+        return;
+      }
+      const papelLbl = { encarregado: '👷 Encarregado', cliente: '🤝 Cliente', fiscal: '🛂 Fiscal', engenheiro: '👷‍♀️ Engenheiro', outro: '✍️ Outro' };
+      lista.innerHTML = assinaturas.map(a => `
+        <div style="background:var(--color-surface-2);border-radius:6px;padding:8px;border:1px solid var(--color-border);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <div style="font-size:12px;font-weight:700;color:var(--color-text);">${papelLbl[a.papel] || a.papel}</div>
+            ${this._podeEditar() ? `<button class="btn-link-rdo-ass-del" data-aid="${a.id}" data-rid="${rdoId}" data-cid="${contract?.id || ''}" style="background:none;border:none;cursor:pointer;color:var(--color-danger);font-size:14px;" title="Remover">🗑️</button>` : ''}
+          </div>
+          <div style="background:#fff;border-radius:4px;padding:4px;margin-bottom:4px;">
+            <img src="/api/contracts/${contract?.id || '_'}/rdos/${rdoId}/assinaturas/${a.id}" style="width:100%;height:80px;object-fit:contain;display:block;" alt="Assinatura">
+          </div>
+          <div style="font-size:13px;font-weight:600;color:var(--color-text);">${escapeHtml(a.nome)}</div>
+          <div style="font-size:11px;color:var(--color-text-muted);">${new Date(a.createdAt).toLocaleString('pt-BR')}</div>
+        </div>
+      `).join('');
+
+      // Listener de remoção
+      lista.querySelectorAll('.btn-link-rdo-ass-del').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Remover esta assinatura?')) return;
+          try {
+            const res = await fetch(`/api/contracts/${btn.dataset.cid}/rdos/${btn.dataset.rid}/assinaturas/${btn.dataset.aid}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error(await res.text());
+            this._loadRdoAssinaturas(rdoId, contract);
+          } catch (e) {
+            window.showToast('Erro ao remover: ' + e.message, 'error');
+          }
+        });
+      });
+    } catch (e) {
+      lista.innerHTML = `<div style="color:var(--color-danger);font-size:13px;padding:var(--sp-md);grid-column:1/-1;">Erro: ${escapeHtml(e.message)}</div>`;
+    }
+  },
+
+  // Abre modal para desenhar assinatura no canvas
+  _showModalAddAssinatura(rdoId, contract) {
+    if (!window.SignaturePad) {
+      window.showToast('Biblioteca de assinatura não carregada — recarregue a página', 'error');
+      return;
+    }
+
+    const html = `
+      <div class="modal-overlay" id="modalAssinatura" style="z-index:1100;">
+        <div class="modal" style="width:520px;max-width:95vw;">
+          <div class="modal-header">
+            <h2 class="modal-title">✍️ Adicionar Assinatura</h2>
+            <button class="modal-close">✕</button>
+          </div>
+          <div class="modal-content">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Papel *</label>
+                <select class="form-control" id="assPapel" required>
+                  <option value="encarregado">Encarregado</option>
+                  <option value="cliente">Cliente</option>
+                  <option value="fiscal">Fiscal</option>
+                  <option value="engenheiro">Engenheiro</option>
+                  <option value="outro">Outro</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nome *</label>
+                <input class="form-control" id="assNome" placeholder="Nome de quem está assinando" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Assine no quadro abaixo:</label>
+              <div style="background:#fff;border:2px dashed var(--color-border);border-radius:8px;padding:8px;">
+                <canvas id="assCanvas" style="width:100%;height:200px;background:#fff;display:block;touch-action:none;cursor:crosshair;"></canvas>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+                <span style="font-size:12px;color:var(--color-text-muted);">Use o mouse ou o dedo (touchscreen)</span>
+                <button type="button" class="btn btn-sm btn-secondary" id="assLimpar">🗑️ Limpar</button>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="assCancelar">Cancelar</button>
+            <button class="btn btn-primary" id="assSalvar">💾 Salvar assinatura</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    const overlay = document.getElementById('modalAssinatura');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('assCancelar').addEventListener('click', close);
+
+    // Inicializa Signature Pad — precisa configurar canvas com tamanho real
+    const canvas = document.getElementById('assCanvas');
+    const resizeCanvas = () => {
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      canvas.width = canvas.offsetWidth * ratio;
+      canvas.height = canvas.offsetHeight * ratio;
+      canvas.getContext('2d').scale(ratio, ratio);
+    };
+    resizeCanvas();
+    const sigPad = new window.SignaturePad(canvas, {
+      backgroundColor: 'rgba(255,255,255,0)',
+      penColor: '#0f172a',
+      minWidth: 1.5,
+      maxWidth: 3,
+    });
+
+    document.getElementById('assLimpar').addEventListener('click', () => sigPad.clear());
+
+    document.getElementById('assSalvar').addEventListener('click', async () => {
+      if (sigPad.isEmpty()) { window.showToast('Assine antes de salvar', 'error'); return; }
+      const papel = document.getElementById('assPapel').value;
+      const nome = document.getElementById('assNome').value.trim();
+      if (!nome) { window.showToast('Informe o nome de quem está assinando', 'error'); return; }
+
+      const btnSalvar = document.getElementById('assSalvar');
+      btnSalvar.disabled = true; btnSalvar.textContent = 'Enviando...';
+      try {
+        // Converte canvas em PNG blob
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        const fd = new FormData();
+        fd.append('file', blob, 'assinatura.png');
+        fd.append('papel', papel);
+        fd.append('nome', nome);
+        const res = await fetch(`/api/contracts/${contract?.id || '_'}/rdos/${rdoId}/assinaturas`, { method: 'POST', body: fd });
+        if (!res.ok) throw new Error(await res.text());
+        window.showToast('Assinatura salva!', 'success');
+        close();
+        this._loadRdoAssinaturas(rdoId, contract);
+      } catch (e) {
+        window.showToast('Erro ao salvar: ' + e.message, 'error');
+        btnSalvar.disabled = false; btnSalvar.textContent = '💾 Salvar assinatura';
+      }
+    });
   },
 
   _autoMoFromOrganograma(contract) {

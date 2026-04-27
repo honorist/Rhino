@@ -382,6 +382,22 @@ ALTER TABLE audit_log
   ADD COLUMN IF NOT EXISTS before_state JSONB,
   ADD COLUMN IF NOT EXISTS entity_label TEXT;
 
+-- ============ Assinaturas digitais nos RDOs ============
+-- Encarregado, cliente, fiscal assinam o RDO no celular (canvas com dedo).
+-- PNG armazenado como BYTEA — backup junto do PG, sem dependência de disco.
+CREATE TABLE IF NOT EXISTS rdo_assinaturas (
+  id          TEXT PRIMARY KEY,
+  rdo_id      TEXT NOT NULL REFERENCES rdos(id) ON DELETE CASCADE,
+  papel       TEXT NOT NULL,                    -- encarregado | cliente | fiscal | outro
+  nome        TEXT NOT NULL,
+  imagem      BYTEA NOT NULL,                    -- PNG da assinatura
+  mime_type   TEXT DEFAULT 'image/png',
+  ip          TEXT,
+  user_agent  TEXT,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_rdo_ass_rdo ON rdo_assinaturas (rdo_id);
+
 -- ============ Arquivos anexados a documentos de recursos ============
 -- Armazena PDFs/imagens dos documentos de RH (ASO, NR-35, CNH...) como BYTEA.
 -- Backup do PG cobre os arquivos automaticamente. Sem dependência de volume/disco.

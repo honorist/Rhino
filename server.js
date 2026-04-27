@@ -2434,6 +2434,18 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Multipart (upload de assinatura digital no RDO)
+  const isRdoAssinaturaUpload = req.method === 'POST'
+    && /^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/assinaturas$/.test(pathname);
+  if (isRdoAssinaturaUpload) {
+    (async () => {
+      if (await applyAuthMiddleware(req, res, pathname)) return;
+      const parts = pathname.split('/');
+      handlePostRdoAssinatura(parts[5], req, res);
+    })();
+    return;
+  }
+
   // Parse body for POST/PUT requests
   const MAX_BODY_BYTES = 1_000_000; // 1 MB
   let body = '';
@@ -2593,6 +2605,19 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname.match(/^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/fotos\/[^/]+$/) && method === 'DELETE') {
     const parts = pathname.split('/');
     return handleDeleteRdoFoto(parts[3], parts[5], parts[7], res);
+  }
+  // Assinaturas do RDO
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/assinaturas$/) && method === 'GET') {
+    const parts = pathname.split('/');
+    return handleListRdoAssinaturas(parts[5], res);
+  }
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/assinaturas\/[^/]+$/) && method === 'GET') {
+    const parts = pathname.split('/');
+    return handleGetRdoAssinatura(parts[5], parts[7], res);
+  }
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/assinaturas\/[^/]+$/) && method === 'DELETE') {
+    const parts = pathname.split('/');
+    return handleDeleteRdoAssinatura(parts[5], parts[7], res);
   }
 
   if (pathname.match(/^\/api\/saidas\/[^/]+$/) && method === 'PUT') {
@@ -3271,6 +3296,112 @@ async function handleDeleteRecursoDocArquivo(recursoId, docId, res) {
         updatedAt: new Date().toISOString(),
       });
     }
+    sendJson(res, { ok: true });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+// ============ Assinaturas digitais do RDO ============
+const ASSINATURA_ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+const ASSINATURA_MAX_BYTES = 2 * 1024 * 1024; // 2MB — assinatura é leve
+const ASSINATURA_PAPEIS = new Set(['encarregado', 'cliente', 'fiscal', 'engenheiro', 'outro']);
+
+function handlePostRdoAssinatura(rdoId, req, res) {
+  const contentType = req.headers['content-type'] || '';
+  const mBoundary = contentType.match(/boundary=(.+)$/);
+  if (!mBoundary) return sendError(res, 400, 'Content-Type multipart esperado');
+  const boundary = mBoundary[1].replace(/^"|"$/g, '');
+
+  const chunks = [];
+  let totalSize = 0;
+  const MAX_TOTAL = ASSINATURA_MAX_BYTES + 32 * 1024;
+
+  req.on('data', c => {
+    totalSize += c.length;
+    if (totalSize > MAX_TOTAL) {
+      req.destroy();
+      sendError(res, 413, 'Assinatura muito grande (máx 2 MB)');
+    } else {
+      chunks.push(c);
+    }
+  });
+
+  req.on('end', async () => {
+    try {
+      const body = Buffer.concat(chunks);
+      const parts = parseMultipart(body, boundary);
+
+      const arq = parts.find(p => p.filename && p.data && p.data.length > 0);
+      if (!arq) return sendError(res, 400, 'Nenhuma imagem enviada');
+      if (arq.contentType && !ASSINATURA_ALLOWED_TYPES.includes(arq.contentType)) {
+        return sendError(res, 400, 'Tipo não permitido (use PNG, JPG ou WEBP)');
+      }
+      if (arq.data.length > ASSINATURA_MAX_BYTES) {
+        return sendError(res, 413, 'Assinatura excede 2 MB');
+      }
+
+      const papelPart = parts.find(p => p.name === 'papel' && !p.filename);
+      const nomePart  = parts.find(p => p.name === 'nome'  && !p.filename);
+      const papel = papelPart ? papelPart.data.toString('utf8').trim() : '';
+      const nome  = nomePart  ? nomePart.data.toString('utf8').trim()  : '';
+      if (!papel || !ASSINATURA_PAPEIS.has(papel)) return sendError(res, 400, 'Papel inválido');
+      if (!nome) return sendError(res, 400, 'Nome obrigatório');
+
+      const rdo = await repos.rdos.findById(rdoId);
+      if (!rdo) return sendError(res, 404, 'RDO não encontrado');
+
+      const id = generateId('ass');
+      const ip = req.socket?.remoteAddress || (req.headers['x-forwarded-for'] || '').split(',')[0]?.trim() || null;
+      const ua = (req.headers['user-agent'] || '').slice(0, 500);
+
+      await db.query(
+        `INSERT INTO rdo_assinaturas (id, rdo_id, papel, nome, imagem, mime_type, ip, user_agent)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [id, rdoId, papel, nome, arq.data, arq.contentType || 'image/png', ip, ua]
+      );
+
+      sendJson(res, { ok: true, id, papel, nome, sizeBytes: arq.data.length, createdAt: new Date().toISOString() });
+    } catch (e) {
+      sendError(res, 400, e.message);
+    }
+  });
+}
+
+async function handleListRdoAssinaturas(rdoId, res) {
+  try {
+    const rows = await db.getMany(
+      `SELECT id, rdo_id, papel, nome, mime_type, ip, created_at
+       FROM rdo_assinaturas WHERE rdo_id = $1 ORDER BY created_at ASC`,
+      [rdoId]
+    );
+    sendJson(res, { assinaturas: rows });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handleGetRdoAssinatura(rdoId, assId, res) {
+  try {
+    const row = await db.getOne(
+      `SELECT mime_type, imagem FROM rdo_assinaturas WHERE id = $1 AND rdo_id = $2`,
+      [assId, rdoId]
+    );
+    if (!row) return sendError(res, 404, 'Assinatura não encontrada');
+    res.writeHead(200, {
+      'Content-Type': row.mimeType || 'image/png',
+      'Content-Length': row.imagem.length,
+      'Cache-Control': 'private, max-age=300',
+    });
+    res.end(row.imagem);
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handleDeleteRdoAssinatura(rdoId, assId, res) {
+  try {
+    await db.query('DELETE FROM rdo_assinaturas WHERE id = $1 AND rdo_id = $2', [assId, rdoId]);
     sendJson(res, { ok: true });
   } catch (e) {
     sendError(res, 400, e.message);
