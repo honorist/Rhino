@@ -204,6 +204,7 @@ window.ContratoDetail = {
             </div>
             <div class="btn-group">
               ${this._podeEditar() ? `<button class="btn btn-primary" id="btnEditarDados">✏️ Editar Dados</button>` : ''}
+              ${this._podeEditar() ? `<button class="btn btn-danger" id="btnExcluirContrato" title="Excluir contrato">🗑️ Excluir</button>` : ''}
               <a href="#/contratos" class="btn btn-secondary">← Voltar</a>
             </div>
           </div>
@@ -829,6 +830,7 @@ window.ContratoDetail = {
 
       // Event listeners (guardados — botões podem não existir conforme a aba)
       document.getElementById('btnEditarDados')?.addEventListener('click', () => this.showModalEditarDados(contract));
+      document.getElementById('btnExcluirContrato')?.addEventListener('click', () => this.showModalExcluirContrato(contract));
 
       // Click em linha da Equipe alocada (visão geral) → abre modal de detalhe do colaborador
       document.querySelectorAll('.row-equipe-visao').forEach(tr => {
@@ -4550,6 +4552,97 @@ window.ContratoDetail = {
     document.addEventListener('click', e => {
       if (!document.getElementById('enderecoWrapDetail')?.contains(e.target))
         dropdown.style.display = 'none';
+    });
+  },
+
+  showModalExcluirContrato(contract) {
+    const html = `
+      <div class="modal-overlay" id="modalOverlayExcluir">
+        <div class="modal" style="width: 480px;">
+          <div class="modal-header">
+            <h2 class="modal-title" style="color: var(--color-danger);">⚠️ Excluir Contrato</h2>
+            <button class="modal-close">✕</button>
+          </div>
+          <div class="modal-content" style="padding: var(--sp-lg);">
+            <p style="margin: 0 0 var(--sp-md) 0;">
+              Você está prestes a <strong>excluir permanentemente</strong> o contrato:
+            </p>
+            <div style="padding: var(--sp-md); background: var(--color-surface-2); border-radius: 6px; margin-bottom: var(--sp-lg); border-left: 3px solid var(--color-danger);">
+              <div style="font-weight: 700; font-size: 15px;">${escapeHtml(contract.name)}</div>
+              <div class="text-muted font-sm">${escapeHtml(contract.client || '')}</div>
+            </div>
+            <div style="padding: var(--sp-md); background: rgba(220, 38, 38, 0.08); border-radius: 6px; margin-bottom: var(--sp-lg); border: 1px solid rgba(220, 38, 38, 0.3);">
+              <p style="margin: 0; font-size: 13px; color: var(--color-danger); font-weight: 600;">
+                Esta ação é IRREVERSÍVEL. Os seguintes dados serão removidos junto:
+              </p>
+              <ul style="margin: 8px 0 0 20px; font-size: 13px; color: var(--color-text-muted);">
+                <li>Saídas e medições (BMs)</li>
+                <li>Organograma e equipe alocada</li>
+                <li>RDOs e fotos vinculadas</li>
+                <li>Itens de orçamento</li>
+              </ul>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" style="font-weight: 600;">
+                Para confirmar, digite <strong style="color: var(--color-danger); font-family: monospace;">DELETAR</strong> abaixo:
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                id="inputConfirmacaoDeletar"
+                placeholder="DELETAR"
+                autocomplete="off"
+                spellcheck="false"
+                style="font-family: monospace; letter-spacing: 1px; font-size: 15px;">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnCancelarExcluir">Cancelar</button>
+            <button class="btn btn-danger" id="btnConfirmarExcluir" disabled>🗑️ Excluir Contrato</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+
+    const overlay = document.getElementById('modalOverlayExcluir');
+    const closeModal = () => overlay.remove();
+
+    overlay.querySelector('.modal-close').addEventListener('click', closeModal);
+    document.getElementById('btnCancelarExcluir').addEventListener('click', closeModal);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+
+    const input = document.getElementById('inputConfirmacaoDeletar');
+    const btnConfirmar = document.getElementById('btnConfirmarExcluir');
+
+    input.addEventListener('input', () => {
+      btnConfirmar.disabled = input.value.trim() !== 'DELETAR';
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !btnConfirmar.disabled) {
+        e.preventDefault();
+        btnConfirmar.click();
+      }
+    });
+
+    setTimeout(() => input.focus(), 50);
+
+    btnConfirmar.addEventListener('click', async () => {
+      if (input.value.trim() !== 'DELETAR') return;
+      btnConfirmar.disabled = true;
+      btnConfirmar.textContent = 'Excluindo...';
+      try {
+        await Store.deleteContract(contract.id);
+        window.showToast('Contrato excluído com sucesso', 'success');
+        closeModal();
+        location.hash = '#/contratos';
+      } catch (e) {
+        window.showToast(e.message || 'Erro ao excluir contrato', 'error');
+        btnConfirmar.disabled = false;
+        btnConfirmar.innerHTML = '🗑️ Excluir Contrato';
+      }
     });
   },
 

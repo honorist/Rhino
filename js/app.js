@@ -705,9 +705,9 @@ function renderSidebar() {
       </li>`;
   }
 
-  // Layout: 4 primeiros top-links → RH → Financeiro → resto.
-  const topBefore = topLinks.filter((_, i) => i < 4);
-  const topAfter  = topLinks.filter((_, i) => i >= 4);
+  // Layout: 3 primeiros top-links (Dashboard, Proposta, Contratos) → grupos (Obras/RH/Financeiro) → resto (Configuração por último).
+  const topBefore = topLinks.filter((_, i) => i < 3);
+  const topAfter  = topLinks.filter((_, i) => i >= 3);
   const groupsHtml = groups.map(renderGroup).join('');
 
   const html = `
