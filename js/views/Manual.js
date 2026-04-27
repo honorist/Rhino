@@ -40,7 +40,7 @@ window.Manual = {
   _flowAuth() {
     return `
 <pre class="mermaid">
-flowchart LR
+flowchart TD
     A[Acesso ao app]:::start --> B[Tela de login<br/>email + senha]
     B --> C{Credenciais<br/>válidas?}
     C -- sim --> D[Sessão criada<br/>cookie httpOnly]:::ok
@@ -58,7 +58,7 @@ flowchart LR
   _flowSaida() {
     return `
 <pre class="mermaid">
-flowchart LR
+flowchart TD
     A[Adicionar saída<br/>no contrato]:::start --> B[Informa valor,<br/>data e prazo]
     B --> C{Já existe NF<br/>mesmo dia<br/>não emitida?}
     C -- não --> D[Cria nova NF/BM<br/>separada]
@@ -153,7 +153,7 @@ flowchart TD
   _flowRDO() {
     return `
 <pre class="mermaid">
-flowchart LR
+flowchart TD
     A[Contrato ativo]:::start --> B[Diariamente<br/>em dia útil]
     B --> C{É feriado<br/>nacional?}
     C -- não --> D[Criar RDO do dia<br/>MOI / MOD / equip. / atividades]:::ok
