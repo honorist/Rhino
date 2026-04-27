@@ -5270,6 +5270,33 @@ window.ContratoDetail = {
 
   _showModalAtividade(contract, ativ) {
     const editing = !!ativ;
+
+    // Auto-preenche a data de início ao criar nova etapa:
+    //   - 1ª etapa (sem nenhuma anterior) → data de início do contrato
+    //   - 2ª+ etapa → dia seguinte ao fim da última etapa cadastrada
+    let inicioDefault = '';
+    let inicioHint = '';
+    if (!editing) {
+      const atvs = (this._atividadesCache || []).slice();
+      if (atvs.length === 0) {
+        inicioDefault = contract.startDate || '';
+        if (inicioDefault) inicioHint = '📅 Sugerido: data de início do contrato';
+      } else {
+        const comFim = atvs.filter(a => a.dataFimPlan);
+        if (comFim.length > 0) {
+          comFim.sort((a, b) => a.dataFimPlan.localeCompare(b.dataFimPlan));
+          const ultimaFim = comFim[comFim.length - 1];
+          const d = new Date(ultimaFim.dataFimPlan + 'T12:00:00');
+          d.setDate(d.getDate() + 1);
+          inicioDefault = d.toISOString().split('T')[0];
+          inicioHint = `📅 Sugerido: dia seguinte ao fim de "${ultimaFim.nome}"`;
+        } else {
+          inicioDefault = contract.startDate || '';
+          if (inicioDefault) inicioHint = '📅 Sugerido: data de início do contrato (etapas anteriores sem data fim)';
+        }
+      }
+    }
+
     const html = `
       <div class="modal-overlay" id="modalAtividade" style="z-index:1100;">
         <div class="modal" style="width:560px;max-width:95vw;">
@@ -5285,7 +5312,8 @@ window.ContratoDetail = {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Início planejado</label>
-                <input class="form-control" type="date" name="dataInicioPlan" value="${ativ?.dataInicioPlan || ''}">
+                <input class="form-control" type="date" name="dataInicioPlan" value="${ativ?.dataInicioPlan || inicioDefault}">
+                ${inicioHint ? `<span style="font-size:12px;color:var(--color-text-muted);">${inicioHint}</span>` : ''}
               </div>
               <div class="form-group">
                 <label class="form-label">Fim planejado</label>
