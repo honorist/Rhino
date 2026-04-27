@@ -7,6 +7,29 @@ window.Estoque = {
   _saldo: { itens: [] },
   _busca: '',
 
+  // Categorias padrão para almoxarifado de manutenção industrial.
+  // Usuário pode digitar livremente também (datalist é sugestão, não obrigação).
+  CATEGORIAS_PADRAO: [
+    'Material de Consumo',
+    'EPI (Equipamento de Proteção)',
+    'Ferramenta',
+    'Equipamento',
+    'Material Elétrico',
+    'Material Hidráulico',
+    'Material Mecânico',
+    'Tubulação e Conexões',
+    'Solda e Acessórios',
+    'Tinta e Solventes',
+    'Lubrificantes',
+    'Parafusos e Fixadores',
+    'Limpeza e Higiene',
+    'Escritório',
+    'Outros',
+  ],
+
+  // Unidades padrão também
+  UNIDADES_PADRAO: ['pç', 'kg', 'm', 'm²', 'm³', 'l', 'cx', 'pacote', 'rolo', 'galão', 'par', 'jogo'],
+
   async render() {
     const app = document.getElementById('app');
     app.innerHTML = '<div class="loading-spinner">Carregando estoque...</div>';
@@ -316,9 +339,11 @@ window.Estoque = {
   // ───── Modais ─────
   _showModalItem(item) {
     const editing = !!item;
+    const datalistCat = this.CATEGORIAS_PADRAO.map(c => `<option value="${escapeHtml(c)}">`).join('');
+    const datalistUnid = this.UNIDADES_PADRAO.map(u => `<option value="${escapeHtml(u)}">`).join('');
     const html = `
       <div class="modal-overlay" id="modalItem">
-        <div class="modal" style="width:560px;">
+        <div class="modal" style="width:600px;">
           <div class="modal-header">
             <h2 class="modal-title">${editing ? '✏️ Editar' : '+ Novo'} item</h2>
             <button class="modal-close">✕</button>
@@ -327,35 +352,65 @@ window.Estoque = {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Código</label>
-                <input class="form-control" name="codigo" value="${escapeHtml(item?.codigo || '')}">
+                <input class="form-control" name="codigo" placeholder="Ex: PRF-001" value="${escapeHtml(item?.codigo || '')}">
               </div>
               <div class="form-group">
-                <label class="form-label">Unidade</label>
-                <input class="form-control" name="unidade" placeholder="pç, kg, m, l..." value="${escapeHtml(item?.unidade || '')}">
+                <label class="form-label">Unidade *</label>
+                <input class="form-control" name="unidade" list="unidades-estoque" required placeholder="Selecione ou digite..." value="${escapeHtml(item?.unidade || '')}">
+                <datalist id="unidades-estoque">${datalistUnid}</datalist>
               </div>
             </div>
             <div class="form-group">
               <label class="form-label">Descrição *</label>
-              <input class="form-control" name="descricao" required value="${escapeHtml(item?.descricao || '')}">
+              <input class="form-control" name="descricao" required placeholder="Ex: Parafuso sextavado M8 x 30mm" value="${escapeHtml(item?.descricao || '')}">
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Categoria</label>
-                <input class="form-control" name="categoria" placeholder="Ex: EPI, ferramenta..." value="${escapeHtml(item?.categoria || '')}">
+                <label class="form-label">Categoria *</label>
+                <input class="form-control" name="categoria" list="categorias-estoque" required placeholder="Selecione ou digite..." value="${escapeHtml(item?.categoria || '')}">
+                <datalist id="categorias-estoque">${datalistCat}</datalist>
+                <span style="font-size:12px;color:var(--color-text-muted);">Selecione da lista ou crie nova</span>
               </div>
               <div class="form-group">
                 <label class="form-label">Estoque mínimo</label>
-                <input class="form-control" type="number" step="0.01" name="estoqueMinimo" value="${item?.estoqueMinimo || 0}">
+                <input class="form-control" type="number" step="0.01" min="0" name="estoqueMinimo" value="${item?.estoqueMinimo || 0}">
+                <span style="font-size:12px;color:var(--color-text-muted);">Alerta quando saldo for menor</span>
               </div>
             </div>
+
+            ${editing ? '' : `
+              <div style="border-top:1px solid var(--color-border);padding-top:var(--sp-md);margin-top:var(--sp-md);">
+                <h4 style="font-size:14px;margin:0 0 var(--sp-sm) 0;color:var(--color-text);">Estoque inicial (opcional)</h4>
+                <p style="font-size:12px;color:var(--color-text-muted);margin:0 0 var(--sp-md) 0;">Se você já tem este item em estoque, informe a quantidade e custo. Será criada uma movimentação de ajuste inicial.</p>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">Quantidade inicial</label>
+                    <input class="form-control" type="number" step="0.001" min="0" name="qtdInicial" value="0" placeholder="0">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Custo unitário (R$)</label>
+                    <input class="form-control" type="number" step="0.01" min="0" name="custoInicial" value="0" placeholder="0,00">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Almoxarifado para o estoque inicial</label>
+                  <select class="form-control" name="almoxarifadoInicial">
+                    <option value="">— (sem estoque inicial) —</option>
+                    ${this._almoxarifados.map(a => `<option value="${a.id}">${escapeHtml(a.nome)}${a.contractName ? ' (obra: ' + escapeHtml(a.contractName) + ')' : ' (central)'}</option>`).join('')}
+                  </select>
+                  ${this._almoxarifados.length === 0 ? '<span style="font-size:12px;color:#F59E0B;">⚠ Cadastre um almoxarifado primeiro pra adicionar estoque inicial</span>' : ''}
+                </div>
+              </div>
+            `}
+
             <div class="form-group">
               <label class="form-label">Notas</label>
-              <textarea class="form-control" name="notas" rows="2">${escapeHtml(item?.notas || '')}</textarea>
+              <textarea class="form-control" name="notas" rows="2" placeholder="Observações sobre o item">${escapeHtml(item?.notas || '')}</textarea>
             </div>
           </form>
           <div class="modal-footer">
             <button class="btn btn-secondary" id="btnCancelItem">Cancelar</button>
-            <button class="btn btn-primary" id="btnSaveItem">${editing ? 'Salvar' : 'Criar'}</button>
+            <button class="btn btn-primary" id="btnSaveItem">${editing ? 'Salvar' : 'Criar item'}</button>
           </div>
         </div>
       </div>
@@ -370,11 +425,45 @@ window.Estoque = {
       const fd = new FormData(document.getElementById('formItem'));
       const data = Object.fromEntries(fd);
       if (!data.descricao?.trim()) { window.showToast('Descrição obrigatória', 'error'); return; }
+      if (!data.unidade?.trim()) { window.showToast('Unidade obrigatória', 'error'); return; }
+      if (!data.categoria?.trim()) { window.showToast('Categoria obrigatória', 'error'); return; }
+
       try {
         const url = editing ? `/api/estoque/itens/${item.id}` : `/api/estoque/itens`;
         const method = editing ? 'PUT' : 'POST';
+        // Inicializa custo médio com o custo unitário inicial se informado
+        if (!editing && parseFloat(data.custoInicial) > 0) {
+          data.custoMedio = data.custoInicial;
+        }
         const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
         if (!r.ok) throw new Error(await r.text());
+        const itemSalvo = await r.json();
+
+        // Estoque inicial: cria movimentação de entrada se houver quantidade > 0
+        if (!editing) {
+          const qtd = parseFloat(data.qtdInicial) || 0;
+          const custo = parseFloat(data.custoInicial) || 0;
+          if (qtd > 0 && data.almoxarifadoInicial) {
+            const movRes = await fetch('/api/estoque/movimentacoes', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                tipo: 'entrada',
+                itemId: itemSalvo.id,
+                almoxarifadoDestinoId: data.almoxarifadoInicial,
+                quantidade: qtd,
+                custoUnit: custo,
+                data: new Date().toISOString().split('T')[0],
+                documento: 'Estoque inicial',
+                notas: 'Movimentação criada automaticamente no cadastro do item',
+              }),
+            });
+            if (!movRes.ok) {
+              window.showToast('Item criado, mas falhou estoque inicial: ' + await movRes.text(), 'warning');
+            }
+          }
+        }
+
         window.showToast(editing ? 'Item atualizado' : 'Item criado', 'success');
         close();
         await this._loadAll(); this._draw();
@@ -395,18 +484,20 @@ window.Estoque = {
           <form id="formAlmox" class="modal-content">
             <div class="form-group">
               <label class="form-label">Nome *</label>
-              <input class="form-control" name="nome" required value="${escapeHtml(almox?.nome || '')}">
+              <input class="form-control" name="nome" required value="${escapeHtml(almox?.nome || '')}" placeholder="Ex: Almox Central, Almox Obra X">
             </div>
             <div class="form-group">
               <label class="form-label">Vinculado a contrato (opcional)</label>
-              <select class="form-control" name="contractId">
-                <option value="">— Almoxarifado central —</option>
-                ${contracts.map(c => `<option value="${c.id}" ${almox?.contractId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
+              <select class="form-control" name="contractId" id="almoxContractSelect">
+                <option value="">— Almoxarifado central (sem contrato) —</option>
+                ${contracts.map(c => `<option value="${c.id}" ${almox?.contractId === c.id ? 'selected' : ''} data-endereco="${escapeHtml(c.endereco || c.clientAddress || '')}">${escapeHtml(c.name)}</option>`).join('')}
               </select>
+              <span style="font-size:12px;color:var(--color-text-muted);">Se vincular a uma obra, o endereço será preenchido automaticamente com o endereço dela</span>
             </div>
             <div class="form-group">
               <label class="form-label">Endereço</label>
-              <input class="form-control" name="endereco" value="${escapeHtml(almox?.endereco || '')}">
+              <input class="form-control" name="endereco" id="almoxEnderecoInput" value="${escapeHtml(almox?.endereco || '')}" placeholder="Endereço do depósito">
+              <span id="almoxEnderecoHint" style="font-size:12px;color:var(--color-text-muted);display:none;">📍 Endereço sincronizado da obra — desvincule o contrato pra editar</span>
             </div>
           </form>
           <div class="modal-footer">
@@ -421,6 +512,40 @@ window.Estoque = {
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnCancelAlmox').addEventListener('click', close);
+
+    // Sincroniza endereço quando muda o contrato selecionado
+    const sel = document.getElementById('almoxContractSelect');
+    const inpEnd = document.getElementById('almoxEnderecoInput');
+    const hint = document.getElementById('almoxEnderecoHint');
+
+    const sincronizarEndereco = () => {
+      const opt = sel.options[sel.selectedIndex];
+      const enderecoObra = opt?.dataset?.endereco || '';
+      if (sel.value && enderecoObra) {
+        inpEnd.value = enderecoObra;
+        inpEnd.readOnly = true;
+        inpEnd.style.background = 'var(--color-surface-2)';
+        inpEnd.style.cursor = 'not-allowed';
+        hint.style.display = 'block';
+      } else if (sel.value && !enderecoObra) {
+        // Contrato selecionado mas sem endereço cadastrado
+        inpEnd.readOnly = false;
+        inpEnd.style.background = '';
+        inpEnd.style.cursor = '';
+        hint.style.display = 'none';
+        if (!editing) inpEnd.value = '';
+        inpEnd.placeholder = 'Obra sem endereço cadastrado — informe aqui';
+      } else {
+        inpEnd.readOnly = false;
+        inpEnd.style.background = '';
+        inpEnd.style.cursor = '';
+        hint.style.display = 'none';
+        inpEnd.placeholder = 'Endereço do depósito';
+      }
+    };
+    sel.addEventListener('change', sincronizarEndereco);
+    // Aplica logo na abertura (caso esteja editando um já vinculado)
+    sincronizarEndereco();
 
     document.getElementById('btnSaveAlmox').addEventListener('click', async () => {
       const fd = new FormData(document.getElementById('formAlmox'));
