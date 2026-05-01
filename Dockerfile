@@ -10,6 +10,8 @@ RUN npm ci --omit=dev && npm cache clean --force
 COPY server.js ./
 COPY analyze.js ./
 COPY index.html ./
+COPY manifest.webmanifest ./
+COPY sw.js ./
 COPY css ./css
 COPY js ./js
 COPY assets ./assets
