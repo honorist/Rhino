@@ -25,6 +25,7 @@ const feriados = require('./lib/feriados');
 const email = require('./lib/email');
 const rateLimit = require('./lib/rate-limit');
 const audit = require('./lib/audit');
+const bus = require('./lib/bus');
 
 // Ensure backups directory exists (used by handleBackup pra dump PG → JSON)
 if (!fs.existsSync(BACKUPS_DIR)) {
@@ -82,6 +83,8 @@ function generateId(prefix) {
 }
 
 // Lê uma coleção do Postgres e retorna o envelope `{ [arrayKey]: rows }`.
+// Nota: `filename` é vestigial (legado da época JSON); mantido para evitar
+// editar 12 call sites. Postgres é única fonte de verdade em runtime.
 async function readCollection(filename, repoName, arrayKey) {
   const rows = await repos[repoName].findAll();
   return { [arrayKey]: rows };
@@ -2401,6 +2404,21 @@ const server = http.createServer((req, res) => {
     // Auditoria — salva no PG em background (não bloqueia o response)
     if (['POST', 'PUT', 'DELETE'].includes(req.method) && pathname.startsWith('/api/') && status < 500) {
       setImmediate(() => audit.log({ req, res, body: req._auditBody, status, durationMs: ms, requestId }).catch(() => {}));
+
+      // Real-time bus (G1) — publica para clientes conectados via /api/stream
+      if (status >= 200 && status < 300) {
+        // pathname tipo /api/contracts ou /api/contracts/abc → entidade = contracts
+        const m = pathname.match(/^\/api\/([a-z0-9-]+)(?:\/([a-zA-Z0-9_-]+))?/i);
+        if (m) {
+          const entity = m[1];
+          const id = m[2] || null;
+          const action = req.method === 'POST' ? 'create' : req.method === 'PUT' ? 'update' : 'delete';
+          // Skip endpoints internos que não representam mutação de entidade
+          if (!['auth', 'stream', 'metrics', 'health', 'audit', 'search', 'backup'].includes(entity)) {
+            bus.publish({ entity, action, id, by: req.user?.email || null });
+          }
+        }
+      }
     }
     return origEnd(...args);
   };
@@ -2865,6 +2883,15 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
 
   // Busca global cross-collection (M3)
   if (pathname === '/api/search' && method === 'GET') return handleGlobalSearch(parsedUrl.query, res);
+
+  // Real-time event stream (G1)
+  if (pathname === '/api/stream' && method === 'GET') {
+    return bus.attach(req, res, { userId: req.user?.id, userEmail: req.user?.email });
+  }
+  // Lista de quem está online (G1) — útil pra avatar bar
+  if (pathname === '/api/online' && method === 'GET') {
+    return sendJson(res, { online: bus.online() });
+  }
 
   // Níveis de Acesso routes
   if (pathname === '/api/niveis-acesso' && method === 'GET') return handleGetNiveisAcesso(res);
