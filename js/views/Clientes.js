@@ -255,6 +255,30 @@ window.Clientes = {
               <label class="form-label">Notas</label>
               <textarea class="form-control" name="notas" style="min-height:60px;">${cliente?.notas || ''}</textarea>
             </div>
+
+            <!-- Acesso ao Portal -->
+            <div style="margin-top:var(--sp-md);padding-top:var(--sp-md);border-top:1px solid var(--color-border);">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-sm);">
+                <h3 style="margin:0;font-size:14px;font-weight:600;">Acesso ao Portal do Cliente</h3>
+                ${cliente?.portalEmail ? `<span style="font-size:12px;font-weight:600;padding:2px 8px;border-radius:12px;background:#38A16922;color:#38A169;">● Portal ativo</span>` : ''}
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Email de acesso</label>
+                  <input class="form-control" name="portalEmail" type="email" value="${cliente?.portalEmail || ''}" placeholder="email@cliente.com">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">${cliente?.portalEmail ? 'Nova senha (vazio = manter)' : 'Senha'}</label>
+                  <input class="form-control" name="portalSenha" type="password" autocomplete="new-password" placeholder="${cliente?.portalEmail ? 'Manter senha atual' : 'Definir senha de acesso'}">
+                </div>
+              </div>
+              ${cliente?.portalEmail ? `
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#c33;">
+                  <input type="checkbox" name="removerPortalAcesso" value="1">
+                  Remover acesso ao portal
+                </label>
+              ` : ''}
+            </div>
           </form>
           <div class="modal-footer">
             <button class="btn btn-secondary" id="btnCancelar">Cancelar</button>

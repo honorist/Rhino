@@ -1062,6 +1062,97 @@ async function handleGetAudit(query, res) {
   }
 }
 
+// ============ Portal do Cliente ============
+const PORTAL_COOKIE = 'rhino_portal';
+const PORTAL_SESSION_DAYS = 7;
+
+async function applyPortalAuth(req, res) {
+  const sid = auth.parseCookies(req)[PORTAL_COOKIE];
+  if (!sid) { sendError(res, 401, 'Não autenticado no portal'); return true; }
+  const row = await db.getOne(
+    `SELECT ps.cliente_id, c.nome, c.empresa, c.email
+     FROM portal_sessions ps
+     JOIN clientes c ON ps.cliente_id = c.id
+     WHERE ps.id = $1 AND ps.expires_at > NOW()`,
+    [sid]
+  );
+  if (!row) { sendError(res, 401, 'Sessão do portal expirada'); return true; }
+  req.portalCliente = { id: row.cliente_id, nome: row.nome, empresa: row.empresa, email: row.email };
+  return false;
+}
+
+async function handlePortalLogin(body, res) {
+  try {
+    const emailRaw = (body.email || '').trim().toLowerCase();
+    const senha = body.senha || '';
+    if (!emailRaw || !senha) return sendError(res, 400, 'Email e senha são obrigatórios');
+
+    const cliente = await db.getOne(
+      'SELECT id, nome, empresa, portal_password_hash FROM clientes WHERE LOWER(portal_email) = $1',
+      [emailRaw]
+    );
+    if (!cliente || !cliente.portal_password_hash) return sendError(res, 401, 'Email ou senha incorretos');
+
+    const bcrypt = require('bcryptjs');
+    const ok = await bcrypt.compare(senha, cliente.portal_password_hash);
+    if (!ok) return sendError(res, 401, 'Email ou senha incorretos');
+
+    const sid = generateId('pses');
+    const expiresAt = new Date(Date.now() + PORTAL_SESSION_DAYS * 86400 * 1000);
+    await db.query(
+      'INSERT INTO portal_sessions (id, cliente_id, expires_at) VALUES ($1, $2, $3)',
+      [sid, cliente.id, expiresAt.toISOString()]
+    );
+    res.setHeader('Set-Cookie',
+      `${PORTAL_COOKIE}=${sid}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${PORTAL_SESSION_DAYS * 86400}`
+    );
+    sendJson(res, { ok: true, cliente: { id: cliente.id, nome: cliente.nome, empresa: cliente.empresa } });
+  } catch (e) { sendError(res, 500, e.message); }
+}
+
+async function handlePortalLogout(req, res) {
+  const sid = auth.parseCookies(req)[PORTAL_COOKIE];
+  if (sid) await db.query('DELETE FROM portal_sessions WHERE id = $1', [sid]).catch(() => {});
+  res.setHeader('Set-Cookie', `${PORTAL_COOKIE}=; HttpOnly; Path=/; Max-Age=0`);
+  sendJson(res, { ok: true });
+}
+
+async function handlePortalDashboard(req, res) {
+  try {
+    const clienteId = req.portalCliente.id;
+    const [allContracts, allNfs] = await Promise.all([
+      repos.contracts.findAll(),
+      repos.notasFiscais.findAll(),
+    ]);
+
+    const contratos = allContracts
+      .filter(c => c.clientId === clienteId)
+      .map(c => {
+        const saidas = Array.isArray(c.saidas) ? c.saidas : [];
+        const totalGasto = saidas.reduce((s, x) => s + (parseFloat(x.value) || 0), 0);
+        const pct = c.value > 0 ? Math.min(100, Math.round((totalGasto / c.value) * 100)) : 0;
+        const rdos = Array.isArray(c.rdos) ? c.rdos : [];
+        return {
+          id: c.id, name: c.name, status: c.status,
+          value: c.value, currency: c.currency || 'BRL',
+          startDate: c.startDate, endDate: c.endDate,
+          contractNumber: c.contractNumber,
+          progresso: pct,
+          totalRdos: rdos.length,
+          ultimoRdo: rdos.length > 0 ? rdos[rdos.length - 1]?.data : null,
+        };
+      });
+
+    const contratosIds = new Set(contratos.map(c => c.id));
+    const nfs = allNfs
+      .filter(n => contratosIds.has(n.contractId))
+      .map(n => ({ id: n.id, numero: n.numero, valor: n.valor, status: n.status, dataEmissao: n.dataEmissao, contractId: n.contractId }))
+      .slice(-20);
+
+    sendJson(res, { cliente: req.portalCliente, contratos, nfs });
+  } catch (e) { sendError(res, 500, e.message); }
+}
+
 // ============ RDOs (visão global) ============
 async function handleGetRdosGlobal(res) {
   try {
@@ -1422,6 +1513,13 @@ async function handlePostCliente(body, res) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+    if (body.portalEmail) {
+      cliente.portalEmail = body.portalEmail.trim().toLowerCase();
+      if (body.portalSenha) {
+        const bcrypt = require('bcryptjs');
+        cliente.portalPasswordHash = await bcrypt.hash(body.portalSenha, 10);
+      }
+    }
     const { envelope } = await writeCollection('clientes', 'clientes', (repo) => repo.create(cliente));
     sendJson(res, envelope);
   } catch (e) {
@@ -1434,6 +1532,17 @@ async function handlePutCliente(id, body, res) {
     const allowed = {};
     const fields = ['nome', 'empresa', 'cargo', 'setor', 'telefone', 'email', 'endereco', 'notas', 'lat', 'lng'];
     for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    if (body.portalEmail !== undefined) {
+      allowed.portalEmail = body.portalEmail ? body.portalEmail.trim().toLowerCase() : null;
+    }
+    if (body.portalSenha) {
+      const bcrypt = require('bcryptjs');
+      allowed.portalPasswordHash = await bcrypt.hash(body.portalSenha, 10);
+    }
+    if (body.removerPortalAcesso) {
+      allowed.portalEmail = null;
+      allowed.portalPasswordHash = null;
+    }
     allowed.updatedAt = new Date().toISOString();
 
     const { envelope, result } = await writeCollection('clientes', 'clientes', (repo) => repo.updateById(id, allowed));
@@ -2530,6 +2639,7 @@ const AUTH_WHITELIST = new Set([
   '/api/auth/login',
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
+  '/api/portal/login',
 ]);
 async function applyAuthMiddleware(req, res, pathname) {
   if (!pathname.startsWith('/api/')) return false;
@@ -2566,6 +2676,18 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname === '/api/auth/forgot-password' && method === 'POST') return handleForgotPassword(req, body, res);
   if (pathname === '/api/auth/reset-password' && method === 'POST') return handleResetPassword(body, res);
   if (pathname === '/api/auth/accept-terms' && method === 'POST') return handleAcceptTerms(req, res);
+
+  // ============ Portal do Cliente ============
+  if (pathname === '/api/portal/login' && method === 'POST') return handlePortalLogin(body, res);
+  if (pathname.startsWith('/api/portal/')) {
+    (async () => {
+      if (await applyPortalAuth(req, res)) return;
+      if (pathname === '/api/portal/logout' && method === 'POST') return handlePortalLogout(req, res);
+      if (pathname === '/api/portal/dashboard' && method === 'GET') return handlePortalDashboard(req, res);
+      sendError(res, 404, 'Rota do portal não encontrada');
+    })();
+    return;
+  }
 
   // ============ Auditoria ============
   if (pathname === '/api/audit' && method === 'GET') return handleGetAudit(parsedUrl.query, res);

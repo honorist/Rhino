@@ -50,6 +50,19 @@ CREATE TABLE IF NOT EXISTS clientes (
 CREATE INDEX IF NOT EXISTS idx_clientes_nome ON clientes (nome);
 CREATE INDEX IF NOT EXISTS idx_clientes_empresa ON clientes (empresa);
 
+-- Portal de acesso do cliente
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS portal_email TEXT;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS portal_password_hash TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_clientes_portal_email ON clientes (portal_email) WHERE portal_email IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS portal_sessions (
+  id          TEXT PRIMARY KEY,
+  cliente_id  TEXT NOT NULL REFERENCES clientes(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  expires_at  TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_portal_sessions_expires ON portal_sessions (expires_at);
+
 -- ============ Fornecedores ============
 CREATE TABLE IF NOT EXISTS fornecedores (
   id              TEXT PRIMARY KEY,

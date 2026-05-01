@@ -140,6 +140,9 @@ async function showLoginModal() {
           <div style="text-align:center;margin-top:var(--sp-md);">
             <a href="#" id="goForgot" style="font-size:13px;color:var(--color-primary);">Esqueci minha senha</a>
           </div>
+          <div style="margin-top:var(--sp-lg);border-top:1px solid var(--color-border);padding-top:var(--sp-lg);text-align:center;">
+            <a href="#" id="goPortal" style="font-size:13px;color:var(--color-text-muted);">Área do Cliente →</a>
+          </div>
         </form>
       `;
       attach();
@@ -176,6 +179,12 @@ async function showLoginModal() {
           }
         });
         document.getElementById('goForgot').addEventListener('click', (e) => { e.preventDefault(); mode = 'forgot'; draw(); });
+        document.getElementById('goPortal')?.addEventListener('click', (e) => {
+          e.preventDefault();
+          overlay.remove();
+          window.Portal?.init();
+          resolve('portal');
+        });
       }
       if (forgotForm) {
         const msg = document.getElementById('forgotMsg');
@@ -966,7 +975,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 1) Autenticação obrigatória
   let user = await auth.loadMe();
   if (!user) {
-    await showLoginModal();
+    const loginResult = await showLoginModal();
+    if (loginResult === 'portal') return;
     user = await auth.loadMe();
   }
 
