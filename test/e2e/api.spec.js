@@ -150,8 +150,14 @@ test.describe('Contracts + sub-recursos', () => {
 
   test('organograma encarregado', async () => {
     const ctx = await api();
-    const recs = await (await ctx.get('/api/recursos')).json();
-    const rec = recs.recursos[0];
+    let recs = (await (await ctx.get('/api/recursos')).json()).recursos;
+    let rec = recs[0];
+    if (!rec) {
+      const created = await (await ctx.post('/api/recursos', {
+        data: { nome: 'PW Recurso', profissao: 'Pedreiro' },
+      })).json();
+      rec = created.recursos[0];
+    }
     const r = await ctx.post(`/api/contracts/${contractId}/organograma`, {
       data: { recursoId: rec.id, nivel: 'encarregado', cargo: 'Encarregado' },
     });

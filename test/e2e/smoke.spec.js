@@ -1,9 +1,11 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 
-const BASE_URL = process.env.RHINO_URL || 'http://localhost:5000';
+const BASE_URL = process.env.RHINO_URL || 'http://localhost:3001';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@rhino.local';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
-// Helper: resetar dados (estado limpo a cada teste)
+// Helper: estado limpo a cada teste, com login automático
 async function freshApp(page) {
   await page.goto(BASE_URL);
   await page.evaluate(() => {
@@ -13,8 +15,23 @@ async function freshApp(page) {
     } catch {}
   });
   await page.goto(BASE_URL);
-  // Aguarda o seletor de perfil
-  await page.waitForSelector('#profilePicker .perfil-card', { timeout: 10_000 });
+
+  // Aguarda login form ou profile picker (depende de haver sessão ativa)
+  await page.waitForFunction(
+    () => document.querySelector('#loginForm') || document.querySelector('.perfil-card'),
+    { timeout: 10_000 }
+  );
+
+  // Faz login se necessário
+  if (await page.locator('#loginForm').count() > 0) {
+    await page.fill('input[name="email"]', ADMIN_EMAIL);
+    await page.fill('input[name="password"]', ADMIN_PASSWORD);
+    await page.click('button[type="submit"]');
+    // Aceita LGPD se aparecer
+    await page.locator('#btnAceitarTermos').click().catch(() => {});
+  }
+
+  await page.waitForSelector('.perfil-card', { timeout: 10_000 });
   await page.locator('.perfil-card').first().click();
   await page.waitForSelector('#sidebar', { state: 'attached' });
 }
