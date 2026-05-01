@@ -1585,7 +1585,7 @@ async function handleDeleteTipoBase(id, res) {
 
     // Verificar se está em uso (base_items ainda lê do JSON enquanto não migramos)
     const baseItems = await repos.baseItems.findAll();
-    if (baseItems.some(b => b.tipoKey === tipo.key)) {
+    if (baseItems.some(b => b.type === tipo.key)) {
       return sendError(res, 400, 'Tipo em uso por itens da BASE. Remova ou reclassifique os itens antes de excluir.');
     }
     const { envelope } = await writeCollection('tiposBase', 'tipos', (repo) => repo.removeById(id));
@@ -1657,8 +1657,9 @@ async function handlePutContaPagar(id, body, res) {
 async function handleDeleteContaPagar(id, res) {
   try {
     const conta = await repos.contasPagar.findById(id);
+    if (!conta) return sendError(res, 404, 'Conta não encontrada');
     // Remove caixa entry vinculada (se houver)
-    if (conta && conta.caixaEntryId) {
+    if (conta.caixaEntryId) {
       await repos.caixa.removeById(conta.caixaEntryId);
     }
     const { envelope } = await writeCollection('contasPagar', 'contas', (repo) => repo.removeById(id));
@@ -2247,9 +2248,9 @@ function handlePostRdoFoto(contractId, rdoId, req, res) {
   req.on('data', c => {
     totalSize += c.length;
     if (totalSize > MAX_TOTAL) {
-      req.destroy();
       res.writeHead(413, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Upload muito grande' }));
+      req.destroy();
       return;
     }
     chunks.push(c);
@@ -2465,6 +2466,16 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // OFX import — lê o corpo raw (não é JSON), precisa pular o body parser
+  const isOfxImport = req.method === 'POST' && pathname === '/api/caixa/importar-ofx';
+  if (isOfxImport) {
+    (async () => {
+      if (await applyAuthMiddleware(req, res, pathname)) return;
+      handleImportarOfx(req, res);
+    })();
+    return;
+  }
+
   // Multipart (upload de assinatura digital no RDO)
   const isRdoAssinaturaUpload = req.method === 'POST'
     && /^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/assinaturas$/.test(pathname);
@@ -2485,9 +2496,9 @@ const server = http.createServer((req, res) => {
     req.on('data', chunk => {
       bodySize += chunk.length;
       if (bodySize > MAX_BODY_BYTES) {
-        req.destroy();
         res.writeHead(413, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Payload too large' }));
+        req.destroy();
         return;
       }
       body += chunk;
@@ -2998,7 +3009,11 @@ async function handleProcessarRecorrencias(res) {
 
     const criadas = [];
     for (const conta of recorrentes) {
-      const nextDate = _calcProximaData(conta.dataVencimento, conta.periodicidade || 'mensal');
+      // Avança até a próxima data futura (evita criar parcelas já passadas quando há atraso acumulado)
+      let nextDate = _calcProximaData(conta.dataVencimento, conta.periodicidade || 'mensal');
+      while (nextDate <= hojeStr) {
+        nextDate = _calcProximaData(nextDate, conta.periodicidade || 'mensal');
+      }
       const jaExiste = contas.some(c => c.recorrenciaOrigemId === conta.id && c.dataVencimento === nextDate);
       if (jaExiste) continue;
       const nova = {
@@ -3237,18 +3252,18 @@ async function handleGlobalSearch(query, res) {
   ]);
 
   contracts.forEach((c) => {
-    if (matches(c.client_name) || matches(c.title) || matches(c.description) || matches(c.id)) {
-      results.push({ kind: 'Contrato', id: c.id, title: c.client_name || c.title || c.id, hint: c.title || '', hash: `#/contratos/${c.id}` });
+    if (matches(c.name) || matches(c.client) || matches(c.contractNumber) || matches(c.id)) {
+      results.push({ kind: 'Contrato', id: c.id, title: c.name || c.id, hint: c.client || '', hash: `#/contratos/${c.id}` });
     }
   });
   clientes.forEach((c) => {
-    if (matches(c.name) || matches(c.cnpj) || matches(c.email)) {
-      results.push({ kind: 'Cliente', id: c.id, title: c.name, hint: c.cnpj || c.email || '', hash: '#/clientes' });
+    if (matches(c.nome) || matches(c.email) || matches(c.empresa)) {
+      results.push({ kind: 'Cliente', id: c.id, title: c.nome, hint: c.email || c.empresa || '', hash: '#/clientes' });
     }
   });
   fornecedores.forEach((f) => {
-    if (matches(f.name) || matches(f.cnpj)) {
-      results.push({ kind: 'Fornecedor', id: f.id, title: f.name, hint: f.cnpj || '', hash: '#/fornecedores' });
+    if (matches(f.nome) || matches(f.cnpj)) {
+      results.push({ kind: 'Fornecedor', id: f.id, title: f.nome, hint: f.cnpj || '', hash: '#/fornecedores' });
     }
   });
   contas.forEach((c) => {

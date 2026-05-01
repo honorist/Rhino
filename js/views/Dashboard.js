@@ -1000,7 +1000,7 @@ window.Dashboard = {
     const rs = this._rdoStats;
     if (rs && !rs.ehFimDeSemana) {
       if (rs.obrasSemRdoOntem && rs.obrasSemRdoOntem.length > 0) {
-        const nomes = rs.obrasSemRdoOntem.slice(0, 3).map(o => o.name).join(', ');
+        const nomes = rs.obrasSemRdoOntem.slice(0, 3).map(o => escapeHtml(o.name || '')).join(', ');
         const sufixo = rs.obrasSemRdoOntem.length > 3 ? ` e mais ${rs.obrasSemRdoOntem.length - 3}` : '';
         alertas.push({ tipo: 'danger', msg: `🔴 ${rs.obrasSemRdoOntem.length} obra(s) sem RDO no último dia útil: ${nomes}${sufixo} — <a href="#/rdos" style="color:inherit;text-decoration:underline;">ver RDOs</a>` });
       }

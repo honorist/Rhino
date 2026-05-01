@@ -703,7 +703,6 @@ function renderSidebar() {
   const recAlerts = getRecursosAlertCount();
   const docAlerts = getDocumentosAlertCount();
   const docAlertDetail = getDocumentosAlertDetail();
-  const isDark = getTheme() === 'dark';
   const currentHash = location.hash || '#/dashboard';
   const perfilAtual = perfil.get();
 
@@ -789,10 +788,7 @@ function renderSidebar() {
           </button>
         `
       ) : ''}
-      <button id="theme-toggle" class="theme-toggle-btn" title="${isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}" aria-label="${isDark ? 'Mudar para tema claro' : 'Mudar para tema escuro'}">
-        <span class="theme-toggle-icon">${_ic(isDark ? 'sun' : 'moon')}</span>
-        <span>${isDark ? 'Tema Claro' : 'Tema Escuro'}</span>
-      </button>
+
       <a href="#/manual" id="btn-manual" class="theme-toggle-btn" title="Abrir Manual do Usuário" style="text-decoration:none;">
         <span class="theme-toggle-icon">${_ic('book')}</span>
         <span>Manual</span>
@@ -855,12 +851,6 @@ function renderSidebar() {
     });
   }
 
-  // Theme toggle
-  document.getElementById('theme-toggle').addEventListener('click', () => {
-    toggleTheme();
-    renderSidebar();
-    updateSidebarActiveState(location.hash || '#/dashboard');
-  });
 
   // Zoom controls
   const zIn  = document.getElementById('zoom-in');

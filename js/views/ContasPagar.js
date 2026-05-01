@@ -7,6 +7,8 @@ window.ContasPagar = {
 
     try {
       await Store.loadAll();
+      // Dispara processamento de recorrências em background (F7) — idempotente
+      fetch('/api/contas-pagar/processar-recorrencias', { method: 'POST' }).catch(() => {});
 
       const contas = Store.state.contas_pagar || [];
       const hojeStr = new Date().toISOString().split('T')[0];
