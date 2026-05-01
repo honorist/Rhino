@@ -262,15 +262,12 @@ window.Clientes = {
                 <h3 style="margin:0;font-size:14px;font-weight:600;">Acesso ao Portal do Cliente</h3>
                 ${cliente?.portalEmail ? `<span style="font-size:12px;font-weight:600;padding:2px 8px;border-radius:12px;background:#38A16922;color:#38A169;">● Portal ativo</span>` : ''}
               </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label">Email de acesso</label>
-                  <input class="form-control" name="portalEmail" type="email" value="${cliente?.portalEmail || ''}" placeholder="email@cliente.com">
-                </div>
-                <div class="form-group">
-                  <label class="form-label">${cliente?.portalEmail ? 'Nova senha (vazio = manter)' : 'Senha'}</label>
-                  <input class="form-control" name="portalSenha" type="password" autocomplete="new-password" placeholder="${cliente?.portalEmail ? 'Manter senha atual' : 'Definir senha de acesso'}">
-                </div>
+              <p style="margin:0 0 var(--sp-sm);font-size:13px;color:var(--color-text-muted);">
+                O cliente entrará com o email já cadastrado acima.
+              </p>
+              <div class="form-group">
+                <label class="form-label">${cliente?.portalEmail ? 'Nova senha (vazio = manter)' : 'Senha de acesso'}</label>
+                <input class="form-control" name="portalSenha" type="password" autocomplete="new-password" placeholder="${cliente?.portalEmail ? 'Deixe vazio para manter a senha atual' : 'Definir senha de acesso ao portal'}">
               </div>
               ${cliente?.portalEmail ? `
                 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#c33;">
@@ -304,6 +301,10 @@ window.Clientes = {
       const fd = new FormData(document.getElementById('formCliente'));
       const data = Object.fromEntries(fd);
       if (!data.nome || !data.nome.trim()) { window.showToast('Nome é obrigatório', 'error'); return; }
+
+      // Usa o email do cliente como email de acesso ao portal
+      if (data.portalSenha && data.email) data.portalEmail = data.email;
+      if (cliente?.portalEmail && data.email) data.portalEmail = data.email; // sincroniza se email mudou
 
       try {
         if (cliente) await Store.updateCliente(clienteId, data);
