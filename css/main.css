@@ -822,10 +822,14 @@ body.sb-collapsed .nav-group-children {
   overflow: visible !important;
 }
 
-/* Logo compacta */
-body.sb-collapsed .sidebar-header { justify-content: center; padding: 10px 4px; }
-body.sb-collapsed .sidebar-logo   { flex: 0; }
-body.sb-collapsed .sidebar-logo-img { width: 30px; height: 30px; object-fit: contain; }
+/* Header compacto: oculta logo, centraliza só o botão de expandir */
+body.sb-collapsed .sidebar-header { justify-content: center; padding: 0; height: 60px; }
+body.sb-collapsed .sidebar-logo   { display: none; }
+
+/* Footer compacto: centraliza icones, remove padding lateral */
+body.sb-collapsed .sidebar-footer { padding: 6px 4px; }
+body.sb-collapsed .sidebar-footer .theme-toggle-btn { padding: 10px 0; justify-content: center; }
+body.sb-collapsed .theme-toggle-icon { display: inline-flex !important; align-items: center; justify-content: center; }
 
 /* Botão de colapso */
 .sb-collapse-btn {

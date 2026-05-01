@@ -808,13 +808,13 @@ function renderSidebar() {
       ${perfilAtual ? (
         // Se o usuário logado tem nivelAcessoId fixo, mostra o nível mas SEM botão de trocar.
         auth.user() && auth.user().nivelAcessoId ? `
-          <div class="theme-toggle-btn" title="Seu nível de acesso" style="margin-bottom:4px;cursor:default;">
-            <span style="font-size:15px;">${perfilAtual.icon}</span>
+          <div class="theme-toggle-btn" title="Seu nível de acesso" data-tooltip="${perfilAtual.label}" style="margin-bottom:4px;cursor:default;">
+            <span class="theme-toggle-icon" style="font-size:18px;">${perfilAtual.icon}</span>
             <span style="color:${perfilAtual.cor};font-weight:600;">${perfilAtual.label}</span>
           </div>
         ` : `
           <button id="btn-trocar-perfil" class="theme-toggle-btn" title="Trocar perfil" data-tooltip="${perfilAtual.label}" style="margin-bottom:4px;">
-            <span style="font-size:15px;">${perfilAtual.icon}</span>
+            <span class="theme-toggle-icon" style="font-size:18px;">${perfilAtual.icon}</span>
             <span style="color:${perfilAtual.cor};font-weight:600;">${perfilAtual.label}</span>
             <span style="margin-left:auto;font-size:15px;color:var(--color-text-muted);">trocar</span>
           </button>
