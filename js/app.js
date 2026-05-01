@@ -427,7 +427,7 @@ const perfil = {
     const abas = this.abas();
     if (!abas) return true; // sem perfil → tudo liberado
     // Sub-abas universais (adicionadas depois do cadastro inicial dos perfis):
-    if (['cronograma'].includes(tabKey)) return true;
+    if (['cronograma', 'timeline'].includes(tabKey)) return true;
     const contractTabs = abas.filter(a => typeof a === 'string' && a.startsWith('contrato-tab:'));
     if (contractTabs.length === 0) return true; // nada configurado → tudo liberado (legado)
     return contractTabs.includes('contrato-tab:' + tabKey);
@@ -821,6 +821,10 @@ function renderSidebar() {
         `
       ) : ''}
 
+      <button id="btn-themer" class="theme-toggle-btn" title="Personalizar tema" data-tooltip="Tema" style="margin-bottom:4px;">
+        <span class="theme-toggle-icon">🎨</span>
+        <span>Tema</span>
+      </button>
       <a href="#/manual" id="btn-manual" class="theme-toggle-btn" title="Abrir Manual do Usuário" data-tooltip="Manual" style="text-decoration:none;">
         <span class="theme-toggle-icon">${_ic('book')}</span>
         <span>Manual</span>
@@ -830,7 +834,7 @@ function renderSidebar() {
         <button id="zoom-label" class="zoom-label" title="Clique para restaurar 100%">${Math.round(getZoom()*100)}%</button>
         <button id="zoom-in" class="zoom-btn" title="Aumentar (maior)">+</button>
       </div>
-      <div class="sidebar-version">v1.0.0</div>
+      <div class="sidebar-version">v${window.__APP_VERSION__ || '—'}</div>
     </div>
   `;
 
@@ -891,6 +895,15 @@ function renderSidebar() {
     });
   }
 
+
+  // Themer button — delegates to the hidden FAB (which owns the panel lifecycle)
+  const btnThemer = document.getElementById('btn-themer');
+  if (btnThemer) {
+    btnThemer.addEventListener('click', () => {
+      const fab = document.querySelector('.theme-customizer-fab');
+      if (fab) fab.click();
+    });
+  }
 
   // Zoom controls
   const zIn  = document.getElementById('zoom-in');

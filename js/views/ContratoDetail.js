@@ -66,7 +66,7 @@ function inferirNivelOrganograma(profissao) {
 window.ContratoDetail = {
   chart: null,
   _organogramaView: 'hierarquia',
-  _tab: 'visao',  // visao | financeiro | cronograma | equipe | rdo | pendencias | aditivos | marcos | ocorrencias
+  _tab: 'visao',  // visao | financeiro | cronograma | equipe | rdo | pendencias | aditivos | marcos | ocorrencias | timeline
 
   _podeEditar() {
     return !window.perfil || !window.perfil.podeEditar || window.perfil.podeEditar('#/contratos');
@@ -232,6 +232,7 @@ window.ContratoDetail = {
             { k:'aditivos',    l:'Aditivos',     icon:'plus-circle',    badge: (contract.aditivos || []).filter(a => !a.aprovado).length || 0 },
             { k:'marcos',      l:'Marcos',       icon:'check-square',   badge: (contract.marcos || []).filter(m => !m.concluido).length || 0 },
             { k:'ocorrencias', l:'Ocorrências',  icon:'alert-circle',   badge: (contract.ocorrencias || []).filter(o => !o.encerrada).length || 0 },
+            { k:'timeline',    l:'Timeline',     icon:'git-commit' },
           ].filter(t => (window.perfil ? window.perfil.podeContractTab(t.k) : true)).map(t => `
             <button class="ctd-tab ${this._tab === t.k ? 'active' : ''}" data-ctd-tab="${t.k}" role="tab" aria-selected="${this._tab === t.k}" aria-label="${t.l}${t.badge ? ' (' + t.badge + ')' : ''}">
               <span aria-hidden="true" style="display:inline-flex;align-items:center;color:currentColor;">${window.rhIcon ? window.rhIcon(t.icon, 16) : ''}</span>
@@ -585,6 +586,9 @@ window.ContratoDetail = {
 
         <!-- ─── Ocorrências ─── -->
         ${this._tab === 'ocorrencias' ? this.renderOcorrenciasSection(contract, contractId) : ''}
+
+        <!-- ─── Timeline ─── -->
+        ${this._tab === 'timeline' ? this.renderTimelineSection(contract, contractId) : ''}
 
         <!-- Composição do Gasto - Gráfico em Pizza -->
         ${this._tab === 'visao' ? (() => {
@@ -1188,5 +1192,93 @@ window.ContratoDetail = {
       await fetch(url, { method: item ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
       await Store.loadAll(); modal.remove(); this.render({ id: contractId });
     });
+  },
+
+  // ── Timeline ──────────────────────────────────────────────────────────────
+
+  renderTimelineSection(contract, contractId) {
+    const fmtDate = (d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : null;
+    const events = [];
+
+    // Início e fim do contrato
+    if (contract.startDate) events.push({ date: contract.startDate, tipo: 'contrato', icon: '📋', label: 'Início do contrato', desc: contract.name });
+    if (contract.endDate)   events.push({ date: contract.endDate,   tipo: 'contrato', icon: '🏁', label: 'Fim do contrato',   desc: contract.name });
+
+    // Aditivos
+    (contract.aditivos || []).forEach(a => {
+      if (a.data) events.push({ date: a.data, tipo: 'aditivo', icon: '➕', label: `Aditivo${a.numero ? ' #' + a.numero : ''}: ${a.tipo === 'valor' ? 'Valor' : a.tipo === 'prazo' ? 'Prazo' : 'Valor+Prazo'}`, desc: a.descricao });
+    });
+
+    // Marcos
+    (contract.marcos || []).forEach(m => {
+      if (m.prazo) events.push({ date: m.prazo, tipo: 'marco', icon: m.concluido ? '✅' : '🎯', label: `Marco: ${m.titulo}`, desc: m.concluido ? `Concluído${m.concluidoEm ? ' em ' + fmtDate(m.concluidoEm) : ''}` : 'Pendente' });
+    });
+
+    // Ocorrências
+    (contract.ocorrencias || []).forEach(o => {
+      if (o.data) {
+        const sev = o.severidade === 'alta' ? '🔴' : o.severidade === 'media' ? '🟡' : '🟢';
+        events.push({ date: o.data, tipo: 'ocorrencia', icon: sev, label: `Ocorrência${o.encerrada ? ' (encerrada)' : ''}`, desc: o.descricao });
+      }
+    });
+
+    // RDOs
+    (contract.rdos || []).forEach(r => {
+      if (r.date) events.push({ date: r.date, tipo: 'rdo', icon: '📝', label: `RDO — ${r.condition || ''}`, desc: null });
+    });
+
+    // Medições (notas fiscais vinculadas)
+    const nfsContrato = (Store.state.notas_fiscais || []).filter(nf => nf.contractId === contractId);
+    nfsContrato.forEach(nf => {
+      const d = nf.dataEmissao || nf.dataPrevista || nf.createdAt;
+      if (d) {
+        const dateStr = d.length > 10 ? d.slice(0, 10) : d;
+        const val = parseFloat(nf.valor) || 0;
+        events.push({ date: dateStr, tipo: 'medicao', icon: '💰', label: `Medição${nf.numero ? ' #' + nf.numero : ''}${nf.emitida ? ' ✓' : ''}`, desc: val ? `R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : null });
+      }
+    });
+
+    if (!events.length) {
+      return `<div class="card"><p class="text-muted" style="text-align:center;padding:32px;">Nenhum evento registrado neste contrato.</p></div>`;
+    }
+
+    // Ordena por data
+    events.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+    const TIPO_COLOR = {
+      contrato:   'var(--color-primary)',
+      aditivo:    '#8B5CF6',
+      marco:      '#059669',
+      ocorrencia: '#DC2626',
+      rdo:        '#6B7280',
+      medicao:    '#D97706',
+    };
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    return `
+      <div class="card" style="padding: var(--sp-xl);">
+        <h3 style="margin:0 0 var(--sp-xl);font-size:16px;font-weight:700;color:var(--color-text);">Timeline do Contrato</h3>
+        <div style="position:relative;padding-left:32px;">
+          <div style="position:absolute;left:11px;top:0;bottom:0;width:2px;background:var(--color-border);border-radius:2px;"></div>
+          ${events.map((ev, i) => {
+            const isPast = ev.date <= today;
+            const color = TIPO_COLOR[ev.tipo] || 'var(--color-text-muted)';
+            return `
+              <div style="position:relative;margin-bottom:28px;${i === events.length - 1 ? 'margin-bottom:0;' : ''}">
+                <div style="position:absolute;left:-26px;top:2px;width:14px;height:14px;border-radius:50%;background:${color};border:2px solid var(--color-bg);box-shadow:0 0 0 2px ${color}44;display:flex;align-items:center;justify-content:center;font-size:8px;opacity:${isPast ? 1 : 0.5};"></div>
+                <div style="opacity:${isPast ? 1 : 0.65};">
+                  <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:2px;">
+                    <span style="font-size:11px;font-weight:600;color:${color};letter-spacing:.5px;text-transform:uppercase;">${ev.tipo}</span>
+                    <span style="font-size:12px;color:var(--color-text-muted);">${fmtDate(ev.date) || ev.date}</span>
+                    ${!isPast ? `<span style="font-size:10px;background:var(--color-surface-2);color:var(--color-text-muted);padding:1px 6px;border-radius:8px;">futuro</span>` : ''}
+                  </div>
+                  <div style="font-size:14px;font-weight:600;color:var(--color-text);">${ev.icon} ${ev.label}</div>
+                  ${ev.desc ? `<div style="font-size:13px;color:var(--color-text-muted);margin-top:2px;">${ev.desc}</div>` : ''}
+                </div>
+              </div>`;
+          }).join('')}
+        </div>
+      </div>`;
   },
 };

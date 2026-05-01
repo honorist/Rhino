@@ -2606,7 +2606,15 @@ function serveStaticFile(pathname, res) {
     headers['Expires'] = '0';
   }
   res.writeHead(200, headers);
-  res.end(fs.readFileSync(filepath));
+  if (ext === '.html') {
+    const html = fs.readFileSync(filepath, 'utf8').replace(
+      '</head>',
+      `<script>window.__APP_VERSION__="${APP_VERSION}";</script></head>`
+    );
+    res.end(html);
+  } else {
+    res.end(fs.readFileSync(filepath));
+  }
 }
 
 // ============ Observabilidade ============
