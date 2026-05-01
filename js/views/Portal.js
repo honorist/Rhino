@@ -62,7 +62,7 @@ window.Portal = {
             <div id="portalLoginErr" style="display:none;color:#c33;font-size:13px;padding:8px 12px;background:rgba(220,38,38,.08);border-radius:6px;"></div>
             <button class="btn btn-primary" type="submit" style="width:100%;margin-top:4px;">Entrar</button>
             <div style="text-align:center;margin-top:var(--sp-sm);">
-              <a href="#/dashboard" style="font-size:13px;color:var(--color-text-muted);">← Acesso interno</a>
+              <a href="#" id="portalBtnInterno" style="font-size:13px;color:var(--color-text-muted);">← Acesso interno</a>
             </div>
           </form>
         </div>
@@ -70,6 +70,10 @@ window.Portal = {
     `;
     const form = document.getElementById('portalLoginForm');
     const err = document.getElementById('portalLoginErr');
+    document.getElementById('portalBtnInterno').addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.reload();
+    });
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       err.style.display = 'none';
