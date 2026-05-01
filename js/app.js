@@ -514,6 +514,25 @@ function iniciarApp() {
   }
 }
 
+// ─── Sidebar collapse ───
+const SB_COLLAPSE_KEY = 'rhino-sb-collapsed';
+
+function getSbCollapsed() {
+  try { return localStorage.getItem(SB_COLLAPSE_KEY) === '1'; } catch { return false; }
+}
+function setSbCollapsed(v) {
+  try { localStorage.setItem(SB_COLLAPSE_KEY, v ? '1' : '0'); } catch {}
+}
+function applySbCollapsed(collapsed) {
+  document.body.classList.toggle('sb-collapsed', collapsed);
+  const btn = document.getElementById('btn-sb-collapse');
+  if (btn) {
+    btn.title = collapsed ? 'Expandir sidebar' : 'Recolher sidebar';
+    btn.setAttribute('aria-label', btn.title);
+    btn.innerHTML = _ic(collapsed ? 'chevrons-right' : 'chevrons-left');
+  }
+}
+
 // ─── Theme ───
 function getTheme() {
   return localStorage.getItem('rhino-theme') || 'light';
@@ -688,9 +707,9 @@ function renderNavItem(link, nfAlerts, cpAlerts, recAlerts) {
 
   return `
     <li class="nav-item">
-      <a href="${link.href}" class="nav-link">
+      <a href="${link.href}" class="nav-link" data-tooltip="${link.label}">
         <span class="nav-icon">${link.icon}</span>
-        <span>${link.label}</span>
+        <span class="nav-label">${link.label}</span>
         ${badge}
       </a>
     </li>`;
@@ -739,7 +758,7 @@ function renderSidebar() {
     const open = isOpen;
     return `
       <li class="nav-group-item">
-        <button class="nav-group-header" id="${g.btnId}" data-group="${g.key}">
+        <button class="nav-group-header" id="${g.btnId}" data-group="${g.key}" data-tooltip="${g.label}">
           <span class="nav-icon">${g.icon}</span>
           <span class="nav-group-label">${g.label}</span>
           ${!open && g.alertCount > 0 ? `<span class="nav-badge-alert">${g.alertCount}</span>` : ''}
@@ -759,6 +778,10 @@ function renderSidebar() {
       <div class="sidebar-logo">
         <img src="assets/logo.png" alt="Rhino Manutenções" class="sidebar-logo-img">
       </div>
+      <button id="btn-sb-collapse" class="sb-collapse-btn"
+              title="Recolher sidebar" aria-label="Recolher sidebar">
+        ${_ic('chevrons-left')}
+      </button>
     </div>
     <ul class="nav-links">
       ${topLinks.map(l => renderNavItem(l, nfAlerts, cpAlerts, recAlerts)).join('')}
@@ -767,7 +790,7 @@ function renderSidebar() {
     </ul>
     <div class="sidebar-footer">
       ${auth.user() ? `
-        <button id="btn-logout" class="theme-toggle-btn" title="Sair (${auth.user().email})" style="margin-bottom:4px;" aria-label="Sair">
+        <button id="btn-logout" class="theme-toggle-btn" title="Sair (${auth.user().email})" data-tooltip="Sair" style="margin-bottom:4px;" aria-label="Sair">
           <span class="theme-toggle-icon">${_ic('log-out')}</span>
           <span style="font-weight:600;">${auth.user().name || auth.user().email}</span>
           <span style="margin-left:auto;font-size:13px;color:var(--color-text-muted);">sair</span>
@@ -781,7 +804,7 @@ function renderSidebar() {
             <span style="color:${perfilAtual.cor};font-weight:600;">${perfilAtual.label}</span>
           </div>
         ` : `
-          <button id="btn-trocar-perfil" class="theme-toggle-btn" title="Trocar perfil" style="margin-bottom:4px;">
+          <button id="btn-trocar-perfil" class="theme-toggle-btn" title="Trocar perfil" data-tooltip="${perfilAtual.label}" style="margin-bottom:4px;">
             <span style="font-size:15px;">${perfilAtual.icon}</span>
             <span style="color:${perfilAtual.cor};font-weight:600;">${perfilAtual.label}</span>
             <span style="margin-left:auto;font-size:15px;color:var(--color-text-muted);">trocar</span>
@@ -789,7 +812,7 @@ function renderSidebar() {
         `
       ) : ''}
 
-      <a href="#/manual" id="btn-manual" class="theme-toggle-btn" title="Abrir Manual do Usuário" style="text-decoration:none;">
+      <a href="#/manual" id="btn-manual" class="theme-toggle-btn" title="Abrir Manual do Usuário" data-tooltip="Manual" style="text-decoration:none;">
         <span class="theme-toggle-icon">${_ic('book')}</span>
         <span>Manual</span>
       </a>
@@ -803,6 +826,14 @@ function renderSidebar() {
   `;
 
   sidebar.innerHTML = html;
+
+  // Aplica estado colapsado após re-render (innerHTML limpa listeners)
+  applySbCollapsed(getSbCollapsed());
+  document.getElementById('btn-sb-collapse')?.addEventListener('click', () => {
+    const next = !getSbCollapsed();
+    setSbCollapsed(next);
+    applySbCollapsed(next);
+  });
 
   // Nav link clicks
   sidebar.querySelectorAll('.nav-link').forEach(link => {
@@ -921,6 +952,7 @@ window.toggleTheme = toggleTheme;
 document.addEventListener('DOMContentLoaded', async () => {
   applyTheme(getTheme());
   applyZoom(getZoom());
+  applySbCollapsed(getSbCollapsed());
   // Esconde boot loader assim que o app começa a inicializar
   if (window.RhinoBoot) window.RhinoBoot.done();
 
