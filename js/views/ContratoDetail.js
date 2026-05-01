@@ -66,7 +66,7 @@ function inferirNivelOrganograma(profissao) {
 window.ContratoDetail = {
   chart: null,
   _organogramaView: 'hierarquia',
-  _tab: 'visao',  // visao | financeiro | equipe | pendencias
+  _tab: 'visao',  // visao | financeiro | cronograma | equipe | rdo | pendencias | aditivos | marcos | ocorrencias
 
   _podeEditar() {
     return !window.perfil || !window.perfil.podeEditar || window.perfil.podeEditar('#/contratos');
@@ -228,7 +228,10 @@ window.ContratoDetail = {
             { k:'cronograma', l:'Cronograma',   icon:'calendar' },
             { k:'equipe',     l:'Equipe',       icon:'users' },
             { k:'rdo',        l:'RDO',          icon:'clipboard', badge: (contract.rdos || []).length },
-            { k:'pendencias', l:'Pendências',   icon:'alert-triangle', badge: passagensPendentes.length }
+            { k:'pendencias',  l:'Pendências',   icon:'alert-triangle', badge: passagensPendentes.length },
+            { k:'aditivos',    l:'Aditivos',     icon:'plus-circle',    badge: (contract.aditivos || []).filter(a => !a.aprovado).length || 0 },
+            { k:'marcos',      l:'Marcos',       icon:'check-square',   badge: (contract.marcos || []).filter(m => !m.concluido).length || 0 },
+            { k:'ocorrencias', l:'Ocorrências',  icon:'alert-circle',   badge: (contract.ocorrencias || []).filter(o => !o.encerrada).length || 0 },
           ].filter(t => (window.perfil ? window.perfil.podeContractTab(t.k) : true)).map(t => `
             <button class="ctd-tab ${this._tab === t.k ? 'active' : ''}" data-ctd-tab="${t.k}" role="tab" aria-selected="${this._tab === t.k}" aria-label="${t.l}${t.badge ? ' (' + t.badge + ')' : ''}">
               <span aria-hidden="true" style="display:inline-flex;align-items:center;color:currentColor;">${window.rhIcon ? window.rhIcon(t.icon, 16) : ''}</span>
@@ -276,6 +279,7 @@ window.ContratoDetail = {
 
         <!-- Resumo orientado a Boletim de Medição -->
         ${this._tab === 'visao' ? `
+        ${contract.retencaoPercent > 0 ? `<div style="margin-bottom:var(--sp-md);padding:10px 16px;background:rgba(213,158,46,.1);border-left:3px solid #D69E2E;border-radius:6px;font-size:14px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;"><span style="font-weight:700;color:#D69E2E;">⚠ Retenção ${parseFloat(contract.retencaoPercent).toFixed(1)}%</span><span style="color:var(--color-text-muted);">Valor retido estimado: <strong>${Store.formatBRL(totalEmitido * parseFloat(contract.retencaoPercent) / 100)}</strong> (sobre ${Store.formatBRL(totalEmitido)} emitido)</span></div>` : ''}
         <div class="card mb-2xl" style="padding:0;overflow:hidden;">
           <div style="display:grid;grid-template-columns:repeat(4,1fr);">
             <div style="padding:var(--sp-lg);border-right:1px solid var(--color-border);border-top:3px solid var(--color-primary);">
@@ -572,6 +576,15 @@ window.ContratoDetail = {
 
         <!-- ─── RDO ─── -->
         ${this._tab === 'rdo' ? this.renderRdoSection(contract) : ''}
+
+        <!-- ─── Aditivos ─── -->
+        ${this._tab === 'aditivos' ? this.renderAditivosSection(contract, contractId) : ''}
+
+        <!-- ─── Marcos ─── -->
+        ${this._tab === 'marcos' ? this.renderMarcosSection(contract, contractId) : ''}
+
+        <!-- ─── Ocorrências ─── -->
+        ${this._tab === 'ocorrencias' ? this.renderOcorrenciasSection(contract, contractId) : ''}
 
         <!-- Composição do Gasto - Gráfico em Pizza -->
         ${this._tab === 'visao' ? (() => {
@@ -892,6 +905,11 @@ window.ContratoDetail = {
       // Organograma
       this.attachOrganogramaListeners(contract);
 
+      // Novas abas
+      if (this._tab === 'aditivos') this._attachAditivosListeners(contractId);
+      if (this._tab === 'marcos')   this._attachMarcosListeners(contractId);
+      if (this._tab === 'ocorrencias') this._attachOcorrenciasListeners(contractId);
+
       // Cronograma — carrega atividades e wires up listeners
       if (this._tab === 'cronograma') {
         this._loadAtividades(contract);
@@ -909,5 +927,266 @@ window.ContratoDetail = {
       console.error(e);
       app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar contrato. Tente novamente.</p></div>';
     }
+  },
+
+  // ── Aditivos ──────────────────────────────────────────────────────────────
+
+  renderAditivosSection(contract, contractId) {
+    const aditivos = contract.aditivos || [];
+    const fmt = Store.formatBRL;
+    const fmtDate = (d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+    const tipoLabel = { valor: 'Valor', prazo: 'Prazo', escopo: 'Escopo' };
+    const totalValorDelta = aditivos.reduce((s, a) => s + (parseFloat(a.valorDelta) || 0), 0);
+    const totalDiasDelta = aditivos.reduce((s, a) => s + (parseInt(a.diasDelta) || 0), 0);
+    return `
+    <div class="card mb-2xl">
+      <div class="card-header">
+        <h3 class="card-title">Aditivos de Contrato</h3>
+        ${this._podeEditar() ? `<button class="btn btn-primary btn-sm" id="btnNovoAditivo">+ Novo Aditivo</button>` : ''}
+      </div>
+      ${totalValorDelta !== 0 || totalDiasDelta !== 0 ? `
+      <div style="display:flex;gap:var(--sp-lg);padding:var(--sp-md) var(--sp-lg);background:var(--color-surface-2);border-bottom:1px solid var(--color-border);">
+        <span class="text-muted font-sm">Total aditado: <strong style="color:${totalValorDelta >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${totalValorDelta >= 0 ? '+' : ''}${fmt(totalValorDelta)}</strong></span>
+        ${totalDiasDelta !== 0 ? `<span class="text-muted font-sm">Prorrogação: <strong>${totalDiasDelta > 0 ? '+' : ''}${totalDiasDelta} dias</strong></span>` : ''}
+      </div>` : ''}
+      ${aditivos.length === 0 ? `<div style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">Nenhum aditivo cadastrado</div>` : `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nº</th><th>Tipo</th><th>Descrição</th><th>Valor Δ</th><th>Prazo Δ</th><th>Data</th><th>Status</th>${this._podeEditar() ? '<th></th>' : ''}</tr></thead>
+          <tbody>
+            ${aditivos.map(a => `
+            <tr>
+              <td>${escapeHtml(a.numero || '—')}</td>
+              <td><span style="padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;background:var(--color-surface-2);">${tipoLabel[a.tipo] || a.tipo}</span></td>
+              <td>${escapeHtml(a.descricao)}</td>
+              <td style="font-weight:700;color:${parseFloat(a.valorDelta) >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${parseFloat(a.valorDelta) >= 0 ? '+' : ''}${fmt(a.valorDelta)}</td>
+              <td>${parseInt(a.diasDelta) ? `${parseInt(a.diasDelta) > 0 ? '+' : ''}${a.diasDelta}d` : '—'}</td>
+              <td>${fmtDate(a.data)}</td>
+              <td><span style="padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;background:${a.aprovado ? '#D1FAE5' : '#FEF3C7'};color:${a.aprovado ? '#065F46' : '#92400E'};">${a.aprovado ? 'Aprovado' : 'Pendente'}</span></td>
+              ${this._podeEditar() ? `<td><button class="btn btn-sm btn-secondary btn-edit-aditivo" data-id="${a.id}" style="margin-right:4px;">Editar</button><button class="btn btn-sm btn-danger btn-del-aditivo" data-id="${a.id}">✕</button></td>` : ''}
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`}
+    </div>`;
+  },
+
+  _attachAditivosListeners(contractId) {
+    document.getElementById('btnNovoAditivo')?.addEventListener('click', () => this._showModalAditivo(contractId, null));
+    document.querySelectorAll('.btn-edit-aditivo').forEach(b => b.addEventListener('click', () => {
+      const contract = Store.getContractById(contractId);
+      const item = (contract?.aditivos || []).find(a => a.id === b.dataset.id);
+      this._showModalAditivo(contractId, item);
+    }));
+    document.querySelectorAll('.btn-del-aditivo').forEach(b => b.addEventListener('click', async () => {
+      if (!confirm('Excluir este aditivo?')) return;
+      await fetch(`/api/contracts/${contractId}/aditivos/${b.dataset.id}`, { method: 'DELETE' });
+      await Store.loadAll(); this.render({ id: contractId });
+    }));
+  },
+
+  _showModalAditivo(contractId, item) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay active';
+    modal.innerHTML = `
+      <div class="modal" style="max-width:480px;">
+        <div class="modal-header"><h2 class="modal-title">${item ? 'Editar Aditivo' : 'Novo Aditivo'}</h2></div>
+        <div class="modal-body">
+          <form id="formAditivo" style="display:flex;flex-direction:column;gap:var(--sp-md);">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-md);">
+              <div class="form-group" style="margin:0;"><label class="form-label">Número</label><input class="form-control" name="numero" value="${escapeHtml(item?.numero || '')}"></div>
+              <div class="form-group" style="margin:0;"><label class="form-label">Tipo</label><select class="form-control" name="tipo"><option value="valor" ${(!item || item.tipo === 'valor') ? 'selected' : ''}>Valor</option><option value="prazo" ${item?.tipo === 'prazo' ? 'selected' : ''}>Prazo</option><option value="escopo" ${item?.tipo === 'escopo' ? 'selected' : ''}>Escopo</option></select></div>
+            </div>
+            <div class="form-group" style="margin:0;"><label class="form-label">Descrição *</label><textarea class="form-control" name="descricao" style="min-height:60px;">${escapeHtml(item?.descricao || '')}</textarea></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-md);">
+              <div class="form-group" style="margin:0;"><label class="form-label">Valor Δ (R$)</label><input class="form-control" name="valorDelta" type="number" step="0.01" value="${item?.valorDelta || 0}"></div>
+              <div class="form-group" style="margin:0;"><label class="form-label">Prazo Δ (dias)</label><input class="form-control" name="diasDelta" type="number" value="${item?.diasDelta || 0}"></div>
+              <div class="form-group" style="margin:0;"><label class="form-label">Data</label><input class="form-control" name="data" type="date" value="${item?.data || ''}"></div>
+            </div>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;"><input type="checkbox" name="aprovado" ${item?.aprovado ? 'checked' : ''}> Aprovado</label>
+          </form>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" id="btnCancelarAditivo">Cancelar</button><button class="btn btn-primary" id="btnSalvarAditivo">${item ? 'Atualizar' : 'Criar'}</button></div>
+      </div>`;
+    document.body.appendChild(modal);
+    document.getElementById('btnCancelarAditivo').addEventListener('click', () => modal.remove());
+    document.getElementById('btnSalvarAditivo').addEventListener('click', async () => {
+      const fd = new FormData(document.getElementById('formAditivo'));
+      const data = Object.fromEntries(fd);
+      data.aprovado = document.querySelector('[name=aprovado]').checked;
+      if (!data.descricao?.trim()) { window.showToast('Descrição obrigatória', 'error'); return; }
+      const url = item ? `/api/contracts/${contractId}/aditivos/${item.id}` : `/api/contracts/${contractId}/aditivos`;
+      await fetch(url, { method: item ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      await Store.loadAll(); modal.remove(); this.render({ id: contractId });
+    });
+  },
+
+  // ── Marcos ────────────────────────────────────────────────────────────────
+
+  renderMarcosSection(contract, contractId) {
+    const marcos = contract.marcos || [];
+    const total = marcos.length;
+    const done = marcos.filter(m => m.concluido).length;
+    const pct = total > 0 ? (done / total * 100) : 0;
+    const fmtDate = (d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    return `
+    <div class="card mb-2xl">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">Checklist de Marcos</h3>
+          <div class="rh-meta-xs">${done}/${total} concluídos · ${pct.toFixed(0)}%</div>
+        </div>
+        ${this._podeEditar() ? `<button class="btn btn-primary btn-sm" id="btnNovoMarco">+ Novo Marco</button>` : ''}
+      </div>
+      ${total > 0 ? `<div style="padding:0 var(--sp-lg) var(--sp-md);"><div style="height:6px;background:var(--color-surface-2);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:var(--color-success);transition:width .4s;border-radius:3px;"></div></div></div>` : ''}
+      ${marcos.length === 0 ? `<div style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">Nenhum marco cadastrado</div>` :
+        marcos.map(m => {
+          const vencido = !m.concluido && m.prazo && new Date(m.prazo + 'T12:00:00') < hoje;
+          const proximo = !m.concluido && m.prazo && !vencido && Math.ceil((new Date(m.prazo + 'T12:00:00') - hoje) / 86400000) <= 7;
+          return `
+          <div style="display:flex;align-items:flex-start;gap:var(--sp-md);padding:var(--sp-md) var(--sp-lg);border-bottom:1px solid var(--color-border);">
+            <button class="btn-toggle-marco" data-id="${m.id}" data-concluido="${m.concluido}" style="flex-shrink:0;width:22px;height:22px;border-radius:4px;border:2px solid ${m.concluido ? 'var(--color-success)' : 'var(--color-border)'};background:${m.concluido ? 'var(--color-success)' : 'transparent'};cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;">${m.concluido ? '✓' : ''}</button>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:600;font-size:14px;${m.concluido ? 'text-decoration:line-through;color:var(--color-text-muted);' : ''}">${escapeHtml(m.titulo)}</div>
+              ${m.descricao ? `<div style="font-size:13px;color:var(--color-text-muted);margin-top:2px;">${escapeHtml(m.descricao)}</div>` : ''}
+              ${m.prazo ? `<div style="font-size:12px;margin-top:4px;color:${vencido ? 'var(--color-danger)' : proximo ? 'var(--color-warning)' : 'var(--color-text-muted)'};">${vencido ? '⚠ Vencido: ' : ''}Prazo: ${fmtDate(m.prazo)}${m.concluido && m.concluidoEm ? ` · Concluído: ${fmtDate(m.concluidoEm)}` : ''}</div>` : ''}
+            </div>
+            ${this._podeEditar() ? `<div style="display:flex;gap:4px;flex-shrink:0;"><button class="btn btn-sm btn-secondary btn-edit-marco" data-id="${m.id}">Editar</button><button class="btn btn-sm btn-danger btn-del-marco" data-id="${m.id}">✕</button></div>` : ''}
+          </div>`}).join('')}
+    </div>`;
+  },
+
+  _attachMarcosListeners(contractId) {
+    document.getElementById('btnNovoMarco')?.addEventListener('click', () => this._showModalMarco(contractId, null));
+    document.querySelectorAll('.btn-toggle-marco').forEach(b => b.addEventListener('click', async () => {
+      const nowDone = b.dataset.concluido === 'true';
+      await fetch(`/api/contracts/${contractId}/marcos/${b.dataset.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ concluido: !nowDone }) });
+      await Store.loadAll(); this.render({ id: contractId });
+    }));
+    document.querySelectorAll('.btn-edit-marco').forEach(b => b.addEventListener('click', () => {
+      const contract = Store.getContractById(contractId);
+      const item = (contract?.marcos || []).find(m => m.id === b.dataset.id);
+      this._showModalMarco(contractId, item);
+    }));
+    document.querySelectorAll('.btn-del-marco').forEach(b => b.addEventListener('click', async () => {
+      if (!confirm('Excluir este marco?')) return;
+      await fetch(`/api/contracts/${contractId}/marcos/${b.dataset.id}`, { method: 'DELETE' });
+      await Store.loadAll(); this.render({ id: contractId });
+    }));
+  },
+
+  _showModalMarco(contractId, item) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay active';
+    modal.innerHTML = `
+      <div class="modal" style="max-width:420px;">
+        <div class="modal-header"><h2 class="modal-title">${item ? 'Editar Marco' : 'Novo Marco'}</h2></div>
+        <div class="modal-body">
+          <form id="formMarco" style="display:flex;flex-direction:column;gap:var(--sp-md);">
+            <div class="form-group" style="margin:0;"><label class="form-label">Título *</label><input class="form-control" name="titulo" value="${escapeHtml(item?.titulo || '')}"></div>
+            <div class="form-group" style="margin:0;"><label class="form-label">Descrição</label><textarea class="form-control" name="descricao" style="min-height:60px;">${escapeHtml(item?.descricao || '')}</textarea></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-md);">
+              <div class="form-group" style="margin:0;"><label class="form-label">Prazo</label><input class="form-control" name="prazo" type="date" value="${item?.prazo || ''}"></div>
+              <div class="form-group" style="margin:0;"><label class="form-label">Ordem</label><input class="form-control" name="ordem" type="number" value="${item?.ordem || 0}"></div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" id="btnCancelarMarco">Cancelar</button><button class="btn btn-primary" id="btnSalvarMarco">${item ? 'Atualizar' : 'Criar'}</button></div>
+      </div>`;
+    document.body.appendChild(modal);
+    document.getElementById('btnCancelarMarco').addEventListener('click', () => modal.remove());
+    document.getElementById('btnSalvarMarco').addEventListener('click', async () => {
+      const fd = new FormData(document.getElementById('formMarco'));
+      const data = Object.fromEntries(fd);
+      if (!data.titulo?.trim()) { window.showToast('Título obrigatório', 'error'); return; }
+      const url = item ? `/api/contracts/${contractId}/marcos/${item.id}` : `/api/contracts/${contractId}/marcos`;
+      await fetch(url, { method: item ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      await Store.loadAll(); modal.remove(); this.render({ id: contractId });
+    });
+  },
+
+  // ── Ocorrências ───────────────────────────────────────────────────────────
+
+  renderOcorrenciasSection(contract, contractId) {
+    const ocorrencias = contract.ocorrencias || [];
+    const fmtDate = (d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+    const sevCor = { baixa: '#6B7280', media: '#D97706', alta: '#DC2626', critica: '#7C3AED' };
+    const sevBg  = { baixa: '#F3F4F6', media: '#FEF3C7', alta: '#FEE2E2', critica: '#EDE9FE' };
+    const tipoLabel = { geral: 'Geral', seguranca: 'Segurança', qualidade: 'Qualidade', prazo: 'Prazo', financeiro: 'Financeiro' };
+    const abertas = ocorrencias.filter(o => !o.encerrada).length;
+    return `
+    <div class="card mb-2xl">
+      <div class="card-header">
+        <div>
+          <h3 class="card-title">Ocorrências</h3>
+          ${abertas > 0 ? `<div class="rh-meta-xs" style="color:var(--color-danger);">${abertas} aberta${abertas !== 1 ? 's' : ''}</div>` : '<div class="rh-meta-xs" style="color:var(--color-success);">Nenhuma aberta</div>'}
+        </div>
+        ${this._podeEditar() ? `<button class="btn btn-primary btn-sm" id="btnNovaOcorrencia">+ Nova Ocorrência</button>` : ''}
+      </div>
+      ${ocorrencias.length === 0 ? `<div style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">Nenhuma ocorrência registrada</div>` : `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Data</th><th>Tipo</th><th>Severidade</th><th>Descrição</th><th>Status</th>${this._podeEditar() ? '<th></th>' : ''}</tr></thead>
+          <tbody>
+            ${ocorrencias.map(o => `
+            <tr style="${o.encerrada ? 'opacity:.6;' : ''}">
+              <td style="white-space:nowrap;">${fmtDate(o.data)}</td>
+              <td>${tipoLabel[o.tipo] || o.tipo}</td>
+              <td><span style="padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700;background:${sevBg[o.severidade] || '#F3F4F6'};color:${sevCor[o.severidade] || '#6B7280'};">${(o.severidade || 'media').toUpperCase()}</span></td>
+              <td>${escapeHtml(o.descricao)}</td>
+              <td>${o.encerrada ? `<span style="color:var(--color-success);font-weight:600;">Encerrada</span>` : `<span style="color:var(--color-danger);font-weight:600;">Aberta</span>`}</td>
+              ${this._podeEditar() ? `<td style="white-space:nowrap;"><button class="btn btn-sm btn-secondary btn-edit-ocr" data-id="${o.id}" style="margin-right:4px;">Editar</button><button class="btn btn-sm btn-danger btn-del-ocr" data-id="${o.id}">✕</button></td>` : ''}
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`}
+    </div>`;
+  },
+
+  _attachOcorrenciasListeners(contractId) {
+    document.getElementById('btnNovaOcorrencia')?.addEventListener('click', () => this._showModalOcorrencia(contractId, null));
+    document.querySelectorAll('.btn-edit-ocr').forEach(b => b.addEventListener('click', () => {
+      const contract = Store.getContractById(contractId);
+      const item = (contract?.ocorrencias || []).find(o => o.id === b.dataset.id);
+      this._showModalOcorrencia(contractId, item);
+    }));
+    document.querySelectorAll('.btn-del-ocr').forEach(b => b.addEventListener('click', async () => {
+      if (!confirm('Excluir esta ocorrência?')) return;
+      await fetch(`/api/contracts/${contractId}/ocorrencias/${b.dataset.id}`, { method: 'DELETE' });
+      await Store.loadAll(); this.render({ id: contractId });
+    }));
+  },
+
+  _showModalOcorrencia(contractId, item) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay active';
+    modal.innerHTML = `
+      <div class="modal" style="max-width:480px;">
+        <div class="modal-header"><h2 class="modal-title">${item ? 'Editar Ocorrência' : 'Nova Ocorrência'}</h2></div>
+        <div class="modal-body">
+          <form id="formOcorrencia" style="display:flex;flex-direction:column;gap:var(--sp-md);">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-md);">
+              <div class="form-group" style="margin:0;"><label class="form-label">Data</label><input class="form-control" name="data" type="date" value="${item?.data || new Date().toISOString().split('T')[0]}"></div>
+              <div class="form-group" style="margin:0;"><label class="form-label">Tipo</label><select class="form-control" name="tipo"><option value="geral" ${(!item || item.tipo === 'geral') ? 'selected' : ''}>Geral</option><option value="seguranca" ${item?.tipo === 'seguranca' ? 'selected' : ''}>Segurança</option><option value="qualidade" ${item?.tipo === 'qualidade' ? 'selected' : ''}>Qualidade</option><option value="prazo" ${item?.tipo === 'prazo' ? 'selected' : ''}>Prazo</option><option value="financeiro" ${item?.tipo === 'financeiro' ? 'selected' : ''}>Financeiro</option></select></div>
+              <div class="form-group" style="margin:0;"><label class="form-label">Severidade</label><select class="form-control" name="severidade"><option value="baixa" ${item?.severidade === 'baixa' ? 'selected' : ''}>Baixa</option><option value="media" ${(!item || item.severidade === 'media') ? 'selected' : ''}>Média</option><option value="alta" ${item?.severidade === 'alta' ? 'selected' : ''}>Alta</option><option value="critica" ${item?.severidade === 'critica' ? 'selected' : ''}>Crítica</option></select></div>
+            </div>
+            <div class="form-group" style="margin:0;"><label class="form-label">Descrição *</label><textarea class="form-control" name="descricao" style="min-height:80px;">${escapeHtml(item?.descricao || '')}</textarea></div>
+            ${item ? `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;"><input type="checkbox" name="encerrada" ${item?.encerrada ? 'checked' : ''}> Encerrada</label>` : ''}
+          </form>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" id="btnCancelarOcr">Cancelar</button><button class="btn btn-primary" id="btnSalvarOcr">${item ? 'Atualizar' : 'Registrar'}</button></div>
+      </div>`;
+    document.body.appendChild(modal);
+    document.getElementById('btnCancelarOcr').addEventListener('click', () => modal.remove());
+    document.getElementById('btnSalvarOcr').addEventListener('click', async () => {
+      const fd = new FormData(document.getElementById('formOcorrencia'));
+      const data = Object.fromEntries(fd);
+      if (item) data.encerrada = document.querySelector('[name=encerrada]')?.checked || false;
+      if (!data.descricao?.trim()) { window.showToast('Descrição obrigatória', 'error'); return; }
+      const url = item ? `/api/contracts/${contractId}/ocorrencias/${item.id}` : `/api/contracts/${contractId}/ocorrencias`;
+      await fetch(url, { method: item ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      await Store.loadAll(); modal.remove(); this.render({ id: contractId });
+    });
   },
 };

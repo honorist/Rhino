@@ -19,4 +19,7 @@ module.exports = {
   niveisAcesso:   require('./niveis_acesso'),
   docTemplates:   require('./doc_templates'),
   users:          require('./users'),
+  aditivos:       require('./aditivos'),
+  marcos:         require('./marcos'),
+  ocorrencias:    require('./ocorrencias'),
 };

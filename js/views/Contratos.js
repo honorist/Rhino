@@ -85,6 +85,7 @@ window.Contratos = {
                       <strong>${escapeHtml(c.name)}</strong>
                       ${c.status === 'ativo' && semRdoIds.has(c.id) ? `<span title="Sem RDO no último dia útil" style="margin-left:6px;">🔴</span>` : ''}
                       ${c.status === 'ativo' && atrasadasMap.has(c.id) ? `<span title="${atrasadasMap.get(c.id).nuncaFezRdo ? 'Nunca fez RDO' : atrasadasMap.get(c.id).diasUteisSemRdo + ' dias úteis sem RDO'}" style="margin-left:4px;">⏰</span>` : ''}
+                      ${(() => { if (c.status !== 'ativo' || !c.endDate) return ''; const dias = Math.ceil((new Date(c.endDate) - new Date()) / 86400000); if (dias < 0) return `<span title="Contrato vencido há ${Math.abs(dias)} dias" style="margin-left:4px;padding:1px 6px;border-radius:99px;font-size:11px;font-weight:700;background:#FEE2E2;color:#DC2626;">VENCIDO</span>`; if (dias <= 30) return `<span title="Vence em ${dias} dia${dias !== 1 ? 's' : ''}" style="margin-left:4px;padding:1px 6px;border-radius:99px;font-size:11px;font-weight:700;background:#FEF3C7;color:#D97706;">⚠ ${dias}d</span>`; return ''; })()}
                     </td>
                     <td>${escapeHtml(c.client)}</td>
                     <td>${Store.formatBRL(c.value)}</td>
@@ -431,6 +432,12 @@ window.Contratos = {
             </div>
 
             <div style="border-top:1px solid var(--color-border);padding-top:var(--sp-lg);margin-top:var(--sp-lg);">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-md);margin-bottom:var(--sp-md);">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label">Retenção (%)</label>
+                  <input class="form-control" name="retencaoPercent" type="number" min="0" max="100" step="0.01" value="${contract?.retencaoPercent || 0}" placeholder="0">
+                </div>
+              </div>
               <div class="form-group">
                 <label class="form-label">Notas/Observações</label>
                 <textarea class="form-control" name="notes" style="min-height:80px;">${contract?.notes || ''}</textarea>

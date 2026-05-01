@@ -536,6 +536,53 @@ INSERT INTO feature_flags (key, enabled, description) VALUES
   ('recurring_payments',true,  'Contas a pagar recorrentes (lançamento automático)')
 ON CONFLICT (key) DO NOTHING;
 
+-- ============ Retenção no Contrato ============
+ALTER TABLE contracts ADD COLUMN IF NOT EXISTS retencao_percent NUMERIC(5,2) DEFAULT 0;
+
+-- ============ Aditivos de Contrato ============
+CREATE TABLE IF NOT EXISTS contract_aditivos (
+  id            TEXT PRIMARY KEY,
+  contract_id   TEXT NOT NULL REFERENCES contracts(id) ON DELETE CASCADE,
+  numero        TEXT,
+  tipo          TEXT DEFAULT 'valor',     -- valor | prazo | escopo
+  descricao     TEXT NOT NULL,
+  valor_delta   NUMERIC(15,2) DEFAULT 0, -- positivo = aumento, negativo = redução
+  dias_delta    INTEGER DEFAULT 0,
+  data          DATE,
+  aprovado      BOOLEAN DEFAULT FALSE,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_aditivos_contract ON contract_aditivos (contract_id);
+
+-- ============ Marcos / Checklist de Obra ============
+CREATE TABLE IF NOT EXISTS contract_marcos (
+  id            TEXT PRIMARY KEY,
+  contract_id   TEXT NOT NULL REFERENCES contracts(id) ON DELETE CASCADE,
+  titulo        TEXT NOT NULL,
+  descricao     TEXT,
+  prazo         DATE,
+  concluido     BOOLEAN DEFAULT FALSE,
+  concluido_em  DATE,
+  ordem         INTEGER DEFAULT 0,
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_marcos_contract ON contract_marcos (contract_id);
+
+-- ============ Ocorrências de Obra ============
+CREATE TABLE IF NOT EXISTS contract_ocorrencias (
+  id            TEXT PRIMARY KEY,
+  contract_id   TEXT NOT NULL REFERENCES contracts(id) ON DELETE CASCADE,
+  tipo          TEXT DEFAULT 'geral',    -- geral | seguranca | qualidade | prazo | financeiro
+  severidade    TEXT DEFAULT 'media',   -- baixa | media | alta | critica
+  descricao     TEXT NOT NULL,
+  data          DATE,
+  encerrada     BOOLEAN DEFAULT FALSE,
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_ocorrencias_contract ON contract_ocorrencias (contract_id);
+
 -- ============ Recorrência em Contas a Pagar (F7) ============
 ALTER TABLE contas_pagar
   ADD COLUMN IF NOT EXISTS recorrente          BOOLEAN DEFAULT FALSE,

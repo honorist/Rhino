@@ -53,7 +53,7 @@ async function findAllWithChildren() {
   const ids = contracts.map((c) => c.id);
   const ph = ids.map((_, i) => `$${i + 1}`).join(', ');
 
-  const [orgs, rdos] = await Promise.all([
+  const [orgs, rdos, aditivos, marcos, ocorrencias] = await Promise.all([
     db.getMany(
       `SELECT * FROM organograma_membros WHERE contract_id IN (${ph}) ORDER BY created_at ASC`,
       ids
@@ -62,10 +62,25 @@ async function findAllWithChildren() {
       `SELECT * FROM rdos WHERE contract_id IN (${ph}) ORDER BY created_at ASC`,
       ids
     ),
+    db.getMany(
+      `SELECT * FROM contract_aditivos WHERE contract_id IN (${ph}) ORDER BY data DESC, created_at DESC`,
+      ids
+    ),
+    db.getMany(
+      `SELECT * FROM contract_marcos WHERE contract_id IN (${ph}) ORDER BY ordem ASC, prazo ASC NULLS LAST, created_at ASC`,
+      ids
+    ),
+    db.getMany(
+      `SELECT * FROM contract_ocorrencias WHERE contract_id IN (${ph}) ORDER BY data DESC, created_at DESC`,
+      ids
+    ),
   ]);
 
   const orgsByContract = new Map();
   const rdosByContract = new Map();
+  const aditivosByContract = new Map();
+  const marcosByContract = new Map();
+  const ocorrenciasByContract = new Map();
   for (const o of orgs) {
     if (!orgsByContract.has(o.contractId)) orgsByContract.set(o.contractId, []);
     orgsByContract.get(o.contractId).push(o);
@@ -74,28 +89,40 @@ async function findAllWithChildren() {
     if (!rdosByContract.has(r.contractId)) rdosByContract.set(r.contractId, []);
     rdosByContract.get(r.contractId).push(r);
   }
+  for (const a of aditivos) {
+    if (!aditivosByContract.has(a.contractId)) aditivosByContract.set(a.contractId, []);
+    aditivosByContract.get(a.contractId).push(a);
+  }
+  for (const m of marcos) {
+    if (!marcosByContract.has(m.contractId)) marcosByContract.set(m.contractId, []);
+    marcosByContract.get(m.contractId).push(m);
+  }
+  for (const oc of ocorrencias) {
+    if (!ocorrenciasByContract.has(oc.contractId)) ocorrenciasByContract.set(oc.contractId, []);
+    ocorrenciasByContract.get(oc.contractId).push(oc);
+  }
 
   return contracts.map((c) => ({
     ...c,
     organograma: orgsByContract.get(c.id) || [],
     rdos: rdosByContract.get(c.id) || [],
+    aditivos: aditivosByContract.get(c.id) || [],
+    marcos: marcosByContract.get(c.id) || [],
+    ocorrencias: ocorrenciasByContract.get(c.id) || [],
   }));
 }
 
 async function findByIdWithChildren(id) {
   const contract = await db.getOne(`SELECT * FROM contracts WHERE id = $1`, [id]);
   if (!contract) return null;
-  const [organograma, rdos] = await Promise.all([
-    db.getMany(
-      `SELECT * FROM organograma_membros WHERE contract_id = $1 ORDER BY created_at ASC`,
-      [id]
-    ),
-    db.getMany(
-      `SELECT * FROM rdos WHERE contract_id = $1 ORDER BY created_at ASC`,
-      [id]
-    ),
+  const [organograma, rdos, aditivos, marcos, ocorrencias] = await Promise.all([
+    db.getMany(`SELECT * FROM organograma_membros WHERE contract_id = $1 ORDER BY created_at ASC`, [id]),
+    db.getMany(`SELECT * FROM rdos WHERE contract_id = $1 ORDER BY created_at ASC`, [id]),
+    db.getMany(`SELECT * FROM contract_aditivos WHERE contract_id = $1 ORDER BY data DESC, created_at DESC`, [id]),
+    db.getMany(`SELECT * FROM contract_marcos WHERE contract_id = $1 ORDER BY ordem ASC, prazo ASC NULLS LAST, created_at ASC`, [id]),
+    db.getMany(`SELECT * FROM contract_ocorrencias WHERE contract_id = $1 ORDER BY data DESC, created_at DESC`, [id]),
   ]);
-  return { ...contract, organograma, rdos };
+  return { ...contract, organograma, rdos, aditivos, marcos, ocorrencias };
 }
 
 // Apaga o contrato e TUDO que está vinculado a ele.

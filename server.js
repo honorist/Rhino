@@ -144,6 +144,7 @@ async function handlePostContract(body, res) {
       lat: body.lat || '',
       lng: body.lng || '',
       notes: body.notes || '',
+      retencaoPercent: parseFloat(body.retencaoPercent) || 0,
       budget: '[]',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -161,6 +162,7 @@ async function handlePutContract(id, body, res) {
     const fields = ['name', 'client', 'clientId', 'clientDocument', 'clientEmail', 'clientPhone', 'currency', 'status', 'notes', 'lat', 'lng', 'endereco', 'contractNumber'];
     for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
     if (body.value !== undefined) allowed.value = parseFloat(body.value) || 0;
+    if (body.retencaoPercent !== undefined) allowed.retencaoPercent = parseFloat(body.retencaoPercent) || 0;
     for (const f of ['startDate', 'endDate', 'tendencyDate']) {
       if (body[f] !== undefined) allowed[f] = body[f] || null;
     }
@@ -2431,6 +2433,133 @@ async function handleDeleteRdoFoto(contractId, rdoId, fotoId, res) {
   }
 }
 
+// ============ Aditivos de Contrato ============
+
+async function handlePostAditivo(contractId, body, res) {
+  try {
+    if (!body.descricao) return sendError(res, 400, 'Descrição é obrigatória');
+    const item = {
+      id: generateId('adi'),
+      contractId,
+      numero: body.numero || '',
+      tipo: body.tipo || 'valor',
+      descricao: body.descricao,
+      valorDelta: parseFloat(body.valorDelta) || 0,
+      diasDelta: parseInt(body.diasDelta) || 0,
+      data: body.data || null,
+      aprovado: !!body.aprovado,
+      createdAt: new Date().toISOString(),
+    };
+    await repos.aditivos.create(item);
+    sendJson(res, await repos.contracts.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handlePutAditivo(contractId, id, body, res) {
+  try {
+    const allowed = {};
+    const fields = ['numero', 'tipo', 'descricao', 'data'];
+    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    if (body.valorDelta !== undefined) allowed.valorDelta = parseFloat(body.valorDelta) || 0;
+    if (body.diasDelta !== undefined) allowed.diasDelta = parseInt(body.diasDelta) || 0;
+    if (body.aprovado !== undefined) allowed.aprovado = !!body.aprovado;
+    const result = await repos.aditivos.updateById(id, allowed);
+    if (!result) return sendError(res, 404, 'Aditivo não encontrado');
+    sendJson(res, await repos.contracts.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handleDeleteAditivo(contractId, id, res) {
+  try {
+    await repos.aditivos.removeById(id);
+    sendJson(res, await repos.contracts.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+// ============ Marcos / Checklist ============
+
+async function handlePostMarco(contractId, body, res) {
+  try {
+    if (!body.titulo) return sendError(res, 400, 'Título é obrigatório');
+    const item = {
+      id: generateId('mrc'),
+      contractId,
+      titulo: body.titulo,
+      descricao: body.descricao || '',
+      prazo: body.prazo || null,
+      concluido: false,
+      concluidoEm: null,
+      ordem: parseInt(body.ordem) || 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await repos.marcos.create(item);
+    sendJson(res, await repos.contracts.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handlePutMarco(contractId, id, body, res) {
+  try {
+    const allowed = { updatedAt: new Date().toISOString() };
+    const fields = ['titulo', 'descricao', 'prazo', 'ordem'];
+    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    if (body.concluido !== undefined) {
+      allowed.concluido = !!body.concluido;
+      allowed.concluidoEm = body.concluido ? (body.concluidoEm || new Date().toISOString().split('T')[0]) : null;
+    }
+    const result = await repos.marcos.updateById(id, allowed);
+    if (!result) return sendError(res, 404, 'Marco não encontrado');
+    sendJson(res, await repos.contracts.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handleDeleteMarco(contractId, id, res) {
+  try {
+    await repos.marcos.removeById(id);
+    sendJson(res, await repos.contracts.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+// ============ Ocorrências ============
+
+async function handlePostOcorrencia(contractId, body, res) {
+  try {
+    if (!body.descricao) return sendError(res, 400, 'Descrição é obrigatória');
+    const item = {
+      id: generateId('ocr'),
+      contractId,
+      tipo: body.tipo || 'geral',
+      severidade: body.severidade || 'media',
+      descricao: body.descricao,
+      data: body.data || new Date().toISOString().split('T')[0],
+      encerrada: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await repos.ocorrencias.create(item);
+    sendJson(res, await repos.contracts.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handlePutOcorrencia(contractId, id, body, res) {
+  try {
+    const allowed = { updatedAt: new Date().toISOString() };
+    const fields = ['tipo', 'severidade', 'descricao', 'data'];
+    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    if (body.encerrada !== undefined) allowed.encerrada = !!body.encerrada;
+    const result = await repos.ocorrencias.updateById(id, allowed);
+    if (!result) return sendError(res, 404, 'Ocorrência não encontrada');
+    sendJson(res, await repos.contracts.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handleDeleteOcorrencia(contractId, id, res) {
+  try {
+    await repos.ocorrencias.removeById(id);
+    sendJson(res, await repos.contracts.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
 // ============ Static file serving ============
 const STATIC_ROOT = path.resolve(__dirname);
 
@@ -2800,6 +2929,45 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname.match(/^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/assinaturas\/[^/]+$/) && method === 'DELETE') {
     const parts = pathname.split('/');
     return handleDeleteRdoAssinatura(parts[5], parts[7], res);
+  }
+
+  // ── Aditivos ──
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/aditivos$/) && method === 'POST') {
+    return handlePostAditivo(pathname.split('/')[3], body, res);
+  }
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/aditivos\/[^/]+$/) && method === 'PUT') {
+    const p = pathname.split('/');
+    return handlePutAditivo(p[3], p[5], body, res);
+  }
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/aditivos\/[^/]+$/) && method === 'DELETE') {
+    const p = pathname.split('/');
+    return handleDeleteAditivo(p[3], p[5], res);
+  }
+
+  // ── Marcos ──
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/marcos$/) && method === 'POST') {
+    return handlePostMarco(pathname.split('/')[3], body, res);
+  }
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/marcos\/[^/]+$/) && method === 'PUT') {
+    const p = pathname.split('/');
+    return handlePutMarco(p[3], p[5], body, res);
+  }
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/marcos\/[^/]+$/) && method === 'DELETE') {
+    const p = pathname.split('/');
+    return handleDeleteMarco(p[3], p[5], res);
+  }
+
+  // ── Ocorrências ──
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/ocorrencias$/) && method === 'POST') {
+    return handlePostOcorrencia(pathname.split('/')[3], body, res);
+  }
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/ocorrencias\/[^/]+$/) && method === 'PUT') {
+    const p = pathname.split('/');
+    return handlePutOcorrencia(p[3], p[5], body, res);
+  }
+  if (pathname.match(/^\/api\/contracts\/[^/]+\/ocorrencias\/[^/]+$/) && method === 'DELETE') {
+    const p = pathname.split('/');
+    return handleDeleteOcorrencia(p[3], p[5], res);
   }
 
   if (pathname.match(/^\/api\/saidas\/[^/]+$/) && method === 'PUT') {
