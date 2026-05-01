@@ -204,6 +204,7 @@ window.ContratoDetail = {
             </div>
             <div class="btn-group">
               <button class="btn btn-secondary" id="btnExportarPDF" title="Exportar resumo em PDF">📄 PDF</button>
+              <button class="btn btn-secondary" id="btnGerarDocumento" title="Gerar documento a partir de template">📋 Template</button>
               ${this._podeEditar() ? `<button class="btn btn-primary" id="btnEditarDados">✏️ Editar Dados</button>` : ''}
               ${this._podeEditar() ? `<button class="btn btn-danger" id="btnExcluirContrato" title="Excluir contrato">🗑️ Excluir</button>` : ''}
               <a href="#/contratos" class="btn btn-secondary">← Voltar</a>
@@ -853,6 +854,7 @@ window.ContratoDetail = {
       // Event listeners (guardados — botões podem não existir conforme a aba)
       document.getElementById('btnEditarDados')?.addEventListener('click', () => this.showModalEditarDados(contract));
       document.getElementById('btnExcluirContrato')?.addEventListener('click', () => this.showModalExcluirContrato(contract));
+      document.getElementById('btnGerarDocumento')?.addEventListener('click', () => this.showModalGerarDocumento(contract));
       document.getElementById('btnExportarPDF')?.addEventListener('click', () => this.exportarPDF(contract, {
         totalEmitido, totalMedido, totalAMedir, margemAtual, pctMargem, totalRealizado,
         totalSaidas, totalBase, totalPassagensRealizadas, totalCompras, totalOrcado,

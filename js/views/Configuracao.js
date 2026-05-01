@@ -26,6 +26,9 @@ window.Configuracao = {
             ${this.renderMenuItem('doc_templates', '📋', 'Templates de Docs')}
             ${this.renderMenuItem('arquivos', '📁', 'Arquivos do Sistema')}
             ${this.renderMenuItem('backup', '💾', 'Backup do Sistema')}
+            ${this.renderMenuItem('feature_flags', '🚀', 'Feature Flags')}
+            ${this.renderMenuItem('lgpd', '🔒', 'Privacidade (LGPD)')}
+            ${this.renderMenuItem('tour', '🗺️', 'Tour Guiado')}
             <a href="#/usuarios" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;text-decoration:none;color:var(--color-text);margin-top:4px;border-top:1px solid var(--color-border);padding-top:14px;">
               <span style="display:inline-flex;align-items:center;color:var(--rh-ink-500);">${window.rhIcon ? window.rhIcon('user-plus', 16) : ''}</span><span>Usuários e Logins</span>
             </a>
@@ -41,6 +44,9 @@ window.Configuracao = {
             ${this.currentSection === 'doc_templates'  ? this.renderDocTemplates() : ''}
             ${this.currentSection === 'arquivos'       ? this.renderArquivos() : ''}
             ${this.currentSection === 'backup'         ? this.renderBackup() : ''}
+            ${this.currentSection === 'feature_flags'  ? '<div id="featureFlagsSection"><div class="loading-spinner">Carregando…</div></div>' : ''}
+            ${this.currentSection === 'lgpd'           ? this.renderLgpd() : ''}
+            ${this.currentSection === 'tour'           ? this.renderTour() : ''}
           </div>
         </div>
       `;
@@ -320,6 +326,29 @@ window.Configuracao = {
 
     if (this.currentSection === 'doc_templates') this.attachDocTemplateListeners();
     if (this.currentSection === 'arquivos') this.attachArquivosListeners();
+    if (this.currentSection === 'feature_flags') this.attachFeatureFlagsListeners();
+
+    const btnLgpd = document.getElementById('btnLgpdDelete');
+    if (btnLgpd) {
+      btnLgpd.addEventListener('click', async () => {
+        if (!confirm('Tem certeza? Esta ação anonimiza seus dados e encerra sua sessão.')) return;
+        try {
+          const r = await fetch('/api/lgpd/delete-account', { method: 'POST', credentials: 'same-origin' });
+          const d = await r.json();
+          if (!r.ok) throw new Error(d.error);
+          window.showToast(d.message, 'success');
+          setTimeout(() => { window.location.href = '/'; }, 2000);
+        } catch (e) { window.showToast(e.message, 'error'); }
+      });
+    }
+
+    const btnTour = document.getElementById('btnRestarTour');
+    if (btnTour) {
+      btnTour.addEventListener('click', () => {
+        if (window.RhinoTour) RhinoTour.start(true);
+        else window.showToast('Tour não disponível', 'warn');
+      });
+    }
   },
 
   showModalTipo(tipoId) {
@@ -603,6 +632,14 @@ window.Configuracao = {
               ${checklist.length === 0 ? `<p style="font-size:15px;color:var(--color-text-muted);">Nenhum campo adicionado. Clique em "+ Adicionar Campo" para inserir itens do checklist.</p>` : ''}
             </div>
 
+            <div class="form-group" style="border-top:1px solid var(--color-border);padding-top:var(--sp-md);margin-top:var(--sp-sm);">
+              <label class="form-label" style="display:flex;justify-content:space-between;">
+                <span>📋 Corpo do Documento (para Gerar PDF por contrato)</span>
+                <span style="font-size:12px;color:var(--color-text-muted);">Variáveis: {{cliente}}, {{contrato}}, {{valor}}, {{inicio}}, {{fim}}, {{data}}</span>
+              </label>
+              <textarea class="form-control" name="body" rows="8" style="font-family:monospace;font-size:13px;" placeholder="CONTRATO DE PRESTAÇÃO DE SERVIÇOS\n\nCliente: {{cliente}}\nContrato: {{contrato}}\nValor: {{valor}}\n...">${this._escHtml(t?.body || '')}</textarea>
+            </div>
+
             <div style="display:flex;gap:var(--sp-sm);justify-content:flex-end;margin-top:var(--sp-lg);">
               <button type="button" class="btn btn-ghost" id="btnCancelarTpl">Cancelar</button>
               <button type="submit" class="btn btn-primary">${t ? 'Salvar Alterações' : 'Criar Template'}</button>
@@ -653,6 +690,7 @@ window.Configuracao = {
         empresaId:          fd.get('empresaId') || null,
         periodicidadeMeses: parseInt(fd.get('periodicidadeMeses')) || 12,
         checklist:          checklistAtual,
+        body:               fd.get('body') || null,
       };
 
       try {
@@ -858,5 +896,109 @@ window.Configuracao = {
         }
       });
     });
-  }
+  },
+
+  // ── F18: Feature Flags ──
+  async attachFeatureFlagsListeners() {
+    const section = document.getElementById('featureFlagsSection');
+    if (!section) return;
+    try {
+      const r = await fetch('/api/feature-flags', { credentials: 'same-origin' });
+      if (!r.ok) throw new Error(await r.text());
+      const { flags } = await r.json();
+      section.innerHTML = `
+        <div class="page-header" style="margin-bottom:var(--sp-lg);">
+          <div><h2 style="font-size:20px;font-weight:700;">🚀 Feature Flags</h2>
+          <p class="page-subtitle">Ative ou desative funcionalidades sem deploy</p></div>
+        </div>
+        <div class="card">
+          ${flags.map(f => `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--sp-md) 0;border-bottom:1px solid var(--color-border);">
+              <div>
+                <div style="font-weight:600;">${this._escHtml(f.key)}</div>
+                <div style="font-size:14px;color:var(--color-text-muted);">${this._escHtml(f.description || '')}</div>
+              </div>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <div class="rh-toggle ${f.enabled ? 'rh-toggle--on' : ''}" data-flag="${this._escHtml(f.key)}" style="
+                  width:44px;height:24px;border-radius:12px;
+                  background:${f.enabled ? 'var(--color-primary)' : 'var(--color-border)'};
+                  position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;
+                ">
+                  <div style="
+                    position:absolute;top:2px;left:${f.enabled ? '22px' : '2px'};
+                    width:20px;height:20px;border-radius:50%;background:#fff;
+                    transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.3);
+                  "></div>
+                </div>
+                <span style="font-weight:600;color:${f.enabled ? 'var(--color-success)' : 'var(--color-text-muted)'};">${f.enabled ? 'Ativo' : 'Inativo'}</span>
+              </label>
+            </div>
+          `).join('')}
+        </div>
+      `;
+
+      section.querySelectorAll('.rh-toggle').forEach(toggle => {
+        toggle.addEventListener('click', async () => {
+          const key = toggle.dataset.flag;
+          const isOn = toggle.classList.contains('rh-toggle--on');
+          try {
+            const r = await fetch(`/api/feature-flags/${encodeURIComponent(key)}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ enabled: !isOn }),
+              credentials: 'same-origin',
+            });
+            if (!r.ok) throw new Error(await r.text());
+            window.showToast(`${key}: ${!isOn ? 'ativado' : 'desativado'}`, 'success');
+            await this.attachFeatureFlagsListeners();
+          } catch (e) { window.showToast(e.message, 'error'); }
+        });
+      });
+    } catch (e) {
+      section.innerHTML = `<div class="card"><p class="text-danger">Erro: ${this._escHtml(e.message)}</p></div>`;
+    }
+  },
+
+  // ── F13: LGPD ──
+  renderLgpd() {
+    return `
+      <div class="page-header" style="margin-bottom:var(--sp-lg);">
+        <div><h2 style="font-size:20px;font-weight:700;">🔒 Privacidade (LGPD)</h2>
+        <p class="page-subtitle">Seus direitos sobre os dados pessoais</p></div>
+      </div>
+      <div class="card" style="margin-bottom:var(--sp-md);">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:8px;">Exportar meus dados</h3>
+        <p style="color:var(--color-text-muted);font-size:15px;margin-bottom:12px;">Baixe um arquivo JSON com todos os seus dados pessoais armazenados no sistema.</p>
+        <a href="/api/lgpd/export" class="btn btn-secondary" download>⬇️ Exportar dados (JSON)</a>
+      </div>
+      <div class="card" style="border:1px solid #FECACA;">
+        <h3 style="font-size:16px;font-weight:700;margin-bottom:8px;color:#991B1B;">Excluir minha conta</h3>
+        <p style="color:var(--color-text-muted);font-size:15px;margin-bottom:12px;">
+          Anonimiza seus dados pessoais e encerra sua sessão. <strong>Esta ação é irreversível.</strong>
+          Dados financeiros e contratos associados são preservados para fins legais.
+        </p>
+        <button class="btn btn-danger" id="btnLgpdDelete">🗑️ Solicitar exclusão de dados</button>
+      </div>
+    `;
+  },
+
+  // ── Tour Guiado ──
+  renderTour() {
+    return `
+      <div class="page-header" style="margin-bottom:var(--sp-lg);">
+        <div><h2 style="font-size:20px;font-weight:700;">🗺️ Tour Guiado</h2>
+        <p class="page-subtitle">Revisitar o tour de boas-vindas</p></div>
+      </div>
+      <div class="card">
+        <p style="color:var(--color-text-muted);font-size:15px;margin-bottom:16px;">
+          Relembre as principais funcionalidades do Rhino com o tour interativo de boas-vindas.
+        </p>
+        <button class="btn btn-primary" id="btnRestarTour">🚀 Iniciar Tour</button>
+      </div>
+    `;
+  },
+
+  _escHtml(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  },
 };

@@ -52,6 +52,12 @@ window.Dashboard = {
       } catch (_) {}
       this._rdoStats = rdoStats;
 
+      // F6: Anomaly detection (não bloqueia)
+      try {
+        const ar = await fetch('/api/anomalias');
+        if (ar.ok) this._anomalias = (await ar.json()).anomalias || [];
+      } catch (_) { this._anomalias = []; }
+
       // Dados extra para novas seções (não bloqueia se falhar)
       let nfsList = [], saidasList = [], cpList = [], sociosList = [], investList = [];
       try {
@@ -1003,6 +1009,23 @@ window.Dashboard = {
       }
       if (typeof rs.aderencia7d === 'number' && rs.aderencia7d < 50) {
         alertas.push({ tipo: 'warning', msg: `⚠️ Aderência de RDOs nos últimos ${rs.diasUteisAvaliados} dias úteis: ${rs.aderencia7d}% — abaixo do esperado` });
+      }
+    }
+
+    // F6: Anomaly detection alerts
+    const anomalias = this._anomalias || [];
+    if (anomalias.length > 0) {
+      const alta = anomalias.filter(a => a.severidade === 'alta');
+      if (alta.length > 0) {
+        alertas.push({
+          tipo: 'danger',
+          msg: `🚨 ${alta.length} despesa(s) anômala(s) de alta severidade detectada(s) — valores muito acima da média histórica da categoria. <a href="#/caixa" style="color:inherit;text-decoration:underline;">Ver Caixa</a>`,
+        });
+      } else {
+        alertas.push({
+          tipo: 'warning',
+          msg: `⚠️ ${anomalias.length} despesa(s) com valores acima do padrão histórico detectada(s). <a href="#/caixa" style="color:inherit;text-decoration:underline;">Ver Caixa</a>`,
+        });
       }
     }
 

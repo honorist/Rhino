@@ -330,8 +330,11 @@ window.ContasPagar = {
           </div>
           <form id="formConta" class="modal-content">
             <div class="form-group">
-              <label class="form-label">Descrição *</label>
-              <input class="form-control" name="descricao" value="${conta?.descricao || ''}" required placeholder="Ex: Material elétrico, Serviço de transporte...">
+              <label class="form-label" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>Descrição *</span>
+                ${!conta ? `<button type="button" class="btn btn-sm btn-ghost" id="btnAiClassify" title="Classificar com IA">🤖 Classificar com IA</button>` : ''}
+              </label>
+              <input class="form-control" name="descricao" id="inputDescricao" value="${conta?.descricao || ''}" required placeholder="Ex: Material elétrico, Serviço de transporte...">
             </div>
             <div class="form-row">
               <div class="form-group">
@@ -385,6 +388,23 @@ window.ContasPagar = {
               <label class="form-label">Observações</label>
               <textarea class="form-control" name="observacoes" style="min-height:56px;">${conta?.observacoes || ''}</textarea>
             </div>
+            <div class="form-group" style="border-top:1px solid var(--color-border);padding-top:var(--sp-sm);margin-top:var(--sp-sm);">
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                <input type="checkbox" name="recorrente" id="chkRecorrente" ${conta?.recorrente ? 'checked' : ''}>
+                <span class="form-label" style="margin:0;">🔄 Conta recorrente (lançamento automático)</span>
+              </label>
+            </div>
+            <div class="form-group" id="grpPeriodicidade" style="${conta?.recorrente ? '' : 'display:none;'}">
+              <label class="form-label">Periodicidade</label>
+              <select class="form-control" name="periodicidade">
+                <option value="mensal"    ${(conta?.periodicidade||'mensal')==='mensal'    ?'selected':''}>Mensal</option>
+                <option value="semanal"   ${conta?.periodicidade==='semanal'   ?'selected':''}>Semanal</option>
+                <option value="quinzenal" ${conta?.periodicidade==='quinzenal' ?'selected':''}>Quinzenal</option>
+                <option value="trimestral"${conta?.periodicidade==='trimestral'?'selected':''}>Trimestral</option>
+                <option value="semestral" ${conta?.periodicidade==='semestral' ?'selected':''}>Semestral</option>
+                <option value="anual"     ${conta?.periodicidade==='anual'     ?'selected':''}>Anual</option>
+              </select>
+            </div>
           </form>
           <div class="modal-footer">
             <button class="btn btn-secondary" id="btnCancelar">Cancelar</button>
@@ -401,6 +421,51 @@ window.ContasPagar = {
     document.getElementById('btnCancelar').addEventListener('click', close);
     overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 
+    // Toggle periodicidade
+    const chkRec = document.getElementById('chkRecorrente');
+    const grpPer = document.getElementById('grpPeriodicidade');
+    if (chkRec && grpPer) {
+      chkRec.addEventListener('change', () => { grpPer.style.display = chkRec.checked ? '' : 'none'; });
+    }
+
+    // F16: AI auto-classify
+    const btnAiCls = document.getElementById('btnAiClassify');
+    if (btnAiCls) {
+      btnAiCls.addEventListener('click', async () => {
+        const descEl = document.getElementById('inputDescricao');
+        const desc = (descEl?.value || '').trim();
+        if (!desc) { window.showToast('Preencha a descrição primeiro', 'warn'); return; }
+        const valorEl = document.querySelector('#formConta [name="valor"]');
+        const forncEl = document.querySelector('#formConta [name="fornecedorId"]');
+        const fornecNome = forncEl?.options[forncEl.selectedIndex]?.text || '';
+        btnAiCls.disabled = true; btnAiCls.textContent = '⏳ Classificando…';
+        try {
+          const r = await fetch('/api/ai/classify-expense', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ descricao: desc, valor: window.BRLInput?.parse(valorEl?.value) || 0, fornecedor: fornecNome }),
+            credentials: 'same-origin',
+          });
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error);
+          if (data.category) {
+            const catEl = document.querySelector('#formConta [name="category"]');
+            if (catEl) catEl.value = data.category;
+          }
+          if (data.contractId) {
+            const ctrEl = document.querySelector('#formConta [name="contractId"]');
+            if (ctrEl) ctrEl.value = data.contractId;
+          }
+          const conf = data.confidence ? ` (${Math.round(data.confidence * 100)}% confiança)` : '';
+          window.showToast(`IA sugeriu: ${data.category}${conf}`, 'success');
+        } catch (e) {
+          window.showToast('IA não disponível: ' + e.message, 'warn');
+        } finally {
+          btnAiCls.disabled = false; btnAiCls.textContent = '🤖 Classificar com IA';
+        }
+      });
+    }
+
     document.getElementById('btnSalvar').addEventListener('click', async () => {
       const fd = new FormData(document.getElementById('formConta'));
       const data = Object.fromEntries(fd);
@@ -410,6 +475,8 @@ window.ContasPagar = {
       if (!data.valor) { window.showToast('Valor inválido', 'error'); return; }
       if (!data.fornecedorId) delete data.fornecedorId;
       if (!data.contractId) delete data.contractId;
+      data.recorrente = !!data.recorrente;
+      if (!data.recorrente) delete data.periodicidade;
 
       try {
         if (conta) await Store.updateContaPagar(conta.id, data);

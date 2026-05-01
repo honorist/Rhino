@@ -445,6 +445,7 @@
         <div style="display:flex;gap:var(--sp-sm);align-items:center;">
           <input type="text" class="form-control" id="rdoFotoLegenda" placeholder="Legenda (opcional)" style="max-width:280px;font-size:15px;">
           <input type="file" id="rdoFotoInput" accept="image/jpeg,image/png,image/webp" multiple style="display:none;">
+          <button type="button" class="btn btn-sm btn-secondary" id="rdoFotoCamBtn" title="Tirar foto com câmera + GPS">📍 Câmera + GPS</button>
           <button type="button" class="btn btn-sm btn-primary" id="rdoFotoBtn">📷 Adicionar Fotos</button>
         </div>
       </div>
@@ -682,6 +683,42 @@
         rerender();
       });
     });
+
+    // ── Câmera + GPS (F9) ──
+    const camBtn = document.getElementById('rdoFotoCamBtn');
+    if (camBtn) {
+      camBtn.addEventListener('click', async () => {
+        let gpsStr = '';
+        try {
+          const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 6000 }));
+          gpsStr = `GPS: ${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
+        } catch { gpsStr = ''; }
+
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.capture = 'environment';
+        input.multiple = true;
+        input.style.display = 'none';
+        document.body.appendChild(input);
+        input.click();
+        input.addEventListener('change', async () => {
+          if (!input.files || !input.files.length) { input.remove(); return; }
+          const ts = new Date().toLocaleString('pt-BR');
+          const legendaBase = document.getElementById('rdoFotoLegenda')?.value || '';
+          const legenda = [legendaBase, ts, gpsStr].filter(Boolean).join(' | ');
+          try {
+            showToast(`Enviando ${input.files.length} foto(s)...`, 'info');
+            await Store.uploadRdoFoto(contractId, rdoOriginal.id, input.files, legenda);
+            const fresh = (Store.getContractById(contractId)?.rdos || []).find(r => r.id === rdoOriginal.id);
+            if (fresh) Object.assign(rdoOriginal, fresh);
+            rerender();
+            showToast('Foto com GPS enviada!', 'success');
+          } catch (err) { showToast(err.message || 'Erro no upload', 'error'); }
+          input.remove();
+        });
+      });
+    }
 
     // Fotos — upload e remover
     const fotoInput = document.getElementById('rdoFotoInput');

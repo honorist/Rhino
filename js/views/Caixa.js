@@ -97,6 +97,10 @@ window.Caixa = {
               Saldo atual da empresa: <strong style="color:${saldoGeral >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${Store.formatBRL(saldoGeral)}</strong>
             </p>
           </div>
+          <div style="display:flex;gap:8px;">
+            <input type="file" id="ofxFileInput" accept=".ofx,.OFX" style="display:none;">
+            <button class="btn btn-secondary btn-sm" id="btnImportarOfx" title="Importar extrato bancário OFX">🏦 Importar OFX</button>
+          </div>
         </div>
 
         <!-- KPIs do período filtrado -->
@@ -451,10 +455,77 @@ window.Caixa = {
           this.showDetail(tr.dataset.id);
         });
       });
+
+      // ── F5: OFX Import ──
+      const ofxInput = document.getElementById('ofxFileInput');
+      const ofxBtn = document.getElementById('btnImportarOfx');
+      if (ofxBtn && ofxInput) {
+        ofxBtn.addEventListener('click', () => ofxInput.click());
+        ofxInput.addEventListener('change', async () => {
+          if (!ofxInput.files || !ofxInput.files[0]) return;
+          const file = ofxInput.files[0];
+          ofxInput.value = '';
+          const txt = await file.text();
+          try {
+            window.showToast('Processando OFX…', 'info');
+            const r = await fetch('/api/caixa/importar-ofx', {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain' },
+              body: txt,
+              credentials: 'same-origin',
+            });
+            const data = await r.json();
+            if (!r.ok) throw new Error(data.error);
+            this._showOfxResultado(data);
+          } catch (e) { window.showToast('Erro: ' + e.message, 'error'); }
+        });
+      }
     } catch (e) {
       console.error(e);
       app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar caixa. Tente novamente.</p></div>';
     }
+  },
+
+  _showOfxResultado(data) {
+    const fmt = (v) => 'R$ ' + Math.abs(Number(v)).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    const rows = (data.transacoes || []).map(t => `
+      <tr>
+        <td>${t.data}</td>
+        <td style="max-width:280px;word-break:break-word;">${t.memo || '—'}</td>
+        <td style="font-weight:700;color:${t.tipo==='entrada'?'var(--color-success)':'var(--color-danger)'};">${t.tipo==='saida'?'-':'+'} ${fmt(t.valor)}</td>
+        <td><span class="badge" style="background:${t.status==='conciliado'?'#D1FAE5':'#FEF3C7'};color:${t.status==='conciliado'?'#065F46':'#92400E'};">${t.status==='conciliado'?'✅ Conciliado':'🆕 Novo'}</span></td>
+        <td style="font-size:13px;color:var(--color-text-muted);">${t.match?t.match.description:'—'}</td>
+      </tr>`).join('');
+
+    const html = `
+      <div class="modal-overlay" id="ofxModal">
+        <div class="modal" style="width:860px;max-width:98vw;">
+          <div class="modal-header">
+            <h2 class="modal-title">🏦 Resultado da importação OFX</h2>
+            <button class="modal-close">✕</button>
+          </div>
+          <div class="modal-content" style="max-height:65vh;overflow-y:auto;">
+            <p style="margin-bottom:var(--sp-md);">
+              <strong>${data.total}</strong> transações encontradas ·
+              <span style="color:var(--color-success);">${data.total - data.novos} conciliadas</span> ·
+              <span style="color:#D69E2E;">${data.novos} novas</span>
+            </p>
+            <table class="table">
+              <thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Status</th><th>Lançamento Rhino</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="ofxClose">Fechar</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('ofxModal');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('ofxClose').addEventListener('click', close);
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
   },
 
   formatarMes(ym) {

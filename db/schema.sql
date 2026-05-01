@@ -503,6 +503,34 @@ CREATE TABLE IF NOT EXISTS recurso_doc_arquivos (
 CREATE INDEX IF NOT EXISTS idx_rda_recurso ON recurso_doc_arquivos (recurso_id);
 CREATE INDEX IF NOT EXISTS idx_rda_doc     ON recurso_doc_arquivos (recurso_id, doc_id);
 
+-- ============ Contract templates body (F3) ============
+ALTER TABLE doc_templates ADD COLUMN IF NOT EXISTS body TEXT;
+
+-- ============ Feature Flags (F18) ============
+CREATE TABLE IF NOT EXISTS feature_flags (
+  key         TEXT PRIMARY KEY,
+  enabled     BOOLEAN DEFAULT FALSE,
+  description TEXT,
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+INSERT INTO feature_flags (key, enabled, description) VALUES
+  ('anomaly_detection', true,  'Alertas de anomalia em despesas (>2σ da média da categoria)'),
+  ('ai_classify',       false, 'Classificação automática de despesas por IA'),
+  ('ai_chat',           false, 'Chat em linguagem natural com os dados do sistema'),
+  ('ofx_import',        true,  'Importação de extrato bancário OFX'),
+  ('onboarding_tour',   true,  'Tour guiado para novos usuários'),
+  ('recurring_payments',true,  'Contas a pagar recorrentes (lançamento automático)')
+ON CONFLICT (key) DO NOTHING;
+
+-- ============ Recorrência em Contas a Pagar (F7) ============
+ALTER TABLE contas_pagar
+  ADD COLUMN IF NOT EXISTS recorrente          BOOLEAN DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS periodicidade       TEXT,
+  ADD COLUMN IF NOT EXISTS recorrencia_origem_id TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_cp_recorrente ON contas_pagar (recorrente) WHERE recorrente = TRUE;
+
 -- ============ Trigger genérico de updated_at ============
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$

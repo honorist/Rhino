@@ -431,6 +431,96 @@
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnFecharDetalhe').addEventListener('click', close);
     overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-  }
+  },
+
+  // ── F3: Contract Templates → PDF ──
+  async showModalGerarDocumento(contract) {
+    const templates = (Store.state.docTemplates || Store.state.doc_templates || []).filter(t => t.body);
+    if (templates.length === 0) {
+      window.showToast('Nenhum template com corpo de texto. Crie um em Configurações → Templates.', 'warn');
+      return;
+    }
+
+    const html = `
+      <div class="modal-overlay" id="modalGerarDoc">
+        <div class="modal" style="width:640px;">
+          <div class="modal-header">
+            <h2 class="modal-title">📄 Gerar Documento do Contrato</h2>
+            <button class="modal-close">✕</button>
+          </div>
+          <div class="modal-content">
+            <div class="form-group">
+              <label class="form-label">Template</label>
+              <select class="form-control" id="selTemplate">
+                ${templates.map(t => `<option value="${t.id}">${escapeHtml(t.nome)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pré-visualização (variáveis serão substituídas)</label>
+              <textarea id="docPreview" class="form-control" rows="14" style="font-family:monospace;font-size:13px;"></textarea>
+            </div>
+            <p style="font-size:13px;color:var(--color-text-muted);">
+              Variáveis disponíveis: <code>{{cliente}}</code>, <code>{{contrato}}</code>, <code>{{valor}}</code>, <code>{{inicio}}</code>, <code>{{fim}}</code>, <code>{{data}}</code>
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnCancelarDoc">Cancelar</button>
+            <button class="btn btn-primary" id="btnGerarPdf">📄 Gerar PDF</button>
+          </div>
+        </div>
+      </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalGerarDoc');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnCancelarDoc').addEventListener('click', close);
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+    const fmt = (v) => v ? new Date(v + 'T12:00:00').toLocaleDateString('pt-BR') : '';
+    const fmtBRL = (v) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+    const fillVars = (body) => body
+      .replace(/\{\{cliente\}\}/gi, contract.client || '')
+      .replace(/\{\{contrato\}\}/gi, contract.name || '')
+      .replace(/\{\{numero\}\}/gi, contract.contractNumber || '')
+      .replace(/\{\{valor\}\}/gi, fmtBRL(contract.value))
+      .replace(/\{\{inicio\}\}/gi, fmt(contract.startDate))
+      .replace(/\{\{fim\}\}/gi, fmt(contract.endDate))
+      .replace(/\{\{data\}\}/gi, new Date().toLocaleDateString('pt-BR'))
+      .replace(/\{\{endereco\}\}/gi, contract.endereco || '');
+
+    const sel = document.getElementById('selTemplate');
+    const preview = document.getElementById('docPreview');
+    const updatePreview = () => {
+      const tpl = templates.find(t => t.id === sel.value);
+      if (tpl) preview.value = fillVars(tpl.body || '');
+    };
+    sel.addEventListener('change', updatePreview);
+    updatePreview();
+
+    document.getElementById('btnGerarPdf').addEventListener('click', async () => {
+      const conteudo = preview.value;
+      const tpl = templates.find(t => t.id === sel.value);
+      try {
+        await window.RhinoLazy.ensure(['jspdf']);
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        const lines = doc.splitTextToSize(conteudo, 170);
+        let y = 25;
+        for (const line of lines) {
+          if (y > 270) { doc.addPage(); y = 25; }
+          doc.text(line, 20, y);
+          y += 6;
+        }
+        const fname = `${(tpl?.nome || 'documento').replace(/[^a-zA-Z0-9]/g, '_')}_${contract.id}.pdf`;
+        doc.save(fname);
+        close();
+        window.showToast('PDF gerado!', 'success');
+      } catch (e) { window.showToast('Erro ao gerar PDF: ' + e.message, 'error'); }
+    });
+  },
   });
 })();

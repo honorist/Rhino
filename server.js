@@ -1622,6 +1622,9 @@ async function handlePostContaPagar(body, res) {
       contractId: body.contractId || null,
       category: body.category || 'fornecedor',
       observacoes: body.observacoes || '',
+      recorrente: !!body.recorrente,
+      periodicidade: body.periodicidade || null,
+      recorrenciaOrigemId: body.recorrenciaOrigemId || null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -1635,11 +1638,12 @@ async function handlePostContaPagar(body, res) {
 async function handlePutContaPagar(id, body, res) {
   try {
     const allowed = {};
-    const fields = ['descricao', 'fornecedorId', 'numeroNF', 'contractId', 'category', 'observacoes'];
+    const fields = ['descricao', 'fornecedorId', 'numeroNF', 'contractId', 'category', 'observacoes', 'periodicidade'];
     for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
     if (body.valor !== undefined) allowed.valor = parseFloat(body.valor) || 0;
     if (body.dataEmissao !== undefined) allowed.dataEmissao = body.dataEmissao || null;
     if (body.dataVencimento !== undefined) allowed.dataVencimento = body.dataVencimento || null;
+    if (body.recorrente !== undefined) allowed.recorrente = !!body.recorrente;
     allowed.updatedAt = new Date().toISOString();
 
     const { envelope, result } = await writeCollection('contasPagar', 'contas', (repo) => repo.updateById(id, allowed));
@@ -2881,6 +2885,29 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname.match(/^\/api\/doc-templates\/[^/]+$/) && method === 'PUT') return handlePutDocTemplate(pathname.split('/')[3], body, res);
   if (pathname.match(/^\/api\/doc-templates\/[^/]+$/) && method === 'DELETE') return handleDeleteDocTemplate(pathname.split('/')[3], res);
 
+  // ── F6: Anomaly detection ──
+  if (pathname === '/api/anomalias' && method === 'GET') return handleGetAnomalias(res);
+
+  // ── F7: Recurring payments ──
+  if (pathname === '/api/contas-pagar/processar-recorrencias' && method === 'POST') return handleProcessarRecorrencias(res);
+
+  // ── F13: LGPD ──
+  if (pathname === '/api/lgpd/export' && method === 'GET') return handleLgpdExport(req, res);
+  if (pathname === '/api/lgpd/delete-account' && method === 'POST') return handleLgpdDelete(req, res);
+
+  // ── F15: AI Chat ──
+  if (pathname === '/api/ai/chat' && method === 'POST') return handleAiChat(body, res);
+
+  // ── F16: AI Classify ──
+  if (pathname === '/api/ai/classify-expense' && method === 'POST') return handleAiClassify(body, res);
+
+  // ── F5: OFX Import ──
+  if (pathname === '/api/caixa/importar-ofx' && method === 'POST') return handleImportarOfx(req, res);
+
+  // ── F18: Feature Flags ──
+  if (pathname === '/api/feature-flags' && method === 'GET') return handleGetFeatureFlags(res);
+  if (pathname.match(/^\/api\/feature-flags\/[^/]+$/) && method === 'PUT') return handlePutFeatureFlag(pathname.split('/')[3], body, res);
+
   // Busca global cross-collection (M3)
   if (pathname === '/api/search' && method === 'GET') return handleGlobalSearch(parsedUrl.query, res);
 
@@ -2905,6 +2932,287 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   }
 
   serveStaticFile(pathname, res);
+}
+
+// ============ F6: Anomaly Detection ============
+async function handleGetAnomalias(res) {
+  try {
+    const caixaAll = await repos.caixa.findAll();
+    const saidas = caixaAll.filter(e => e.type === 'saida');
+
+    const byCat = {};
+    for (const s of saidas) {
+      const cat = s.category || 'outros';
+      if (!byCat[cat]) byCat[cat] = [];
+      byCat[cat].push({ v: parseFloat(s.value) || 0, entry: s });
+    }
+
+    const anomalias = [];
+    for (const [cat, items] of Object.entries(byCat)) {
+      if (items.length < 4) continue;
+      const values = items.map(i => i.v);
+      const n = values.length;
+      const mean = values.reduce((s, v) => s + v, 0) / n;
+      const sigma = Math.sqrt(values.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / n);
+      if (sigma < 1) continue;
+      for (const { v, entry } of items) {
+        if (v > mean + 2 * sigma) {
+          anomalias.push({
+            ...entry,
+            category: cat,
+            media: Math.round(mean * 100) / 100,
+            sigma: Math.round(sigma * 100) / 100,
+            desvios: ((v - mean) / sigma).toFixed(1),
+            severidade: v > mean + 3 * sigma ? 'alta' : 'media',
+          });
+        }
+      }
+    }
+
+    anomalias.sort((a, b) => parseFloat(b.desvios) - parseFloat(a.desvios));
+    sendJson(res, { anomalias });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+// ============ F7: Contas Recorrentes ============
+function _calcProximaData(dateStr, periodicidade) {
+  const d = new Date(dateStr + 'T12:00:00');
+  switch (periodicidade) {
+    case 'semanal':    d.setDate(d.getDate() + 7); break;
+    case 'quinzenal':  d.setDate(d.getDate() + 15); break;
+    case 'trimestral': d.setMonth(d.getMonth() + 3); break;
+    case 'semestral':  d.setMonth(d.getMonth() + 6); break;
+    case 'anual':      d.setFullYear(d.getFullYear() + 1); break;
+    default:           d.setMonth(d.getMonth() + 1);
+  }
+  return d.toISOString().split('T')[0];
+}
+
+async function handleProcessarRecorrencias(res) {
+  try {
+    const hojeStr = new Date().toISOString().split('T')[0];
+    const contas = await repos.contasPagar.findAll();
+    const recorrentes = contas.filter(c => c.recorrente && c.status === 'pendente' && c.dataVencimento && c.dataVencimento <= hojeStr);
+
+    const criadas = [];
+    for (const conta of recorrentes) {
+      const nextDate = _calcProximaData(conta.dataVencimento, conta.periodicidade || 'mensal');
+      const jaExiste = contas.some(c => c.recorrenciaOrigemId === conta.id && c.dataVencimento === nextDate);
+      if (jaExiste) continue;
+      const nova = {
+        id: generateId('cp'),
+        descricao: conta.descricao,
+        fornecedorId: conta.fornecedorId || null,
+        valor: conta.valor,
+        dataEmissao: hojeStr,
+        dataVencimento: nextDate,
+        status: 'pendente',
+        contractId: conta.contractId || null,
+        category: conta.category || 'fornecedor',
+        observacoes: conta.observacoes || '',
+        recorrente: true,
+        periodicidade: conta.periodicidade,
+        recorrenciaOrigemId: conta.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await repos.contasPagar.create(nova);
+      criadas.push(nova);
+    }
+    sendJson(res, { criadas: criadas.length, contas: await repos.contasPagar.findAll() });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+// ============ F13: LGPD ============
+async function handleLgpdExport(req, res) {
+  if (!req.user) return sendError(res, 401, 'Não autenticado');
+  try {
+    const userId = req.user.id;
+    const user = await repos.users.findById(userId);
+    const sessions = await db.getMany('SELECT id, created_at, expires_at FROM sessions WHERE user_id = $1', [userId]);
+    const auditRows = await db.getMany('SELECT ts, method, path, entity, action FROM audit_log WHERE user_id = $1 ORDER BY ts DESC LIMIT 200', [userId]);
+    const data = {
+      usuario: { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt, lastLoginAt: user.lastLoginAt, acceptedTermsAt: user.acceptedTermsAt },
+      sessoes: sessions,
+      historico_auditoria: auditRows,
+      exportado_em: new Date().toISOString(),
+    };
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Content-Disposition': `attachment; filename="rhino-lgpd-${userId}.json"`,
+    });
+    res.end(JSON.stringify(data, null, 2));
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handleLgpdDelete(req, res) {
+  if (!req.user) return sendError(res, 401, 'Não autenticado');
+  try {
+    const userId = req.user.id;
+    const anonEmail = `deleted_${userId}@lgpd.rhino`;
+    const anonHash = await auth.hash(crypto.randomBytes(32).toString('hex'));
+    await repos.users.updateById(userId, {
+      email: anonEmail, name: '[Dados excluídos]', passwordHash: anonHash,
+      isActive: false, updatedAt: new Date().toISOString(),
+    });
+    await db.query('DELETE FROM sessions WHERE user_id = $1', [userId]);
+    auth.clearSessionCookie(res);
+    sendJson(res, { ok: true, message: 'Dados anonimizados conforme LGPD. Sessão encerrada.' });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+// ============ F15: AI Chat ============
+async function handleAiChat(body, res) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return sendError(res, 503, 'ANTHROPIC_API_KEY não configurada');
+  const message = (body.message || '').trim();
+  if (!message) return sendError(res, 400, 'message é obrigatório');
+  try {
+    const [allContracts, caixaAll, contas] = await Promise.all([
+      repos.contracts.findAll(), repos.caixa.findAll(), repos.contasPagar.findAll(),
+    ]);
+    const saldo = caixaAll.reduce((s, e) => s + (e.type === 'entrada' ? 1 : -1) * (parseFloat(e.value) || 0), 0);
+    const pendentes = contas.filter(c => c.status === 'pendente');
+    const systemPrompt = `Você é o assistente financeiro do Rhino, sistema de gestão de contratos de construção civil.
+
+Contexto atual:
+- Contratos: ${allContracts.length} total, ${allContracts.filter(c => c.status === 'ativo').length} ativos
+- Saldo do caixa: R$ ${saldo.toFixed(2)}
+- Contas a pagar: ${pendentes.length} pendentes, total R$ ${pendentes.reduce((s, c) => s + (parseFloat(c.valor) || 0), 0).toFixed(2)}
+
+Responda em português, de forma concisa e objetiva.`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: message }],
+      }),
+    });
+    if (!response.ok) return sendError(res, 502, 'Erro na API de IA');
+    const data = await response.json();
+    sendJson(res, { reply: data.content?.[0]?.text || '', model: data.model });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+// ============ F16: AI Auto-Classify Expense ============
+async function handleAiClassify(body, res) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return sendError(res, 503, 'ANTHROPIC_API_KEY não configurada');
+  const { descricao, valor, fornecedor } = body;
+  if (!descricao) return sendError(res, 400, 'descricao é obrigatório');
+  try {
+    const [tiposBase, allContracts] = await Promise.all([repos.tiposBase.findAll(), repos.contracts.findAll()]);
+    const cats = tiposBase.map(t => t.label || t.key).join(', ') || 'material, mão-de-obra, equipamento, administrativo, outros';
+    const ctrs = allContracts.filter(c => c.status === 'ativo').map(c => `${c.id}: ${c.name}`).join('\n') || 'nenhum';
+    const prompt = `Classifique esta despesa:
+Descrição: ${descricao}
+Valor: R$ ${valor || '?'}
+Fornecedor: ${fornecedor || 'não informado'}
+
+Categorias disponíveis: ${cats}
+Contratos ativos:
+${ctrs}
+
+Responda APENAS com JSON válido:
+{"category":"...","contractId":"..." ou null,"confidence":0.0,"justificativa":"..."}`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 256, messages: [{ role: 'user', content: prompt }] }),
+    });
+    if (!response.ok) return sendError(res, 502, 'Erro na API de IA');
+    const apiData = await response.json();
+    const text = apiData.content?.[0]?.text || '{}';
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    const result = jsonMatch ? JSON.parse(jsonMatch[0]) : { category: 'outros', confidence: 0 };
+    sendJson(res, result);
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+// ============ F5: OFX Import ============
+function _parseOFX(content) {
+  const transacoes = [];
+  const blocks = content.match(/<STMTTRN>[\s\S]*?<\/STMTTRN>/gi) || [];
+  for (const block of blocks) {
+    const get = (tag) => { const m = block.match(new RegExp(`<${tag}>([^<\n\r]+)`, 'i')); return m ? m[1].trim() : ''; };
+    const dtStr = get('DTPOSTED');
+    if (!dtStr || dtStr.length < 8) continue;
+    const data = `${dtStr.slice(0, 4)}-${dtStr.slice(4, 6)}-${dtStr.slice(6, 8)}`;
+    const valor = parseFloat(get('TRNAMT')) || 0;
+    const memo = get('MEMO') || get('NAME') || '';
+    const fitid = get('FITID') || '';
+    transacoes.push({ fitid, data, valor, memo, tipo: valor >= 0 ? 'entrada' : 'saida' });
+  }
+  return transacoes;
+}
+
+async function handleImportarOfx(req, res) {
+  try {
+    const chunks = [];
+    await new Promise((resolve, reject) => {
+      req.on('data', d => chunks.push(d));
+      req.on('end', resolve);
+      req.on('error', reject);
+    });
+    const ofxContent = Buffer.concat(chunks).toString('utf8');
+    const transacoes = _parseOFX(ofxContent);
+    if (transacoes.length === 0) return sendError(res, 400, 'Nenhuma transação encontrada no arquivo OFX');
+
+    const caixaAll = await repos.caixa.findAll();
+    const sugestoes = transacoes.map(t => {
+      const match = caixaAll.find(e => {
+        const vMatch = Math.abs((parseFloat(e.value) || 0) - Math.abs(t.valor)) < 0.02;
+        const dMatch = Math.abs(new Date(e.date) - new Date(t.data)) <= 86400000;
+        return vMatch && dMatch;
+      });
+      return { ...t, match: match ? { id: match.id, description: match.description, date: match.date } : null, status: match ? 'conciliado' : 'novo' };
+    });
+    sendJson(res, { transacoes: sugestoes, total: transacoes.length, novos: sugestoes.filter(t => t.status === 'novo').length });
+  } catch (e) {
+    sendError(res, 400, 'Erro ao processar OFX: ' + e.message);
+  }
+}
+
+// ============ F18: Feature Flags ============
+async function handleGetFeatureFlags(res) {
+  try {
+    const rows = await db.getMany('SELECT * FROM feature_flags ORDER BY key');
+    sendJson(res, { flags: rows });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handlePutFeatureFlag(key, body, res) {
+  try {
+    await db.query(
+      `INSERT INTO feature_flags (key, enabled, description, updated_at)
+       VALUES ($1, $2, $3, NOW())
+       ON CONFLICT (key) DO UPDATE SET enabled = $2, updated_at = NOW()`,
+      [key, !!body.enabled, body.description || '']
+    );
+    const rows = await db.getMany('SELECT * FROM feature_flags ORDER BY key');
+    sendJson(res, { flags: rows });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 // ============ Níveis de Acesso handlers ============
@@ -3186,6 +3494,7 @@ async function handlePostDocTemplate(body, res) {
       empresaId: body.empresaId || null,
       checklist: JSON.stringify(Array.isArray(body.checklist) ? body.checklist : []),
       periodicidadeMeses: Number.isFinite(parseInt(body.periodicidadeMeses)) ? parseInt(body.periodicidadeMeses) : 12,
+      body: body.body || null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -3199,7 +3508,7 @@ async function handlePostDocTemplate(body, res) {
 async function handlePutDocTemplate(id, body, res) {
   try {
     const allowed = {};
-    const fields = ['nome', 'tipoDocumento', 'empresaId'];
+    const fields = ['nome', 'tipoDocumento', 'empresaId', 'body'];
     for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
     if (body.checklist !== undefined) {
       allowed.checklist = JSON.stringify(Array.isArray(body.checklist) ? body.checklist : []);

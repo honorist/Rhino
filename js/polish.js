@@ -26,6 +26,7 @@
       if (!el) return;
       el.classList.add('is-done');
       setTimeout(() => el.remove(), 400);
+      window.dispatchEvent(new CustomEvent('rh:boot-done'));
     },
   };
   // Fail-safe: se o app não chamar done() em 8s, esconde mesmo assim

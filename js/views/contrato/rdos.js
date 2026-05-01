@@ -353,6 +353,7 @@
           <div class="modal-footer">
             <button class="btn btn-secondary" id="btnRdoClose">Fechar</button>
             ${contract ? `<button class="btn btn-secondary" id="btnRdoEdit">Editar</button>` : ''}
+            ${contract ? `<button class="btn btn-secondary" id="btnRdoWhats" title="Enviar resumo via WhatsApp">💬 WhatsApp</button>` : ''}
             ${contract ? `<button class="btn btn-primary" id="btnRdoPdf">📄 Exportar PDF</button>` : ''}
           </div>
         </div>
@@ -366,6 +367,21 @@
     if (bEdit) bEdit.addEventListener('click', () => { close(); this.showModalRdo(contract.id, rdo); });
     const bPdf = document.getElementById('btnRdoPdf');
     if (bPdf) bPdf.addEventListener('click', () => { close(); this.exportarRdoPdf(rdo, contract); });
+    const bWhats = document.getElementById('btnRdoWhats');
+    if (bWhats) bWhats.addEventListener('click', () => {
+      const atividades = (rdo.atividades || []).map(a => `• ${a.descricao || a.nome || ''}`).join('\n');
+      const moi = (rdo.moi || []).reduce((s, m) => s + (parseInt(m.quantidade) || 0), 0);
+      const text = [
+        `*RDO ${rdo.numero || ''} — ${rdo.data || ''}*`,
+        `Obra: ${contract.name || ''}`,
+        rdo.os_numero ? `OS: ${rdo.os_numero}` : '',
+        `Clima: ${rdo.tempo || '—'}`,
+        moi > 0 ? `MOI: ${moi} pessoas` : '',
+        atividades ? `\nAtividades:\n${atividades}` : '',
+        rdo.fiscalizacaoComentarios ? `\nObservações: ${rdo.fiscalizacaoComentarios}` : '',
+      ].filter(Boolean).join('\n');
+      window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+    });
 
     // Assinaturas: carrega e habilita botão de adicionar
     this._loadRdoAssinaturas(rdo.id, contract);
