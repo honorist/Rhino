@@ -197,13 +197,33 @@
       overlay.remove();
       document.removeEventListener('keydown', onKey, true);
     }
-    function filter() {
+    let searchToken = 0;
+    async function filter() {
       const q = norm(input.value.trim());
-      filtered = q
+      const localFiltered = q
         ? items.filter((it) => norm(it.label).includes(q) || norm(it.hint).includes(q))
         : items;
+      filtered = localFiltered;
       active = 0;
       render();
+
+      // Busca remota (M3) — soma resultados se a query >= 2 chars
+      if (q.length < 2) return;
+      const myToken = ++searchToken;
+      try {
+        const r = await fetch(`/api/search?q=${encodeURIComponent(input.value.trim())}`, { credentials: 'same-origin' });
+        if (!r.ok) return;
+        const j = await r.json();
+        if (myToken !== searchToken) return; // outra busca já saiu
+        const remote = (j.results || []).map((res) => ({
+          icon: '◇',
+          label: `${res.kind}: ${res.title}`,
+          hint: res.hint || '',
+          run: () => { location.hash = res.hash; },
+        }));
+        filtered = [...localFiltered, ...remote];
+        render();
+      } catch {}
     }
     function onKey(e) {
       if (e.key === 'Escape') { e.preventDefault(); close(); return; }

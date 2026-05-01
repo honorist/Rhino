@@ -4,6 +4,7 @@ window.Auditoria = {
   _page: 0,
   _pageSize: 50,
   _data: { rows: [], total: 0 },
+  _viewMode: (() => { try { return localStorage.getItem('rh-audit-view') || 'table'; } catch { return 'table'; } })(),
 
   // Tradução de "entidade" técnica → nome amigável
   _entityLabel(e) {
@@ -172,7 +173,13 @@ window.Auditoria = {
           <h1 class="page-title">Histórico de Atividades</h1>
           <p class="page-subtitle">Tudo que aconteceu no sistema — quem fez, o quê e quando</p>
         </div>
-        <div style="font-size:14px;color:var(--color-text-muted);">${total} ${total === 1 ? 'atividade' : 'atividades'}</div>
+        <div style="display:flex;gap:14px;align-items:center;font-size:14px;color:var(--color-text-muted);">
+          <div role="group" aria-label="Modo de visualização" style="display:inline-flex;border:1px solid var(--color-border);border-radius:999px;overflow:hidden;">
+            <button class="btn btn-sm" id="audViewTable"    style="border-radius:0;${this._viewMode==='table'?    'background:var(--color-primary);color:#fff;':'background:transparent;'}">Tabela</button>
+            <button class="btn btn-sm" id="audViewTimeline" style="border-radius:0;${this._viewMode==='timeline'? 'background:var(--color-primary);color:#fff;':'background:transparent;'}">Linha do tempo</button>
+          </div>
+          <span>${total} ${total === 1 ? 'atividade' : 'atividades'}</span>
+        </div>
       </div>
 
       <!-- Filtros -->
@@ -206,7 +213,34 @@ window.Auditoria = {
         <button class="btn btn-secondary" id="fAuditClear">Limpar</button>
       </div>
 
-      <!-- Tabela -->
+      <!-- Tabela / Timeline -->
+      ${this._viewMode === 'timeline' ? `
+        <div class="audit-timeline">
+          ${rows.length === 0 ? `<div class="empty-state"><div class="empty-state__title">Sem atividades</div><div class="empty-state__msg">Ajuste os filtros para ver eventos.</div></div>` : rows.map(r => {
+            const verbInfo = this._actionVerb(r.action);
+            const entLabel = this._entityLabel(r.entity);
+            const friendly = r.entityLabel || this._entityFriendlyName(r.entity, r.entityId) || '';
+            const cls = ({ create: 'audit-event--insert', update: 'audit-event--update', delete: 'audit-event--delete' })[r.action] || '';
+            return `
+              <div class="audit-event ${cls}" data-id="${r.id}" style="cursor:pointer;">
+                <div class="audit-event__dot" aria-hidden="true"></div>
+                <div class="audit-event__head">
+                  <span class="audit-event__user">${escapeHtml((r.userEmail || '').split('@')[0] || '—')}</span>
+                  <span class="audit-event__action">${verbInfo.verbo} ${escapeHtml(entLabel.toLowerCase())}${friendly ? ' <strong>'+escapeHtml(friendly)+'</strong>' : ''}</span>
+                  <span class="audit-event__time">${this._tempoRelativo(r.ts)} · ${fmtDT(r.ts)}</span>
+                </div>
+                ${(() => {
+                  if (r.action !== 'update' || !r.beforeState || !r.body) return '';
+                  const diffs = this._computeDiff(r.beforeState, r.body).slice(0, 4);
+                  if (!diffs.length) return '';
+                  return '<div class="audit-event__detail">' + diffs.map(d =>
+                    `${escapeHtml(this._fieldLabel(d.key))}: ${escapeHtml(this._fmtVal(d.before))} → ${escapeHtml(this._fmtVal(d.after))}`
+                  ).join('<br>') + '</div>';
+                })()}
+              </div>`;
+          }).join('')}
+        </div>
+      ` : `
       <table class="data-table">
         <thead>
           <tr>
@@ -263,6 +297,7 @@ window.Auditoria = {
           }).join('')}
         </tbody>
       </table>
+      `}
 
       ${totalPages > 1 ? `
         <div style="display:flex;justify-content:center;gap:var(--sp-sm);margin-top:var(--sp-md);">
@@ -295,12 +330,23 @@ window.Auditoria = {
     });
 
     // Click linha → mostra detalhe
-    document.querySelectorAll('.row-audit').forEach(tr => {
+    document.querySelectorAll('.row-audit, .audit-event').forEach(tr => {
       tr.addEventListener('click', () => {
         const ev = rows.find(x => String(x.id) === tr.dataset.id);
         if (ev) this._showDetail(ev);
       });
     });
+
+    // Toggle de modo de visualização (G2)
+    const setMode = (m) => {
+      this._viewMode = m;
+      try { localStorage.setItem('rh-audit-view', m); } catch {}
+      this._draw();
+    };
+    const btT = document.getElementById('audViewTable');
+    const btL = document.getElementById('audViewTimeline');
+    if (btT) btT.addEventListener('click', () => setMode('table'));
+    if (btL) btL.addEventListener('click', () => setMode('timeline'));
 
     // Paginação
     const prev = document.getElementById('auditPrev');

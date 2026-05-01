@@ -1,6 +1,8 @@
 window.Obras = {
   _map: null,
   _markers: [],
+  _heatLayer: null,
+  _viewMode: (() => { try { return localStorage.getItem('rh-obras-view') || 'markers'; } catch { return 'markers'; } })(),
   filters: { status: '', clientSearch: '', valorMin: '', valorMax: '', dataInicio: '', dataFim: '' },
 
   async render() {
@@ -58,7 +60,11 @@ window.Obras = {
 
         <div style="display:grid;grid-template-columns:1fr 320px;gap:var(--sp-lg);align-items:start;">
           <!-- Mapa -->
-          <div class="card" style="padding:0;overflow:hidden;">
+          <div class="card" style="padding:0;overflow:hidden;position:relative;">
+            <div role="group" aria-label="Modo do mapa" style="position:absolute;top:12px;right:12px;z-index:600;display:inline-flex;background:var(--color-surface);border:1px solid var(--color-border);border-radius:999px;overflow:hidden;box-shadow:var(--shadow-md);">
+              <button class="btn btn-sm" id="obrasViewMarkers" style="border-radius:0;${this._viewMode==='markers'?'background:var(--color-primary);color:#fff;':'background:transparent;'}">Marcadores</button>
+              <button class="btn btn-sm" id="obrasViewHeat" style="border-radius:0;${this._viewMode==='heat'?'background:var(--color-primary);color:#fff;':'background:transparent;'}">Heatmap</button>
+            </div>
             <div id="mapaObras" style="height:600px;width:100%;"></div>
           </div>
 
@@ -152,6 +158,18 @@ window.Obras = {
     // Limpar marcadores anteriores
     this._markers.forEach(m => m.remove());
     this._markers = [];
+    if (this._heatLayer) { this._heatLayer.remove(); this._heatLayer = null; }
+
+    // Bind dos botões de modo (G3) — idempotente
+    const setMode = (m) => {
+      this._viewMode = m;
+      try { localStorage.setItem('rh-obras-view', m); } catch {}
+      this.render();
+    };
+    const bMk = document.getElementById('obrasViewMarkers');
+    const bHt = document.getElementById('obrasViewHeat');
+    if (bMk && !bMk._bound) { bMk._bound = true; bMk.addEventListener('click', () => setMode('markers')); }
+    if (bHt && !bHt._bound) { bHt._bound = true; bHt.addEventListener('click', () => setMode('heat')); }
 
     const contratos = this._filtrarContratos();
     const lista = document.getElementById('listaObras');
@@ -173,6 +191,33 @@ window.Obras = {
 
     lista.innerHTML = '';
     const bounds = [];
+
+    // Modo Heatmap: círculos transparentes proporcionais ao valor
+    if (this._viewMode === 'heat') {
+      const valores = contratos.map(c => parseFloat(c.value) || 0);
+      const maxVal = Math.max(1, ...valores);
+      const group = L.layerGroup();
+      contratos.forEach((c) => {
+        const lat = parseFloat(c.lat); const lng = parseFloat(c.lng);
+        if (isNaN(lat) || isNaN(lng)) return;
+        bounds.push([lat, lng]);
+        const intensity = Math.max(0.15, (parseFloat(c.value) || 0) / maxVal);
+        const radius = 25 + intensity * 55;
+        L.circle([lat, lng], {
+          radius: radius * 1000, // em metros
+          color: this._getStatusCor(c.status),
+          fillColor: this._getStatusCor(c.status),
+          fillOpacity: 0.18 + intensity * 0.25,
+          weight: 1.2,
+        }).addTo(group).bindPopup(`<strong>${escapeHtml(c.name)}</strong><br>${Store.formatBRL(c.value || 0)}`);
+      });
+      group.addTo(this._map);
+      this._heatLayer = group;
+      // Lista lateral
+      lista.innerHTML = contratos.map(c => `<div class="obra-lista-item" style="padding:8px 12px;border-bottom:1px solid var(--color-border);"><strong>${escapeHtml(c.name)}</strong><br><span style="font-size:13px;color:var(--color-text-muted);">${Store.formatBRL(c.value || 0)}</span></div>`).join('');
+      if (bounds.length) this._map.fitBounds(bounds, { padding: [40, 40] });
+      return;
+    }
 
     contratos.forEach((c, idx) => {
       const lat = parseFloat(c.lat);

@@ -1,6 +1,11 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+
+// Versão do app: APP_VERSION env > package.json > 'dev'
+const APP_VERSION = process.env.APP_VERSION || (() => {
+  try { return require('./package.json').version || 'dev'; } catch { return 'dev'; }
+})();
 const url = require('url');
 const crypto = require('crypto');
 
@@ -846,7 +851,7 @@ async function handleBackupDownload(res) {
 
     const payload = {
       _meta: {
-        version: process.env.APP_VERSION || 'dev',
+        version: APP_VERSION,
         generatedAt: new Date().toISOString(),
         format: 'rhino-backup-v1',
       },
@@ -893,7 +898,7 @@ async function handleHealth(res) {
     app: 'ok',
     db: 'unknown',
     uptime_s: Math.round((Date.now() - APP_START) / 1000),
-    version: process.env.APP_VERSION || 'dev',
+    version: APP_VERSION,
     node: process.version,
     timestamp: new Date().toISOString(),
   };
@@ -2858,6 +2863,9 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname.match(/^\/api\/doc-templates\/[^/]+$/) && method === 'PUT') return handlePutDocTemplate(pathname.split('/')[3], body, res);
   if (pathname.match(/^\/api\/doc-templates\/[^/]+$/) && method === 'DELETE') return handleDeleteDocTemplate(pathname.split('/')[3], res);
 
+  // Busca global cross-collection (M3)
+  if (pathname === '/api/search' && method === 'GET') return handleGlobalSearch(parsedUrl.query, res);
+
   // Níveis de Acesso routes
   if (pathname === '/api/niveis-acesso' && method === 'GET') return handleGetNiveisAcesso(res);
   if (pathname.match(/^\/api\/niveis-acesso\/[^/]+$/) && method === 'PUT') {
@@ -2873,6 +2881,60 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
 }
 
 // ============ Níveis de Acesso handlers ============
+// ============ Global search (M3) ============
+async function handleGlobalSearch(query, res) {
+  const q = String(query.q || '').trim().toLowerCase();
+  if (!q || q.length < 2) {
+    return sendJson(res, { results: [], q });
+  }
+  const norm = (s) => String(s || '').toLowerCase();
+  const matches = (s) => norm(s).includes(q);
+  const results = [];
+  const safe = async (fn) => { try { return await fn(); } catch { return []; } };
+
+  const [contracts, clientes, fornecedores, contas, nfs, recursos] = await Promise.all([
+    safe(() => repos.contracts.findAll()),
+    safe(() => repos.clientes.findAll()),
+    safe(() => repos.fornecedores.findAll()),
+    safe(() => repos.contasPagar.findAll()),
+    safe(() => repos.notasFiscais.findAll()),
+    safe(() => repos.recursos.findAll()),
+  ]);
+
+  contracts.forEach((c) => {
+    if (matches(c.client_name) || matches(c.title) || matches(c.description) || matches(c.id)) {
+      results.push({ kind: 'Contrato', id: c.id, title: c.client_name || c.title || c.id, hint: c.title || '', hash: `#/contratos/${c.id}` });
+    }
+  });
+  clientes.forEach((c) => {
+    if (matches(c.name) || matches(c.cnpj) || matches(c.email)) {
+      results.push({ kind: 'Cliente', id: c.id, title: c.name, hint: c.cnpj || c.email || '', hash: '#/clientes' });
+    }
+  });
+  fornecedores.forEach((f) => {
+    if (matches(f.name) || matches(f.cnpj)) {
+      results.push({ kind: 'Fornecedor', id: f.id, title: f.name, hint: f.cnpj || '', hash: '#/fornecedores' });
+    }
+  });
+  contas.forEach((c) => {
+    if (matches(c.descricao) || matches(c.fornecedor) || matches(c.numero)) {
+      results.push({ kind: 'Conta a Pagar', id: c.id, title: c.descricao || c.fornecedor || c.numero, hint: c.dataVencimento || '', hash: '#/contas-pagar' });
+    }
+  });
+  nfs.forEach((n) => {
+    if (matches(n.numero) || matches(n.descricao) || matches(n.cliente)) {
+      results.push({ kind: 'Nota Fiscal', id: n.id, title: n.numero || n.descricao || n.cliente, hint: n.dataVencimento || '', hash: '#/notas-fiscais' });
+    }
+  });
+  recursos.forEach((r) => {
+    if (matches(r.name) || matches(r.cpf) || matches(r.role)) {
+      results.push({ kind: 'Recurso', id: r.id, title: r.name, hint: r.role || '', hash: '#/recursos' });
+    }
+  });
+
+  sendJson(res, { results: results.slice(0, 50), q, count: results.length });
+}
+
 async function handleGetNiveisAcesso(res) {
   const data = await readCollection('niveis_acesso.json', 'niveisAcesso', 'niveis');
   res.writeHead(200, { 'Content-Type': 'application/json' });
