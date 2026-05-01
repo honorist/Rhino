@@ -3315,10 +3315,10 @@ window.ContratoDetail = {
   },
 
   // Abre modal para desenhar assinatura no canvas
-  _showModalAddAssinatura(rdoId, contract) {
+  async _showModalAddAssinatura(rdoId, contract) {
     if (!window.SignaturePad) {
-      window.showToast('Biblioteca de assinatura não carregada — recarregue a página', 'error');
-      return;
+      try { await window.RhinoLazy.ensure('signature_pad'); }
+      catch { window.showToast('Falha ao carregar a biblioteca de assinatura', 'error'); return; }
     }
 
     const html = `
@@ -4255,10 +4255,10 @@ window.ContratoDetail = {
     }
   },
 
-  exportarRdoPdf(rdo, contract) {
+  async exportarRdoPdf(rdo, contract) {
     if (typeof window.jspdf === 'undefined') {
-      showToast('Biblioteca PDF não carregada. Recarregue a página.', 'error');
-      return;
+      try { await window.RhinoLazy.ensure(['jspdf', 'jspdf-autotable']); }
+      catch { showToast('Falha ao carregar biblioteca PDF', 'error'); return; }
     }
     // Carrega logo (redimensiona pra 300px máx + JPEG com fundo branco → pequeno)
     const carregarLogo = () => new Promise((resolve) => {
@@ -5372,9 +5372,12 @@ window.ContratoDetail = {
     });
   },
 
-  // Gera one-pager PDF executivo do contrato (jsPDF + autotable já carregados via CDN no index.html)
-  exportarPDF(contract, ctx) {
-    if (!window.jspdf) { window.showToast('Biblioteca PDF não carregada — recarregue a página', 'error'); return; }
+  // Gera one-pager PDF executivo do contrato (jsPDF + autotable lazy-loaded via lazy.js)
+  async exportarPDF(contract, ctx) {
+    if (!window.jspdf) {
+      try { await window.RhinoLazy.ensure(['jspdf', 'jspdf-autotable']); }
+      catch { window.showToast('Falha ao carregar biblioteca PDF', 'error'); return; }
+    }
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
     const fmtBRL = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0);

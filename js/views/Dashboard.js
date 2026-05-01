@@ -22,7 +22,22 @@ window.Dashboard = {
 
   async render() {
     const app = document.getElementById('app');
-    app.innerHTML = '<div class="loading-spinner">Carregando...</div>';
+    app.innerHTML = `
+      <div class="dashboard-skeleton" aria-busy="true">
+        <div class="grid grid-4" style="margin-bottom:24px;">
+          <div class="skeleton skeleton--card"></div>
+          <div class="skeleton skeleton--card"></div>
+          <div class="skeleton skeleton--card"></div>
+          <div class="skeleton skeleton--card"></div>
+        </div>
+        <div class="grid grid-2" style="margin-bottom:24px;">
+          <div class="skeleton" style="height:280px;border-radius:10px;"></div>
+          <div class="skeleton" style="height:280px;border-radius:10px;"></div>
+        </div>
+        <div style="background:var(--color-surface);padding:16px;border-radius:10px;border:1px solid var(--color-border);">
+          ${(window.RhinoUI && window.RhinoUI.skeletonRows) ? window.RhinoUI.skeletonRows(6) : ''}
+        </div>
+      </div>`;
 
     try {
       await Store.loadAll();

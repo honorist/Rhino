@@ -1,0 +1,294 @@
+/* Rhino · Polish runtime
+   - Service worker register
+   - Boot loader fade-out
+   - Command palette (Cmd/Ctrl+K)
+   - Bottom navigation (mobile)
+   - Helpers: emptyState(), toast(), skeleton()
+*/
+(function () {
+  'use strict';
+
+  // ───────────────────────────────────────────────
+  // 1. Service worker
+  // ───────────────────────────────────────────────
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+
+  // ───────────────────────────────────────────────
+  // 2. Boot loader fade-out
+  // ───────────────────────────────────────────────
+  window.RhinoBoot = {
+    done() {
+      const el = document.querySelector('.boot-loader');
+      if (!el) return;
+      el.classList.add('is-done');
+      setTimeout(() => el.remove(), 400);
+    },
+  };
+  // Fail-safe: se o app não chamar done() em 8s, esconde mesmo assim
+  setTimeout(() => window.RhinoBoot.done(), 8000);
+
+  // ───────────────────────────────────────────────
+  // 3. Helpers globais
+  // ───────────────────────────────────────────────
+  window.RhinoUI = window.RhinoUI || {};
+
+  RhinoUI.emptyState = function ({ icon = '📭', title = 'Nada por aqui ainda', message = '', cta = null } = {}) {
+    const ctaHtml = cta
+      ? `<button class="btn btn-primary empty-state__cta" data-empty-cta>${cta.label}</button>`
+      : '';
+    const html = `
+      <div class="empty-state">
+        <div class="empty-state__icon">${icon}</div>
+        <div class="empty-state__title">${title}</div>
+        ${message ? `<div class="empty-state__msg">${message}</div>` : ''}
+        ${ctaHtml}
+      </div>`;
+    return html;
+  };
+
+  RhinoUI.sparkline = function (values, { height = 36, fill = true } = {}) {
+    const arr = (values || []).map((v) => Number(v) || 0);
+    if (!arr.length) return '';
+    const w = 120;
+    const h = height;
+    const min = Math.min(...arr);
+    const max = Math.max(...arr);
+    const range = max - min || 1;
+    const stepX = w / Math.max(1, arr.length - 1);
+    const pts = arr.map((v, i) => [i * stepX, h - ((v - min) / range) * (h - 4) - 2]);
+    const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+    const fillD = fill ? `M${pts[0][0]},${h} L${pts.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' L')} L${pts[pts.length - 1][0]},${h} Z` : '';
+    const last = pts[pts.length - 1];
+    return `<svg class="sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
+      ${fill ? `<path class="sparkline-fill" d="${fillD}"/>` : ''}
+      <path d="${d}"/>
+      <circle class="sparkline-dot" cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="2.5"/>
+    </svg>`;
+  };
+
+  RhinoUI.skeletonRows = function (count = 5) {
+    let html = '';
+    for (let i = 0; i < count; i++) {
+      html += `
+        <div class="skeleton-row">
+          <span class="skeleton"></span>
+          <span class="skeleton"></span>
+          <span class="skeleton"></span>
+        </div>`;
+    }
+    return html;
+  };
+
+  // Toast manager
+  function ensureToastStack() {
+    let stack = document.querySelector('.toast-stack');
+    if (!stack) {
+      stack = document.createElement('div');
+      stack.className = 'toast-stack';
+      document.body.appendChild(stack);
+    }
+    return stack;
+  }
+  RhinoUI.toast = function (message, { type = 'info', duration = 3500 } = {}) {
+    const stack = ensureToastStack();
+    const el = document.createElement('div');
+    el.className = `toast toast--${type}`;
+    el.textContent = message;
+    stack.appendChild(el);
+    setTimeout(() => {
+      el.classList.add('is-leaving');
+      setTimeout(() => el.remove(), 200);
+    }, duration);
+    return el;
+  };
+
+  // ───────────────────────────────────────────────
+  // 4. Command palette (Cmd/Ctrl + K)
+  // ───────────────────────────────────────────────
+  function getCommandIndex() {
+    const items = [];
+    // Rotas a partir de routes (definido em app.js)
+    if (window.routes) {
+      for (const [hash, cfg] of Object.entries(window.routes)) {
+        if (!cfg.label || hash.includes(':id') || cfg.soon) continue;
+        // Respeita perfil quando disponível
+        try {
+          if (window.perfil && typeof window.perfil.podeAcessar === 'function') {
+            if (!window.perfil.podeAcessar(hash)) continue;
+          }
+        } catch {}
+        items.push({
+          label: cfg.label,
+          hint: 'Ir para',
+          icon: '→',
+          run: () => { location.hash = hash; },
+        });
+      }
+    }
+    // Ações globais
+    items.push(
+      { label: 'Alternar tema (claro/escuro)', hint: 'Tema', icon: '◐',
+        run: () => { if (typeof window.toggleTheme === 'function') window.toggleTheme(); }
+      },
+      { label: 'Abrir Manual do Usuário', hint: 'Ajuda', icon: '?',
+        run: () => { location.hash = '#/manual'; }
+      },
+    );
+    return items;
+  }
+
+  let cmdkOpen = false;
+  function openCmdK() {
+    if (cmdkOpen) return;
+    cmdkOpen = true;
+    const items = getCommandIndex();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'cmdk-overlay';
+    overlay.innerHTML = `
+      <div class="cmdk-panel" role="dialog" aria-modal="true" aria-label="Buscar e navegar">
+        <div class="cmdk-input-wrap">
+          <span class="cmdk-input-wrap__icon">⌕</span>
+          <input class="cmdk-input" type="text" placeholder="Buscar telas, ações…" autocomplete="off" autofocus />
+          <kbd class="cmdk-kbd">esc</kbd>
+        </div>
+        <div class="cmdk-list" role="listbox"></div>
+      </div>`;
+    document.body.appendChild(overlay);
+
+    const input = overlay.querySelector('.cmdk-input');
+    const list = overlay.querySelector('.cmdk-list');
+    let active = 0;
+    let filtered = items;
+
+    const norm = (s) => (s || '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+    function render() {
+      if (!filtered.length) {
+        list.innerHTML = '<div class="cmdk-empty">Nada encontrado</div>';
+        return;
+      }
+      list.innerHTML = filtered.map((it, i) => `
+        <div class="cmdk-item ${i === active ? 'is-active' : ''}" role="option" data-i="${i}">
+          <span class="cmdk-item__icon">${it.icon || '·'}</span>
+          <span class="cmdk-item__label">${it.label}</span>
+          <span class="cmdk-item__hint">${it.hint || ''}</span>
+        </div>`).join('');
+    }
+    function move(d) {
+      if (!filtered.length) return;
+      active = (active + d + filtered.length) % filtered.length;
+      render();
+      const el = list.querySelector('.is-active');
+      if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
+    }
+    function commit() {
+      const it = filtered[active];
+      if (!it) return;
+      close();
+      try { it.run(); } catch (e) { console.error(e); }
+    }
+    function close() {
+      cmdkOpen = false;
+      overlay.remove();
+      document.removeEventListener('keydown', onKey, true);
+    }
+    function filter() {
+      const q = norm(input.value.trim());
+      filtered = q
+        ? items.filter((it) => norm(it.label).includes(q) || norm(it.hint).includes(q))
+        : items;
+      active = 0;
+      render();
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+      if (e.key === 'ArrowDown') { e.preventDefault(); move(1); return; }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); move(-1); return; }
+      if (e.key === 'Enter')     { e.preventDefault(); commit(); return; }
+    }
+    input.addEventListener('input', filter);
+    document.addEventListener('keydown', onKey, true);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    list.addEventListener('click', (e) => {
+      const it = e.target.closest('.cmdk-item');
+      if (!it) return;
+      active = parseInt(it.dataset.i, 10);
+      commit();
+    });
+
+    render();
+    setTimeout(() => input.focus(), 0);
+  }
+
+  // Atalho global
+  document.addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase();
+    if ((e.metaKey || e.ctrlKey) && k === 'k') {
+      e.preventDefault();
+      openCmdK();
+    }
+  });
+  RhinoUI.openCommandPalette = openCmdK;
+
+  // ───────────────────────────────────────────────
+  // 5. Bottom navigation (mobile)
+  // ───────────────────────────────────────────────
+  const BOTTOM_NAV_ITEMS = [
+    { label: 'Início',     icon: '🏠', hash: '#/dashboard' },
+    { label: 'Contratos',  icon: '📋', hash: '#/contratos' },
+    { label: 'Buscar',     icon: '⌕',  action: openCmdK },
+    { label: 'Financeiro', icon: '💰', hash: '#/caixa' },
+    { label: 'Mais',       icon: '☰',  action: toggleSidebarDrawer },
+  ];
+
+  function toggleSidebarDrawer() {
+    document.body.classList.toggle('sidebar-open');
+  }
+
+  function renderBottomNav() {
+    if (window.innerWidth > 768) {
+      const ex = document.querySelector('.bottom-nav');
+      if (ex) ex.remove();
+      document.body.classList.remove('has-bottom-nav');
+      return;
+    }
+    let nav = document.querySelector('.bottom-nav');
+    if (!nav) {
+      nav = document.createElement('nav');
+      nav.className = 'bottom-nav';
+      nav.setAttribute('role', 'navigation');
+      nav.setAttribute('aria-label', 'Navegação principal');
+      document.body.appendChild(nav);
+      document.body.classList.add('has-bottom-nav');
+    }
+    const current = location.hash || '#/dashboard';
+    nav.innerHTML = BOTTOM_NAV_ITEMS.map((it) => {
+      const active = it.hash && current.startsWith(it.hash);
+      return `<button class="bottom-nav__item ${active ? 'is-active' : ''}"
+                      data-hash="${it.hash || ''}" data-action="${it.action ? '1' : ''}">
+        <span class="bottom-nav__icon">${it.icon}</span>
+        <span>${it.label}</span>
+      </button>`;
+    }).join('');
+    nav.querySelectorAll('.bottom-nav__item').forEach((btn, i) => {
+      btn.addEventListener('click', () => {
+        const it = BOTTOM_NAV_ITEMS[i];
+        if (it.action) it.action();
+        else if (it.hash) location.hash = it.hash;
+      });
+    });
+  }
+
+  window.addEventListener('hashchange', renderBottomNav);
+  window.addEventListener('resize', () => {
+    clearTimeout(window.__rhBottomNavTimer);
+    window.__rhBottomNavTimer = setTimeout(renderBottomNav, 120);
+  });
+  document.addEventListener('DOMContentLoaded', renderBottomNav);
+  if (document.readyState !== 'loading') renderBottomNav();
+})();

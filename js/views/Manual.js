@@ -13,9 +13,8 @@ window.Manual = {
   // Cada bloco recebe ID único pra evitar colisão entre re-renderizações.
   async _renderMermaid() {
     if (!window.mermaid) {
-      // Mermaid carrega assíncrono via CDN; tenta de novo se ainda não está pronto.
-      setTimeout(() => this._renderMermaid(), 200);
-      return;
+      try { await window.RhinoLazy.ensure('mermaid'); }
+      catch { console.warn('[Manual] falha ao carregar mermaid'); return; }
     }
     try {
       const blocks = document.querySelectorAll('.mermaid:not([data-processed])');

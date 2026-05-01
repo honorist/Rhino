@@ -922,9 +922,15 @@ async function navigate() {
 
 // Initialize app
 window.addEventListener('hashchange', navigate);
+// Expõe pra polish.js (command palette, etc.)
+window.routes = routes;
+window.toggleTheme = toggleTheme;
+
 document.addEventListener('DOMContentLoaded', async () => {
   applyTheme(getTheme());
   applyZoom(getZoom());
+  // Esconde boot loader assim que o app começa a inicializar
+  if (window.RhinoBoot) window.RhinoBoot.done();
 
   // 0) Reset de senha via URL (?action=reset-password&token=XXX)
   const params = new URLSearchParams(location.search);
