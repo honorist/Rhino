@@ -198,27 +198,33 @@
           return target ? step.attachTo : { element: '#app', on: step.attachTo.on || 'bottom' };
         };
 
-        tour.addStep({
+        // IMPORTANTE: não passar a chave 'buttons' nos passos do meio.
+        // Se 'buttons: undefined' for passado, Shepherd sobrescreve defaultStepOptions.buttons
+        // com vazio, eliminando os botões. Omitir a chave herda o padrão corretamente.
+        const cfg = {
           id:    step.id,
           title: step.title,
           text:  step.text,
           attachTo: resolveAttach(),
           beforeShowPromise: step.beforeShowPromise
             ? () => step.beforeShowPromise().then(() => {
-                // Re-resolve o attachTo após navegação (DOM pode ter mudado)
                 const s = tour.getById(step.id);
                 if (s && step.attachTo) s.options.attachTo = resolveAttach();
               })
             : undefined,
-          buttons: isFirst
-            ? [{ text: 'Começar →', action: function () { this.next(); } }]
-            : isLast
-              ? [
-                  { text: '← Anterior', action: function () { this.back(); }, secondary: true },
-                  { text: '✅ Concluir', action: function () { this.complete(); } },
-                ]
-              : undefined,
-        });
+        };
+
+        if (isFirst) {
+          cfg.buttons = [{ text: 'Começar →', action: function () { this.next(); } }];
+        } else if (isLast) {
+          cfg.buttons = [
+            { text: '← Anterior', action: function () { this.back(); }, secondary: true },
+            { text: '✅ Concluir', action: function () { this.complete(); } },
+          ];
+        }
+        // passos do meio: sem 'buttons' → herda defaultStepOptions.buttons (← Anterior + Próximo →)
+
+        tour.addStep(cfg);
       });
 
       tour.on('complete', () => localStorage.setItem(TOUR_KEY, '1'));
