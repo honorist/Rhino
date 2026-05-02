@@ -965,6 +965,16 @@ async function navigate() {
 
   renderSidebar();
   updateSidebarActiveState(hash);
+  // Update document title
+  const _titleLabel = match?.config?.label || match?.config?.title;
+  document.title = _titleLabel ? `${_titleLabel} | Rhino` : 'Rhino — Gestão Empresarial';
+  // Page fade-in
+  const _appEl = document.getElementById('app');
+  if (_appEl) {
+    _appEl.classList.remove('rh-navigating');
+    _appEl.offsetWidth; // reflow
+    _appEl.classList.add('rh-navigating');
+  }
 }
 
 // ─── Custom confirm modal (replaces native confirm()) ───────────────────────
@@ -1001,13 +1011,60 @@ window.RhinoConfirm = function({ message, title = 'Confirmar', confirmText = 'Co
 };
 
 // ─── Global keyboard shortcuts ───────────────────────────────────────────────
+let _gPressed = false;
+let _gTimer = null;
+
 document.addEventListener('keydown', (e) => {
-  // Skip if user is typing in a field
+  // Ctrl+Enter always submits active modal form (even inside inputs)
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    const btn = document.querySelector('#btnSalvar:not(:disabled), .modal-footer .btn-primary:not(:disabled)');
+    if (btn) { e.preventDefault(); btn.click(); }
+    return;
+  }
+
+  // Skip if user is typing in a field (except for Ctrl+Enter above)
   if (e.target.matches('input, textarea, select, [contenteditable]')) return;
-  // Skip if a modal is open
-  if (document.querySelector('.modal-overlay, #rh-confirm-overlay, .cmdk-overlay')) return;
+  // Skip if a modal is open (except our custom confirm)
+  if (document.querySelector('.modal-overlay:not(#rh-confirm-overlay .modal-overlay), .cmdk-overlay')) return;
 
   const hash = location.hash;
+
+  // g + key → navigate (g then d=dashboard, c=contratos, f=caixa, r=rdos, q=config, e=estoque)
+  if (_gPressed) {
+    clearTimeout(_gTimer);
+    _gPressed = false;
+    const navMap = { d: '#/dashboard', c: '#/contratos', f: '#/caixa', r: '#/rdos', q: '#/configuracao', e: '#/estoque', o: '#/obras' };
+    const dest = navMap[e.key.toLowerCase()];
+    if (dest) { e.preventDefault(); location.hash = dest; }
+    return;
+  }
+
+  if (e.key === 'g' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    _gPressed = true;
+    _gTimer = setTimeout(() => { _gPressed = false; }, 900);
+    return;
+  }
+
+  // ? → shortcuts panel
+  if (e.key === '?' && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    window.RhinoShortcuts?.show?.();
+    return;
+  }
+
+  // t → toggle theme (already in command palette, also available as shortcut)
+  if (e.key === 't' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault();
+    window.toggleTheme?.();
+    return;
+  }
+
+  // p → modo apresentação
+  if (e.key === 'p' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault();
+    window.RhinoApresentacao?.toggle?.();
+    return;
+  }
 
   // 'n' → Novo Contrato (on contratos list page)
   if (e.key === 'n' && hash === '#/contratos' && !e.ctrlKey && !e.metaKey) {
@@ -1015,6 +1072,118 @@ document.addEventListener('keydown', (e) => {
     window.Contratos?.showModal?.();
   }
 });
+
+// ─── Online / offline banner ─────────────────────────────────────────────────
+(function() {
+  function showOfflineBar() {
+    if (document.getElementById('rh-offline-bar')) return;
+    const bar = document.createElement('div');
+    bar.id = 'rh-offline-bar';
+    bar.className = 'rh-offline-bar';
+    bar.textContent = '⚡ Sem conexão — dados podem estar desatualizados';
+    document.body.prepend(bar);
+  }
+  function hideOfflineBar() {
+    document.getElementById('rh-offline-bar')?.remove();
+  }
+  window.addEventListener('online',  hideOfflineBar);
+  window.addEventListener('offline', showOfflineBar);
+  if (!navigator.onLine) showOfflineBar();
+})();
+
+// ─── Modo Apresentação (oculta valores monetários) ───────────────────────────
+window.RhinoApresentacao = {
+  _active: false,
+  get active() { return this._active; },
+  toggle() {
+    this._active = !this._active;
+    document.documentElement.classList.toggle('modo-apresentacao', this._active);
+    window.showToast(this._active ? 'Modo apresentação ativado — valores ocultos' : 'Modo apresentação desativado', 'info');
+  }
+};
+
+// ─── Focus trap utility ──────────────────────────────────────────────────────
+window.RhinoFocusTrap = function(container) {
+  const sel = 'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
+  const trap = (e) => {
+    if (e.key !== 'Tab') return;
+    const focusable = [...container.querySelectorAll(sel)].filter(el => el.offsetParent !== null);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first || document.activeElement === container) { e.preventDefault(); last.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  };
+  container.addEventListener('keydown', trap);
+  return () => container.removeEventListener('keydown', trap);
+};
+
+// ─── Shortcuts panel ─────────────────────────────────────────────────────────
+window.RhinoShortcuts = {
+  show() {
+    document.getElementById('rh-shortcuts-overlay')?.remove();
+    const sections = [
+      { title: 'Navegação', items: [
+        { label: 'Busca global',        keys: ['Ctrl', 'K'] },
+        { label: 'Dashboard',           keys: ['g', 'd'] },
+        { label: 'Contratos',           keys: ['g', 'c'] },
+        { label: 'Caixa',               keys: ['g', 'f'] },
+        { label: 'RDOs',                keys: ['g', 'r'] },
+        { label: 'Configurações',       keys: ['g', 'q'] },
+        { label: 'Obras (mapa)',        keys: ['g', 'o'] },
+      ]},
+      { title: 'Ações', items: [
+        { label: 'Novo Contrato (na lista)', keys: ['n'] },
+        { label: 'Salvar formulário',        keys: ['Ctrl', '↵'] },
+        { label: 'Fechar modal',             keys: ['Esc'] },
+      ]},
+      { title: 'Interface', items: [
+        { label: 'Alternar tema claro/escuro', keys: ['t'] },
+        { label: 'Modo apresentação',          keys: ['p'] },
+        { label: 'Esta tela de atalhos',       keys: ['?'] },
+      ]},
+    ];
+
+    const rowsHtml = (items) => items.map(it => `
+      <div class="rh-sc-row">
+        <span class="rh-sc-label">${escapeHtml(it.label)}</span>
+        <span class="rh-sc-keys">${it.keys.map(k => `<kbd>${escapeHtml(k)}</kbd>`).join('')}</span>
+      </div>`).join('');
+
+    const body = sections.map(s => `
+      <div class="rh-sc-section">
+        <div class="rh-sc-section-title">${escapeHtml(s.title)}</div>
+        ${rowsHtml(s.items)}
+      </div>`).join('');
+
+    const overlay = document.createElement('div');
+    overlay.id = 'rh-shortcuts-overlay';
+    overlay.innerHTML = `
+      <div class="modal-overlay" style="z-index:10003;">
+        <div class="modal" style="max-width:500px;">
+          <div class="modal-header">
+            <h2 class="modal-title">Atalhos de teclado</h2>
+            <button class="modal-close" id="rh-sc-close">✕</button>
+          </div>
+          <div class="modal-content rh-shortcuts-panel">${body}</div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="rh-sc-close2">Fechar</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const close = () => overlay.remove();
+    overlay.querySelector('#rh-sc-close').addEventListener('click', close);
+    overlay.querySelector('#rh-sc-close2').addEventListener('click', close);
+    overlay.querySelector('.modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) close(); });
+    overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+    window.RhinoFocusTrap?.(overlay.querySelector('.modal'));
+    setTimeout(() => overlay.querySelector('#rh-sc-close2')?.focus(), 50);
+  }
+};
 
 // Initialize app
 window.addEventListener('hashchange', navigate);

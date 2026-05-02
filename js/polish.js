@@ -139,6 +139,17 @@
         run: () => { location.hash = '#/manual'; }
       },
     );
+    items.push(
+      { label: 'Alternar alto contraste', hint: 'Acessibilidade', icon: '◑',
+        run: () => window.RhinoContraste?.toggle?.()
+      },
+      { label: 'Modo apresentação (ocultar valores)', hint: 'Interface', icon: '🙈',
+        run: () => window.RhinoApresentacao?.toggle?.()
+      },
+      { label: 'Atalhos de teclado', hint: 'Ajuda', icon: '⌨',
+        run: () => window.RhinoShortcuts?.show?.()
+      },
+    );
     return items;
   }
 
@@ -312,4 +323,74 @@
   });
   document.addEventListener('DOMContentLoaded', renderBottomNav);
   if (document.readyState !== 'loading') renderBottomNav();
+
+  // ───────────────────────────────────────────────
+  // 6. Ir ao topo button
+  // ───────────────────────────────────────────────
+  (function initBackToTop() {
+    const btn = document.createElement('button');
+    btn.className = 'rh-back-top';
+    btn.setAttribute('aria-label', 'Voltar ao topo');
+    btn.setAttribute('title', 'Ir ao topo');
+    btn.innerHTML = '↑';
+    document.body.appendChild(btn);
+
+    const scrollTarget = document.getElementById('app') || window;
+    const onScroll = () => {
+      const scrollY = scrollTarget === window ? window.scrollY : scrollTarget.scrollTop;
+      btn.classList.toggle('is-visible', scrollY > 300);
+    };
+    scrollTarget.addEventListener('scroll', onScroll, { passive: true });
+    btn.addEventListener('click', () => {
+      scrollTarget === window
+        ? window.scrollTo({ top: 0, behavior: 'smooth' })
+        : scrollTarget.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  })();
+
+  // ───────────────────────────────────────────────
+  // 7. Alto contraste toggle (adds to command palette index)
+  // ───────────────────────────────────────────────
+  // Persiste preferência
+  (function initAltoContraste() {
+    const saved = localStorage.getItem('rhino-contrast');
+    if (saved === 'high') document.documentElement.setAttribute('data-contrast', 'high');
+    window.RhinoContraste = {
+      toggle() {
+        const isHigh = document.documentElement.getAttribute('data-contrast') === 'high';
+        if (isHigh) {
+          document.documentElement.removeAttribute('data-contrast');
+          localStorage.removeItem('rhino-contrast');
+          window.showToast('Contraste normal restaurado', 'info');
+        } else {
+          document.documentElement.setAttribute('data-contrast', 'high');
+          localStorage.setItem('rhino-contrast', 'high');
+          window.showToast('Alto contraste ativado', 'info');
+        }
+      }
+    };
+  })();
+
+  // ───────────────────────────────────────────────
+  // 8. Modal autofocus helper (global delegate)
+  // ───────────────────────────────────────────────
+  document.addEventListener('focusin', () => {}, true); // keep listener active
+  const _modalObserver = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      for (const node of m.addedNodes) {
+        if (node.nodeType !== 1) continue;
+        const modal = node.matches?.('.modal-overlay') ? node : node.querySelector?.('.modal-overlay');
+        if (!modal) continue;
+        setTimeout(() => {
+          const firstInput = modal.querySelector('input:not([type="hidden"]):not([readonly]), select:not([disabled]), textarea:not([disabled])');
+          if (firstInput && !firstInput.closest('[id$="-overlay"]')) firstInput.focus();
+        }, 60);
+        if (window.RhinoFocusTrap) {
+          const modalEl = modal.querySelector('.modal');
+          if (modalEl) window.RhinoFocusTrap(modalEl);
+        }
+      }
+    }
+  });
+  _modalObserver.observe(document.body, { childList: true });
 })();

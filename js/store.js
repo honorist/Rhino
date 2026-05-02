@@ -1104,3 +1104,67 @@ window.showToast = function(message, type = 'success') {
   const timer = setTimeout(dismiss, 3500);
   toast.addEventListener('click', () => { clearTimeout(timer); dismiss(); });
 };
+
+// ─── Copy to clipboard ────────────────────────────────────────────────────────
+window.copyToClipboard = function(text, msg = 'Copiado!') {
+  const done = () => window.showToast(msg, 'success');
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallback());
+  } else {
+    fallback();
+  }
+  function fallback() {
+    const el = document.createElement('textarea');
+    el.value = text;
+    el.style.cssText = 'position:fixed;opacity:0;pointer-events:none;';
+    document.body.appendChild(el);
+    el.select();
+    try { document.execCommand('copy'); done(); } catch {}
+    document.body.removeChild(el);
+  }
+};
+
+// ─── CPF/CNPJ formatter ──────────────────────────────────────────────────────
+window.formatCPFCNPJ = function(v) {
+  const d = (v || '').replace(/\D/g, '');
+  if (d.length <= 11) {
+    return d.replace(/^(\d{1,3})(\d{1,3})?(\d{1,3})?(\d{1,2})?$/, (_, a, b, c, e) =>
+      [a, b, c].filter(Boolean).join('.') + (e ? '-' + e : ''));
+  }
+  return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+};
+
+// ─── Textarea char counter (auto-attach via delegation) ──────────────────────
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (!el.matches('textarea[maxlength], textarea[data-maxlen]')) return;
+  const max = parseInt(el.maxLength || el.dataset.maxlen, 10);
+  if (!max || max < 0) return;
+  const len = el.value.length;
+  let counter = el._rhCharCounter;
+  if (!counter) {
+    counter = document.createElement('div');
+    counter.className = 'rh-char-counter';
+    counter.style.cssText = 'text-align:right;font-size:12px;color:var(--color-text-muted);margin-top:3px;';
+    el.after(counter);
+    el._rhCharCounter = counter;
+  }
+  counter.textContent = `${len} / ${max}`;
+  counter.style.color = len >= max ? 'var(--color-danger)' : len > max * 0.85 ? 'var(--color-warning)' : 'var(--color-text-muted)';
+});
+
+// ─── Aria-live region for screen reader toast announcements ──────────────────
+(function() {
+  const region = document.createElement('div');
+  region.setAttribute('aria-live', 'polite');
+  region.setAttribute('aria-atomic', 'true');
+  region.className = 'sr-only';
+  region.id = 'rh-aria-live';
+  document.body && document.body.appendChild(region) || window.addEventListener('DOMContentLoaded', () => document.body.appendChild(region));
+  const orig = window.showToast;
+  window.showToast = function(message, type) {
+    orig(message, type);
+    const r = document.getElementById('rh-aria-live');
+    if (r) { r.textContent = ''; setTimeout(() => { r.textContent = message; }, 50); }
+  };
+})();

@@ -133,6 +133,10 @@
     document.body.insertAdjacentHTML('beforeend', html);
 
     const overlay = document.getElementById('modalOverlay');
+    setTimeout(() => {
+      const firstInput = overlay?.querySelector('input:not([type="hidden"]):not([readonly]), select, textarea');
+      firstInput?.focus();
+    }, 50);
     const closeModal = () => {
       if (this._miniMapDetail) { this._miniMapDetail.remove(); this._miniMapDetail = null; }
       overlay.remove();

@@ -76,6 +76,11 @@ window.ContratoDetail = {
     const app = document.getElementById('app');
     const contractId = params?.id;
 
+    // Deep-link: respect ?tab=xxx in the hash (e.g. #/contratos/123?tab=financeiro)
+    const _hashQuery = location.hash.includes('?') ? new URLSearchParams(location.hash.split('?')[1]) : null;
+    const _urlTab = _hashQuery?.get('tab');
+    if (_urlTab) this._tab = _urlTab;
+
     // Se a aba atual não é permitida pelo perfil, escolhe a primeira liberada.
     if (window.perfil && !window.perfil.podeContractTab(this._tab)) {
       this._tab = window.perfil.primeiraContractTab();
@@ -86,7 +91,19 @@ window.ContratoDetail = {
       return;
     }
 
-    app.innerHTML = '<div class="loading-spinner">Carregando...</div>';
+    app.innerHTML = `
+      <nav style="font-size:13px;color:var(--color-text-muted);margin-bottom:8px;display:flex;gap:6px;">
+        <a href="#/contratos" style="color:var(--color-primary);text-decoration:none;font-weight:600;">Contratos</a>
+        <span style="opacity:.5;">›</span>
+        <div class="skeleton" style="width:140px;display:inline-block;"></div>
+      </nav>
+      <div class="card">
+        <div class="skeleton skeleton--lg" style="width:50%;margin-bottom:12px;"></div>
+        <div class="skeleton" style="width:30%;margin-bottom:24px;"></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+          ${[1,2,3,4].map(() => `<div class="skeleton skeleton--card"></div>`).join('')}
+        </div>
+      </div>`;
 
     try {
       await Store.loadAll();
@@ -195,6 +212,12 @@ window.ContratoDetail = {
       ])];
 
       const html = `
+        <nav aria-label="Navegação" style="font-size:13px;color:var(--color-text-muted);margin-bottom:var(--sp-sm);display:flex;align-items:center;gap:6px;">
+          <a href="#/contratos" style="color:var(--color-primary);text-decoration:none;font-weight:600;">Contratos</a>
+          <span aria-hidden="true" style="opacity:.5;">›</span>
+          <span style="color:var(--color-text);">${escapeHtml(contract.name)}</span>
+          ${contract.contractNumber ? `<span style="opacity:.5;">·</span><span style="font-family:monospace;font-size:12px;">#${escapeHtml(contract.contractNumber)}</span>` : ''}
+        </nav>
         <div style="margin-bottom: var(--sp-xl);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--sp-lg);">
             <div>
@@ -234,7 +257,7 @@ window.ContratoDetail = {
             { k:'ocorrencias', l:'Ocorrências',  icon:'alert-circle',   badge: (contract.ocorrencias || []).filter(o => !o.encerrada).length || 0 },
             { k:'timeline',    l:'Timeline',     icon:'git-commit' },
           ].filter(t => (window.perfil ? window.perfil.podeContractTab(t.k) : true)).map(t => `
-            <button class="ctd-tab ${this._tab === t.k ? 'active' : ''}" data-ctd-tab="${t.k}" role="tab" aria-selected="${this._tab === t.k}" aria-label="${t.l}${t.badge ? ' (' + t.badge + ')' : ''}">
+            <button class="ctd-tab ${this._tab === t.k ? 'active' : ''}" data-ctd-tab="${t.k}" data-tab="${t.k}" role="tab" aria-selected="${this._tab === t.k}" aria-label="${t.l}${t.badge ? ' (' + t.badge + ')' : ''}">
               <span aria-hidden="true" style="display:inline-flex;align-items:center;color:currentColor;">${window.rhIcon ? window.rhIcon(t.icon, 16) : ''}</span>
               ${t.l}
               ${t.badge ? `<span class="ctd-tab-badge">${t.badge}</span>` : ''}
@@ -849,9 +872,31 @@ window.ContratoDetail = {
       document.querySelectorAll('[data-ctd-tab]').forEach(btn => {
         btn.addEventListener('click', (e) => {
           this._tab = e.currentTarget.dataset.ctdTab;
+          // Update URL to enable deep-link (replaceState = no new history entry)
+          const _hashBase = location.hash.split('?')[0];
+          history.replaceState(null, '', _hashBase + '?tab=' + this._tab);
+          // Update document title
+          const _tabLabel = { visao: 'Visão Geral', financeiro: 'Financeiro', cronograma: 'Cronograma', equipe: 'Equipe', rdo: 'RDOs', aditivos: 'Aditivos', marcos: 'Marcos', ocorrencias: 'Ocorrências', timeline: 'Timeline' }[this._tab] || this._tab;
+          document.title = `${_tabLabel} — ${escapeHtml(contract.name)} | Rhino`;
           this.render({ id: contractId });
         });
       });
+
+      // Keyboard navigation for tabs: ← →
+      const tabBar = document.querySelector('.ctd-tabs');
+      if (tabBar) {
+        tabBar.addEventListener('keydown', e => {
+          const tabs = [...tabBar.querySelectorAll('[data-tab]')].filter(t => !t.hidden && t.offsetParent !== null);
+          const idx = tabs.findIndex(t => t.dataset.tab === this._tab);
+          if (e.key === 'ArrowRight' && idx < tabs.length - 1) {
+            e.preventDefault();
+            tabs[idx + 1].click();
+          } else if (e.key === 'ArrowLeft' && idx > 0) {
+            e.preventDefault();
+            tabs[idx - 1].click();
+          }
+        });
+      }
 
       // Renderiza gráfico de pizza APÓS innerHTML.
       // Composição do gasto = valor do contrato dividido em categorias gastas + saldo restante.
@@ -1013,6 +1058,10 @@ window.ContratoDetail = {
         <div class="modal-footer"><button class="btn btn-secondary" id="btnCancelarAditivo">Cancelar</button><button class="btn btn-primary" id="btnSalvarAditivo">${item ? 'Atualizar' : 'Criar'}</button></div>
       </div>`;
     document.body.appendChild(modal);
+    setTimeout(() => {
+      const firstInput = modal.querySelector('input:not([type="hidden"]):not([readonly]), select, textarea');
+      firstInput?.focus();
+    }, 50);
     document.getElementById('btnCancelarAditivo').addEventListener('click', () => modal.remove());
     document.getElementById('btnSalvarAditivo').addEventListener('click', async () => {
       const fd = new FormData(document.getElementById('formAditivo'));
@@ -1099,6 +1148,10 @@ window.ContratoDetail = {
         <div class="modal-footer"><button class="btn btn-secondary" id="btnCancelarMarco">Cancelar</button><button class="btn btn-primary" id="btnSalvarMarco">${item ? 'Atualizar' : 'Criar'}</button></div>
       </div>`;
     document.body.appendChild(modal);
+    setTimeout(() => {
+      const firstInput = modal.querySelector('input:not([type="hidden"]):not([readonly]), select, textarea');
+      firstInput?.focus();
+    }, 50);
     document.getElementById('btnCancelarMarco').addEventListener('click', () => modal.remove());
     document.getElementById('btnSalvarMarco').addEventListener('click', async () => {
       const fd = new FormData(document.getElementById('formMarco'));
@@ -1182,6 +1235,10 @@ window.ContratoDetail = {
         <div class="modal-footer"><button class="btn btn-secondary" id="btnCancelarOcr">Cancelar</button><button class="btn btn-primary" id="btnSalvarOcr">${item ? 'Atualizar' : 'Registrar'}</button></div>
       </div>`;
     document.body.appendChild(modal);
+    setTimeout(() => {
+      const firstInput = modal.querySelector('input:not([type="hidden"]):not([readonly]), select, textarea');
+      firstInput?.focus();
+    }, 50);
     document.getElementById('btnCancelarOcr').addEventListener('click', () => modal.remove());
     document.getElementById('btnSalvarOcr').addEventListener('click', async () => {
       const fd = new FormData(document.getElementById('formOcorrencia'));

@@ -159,6 +159,10 @@
     document.body.insertAdjacentHTML('beforeend', html);
 
     const overlay = document.getElementById('modalOverlay');
+    setTimeout(() => {
+      const firstInput = overlay?.querySelector('input:not([type="hidden"]):not([readonly]), select, textarea');
+      firstInput?.focus();
+    }, 50);
     const closeModal = () => overlay.remove();
 
     overlay.querySelector('.modal-close').addEventListener('click', closeModal);
@@ -242,6 +246,10 @@
 
     document.body.insertAdjacentHTML('beforeend', html);
     const overlay = document.getElementById('modalOverlay');
+    setTimeout(() => {
+      const firstInput = overlay?.querySelector('input:not([type="hidden"]):not([readonly]), select, textarea');
+      firstInput?.focus();
+    }, 50);
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnCancelar').addEventListener('click', close);
@@ -472,6 +480,10 @@
 
     document.body.insertAdjacentHTML('beforeend', html);
     const overlay = document.getElementById('modalGerarDoc');
+    setTimeout(() => {
+      const firstInput = overlay?.querySelector('input:not([type="hidden"]):not([readonly]), select, textarea');
+      firstInput?.focus();
+    }, 50);
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnCancelarDoc').addEventListener('click', close);

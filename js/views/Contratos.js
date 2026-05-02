@@ -3,6 +3,10 @@ window.Contratos = {
   currentSearch: '',
   sortField: null,
   sortDir: 'asc',
+  currentPage: 1,
+  pageSize: 25,
+
+  _resetPage() { this.currentPage = 1; },
 
   _skeletonHtml() {
     const row = () => `
@@ -80,6 +84,12 @@ window.Contratos = {
       const totalAtivos = Store.state.contracts.filter(c => c.status === 'ativo').length;
       filtered = this._sortContracts(filtered);
 
+      const totalFiltered = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(totalFiltered / this.pageSize));
+      if (this.currentPage > totalPages) this.currentPage = totalPages;
+      const pageStart = (this.currentPage - 1) * this.pageSize;
+      const pagedContracts = filtered.slice(pageStart, pageStart + this.pageSize);
+
       // Compliance de RDOs (não-bloqueante)
       let rdoStats = null;
       try {
@@ -96,8 +106,9 @@ window.Contratos = {
             <h1 class="page-title">Contratos</h1>
             <p class="page-subtitle">Gerenciar contratos de serviços</p>
           </div>
-          <div style="display:flex;gap:8px;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <a href="#/comparativo" class="btn btn-secondary" style="text-decoration:none;">📊 Comparativo</a>
+            <button class="btn btn-secondary" id="btnExportCSV" title="Exportar lista em CSV">⬇ CSV</button>
             ${_podeEditar ? `<button class="btn btn-primary btn-lg" id="btnNovoContrato">+ Novo Contrato</button>` : ''}
           </div>
         </div>
@@ -129,9 +140,9 @@ window.Contratos = {
         </div>
 
         <div style="font-size:13px;color:var(--color-text-muted);margin-bottom:8px;margin-top:4px;">
-          <strong style="color:var(--color-text);">${filtered.length}</strong> contrato${filtered.length !== 1 ? 's' : ''}
+          <strong style="color:var(--color-text);">${totalFiltered}</strong> contrato${totalFiltered !== 1 ? 's' : ''}
           ${this.currentFilter !== 'todos' || q ? '' : ` · <strong style="color:var(--color-success);">${totalAtivos}</strong> ativo${totalAtivos !== 1 ? 's' : ''}`}
-          ${q ? ` encontrado${filtered.length !== 1 ? 's' : ''} para "<em>${escapeHtml(q)}</em>"` : ''}
+          ${q ? ` encontrado${totalFiltered !== 1 ? 's' : ''} para "<em>${escapeHtml(q)}</em>"` : ''}
         </div>
 
         <div class="card">
@@ -149,11 +160,11 @@ window.Contratos = {
                 </tr>
               </thead>
               <tbody>
-                ${filtered.length === 0 ? `
+                ${pagedContracts.length === 0 ? `
                   <tr>
                     <td colspan="7" class="text-center text-muted" style="padding: var(--sp-xl);">Nenhum contrato encontrado</td>
                   </tr>
-                ` : filtered.map(c => {
+                ` : pagedContracts.map(c => {
                   const nOrg = (c.organograma || []).length;
                   const nRec = (Store.state.recursos || []).filter(r => r.status === 'funcionario' && r.alocacaoAtual?.contractId === c.id).length;
                   const total = Math.max(nOrg, nRec);
@@ -181,6 +192,7 @@ window.Contratos = {
                         <a class="action-link btn-abrir" data-id="${c.id}">Abrir</a>
                         ${_podeEditar ? `
                           <a class="action-link btn-editar" data-id="${c.id}">Editar</a>
+                          <a class="action-link btn-duplicar" data-id="${c.id}" title="Duplicar contrato">Duplicar</a>
                           <a class="action-link danger btn-excluir" data-id="${c.id}">Excluir</a>
                         ` : ''}
                       </div>
@@ -191,6 +203,29 @@ window.Contratos = {
             </table>
           </div>
         </div>
+
+        ${totalFiltered > this.pageSize ? `
+        <div class="rh-pagination">
+          <div style="color:var(--color-text-muted);font-size:13px;">
+            ${pageStart + 1}–${Math.min(pageStart + this.pageSize, totalFiltered)} de ${totalFiltered}
+            <select class="rh-pager-size" title="Itens por página" style="margin-left:8px;padding:4px 8px;border-radius:5px;border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-text);font-size:13px;font-family:inherit;">
+              ${[10,25,50,100].map(n => `<option value="${n}" ${this.pageSize === n ? 'selected' : ''}>${n} por página</option>`).join('')}
+            </select>
+          </div>
+          <div class="rh-pagination__pages">
+            <button class="rh-pagination__btn" id="rh-pg-prev" ${this.currentPage === 1 ? 'disabled' : ''}>‹</button>
+            ${Array.from({length: Math.min(totalPages, 7)}, (_, i) => {
+              let pg = i + 1;
+              if (totalPages > 7) {
+                if (this.currentPage <= 4) pg = i + 1;
+                else if (this.currentPage >= totalPages - 3) pg = totalPages - 6 + i;
+                else pg = this.currentPage - 3 + i;
+              }
+              return `<button class="rh-pagination__btn ${this.currentPage === pg ? 'is-active' : ''}" data-pg="${pg}">${pg}</button>`;
+            }).join('')}
+            <button class="rh-pagination__btn" id="rh-pg-next" ${this.currentPage === totalPages ? 'disabled' : ''}>›</button>
+          </div>
+        </div>` : ''}
       `;
 
       app.innerHTML = html;
@@ -202,6 +237,7 @@ window.Contratos = {
       // Status filter
       document.getElementById('filterStatus').addEventListener('change', (e) => {
         this.currentFilter = e.target.value;
+        this.currentPage = 1;
         this.render();
       });
 
@@ -211,6 +247,7 @@ window.Contratos = {
         clearTimeout(_searchTimer);
         _searchTimer = setTimeout(() => {
           this.currentSearch = e.target.value;
+          this.currentPage = 1;
           this.render();
         }, 220);
       });
@@ -240,8 +277,27 @@ window.Contratos = {
         btn.addEventListener('click', (e) => { e.stopPropagation(); this.showModal(e.target.dataset.id); });
       });
 
+      document.querySelectorAll('.btn-duplicar').forEach(btn => {
+        btn.addEventListener('click', (e) => { e.stopPropagation(); this.duplicateContract(e.target.dataset.id); });
+      });
+
       document.querySelectorAll('.btn-excluir').forEach(btn => {
         btn.addEventListener('click', (e) => { e.stopPropagation(); this.deleteContract(e.target.dataset.id); });
+      });
+
+      // CSV export
+      document.getElementById('btnExportCSV')?.addEventListener('click', () => this.exportCSV());
+
+      // Pagination controls
+      document.getElementById('rh-pg-prev')?.addEventListener('click', () => { this.currentPage--; this.render(); });
+      document.getElementById('rh-pg-next')?.addEventListener('click', () => { this.currentPage++; this.render(); });
+      document.querySelectorAll('.rh-pagination__btn[data-pg]').forEach(btn => {
+        btn.addEventListener('click', () => { this.currentPage = parseInt(btn.dataset.pg); this.render(); });
+      });
+      document.querySelector('.rh-pager-size')?.addEventListener('change', e => {
+        this.pageSize = parseInt(e.target.value);
+        this.currentPage = 1;
+        this.render();
       });
     } catch (e) {
       console.error(e);
@@ -416,8 +472,12 @@ window.Contratos = {
   },
 
   showModal(contractId) {
-    const contract = contractId ? Store.getContractById(contractId) : null;
-    const title = contract ? 'Editar Contrato' : 'Novo Contrato';
+    // If duplicating, use the template data
+    const contract = contractId
+      ? Store.getContractById(contractId)
+      : (this._duplicateTemplate || null);
+    if (this._duplicateTemplate) this._duplicateTemplate = null;
+    const title = contract ? (contractId ? 'Editar Contrato' : 'Novo Contrato (Cópia)') : 'Novo Contrato';
     const clientes = Store.state.clientes || [];
 
     const html = `
@@ -814,20 +874,115 @@ window.Contratos = {
     }, { once: false });
   },
 
+  exportCSV() {
+    const contracts = Store.state.contracts;
+    if (!contracts.length) { window.showToast('Nenhum contrato para exportar', 'warning'); return; }
+    const rows = [
+      ['Nome', 'Cliente', 'Nº Contrato', 'Status', 'Valor (R$)', 'Início', 'Fim', 'Tendência'],
+      ...contracts.map(c => [
+        c.name || '', c.client || '', c.contractNumber || '', c.status || '',
+        (c.value || 0).toString().replace('.', ','),
+        c.startDate || '', c.endDate || '', c.tendencyDate || ''
+      ])
+    ];
+    const csv = '﻿' + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `contratos-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    window.showToast(`${contracts.length} contratos exportados`, 'success');
+  },
+
+  duplicateContract(id) {
+    const c = Store.getContractById(id);
+    if (!c) return;
+    // Open modal pre-filled with a copy (pass template to showModal)
+    this._duplicateTemplate = {
+      ...c,
+      name: `[Cópia] ${c.name}`,
+      status: 'prospeccao',
+      contractNumber: '',
+      startDate: '', endDate: '', tendencyDate: '',
+    };
+    this.showModal(null);
+  },
+
   deleteContract(id) {
     const c = Store.getContractById(id);
-    const nome = c?.name ? `"${c.name}"` : 'este contrato';
-    window.RhinoConfirm(
-      { message: `Tem certeza que deseja excluir ${nome}? Esta ação não pode ser desfeita.`, title: 'Excluir Contrato', confirmText: 'Excluir', cancelText: 'Cancelar', danger: true },
-      async () => {
-        try {
-          await Store.deleteContract(id);
-          window.showToast('Contrato excluído com sucesso', 'success');
-          this.render();
-        } catch (e) {
-          window.showToast(e.message, 'error');
-        }
+    const nome = c?.name ? `"${c.name}"` : 'o contrato';
+
+    // Fade out the row immediately (optimistic)
+    const rowEl = document.querySelector(`.row-contrato[data-id="${id}"]`);
+    if (rowEl) {
+      rowEl.style.transition = 'opacity .3s ease, transform .3s ease';
+      rowEl.style.opacity = '0';
+      rowEl.style.transform = 'translateX(20px)';
+      rowEl.style.pointerEvents = 'none';
+    }
+
+    // Show undo toast
+    let undone = false;
+    let remaining = 5;
+
+    let toastContainer = document.querySelector('.toast-stack');
+    if (!toastContainer) {
+      toastContainer = document.createElement('div');
+      toastContainer.className = 'toast-stack';
+      document.body.appendChild(toastContainer);
+    }
+
+    const toastEl = document.createElement('div');
+    toastEl.className = 'toast toast--warning';
+    toastEl.style.cssText = 'display:flex;align-items:center;gap:12px;min-width:280px;cursor:default;';
+
+    const labelEl = document.createElement('span');
+    labelEl.style.flex = '1';
+    labelEl.textContent = `${nome} excluído em ${remaining}s`;
+
+    const undoBtn = document.createElement('button');
+    undoBtn.className = 'btn btn-secondary';
+    undoBtn.style.cssText = 'padding:4px 12px;font-size:13px;flex-shrink:0;';
+    undoBtn.textContent = '↩ Desfazer';
+
+    toastEl.appendChild(labelEl);
+    toastEl.appendChild(undoBtn);
+    toastContainer.appendChild(toastEl);
+
+    const ticker = setInterval(() => {
+      remaining--;
+      if (!undone && remaining > 0) labelEl.textContent = `${nome} excluído em ${remaining}s`;
+    }, 1000);
+
+    undoBtn.addEventListener('click', () => {
+      undone = true;
+      clearInterval(ticker);
+      toastEl.classList.add('is-leaving');
+      setTimeout(() => toastEl.remove(), 220);
+      // Restore row
+      if (rowEl) {
+        rowEl.style.opacity = '1';
+        rowEl.style.transform = '';
+        rowEl.style.pointerEvents = '';
       }
-    );
-  }
+      window.showToast('Exclusão cancelada', 'info');
+    });
+
+    setTimeout(async () => {
+      clearInterval(ticker);
+      toastEl.classList.add('is-leaving');
+      setTimeout(() => toastEl.remove(), 220);
+      if (undone) return;
+      try {
+        await Store.deleteContract(id);
+        this.render();
+      } catch (e) {
+        window.showToast(e.message, 'error');
+        // Restore row on error
+        if (rowEl) { rowEl.style.opacity = '1'; rowEl.style.transform = ''; rowEl.style.pointerEvents = ''; }
+      }
+    }, 5000);
+  },
 };
