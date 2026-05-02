@@ -1,9 +1,66 @@
 window.Contratos = {
   currentFilter: 'todos',
+  currentSearch: '',
+  sortField: null,
+  sortDir: 'asc',
+
+  _skeletonHtml() {
+    const row = () => `
+      <tr>
+        <td><div class="skeleton skeleton--lg" style="width:70%;"></div></td>
+        <td><div class="skeleton" style="width:55%;"></div></td>
+        <td><div class="skeleton" style="width:45%;"></div></td>
+        <td><div class="skeleton" style="width:50%;"></div></td>
+        <td><div class="skeleton skeleton--circle" style="width:36px;height:36px;margin:auto;"></div></td>
+        <td><div class="skeleton" style="width:60px;border-radius:99px;"></div></td>
+        <td><div class="skeleton" style="width:80px;"></div></td>
+      </tr>`;
+    return `
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Contratos</h1>
+          <p class="page-subtitle">Gerenciar contratos de serviços</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table><tbody>${row()}${row()}${row()}${row()}</tbody></table>
+        </div>
+      </div>`;
+  },
+
+  _sortContracts(list) {
+    if (!this.sortField) return list;
+    return [...list].sort((a, b) => {
+      let va = a[this.sortField] ?? '';
+      let vb = b[this.sortField] ?? '';
+      if (typeof va === 'string') va = va.toLowerCase();
+      if (typeof vb === 'string') vb = vb.toLowerCase();
+      const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+      return this.sortDir === 'asc' ? cmp : -cmp;
+    });
+  },
+
+  _setSort(field) {
+    if (this.sortField === field) {
+      this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortField = field;
+      this.sortDir = 'asc';
+    }
+    this.render();
+  },
+
+  _sortIcon(field) {
+    if (this.sortField !== field) return '<span style="opacity:.3;font-size:11px;">⇕</span>';
+    return this.sortDir === 'asc'
+      ? '<span style="font-size:11px;color:var(--color-primary);">▲</span>'
+      : '<span style="font-size:11px;color:var(--color-primary);">▼</span>';
+  },
 
   async render() {
     const app = document.getElementById('app');
-    app.innerHTML = '<div class="loading-spinner">Carregando...</div>';
+    app.innerHTML = this._skeletonHtml();
 
     try {
       await Store.loadAll();
@@ -12,6 +69,16 @@ window.Contratos = {
       if (this.currentFilter !== 'todos') {
         filtered = filtered.filter(c => c.status === this.currentFilter);
       }
+      const q = this.currentSearch.toLowerCase().trim();
+      if (q) {
+        filtered = filtered.filter(c =>
+          (c.name || '').toLowerCase().includes(q) ||
+          (c.client || '').toLowerCase().includes(q) ||
+          (c.contractNumber || '').toLowerCase().includes(q)
+        );
+      }
+      const totalAtivos = Store.state.contracts.filter(c => c.status === 'ativo').length;
+      filtered = this._sortContracts(filtered);
 
       // Compliance de RDOs (não-bloqueante)
       let rdoStats = null;
@@ -41,18 +108,30 @@ window.Contratos = {
           </div>
         ` : ''}
 
-        <div class="filters-bar">
+        <div class="filters-bar" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;">
+          <div class="filter-group" style="flex:1;min-width:200px;">
+            <label class="filter-label">Buscar</label>
+            <input type="search" class="form-control filter-control" id="filterSearch"
+              placeholder="Nome, cliente ou número..." value="${escapeHtml(this.currentSearch)}"
+              style="width:100%;">
+          </div>
           <div class="filter-group">
             <label class="filter-label">Status</label>
             <select class="form-control filter-control" id="filterStatus">
-              <option value="todos">Todos</option>
-              <option value="prospeccao">Prospecção</option>
-              <option value="ativo">Ativo</option>
-              <option value="pausado">Pausado</option>
-              <option value="concluido">Concluído</option>
-              <option value="cancelado">Cancelado</option>
+              <option value="todos" ${this.currentFilter === 'todos' ? 'selected' : ''}>Todos</option>
+              <option value="prospeccao" ${this.currentFilter === 'prospeccao' ? 'selected' : ''}>Prospecção</option>
+              <option value="ativo" ${this.currentFilter === 'ativo' ? 'selected' : ''}>Ativo</option>
+              <option value="pausado" ${this.currentFilter === 'pausado' ? 'selected' : ''}>Pausado</option>
+              <option value="concluido" ${this.currentFilter === 'concluido' ? 'selected' : ''}>Concluído</option>
+              <option value="cancelado" ${this.currentFilter === 'cancelado' ? 'selected' : ''}>Cancelado</option>
             </select>
           </div>
+        </div>
+
+        <div style="font-size:13px;color:var(--color-text-muted);margin-bottom:8px;margin-top:4px;">
+          <strong style="color:var(--color-text);">${filtered.length}</strong> contrato${filtered.length !== 1 ? 's' : ''}
+          ${this.currentFilter !== 'todos' || q ? '' : ` · <strong style="color:var(--color-success);">${totalAtivos}</strong> ativo${totalAtivos !== 1 ? 's' : ''}`}
+          ${q ? ` encontrado${filtered.length !== 1 ? 's' : ''} para "<em>${escapeHtml(q)}</em>"` : ''}
         </div>
 
         <div class="card">
@@ -60,12 +139,12 @@ window.Contratos = {
             <table>
               <thead>
                 <tr>
-                  <th>Nome</th>
-                  <th>Cliente</th>
-                  <th>Valor</th>
-                  <th>Período</th>
+                  <th style="cursor:pointer;user-select:none;white-space:nowrap;" class="th-sort" data-col="name">Nome ${this._sortIcon('name')}</th>
+                  <th style="cursor:pointer;user-select:none;white-space:nowrap;" class="th-sort" data-col="client">Cliente ${this._sortIcon('client')}</th>
+                  <th style="cursor:pointer;user-select:none;white-space:nowrap;" class="th-sort" data-col="value">Valor ${this._sortIcon('value')}</th>
+                  <th style="cursor:pointer;user-select:none;white-space:nowrap;" class="th-sort" data-col="startDate">Período ${this._sortIcon('startDate')}</th>
                   <th style="text-align:center;">Equipe</th>
-                  <th>Status</th>
+                  <th style="cursor:pointer;user-select:none;white-space:nowrap;" class="th-sort" data-col="status">Status ${this._sortIcon('status')}</th>
                   <th>Ações</th>
                 </tr>
               </thead>
@@ -96,7 +175,7 @@ window.Contratos = {
                         ${total}
                       </div>
                     </td>
-                    <td><span class="badge badge-${c.status}">${c.status}</span></td>
+                    <td><span class="badge badge-${c.status}" title="${{ prospeccao:'Em prospecção — contrato ainda não confirmado', ativo:'Ativo — obra em andamento', pausado:'Pausado — obra temporariamente suspensa', concluido:'Concluído — obra finalizada', cancelado:'Cancelado — contrato encerrado' }[c.status] || c.status}">${c.status}</span></td>
                     <td>
                       <div class="actions-cell">
                         <a class="action-link btn-abrir" data-id="${c.id}">Abrir</a>
@@ -119,9 +198,26 @@ window.Contratos = {
       // Event listeners
       const btnNovo = document.getElementById('btnNovoContrato');
       if (btnNovo) btnNovo.addEventListener('click', () => this.showModal());
+
+      // Status filter
       document.getElementById('filterStatus').addEventListener('change', (e) => {
         this.currentFilter = e.target.value;
         this.render();
+      });
+
+      // Text search (debounced)
+      let _searchTimer;
+      document.getElementById('filterSearch')?.addEventListener('input', (e) => {
+        clearTimeout(_searchTimer);
+        _searchTimer = setTimeout(() => {
+          this.currentSearch = e.target.value;
+          this.render();
+        }, 220);
+      });
+
+      // Column sort headers
+      document.querySelectorAll('.th-sort[data-col]').forEach(th => {
+        th.addEventListener('click', () => this._setSort(th.dataset.col));
       });
 
       // Click na linha → abre overview (não dispara se clicou em botão de ação)
@@ -542,8 +638,23 @@ window.Contratos = {
     }
 
     document.getElementById('btnSalvar').addEventListener('click', async () => {
-      const formData = new FormData(document.getElementById('formContrato'));
+      const form = document.getElementById('formContrato');
+      const btnSalvar = document.getElementById('btnSalvar');
+      const formData = new FormData(form);
       const data = Object.fromEntries(formData);
+
+      // ── Field validation with highlighting ──
+      const clearErrors = () => form.querySelectorAll('.field-error').forEach(el => el.remove());
+      const markError = (el, msg) => {
+        el.style.borderColor = 'var(--color-danger)';
+        const err = document.createElement('div');
+        err.className = 'field-error';
+        err.style.cssText = 'color:var(--color-danger);font-size:12px;margin-top:3px;';
+        err.textContent = msg;
+        el.parentNode.insertBefore(err, el.nextSibling);
+      };
+      clearErrors();
+      form.querySelectorAll('[style*="border-color"]').forEach(el => el.style.borderColor = '');
 
       // Resolve client: por ID do select ou manual
       let clienteManualCriado = false;
@@ -567,9 +678,26 @@ window.Contratos = {
       }
       delete data.clientManual;
 
-      if (!data.client?.trim()) { window.showToast('Selecione ou informe o cliente', 'error'); return; }
+      // Validate required fields
+      let hasError = false;
+      const nameEl = form.querySelector('[name="name"]');
+      if (!data.name?.trim()) {
+        markError(nameEl, 'Nome do contrato é obrigatório');
+        hasError = true;
+      }
+      if (!data.client?.trim()) {
+        const clientEl = selectCliente || document.getElementById('inputClienteManual');
+        if (clientEl) markError(clientEl, 'Selecione ou informe o cliente');
+        hasError = true;
+      }
+      if (hasError) return;
 
       data.value = window.BRLInput.parse(data.value);
+
+      // ── Saving state ──
+      const origText = btnSalvar.textContent;
+      btnSalvar.disabled = true;
+      btnSalvar.textContent = 'Salvando…';
 
       try {
         // Se digitou manualmente, cadastra o cliente automaticamente
@@ -594,6 +722,8 @@ window.Contratos = {
         this.render();
       } catch (e) {
         window.showToast(e.message, 'error');
+        btnSalvar.disabled = false;
+        btnSalvar.textContent = origText;
       }
     });
 
@@ -684,15 +814,20 @@ window.Contratos = {
     }, { once: false });
   },
 
-  async deleteContract(id) {
-    if (!confirm('Tem certeza que deseja excluir este contrato?')) return;
-
-    try {
-      await Store.deleteContract(id);
-      window.showToast('Contrato excluído com sucesso', 'success');
-      this.render();
-    } catch (e) {
-      window.showToast(e.message, 'error');
-    }
+  deleteContract(id) {
+    const c = Store.getContractById(id);
+    const nome = c?.name ? `"${c.name}"` : 'este contrato';
+    window.RhinoConfirm(
+      { message: `Tem certeza que deseja excluir ${nome}? Esta ação não pode ser desfeita.`, title: 'Excluir Contrato', confirmText: 'Excluir', cancelText: 'Cancelar', danger: true },
+      async () => {
+        try {
+          await Store.deleteContract(id);
+          window.showToast('Contrato excluído com sucesso', 'success');
+          this.render();
+        } catch (e) {
+          window.showToast(e.message, 'error');
+        }
+      }
+    );
   }
 };

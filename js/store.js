@@ -1080,21 +1080,27 @@ document.addEventListener('input', e => {
 
 // Global toast notification helper
 window.showToast = function(message, type = 'success') {
-  let container = document.querySelector('.toast-container');
+  // Normalise aliases
+  const t = type === 'error' ? 'danger' : type === 'warn' ? 'warning' : type;
+  const icons = { success: '✓', danger: '✕', warning: '⚠', info: 'ℹ' };
+
+  let container = document.querySelector('.toast-stack');
   if (!container) {
     container = document.createElement('div');
-    container.className = 'toast-container';
+    container.className = 'toast-stack';
     document.body.appendChild(container);
   }
 
   const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  const span = document.createElement('span');
-  span.textContent = message;
-  toast.appendChild(span);
+  toast.className = `toast toast--${t}`;
+  toast.style.cssText = 'display:flex;align-items:flex-start;gap:10px;cursor:pointer;';
+  toast.innerHTML = `<span style="font-size:15px;font-weight:700;flex-shrink:0;line-height:1.4;">${icons[t] || '·'}</span><span>${escapeHtml(message)}</span>`;
   container.appendChild(toast);
 
-  setTimeout(() => {
-    toast.remove();
-  }, 3000);
+  const dismiss = () => {
+    toast.classList.add('is-leaving');
+    setTimeout(() => toast.remove(), 220);
+  };
+  const timer = setTimeout(dismiss, 3500);
+  toast.addEventListener('click', () => { clearTimeout(timer); dismiss(); });
 };

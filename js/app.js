@@ -544,7 +544,9 @@ function applySbCollapsed(collapsed) {
 
 // ─── Theme ───
 function getTheme() {
-  return localStorage.getItem('rhino-theme') || 'light';
+  const saved = localStorage.getItem('rhino-theme');
+  if (saved) return saved;
+  return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
 }
 
 function applyTheme(theme) {
@@ -964,6 +966,55 @@ async function navigate() {
   renderSidebar();
   updateSidebarActiveState(hash);
 }
+
+// ─── Custom confirm modal (replaces native confirm()) ───────────────────────
+window.RhinoConfirm = function({ message, title = 'Confirmar', confirmText = 'Confirmar', cancelText = 'Cancelar', danger = false } = {}, onConfirm, onCancel) {
+  document.getElementById('rh-confirm-overlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'rh-confirm-overlay';
+  const btnClass = danger ? 'btn btn-danger' : 'btn btn-primary';
+  overlay.innerHTML = `
+    <div class="modal-overlay" style="z-index:10002;">
+      <div class="modal" style="max-width:420px;">
+        <div class="modal-header">
+          <h2 class="modal-title" style="font-size:17px;">${escapeHtml(title)}</h2>
+        </div>
+        <div class="modal-content" style="padding:var(--sp-lg) var(--sp-xl);">
+          <p style="margin:0;font-size:15px;line-height:1.5;">${escapeHtml(message)}</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" id="rh-confirm-cancel">${escapeHtml(cancelText)}</button>
+          <button class="${btnClass}" id="rh-confirm-ok">${escapeHtml(confirmText)}</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = (confirmed) => {
+    overlay.remove();
+    confirmed ? onConfirm?.() : onCancel?.();
+  };
+  overlay.querySelector('#rh-confirm-cancel').addEventListener('click', () => close(false));
+  overlay.querySelector('#rh-confirm-ok').addEventListener('click', () => close(true));
+  overlay.querySelector('.modal-overlay').addEventListener('click', e => { if (e.target === e.currentTarget) close(false); });
+  // Focus the confirm button for keyboard accessibility
+  setTimeout(() => overlay.querySelector('#rh-confirm-ok')?.focus(), 50);
+};
+
+// ─── Global keyboard shortcuts ───────────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  // Skip if user is typing in a field
+  if (e.target.matches('input, textarea, select, [contenteditable]')) return;
+  // Skip if a modal is open
+  if (document.querySelector('.modal-overlay, #rh-confirm-overlay, .cmdk-overlay')) return;
+
+  const hash = location.hash;
+
+  // 'n' → Novo Contrato (on contratos list page)
+  if (e.key === 'n' && hash === '#/contratos' && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    window.Contratos?.showModal?.();
+  }
+});
 
 // Initialize app
 window.addEventListener('hashchange', navigate);

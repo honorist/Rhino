@@ -41,11 +41,24 @@
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/logo.png">
   <link rel="mask-icon" href="./assets/favicon.svg" color="#55588B">
   <script>
-    // Aplica tema salvo o quanto antes (evita flash)
+    // Aplica tema salvo o quanto antes (evita flash).
+    // Sem preferência salva → respeita prefers-color-scheme do sistema.
     (function(){
       try {
         var saved = localStorage.getItem('rhino-theme');
-        if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        var prefersDark = !saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (saved === 'dark' || prefersDark) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+        // Acompanha mudanças do sistema em tempo real (somente se o usuário não tiver escolhido)
+        if (!saved && window.matchMedia) {
+          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+            if (!localStorage.getItem('rhino-theme')) {
+              if (e.matches) document.documentElement.setAttribute('data-theme', 'dark');
+              else document.documentElement.removeAttribute('data-theme');
+            }
+          });
+        }
       } catch (e) {}
     })();
   </script>
