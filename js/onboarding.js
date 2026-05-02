@@ -7,22 +7,43 @@
   'use strict';
 
   const TOUR_KEY = 'rhino-tour-v1';
-  const SHEPHERD_CSS = 'https://cdn.jsdelivr.net/npm/shepherd.js@13/dist/css/shepherd.css';
-  const SHEPHERD_JS  = 'https://cdn.jsdelivr.net/npm/shepherd.js@13/dist/js/shepherd.min.js';
+  // Shepherd.js v11 — UMD global estável e bem testado no jsDelivr
+  const SHEPHERD_CSS = 'https://cdn.jsdelivr.net/npm/shepherd.js@11/dist/css/shepherd.css';
+  const SHEPHERD_JS  = 'https://cdn.jsdelivr.net/npm/shepherd.js@11/dist/js/shepherd.min.js';
+
+  let _loadingPromise = null;
 
   async function loadShepherd() {
-    if (window.Shepherd) return window.Shepherd;
-    if (!document.querySelector(`link[href="${SHEPHERD_CSS}"]`)) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet'; link.href = SHEPHERD_CSS;
-      document.head.appendChild(link);
+    // Se já está disponível e funcional, reutiliza
+    if (window.Shepherd && typeof window.Shepherd.Tour === 'function') return window.Shepherd;
+
+    // Evita carregar duas vezes em paralelo
+    if (_loadingPromise) return _loadingPromise;
+
+    _loadingPromise = (async () => {
+      if (!document.querySelector(`link[href="${SHEPHERD_CSS}"]`)) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet'; link.href = SHEPHERD_CSS;
+        document.head.appendChild(link);
+      }
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = SHEPHERD_JS;
+        s.onload = () => {
+          if (!window.Shepherd) reject(new Error('Shepherd não definido após carga'));
+          else resolve();
+        };
+        s.onerror = () => reject(new Error('Falha ao carregar Shepherd.js do CDN'));
+        document.head.appendChild(s);
+      });
+      return window.Shepherd;
+    })();
+
+    try {
+      return await _loadingPromise;
+    } finally {
+      _loadingPromise = null;
     }
-    await new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = SHEPHERD_JS; s.onload = resolve; s.onerror = reject;
-      document.head.appendChild(s);
-    });
-    return window.Shepherd;
   }
 
   const STEPS = [
@@ -75,8 +96,16 @@
 
   async function startTour(force = false) {
     if (!force && localStorage.getItem(TOUR_KEY)) return;
+    const toast = (msg, type) => {
+      if (window.showToast) window.showToast(msg, type);
+      else if (window.RhinoUI && RhinoUI.toast) RhinoUI.toast(msg, { type });
+    };
     try {
       const Shepherd = await loadShepherd();
+      if (!Shepherd || typeof Shepherd.Tour !== 'function') {
+        toast('Tour não disponível (biblioteca não carregou)', 'warn');
+        return;
+      }
       const tour = new Shepherd.Tour({
         useModalOverlay: true,
         defaultStepOptions: {
@@ -113,6 +142,7 @@
       tour.start();
     } catch (e) {
       console.warn('[tour]', e);
+      toast('Não foi possível iniciar o tour: ' + (e.message || 'erro desconhecido'), 'error');
     }
   }
 
