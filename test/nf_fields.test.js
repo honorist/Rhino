@@ -1,3 +1,7 @@
+// ATENÇÃO: este arquivo testava o servidor baseado em JSON (arquitetura antiga).
+// O servidor agora usa PostgreSQL. Estes testes foram migrados para test/e2e/api.spec.js.
+// Mantido apenas como referência histórica — NÃO é executado pelo CI (está fora de test/e2e/).
+
 // Integration tests for Nota Fiscal PUT endpoint — fields created/modified in this session:
 //   • dataEmissaoReal (new editable field for emitted NFs)
 //   • prazoRecebimento sync to caixa entry

@@ -217,6 +217,138 @@ test.describe('Investimentos cascade', () => {
   });
 });
 
+test.describe('Aditivos, Marcos e Ocorrências', () => {
+  let contractId;
+
+  test.beforeAll(async () => {
+    const ctx = await api();
+    const r = await ctx.post('/api/contracts', { data: { name: 'PW Aditivos Contract', value: 100000 } });
+    contractId = (await r.json()).contracts.find(c => c.name === 'PW Aditivos Contract').id;
+  });
+
+  test.afterAll(async () => {
+    if (contractId) {
+      const ctx = await api();
+      await ctx.delete(`/api/contracts/${contractId}`);
+    }
+  });
+
+  // ── Aditivos ─────────────────────────────────────────────────────────────
+
+  test('aditivo: criar → editar → deletar', async () => {
+    const ctx = await api();
+
+    // criar
+    const post = await ctx.post(`/api/contracts/${contractId}/aditivos`, {
+      data: { descricao: 'Aditivo PW', tipo: 'valor', valorDelta: 5000, data: '2026-06-01' },
+    });
+    expect(post.status()).toBe(200);
+    const postBody = await post.json();
+    const contract0 = postBody.contracts.find(c => c.id === contractId);
+    const aditivo = contract0?.aditivos?.find(a => a.descricao === 'Aditivo PW');
+    expect(aditivo).toBeTruthy();
+    const adId = aditivo.id;
+
+    // editar
+    const put = await ctx.put(`/api/contracts/${contractId}/aditivos/${adId}`, {
+      data: { descricao: 'Aditivo PW Editado', aprovado: true },
+    });
+    expect(put.status()).toBe(200);
+    const putBody = await put.json();
+    const contract1 = putBody.contracts.find(c => c.id === contractId);
+    expect(contract1.aditivos.find(a => a.id === adId).aprovado).toBe(true);
+
+    // deletar
+    const del = await ctx.delete(`/api/contracts/${contractId}/aditivos/${adId}`);
+    expect(del.status()).toBe(200);
+    const delBody = await del.json();
+    const contract2 = delBody.contracts.find(c => c.id === contractId);
+    expect(contract2.aditivos?.find(a => a.id === adId)).toBeFalsy();
+  });
+
+  test('aditivo: retorna 404 para id inexistente', async () => {
+    const ctx = await api();
+    const r = await ctx.put(`/api/contracts/${contractId}/aditivos/nao_existe`, { data: { descricao: 'X' } });
+    expect(r.status()).toBe(404);
+  });
+
+  // ── Marcos ───────────────────────────────────────────────────────────────
+
+  test('marco: criar → concluir → deletar', async () => {
+    const ctx = await api();
+
+    const post = await ctx.post(`/api/contracts/${contractId}/marcos`, {
+      data: { titulo: 'Marco PW', prazo: '2026-07-01', ordem: 1 },
+    });
+    expect(post.status()).toBe(200);
+    const postBody = await post.json();
+    const marco = postBody.contracts.find(c => c.id === contractId)?.marcos?.find(m => m.titulo === 'Marco PW');
+    expect(marco).toBeTruthy();
+    const mId = marco.id;
+
+    // marcar como concluído
+    const put = await ctx.put(`/api/contracts/${contractId}/marcos/${mId}`, {
+      data: { concluido: true, concluidoEm: '2026-06-28' },
+    });
+    expect(put.status()).toBe(200);
+    const putBody = await put.json();
+    expect(putBody.contracts.find(c => c.id === contractId).marcos.find(m => m.id === mId).concluido).toBe(true);
+
+    // deletar
+    const del = await ctx.delete(`/api/contracts/${contractId}/marcos/${mId}`);
+    expect(del.status()).toBe(200);
+  });
+
+  test('marco: retorna 404 para id inexistente', async () => {
+    const ctx = await api();
+    const r = await ctx.put(`/api/contracts/${contractId}/marcos/nao_existe`, { data: { titulo: 'X' } });
+    expect(r.status()).toBe(404);
+  });
+
+  // ── Ocorrências ──────────────────────────────────────────────────────────
+
+  test('ocorrência: criar → encerrar → deletar', async () => {
+    const ctx = await api();
+
+    const post = await ctx.post(`/api/contracts/${contractId}/ocorrencias`, {
+      data: { descricao: 'Ocorrência PW', tipo: 'segurança', severidade: 'alta', data: '2026-06-10' },
+    });
+    expect(post.status()).toBe(200);
+    const postBody = await post.json();
+    const ocr = postBody.contracts.find(c => c.id === contractId)?.ocorrencias?.find(o => o.descricao === 'Ocorrência PW');
+    expect(ocr).toBeTruthy();
+    const oId = ocr.id;
+
+    // encerrar
+    const put = await ctx.put(`/api/contracts/${contractId}/ocorrencias/${oId}`, {
+      data: { encerrada: true },
+    });
+    expect(put.status()).toBe(200);
+    const putBody = await put.json();
+    expect(putBody.contracts.find(c => c.id === contractId).ocorrencias.find(o => o.id === oId).encerrada).toBe(true);
+
+    // deletar
+    const del = await ctx.delete(`/api/contracts/${contractId}/ocorrencias/${oId}`);
+    expect(del.status()).toBe(200);
+  });
+
+  test('ocorrência: retorna 404 para id inexistente', async () => {
+    const ctx = await api();
+    const r = await ctx.put(`/api/contracts/${contractId}/ocorrencias/nao_existe`, { data: { descricao: 'X' } });
+    expect(r.status()).toBe(404);
+  });
+
+  // ── Retenção ─────────────────────────────────────────────────────────────
+
+  test('retencaoPercent é salvo e retornado', async () => {
+    const ctx = await api();
+    const r = await ctx.put(`/api/contracts/${contractId}`, { data: { retencaoPercent: 5.5 } });
+    expect(r.status()).toBe(200);
+    const updated = (await r.json()).contracts.find(c => c.id === contractId);
+    expect(parseFloat(updated.retencaoPercent)).toBeCloseTo(5.5, 1);
+  });
+});
+
 test.describe('NF emitir/cancelar', () => {
   let contractId, nfId;
 

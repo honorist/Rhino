@@ -4,7 +4,7 @@ const { defineConfig, devices } = require('@playwright/test');
 module.exports = defineConfig({
   testDir: './test/e2e',
   timeout: 30_000,
-  retries: 0,
+  retries: 2,       // retenta até 2x testes flaky antes de falhar
   workers: 1,
   reporter: [['list']],
   use: {

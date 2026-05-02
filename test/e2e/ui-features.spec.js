@@ -132,11 +132,12 @@ test.describe('Theme', () => {
 });
 
 test.describe('Theme customizer', () => {
-  test('FAB abre painel com presets', async ({ page }) => {
-    await page.setViewportSize({ width: 1200, height: 800 }); // FAB só no desktop
+  test('botão de tema abre painel com presets', async ({ page }) => {
+    await page.setViewportSize({ width: 1200, height: 800 });
     await login(page);
-    await page.locator('.theme-customizer-fab').click();
-    await expect(page.locator('.theme-customizer-panel')).toBeVisible();
+    // Botão foi movido para sidebar (#btn-themer); FAB original está oculto mas funcional
+    await page.locator('#btn-themer').click();
+    await expect(page.locator('.theme-customizer-panel')).toBeVisible({ timeout: 3000 });
     const swatches = await page.locator('.theme-swatch').count();
     expect(swatches).toBeGreaterThanOrEqual(8);
   });
@@ -201,7 +202,7 @@ test.describe('ContratoDetail refactor (M1)', () => {
     }
   });
 
-  test('window.ContratoDetail tem todos os métodos extraídos', async ({ page }) => {
+  test('window.ContratoDetail tem todos os métodos (incluindo novos)', async ({ page }) => {
     await login(page);
     const methods = await page.evaluate(() => {
       const cd = window.ContratoDetail || {};
@@ -209,7 +210,10 @@ test.describe('ContratoDetail refactor (M1)', () => {
         'render', 'renderPizza', 'renderCurvaS', 'renderOrganogramaSection',
         'renderRdoSection', 'showRdoDetail', 'renderCronogramaSection',
         'exportarPDF', 'showModalEditarDados', 'showModalExcluirContrato',
-        'showDetalheComposicao'
+        'showDetalheComposicao',
+        // features desta sessão:
+        'renderAditivosSection', 'renderMarcosSection',
+        'renderOcorrenciasSection', 'renderTimelineSection',
       ];
       return need.map(n => ({ name: n, exists: typeof cd[n] === 'function' }));
     });
