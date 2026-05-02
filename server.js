@@ -2607,11 +2607,20 @@ function serveStaticFile(pathname, res) {
   }
   res.writeHead(200, headers);
   if (ext === '.html') {
+    // Injeta versão do app para que a sidebar mostre v1.x.y dinâmico
     const html = fs.readFileSync(filepath, 'utf8').replace(
       '</head>',
       `<script>window.__APP_VERSION__="${APP_VERSION}";</script></head>`
     );
     res.end(html);
+  } else if (pathname === '/sw.js') {
+    // Injeta a versão no Service Worker para que o cache seja invalidado a cada deploy
+    // O SW usa VERSION como chave de cache; se mudar, o activate limpa o cache antigo.
+    const sw = fs.readFileSync(filepath, 'utf8').replace(
+      "'__RHINO_VERSION__'",
+      `'rhino-v${APP_VERSION}'`
+    );
+    res.end(sw);
   } else {
     res.end(fs.readFileSync(filepath));
   }

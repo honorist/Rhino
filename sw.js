@@ -1,10 +1,12 @@
 /* Rhino — Service Worker
    Estratégia:
-   - HTML/JS/CSS estáticos: stale-while-revalidate
-   - Imagens/assets: cache-first
+   - HTML/JS/CSS: network-first (sempre busca a versão mais recente)
+   - Imagens/fontes: stale-while-revalidate (safe — nunca mudam)
    - APIs (/api/*): network-first com fallback de cache somente em GET
+   VERSION é injetado pelo servidor com a versão atual do app,
+   garantindo que o cache seja invalidado a cada deploy.
 */
-const VERSION = 'rhino-v1';
+const VERSION = '__RHINO_VERSION__'; // substituído pelo servidor em runtime
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const API_CACHE = `${VERSION}-api`;
@@ -95,17 +97,33 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Estáticos: stale-while-revalidate
+  // Estáticos:
+  //  JS/CSS → network-first (código muda a cada deploy; versão antiga = bug)
+  //  Imagens/fontes → stale-while-revalidate (safe — nunca mudam entre deploys)
   if (isStatic(url)) {
-    event.respondWith(
-      caches.match(req).then((cached) => {
-        const network = fetch(req).then((res) => {
-          const copy = res.clone();
-          caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy)).catch(() => {});
-          return res;
-        }).catch(() => cached);
-        return cached || network;
-      })
-    );
+    const isCode = /\.(?:css|js)$/.test(url.pathname);
+    if (isCode) {
+      event.respondWith(
+        fetch(req)
+          .then((res) => {
+            const copy = res.clone();
+            caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy)).catch(() => {});
+            return res;
+          })
+          .catch(() => caches.match(req).then((r) => r || new Response('', { status: 503 })))
+      );
+    } else {
+      // Imagens, fontes, SVGs: stale-while-revalidate é seguro
+      event.respondWith(
+        caches.match(req).then((cached) => {
+          const network = fetch(req).then((res) => {
+            const copy = res.clone();
+            caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy)).catch(() => {});
+            return res;
+          }).catch(() => cached);
+          return cached || network;
+        })
+      );
+    }
   }
 });
