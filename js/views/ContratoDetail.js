@@ -265,42 +265,6 @@ window.ContratoDetail = {
           `).join('')}
         </div>
 
-        <style>
-          .ctd-tabs {
-            display: flex; gap: 4px;
-            margin-bottom: var(--sp-xl);
-            border-bottom: 1px solid var(--color-border);
-            overflow-x: auto;
-          }
-          .ctd-tab {
-            display: inline-flex; align-items: center; gap: 8px;
-            padding: 11px 18px;
-            background: transparent; border: none;
-            border-bottom: 3px solid transparent;
-            color: var(--color-text-muted);
-            font-size: 15px; font-weight: 500;
-            cursor: pointer; font-family: inherit;
-            transition: color .15s, border-color .15s, background .15s;
-            white-space: nowrap;
-            margin-bottom: -1px;
-          }
-          .ctd-tab:hover {
-            color: var(--color-text);
-            background: var(--color-surface-2);
-          }
-          .ctd-tab.active {
-            color: var(--color-primary);
-            border-bottom-color: var(--color-primary);
-            font-weight: 600;
-          }
-          .ctd-tab-badge {
-            display: inline-flex; align-items: center; justify-content: center;
-            min-width: 20px; height: 20px; padding: 0 6px;
-            background: var(--color-danger); color: #FFFFFF;
-            border-radius: 99px; font-size:15px; font-weight: 700;
-          }
-        </style>
-
         <!-- Resumo orientado a Boletim de Medição -->
         ${this._tab === 'visao' ? `
         ${contract.retencaoPercent > 0 ? `<div style="margin-bottom:var(--sp-md);padding:10px 16px;background:rgba(213,158,46,.1);border-left:3px solid #D69E2E;border-radius:6px;font-size:14px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;"><span style="font-weight:700;color:#D69E2E;">⚠ Retenção ${parseFloat(contract.retencaoPercent).toFixed(1)}%</span><span style="color:var(--color-text-muted);">Valor retido estimado: <strong>${Store.formatBRL(totalEmitido * parseFloat(contract.retencaoPercent) / 100)}</strong> (sobre ${Store.formatBRL(totalEmitido)} emitido)</span></div>` : ''}

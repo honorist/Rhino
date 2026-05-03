@@ -76,19 +76,24 @@ window.Store = {
   async loadAll() {
     try {
       this.state.loading = true;
+      // Verifica r.ok antes de parsear JSON — evita erros crípticos quando a sessão expira
+      const okJson = async res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status} (${res.url})`);
+        return res.json();
+      };
       const safe = fn => fn.catch(() => ({}));
       const [contracts, caixa, base, socios, investimentos, notas_fiscais, tipos_base, clientes, fornecedores, contas_pagar, recursos] = await Promise.all([
-        fetch('/api/contracts').then(r => r.json()),
-        fetch('/api/caixa').then(r => r.json()),
-        fetch('/api/base').then(r => r.json()),
-        fetch('/api/socios').then(r => r.json()),
-        fetch('/api/investimentos').then(r => r.json()),
-        fetch('/api/notas-fiscais').then(r => r.json()),
-        fetch('/api/tipos-base').then(r => r.json()),
-        fetch('/api/clientes').then(r => r.json()),
-        fetch('/api/fornecedores').then(r => r.json()),
-        safe(fetch('/api/contas-pagar').then(r => r.json())),
-        safe(fetch('/api/recursos').then(r => r.json()))
+        fetch('/api/contracts').then(okJson),
+        fetch('/api/caixa').then(okJson),
+        fetch('/api/base').then(okJson),
+        fetch('/api/socios').then(okJson),
+        fetch('/api/investimentos').then(okJson),
+        fetch('/api/notas-fiscais').then(okJson),
+        fetch('/api/tipos-base').then(okJson),
+        fetch('/api/clientes').then(okJson),
+        fetch('/api/fornecedores').then(okJson),
+        safe(fetch('/api/contas-pagar').then(okJson)),
+        safe(fetch('/api/recursos').then(okJson))
       ]);
 
       this.state.contracts = contracts.contracts || [];
@@ -893,7 +898,9 @@ window.Store = {
 
   // Contas a Pagar
   async loadContasPagar() {
-    const r = await fetch('/api/contas-pagar').then(res => res.json());
+    const res = await fetch('/api/contas-pagar');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const r = await res.json();
     this.state.contas_pagar = r.contas || [];
     this.notify(); return r;
   },
@@ -929,7 +936,9 @@ window.Store = {
   },
 
   async loadNiveisAcesso() {
-    const r = await fetch('/api/niveis-acesso').then(res => res.json());
+    const res = await fetch('/api/niveis-acesso');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const r = await res.json();
     this.state.niveis_acesso = r.niveis || [];
     this.notify();
     return r;
@@ -998,7 +1007,9 @@ window.Store = {
 
   // Templates de documentação
   async loadDocTemplates() {
-    const r = await fetch('/api/doc-templates').then(res => res.json());
+    const res = await fetch('/api/doc-templates');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const r = await res.json();
     this.state.doc_templates = r.templates || [];
     this.notify(); return r;
   },
