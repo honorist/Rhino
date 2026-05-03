@@ -6,6 +6,8 @@ window.Contratos = {
   currentPage: 1,
   pageSize: 25,
   _favs: new Set(JSON.parse(localStorage.getItem('rhino-favs') || '[]')),
+  _selectedIds: new Set(),
+  _currentFiltered: [],
 
   _resetPage() { this.currentPage = 1; },
 
@@ -23,6 +25,25 @@ window.Contratos = {
     const recent = JSON.parse(localStorage.getItem('rhino-recent') || '[]').filter(r => r !== id);
     recent.unshift(id);
     localStorage.setItem('rhino-recent', JSON.stringify(recent.slice(0, 5)));
+  },
+
+  _relDate(dateStr) {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d)) return String(dateStr);
+    const now = new Date(); now.setHours(0,0,0,0);
+    const dn = new Date(d); dn.setHours(0,0,0,0);
+    const diff = Math.round((dn - now) / 86400000);
+    const abs = Math.abs(diff);
+    const fmt = new Intl.DateTimeFormat('pt-BR').format(d);
+    let rel;
+    if (abs === 0)        rel = 'hoje';
+    else if (abs === 1)   rel = diff < 0 ? 'ontem' : 'amanhã';
+    else if (abs < 7)     rel = diff < 0 ? `há ${abs} dias` : `em ${abs} dias`;
+    else if (abs < 30)    rel = diff < 0 ? `há ${Math.round(abs/7)} sem.` : `em ${Math.round(abs/7)} sem.`;
+    else if (abs < 365)   rel = diff < 0 ? `há ${Math.round(abs/30)} meses` : `em ${Math.round(abs/30)} meses`;
+    else                  rel = diff < 0 ? `há ${Math.round(abs/365)} ano(s)` : `em ${Math.round(abs/365)} ano(s)`;
+    return `<span class="rh-reldate" title="${fmt}">${rel}</span>`;
   },
 
   _skeletonHtml() {
@@ -102,6 +123,7 @@ window.Contratos = {
       const favFiltered = this._sortContracts(filtered.filter(c => this._favs.has(c.id)));
       const nonFavFiltered = this._sortContracts(filtered.filter(c => !this._favs.has(c.id)));
       filtered = [...favFiltered, ...nonFavFiltered];
+      this._currentFiltered = filtered;
 
       const totalFiltered = filtered.length;
       const totalPages = Math.max(1, Math.ceil(totalFiltered / this.pageSize));
@@ -190,9 +212,10 @@ window.Contratos = {
             ].map(s => `<button class="rh-chip${this.currentFilter === s.v ? ' is-active' : ''}" data-status="${s.v}">${s.l}</button>`).join('')}
           </div>
           <div class="table-wrap">
-            <table>
+            <table class="rh-table--sticky">
               <thead>
                 <tr>
+                  <th style="width:36px;padding-left:12px;"><input type="checkbox" id="chkAll" title="Selecionar todos na página" style="cursor:pointer;width:16px;height:16px;"></th>
                   <th style="cursor:pointer;user-select:none;white-space:nowrap;" class="th-sort" data-col="name">Nome ${this._sortIcon('name')}</th>
                   <th style="cursor:pointer;user-select:none;white-space:nowrap;" class="th-sort" data-col="client">Cliente ${this._sortIcon('client')}</th>
                   <th style="cursor:pointer;user-select:none;white-space:nowrap;" class="th-sort" data-col="value">Valor ${this._sortIcon('value')}</th>
@@ -205,7 +228,14 @@ window.Contratos = {
               <tbody>
                 ${pagedContracts.length === 0 ? `
                   <tr>
-                    <td colspan="7" class="text-center text-muted" style="padding: var(--sp-xl);">Nenhum contrato encontrado</td>
+                    <td colspan="8" style="padding:0;border:0;">
+                      ${(window.RhinoUI?.emptyState || (() => '<div style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">Nenhum contrato encontrado</div>'))({
+                        icon: q ? '🔍' : (this.currentFilter !== 'todos' ? '📭' : '📋'),
+                        title: q ? `Nenhum resultado para "${escapeHtml(q)}"` : (this.currentFilter !== 'todos' ? 'Nenhum contrato com este status' : 'Nenhum contrato cadastrado'),
+                        message: q ? 'Tente outro termo de busca.' : (this.currentFilter !== 'todos' ? 'Altere o filtro para ver outros contratos.' : 'Crie o primeiro contrato para começar.'),
+                        cta: (!q && this.currentFilter === 'todos' && _podeEditar) ? { label: '+ Novo Contrato' } : null,
+                      })}
+                    </td>
                   </tr>
                 ` : pagedContracts.map(c => {
                   const nOrg = (c.organograma || []).length;
@@ -217,6 +247,9 @@ window.Contratos = {
                   const gaugeColor = pct >= 100 ? 'var(--color-success)' : pct >= 60 ? 'var(--color-warning)' : 'var(--color-primary)';
                   return `
                   <tr class="row-contrato" data-id="${c.id}" style="cursor:pointer;">
+                    <td style="width:36px;padding-left:12px;" onclick="event.stopPropagation()">
+                      <input type="checkbox" class="row-chk" data-id="${c.id}" ${this._selectedIds.has(c.id) ? 'checked' : ''} style="cursor:pointer;width:16px;height:16px;">
+                    </td>
                     <td>
                       <strong>${escapeHtml(c.name)}</strong>
                       ${c.status === 'ativo' && semRdoIds.has(c.id) ? `<span title="Sem RDO no último dia útil" style="margin-left:6px;">🔴</span>` : ''}
@@ -231,7 +264,10 @@ window.Contratos = {
                       </div>
                       <div style="font-size:11px;color:var(--color-text-muted);">${pct.toFixed(0)}% medido</div>
                     </td>
-                    <td>${new Date(c.startDate).toLocaleDateString('pt-BR')} até ${new Date(c.endDate).toLocaleDateString('pt-BR')}</td>
+                    <td>
+                      <div>${this._relDate(c.startDate)}</div>
+                      <div style="font-size:11px;color:var(--color-text-muted);">até ${this._relDate(c.endDate)}</div>
+                    </td>
                     <td style="text-align:center;">
                       <div title="${nOrg} no organograma · ${nRec} recurso(s) alocado(s)" style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:${bg};border-radius:99px;font-weight:700;color:#FFFFFF;box-shadow:0 1px 3px rgba(85,88,139,.2);">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -279,9 +315,22 @@ window.Contratos = {
             <button class="rh-pagination__btn" id="rh-pg-next" ${this.currentPage === totalPages ? 'disabled' : ''}>›</button>
           </div>
         </div>` : ''}
+
+        ${this._selectedIds.size > 0 ? `
+        <div class="rh-bulk-bar is-visible" id="rhBulkBar" aria-label="Ações para selecionados">
+          <span class="rh-bulk-bar__count">${this._selectedIds.size} selecionado${this._selectedIds.size !== 1 ? 's' : ''}</span>
+          <div class="rh-bulk-bar__actions">
+            <button class="btn rh-bulk-btn" id="bulkStatus">Mudar status</button>
+            <button class="btn rh-bulk-btn" id="bulkCSV">⬇ CSV</button>
+            <button class="btn rh-bulk-btn danger" id="bulkDelete">🗑 Excluir</button>
+            <button class="btn rh-bulk-btn" id="bulkClear">✕ Limpar</button>
+          </div>
+        </div>
+        ` : ''}
       `;
 
       app.innerHTML = html;
+      document.body.classList.toggle('has-bulk-bar', this._selectedIds.size > 0);
 
       // Event listeners
       const btnNovo = document.getElementById('btnNovoContrato');
@@ -461,13 +510,127 @@ window.Contratos = {
         }, { passive: true });
       });
 
+      // ── Empty state CTA
+      document.querySelector('[data-empty-cta]')?.addEventListener('click', () => this.showModal());
+
+      // ── Checkbox: select all
+      document.getElementById('chkAll')?.addEventListener('change', e => {
+        pagedContracts.forEach(c => {
+          if (e.target.checked) this._selectedIds.add(c.id);
+          else this._selectedIds.delete(c.id);
+        });
+        this.render();
+      });
+
+      // ── Checkboxes: individual rows
+      document.querySelectorAll('.row-chk').forEach(chk => {
+        chk.addEventListener('change', e => {
+          if (e.target.checked) this._selectedIds.add(e.target.dataset.id);
+          else this._selectedIds.delete(e.target.dataset.id);
+          const all = document.getElementById('chkAll');
+          if (all) {
+            const checked = document.querySelectorAll('.row-chk:checked').length;
+            const total   = document.querySelectorAll('.row-chk').length;
+            all.indeterminate = checked > 0 && checked < total;
+            all.checked = total > 0 && checked === total;
+          }
+          document.body.classList.toggle('has-bulk-bar', this._selectedIds.size > 0);
+          const bar = document.getElementById('rhBulkBar');
+          if (bar) bar.querySelector('.rh-bulk-bar__count').textContent =
+            `${this._selectedIds.size} selecionado${this._selectedIds.size !== 1 ? 's' : ''}`;
+        });
+      });
+
+      // ── Bulk: clear
+      document.getElementById('bulkClear')?.addEventListener('click', () => {
+        this._selectedIds.clear();
+        document.body.classList.remove('has-bulk-bar');
+        this.render();
+      });
+
+      // ── Bulk: export CSV (selected only)
+      document.getElementById('bulkCSV')?.addEventListener('click', () => {
+        const selected = Store.state.contracts.filter(c => this._selectedIds.has(c.id));
+        if (!selected.length) return;
+        const rows = [
+          ['Nome','Cliente','Nº Contrato','Status','Valor (R$)','Início','Fim'],
+          ...selected.map(c => [c.name||'',c.client||'',c.contractNumber||'',c.status||'',
+            (c.value||0).toString().replace('.',','),c.startDate||'',c.endDate||''])
+        ];
+        const csv = '﻿' + rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `contratos-${new Date().toISOString().slice(0,10)}.csv`;
+        a.click(); URL.revokeObjectURL(url);
+        window.showToast(`${selected.length} contratos exportados`, 'success');
+      });
+
+      // ── Bulk: change status
+      document.getElementById('bulkStatus')?.addEventListener('click', async () => {
+        const statuses = ['prospeccao', 'ativo', 'pausado', 'concluido', 'cancelado'];
+        const novo = prompt(`Novo status para ${this._selectedIds.size} contrato(s):\n\n${statuses.join('\n')}`);
+        if (!novo) return;
+        const status = novo.trim().toLowerCase();
+        if (!statuses.includes(status)) { window.showToast('Status inválido', 'warning'); return; }
+        try {
+          const ids = [...this._selectedIds];
+          for (const id of ids) await Store.updateContract(id, { status });
+          window.showToast(`${ids.length} contrato(s) atualizados para "${status}"`, 'success');
+          this._selectedIds.clear();
+          this.render();
+        } catch (e) { window.showToast('Erro: ' + e.message, 'error'); }
+      });
+
+      // ── Bulk: delete
+      document.getElementById('bulkDelete')?.addEventListener('click', async () => {
+        const n = this._selectedIds.size;
+        if (!confirm(`Excluir ${n} contrato(s) selecionado(s)? Esta ação não pode ser desfeita.`)) return;
+        try {
+          const ids = [...this._selectedIds];
+          for (const id of ids) await Store.deleteContract(id);
+          this._selectedIds.clear();
+          window.showToast(`${n} contrato(s) excluídos`, 'success');
+          this.render();
+        } catch (e) { window.showToast('Erro: ' + e.message, 'error'); }
+      });
+
+      // ── Keyboard navigation (J/K/Enter/Esc)
+      let _kbIdx = -1;
+      const _kbRows = [...document.querySelectorAll('.row-contrato')];
+      const _kbFocus = (idx) => {
+        _kbRows.forEach((r, i) => r.classList.toggle('is-kbfocused', i === idx));
+        if (_kbRows[idx]) _kbRows[idx].scrollIntoView({ block: 'nearest' });
+        _kbIdx = idx;
+      };
+      const _kbKey = (e) => {
+        const tag = document.activeElement?.tagName?.toLowerCase();
+        if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+        if (e.key === 'j' || (e.key === 'ArrowDown' && !e.altKey)) {
+          e.preventDefault();
+          _kbFocus(Math.min(_kbIdx + 1, _kbRows.length - 1));
+        } else if (e.key === 'k' || (e.key === 'ArrowUp' && !e.altKey)) {
+          e.preventDefault();
+          _kbFocus(Math.max(_kbIdx - 1, 0));
+        } else if (e.key === 'Enter' && _kbIdx >= 0 && _kbRows[_kbIdx]) {
+          _kbRows[_kbIdx].click();
+        }
+      };
+      document.addEventListener('keydown', _kbKey);
+      // Remove listener when view unmounts
+      new MutationObserver((_, obs) => {
+        if (!document.querySelector('.row-contrato')) {
+          document.removeEventListener('keydown', _kbKey);
+          obs.disconnect();
+        }
+      }).observe(document.getElementById('app') || document.body, { childList: true });
+
     } catch (e) {
       console.error(e);
       app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar contratos. Tente novamente.</p></div>';
     }
   },
 
-  // Visão geral rápida do contrato (modal)
   showOverview(contractId) {
     this._pushRecent(contractId);
     const c = Store.getContractById(contractId);
@@ -488,150 +651,139 @@ window.Contratos = {
     const rdoCount = (c.rdos || []).length;
     const budget = c.budget || [];
     const totalBudget = budget.reduce((acc, b) => acc + (parseFloat(b.value) || 0), 0);
-
     const nfs = (Store.state.notas_fiscais || []).filter(n => n.contractId === c.id);
     const nfsEmitidas = nfs.filter(n => n.emitida).length;
 
-    const html = `
-      <div class="modal-overlay" id="modalOverlay">
-        <div class="modal" style="width:720px;max-width:95vw;max-height:90vh;overflow-y:auto;">
-          <div class="modal-header">
-            <div style="flex:1;min-width:0;">
-              <h2 class="modal-title" style="margin:0;word-break:break-word;">${escapeHtml(c.name)}</h2>
-              <div style="font-size:14px;color:var(--color-text-muted);margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
-                <span>${escapeHtml(c.client)}</span>
-                ${c.contractNumber ? `<span style="font-family:monospace;color:var(--color-text-muted);">#${escapeHtml(c.contractNumber)}</span>` : ''}
-                ${(() => {
-                  const colors = {
-                    ativo:      { bg: 'rgba(16,185,129,.15)',  fg: '#10b981', border: 'rgba(16,185,129,.4)' },
-                    concluido:  { bg: 'rgba(59,130,246,.15)',  fg: '#3b82f6', border: 'rgba(59,130,246,.4)' },
-                    cancelado:  { bg: 'rgba(220,38,38,.15)',   fg: '#dc2626', border: 'rgba(220,38,38,.4)'  },
-                    pausado:    { bg: 'rgba(245,158,11,.15)',  fg: '#f59e0b', border: 'rgba(245,158,11,.4)' },
-                    prospeccao: { bg: 'rgba(139,92,246,.15)',  fg: '#8b5cf6', border: 'rgba(139,92,246,.4)' },
-                  };
-                  const col = colors[c.status] || { bg: 'var(--color-bg)', fg: 'var(--color-text)', border: 'var(--color-border)' };
-                  return `<span style="background:${col.bg};color:${col.fg};border:1px solid ${col.border};font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.05em;padding:3px 10px;border-radius:99px;">${c.status}</span>`;
-                })()}
-              </div>
+    const statusColors = {
+      ativo:      { bg: 'rgba(16,185,129,.15)',  fg: '#10b981', border: 'rgba(16,185,129,.4)' },
+      concluido:  { bg: 'rgba(59,130,246,.15)',  fg: '#3b82f6', border: 'rgba(59,130,246,.4)' },
+      cancelado:  { bg: 'rgba(220,38,38,.15)',   fg: '#dc2626', border: 'rgba(220,38,38,.4)'  },
+      pausado:    { bg: 'rgba(245,158,11,.15)',  fg: '#f59e0b', border: 'rgba(245,158,11,.4)' },
+      prospeccao: { bg: 'rgba(139,92,246,.15)',  fg: '#8b5cf6', border: 'rgba(139,92,246,.4)' },
+    };
+    const col = statusColors[c.status] || { bg: 'var(--color-bg)', fg: 'var(--color-text)', border: 'var(--color-border)' };
+
+    const backdropEl = document.createElement('div');
+    backdropEl.className = 'rh-drawer__backdrop';
+    const drawerEl = document.createElement('div');
+    drawerEl.className = 'rh-drawer';
+    drawerEl.setAttribute('role', 'dialog');
+    drawerEl.setAttribute('aria-modal', 'true');
+    drawerEl.setAttribute('aria-label', c.name);
+
+    drawerEl.innerHTML = `
+      <div class="rh-drawer__inner">
+        <div class="rh-drawer__header">
+          <div style="min-width:0;">
+            <h2 style="margin:0;font-size:18px;word-break:break-word;">${escapeHtml(c.name)}</h2>
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px;font-size:14px;color:var(--color-text-muted);">
+              <span>${escapeHtml(c.client)}</span>
+              ${c.contractNumber ? `<span style="font-family:monospace;">#${escapeHtml(c.contractNumber)}</span>` : ''}
+              <span style="background:${col.bg};color:${col.fg};border:1px solid ${col.border};font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.05em;padding:2px 9px;border-radius:99px;">${c.status}</span>
             </div>
-            <button class="modal-close">✕</button>
           </div>
-
-          <div class="modal-content">
-            <!-- KPIs -->
-            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:var(--sp-md);margin-bottom:var(--sp-lg);">
-              <div style="padding:var(--sp-md);background:var(--color-surface);border-radius:8px;border:1px solid var(--color-border);min-width:0;">
-                <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Valor do contrato</div>
-                <div style="font-size:18px;font-weight:700;color:#3b82f6;margin-top:4px;word-break:break-all;line-height:1.3;">${Store.formatBRL(c.value)}</div>
-              </div>
-              <div style="padding:var(--sp-md);background:var(--color-surface);border-radius:8px;border:1px solid var(--color-border);min-width:0;">
-                <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Medido</div>
-                <div style="font-size:18px;font-weight:700;color:#10b981;margin-top:4px;word-break:break-all;line-height:1.3;">${Store.formatBRL(totalMedido)}</div>
-                <div style="font-size:12px;color:var(--color-text-muted);">${saidas.length} medições</div>
-              </div>
-              <div style="padding:var(--sp-md);background:var(--color-surface);border-radius:8px;border:1px solid var(--color-border);min-width:0;">
-                <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Margem</div>
-                <div style="font-size:18px;font-weight:700;color:${margem >= 0 ? '#10b981' : '#dc2626'};margin-top:4px;word-break:break-all;line-height:1.3;">${Store.formatBRL(margem)}</div>
-                <div style="font-size:12px;color:var(--color-text-muted);">${marginPct.toFixed(1)}%</div>
-              </div>
-              <div style="padding:var(--sp-md);background:var(--color-surface);border-radius:8px;border:1px solid var(--color-border);min-width:0;">
-                <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Prazo</div>
-                <div style="font-size:18px;font-weight:700;color:${diasRestantes === null ? '#999' : diasRestantes < 0 ? '#dc2626' : diasRestantes <= 30 ? '#f59e0b' : '#10b981'};margin-top:4px;line-height:1.3;">
-                  ${diasRestantes === null ? '—' : diasRestantes < 0 ? `${Math.abs(diasRestantes)}d vencido` : `${diasRestantes} dias`}
-                </div>
-                <div style="font-size:12px;color:var(--color-text-muted);">até ${fmt(c.endDate)}</div>
-              </div>
-            </div>
-
-            <!-- Dados do cliente / contrato -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-lg);margin-bottom:var(--sp-lg);">
-              <div>
-                <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:6px;">Período</div>
-                <div style="font-size:14px;line-height:1.8;">
-                  <div><strong>Início:</strong> ${fmt(c.startDate)}</div>
-                  <div><strong>Término:</strong> ${fmt(c.endDate)}</div>
-                  ${c.tendencyDate ? `<div><strong>Tendência:</strong> ${fmt(c.tendencyDate)}</div>` : ''}
-                </div>
-              </div>
-              <div>
-                <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:6px;">Cliente</div>
-                <div style="font-size:14px;line-height:1.8;">
-                  ${c.clientEmail ? `<div>${escapeHtml(c.clientEmail)}</div>` : ''}
-                  ${c.clientPhone ? `<div>${escapeHtml(c.clientPhone)}</div>` : ''}
-                  ${c.clientDocument ? `<div style="font-family:monospace;">${escapeHtml(c.clientDocument)}</div>` : ''}
-                </div>
-              </div>
-            </div>
-
-            <!-- Local -->
-            ${c.endereco ? `
-              <div style="margin-bottom:var(--sp-lg);">
-                <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:6px;">Local da obra</div>
-                <div style="font-size:14px;">${escapeHtml(c.endereco)}</div>
-              </div>
-            ` : ''}
-
-            <!-- Resumo operacional -->
-            <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:var(--sp-md);padding:var(--sp-md);background:var(--color-bg);border-radius:8px;margin-bottom:var(--sp-lg);">
-              <div style="text-align:center;">
-                <div style="font-size:22px;font-weight:700;">${orgCount}</div>
-                <div style="font-size:12px;color:var(--color-text-muted);">Organograma</div>
-              </div>
-              <div style="text-align:center;">
-                <div style="font-size:22px;font-weight:700;">${recCount}</div>
-                <div style="font-size:12px;color:var(--color-text-muted);">Alocados</div>
-              </div>
-              <div style="text-align:center;">
-                <div style="font-size:22px;font-weight:700;">${rdoCount}</div>
-                <div style="font-size:12px;color:var(--color-text-muted);">RDOs</div>
-              </div>
-              <div style="text-align:center;">
-                <div style="font-size:22px;font-weight:700;">${nfsEmitidas}/${nfs.length}</div>
-                <div style="font-size:12px;color:var(--color-text-muted);">NFs emitidas</div>
-              </div>
-            </div>
-
-            <!-- Orçamento resumido -->
-            ${budget.length > 0 ? `
-              <div style="margin-bottom:var(--sp-lg);">
-                <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:8px;">Orçamento (${budget.length} itens · total ${Store.formatBRL(totalBudget)})</div>
-                <div style="font-size:14px;">
-                  ${budget.slice(0, 5).map(b => `
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--color-border);">
-                      <span>${escapeHtml(b.description || '—')} <span style="color:var(--color-text-muted);">(${escapeHtml(b.type || '')})</span></span>
-                      <span style="font-weight:600;">${Store.formatBRL(b.value)}</span>
-                    </div>
-                  `).join('')}
-                  ${budget.length > 5 ? `<div style="text-align:center;color:var(--color-text-muted);margin-top:6px;">+ ${budget.length - 5} itens</div>` : ''}
-                </div>
-              </div>
-            ` : ''}
-
-            <!-- Notas -->
-            ${c.notes ? `
-              <div style="margin-bottom:var(--sp-md);">
-                <div style="font-size:12px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:6px;">Observações</div>
-                <div style="font-size:14px;white-space:pre-wrap;">${escapeHtml(c.notes)}</div>
-              </div>
-            ` : ''}
-          </div>
-
-          <div class="modal-footer">
-            <button class="btn btn-secondary" id="btnOvClose">Fechar</button>
-            <button class="btn btn-primary" id="btnOvVerDetalhes">Ver detalhes completos →</button>
-          </div>
+          <button class="rh-drawer__close" aria-label="Fechar painel">✕</button>
         </div>
-      </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', html);
-    const overlay = document.getElementById('modalOverlay');
-    const close = () => overlay.remove();
-    overlay.querySelector('.modal-close').addEventListener('click', close);
+        <div class="rh-drawer__body">
+          <!-- KPIs -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-md);margin-bottom:var(--sp-lg);">
+            <div style="padding:var(--sp-md);background:var(--color-bg);border-radius:8px;border:1px solid var(--color-border);">
+              <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Valor</div>
+              <div style="font-size:17px;font-weight:700;color:#3b82f6;margin-top:4px;">${Store.formatBRL(c.value)}</div>
+            </div>
+            <div style="padding:var(--sp-md);background:var(--color-bg);border-radius:8px;border:1px solid var(--color-border);">
+              <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Medido</div>
+              <div style="font-size:17px;font-weight:700;color:#10b981;margin-top:4px;">${Store.formatBRL(totalMedido)}</div>
+              <div style="font-size:11px;color:var(--color-text-muted);">${saidas.length} medições</div>
+            </div>
+            <div style="padding:var(--sp-md);background:var(--color-bg);border-radius:8px;border:1px solid var(--color-border);">
+              <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Margem</div>
+              <div style="font-size:17px;font-weight:700;color:${margem >= 0 ? '#10b981' : '#dc2626'};margin-top:4px;">${Store.formatBRL(margem)}</div>
+              <div style="font-size:11px;color:var(--color-text-muted);">${marginPct.toFixed(1)}%</div>
+            </div>
+            <div style="padding:var(--sp-md);background:var(--color-bg);border-radius:8px;border:1px solid var(--color-border);">
+              <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Prazo</div>
+              <div style="font-size:17px;font-weight:700;color:${diasRestantes === null ? '#999' : diasRestantes < 0 ? '#dc2626' : diasRestantes <= 30 ? '#f59e0b' : '#10b981'};margin-top:4px;">
+                ${diasRestantes === null ? '—' : diasRestantes < 0 ? `${Math.abs(diasRestantes)}d vencido` : `${diasRestantes} dias`}
+              </div>
+              <div style="font-size:11px;color:var(--color-text-muted);">até ${fmt(c.endDate)}</div>
+            </div>
+          </div>
+
+          <!-- Operacional -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-sm);padding:var(--sp-md);background:var(--color-bg);border-radius:8px;margin-bottom:var(--sp-lg);text-align:center;">
+            <div><div style="font-size:20px;font-weight:700;">${orgCount}</div><div style="font-size:11px;color:var(--color-text-muted);">Organograma</div></div>
+            <div><div style="font-size:20px;font-weight:700;">${recCount}</div><div style="font-size:11px;color:var(--color-text-muted);">Alocados</div></div>
+            <div><div style="font-size:20px;font-weight:700;">${rdoCount}</div><div style="font-size:11px;color:var(--color-text-muted);">RDOs</div></div>
+            <div><div style="font-size:20px;font-weight:700;">${nfsEmitidas}/${nfs.length}</div><div style="font-size:11px;color:var(--color-text-muted);">NFs emitidas</div></div>
+          </div>
+
+          <!-- Período -->
+          <div style="margin-bottom:var(--sp-lg);">
+            <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:6px;">Período</div>
+            <div style="font-size:14px;line-height:1.9;">
+              <div><strong>Início:</strong> ${fmt(c.startDate)}</div>
+              <div><strong>Término:</strong> ${fmt(c.endDate)}</div>
+              ${c.tendencyDate ? `<div><strong>Tendência:</strong> ${fmt(c.tendencyDate)}</div>` : ''}
+            </div>
+          </div>
+
+          ${c.endereco ? `
+          <div style="margin-bottom:var(--sp-lg);">
+            <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:6px;">Local da obra</div>
+            <div style="font-size:14px;">${escapeHtml(c.endereco)}</div>
+          </div>
+          ` : ''}
+
+          ${budget.length > 0 ? `
+          <div style="margin-bottom:var(--sp-lg);">
+            <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:8px;">Orçamento · ${Store.formatBRL(totalBudget)}</div>
+            ${budget.slice(0,4).map(b => `
+              <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--color-border);font-size:13px;">
+                <span>${escapeHtml(b.description||'—')} <span style="color:var(--color-text-muted);">(${escapeHtml(b.type||'')})</span></span>
+                <span style="font-weight:600;">${Store.formatBRL(b.value)}</span>
+              </div>`).join('')}
+            ${budget.length > 4 ? `<div style="text-align:center;color:var(--color-text-muted);margin-top:6px;font-size:12px;">+ ${budget.length - 4} itens</div>` : ''}
+          </div>
+          ` : ''}
+
+          ${c.notes ? `
+          <div>
+            <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:6px;">Observações</div>
+            <div style="font-size:14px;white-space:pre-wrap;">${escapeHtml(c.notes)}</div>
+          </div>
+          ` : ''}
+        </div>
+        <div class="rh-drawer__footer">
+          <button class="btn btn-secondary" id="btnOvClose">Fechar</button>
+          <button class="btn btn-primary" id="btnOvVerDetalhes">Ver detalhes →</button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(backdropEl);
+    document.body.appendChild(drawerEl);
+
+    requestAnimationFrame(() => {
+      backdropEl.classList.add('is-open');
+      drawerEl.classList.add('is-open');
+    });
+
+    const close = () => {
+      backdropEl.classList.remove('is-open');
+      drawerEl.classList.remove('is-open');
+      document.removeEventListener('keydown', onEsc);
+      setTimeout(() => { backdropEl.remove(); drawerEl.remove(); }, 320);
+    };
+    const onEsc = (e) => { if (e.key === 'Escape') close(); };
+
+    backdropEl.addEventListener('click', close);
+    drawerEl.querySelector('.rh-drawer__close').addEventListener('click', close);
     document.getElementById('btnOvClose').addEventListener('click', close);
     document.getElementById('btnOvVerDetalhes').addEventListener('click', () => {
       close();
       location.hash = `#/contratos/${contractId}`;
     });
+    document.addEventListener('keydown', onEsc);
   },
 
   showModal(contractId) {
@@ -1043,7 +1195,7 @@ window.Contratos = {
   },
 
   exportCSV() {
-    const contracts = Store.state.contracts;
+    const contracts = this._currentFiltered.length ? this._currentFiltered : Store.state.contracts;
     if (!contracts.length) { window.showToast('Nenhum contrato para exportar', 'warning'); return; }
     const rows = [
       ['Nome', 'Cliente', 'Nº Contrato', 'Status', 'Valor (R$)', 'Início', 'Fim', 'Tendência'],

@@ -1290,3 +1290,124 @@ label.required::after {
   canvas { max-width: 100%; }
 }
 
+/* ═══════════════════════════════════════════════
+   UX POLISH — BATCH 2
+═══════════════════════════════════════════════ */
+
+/* ─── Right-side Drawer ─── */
+.rh-drawer__backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  z-index: 1199; opacity: 0; transition: opacity .25s ease;
+}
+.rh-drawer__backdrop.is-open { opacity: 1; }
+
+.rh-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: 520px; max-width: 96vw;
+  background: var(--color-surface); z-index: 1200;
+  display: flex; flex-direction: column;
+  transform: translateX(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
+  box-shadow: -8px 0 40px rgba(0,0,0,.25);
+}
+.rh-drawer.is-open { transform: translateX(0); }
+
+.rh-drawer__inner { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+
+.rh-drawer__header {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.rh-drawer__header > :first-child { flex: 1; min-width: 0; }
+.rh-drawer__close {
+  flex-shrink: 0; width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid var(--color-border);
+  border-radius: 6px; cursor: pointer; font-size: 16px;
+  color: var(--color-text-muted); transition: background .15s, color .15s;
+}
+.rh-drawer__close:hover { background: var(--color-bg); color: var(--color-text); }
+
+.rh-drawer__body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+.rh-drawer__footer {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 14px 24px;
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+  background: var(--color-surface);
+}
+
+/* ─── Bulk Action Bar ─── */
+.rh-bulk-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 12px 24px;
+  background: var(--color-primary); color: #fff;
+  box-shadow: 0 -4px 24px rgba(0,0,0,.25);
+  z-index: 500; transform: translateY(100%);
+  transition: transform .22s cubic-bezier(.4,0,.2,1);
+}
+.rh-bulk-bar.is-visible { transform: translateY(0); }
+.rh-bulk-bar__count { font-weight: 700; font-size: 15px; flex-shrink: 0; }
+.rh-bulk-bar__actions { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.rh-bulk-btn {
+  background: rgba(255,255,255,.15) !important;
+  border-color: rgba(255,255,255,.35) !important;
+  color: #fff !important; font-size: 13px; padding: 6px 14px;
+}
+.rh-bulk-btn:hover { background: rgba(255,255,255,.25) !important; }
+.rh-bulk-btn.danger { background: rgba(220,38,38,.6) !important; border-color: rgba(220,38,38,.8) !important; }
+/* Give body bottom padding when bulk bar is open */
+body.has-bulk-bar { padding-bottom: 64px; }
+body.has-bulk-bar.has-bottom-nav { padding-bottom: 120px; }
+
+/* ─── Top Progress Bar ─── */
+#rh-progress {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 3px; z-index: 9999; pointer-events: none;
+}
+#rh-progress .rh-progress__fill {
+  height: 100%; width: 0;
+  background: var(--color-primary);
+  transition: width .4s ease, opacity .3s ease;
+  opacity: 0;
+}
+#rh-progress.is-loading .rh-progress__fill {
+  width: 75%; opacity: 1;
+  transition: width 2.5s cubic-bezier(.1,.05,.45,1);
+}
+#rh-progress.is-done .rh-progress__fill {
+  width: 100%; opacity: 0;
+  transition: width .25s ease, opacity .4s ease .15s;
+}
+
+/* ─── Relative Date ─── */
+.rh-reldate {
+  display: inline; cursor: default;
+  border-bottom: 1px dashed var(--color-border);
+}
+.rh-reldate:hover { border-bottom-color: var(--color-primary); color: var(--color-primary); }
+
+/* ─── Keyboard-focused table row ─── */
+.row-contrato.is-kbfocused {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  background: rgba(var(--color-primary-rgb, 59,130,246),.06) !important;
+}
+
+/* ─── Sticky Table Header ─── */
+.rh-table--sticky {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.rh-table--sticky thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-surface);
+  box-shadow: 0 1px 0 var(--color-border);
+}
+.table-wrap { overflow-x: auto; max-height: none; }
+

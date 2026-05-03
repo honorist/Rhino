@@ -168,7 +168,7 @@
       <div class="cmdk-panel" role="dialog" aria-modal="true" aria-label="Buscar e navegar">
         <div class="cmdk-input-wrap">
           <span class="cmdk-input-wrap__icon">⌕</span>
-          <input class="cmdk-input" type="text" placeholder="Buscar telas, ações…" autocomplete="off" autofocus />
+          <input class="cmdk-input" type="text" placeholder="Buscar contratos, clientes, NFs, telas… (/ ou ⌘K)" autocomplete="off" autofocus />
           <kbd class="cmdk-kbd">esc</kbd>
         </div>
         <div class="cmdk-list" role="listbox"></div>
@@ -266,6 +266,15 @@
     if ((e.metaKey || e.ctrlKey) && k === 'k') {
       e.preventDefault();
       openCmdK();
+      return;
+    }
+    // "/" shortcut — open search when not typing in an input
+    if (k === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      const tag = document.activeElement?.tagName?.toLowerCase();
+      if (tag !== 'input' && tag !== 'textarea' && tag !== 'select' && !document.activeElement?.isContentEditable) {
+        e.preventDefault();
+        openCmdK();
+      }
     }
   });
   RhinoUI.openCommandPalette = openCmdK;
@@ -464,3 +473,31 @@ if (window.getCommandIndex) {
     return list;
   };
 }
+
+// ── Top progress bar ─────────────────────────────────────────
+(function initProgressBar() {
+  const bar = document.createElement('div');
+  bar.id = 'rh-progress';
+  bar.innerHTML = '<div class="rh-progress__fill"></div>';
+  document.body.appendChild(bar);
+
+  let _doneTimer;
+  function onStoreChange(state) {
+    clearTimeout(_doneTimer);
+    if (state.loading) {
+      bar.classList.remove('is-done');
+      bar.classList.add('is-loading');
+    } else {
+      bar.classList.remove('is-loading');
+      bar.classList.add('is-done');
+      _doneTimer = setTimeout(() => bar.classList.remove('is-done'), 600);
+    }
+  }
+
+  // Attach after boot so Store is guaranteed to exist
+  window.addEventListener('rh:boot-done', () => {
+    if (window.Store && typeof Store.subscribe === 'function') {
+      Store.subscribe(onStoreChange);
+    }
+  });
+})();
