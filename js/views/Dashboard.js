@@ -1244,9 +1244,9 @@ window.Dashboard = {
     btnRel.innerHTML = '📄 Relatório';
     btnRel.title = 'Gerar relatório gerencial em PDF';
     btnRel.addEventListener('click', () => window.RhinoRelatorio?.gerar?.());
-    ctrl.insertBefore(btnRel, btn); // insere ANTES do botão "Personalizar"
 
-    ctrl.appendChild(btn);
+    ctrl.appendChild(btnRel); // Relatório primeiro
+    ctrl.appendChild(btn);    // Personalizar depois
   },
 
   _showModalCustomizar() {
