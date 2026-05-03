@@ -14,6 +14,7 @@ const routes = {
   '#/fornecedores': { view: window.Fornecedores,   label: 'Fornecedores',    icon: _ic('truck'),       group: 'rh' },
   '#/caixa':        { view: window.Caixa,          label: 'Caixa',           icon: _ic('wallet'),      group: 'financeiro' },
   '#/contas-pagar': { view: window.ContasPagar,    label: 'Contas a Pagar',  icon: _ic('minus-circle'),group: 'financeiro' },
+  '#/conciliacao':  { view: window.Conciliacao,    label: 'Conciliação',     icon: _ic('arrow-left-right'), group: 'financeiro' },
   '#/notas-fiscais':{ view: window.NotasFiscais,   label: 'Contas a Receber',icon: _ic('receipt'),     group: 'financeiro' },
   '#/socios':       { view: window.Socios,         label: 'Sócios',          icon: _ic('users'),       group: 'financeiro' },
   '#/investimentos':{ view: window.Investimentos,  label: 'Aportes',         icon: _ic('plus-circle'), group: 'financeiro' },

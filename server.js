@@ -1192,7 +1192,29 @@ async function handlePortalDashboard(req, res) {
       .map(n => ({ id: n.id, numero: n.numero, valor: n.valor, status: n.status, dataEmissao: n.dataEmissao, contractId: n.contractId }))
       .slice(-20);
 
-    sendJson(res, { cliente: req.portalCliente, contratos, nfs });
+    // Collect RDOs from the client's contracts (last 15 across all contracts, most recent first)
+    const rdosAll = [];
+    allContracts
+      .filter(c => c.clientId === clienteId)
+      .forEach(c => {
+        const rdos = Array.isArray(c.rdos) ? c.rdos : [];
+        rdos.forEach(r => {
+          const fotos = Array.isArray(r.fotos) ? r.fotos.slice(0, 4) : [];
+          rdosAll.push({
+            id: r.id,
+            contractId: c.id,
+            contractName: c.name,
+            data: r.data,
+            clima: r.clima,
+            atividades: (r.atividades || '').slice(0, 200),
+            fotos: fotos.map(f => ({ id: f.id, url: f.url || f.path, legenda: f.legenda || '' })),
+          });
+        });
+      });
+    rdosAll.sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+    const rdos = rdosAll.slice(0, 15);
+
+    sendJson(res, { cliente: req.portalCliente, contratos, nfs, rdos });
   } catch (e) { sendError(res, 500, e.message); }
 }
 

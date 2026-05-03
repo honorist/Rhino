@@ -129,6 +129,7 @@ window.Portal = {
               { label: 'Contratos ativos', value: d.contratos.filter(c => c.status === 'ativo').length },
               { label: 'Valor total', value: fmt(d.contratos.reduce((s, c) => s + (parseFloat(c.value) || 0), 0)) },
               { label: 'NFs emitidas', value: d.nfs.filter(n => n.status === 'emitida').length },
+              { label: 'Diários de obra', value: (d.rdos || []).length },
             ].map(k => `
               <div class="card" style="padding:var(--sp-lg);text-align:center;">
                 <div style="font-size:22px;font-weight:700;color:var(--color-primary);">${k.value}</div>
@@ -196,6 +197,37 @@ window.Portal = {
                   </tbody>
                 </table>
               </div>
+            </div>
+          ` : ''}
+
+          <!-- RDOs recentes -->
+          ${d.rdos && d.rdos.length > 0 ? `
+            <div class="card" style="margin-top:var(--sp-xl);">
+              <div style="padding:var(--sp-lg);border-bottom:1px solid var(--color-border);">
+                <h2 style="margin:0;font-size:16px;font-weight:700;">Diários de Obra (RDOs)</h2>
+                <p style="margin:4px 0 0;font-size:13px;color:var(--color-text-muted);">Últimas ${d.rdos.length} entradas</p>
+              </div>
+              ${d.rdos.map(r => `
+                <div style="padding:var(--sp-lg);border-bottom:1px solid var(--color-border);">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:var(--sp-md);flex-wrap:wrap;margin-bottom:8px;">
+                    <div>
+                      <strong style="font-size:14px;">${escapeHtml(r.contractName)}</strong>
+                      <span style="margin-left:8px;font-size:13px;color:var(--color-text-muted);">${r.data ? new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'short' }) : '—'}</span>
+                      ${r.clima ? `<span style="margin-left:8px;font-size:13px;">🌤 ${escapeHtml(r.clima)}</span>` : ''}
+                    </div>
+                  </div>
+                  ${r.atividades ? `<p style="margin:0 0 8px;font-size:14px;color:var(--color-text-muted);">${escapeHtml(r.atividades)}${r.atividades.length >= 200 ? '…' : ''}</p>` : ''}
+                  ${r.fotos && r.fotos.length > 0 ? `
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+                      ${r.fotos.map(f => `
+                        <a href="${escapeHtml(f.url || '')}" target="_blank" rel="noopener" style="display:block;width:80px;height:60px;border-radius:6px;overflow:hidden;flex-shrink:0;background:var(--color-surface-2);">
+                          <img src="${escapeHtml(f.url || '')}" alt="${escapeHtml(f.legenda || 'Foto')}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.style.display='none'">
+                        </a>
+                      `).join('')}
+                    </div>
+                  ` : ''}
+                </div>
+              `).join('')}
             </div>
           ` : ''}
         </main>

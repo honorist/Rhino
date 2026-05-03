@@ -149,6 +149,9 @@
         } catch (e) { window.showToast(e.message, 'error'); }
       });
     });
+
+    // Wire Gantt interactivity after DOM settles
+    setTimeout(() => this._initGanttInteractivity(contract, atvs), 50);
   },
 
   // Gantt como SVG simples (sem deps externas) — barra planejada e barra real sobreposta
@@ -207,9 +210,9 @@
 
       return `
         <text x="${PAD_L - 8}" y="${y + 14}" text-anchor="end" font-size="11" fill="#cbd5e1" font-weight="600">${escapeHtml((a.nome || '').slice(0, 28))}</text>
-        <rect x="${x1p}" y="${y}" width="${wp}" height="20" fill="#1e293b" stroke="#475569" stroke-width="1" rx="3"/>
-        <rect x="${x1p}" y="${y}" width="${wExec}" height="20" fill="${corExec}" rx="3"/>
-        <text x="${x1p + wp/2}" y="${y + 14}" text-anchor="middle" font-size="10" fill="#fff" font-weight="700">${exec.toFixed(0)}%</text>
+        <rect class="gantt-bar" data-id="${a.id}" x="${x1p}" y="${y}" width="${wp}" height="20" fill="#1e293b" stroke="#475569" stroke-width="1" rx="3" style="cursor:pointer;"/>
+        <rect x="${x1p}" y="${y}" width="${wExec}" height="20" fill="${corExec}" rx="3" style="pointer-events:none;"/>
+        <text x="${x1p + wp/2}" y="${y + 14}" text-anchor="middle" font-size="10" fill="#fff" font-weight="700" style="pointer-events:none;">${exec.toFixed(0)}%</text>
       `;
     }).join('');
 
@@ -223,6 +226,144 @@
         </svg>
       </div>
     `;
+  },
+
+  _initGanttInteractivity(contract, atvs) {
+    const bars = document.querySelectorAll('.gantt-bar');
+    if (!bars.length) return;
+
+    // ── Tooltip ──────────────────────────────────────────────────────────────
+    let tooltip = document.getElementById('ganttTooltip');
+    if (!tooltip) {
+      tooltip = document.createElement('div');
+      tooltip.id = 'ganttTooltip';
+      tooltip.style.cssText = 'position:fixed;background:#1e293b;color:#f1f5f9;padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;box-shadow:0 4px 20px rgba(0,0,0,.4);pointer-events:none;z-index:9000;white-space:nowrap;border:1px solid #475569;display:none;';
+      document.body.appendChild(tooltip);
+    }
+
+    const fmtDt = (s) => s ? new Date(s + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+
+    const showTooltip = (e, a) => {
+      const exec = parseFloat(a.execPct) || 0;
+      tooltip.innerHTML =
+        `🔷 <strong>${escapeHtml(a.nome)}</strong><br>` +
+        `📅 ${fmtDt(a.dataInicioPlan)} → ${fmtDt(a.dataFimPlan)}<br>` +
+        `⚡ ${exec.toFixed(0)}% executado<br>` +
+        `💰 Custo plan.: ${Store.formatBRL(parseFloat(a.custoPlan) || 0)}`;
+      tooltip.style.display = 'block';
+      positionTooltip(e);
+    };
+
+    const positionTooltip = (e) => {
+      const TW = tooltip.offsetWidth;
+      const TH = tooltip.offsetHeight;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      let left = e.clientX + 14;
+      let top  = e.clientY + 14;
+      if (left + TW > vw - 8) left = e.clientX - TW - 14;
+      if (top  + TH > vh - 8) top  = e.clientY - TH - 14;
+      tooltip.style.left = left + 'px';
+      tooltip.style.top  = top  + 'px';
+    };
+
+    const hideTooltip = () => { tooltip.style.display = 'none'; };
+
+    // ── Popover ──────────────────────────────────────────────────────────────
+    let activePopover = null;
+
+    const closePopover = () => {
+      if (activePopover) { activePopover.remove(); activePopover = null; }
+    };
+
+    const showPopover = (e, a) => {
+      closePopover();
+      hideTooltip();
+
+      const exec = parseFloat(a.execPct) || 0;
+      const pop = document.createElement('div');
+      pop.id = 'ganttPopover';
+      pop.style.cssText = 'position:fixed;background:var(--color-surface);border:1px solid var(--color-border);border-radius:8px;padding:14px 16px;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:9100;width:220px;font-size:14px;';
+
+      pop.innerHTML = `
+        <div style="font-weight:700;margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(a.nome)}">${escapeHtml(a.nome)}</div>
+        <div style="margin-bottom:8px;">
+          <input id="ganttRangeInput" type="range" min="0" max="100" step="5" value="${exec}" style="width:100%;accent-color:#3b82f6;">
+        </div>
+        <div id="ganttRangeLabel" style="text-align:center;font-weight:700;font-size:16px;margin-bottom:12px;">${exec.toFixed(0)}%</div>
+        <div style="display:flex;gap:8px;">
+          <button id="ganttPopSave"  class="btn btn-primary btn-sm"   style="flex:1;">Salvar</button>
+          <button id="ganttPopCancel" class="btn btn-secondary btn-sm" style="flex:1;">Cancelar</button>
+        </div>
+      `;
+
+      // Position near cursor, keep inside viewport
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const PW = 220;
+      const PH = 140; // approximate
+      let left = e.clientX + 10;
+      let top  = e.clientY + 10;
+      if (left + PW > vw - 8) left = e.clientX - PW - 10;
+      if (top  + PH > vh - 8) top  = e.clientY - PH - 10;
+      pop.style.left = left + 'px';
+      pop.style.top  = top  + 'px';
+
+      document.body.appendChild(pop);
+      activePopover = pop;
+
+      const rangeInput = pop.querySelector('#ganttRangeInput');
+      const rangeLabel = pop.querySelector('#ganttRangeLabel');
+
+      rangeInput.addEventListener('input', () => {
+        rangeLabel.textContent = rangeInput.value + '%';
+      });
+
+      pop.querySelector('#ganttPopCancel').addEventListener('click', closePopover);
+
+      pop.querySelector('#ganttPopSave').addEventListener('click', async () => {
+        const newValue = parseInt(rangeInput.value, 10);
+        try {
+          const r = await fetch(`/api/contracts/${contract.id}/atividades/${a.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ execPct: newValue, nome: a.nome }),
+          });
+          if (!r.ok) throw new Error(await r.text());
+          closePopover();
+          window.showToast('Progresso atualizado', 'success');
+          this._loadAtividades(contract);
+        } catch (err) { window.showToast(err.message, 'error'); }
+      });
+    };
+
+    // ── Wire events ──────────────────────────────────────────────────────────
+    bars.forEach(bar => {
+      const a = atvs.find(x => x.id === bar.dataset.id);
+      if (!a) return;
+
+      bar.addEventListener('mouseenter', (e) => showTooltip(e, a));
+      bar.addEventListener('mousemove',  (e) => positionTooltip(e));
+      bar.addEventListener('mouseleave', () => hideTooltip());
+      bar.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showPopover(e, a);
+      });
+    });
+
+    // Close popover on outside click or ESC
+    const onOutsideClick = (e) => {
+      if (activePopover && !activePopover.contains(e.target)) closePopover();
+    };
+    const onEsc = (e) => { if (e.key === 'Escape') closePopover(); };
+
+    // Remove stale listeners before adding fresh ones (re-render scenario)
+    document.removeEventListener('click', this._ganttOutsideClick);
+    document.removeEventListener('keydown', this._ganttEscHandler);
+    this._ganttOutsideClick = onOutsideClick;
+    this._ganttEscHandler   = onEsc;
+    document.addEventListener('click', onOutsideClick);
+    document.addEventListener('keydown', onEsc);
   },
 
   _showModalAtividade(contract, ativ) {
