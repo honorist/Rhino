@@ -536,6 +536,16 @@ INSERT INTO feature_flags (key, enabled, description) VALUES
   ('recurring_payments',true,  'Contas a pagar recorrentes (lançamento automático)')
 ON CONFLICT (key) DO NOTHING;
 
+-- ============ Push Subscriptions ============
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id         TEXT PRIMARY KEY,
+  user_id    TEXT,
+  endpoint   TEXT NOT NULL UNIQUE,
+  p256dh     TEXT NOT NULL,
+  auth       TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ============ Retenção no Contrato ============
 ALTER TABLE contracts ADD COLUMN IF NOT EXISTS retencao_percent NUMERIC(5,2) DEFAULT 0;
 

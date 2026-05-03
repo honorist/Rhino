@@ -27,6 +27,7 @@ window.Configuracao = {
             ${this.renderMenuItem('arquivos', '📁', 'Arquivos do Sistema')}
             ${this.renderMenuItem('backup', '💾', 'Backup do Sistema')}
             ${this.renderMenuItem('feature_flags', '🚀', 'Feature Flags')}
+            ${this.renderMenuItem('notificacoes', '🔔', 'Notificações Push')}
             ${this.renderMenuItem('lgpd', '🔒', 'Privacidade (LGPD)')}
             ${this.renderMenuItem('tour', '🗺️', 'Tour Guiado')}
             <a href="#/usuarios" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;text-decoration:none;color:var(--color-text);margin-top:4px;border-top:1px solid var(--color-border);padding-top:14px;">
@@ -45,6 +46,7 @@ window.Configuracao = {
             ${this.currentSection === 'arquivos'       ? this.renderArquivos() : ''}
             ${this.currentSection === 'backup'         ? this.renderBackup() : ''}
             ${this.currentSection === 'feature_flags'  ? '<div id="featureFlagsSection"><div class="loading-spinner">Carregando…</div></div>' : ''}
+            ${this.currentSection === 'notificacoes'   ? this.renderNotificacoesPush() : ''}
             ${this.currentSection === 'lgpd'           ? this.renderLgpd() : ''}
             ${this.currentSection === 'tour'           ? this.renderTour() : ''}
           </div>
@@ -327,6 +329,7 @@ window.Configuracao = {
     if (this.currentSection === 'doc_templates') this.attachDocTemplateListeners();
     if (this.currentSection === 'arquivos') this.attachArquivosListeners();
     if (this.currentSection === 'feature_flags') this.attachFeatureFlagsListeners();
+    if (this.currentSection === 'notificacoes') this.attachPushListeners();
 
     const btnLgpd = document.getElementById('btnLgpdDelete');
     if (btnLgpd) {
@@ -996,6 +999,81 @@ window.Configuracao = {
         <button class="btn btn-primary" id="btnRestarTour">🚀 Iniciar Tour</button>
       </div>
     `;
+  },
+
+  // ── Notificações Push ──────────────────────────────────────────────────────
+  renderNotificacoesPush() {
+    return `
+      <div class="page-header" style="margin-bottom:var(--sp-lg);">
+        <div>
+          <h2 style="font-size:20px;font-weight:700;margin:0;">🔔 Notificações Push</h2>
+          <p class="page-subtitle">Alertas proativos mesmo com o app fechado</p>
+        </div>
+      </div>
+
+      <div class="card mb-2xl" style="background:rgba(49,130,206,.05);border-left:4px solid var(--color-info);">
+        <div style="font-size:15px;">
+          <strong>ℹ️ O que você recebe:</strong> Alertas sobre contratos vencendo nos próximos 7 dias
+          e contas a pagar com vencimento em até 3 dias. As notificações são enviadas a cada hora.
+        </div>
+      </div>
+
+      <div class="card" style="max-width:560px;">
+        <div class="card-header">
+          <h3 class="card-title">Status das notificações</h3>
+        </div>
+        <p style="color:var(--color-text-muted);margin-bottom:var(--sp-md);font-size:14px;">
+          Receba alertas no dispositivo sobre contratos vencendo, RDOs ausentes e contas a pagar.
+        </p>
+        <div id="push-status-area" style="display:flex;align-items:center;gap:12px;">
+          <span id="push-status-label" style="font-size:14px;color:var(--color-text-muted);">Verificando…</span>
+          <button id="btnTogglePush" class="btn btn-secondary" disabled>…</button>
+        </div>
+      </div>
+    `;
+  },
+
+  attachPushListeners() {
+    const statusEl = document.getElementById('push-status-label');
+    const toggleBtn = document.getElementById('btnTogglePush');
+    if (!statusEl || !toggleBtn) return;
+
+    if (!window.RhinoPush) {
+      statusEl.textContent = 'Módulo de push não carregado';
+      toggleBtn.disabled = true;
+      toggleBtn.textContent = 'Indisponível';
+      return;
+    }
+
+    window.RhinoPush.getState().then((state) => {
+      if (state === 'unsupported') {
+        statusEl.textContent = 'Não suportado neste navegador';
+        toggleBtn.disabled = true;
+        toggleBtn.textContent = 'Indisponível';
+      } else if (state === 'denied') {
+        statusEl.textContent = 'Permissão bloqueada no navegador';
+        toggleBtn.disabled = true;
+        toggleBtn.textContent = 'Bloqueado';
+      } else if (state === 'subscribed') {
+        statusEl.textContent = 'Notificações ativas';
+        statusEl.style.color = 'var(--color-success)';
+        toggleBtn.textContent = 'Desativar';
+        toggleBtn.disabled = false;
+        toggleBtn.onclick = async () => {
+          await window.RhinoPush.unsubscribe();
+          this.render();
+        };
+      } else {
+        statusEl.textContent = 'Desativadas';
+        toggleBtn.textContent = 'Ativar notificações';
+        toggleBtn.className = 'btn btn-primary';
+        toggleBtn.disabled = false;
+        toggleBtn.onclick = async () => {
+          await window.RhinoPush.subscribe();
+          this.render();
+        };
+      }
+    });
   },
 
   _escHtml(s) {

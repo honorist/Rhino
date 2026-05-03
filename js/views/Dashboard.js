@@ -1237,6 +1237,15 @@ window.Dashboard = {
     btn.innerHTML = '🎨 Personalizar';
     btn.title = 'Mostrar/ocultar seções do dashboard';
     btn.addEventListener('click', () => this._showModalCustomizar());
+
+    const btnRel = document.createElement('button');
+    btnRel.id = 'btnGerarRelatorio';
+    btnRel.className = 'btn btn-secondary btn-sm';
+    btnRel.innerHTML = '📄 Relatório';
+    btnRel.title = 'Gerar relatório gerencial em PDF';
+    btnRel.addEventListener('click', () => window.RhinoRelatorio?.gerar?.());
+    ctrl.insertBefore(btnRel, btn); // insere ANTES do botão "Personalizar"
+
     ctrl.appendChild(btn);
   },
 

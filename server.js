@@ -27,6 +27,24 @@ const rateLimit = require('./lib/rate-limit');
 const audit = require('./lib/audit');
 const bus = require('./lib/bus');
 
+// Web Push — inicializa só se VAPID keys estiverem presentes
+let _webPush = null;
+try {
+  _webPush = require('web-push');
+  if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    _webPush.setVapidDetails(
+      'mailto:admin@rhino.app',
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    );
+  } else {
+    console.warn('[push] VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY não definidos — push desativado');
+    _webPush = null;
+  }
+} catch (e) {
+  console.warn('[push] web-push não instalado:', e.message);
+}
+
 // Ensure backups directory exists (used by handleBackup pra dump PG → JSON)
 if (!fs.existsSync(BACKUPS_DIR)) {
   fs.mkdirSync(BACKUPS_DIR, { recursive: true });
@@ -186,6 +204,29 @@ async function handleDeleteContract(id, res) {
   } catch (e) {
     sendError(res, 400, e.message);
   }
+}
+
+// ── Push Notification Handlers ──────────────────────────────────────────────
+async function handlePushSubscribe(body, userId, res) {
+  try {
+    if (!body?.endpoint || !body?.keys?.p256dh || !body?.keys?.auth)
+      return sendError(res, 400, 'Subscription inválida');
+    const id = 'ps_' + Date.now().toString(36);
+    await db.query(
+      `INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth)
+       VALUES ($1,$2,$3,$4,$5)
+       ON CONFLICT (endpoint) DO UPDATE SET user_id=$2, p256dh=$4, auth=$5, created_at=NOW()`,
+      [id, userId || null, body.endpoint, body.keys.p256dh, body.keys.auth]
+    );
+    sendJson(res, { ok: true });
+  } catch (e) { sendError(res, 500, e.message); }
+}
+
+async function handlePushUnsubscribe(body, res) {
+  try {
+    await db.query('DELETE FROM push_subscriptions WHERE endpoint=$1', [body?.endpoint]);
+    sendJson(res, { ok: true });
+  } catch (e) { sendError(res, 500, e.message); }
 }
 
 async function handlePostSaida(contractId, body, res) {
@@ -2865,6 +2906,10 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
     const id = pathname.split('/')[3];
     return handleDeleteContract(id, res);
   }
+  if (pathname.match(/^\/api\/contracts\/[^/]+$/) && method === 'PATCH') {
+    const id = pathname.split('/')[3];
+    return handlePutContract(id, body, res); // reusa PUT — já aceita campos parciais
+  }
   if (pathname.match(/^\/api\/contracts\/[^/]+\/saidas$/) && method === 'POST') {
     const contractId = pathname.split('/')[3];
     return handlePostSaida(contractId, body, res);
@@ -3242,6 +3287,19 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname === '/api/niveis-acesso' && method === 'GET') return handleGetNiveisAcesso(res);
   if (pathname.match(/^\/api\/niveis-acesso\/[^/]+$/) && method === 'PUT') {
     return handlePutNivelAcesso(pathname.split('/')[3], body, res);
+  }
+
+  // Push Notification routes
+  if (pathname === '/api/push/vapid-public-key' && method === 'GET') {
+    const pk = process.env.VAPID_PUBLIC_KEY || null;
+    return sendJson(res, { publicKey: pk });
+  }
+  if (pathname === '/api/push/subscribe' && method === 'POST') {
+    const userId = req._userId || null;
+    return handlePushSubscribe(body, userId, res);
+  }
+  if (pathname === '/api/push/unsubscribe' && method === 'POST') {
+    return handlePushUnsubscribe(body, res);
   }
 
   // Static files
@@ -4780,6 +4838,64 @@ async function bootstrap() {
     try { await ensureAlmoxarifadoCentral(); } catch (e) { console.warn('[server] Aviso ao criar almox central:', e.message); }
     // Limpa sessões expiradas a cada hora
     setInterval(() => auth.purgeExpiredSessions().catch(() => {}), 60 * 60 * 1000);
+
+    // Push notifications — verifica contratos e contas a pagar a cada hora
+    if (_webPush) {
+      const _sendPushAll = async (payload) => {
+        try {
+          const { rows } = await db.query('SELECT * FROM push_subscriptions');
+          for (const sub of rows) {
+            try {
+              await _webPush.sendNotification(
+                { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+                JSON.stringify(payload)
+              );
+            } catch (e) {
+              // Subscription expirada → remove
+              if (e.statusCode === 410 || e.statusCode === 404) {
+                await db.query('DELETE FROM push_subscriptions WHERE endpoint=$1', [sub.endpoint]).catch(() => {});
+              }
+            }
+          }
+        } catch (e) { console.warn('[push] Erro ao enviar:', e.message); }
+      };
+
+      setInterval(async () => {
+        try {
+          const hoje = new Date().toISOString().split('T')[0];
+          const em7 = new Date(); em7.setDate(em7.getDate() + 7); const em7str = em7.toISOString().split('T')[0];
+          const em3 = new Date(); em3.setDate(em3.getDate() + 3); const em3str = em3.toISOString().split('T')[0];
+
+          // Contratos vencendo em 7 dias
+          const { rows: vencendo } = await db.query(
+            `SELECT name FROM contracts WHERE status='ativo' AND end_date BETWEEN $1 AND $2`,
+            [hoje, em7str]
+          );
+          if (vencendo.length > 0) {
+            await _sendPushAll({
+              title: 'Contratos vencendo',
+              body: `${vencendo.length} contrato(s) vencem nos próximos 7 dias`,
+              icon: '/assets/logo.png',
+              data: { url: '/#/contratos' }
+            });
+          }
+
+          // Contas a pagar vencendo em 3 dias
+          const { rows: cpVenc } = await db.query(
+            `SELECT COUNT(*) as n, SUM(valor::numeric) as total FROM contas_pagar WHERE status='pendente' AND data_vencimento BETWEEN $1 AND $2`,
+            [hoje, em3str]
+          );
+          if (parseInt(cpVenc[0]?.n || 0) > 0) {
+            await _sendPushAll({
+              title: 'Contas a pagar',
+              body: `${cpVenc[0].n} conta(s) vencem em até 3 dias`,
+              icon: '/assets/logo.png',
+              data: { url: '/#/contas-pagar' }
+            });
+          }
+        } catch (e) { console.warn('[push] Erro no scheduler:', e.message); }
+      }, 60 * 60 * 1000); // a cada 1 hora
+    }
   } catch (e) {
     console.error('[server] Falha ao conectar no Postgres:', e.message);
     process.exit(1);

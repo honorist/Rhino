@@ -457,6 +457,7 @@ if (window.getCommandIndex) {
   window.getCommandIndex = function() {
     const list = orig();
     list.push({ label: 'Imprimir / Exportar PDF', run: () => window.RhinoPrint.print() });
+    list.push({ label: 'Gerar Relatório PDF', run: () => window.RhinoRelatorio?.gerar?.() });
     return list;
   };
 }
