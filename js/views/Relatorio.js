@@ -459,6 +459,8 @@
         } catch (_) {}
 
         const { jsPDF } = window.jspdf;
+        // autotable UMD procura window.jsPDF — garante que esteja exposto
+        if (!window.jsPDF) window.jsPDF = jsPDF;
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
         const contracts   = Store.state.contracts  || [];

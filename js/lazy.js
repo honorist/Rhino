@@ -29,7 +29,7 @@
       deps: ['jspdf'],
       type: 'js',
       src: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js',
-      check: () => typeof window.jspdf !== 'undefined' && !!window.jspdf.autoTable !== undefined,
+      check: () => { try { const { jsPDF } = window.jspdf || {}; return typeof jsPDF?.API?.autoTable === 'function'; } catch { return false; } },
     },
     'signature_pad': {
       type: 'js',
