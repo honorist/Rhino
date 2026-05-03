@@ -5,8 +5,25 @@ window.Contratos = {
   sortDir: 'asc',
   currentPage: 1,
   pageSize: 25,
+  _favs: new Set(JSON.parse(localStorage.getItem('rhino-favs') || '[]')),
 
   _resetPage() { this.currentPage = 1; },
+
+  _toggleFav(id) {
+    if (this._favs.has(id)) {
+      this._favs.delete(id);
+    } else {
+      this._favs.add(id);
+    }
+    localStorage.setItem('rhino-favs', JSON.stringify([...this._favs]));
+    this.render();
+  },
+
+  _pushRecent(id) {
+    const recent = JSON.parse(localStorage.getItem('rhino-recent') || '[]').filter(r => r !== id);
+    recent.unshift(id);
+    localStorage.setItem('rhino-recent', JSON.stringify(recent.slice(0, 5)));
+  },
 
   _skeletonHtml() {
     const row = () => `
@@ -82,7 +99,9 @@ window.Contratos = {
         );
       }
       const totalAtivos = Store.state.contracts.filter(c => c.status === 'ativo').length;
-      filtered = this._sortContracts(filtered);
+      const favFiltered = this._sortContracts(filtered.filter(c => this._favs.has(c.id)));
+      const nonFavFiltered = this._sortContracts(filtered.filter(c => !this._favs.has(c.id)));
+      filtered = [...favFiltered, ...nonFavFiltered];
 
       const totalFiltered = filtered.length;
       const totalPages = Math.max(1, Math.ceil(totalFiltered / this.pageSize));
@@ -139,6 +158,20 @@ window.Contratos = {
           </div>
         </div>
 
+        ${(() => {
+          const recentIds = JSON.parse(localStorage.getItem('rhino-recent') || '[]').filter(id => Store.getContractById(id));
+          if (!recentIds.length) return '';
+          return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <span style="font-size:12px;color:var(--color-text-muted);white-space:nowrap;">Recentes:</span>
+            ${recentIds.map(rid => {
+              const rc = Store.getContractById(rid);
+              if (!rc) return '';
+              const label = escapeHtml(rc.name.slice(0, 22)) + (rc.name.length > 22 ? '…' : '');
+              return `<button class="btn-recent-chip" data-id="${rid}" style="font-size:12px;padding:3px 10px;border-radius:99px;border:1px solid var(--color-border);background:var(--color-surface);cursor:pointer;white-space:nowrap;">${label}</button>`;
+            }).join('')}
+          </div>`;
+        })()}
+
         <div style="font-size:13px;color:var(--color-text-muted);margin-bottom:8px;margin-top:4px;">
           <strong style="color:var(--color-text);">${totalFiltered}</strong> contrato${totalFiltered !== 1 ? 's' : ''}
           ${this.currentFilter !== 'todos' || q ? '' : ` · <strong style="color:var(--color-success);">${totalAtivos}</strong> ativo${totalAtivos !== 1 ? 's' : ''}`}
@@ -146,6 +179,16 @@ window.Contratos = {
         </div>
 
         <div class="card">
+          <div class="rh-status-chips" style="display:flex;gap:6px;flex-wrap:wrap;padding:12px 16px 0;">
+            ${[
+              {v:'todos', l:'Todos'},
+              {v:'ativo', l:'Ativo'},
+              {v:'prospeccao', l:'Prospecção'},
+              {v:'pausado', l:'Pausado'},
+              {v:'concluido', l:'Concluído'},
+              {v:'cancelado', l:'Cancelado'},
+            ].map(s => `<button class="rh-chip${this.currentFilter === s.v ? ' is-active' : ''}" data-status="${s.v}">${s.l}</button>`).join('')}
+          </div>
           <div class="table-wrap">
             <table>
               <thead>
@@ -169,6 +212,9 @@ window.Contratos = {
                   const nRec = (Store.state.recursos || []).filter(r => r.status === 'funcionario' && r.alocacaoAtual?.contractId === c.id).length;
                   const total = Math.max(nOrg, nRec);
                   const bg = total === 0 ? '#9CA3AF' : '#55588B';
+                  const medido = (Store.state.saidas || []).filter(s => s.contractId === c.id).reduce((acc, s) => acc + (parseFloat(s.value) || 0), 0);
+                  const pct = c.value > 0 ? Math.min(100, (medido / c.value) * 100) : 0;
+                  const gaugeColor = pct >= 100 ? 'var(--color-success)' : pct >= 60 ? 'var(--color-warning)' : 'var(--color-primary)';
                   return `
                   <tr class="row-contrato" data-id="${c.id}" style="cursor:pointer;">
                     <td>
@@ -178,7 +224,13 @@ window.Contratos = {
                       ${(() => { if (c.status !== 'ativo' || !c.endDate) return ''; const dias = Math.ceil((new Date(c.endDate) - new Date()) / 86400000); if (dias < 0) return `<span title="Contrato vencido há ${Math.abs(dias)} dias" style="margin-left:4px;padding:1px 6px;border-radius:99px;font-size:11px;font-weight:700;background:#FEE2E2;color:#DC2626;">VENCIDO</span>`; if (dias <= 30) return `<span title="Vence em ${dias} dia${dias !== 1 ? 's' : ''}" style="margin-left:4px;padding:1px 6px;border-radius:99px;font-size:11px;font-weight:700;background:#FEF3C7;color:#D97706;">⚠ ${dias}d</span>`; return ''; })()}
                     </td>
                     <td>${escapeHtml(c.client)}</td>
-                    <td>${Store.formatBRL(c.value)}</td>
+                    <td>
+                      ${Store.formatBRL(c.value)}
+                      <div style="margin-top:4px;height:4px;border-radius:99px;background:var(--color-border);width:80px;">
+                        <div style="height:4px;border-radius:99px;width:${pct.toFixed(0)}%;background:${gaugeColor};" title="${pct.toFixed(1)}% medido"></div>
+                      </div>
+                      <div style="font-size:11px;color:var(--color-text-muted);">${pct.toFixed(0)}% medido</div>
+                    </td>
                     <td>${new Date(c.startDate).toLocaleDateString('pt-BR')} até ${new Date(c.endDate).toLocaleDateString('pt-BR')}</td>
                     <td style="text-align:center;">
                       <div title="${nOrg} no organograma · ${nRec} recurso(s) alocado(s)" style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;background:${bg};border-radius:99px;font-weight:700;color:#FFFFFF;box-shadow:0 1px 3px rgba(85,88,139,.2);">
@@ -189,6 +241,7 @@ window.Contratos = {
                     <td><span class="badge badge-${c.status}" title="${{ prospeccao:'Em prospecção — contrato ainda não confirmado', ativo:'Ativo — obra em andamento', pausado:'Pausado — obra temporariamente suspensa', concluido:'Concluído — obra finalizada', cancelado:'Cancelado — contrato encerrado' }[c.status] || c.status}">${c.status}</span></td>
                     <td>
                       <div class="actions-cell">
+                        <button class="btn-fav action-link" data-id="${c.id}" title="${this._favs.has(c.id) ? 'Remover dos favoritos' : 'Fixar no topo'}">${this._favs.has(c.id) ? '★' : '☆'}</button>
                         <a class="action-link btn-abrir" data-id="${c.id}">Abrir</a>
                         ${_podeEditar ? `
                           <a class="action-link btn-editar" data-id="${c.id}">Editar</a>
@@ -299,6 +352,114 @@ window.Contratos = {
         this.currentPage = 1;
         this.render();
       });
+
+      // Favorites
+      document.querySelectorAll('.btn-fav').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          this._toggleFav(e.currentTarget.dataset.id);
+        });
+      });
+
+      // Recent chips
+      document.querySelectorAll('.btn-recent-chip').forEach(btn => {
+        btn.addEventListener('click', () => this.showOverview(btn.dataset.id));
+      });
+
+      // Status quick chips
+      document.querySelectorAll('.rh-chip[data-status]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          this.currentFilter = btn.dataset.status;
+          document.getElementById('filterStatus').value = btn.dataset.status;
+          this._resetPage();
+          this.render();
+        });
+      });
+
+      // Inline name edit (dblclick)
+      document.querySelectorAll('.row-contrato td:first-child strong').forEach(el => {
+        el.title = 'Duplo-clique para editar';
+        el.style.cursor = 'text';
+        el.addEventListener('dblclick', e => {
+          e.stopPropagation();
+          const id = el.closest('tr').dataset.id;
+          const c = Store.getContractById(id);
+          if (!c) return;
+          const td = el.closest('td');
+          const orig = c.name;
+          const inp = document.createElement('input');
+          inp.value = orig;
+          inp.className = 'form-control';
+          inp.style.cssText = 'width:100%;min-width:120px;font-weight:700;padding:3px 8px;font-size:inherit;';
+          td.replaceChild(inp, el);
+          inp.focus();
+          inp.select();
+          let saved = false;
+          const save = async () => {
+            if (saved) return;
+            saved = true;
+            const newName = inp.value.trim();
+            if (!newName || newName === orig) { this.render(); return; }
+            try {
+              await fetch('/api/contracts/' + id, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName }),
+              });
+              const sc = Store.getContractById(id);
+              if (sc) sc.name = newName;
+              window.showToast('Nome atualizado', 'success');
+            } catch (err) {
+              window.showToast('Erro ao salvar: ' + (err.message || 'falha'), 'error');
+            }
+            this.render();
+          };
+          inp.addEventListener('blur', save);
+          inp.addEventListener('keydown', e2 => {
+            if (e2.key === 'Enter') { e2.preventDefault(); inp.blur(); }
+            if (e2.key === 'Escape') { saved = true; inp.removeEventListener('blur', save); this.render(); }
+          });
+        });
+      });
+
+      // Swipe to delete (mobile)
+      document.querySelectorAll('.row-contrato').forEach(tr => {
+        let startX = 0, startY = 0, swiped = false;
+        tr.addEventListener('touchstart', e => {
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+          swiped = false;
+        }, { passive: true });
+        tr.addEventListener('touchmove', e => {
+          const dx = e.touches[0].clientX - startX;
+          const dy = Math.abs(e.touches[0].clientY - startY);
+          if (dy > 20) return;
+          if (dx < -40) {
+            tr.style.transform = `translateX(${Math.max(dx, -80)}px)`;
+            tr.style.transition = 'none';
+            swiped = dx < -70;
+          }
+        }, { passive: true });
+        tr.addEventListener('touchend', () => {
+          if (swiped) {
+            tr.style.transition = 'transform .2s';
+            tr.style.transform = 'translateX(-80px)';
+            if (!tr.querySelector('.swipe-del-btn')) {
+              const btn = document.createElement('button');
+              btn.className = 'swipe-del-btn';
+              btn.textContent = '🗑';
+              btn.style.cssText = 'position:absolute;right:0;top:0;bottom:0;width:80px;background:#dc2626;color:#fff;border:0;font-size:18px;cursor:pointer;';
+              btn.addEventListener('click', () => { this.deleteContract(tr.dataset.id); });
+              tr.style.position = 'relative';
+              tr.appendChild(btn);
+            }
+          } else {
+            tr.style.transition = 'transform .2s';
+            tr.style.transform = '';
+          }
+        }, { passive: true });
+      });
+
     } catch (e) {
       console.error(e);
       app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar contratos. Tente novamente.</p></div>';
@@ -307,6 +468,7 @@ window.Contratos = {
 
   // Visão geral rápida do contrato (modal)
   showOverview(contractId) {
+    this._pushRecent(contractId);
     const c = Store.getContractById(contractId);
     if (!c) return;
 

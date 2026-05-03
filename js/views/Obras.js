@@ -203,13 +203,27 @@ window.Obras = {
         bounds.push([lat, lng]);
         const intensity = Math.max(0.15, (parseFloat(c.value) || 0) / maxVal);
         const radius = 25 + intensity * 55;
+        const corH = this._getStatusCor(c.status);
+        const nfsH = (Store.state.notas_fiscais || []).filter(nf => nf.contractId === c.id && nf.emitida);
+        const totalMedidoH = nfsH.reduce((s, nf) => s + (parseFloat(nf.valor) || 0), 0);
+        const pctMedidoH = c.value > 0 ? (totalMedidoH / c.value * 100) : null;
+        const heatPopup = `
+          <div class="obra-popup">
+            <h4 style="margin:0 0 2px;">${escapeHtml(c.name)}</h4>
+            <div class="pop-sub" style="margin-bottom:6px;">${escapeHtml(c.client)}</div>
+            <span style="background:${corH};color:#fff;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:700;">${this._getStatusLabel(c.status)}</span>
+            <div style="margin-top:6px;" class="pop-val">${Store.formatBRL(c.value || 0)}</div>
+            ${pctMedidoH !== null ? `<div style="font-size:12px;color:#666;">${pctMedidoH.toFixed(0)}% medido</div>` : ''}
+            <a href="#/contratos/${c.id}" style="display:block;margin-top:8px;font-size:13px;font-weight:700;color:#55588B;">Ver contrato →</a>
+          </div>
+        `;
         L.circle([lat, lng], {
           radius: radius * 1000, // em metros
-          color: this._getStatusCor(c.status),
-          fillColor: this._getStatusCor(c.status),
+          color: corH,
+          fillColor: corH,
           fillOpacity: 0.18 + intensity * 0.25,
           weight: 1.2,
-        }).addTo(group).bindPopup(`<strong>${escapeHtml(c.name)}</strong><br>${Store.formatBRL(c.value || 0)}`);
+        }).addTo(group).bindPopup(heatPopup);
       });
       group.addTo(this._map);
       this._heatLayer = group;
@@ -243,21 +257,22 @@ window.Obras = {
       const marker = L.marker([lat, lng], { icon }).addTo(this._map);
 
       const endCurto = (c.endereco || '').split(',').slice(0, 2).join(',');
+      const nfsMedidas = (Store.state.notas_fiscais || []).filter(nf => nf.contractId === c.id && nf.emitida);
+      const totalMedido = nfsMedidas.reduce((s, nf) => s + (parseFloat(nf.valor) || 0), 0);
+      const pctMedido = c.value > 0 ? (totalMedido / c.value * 100) : null;
       const popup = `
         <div class="obra-popup">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-            <div style="width:10px;height:10px;border-radius:50%;background:${cor};flex-shrink:0;"></div>
-            <span style="font-size:15px;font-weight:700;text-transform:uppercase;color:${cor};">${this._getStatusLabel(c.status)}</span>
-          </div>
-          <h4>${escapeHtml(c.name)}</h4>
-          <div class="pop-sub">${escapeHtml(c.client)}</div>
-          ${endCurto ? `<div style="font-size:15px;color:#888;margin-bottom:6px;">📍 ${escapeHtml(endCurto)}</div>` : ''}
-          <div class="pop-val">${Store.formatBRL(c.value || 0)}</div>
-          ${c.startDate || c.endDate ? `<div style="font-size:15px;color:#888;margin-top:4px;">
+          <h4 style="margin:0 0 2px;">${escapeHtml(c.name)}</h4>
+          <div class="pop-sub" style="margin-bottom:6px;">${escapeHtml(c.client)}</div>
+          <span style="background:${cor};color:#fff;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:700;">${this._getStatusLabel(c.status)}</span>
+          ${endCurto ? `<div style="font-size:13px;color:#888;margin-top:6px;">📍 ${escapeHtml(endCurto)}</div>` : ''}
+          <div style="margin-top:6px;" class="pop-val">${Store.formatBRL(c.value || 0)}</div>
+          ${pctMedido !== null ? `<div style="font-size:12px;color:#666;">${pctMedido.toFixed(0)}% medido</div>` : ''}
+          ${c.startDate || c.endDate ? `<div style="font-size:13px;color:#888;margin-top:4px;">
             ${c.startDate ? new Date(c.startDate + 'T12:00:00').toLocaleDateString('pt-BR') : '?'}
             → ${c.endDate ? new Date(c.endDate + 'T12:00:00').toLocaleDateString('pt-BR') : '?'}
           </div>` : ''}
-          <a href="#/contratos/${c.id}" style="display:inline-block;margin-top:8px;font-size:15px;color:#3182CE;text-decoration:none;font-weight:600;">Ver contrato →</a>
+          <a href="#/contratos/${c.id}" style="display:block;margin-top:8px;font-size:13px;font-weight:700;color:#55588B;">Ver contrato →</a>
         </div>
       `;
       marker.bindPopup(popup);

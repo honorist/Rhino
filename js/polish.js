@@ -394,3 +394,69 @@
   });
   _modalObserver.observe(document.body, { childList: true });
 })();
+
+// ── FAB contextual (mobile) ──────────────────────────────────
+(function initFAB() {
+  // Só cria uma vez
+  if (document.getElementById('rh-fab')) return;
+
+  const fab = document.createElement('div');
+  fab.id = 'rh-fab';
+  fab.className = 'rh-fab';
+
+  const actions = [
+    { icon: '📋', label: 'Novo Contrato', hash: '#/contratos', cb: () => { location.hash = '#/contratos'; setTimeout(() => window.Contratos?.showModal?.(), 300); } },
+    { icon: '📝', label: 'Novo RDO',      hash: '#/rdos',      cb: () => { location.hash = '#/rdos';      setTimeout(() => window.RDOs?.showModal?.(),     300); } },
+    { icon: '🧾', label: 'Nova NF',       hash: '#/notas-fiscais', cb: () => { location.hash = '#/notas-fiscais'; setTimeout(() => window.NotasFiscais?.showModal?.(), 300); } },
+  ];
+
+  const actionsHtml = actions.map((a, i) => `
+    <div class="rh-fab__action">
+      <span class="rh-fab__action-label">${a.label}</span>
+      <button class="rh-fab__action-btn" data-fab-i="${i}" title="${a.label}">${a.icon}</button>
+    </div>
+  `).join('');
+
+  fab.innerHTML = `
+    <div class="rh-fab__actions" id="rh-fab-actions">${actionsHtml}</div>
+    <button class="rh-fab__main" id="rh-fab-main" aria-label="Ações rápidas">+</button>
+  `;
+
+  document.body.appendChild(fab);
+
+  const mainBtn    = document.getElementById('rh-fab-main');
+  const actionsDiv = document.getElementById('rh-fab-actions');
+
+  const open  = () => { mainBtn.classList.add('is-open');  actionsDiv.classList.add('is-visible');  };
+  const close = () => { mainBtn.classList.remove('is-open'); actionsDiv.classList.remove('is-visible'); };
+  const toggle = () => mainBtn.classList.contains('is-open') ? close() : open();
+
+  mainBtn.addEventListener('click', e => { e.stopPropagation(); toggle(); });
+
+  actionsDiv.querySelectorAll('.rh-fab__action-btn').forEach((btn, i) => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      close();
+      actions[i].cb();
+    });
+  });
+
+  document.addEventListener('click', close);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+})();
+
+// ── Print helper ─────────────────────────────────────────────
+window.RhinoPrint = {
+  print() {
+    window.print();
+  }
+};
+// Expõe para o command palette
+if (window.getCommandIndex) {
+  const orig = window.getCommandIndex;
+  window.getCommandIndex = function() {
+    const list = orig();
+    list.push({ label: 'Imprimir / Exportar PDF', run: () => window.RhinoPrint.print() });
+    return list;
+  };
+}
