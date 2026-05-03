@@ -401,13 +401,14 @@ window.Contratos = {
             const newName = inp.value.trim();
             if (!newName || newName === orig) { this.render(); return; }
             try {
-              await fetch('/api/contracts/' + id, {
+              const res = await fetch('/api/contracts/' + id, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: newName }),
               });
-              const sc = Store.getContractById(id);
-              if (sc) sc.name = newName;
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              // Atualiza store sem mutar: recarrega via loadAll
+              await Store.loadAll();
               window.showToast('Nome atualizado', 'success');
             } catch (err) {
               window.showToast('Erro ao salvar: ' + (err.message || 'falha'), 'error');
@@ -949,10 +950,6 @@ window.Contratos = {
       }
     });
 
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeModal();
-    });
-
     // ─── Busca de endereço (Nominatim / OpenStreetMap) ───
     this._initEnderecoSearch(contract);
   },
@@ -1028,12 +1025,21 @@ window.Contratos = {
       }, 450);
     });
 
-    // Fechar dropdown ao clicar fora
-    document.addEventListener('click', e => {
+    // Fechar dropdown ao clicar fora — usa capture:false + remoção automática via overlay
+    const _closeDropdown = e => {
       if (!document.getElementById('enderecoWrap')?.contains(e.target)) {
         dropdown.style.display = 'none';
       }
-    }, { once: false });
+    };
+    document.addEventListener('click', _closeDropdown);
+    // Limpa listener quando o modal fechar (overlay é removido do DOM)
+    const _moObs = new MutationObserver(() => {
+      if (!document.getElementById('enderecoWrap')) {
+        document.removeEventListener('click', _closeDropdown);
+        _moObs.disconnect();
+      }
+    });
+    _moObs.observe(document.body, { childList: true });
   },
 
   exportCSV() {
@@ -1128,6 +1134,8 @@ window.Contratos = {
         rowEl.style.opacity = '1';
         rowEl.style.transform = '';
         rowEl.style.pointerEvents = '';
+        rowEl.querySelector('.swipe-del-btn')?.remove();
+        rowEl.style.position = '';
       }
       window.showToast('Exclusão cancelada', 'info');
     });

@@ -153,6 +153,9 @@
     return items;
   }
 
+  // Expõe globalmente para que módulos externos possam estender o índice
+  window.getCommandIndex = getCommandIndex;
+
   let cmdkOpen = false;
   function openCmdK() {
     if (cmdkOpen) return;

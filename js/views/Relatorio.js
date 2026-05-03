@@ -447,16 +447,9 @@
         await RhinoLazy.ensure(['jspdf', 'jspdf-autotable']);
         await Store.loadAll();
 
-        // Carrega NFs e contas a pagar via fetch (igual ao Dashboard)
-        let nfsList = [], cpList = [];
-        try {
-          const [nfR, cpR] = await Promise.all([
-            fetch('/api/notas-fiscais').then(r => r.ok ? r.json() : { notasFiscais: [] }).catch(() => ({ notasFiscais: [] })),
-            fetch('/api/contas-pagar').then(r => r.ok ? r.json() : { contasPagar: [] }).catch(() => ({ contasPagar: [] })),
-          ]);
-          nfsList = nfR.notasFiscais || nfR.notas_fiscais || [];
-          cpList  = cpR.contasPagar  || cpR.contas        || [];
-        } catch (_) {}
+        // Usa dados já carregados pelo Store (loadAll já buscou esses recursos)
+        const nfsList = Store.state.notas_fiscais || [];
+        const cpList  = Store.state.contas_pagar  || [];
 
         const { jsPDF } = window.jspdf;
         // autotable UMD procura window.jsPDF — garante que esteja exposto

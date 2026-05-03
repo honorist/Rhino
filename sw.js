@@ -6,7 +6,12 @@
    VERSION é injetado pelo servidor com a versão atual do app,
    garantindo que o cache seja invalidado a cada deploy.
 */
-const VERSION = '__RHINO_VERSION__'; // substituído pelo servidor em runtime
+// VERSION é substituído pelo servidor em runtime. Se o placeholder não for injetado
+// (ex: servindo o arquivo diretamente sem passar pelo servidor), usa timestamp para
+// garantir que o cache antigo com o placeholder nunca bloqueie deploys futuros.
+const VERSION = '__RHINO_VERSION__' !== '__RHINO_VERSION__'
+  ? '__RHINO_VERSION__'
+  : ('dev-' + Math.floor(Date.now() / 60000)); // muda a cada minuto em dev
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const API_CACHE = `${VERSION}-api`;
