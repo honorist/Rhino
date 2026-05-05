@@ -25,6 +25,8 @@ window.Store = {
     recursos: [],
     doc_templates: [],
     users: [],
+    solicitacoes_compra: [],
+    veiculos: [],
     dashboard: null,
     loading: false,
     error: null
@@ -82,7 +84,7 @@ window.Store = {
         return res.json();
       };
       const safe = fn => fn.catch(() => ({}));
-      const [contracts, caixa, base, socios, investimentos, notas_fiscais, tipos_base, clientes, fornecedores, contas_pagar, recursos] = await Promise.all([
+      const [contracts, caixa, base, socios, investimentos, notas_fiscais, tipos_base, clientes, fornecedores, contas_pagar, recursos, solicitacoes, veiculos] = await Promise.all([
         fetch('/api/contracts').then(okJson),
         fetch('/api/caixa').then(okJson),
         fetch('/api/base').then(okJson),
@@ -93,7 +95,9 @@ window.Store = {
         fetch('/api/clientes').then(okJson),
         fetch('/api/fornecedores').then(okJson),
         safe(fetch('/api/contas-pagar').then(okJson)),
-        safe(fetch('/api/recursos').then(okJson))
+        safe(fetch('/api/recursos').then(okJson)),
+        safe(fetch('/api/solicitacoes-compra').then(okJson)),
+        safe(fetch('/api/veiculos').then(okJson))
       ]);
 
       this.state.contracts = contracts.contracts || [];
@@ -108,6 +112,8 @@ window.Store = {
       this.state.fornecedores = fornecedores.fornecedores || [];
       this.state.contas_pagar = contas_pagar.contas || [];
       this.state.recursos = recursos.recursos || [];
+      this.state.solicitacoes_compra = solicitacoes.solicitacoes || [];
+      this.state.veiculos = veiculos.veiculos || [];
       this.state.error = null;
       this.notify();
     } catch (e) {

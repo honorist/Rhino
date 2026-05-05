@@ -22,4 +22,8 @@ module.exports = {
   aditivos:       require('./aditivos'),
   marcos:         require('./marcos'),
   ocorrencias:    require('./ocorrencias'),
+  solicitacoesCompra:   require('./solicitacoes_compra'),
+  veiculos:             require('./veiculos'),
+  veiculoPlanos:        require('./veiculo_planos'),
+  veiculoManutencoes:   require('./veiculo_manutencoes'),
 };

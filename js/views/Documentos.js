@@ -338,6 +338,15 @@ window.Documentos = {
       `<option value="${t.key}" data-meses="${t.meses}" ${doc?.tipo === t.key ? 'selected' : ''}>${t.label} — ${t.full}</option>`
     ).join('');
 
+    // Templates personalizados criados em Configuração → Templates de Docs
+    const templates = Store.state.doc_templates || [];
+    const templatesPorContrato = templates.filter(t => !r.contractId || !t.empresaId || t.empresaId === r.contractId);
+    const templateOptions = templatesPorContrato.map(t => {
+      const key = 'tpl:' + t.id;
+      const meses = t.periodicidadeMeses || 12;
+      return `<option value="${key}" data-meses="${meses}" data-tpl="1" ${doc?.tipo === key ? 'selected' : ''}>${escapeHtml(t.nome)} — ${meses}m</option>`;
+    }).join('');
+
     const html = `
       <div class="modal-overlay" id="modalDocFormOverlay">
         <div class="modal" style="width:580px;">
@@ -354,7 +363,8 @@ window.Documentos = {
               <label class="form-label">Tipo de Documento *</label>
               <select class="form-control" name="tipo" id="selectTipoDoc" required>
                 <option value="">— Selecione —</option>
-                ${tiposOptions}
+                <optgroup label="Tipos padrão">${tiposOptions}</optgroup>
+                ${templateOptions ? `<optgroup label="Templates personalizados">${templateOptions}</optgroup>` : ''}
               </select>
             </div>
 
@@ -466,11 +476,21 @@ window.Documentos = {
       e.preventDefault();
       const fd = new FormData(e.target);
       const tipoKey = fd.get('tipo');
-      const tipoObj = this.TIPOS_DOC.find(t => t.key === tipoKey);
+      let tipoLabel = tipoKey;
+      let templateId = null;
+      if (tipoKey && tipoKey.startsWith('tpl:')) {
+        templateId = tipoKey.slice(4);
+        const tpl = (Store.state.doc_templates || []).find(t => t.id === templateId);
+        tipoLabel = tpl ? tpl.nome : tipoKey;
+      } else {
+        const tipoObj = this.TIPOS_DOC.find(t => t.key === tipoKey);
+        tipoLabel = tipoObj ? tipoObj.label : tipoKey;
+      }
 
       const payload = {
         tipo: tipoKey,
-        tipoLabel: tipoObj ? tipoObj.label : tipoKey,
+        tipoLabel,
+        ...(templateId ? { templateId } : {}),
         dataEmissao:    fd.get('dataEmissao') || '',
         dataVencimento: fd.get('dataVencimento') || '',
         responsavel:    fd.get('responsavel') || '',

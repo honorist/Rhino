@@ -1,0 +1,700 @@
+// Frota / Veículos — pool global com filtro por contrato.
+// Plano de manutenção combina KM e meses (alerta o que vencer primeiro).
+// Distância até obras via Haversine (linha reta) com opção de OSRM (rota real).
+window.Frota = {
+  busca: '',
+  filtroStatus: '',
+  filtroContrato: '',
+
+  TIPOS: ['carro', 'caminhao', 'van', 'moto', 'equipamento', 'outro'],
+
+  // Calcula a manutenção mais próxima do vencimento.
+  // Retorna { plano, status, kmRestante, diasRestante, label } ou null se não há plano ativo.
+  _proximaManut(v) {
+    const planos = (v.planos || []).filter(p => p.ativo !== false);
+    if (!planos.length) return null;
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const km = parseInt(v.kmAtual) || 0;
+
+    let melhor = null;
+    for (const p of planos) {
+      let kmRest = null, diasRest = null;
+      if (p.intervaloKm && p.ultimoKm != null) kmRest = (parseInt(p.ultimoKm) + parseInt(p.intervaloKm)) - km;
+      else if (p.intervaloKm && p.ultimoKm == null) kmRest = parseInt(p.intervaloKm); // ainda não fez nenhuma vez
+      if (p.intervaloMeses && p.ultimaData) {
+        const ult = new Date(p.ultimaData + 'T12:00:00');
+        const venc = new Date(ult); venc.setMonth(venc.getMonth() + parseInt(p.intervaloMeses));
+        diasRest = Math.ceil((venc - hoje) / 86400000);
+      } else if (p.intervaloMeses && !p.ultimaData) {
+        diasRest = parseInt(p.intervaloMeses) * 30;
+      }
+      // Score: o "mais urgente" = menor entre os critérios disponíveis (negativo = vencido)
+      const candidatos = [];
+      if (kmRest !== null) candidatos.push({ tipo: 'km', valor: kmRest, urgencia: kmRest });
+      if (diasRest !== null) candidatos.push({ tipo: 'data', valor: diasRest, urgencia: diasRest });
+      if (!candidatos.length) continue;
+      const mais = candidatos.reduce((a, b) => a.urgencia <= b.urgencia ? a : b);
+      const score = mais.urgencia;
+      if (!melhor || score < melhor.score) melhor = { plano: p, kmRest, diasRest, score };
+    }
+    if (!melhor) return null;
+    let status = 'vigente';
+    const venc = melhor.kmRest !== null && melhor.kmRest <= 0
+              || melhor.diasRest !== null && melhor.diasRest <= 0;
+    const proximo = (melhor.kmRest !== null && melhor.kmRest <= 500)
+                 || (melhor.diasRest !== null && melhor.diasRest <= 30);
+    if (venc) status = 'vencido';
+    else if (proximo) status = 'proximo';
+    let label = melhor.plano.descricao;
+    if (melhor.kmRest !== null) label += ` · ${melhor.kmRest >= 0 ? 'em' : 'venceu há'} ${Math.abs(melhor.kmRest)} km`;
+    if (melhor.diasRest !== null) label += ` · ${melhor.diasRest >= 0 ? 'em' : 'venceu há'} ${Math.abs(melhor.diasRest)} dias`;
+    return { ...melhor, status, label };
+  },
+
+  _badgeManut(prox) {
+    if (!prox) return `<span class="badge" style="background:#F3F4F6;color:#6B7280;font-size:12px;padding:2px 8px;border-radius:10px;">sem plano</span>`;
+    const cfg = {
+      vigente:  { bg: '#D1FAE5', color: '#065F46', label: '✓ vigente' },
+      proximo:  { bg: '#FEF3C7', color: '#92400E', label: '⚠ próximo' },
+      vencido:  { bg: '#FEE2E2', color: '#991B1B', label: '✗ vencido' },
+    }[prox.status];
+    return `<span class="badge" title="${escapeHtml(prox.label)}" style="background:${cfg.bg};color:${cfg.color};font-size:12px;padding:2px 8px;border-radius:10px;font-weight:700;">${cfg.label}</span>`;
+  },
+
+  async render() {
+    const app = document.getElementById('app');
+    app.innerHTML = '<div class="loading-spinner">Carregando frota...</div>';
+    try {
+      await Store.loadAll();
+      this._draw();
+    } catch (e) {
+      app.innerHTML = `<div class="card"><p class="text-danger">Erro ao carregar: ${escapeHtml(e.message)}</p></div>`;
+    }
+  },
+
+  _draw() {
+    const app = document.getElementById('app');
+    const todos = Store.state.veiculos || [];
+    const contratos = Store.state.contracts || [];
+
+    const termo = (this.busca || '').toLowerCase();
+    let lista = todos;
+    if (termo) lista = lista.filter(v =>
+      (v.placa || '').toLowerCase().includes(termo) ||
+      (v.modelo || '').toLowerCase().includes(termo) ||
+      (v.marca || '').toLowerCase().includes(termo)
+    );
+    if (this.filtroStatus) lista = lista.filter(v => v.status === this.filtroStatus);
+    if (this.filtroContrato) lista = lista.filter(v => v.contractId === this.filtroContrato);
+
+    const proxs = todos.map(v => this._proximaManut(v));
+    const kpiVencidos = proxs.filter(p => p?.status === 'vencido').length;
+    const kpiProximos = proxs.filter(p => p?.status === 'proximo').length;
+    const kpiManut = todos.filter(v => v.status === 'manutencao').length;
+
+    const html = `
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Frota</h1>
+          <p class="page-subtitle">${todos.length} veículo${todos.length !== 1 ? 's' : ''}</p>
+        </div>
+        <button class="btn btn-primary btn-lg" id="btnNovoVeic">+ Novo Veículo</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-md);margin-bottom:var(--sp-lg);">
+        <div class="card" style="padding:var(--sp-md);">
+          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">Total</div>
+          <div style="font-size:28px;font-weight:800;">${todos.length}</div>
+        </div>
+        <div class="card" style="padding:var(--sp-md);">
+          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">Em manutenção</div>
+          <div style="font-size:28px;font-weight:800;color:#92400E;">${kpiManut}</div>
+        </div>
+        <div class="card" style="padding:var(--sp-md);">
+          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">Próximas</div>
+          <div style="font-size:28px;font-weight:800;color:#92400E;">${kpiProximos}</div>
+        </div>
+        <div class="card" style="padding:var(--sp-md);">
+          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">Manutenções vencidas</div>
+          <div style="font-size:28px;font-weight:800;color:#991B1B;">${kpiVencidos}</div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-lg);">
+        <div style="display:grid;grid-template-columns:1fr 200px 240px;gap:var(--sp-md);">
+          <input class="form-control" id="inpBusca" placeholder="🔍 Buscar por placa, modelo ou marca" value="${escapeHtml(this.busca)}">
+          <select class="form-control" id="filtroStatus">
+            <option value="">Todos status</option>
+            <option value="ativo"      ${this.filtroStatus==='ativo'?'selected':''}>Ativos</option>
+            <option value="manutencao" ${this.filtroStatus==='manutencao'?'selected':''}>Em manutenção</option>
+            <option value="inativo"    ${this.filtroStatus==='inativo'?'selected':''}>Inativos</option>
+          </select>
+          <select class="form-control" id="filtroContrato">
+            <option value="">Todos os contratos</option>
+            ${contratos.map(c => `<option value="${c.id}" ${this.filtroContrato===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Placa</th>
+                <th>Veículo</th>
+                <th>Contrato</th>
+                <th>KM atual</th>
+                <th>Próx. manutenção</th>
+                <th>Localização</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${lista.length === 0 ? `
+                <tr><td colspan="8" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum veículo cadastrado</td></tr>
+              ` : lista.map(v => {
+                const c = contratos.find(x => x.id === v.contractId);
+                const prox = this._proximaManut(v);
+                const cidade = (v.endereco || '').split(',').slice(0, 2).join(', ').trim();
+                return `
+                <tr data-id="${v.id}">
+                  <td><strong>${escapeHtml(v.placa || '—')}</strong></td>
+                  <td>${escapeHtml((v.marca || '') + ' ' + (v.modelo || '')).trim() || '—'}<div style="font-size:12px;color:var(--color-text-muted);">${escapeHtml(v.tipo || '')}${v.ano ? ' · ' + v.ano : ''}</div></td>
+                  <td>${c ? escapeHtml(c.name) : '<span class="text-muted">—</span>'}</td>
+                  <td>${(v.kmAtual || 0).toLocaleString('pt-BR')} km</td>
+                  <td>${this._badgeManut(prox)}<div style="font-size:11px;color:var(--color-text-muted);">${prox ? escapeHtml(prox.plano.descricao) : ''}</div></td>
+                  <td style="font-size:13px;">${cidade ? escapeHtml(cidade) : '<span class="text-muted">—</span>'}</td>
+                  <td>${v.status === 'manutencao' ? '🔧 Manut.' : v.status === 'inativo' ? '⏸ Inativo' : '✓ Ativo'}</td>
+                  <td>
+                    <div class="actions-cell" style="display:flex;gap:6px;flex-wrap:wrap;">
+                      <a class="action-link btn-detalhe" data-id="${v.id}">Detalhes</a>
+                      <a class="action-link btn-editar" data-id="${v.id}">Editar</a>
+                      <a class="action-link btn-distancia" data-id="${v.id}">Distâncias</a>
+                      <a class="action-link danger btn-excluir" data-id="${v.id}">Excluir</a>
+                    </div>
+                  </td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    app.innerHTML = html;
+
+    document.getElementById('btnNovoVeic').addEventListener('click', () => this.showModal());
+    document.getElementById('inpBusca').addEventListener('input', e => {
+      this.busca = e.target.value;
+      clearTimeout(this._tBusca); this._tBusca = setTimeout(() => this._draw(), 200);
+    });
+    document.getElementById('filtroStatus').addEventListener('change', e => { this.filtroStatus = e.target.value; this._draw(); });
+    document.getElementById('filtroContrato').addEventListener('change', e => { this.filtroContrato = e.target.value; this._draw(); });
+
+    document.querySelectorAll('.btn-detalhe').forEach(b => b.addEventListener('click', e => this.showDetalhe(e.target.dataset.id)));
+    document.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', e => this.showModal(e.target.dataset.id)));
+    document.querySelectorAll('.btn-distancia').forEach(b => b.addEventListener('click', e => this.showDistancias(e.target.dataset.id)));
+    document.querySelectorAll('.btn-excluir').forEach(b => b.addEventListener('click', e => this.excluir(e.target.dataset.id)));
+  },
+
+  showModal(id) {
+    const v = id ? (Store.state.veiculos || []).find(x => x.id === id) : null;
+    const contratos = Store.state.contracts || [];
+
+    const html = `
+      <div class="modal-overlay" id="modalVeic">
+        <div class="modal" style="width:680px;max-width:95vw;">
+          <div class="modal-header">
+            <h2 class="modal-title">${v ? 'Editar Veículo' : 'Novo Veículo'}</h2>
+            <button class="modal-close">✕</button>
+          </div>
+          <form id="formVeic" class="modal-content">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Placa *</label>
+                <input class="form-control" name="placa" required value="${escapeHtml(v?.placa || '')}" placeholder="AAA-0000" style="text-transform:uppercase;">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tipo</label>
+                <select class="form-control" name="tipo">
+                  ${this.TIPOS.map(t => `<option value="${t}" ${v?.tipo===t?'selected':''}>${t}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Marca</label>
+                <input class="form-control" name="marca" value="${escapeHtml(v?.marca || '')}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Modelo</label>
+                <input class="form-control" name="modelo" value="${escapeHtml(v?.modelo || '')}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Ano</label>
+                <input class="form-control" name="ano" type="number" value="${v?.ano || ''}">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">KM atual</label>
+                <input class="form-control" name="kmAtual" type="number" min="0" value="${v?.kmAtual || 0}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Status</label>
+                <select class="form-control" name="status">
+                  <option value="ativo"      ${v?.status==='ativo'?'selected':''}>Ativo</option>
+                  <option value="manutencao" ${v?.status==='manutencao'?'selected':''}>Em manutenção</option>
+                  <option value="inativo"    ${v?.status==='inativo'?'selected':''}>Inativo</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Alocado em</label>
+                <select class="form-control" name="contractId">
+                  <option value="">— Pool (sem alocação) —</option>
+                  ${contratos.map(c => `<option value="${c.id}" ${v?.contractId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Localização atual (endereço)</label>
+              <div style="position:relative;" id="enderecoWrap">
+                <input class="form-control" id="enderecoInput" name="endereco" autocomplete="off"
+                  value="${escapeHtml(v?.endereco || '')}" placeholder="Buscar endereço..." style="padding-right:36px;">
+                <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">📍</span>
+                <div id="nominatimDropdown" class="nominatim-dropdown" style="display:none;top:calc(100% + 4px);left:0;"></div>
+              </div>
+              <input type="hidden" name="lat" id="latInp" value="${v?.lat || ''}">
+              <input type="hidden" name="lng" id="lngInp" value="${v?.lng || ''}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Observações</label>
+              <textarea class="form-control" name="observacoes" rows="2">${escapeHtml(v?.observacoes || '')}</textarea>
+            </div>
+          </form>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnCanc">Cancelar</button>
+            <button class="btn btn-primary" id="btnSalv">${v ? 'Salvar' : 'Criar'}</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalVeic');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnCanc').addEventListener('click', close);
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+    this._initEnderecoSearch();
+
+    document.getElementById('btnSalv').addEventListener('click', async () => {
+      const fd = new FormData(document.getElementById('formVeic'));
+      const data = Object.fromEntries(fd);
+      data.placa = (data.placa || '').toUpperCase();
+      if (!data.placa) { window.showToast('Placa obrigatória', 'error'); return; }
+      try {
+        const url = v ? `/api/veiculos/${v.id}` : '/api/veiculos';
+        const method = v ? 'PUT' : 'POST';
+        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+        window.showToast(v ? 'Veículo atualizado' : 'Veículo criado', 'success');
+        close();
+        this.render();
+      } catch (e) { window.showToast(e.message, 'error'); }
+    });
+  },
+
+  _initEnderecoSearch() {
+    const input = document.getElementById('enderecoInput');
+    const drop = document.getElementById('nominatimDropdown');
+    const latInp = document.getElementById('latInp');
+    const lngInp = document.getElementById('lngInp');
+    if (!input) return;
+    let tBusca;
+    input.addEventListener('input', e => {
+      const q = e.target.value.trim();
+      clearTimeout(tBusca);
+      if (q.length < 4) { drop.style.display = 'none'; return; }
+      tBusca = setTimeout(async () => {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&accept-language=pt-BR`);
+          const arr = await res.json();
+          if (!arr.length) { drop.style.display = 'none'; return; }
+          drop.innerHTML = arr.map(r => `<div class="nominatim-item" data-lat="${r.lat}" data-lng="${r.lon}" data-name="${(r.display_name).replace(/"/g, '&quot;')}">${escapeHtml(r.display_name)}</div>`).join('');
+          drop.style.display = 'block';
+          drop.querySelectorAll('.nominatim-item').forEach(el => el.addEventListener('click', () => {
+            input.value = el.dataset.name;
+            latInp.value = el.dataset.lat;
+            lngInp.value = el.dataset.lng;
+            drop.style.display = 'none';
+          }));
+        } catch {}
+      }, 350);
+    });
+    document.addEventListener('click', e => {
+      if (!document.getElementById('enderecoWrap')?.contains(e.target)) drop.style.display = 'none';
+    });
+  },
+
+  showDetalhe(id) {
+    const v = (Store.state.veiculos || []).find(x => x.id === id);
+    if (!v) return;
+    let abaAtual = 'plano';
+
+    const draw = () => {
+      const planos = v.planos || [];
+      const manuts = v.manutencoes || [];
+      const planosHtml = planos.length === 0
+        ? `<p class="text-muted" style="text-align:center;padding:var(--sp-lg);">Nenhum plano cadastrado</p>`
+        : planos.map(p => `
+          <tr>
+            <td><strong>${escapeHtml(p.descricao)}</strong></td>
+            <td>${p.intervaloKm ? p.intervaloKm.toLocaleString('pt-BR') + ' km' : '—'}</td>
+            <td>${p.intervaloMeses ? p.intervaloMeses + ' meses' : '—'}</td>
+            <td>${p.ultimoKm ? p.ultimoKm.toLocaleString('pt-BR') + ' km' : '—'}</td>
+            <td>${p.ultimaData ? new Date(p.ultimaData + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+            <td><a class="action-link btn-edit-plano" data-id="${p.id}">Editar</a> · <a class="action-link danger btn-del-plano" data-id="${p.id}">×</a></td>
+          </tr>
+        `).join('');
+
+      const manutsHtml = manuts.length === 0
+        ? `<p class="text-muted" style="text-align:center;padding:var(--sp-lg);">Nenhuma manutenção registrada</p>`
+        : manuts.map(m => {
+          const plano = planos.find(p => p.id === m.planoId);
+          return `
+          <tr>
+            <td>${m.data ? new Date(m.data + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+            <td>${escapeHtml(m.tipo || '—')}</td>
+            <td>${escapeHtml(m.descricao || (plano ? plano.descricao : ''))}</td>
+            <td>${m.km ? m.km.toLocaleString('pt-BR') + ' km' : '—'}</td>
+            <td>${m.custo ? Store.formatBRL(m.custo) : '—'}</td>
+            <td><a class="action-link danger btn-del-manut" data-id="${m.id}">×</a></td>
+          </tr>
+        `;}).join('');
+
+      const tabBtn = (k, l) => `<button class="ctd-tab ${abaAtual===k?'active':''}" data-tab="${k}">${l}</button>`;
+
+      const conteudo = abaAtual === 'plano' ? `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-sm);">
+          <h3 style="margin:0;font-size:15px;">Plano de Manutenção</h3>
+          <button class="btn btn-sm btn-primary" id="btnAddPlano">+ Adicionar plano</button>
+        </div>
+        <table style="width:100%;font-size:13px;">
+          <thead><tr style="background:var(--color-surface-2);"><th style="padding:8px;text-align:left;">Item</th><th style="padding:8px;">Intervalo KM</th><th style="padding:8px;">Intervalo</th><th style="padding:8px;">Último KM</th><th style="padding:8px;">Última data</th><th style="padding:8px;width:90px;"></th></tr></thead>
+          <tbody>${planosHtml}</tbody>
+        </table>
+      ` : abaAtual === 'historico' ? `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-sm);">
+          <h3 style="margin:0;font-size:15px;">Histórico de Manutenções</h3>
+          <button class="btn btn-sm btn-primary" id="btnAddManut">+ Registrar manutenção</button>
+        </div>
+        <table style="width:100%;font-size:13px;">
+          <thead><tr style="background:var(--color-surface-2);"><th style="padding:8px;">Data</th><th style="padding:8px;">Tipo</th><th style="padding:8px;text-align:left;">Descrição</th><th style="padding:8px;">KM</th><th style="padding:8px;">Custo</th><th style="padding:8px;width:30px;"></th></tr></thead>
+          <tbody>${manutsHtml}</tbody>
+        </table>
+      ` : '';
+
+      return `
+        <div class="modal-overlay" id="modalDetVeic">
+          <div class="modal" style="width:780px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+            <div class="modal-header">
+              <div>
+                <h2 class="modal-title">${escapeHtml(v.placa)} · ${escapeHtml((v.marca||'') + ' ' + (v.modelo||''))}</h2>
+                <div style="font-size:13px;color:var(--color-text-muted);">${(v.kmAtual || 0).toLocaleString('pt-BR')} km · ${escapeHtml(v.status)}</div>
+              </div>
+              <button class="modal-close">✕</button>
+            </div>
+            <div class="modal-content">
+              <div class="ctd-tabs" style="margin-bottom:var(--sp-md);">
+                ${tabBtn('plano', 'Plano de Manutenção')}
+                ${tabBtn('historico', 'Histórico')}
+              </div>
+              ${conteudo}
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" id="btnFecharDet">Fechar</button>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    const renderModal = () => {
+      const old = document.getElementById('modalDetVeic');
+      if (old) old.remove();
+      document.body.insertAdjacentHTML('beforeend', draw());
+
+      const overlay = document.getElementById('modalDetVeic');
+      const close = () => overlay.remove();
+      overlay.querySelector('.modal-close').addEventListener('click', close);
+      document.getElementById('btnFecharDet').addEventListener('click', close);
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+      overlay.querySelectorAll('.ctd-tab').forEach(t => t.addEventListener('click', () => {
+        abaAtual = t.dataset.tab; renderModal();
+      }));
+
+      const btnAddPlano = document.getElementById('btnAddPlano');
+      if (btnAddPlano) btnAddPlano.addEventListener('click', () => this.showModalPlano(v.id, null, () => { this._reloadAndKeepDetalhe(v.id, abaAtual); }));
+      overlay.querySelectorAll('.btn-edit-plano').forEach(b => b.addEventListener('click', e => this.showModalPlano(v.id, e.target.dataset.id, () => this._reloadAndKeepDetalhe(v.id, abaAtual))));
+      overlay.querySelectorAll('.btn-del-plano').forEach(b => b.addEventListener('click', e => this.deletePlano(v.id, e.target.dataset.id, () => this._reloadAndKeepDetalhe(v.id, abaAtual))));
+
+      const btnAddManut = document.getElementById('btnAddManut');
+      if (btnAddManut) btnAddManut.addEventListener('click', () => this.showModalManut(v.id, () => this._reloadAndKeepDetalhe(v.id, abaAtual)));
+      overlay.querySelectorAll('.btn-del-manut').forEach(b => b.addEventListener('click', e => this.deleteManut(v.id, e.target.dataset.id, () => this._reloadAndKeepDetalhe(v.id, abaAtual))));
+    };
+
+    renderModal();
+  },
+
+  async _reloadAndKeepDetalhe(veiculoId, aba) {
+    await Store.loadAll();
+    const old = document.getElementById('modalDetVeic');
+    if (old) old.remove();
+    this._draw();
+    this.showDetalhe(veiculoId);
+  },
+
+  showModalPlano(veiculoId, planoId, onDone) {
+    const v = (Store.state.veiculos || []).find(x => x.id === veiculoId);
+    const p = planoId ? (v?.planos || []).find(x => x.id === planoId) : null;
+    const html = `
+      <div class="modal-overlay" id="modalPlano" style="z-index:10000;">
+        <div class="modal" style="width:520px;">
+          <div class="modal-header"><h2 class="modal-title">${p ? 'Editar plano' : 'Novo plano'}</h2><button class="modal-close">✕</button></div>
+          <form id="formPlano" class="modal-content">
+            <div class="form-group">
+              <label class="form-label">Descrição *</label>
+              <input class="form-control" name="descricao" required value="${escapeHtml(p?.descricao || '')}" placeholder="Ex: Troca de óleo">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Intervalo KM</label>
+                <input class="form-control" name="intervaloKm" type="number" value="${p?.intervaloKm || ''}" placeholder="Ex: 10000">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Intervalo (meses)</label>
+                <input class="form-control" name="intervaloMeses" type="number" value="${p?.intervaloMeses || ''}" placeholder="Ex: 6">
+              </div>
+            </div>
+            <p style="font-size:12px;color:var(--color-text-muted);">Informe pelo menos um dos dois — sistema alerta o que vencer primeiro.</p>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Último KM (última execução)</label>
+                <input class="form-control" name="ultimoKm" type="number" value="${p?.ultimoKm || ''}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Última data</label>
+                <input class="form-control" name="ultimaData" type="date" value="${p?.ultimaData || ''}">
+              </div>
+            </div>
+          </form>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnCancPlano">Cancelar</button>
+            <button class="btn btn-primary" id="btnSalvPlano">${p ? 'Salvar' : 'Criar'}</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalPlano');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnCancPlano').addEventListener('click', close);
+
+    document.getElementById('btnSalvPlano').addEventListener('click', async () => {
+      const fd = new FormData(document.getElementById('formPlano'));
+      const data = Object.fromEntries(fd);
+      if (!data.descricao) { window.showToast('Descrição obrigatória', 'error'); return; }
+      if (!data.intervaloKm && !data.intervaloMeses) { window.showToast('Informe pelo menos KM ou meses', 'error'); return; }
+      try {
+        const url = p ? `/api/veiculos/${veiculoId}/planos/${p.id}` : `/api/veiculos/${veiculoId}/planos`;
+        const method = p ? 'PUT' : 'POST';
+        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+        close();
+        if (onDone) onDone();
+      } catch (e) { window.showToast(e.message, 'error'); }
+    });
+  },
+
+  async deletePlano(veiculoId, planoId, onDone) {
+    if (!confirm('Excluir este plano?')) return;
+    try {
+      const res = await fetch(`/api/veiculos/${veiculoId}/planos/${planoId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(await res.text());
+      if (onDone) onDone();
+    } catch (e) { window.showToast(e.message, 'error'); }
+  },
+
+  showModalManut(veiculoId, onDone) {
+    const v = (Store.state.veiculos || []).find(x => x.id === veiculoId);
+    const planos = v?.planos || [];
+    const fornecedores = Store.state.fornecedores || [];
+    const hoje = new Date().toISOString().split('T')[0];
+    const html = `
+      <div class="modal-overlay" id="modalManut" style="z-index:10000;">
+        <div class="modal" style="width:560px;">
+          <div class="modal-header"><h2 class="modal-title">Registrar manutenção</h2><button class="modal-close">✕</button></div>
+          <form id="formManut" class="modal-content">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Data *</label>
+                <input class="form-control" name="data" type="date" required value="${hoje}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tipo</label>
+                <select class="form-control" name="tipo">
+                  <option value="preventiva">Preventiva</option>
+                  <option value="corretiva">Corretiva</option>
+                  <option value="revisao">Revisão</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Plano vinculado</label>
+              <select class="form-control" name="planoId">
+                <option value="">— Manutenção avulsa —</option>
+                ${planos.map(p => `<option value="${p.id}">${escapeHtml(p.descricao)}</option>`).join('')}
+              </select>
+              <span style="font-size:12px;color:var(--color-text-muted);">Vincular ao plano atualiza "Último KM/data" automaticamente.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Descrição</label>
+              <textarea class="form-control" name="descricao" rows="2"></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">KM no momento</label>
+                <input class="form-control" name="km" type="number" value="${v?.kmAtual || ''}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Custo</label>
+                <input class="form-control" name="custo" type="number" step="0.01" value="0">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fornecedor</label>
+                <select class="form-control" name="fornecedorId">
+                  <option value="">—</option>
+                  ${fornecedores.map(f => `<option value="${f.id}">${escapeHtml(f.nome || f.razaoSocial)}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+          </form>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnCancM">Cancelar</button>
+            <button class="btn btn-primary" id="btnSalvM">Registrar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalManut');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnCancM').addEventListener('click', close);
+
+    document.getElementById('btnSalvM').addEventListener('click', async () => {
+      const fd = new FormData(document.getElementById('formManut'));
+      const data = Object.fromEntries(fd);
+      try {
+        const res = await fetch(`/api/veiculos/${veiculoId}/manutencoes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+        if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+        close();
+        if (onDone) onDone();
+      } catch (e) { window.showToast(e.message, 'error'); }
+    });
+  },
+
+  async deleteManut(veiculoId, manId, onDone) {
+    if (!confirm('Excluir esta manutenção?')) return;
+    try {
+      const res = await fetch(`/api/veiculos/${veiculoId}/manutencoes/${manId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(await res.text());
+      if (onDone) onDone();
+    } catch (e) { window.showToast(e.message, 'error'); }
+  },
+
+  showDistancias(veiculoId) {
+    const v = (Store.state.veiculos || []).find(x => x.id === veiculoId);
+    if (!v) return;
+    if (!v.lat || !v.lng) { window.showToast('Veículo sem localização cadastrada', 'error'); return; }
+
+    const obras = (Store.state.contracts || []).filter(c => c.lat && c.lng);
+    const lat1 = parseFloat(v.lat), lng1 = parseFloat(v.lng);
+
+    const dists = obras.map(o => ({
+      obra: o,
+      kmReta: window.GeoUtils.haversine(lat1, lng1, parseFloat(o.lat), parseFloat(o.lng)),
+    })).sort((a, b) => a.kmReta - b.kmReta);
+
+    const html = `
+      <div class="modal-overlay" id="modalDist">
+        <div class="modal" style="width:680px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">Distâncias de ${escapeHtml(v.placa)} até as obras</h2>
+              <div style="font-size:13px;color:var(--color-text-muted);">A partir de: ${escapeHtml(v.endereco || '—')}</div>
+            </div>
+            <button class="modal-close">✕</button>
+          </div>
+          <div class="modal-content">
+            ${obras.length === 0 ? '<p class="text-muted">Nenhuma obra com coordenadas cadastradas.</p>' : `
+              <div style="margin-bottom:var(--sp-sm);">
+                <button class="btn btn-sm btn-secondary" id="btnRotaReal">Calcular rotas reais (OSRM)</button>
+              </div>
+              <table style="width:100%;font-size:14px;">
+                <thead><tr style="background:var(--color-surface-2);"><th style="padding:8px;text-align:left;">Obra</th><th style="padding:8px;text-align:right;">Linha reta</th><th style="padding:8px;text-align:right;" class="col-rota">Rota real</th><th style="padding:8px;text-align:right;" class="col-tempo">Tempo</th></tr></thead>
+                <tbody>
+                  ${dists.map(d => `
+                    <tr data-id="${d.obra.id}">
+                      <td style="padding:8px;"><strong>${escapeHtml(d.obra.name)}</strong><div style="font-size:12px;color:var(--color-text-muted);">${escapeHtml((d.obra.endereco || '').split(',').slice(0, 2).join(', '))}</div></td>
+                      <td style="padding:8px;text-align:right;">${d.kmReta.toFixed(1)} km</td>
+                      <td style="padding:8px;text-align:right;" class="cell-rota">—</td>
+                      <td style="padding:8px;text-align:right;" class="cell-tempo">—</td>
+                    </tr>`).join('')}
+                </tbody>
+              </table>
+            `}
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnFecharDist">Fechar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalDist');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnFecharDist').addEventListener('click', close);
+
+    const btn = document.getElementById('btnRotaReal');
+    if (btn) btn.addEventListener('click', async () => {
+      btn.disabled = true; btn.textContent = 'Calculando...';
+      for (const d of dists) {
+        const rota = await window.GeoUtils.fetchRotaOSRM(lat1, lng1, parseFloat(d.obra.lat), parseFloat(d.obra.lng));
+        const row = overlay.querySelector(`tr[data-id="${d.obra.id}"]`);
+        if (row) {
+          row.querySelector('.cell-rota').textContent = rota ? rota.km.toFixed(1) + ' km' : '—';
+          row.querySelector('.cell-tempo').textContent = rota ? window.GeoUtils.fmtMin(rota.min) : '—';
+        }
+      }
+      btn.textContent = '✓ rotas calculadas';
+    });
+  },
+
+  async excluir(id) {
+    if (!confirm('Excluir este veículo? Histórico de manutenções e plano serão apagados.')) return;
+    try {
+      const res = await fetch(`/api/veiculos/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+      window.showToast('Veículo excluído', 'success');
+      this.render();
+    } catch (e) { window.showToast(e.message, 'error'); }
+  },
+};

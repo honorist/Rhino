@@ -1612,6 +1612,28 @@ async function handlePutCliente(id, body, res) {
 
     const { envelope, result } = await writeCollection('clientes', 'clientes', (repo) => repo.updateById(id, allowed));
     if (!result) return sendError(res, 404, 'Cliente não encontrado');
+
+    // Propaga endereço/lat/lng para contratos vinculados que ainda não tenham coordenadas.
+    // Garante que, ao preencher o endereço do cliente após a criação, os contratos
+    // antigos passem a aparecer no Mapa de Obras sem precisar editá-los um a um.
+    const isEmpty = (v) => v === undefined || v === null || v === '';
+    if (!isEmpty(result.lat) && !isEmpty(result.lng)) {
+      try {
+        const vinculados = await repos.contracts.findAll({ clientId: id });
+        for (const ct of vinculados) {
+          if (isEmpty(ct.lat) || isEmpty(ct.lng)) {
+            await repos.contracts.updateById(ct.id, {
+              lat: result.lat,
+              lng: result.lng,
+              endereco: isEmpty(ct.endereco) ? (result.endereco || '') : ct.endereco,
+            });
+          }
+        }
+      } catch (syncErr) {
+        console.error('[clientes] falha ao propagar endereço para contratos:', syncErr.message);
+      }
+    }
+
     sendJson(res, envelope);
   } catch (e) {
     sendError(res, 400, e.message);
@@ -3258,6 +3280,28 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname === '/api/estoque/saldo' && method === 'GET') return handleGetSaldoEstoque(parsedUrl.query, res);
   if (pathname === '/api/estoque/visao-geral' && method === 'GET') return handleGetVisaoGeral(res);
 
+  // ── Solicitações de Compra ──
+  if (pathname === '/api/solicitacoes-compra' && method === 'GET')  return handleListSolicitacoesCompra(parsedUrl.query, res);
+  if (pathname === '/api/solicitacoes-compra' && method === 'POST') return handlePostSolicitacaoCompra(req, body, res);
+  if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+$/) && method === 'PUT')    return handlePutSolicitacaoCompra(pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+$/) && method === 'DELETE') return handleDeleteSolicitacaoCompra(pathname.split('/')[3], res);
+  if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/aprovar$/) && method === 'POST')  return handleAprovarSolicitacao(req, pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/rejeitar$/) && method === 'POST') return handleRejeitarSolicitacao(req, pathname.split('/')[3], body, res);
+
+  // ── Frota / Veículos ──
+  if (pathname === '/api/veiculos' && method === 'GET')  return handleListVeiculos(res);
+  if (pathname === '/api/veiculos' && method === 'POST') return handlePostVeiculo(body, res);
+  if (pathname.match(/^\/api\/veiculos\/[^/]+$/) && method === 'PUT')    return handlePutVeiculo(pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/veiculos\/[^/]+$/) && method === 'DELETE') return handleDeleteVeiculo(pathname.split('/')[3], res);
+  if (pathname.match(/^\/api\/veiculos\/[^/]+\/km$/) && method === 'PUT')           return handlePutVeiculoKm(pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/veiculos\/[^/]+\/localizacao$/) && method === 'PUT')  return handlePutVeiculoLocalizacao(pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/veiculos\/[^/]+\/planos$/) && method === 'POST')                 return handlePostVeiculoPlano(pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/veiculos\/[^/]+\/planos\/[^/]+$/) && method === 'PUT')           return handlePutVeiculoPlano(pathname.split('/')[3], pathname.split('/')[5], body, res);
+  if (pathname.match(/^\/api\/veiculos\/[^/]+\/planos\/[^/]+$/) && method === 'DELETE')        return handleDeleteVeiculoPlano(pathname.split('/')[3], pathname.split('/')[5], res);
+  if (pathname.match(/^\/api\/veiculos\/[^/]+\/manutencoes$/) && method === 'POST')            return handlePostVeiculoManutencao(req, pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/veiculos\/[^/]+\/manutencoes\/[^/]+$/) && method === 'PUT')      return handlePutVeiculoManutencao(pathname.split('/')[3], pathname.split('/')[5], body, res);
+  if (pathname.match(/^\/api\/veiculos\/[^/]+\/manutencoes\/[^/]+$/) && method === 'DELETE')   return handleDeleteVeiculoManutencao(pathname.split('/')[3], pathname.split('/')[5], res);
+
   // Dashboard layouts (por usuário)
   if (pathname === '/api/dashboard/layouts' && method === 'GET')  return handleListDashLayouts(req, res);
   if (pathname === '/api/dashboard/layouts' && method === 'POST') return handlePostDashLayout(req, body, res);
@@ -4559,6 +4603,360 @@ async function handleGetSaldoEstoque(query, res) {
     });
     sendJson(res, { itens, total: itens.length });
   } catch (e) { sendError(res, 500, e.message); }
+}
+
+// ============ Solicitações de Compra ============
+function _normalizaItensSolicitacao(arr) {
+  if (!Array.isArray(arr)) return { itens: [], total: 0 };
+  const itens = arr.map((it) => {
+    const qtd = parseFloat(it.qtd) || 0;
+    const precoUnit = parseFloat(it.precoUnit) || 0;
+    return {
+      itemEstoqueId: it.itemEstoqueId || null,
+      descricao: (it.descricao || '').trim(),
+      qtd,
+      precoUnit,
+      observacoes: it.observacoes || '',
+    };
+  }).filter((it) => it.descricao && it.qtd > 0);
+  const total = itens.reduce((s, i) => s + i.qtd * i.precoUnit, 0);
+  return { itens, total };
+}
+
+async function handleListSolicitacoesCompra(query, res) {
+  try {
+    const where = [];
+    const params = [];
+    if (query.status) { params.push(query.status); where.push(`status = $${params.length}`); }
+    if (query.contractId) { params.push(query.contractId); where.push(`contract_id = $${params.length}`); }
+    if (query.solicitanteUserId) { params.push(query.solicitanteUserId); where.push(`solicitante_user_id = $${params.length}`); }
+    const sql = `SELECT * FROM solicitacoes_compra ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY created_at DESC LIMIT 500`;
+    const rows = await db.getMany(sql, params);
+    sendJson(res, { solicitacoes: rows });
+  } catch (e) { sendError(res, 500, e.message); }
+}
+
+async function handlePostSolicitacaoCompra(req, body, res) {
+  try {
+    const { itens, total } = _normalizaItensSolicitacao(body.itens);
+    if (!itens.length) return sendError(res, 400, 'Adicione pelo menos um item válido');
+    const id = generateId('sol');
+    const data = {
+      id,
+      solicitanteUserId: req.user?.id || null,
+      solicitanteNome: req.user?.name || req.user?.email || null,
+      contractId: body.contractId || null,
+      almoxarifadoDestinoId: await _resolveAlmoxId(body.almoxarifadoDestinoId),
+      fornecedorId: body.fornecedorId || null,
+      itens: JSON.stringify(itens),
+      valorTotal: total,
+      justificativa: body.justificativa || '',
+      status: 'pendente',
+    };
+    const created = await repos.solicitacoesCompra.create(data);
+    sendJson(res, { solicitacao: created });
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handlePutSolicitacaoCompra(id, body, res) {
+  try {
+    const atual = await repos.solicitacoesCompra.findById(id);
+    if (!atual) return sendError(res, 404, 'Solicitação não encontrada');
+    if (atual.status !== 'pendente') return sendError(res, 400, 'Só é possível editar solicitações pendentes');
+    const allowed = {};
+    if (body.contractId !== undefined) allowed.contractId = body.contractId || null;
+    if (body.almoxarifadoDestinoId !== undefined) allowed.almoxarifadoDestinoId = await _resolveAlmoxId(body.almoxarifadoDestinoId);
+    if (body.fornecedorId !== undefined) allowed.fornecedorId = body.fornecedorId || null;
+    if (body.justificativa !== undefined) allowed.justificativa = body.justificativa;
+    if (body.itens !== undefined) {
+      const { itens, total } = _normalizaItensSolicitacao(body.itens);
+      allowed.itens = JSON.stringify(itens);
+      allowed.valorTotal = total;
+    }
+    const result = await repos.solicitacoesCompra.updateById(id, allowed);
+    sendJson(res, { solicitacao: result });
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handleDeleteSolicitacaoCompra(id, res) {
+  try {
+    const atual = await repos.solicitacoesCompra.findById(id);
+    if (!atual) return sendError(res, 404, 'Solicitação não encontrada');
+    if (atual.status === 'aprovada') return sendError(res, 400, 'Solicitação aprovada não pode ser excluída');
+    await repos.solicitacoesCompra.removeById(id);
+    sendJson(res, { ok: true });
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handleAprovarSolicitacao(req, id, body, res) {
+  try {
+    // Permissão: gerente precisa ter 'solicitacoes-compra:aprovar' nas abas do nível.
+    const nivelId = req.user?.nivelAcessoId;
+    let podeAprovar = !nivelId; // sem nível = admin sem perfil → libera
+    if (nivelId) {
+      const nivel = await repos.niveisAcesso.findById(nivelId);
+      podeAprovar = !!(nivel?.abas || []).includes('solicitacoes-compra:aprovar');
+    }
+    if (!podeAprovar) return sendError(res, 403, 'Sem permissão para aprovar solicitações');
+
+    const sol = await repos.solicitacoesCompra.findById(id);
+    if (!sol) return sendError(res, 404, 'Solicitação não encontrada');
+    if (sol.status !== 'pendente') return sendError(res, 400, `Solicitação já está ${sol.status}`);
+
+    const itensSol = Array.isArray(sol.itens) ? sol.itens : (typeof sol.itens === 'string' ? JSON.parse(sol.itens) : []);
+    if (!itensSol.length) return sendError(res, 400, 'Solicitação sem itens');
+    const destinoId = sol.almoxarifadoDestinoId || await ensureAlmoxarifadoCentral();
+
+    // Tudo dentro de uma transação: cria movimentações + conta a pagar + atualiza solicitação.
+    const result = await db.withTransaction(async (client) => {
+      const movIds = [];
+      for (const it of itensSol) {
+        // Só cria entrada quando há item de estoque vinculado.
+        if (!it.itemEstoqueId || !(parseFloat(it.qtd) > 0)) continue;
+        const movId = generateId('mov');
+        await client.query(
+          `INSERT INTO estoque_movimentacoes
+            (id, item_id, almoxarifado_destino_id, tipo, quantidade, custo_unit, contract_id, data, documento, user_id, notas)
+           VALUES ($1,$2,$3,'entrada',$4,$5,$6,$7,$8,$9,$10)`,
+          [movId, it.itemEstoqueId, destinoId, it.qtd, it.precoUnit || 0, sol.contractId,
+           new Date().toISOString().split('T')[0], `Solicitação ${id}`, req.user?.id || null,
+           `Aprovada por ${req.user?.name || ''}`.trim()]
+        );
+        await _ajustarSaldo(client, it.itemEstoqueId, destinoId, parseFloat(it.qtd));
+        // Recalcula custo médio ponderado quando há custo informado
+        if ((parseFloat(it.precoUnit) || 0) > 0) {
+          const item = (await client.query('SELECT custo_medio FROM itens_estoque WHERE id = $1', [it.itemEstoqueId])).rows[0];
+          const saldoTotal = parseFloat((await client.query(
+            'SELECT COALESCE(SUM(quantidade), 0) AS s FROM estoque_saldo WHERE item_id = $1',
+            [it.itemEstoqueId]
+          )).rows[0].s) || 0;
+          const saldoAnt = saldoTotal - parseFloat(it.qtd);
+          const custoMedAnt = parseFloat(item?.custo_medio) || 0;
+          const novoCustoMedio = saldoTotal > 0
+            ? ((saldoAnt * custoMedAnt) + (parseFloat(it.qtd) * parseFloat(it.precoUnit))) / saldoTotal
+            : parseFloat(it.precoUnit);
+          await client.query('UPDATE itens_estoque SET custo_medio = $2, updated_at = NOW() WHERE id = $1', [it.itemEstoqueId, novoCustoMedio]);
+        }
+        movIds.push(movId);
+      }
+
+      // Cria Conta a Pagar com valor total
+      const cpId = generateId('cp');
+      const venc = body.dataVencimento || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+      await client.query(
+        `INSERT INTO contas_pagar
+          (id, descricao, valor, data_vencimento, fornecedor_id, contract_id, status, observacoes, category)
+         VALUES ($1,$2,$3,$4,$5,$6,'aberto',$7,$8)`,
+        [cpId, `Solicitação de compra #${sol.numero || id.slice(-6)}`, sol.valorTotal,
+         venc, sol.fornecedorId, sol.contractId,
+         sol.justificativa || '', 'Estoque']
+      );
+
+      // Atualiza a solicitação
+      const upd = await client.query(
+        `UPDATE solicitacoes_compra
+         SET status = 'aprovada', aprovador_user_id = $2, aprovador_nome = $3, aprovado_em = NOW(),
+             conta_pagar_id = $4, movimentacao_ids = $5, updated_at = NOW()
+         WHERE id = $1 RETURNING *`,
+        [id, req.user?.id || null, req.user?.name || req.user?.email || null,
+         cpId, JSON.stringify(movIds)]
+      );
+      return db.rowToCamel(upd.rows[0]);
+    });
+
+    sendJson(res, { solicitacao: result });
+  } catch (e) {
+    console.error('[aprovar-solicitacao]', e);
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handleRejeitarSolicitacao(req, id, body, res) {
+  try {
+    const nivelId = req.user?.nivelAcessoId;
+    let pode = !nivelId;
+    if (nivelId) {
+      const nivel = await repos.niveisAcesso.findById(nivelId);
+      pode = !!(nivel?.abas || []).includes('solicitacoes-compra:aprovar');
+    }
+    if (!pode) return sendError(res, 403, 'Sem permissão para rejeitar solicitações');
+
+    const sol = await repos.solicitacoesCompra.findById(id);
+    if (!sol) return sendError(res, 404, 'Solicitação não encontrada');
+    if (sol.status !== 'pendente') return sendError(res, 400, `Solicitação já está ${sol.status}`);
+
+    const result = await repos.solicitacoesCompra.updateById(id, {
+      status: 'rejeitada',
+      aprovadorUserId: req.user?.id || null,
+      aprovadorNome: req.user?.name || req.user?.email || null,
+      aprovadoEm: new Date(),
+      motivoRejeicao: body.motivo || '',
+    });
+    sendJson(res, { solicitacao: result });
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+// ============ Frota / Veículos ============
+async function handleListVeiculos(res) {
+  try { sendJson(res, await repos.veiculos.getEnvelope()); }
+  catch (e) { sendError(res, 500, e.message); }
+}
+
+function _allowedVeiculoFields(body) {
+  const allowed = {};
+  const fields = ['placa','modelo','marca','tipo','observacoes','status','contractId','endereco'];
+  for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f] || null; }
+  if (body.ano !== undefined) allowed.ano = parseInt(body.ano) || null;
+  if (body.kmAtual !== undefined) allowed.kmAtual = parseInt(body.kmAtual) || 0;
+  if (body.lat !== undefined) allowed.lat = body.lat ? parseFloat(body.lat) : null;
+  if (body.lng !== undefined) allowed.lng = body.lng ? parseFloat(body.lng) : null;
+  return allowed;
+}
+
+async function handlePostVeiculo(body, res) {
+  try {
+    if (!body.placa) return sendError(res, 400, 'Placa é obrigatória');
+    const data = { id: generateId('veic'), ..._allowedVeiculoFields(body) };
+    if (data.kmAtual) data.kmAtualizadoEm = new Date();
+    if (data.lat && data.lng) data.localizadoEm = new Date();
+    const created = await repos.veiculos.create(data);
+    sendJson(res, await repos.veiculos.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handlePutVeiculo(id, body, res) {
+  try {
+    const allowed = _allowedVeiculoFields(body);
+    const result = await repos.veiculos.updateById(id, allowed);
+    if (!result) return sendError(res, 404, 'Veículo não encontrado');
+    sendJson(res, await repos.veiculos.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handleDeleteVeiculo(id, res) {
+  try {
+    await repos.veiculos.removeById(id);
+    sendJson(res, await repos.veiculos.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handlePutVeiculoKm(id, body, res) {
+  try {
+    const km = parseInt(body.km);
+    if (!(km >= 0)) return sendError(res, 400, 'KM inválido');
+    const result = await repos.veiculos.updateById(id, { kmAtual: km, kmAtualizadoEm: new Date() });
+    if (!result) return sendError(res, 404, 'Veículo não encontrado');
+    sendJson(res, { veiculo: result });
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handlePutVeiculoLocalizacao(id, body, res) {
+  try {
+    const lat = body.lat ? parseFloat(body.lat) : null;
+    const lng = body.lng ? parseFloat(body.lng) : null;
+    const result = await repos.veiculos.updateById(id, {
+      lat, lng, endereco: body.endereco || null, localizadoEm: new Date(),
+    });
+    if (!result) return sendError(res, 404, 'Veículo não encontrado');
+    sendJson(res, { veiculo: result });
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handlePostVeiculoPlano(veiculoId, body, res) {
+  try {
+    if (!body.descricao) return sendError(res, 400, 'Descrição obrigatória');
+    if (!body.intervaloKm && !body.intervaloMeses) return sendError(res, 400, 'Informe intervaloKm e/ou intervaloMeses');
+    const data = {
+      id: generateId('plano'),
+      veiculoId,
+      descricao: body.descricao,
+      intervaloKm: body.intervaloKm ? parseInt(body.intervaloKm) : null,
+      intervaloMeses: body.intervaloMeses ? parseInt(body.intervaloMeses) : null,
+      ultimoKm: body.ultimoKm ? parseInt(body.ultimoKm) : null,
+      ultimaData: body.ultimaData || null,
+      ativo: body.ativo === undefined ? true : !!body.ativo,
+    };
+    await repos.veiculoPlanos.create(data);
+    sendJson(res, await repos.veiculos.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handlePutVeiculoPlano(veiculoId, planoId, body, res) {
+  try {
+    const allowed = {};
+    if (body.descricao !== undefined) allowed.descricao = body.descricao;
+    if (body.intervaloKm !== undefined) allowed.intervaloKm = body.intervaloKm ? parseInt(body.intervaloKm) : null;
+    if (body.intervaloMeses !== undefined) allowed.intervaloMeses = body.intervaloMeses ? parseInt(body.intervaloMeses) : null;
+    if (body.ultimoKm !== undefined) allowed.ultimoKm = body.ultimoKm ? parseInt(body.ultimoKm) : null;
+    if (body.ultimaData !== undefined) allowed.ultimaData = body.ultimaData || null;
+    if (body.ativo !== undefined) allowed.ativo = !!body.ativo;
+    await repos.veiculoPlanos.updateById(planoId, allowed);
+    sendJson(res, await repos.veiculos.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handleDeleteVeiculoPlano(veiculoId, planoId, res) {
+  try {
+    await repos.veiculoPlanos.removeById(planoId);
+    sendJson(res, await repos.veiculos.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handlePostVeiculoManutencao(req, veiculoId, body, res) {
+  try {
+    if (!body.data) return sendError(res, 400, 'Data obrigatória');
+    const data = {
+      id: generateId('manut'),
+      veiculoId,
+      planoId: body.planoId || null,
+      tipo: body.tipo || 'preventiva',
+      descricao: body.descricao || '',
+      data: body.data,
+      km: body.km ? parseInt(body.km) : null,
+      custo: body.custo ? parseFloat(body.custo) : null,
+      fornecedorId: body.fornecedorId || null,
+      observacoes: body.observacoes || '',
+      arquivo: body.arquivo ? JSON.stringify(body.arquivo) : null,
+    };
+    await repos.veiculoManutencoes.create(data);
+
+    // Se está vinculada a plano, atualiza ultimoKm e ultimaData do plano
+    if (body.planoId) {
+      const planoUpd = {};
+      if (data.km) planoUpd.ultimoKm = data.km;
+      if (data.data) planoUpd.ultimaData = data.data;
+      if (Object.keys(planoUpd).length) await repos.veiculoPlanos.updateById(body.planoId, planoUpd);
+    }
+    // Atualiza KM atual do veículo se a manutenção informou KM maior
+    if (data.km) {
+      const veic = await repos.veiculos.findById(veiculoId);
+      if (veic && data.km > (parseInt(veic.kmAtual) || 0)) {
+        await repos.veiculos.updateById(veiculoId, { kmAtual: data.km, kmAtualizadoEm: new Date() });
+      }
+    }
+
+    sendJson(res, await repos.veiculos.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handlePutVeiculoManutencao(veiculoId, manId, body, res) {
+  try {
+    const allowed = {};
+    const fields = ['tipo','descricao','data','observacoes','planoId','fornecedorId'];
+    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f] || null; }
+    if (body.km !== undefined) allowed.km = body.km ? parseInt(body.km) : null;
+    if (body.custo !== undefined) allowed.custo = body.custo ? parseFloat(body.custo) : null;
+    if (body.arquivo !== undefined) allowed.arquivo = body.arquivo ? JSON.stringify(body.arquivo) : null;
+    await repos.veiculoManutencoes.updateById(manId, allowed);
+    sendJson(res, await repos.veiculos.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handleDeleteVeiculoManutencao(veiculoId, manId, res) {
+  try {
+    await repos.veiculoManutencoes.removeById(manId);
+    sendJson(res, await repos.veiculos.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
 }
 
 // ============ Cronograma físico-financeiro (atividades) ============

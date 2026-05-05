@@ -9,11 +9,55 @@
   'use strict';
 
   // ───────────────────────────────────────────────
+  // 0. Hard-refresh por sessão
+  // ───────────────────────────────────────────────
+  // Na primeira carga de cada sessão (nova aba/janela ou reabrir o site),
+  // limpa todos os caches do SW e recarrega — garante código e dados frescos.
+  // sessionStorage faz a guarda contra loop infinito: a flag dura só enquanto
+  // a aba está aberta, então fechar e reabrir dispara o refresh de novo.
+  (function sessionHardRefresh() {
+    const KEY = 'rhino-session-refreshed';
+    if (sessionStorage.getItem(KEY)) return;
+    sessionStorage.setItem(KEY, '1');
+    if (!('caches' in window)) return; // sem SW/cache nada a fazer
+    Promise.resolve()
+      .then(() => caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))))
+      .then(() => {
+        if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+          return navigator.serviceWorker.getRegistrations()
+            .then((regs) => Promise.all(regs.map((r) => r.update().catch(() => {}))));
+        }
+      })
+      .finally(() => location.reload());
+  })();
+
+  // ───────────────────────────────────────────────
   // 1. Service worker
   // ───────────────────────────────────────────────
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (reloading) return;
+      reloading = true;
+      location.reload();
+    });
+
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
+      navigator.serviceWorker.register('./sw.js').then((reg) => {
+        const askSkip = (sw) => sw && sw.postMessage && sw.postMessage('SKIP_WAITING');
+        if (reg.waiting) askSkip(reg.waiting);
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing;
+          if (!sw) return;
+          sw.addEventListener('statechange', () => {
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) askSkip(sw);
+          });
+        });
+        setInterval(() => reg.update().catch(() => {}), 5 * 60 * 1000);
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') reg.update().catch(() => {});
+        });
+      }).catch(() => {});
     });
   }
 

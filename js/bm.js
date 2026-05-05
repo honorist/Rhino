@@ -305,9 +305,13 @@ window.BM = {
     y += 12;
 
     const colW = (W - 4) / 2;
+    // Busca a empresa do cliente do contrato para o título da coluna do fiscal.
+    // Prioridade: cliente.empresa → cliente.nome → contract.client → fallback genérico.
+    const clienteContrato = (Store.state.clientes || []).find(c => c.id === contract.clientId);
+    const empresaCliente = (clienteContrato?.empresa || clienteContrato?.nome || contract.client || 'CONTRATANTE').toUpperCase();
     [
-      { titulo: 'CONTRATADA',      subt: 'Gestor / Rhino Manutenções' },
-      { titulo: 'CMPC — FISCAL',   subt: 'Fiscal do Contrato' }
+      { titulo: 'CONTRATADA',                     subt: 'Gestor / Rhino Manutenções' },
+      { titulo: `${empresaCliente} — FISCAL`,     subt: 'Fiscal do Contrato' }
     ].forEach((a, i) => {
       const x = mgn + i * (colW + 4);
       doc.setDrawColor(...PRETO);

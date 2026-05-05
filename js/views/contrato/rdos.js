@@ -578,7 +578,7 @@
       data: hoje,
       diaSemana: this._diaSemanaFromDate(hoje),
       osNumero: '',
-      ordemCompra: contract.contractNumber || contract.name || '',
+      ordemCompra: contract.contractNumber || '',
       projeto: contract.name || '',
       prazo: {
         dataInicial: contract.startDate || '',

@@ -20,6 +20,8 @@ const routes = {
   '#/investimentos':{ view: window.Investimentos,  label: 'Aportes',         icon: _ic('plus-circle'), group: 'financeiro' },
   '#/base':         { view: window.Base,           label: 'BASE',            icon: _ic('database'),    group: 'financeiro' },
   '#/estoque':      { view: window.Estoque,        label: 'Almoxarifado',    icon: _ic('package'),     group: 'obras' },
+  '#/solicitacoes-compra': { view: window.SolicitacoesCompra, label: 'Solicitações de Compra', icon: _ic('shopping-cart'), group: 'obras' },
+  '#/frota':        { view: window.Frota,           label: 'Frota',           icon: _ic('truck'),       group: 'obras' },
   '#/previsao':     { view: window.Previsao,        label: 'Previsão',        icon: _ic('trending-up'),  group: 'financeiro' },
   '#/ai-chat':      { view: window.AiChat,         label: 'Assistente IA',   icon: _ic('message-square'), group: 'financeiro' },
   '#/configuracao': { view: window.Configuracao,   label: 'Configuração',    icon: _ic('settings') },
@@ -395,7 +397,7 @@ const perfil = {
     const base = route.replace(/(#\/[^/]+).*/, '$1');
     // Rotas universais — qualquer perfil autenticado pode abrir
     // (controle fino fica em cada tela, ex: ver/editar)
-    const universais = ['#/manual', '#/usuarios', '#/rdos', '#/auditoria', '#/estoque', '#/comparativo'];
+    const universais = ['#/manual', '#/usuarios', '#/rdos', '#/auditoria', '#/estoque', '#/comparativo', '#/solicitacoes-compra', '#/frota'];
     if (universais.includes(base)) return true;
     return abas.includes(base);
   },

@@ -1107,6 +1107,27 @@ function handlePutCliente(id, body, res) {
     data.clientes[idx] = { ...data.clientes[idx], ...allowedCliente, id, updatedAt: new Date().toISOString() };
     writeData('clientes.json', data);
 
+    // Propaga endereço/lat/lng para contratos vinculados sem coordenadas
+    const cliAtualizado = data.clientes[idx];
+    const isEmpty = (v) => v === undefined || v === null || v === '';
+    if (!isEmpty(cliAtualizado.lat) && !isEmpty(cliAtualizado.lng)) {
+      try {
+        const contractsData = readData('contracts.json');
+        let mudou = false;
+        (contractsData.contracts || []).forEach((ct) => {
+          if (ct.clientId === id && (isEmpty(ct.lat) || isEmpty(ct.lng))) {
+            ct.lat = cliAtualizado.lat;
+            ct.lng = cliAtualizado.lng;
+            if (isEmpty(ct.endereco)) ct.endereco = cliAtualizado.endereco || '';
+            mudou = true;
+          }
+        });
+        if (mudou) writeData('contracts.json', contractsData);
+      } catch (syncErr) {
+        console.error('[apiMock] falha ao propagar endereço para contratos:', syncErr.message);
+      }
+    }
+
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(data));
   } catch (e) {

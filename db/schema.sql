@@ -601,6 +601,88 @@ ALTER TABLE contas_pagar
 
 CREATE INDEX IF NOT EXISTS idx_cp_recorrente ON contas_pagar (recorrente) WHERE recorrente = TRUE;
 
+-- ============ Solicitações de Compra ============
+CREATE TABLE IF NOT EXISTS solicitacoes_compra (
+  id                       TEXT PRIMARY KEY,
+  numero                   SERIAL,
+  solicitante_user_id      TEXT REFERENCES users(id) ON DELETE SET NULL,
+  solicitante_nome         TEXT,                            -- snapshot p/ exibição
+  contract_id              TEXT REFERENCES contracts(id) ON DELETE SET NULL,
+  almoxarifado_destino_id  TEXT REFERENCES almoxarifados(id) ON DELETE SET NULL,
+  fornecedor_id            TEXT REFERENCES fornecedores(id) ON DELETE SET NULL,
+  itens                    JSONB NOT NULL DEFAULT '[]'::jsonb,
+                            -- [{ itemEstoqueId, descricao, qtd, precoUnit, observacoes }]
+  valor_total              NUMERIC(15,2) DEFAULT 0,
+  justificativa            TEXT,
+  status                   TEXT DEFAULT 'pendente' CHECK (status IN ('pendente','aprovada','rejeitada','cancelada')),
+  aprovador_user_id        TEXT REFERENCES users(id) ON DELETE SET NULL,
+  aprovador_nome           TEXT,
+  aprovado_em              TIMESTAMPTZ,
+  motivo_rejeicao          TEXT,
+  conta_pagar_id           TEXT REFERENCES contas_pagar(id) ON DELETE SET NULL,
+  movimentacao_ids         JSONB DEFAULT '[]'::jsonb,       -- ids das mov. de entrada geradas
+  created_at               TIMESTAMPTZ DEFAULT NOW(),
+  updated_at               TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_solcompra_status   ON solicitacoes_compra (status);
+CREATE INDEX IF NOT EXISTS idx_solcompra_contract ON solicitacoes_compra (contract_id);
+CREATE INDEX IF NOT EXISTS idx_solcompra_user     ON solicitacoes_compra (solicitante_user_id);
+
+-- ============ Frota / Veículos ============
+CREATE TABLE IF NOT EXISTS veiculos (
+  id                  TEXT PRIMARY KEY,
+  placa               TEXT NOT NULL UNIQUE,
+  modelo              TEXT,
+  marca               TEXT,
+  ano                 INTEGER,
+  tipo                TEXT,                            -- carro, caminhao, van, moto, equipamento, outro
+  km_atual            INTEGER DEFAULT 0,
+  km_atualizado_em    TIMESTAMPTZ,
+  lat                 NUMERIC(10,6),
+  lng                 NUMERIC(10,6),
+  endereco            TEXT,
+  localizado_em       TIMESTAMPTZ,
+  contract_id         TEXT REFERENCES contracts(id) ON DELETE SET NULL, -- alocação atual
+  status              TEXT DEFAULT 'ativo' CHECK (status IN ('ativo','manutencao','inativo')),
+  observacoes         TEXT,
+  created_at          TIMESTAMPTZ DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_veiculos_contract ON veiculos (contract_id);
+CREATE INDEX IF NOT EXISTS idx_veiculos_status   ON veiculos (status);
+
+CREATE TABLE IF NOT EXISTS veiculo_planos (
+  id                  TEXT PRIMARY KEY,
+  veiculo_id          TEXT NOT NULL REFERENCES veiculos(id) ON DELETE CASCADE,
+  descricao           TEXT NOT NULL,                   -- "Troca de óleo", "Revisão dos freios"
+  intervalo_km        INTEGER,                         -- nullable
+  intervalo_meses     INTEGER,                         -- nullable; pelo menos 1 dos 2 deve existir
+  ultimo_km           INTEGER,                         -- km da última execução
+  ultima_data         DATE,                            -- data da última execução
+  ativo               BOOLEAN DEFAULT TRUE,
+  created_at          TIMESTAMPTZ DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_planos_veiculo ON veiculo_planos (veiculo_id);
+
+CREATE TABLE IF NOT EXISTS veiculo_manutencoes (
+  id                  TEXT PRIMARY KEY,
+  veiculo_id          TEXT NOT NULL REFERENCES veiculos(id) ON DELETE CASCADE,
+  plano_id            TEXT REFERENCES veiculo_planos(id) ON DELETE SET NULL,
+  tipo                TEXT,                            -- preventiva, corretiva, revisao
+  descricao           TEXT,
+  data                DATE NOT NULL,
+  km                  INTEGER,
+  custo               NUMERIC(15,2),
+  fornecedor_id       TEXT REFERENCES fornecedores(id) ON DELETE SET NULL,
+  observacoes         TEXT,
+  arquivo             JSONB,                           -- { filename, mimeType, sizeBytes, sha, path }
+  created_at          TIMESTAMPTZ DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_manut_veiculo ON veiculo_manutencoes (veiculo_id);
+CREATE INDEX IF NOT EXISTS idx_manut_data    ON veiculo_manutencoes (data DESC);
+
 -- ============ Trigger genérico de updated_at ============
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
@@ -617,7 +699,8 @@ BEGIN
     SELECT unnest(ARRAY[
       'socios','niveis_acesso','clientes','fornecedores',
       'base_items','recursos','contracts','notas_fiscais',
-      'contas_pagar','investimentos','doc_templates','rdos','users'
+      'contas_pagar','investimentos','doc_templates','rdos','users',
+      'solicitacoes_compra','veiculos','veiculo_planos','veiculo_manutencoes'
     ])
   LOOP
     EXECUTE format(

@@ -402,17 +402,6 @@
         <textarea class="form-control" data-rdo-field="seguranca.diagnostico" rows="2">${escapeHtml(d.seguranca?.diagnostico || '')}</textarea>
       </div>
 
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Admissões</label>
-          <input class="form-control" type="number" data-rdo-field="seguranca.admissoes" value="${d.seguranca?.admissoes || 0}">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Demissões</label>
-          <input class="form-control" type="number" data-rdo-field="seguranca.demissoes" value="${d.seguranca?.demissoes || 0}">
-        </div>
-      </div>
-
       <div class="form-group">
         <label class="form-label">Comentários da Segurança</label>
         <textarea class="form-control" data-rdo-field="seguranca.comentarios" rows="4" placeholder="Observações gerais, ocorrências de segurança, ações tomadas">${escapeHtml(d.seguranca?.comentarios || '')}</textarea>
