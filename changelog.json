@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.0.39",
+      "date": "2026-05-05",
+      "summary": "Mapa de Obras com o dobro de altura",
+      "changes": [
+        "A área do mapa em \"Mapa de Obras\" foi ampliada para o dobro da altura anterior — facilita visualizar várias obras ao mesmo tempo.",
+        "A lista lateral de obras também foi ampliada para acompanhar a nova altura."
+      ]
+    },
+    {
       "version": "1.0.38",
       "date": "2026-05-05",
       "summary": "Botões 30/60/90 do gráfico do Dashboard agora também ampliam a visão do passado",

@@ -65,11 +65,11 @@ window.Obras = {
               <button class="btn btn-sm" id="obrasViewMarkers" style="border-radius:0;${this._viewMode==='markers'?'background:var(--color-primary);color:#fff;':'background:transparent;'}">Marcadores</button>
               <button class="btn btn-sm" id="obrasViewHeat" style="border-radius:0;${this._viewMode==='heat'?'background:var(--color-primary);color:#fff;':'background:transparent;'}">Heatmap</button>
             </div>
-            <div id="mapaObras" style="height:600px;width:100%;"></div>
+            <div id="mapaObras" style="height:1200px;width:100%;"></div>
           </div>
 
           <!-- Lista lateral -->
-          <div class="card" style="max-height:620px;overflow-y:auto;">
+          <div class="card" style="max-height:1220px;overflow-y:auto;">
             <div class="card-header" style="position:sticky;top:0;background:var(--color-surface);z-index:1;">
               <h3 class="card-title">Obras</h3>
               <span id="contadorObras" style="font-size:15px;color:var(--color-text-muted);"></span>
