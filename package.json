@@ -8,7 +8,8 @@
     "dev": "node server.js",
     "test": "node --test test/**/*.test.js",
     "test:e2e": "playwright test test/e2e/api.spec.js",
-    "db:migrate-json": "node scripts/migrate-json-to-pg.js"
+    "db:migrate-json": "node scripts/migrate-json-to-pg.js",
+    "backup:prod": "node scripts/backup-prod.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

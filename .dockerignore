@@ -38,3 +38,5 @@ docker-compose*.yml
 
 # Backups locais
 Rhino_backup_*
+deploy-backups
+.rhino-deploy-creds
