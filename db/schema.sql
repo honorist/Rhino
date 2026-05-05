@@ -614,7 +614,14 @@ CREATE TABLE IF NOT EXISTS solicitacoes_compra (
                             -- [{ itemEstoqueId, descricao, qtd, precoUnit, observacoes }]
   valor_total              NUMERIC(15,2) DEFAULT 0,
   justificativa            TEXT,
-  status                   TEXT DEFAULT 'pendente' CHECK (status IN ('pendente','aprovada','rejeitada','cancelada')),
+  status                   TEXT DEFAULT 'pendente_avaliacao',
+  -- Avaliação (financeiro): precifica e define destino, ou cancela
+  avaliador_user_id        TEXT REFERENCES users(id) ON DELETE SET NULL,
+  avaliador_nome           TEXT,
+  avaliado_em              TIMESTAMPTZ,
+  cancelado_em             TIMESTAMPTZ,
+  motivo_cancelamento      TEXT,
+  -- Aprovação (gerente): aprova ou rejeita
   aprovador_user_id        TEXT REFERENCES users(id) ON DELETE SET NULL,
   aprovador_nome           TEXT,
   aprovado_em              TIMESTAMPTZ,
@@ -627,6 +634,43 @@ CREATE TABLE IF NOT EXISTS solicitacoes_compra (
 CREATE INDEX IF NOT EXISTS idx_solcompra_status   ON solicitacoes_compra (status);
 CREATE INDEX IF NOT EXISTS idx_solcompra_contract ON solicitacoes_compra (contract_id);
 CREATE INDEX IF NOT EXISTS idx_solcompra_user     ON solicitacoes_compra (solicitante_user_id);
+
+-- Migração v1.0.25: novas colunas + status com 5 valores. Idempotente.
+ALTER TABLE solicitacoes_compra
+  ADD COLUMN IF NOT EXISTS avaliador_user_id   TEXT REFERENCES users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS avaliador_nome      TEXT,
+  ADD COLUMN IF NOT EXISTS avaliado_em         TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS cancelado_em        TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS motivo_cancelamento TEXT;
+
+-- Solicitações antigas com status 'pendente' viram pendente_aprovacao se já tinham preço,
+-- ou pendente_avaliacao se não tinham. (Banco virgem: nada acontece — segura.)
+UPDATE solicitacoes_compra SET status = 'pendente_aprovacao'
+  WHERE status = 'pendente' AND COALESCE(valor_total, 0) > 0;
+UPDATE solicitacoes_compra SET status = 'pendente_avaliacao'
+  WHERE status = 'pendente';
+
+-- Atualiza CHECK constraint pra aceitar os novos status (drop+create idempotente)
+ALTER TABLE solicitacoes_compra DROP CONSTRAINT IF EXISTS solicitacoes_compra_status_check;
+ALTER TABLE solicitacoes_compra ADD CONSTRAINT solicitacoes_compra_status_check
+  CHECK (status IN ('pendente_avaliacao','pendente_aprovacao','aprovada','rejeitada','cancelada'));
+
+-- Migração v1.0.25: financeiro e admin ganham 'solicitacoes-compra:avaliar' nas abas.
+-- Idempotente: só adiciona se ainda não tiver.
+DO $$
+DECLARE r RECORD; abas_atual JSONB;
+BEGIN
+  FOR r IN SELECT id, abas FROM niveis_acesso WHERE id IN ('financeiro', 'admin') LOOP
+    abas_atual := r.abas;
+    IF NOT abas_atual ? 'solicitacoes-compra:avaliar' THEN
+      abas_atual := abas_atual || '"solicitacoes-compra:avaliar"'::jsonb;
+    END IF;
+    IF NOT abas_atual ? '#/solicitacoes-compra' THEN
+      abas_atual := abas_atual || '"#/solicitacoes-compra"'::jsonb;
+    END IF;
+    UPDATE niveis_acesso SET abas = abas_atual WHERE id = r.id;
+  END LOOP;
+END $$;
 
 -- ============ Frota / Veículos ============
 CREATE TABLE IF NOT EXISTS veiculos (

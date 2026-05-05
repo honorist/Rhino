@@ -3285,6 +3285,8 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname === '/api/solicitacoes-compra' && method === 'POST') return handlePostSolicitacaoCompra(req, body, res);
   if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+$/) && method === 'PUT')    return handlePutSolicitacaoCompra(pathname.split('/')[3], body, res);
   if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+$/) && method === 'DELETE') return handleDeleteSolicitacaoCompra(pathname.split('/')[3], res);
+  if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/avaliar$/) && method === 'POST')  return handleAvaliarSolicitacao(req, pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/cancelar$/) && method === 'POST') return handleCancelarSolicitacao(req, pathname.split('/')[3], body, res);
   if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/aprovar$/) && method === 'POST')  return handleAprovarSolicitacao(req, pathname.split('/')[3], body, res);
   if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/rejeitar$/) && method === 'POST') return handleRejeitarSolicitacao(req, pathname.split('/')[3], body, res);
 
@@ -4606,21 +4608,57 @@ async function handleGetSaldoEstoque(query, res) {
 }
 
 // ============ Solicitações de Compra ============
-function _normalizaItensSolicitacao(arr) {
-  if (!Array.isArray(arr)) return { itens: [], total: 0 };
+// Normaliza itens na criação (encarregado): só descrição + qtd + observações (sem preço/cotações).
+function _normalizaItensInicial(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.map((it) => ({
+    itemEstoqueId: it.itemEstoqueId || null,
+    descricao: (it.descricao || '').trim(),
+    qtd: parseFloat(it.qtd) || 0,
+    observacoes: it.observacoes || '',
+    cotacoes: [],
+    cotacaoEscolhidaIdx: null,
+    precoUnit: 0,
+  })).filter((it) => it.descricao && it.qtd > 0);
+}
+
+// Normaliza itens na avaliação (financeiro): cada item com cotações + cotacaoEscolhidaIdx.
+// Retorna { itens, total, fornecedorIdEscolhido } onde fornecedorIdEscolhido é o fornecedor
+// da primeira cotação escolhida (usado pra criar a Conta a Pagar).
+function _normalizaItensComCotacoes(arr) {
+  if (!Array.isArray(arr)) return { itens: [], total: 0, fornecedorIdEscolhido: null };
+  let fornecedorIdEscolhido = null;
   const itens = arr.map((it) => {
-    const qtd = parseFloat(it.qtd) || 0;
-    const precoUnit = parseFloat(it.precoUnit) || 0;
+    const cotacoes = Array.isArray(it.cotacoes) ? it.cotacoes.map((c) => ({
+      fornecedorId: c.fornecedorId || null,
+      fornecedorNome: (c.fornecedorNome || '').trim(),
+      precoUnit: parseFloat(c.precoUnit) || 0,
+      link: c.link || '',
+      observacoes: c.observacoes || '',
+    })) : [];
+    const idx = (it.cotacaoEscolhidaIdx != null && cotacoes[it.cotacaoEscolhidaIdx])
+      ? it.cotacaoEscolhidaIdx : (cotacoes.length > 0 ? 0 : null);
+    const precoUnit = idx != null ? cotacoes[idx].precoUnit : 0;
+    if (idx != null && !fornecedorIdEscolhido) fornecedorIdEscolhido = cotacoes[idx].fornecedorId;
     return {
       itemEstoqueId: it.itemEstoqueId || null,
       descricao: (it.descricao || '').trim(),
-      qtd,
-      precoUnit,
+      qtd: parseFloat(it.qtd) || 0,
       observacoes: it.observacoes || '',
+      cotacoes,
+      cotacaoEscolhidaIdx: idx,
+      precoUnit,
     };
   }).filter((it) => it.descricao && it.qtd > 0);
   const total = itens.reduce((s, i) => s + i.qtd * i.precoUnit, 0);
-  return { itens, total };
+  return { itens, total, fornecedorIdEscolhido };
+}
+
+async function _temPermissao(req, perm) {
+  const nivelId = req.user?.nivelAcessoId;
+  if (!nivelId) return true; // admin sem perfil ativo
+  const nivel = await repos.niveisAcesso.findById(nivelId);
+  return !!(nivel?.abas || []).includes(perm);
 }
 
 async function handleListSolicitacoesCompra(query, res) {
@@ -4638,20 +4676,22 @@ async function handleListSolicitacoesCompra(query, res) {
 
 async function handlePostSolicitacaoCompra(req, body, res) {
   try {
-    const { itens, total } = _normalizaItensSolicitacao(body.itens);
+    // Encarregado cria com itens (descrição + qtd + observações) + justificativa.
+    // Destino e preços são definidos pelo financeiro na avaliação.
+    const itens = _normalizaItensInicial(body.itens);
     if (!itens.length) return sendError(res, 400, 'Adicione pelo menos um item válido');
     const id = generateId('sol');
     const data = {
       id,
       solicitanteUserId: req.user?.id || null,
       solicitanteNome: req.user?.name || req.user?.email || null,
-      contractId: body.contractId || null,
-      almoxarifadoDestinoId: await _resolveAlmoxId(body.almoxarifadoDestinoId),
-      fornecedorId: body.fornecedorId || null,
+      contractId: null,
+      almoxarifadoDestinoId: null,
+      fornecedorId: null,
       itens: JSON.stringify(itens),
-      valorTotal: total,
+      valorTotal: 0,
       justificativa: body.justificativa || '',
-      status: 'pendente',
+      status: 'pendente_avaliacao',
     };
     const created = await repos.solicitacoesCompra.create(data);
     sendJson(res, { solicitacao: created });
@@ -4662,16 +4702,13 @@ async function handlePutSolicitacaoCompra(id, body, res) {
   try {
     const atual = await repos.solicitacoesCompra.findById(id);
     if (!atual) return sendError(res, 404, 'Solicitação não encontrada');
-    if (atual.status !== 'pendente') return sendError(res, 400, 'Só é possível editar solicitações pendentes');
+    if (atual.status !== 'pendente_avaliacao') {
+      return sendError(res, 400, 'Só é possível editar solicitações aguardando avaliação');
+    }
     const allowed = {};
-    if (body.contractId !== undefined) allowed.contractId = body.contractId || null;
-    if (body.almoxarifadoDestinoId !== undefined) allowed.almoxarifadoDestinoId = await _resolveAlmoxId(body.almoxarifadoDestinoId);
-    if (body.fornecedorId !== undefined) allowed.fornecedorId = body.fornecedorId || null;
     if (body.justificativa !== undefined) allowed.justificativa = body.justificativa;
     if (body.itens !== undefined) {
-      const { itens, total } = _normalizaItensSolicitacao(body.itens);
-      allowed.itens = JSON.stringify(itens);
-      allowed.valorTotal = total;
+      allowed.itens = JSON.stringify(_normalizaItensInicial(body.itens));
     }
     const result = await repos.solicitacoesCompra.updateById(id, allowed);
     sendJson(res, { solicitacao: result });
@@ -4688,20 +4725,77 @@ async function handleDeleteSolicitacaoCompra(id, res) {
   } catch (e) { sendError(res, 400, e.message); }
 }
 
+async function handleAvaliarSolicitacao(req, id, body, res) {
+  try {
+    if (!await _temPermissao(req, 'solicitacoes-compra:avaliar')) {
+      return sendError(res, 403, 'Sem permissão para avaliar solicitações');
+    }
+    const atual = await repos.solicitacoesCompra.findById(id);
+    if (!atual) return sendError(res, 404, 'Solicitação não encontrada');
+    if (atual.status !== 'pendente_avaliacao') {
+      return sendError(res, 400, `Solicitação já está ${atual.status}`);
+    }
+    const { itens, total, fornecedorIdEscolhido } = _normalizaItensComCotacoes(body.itens);
+    if (!itens.length) return sendError(res, 400, 'Itens inválidos');
+    if (itens.some((it) => it.cotacoes.length === 0)) {
+      return sendError(res, 400, 'Cada item precisa ter ao menos uma cotação');
+    }
+
+    const allowed = {
+      itens: JSON.stringify(itens),
+      valorTotal: total,
+      contractId: body.contractId || null,
+      almoxarifadoDestinoId: await _resolveAlmoxId(body.almoxarifadoDestinoId || 'auto-central'),
+      fornecedorId: body.fornecedorId || fornecedorIdEscolhido || null,
+      avaliadorUserId: req.user?.id || null,
+      avaliadorNome: req.user?.name || req.user?.email || null,
+      avaliadoEm: new Date(),
+      status: 'pendente_aprovacao',
+    };
+    const result = await repos.solicitacoesCompra.updateById(id, allowed);
+    sendJson(res, { solicitacao: result });
+  } catch (e) {
+    console.error('[avaliar-solicitacao]', e);
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handleCancelarSolicitacao(req, id, body, res) {
+  try {
+    if (!await _temPermissao(req, 'solicitacoes-compra:avaliar')) {
+      return sendError(res, 403, 'Sem permissão para cancelar solicitações');
+    }
+    const atual = await repos.solicitacoesCompra.findById(id);
+    if (!atual) return sendError(res, 404, 'Solicitação não encontrada');
+    if (atual.status === 'aprovada' || atual.status === 'cancelada') {
+      return sendError(res, 400, `Solicitação já está ${atual.status}`);
+    }
+    if (!body.motivo || !body.motivo.trim()) {
+      return sendError(res, 400, 'Motivo do cancelamento obrigatório');
+    }
+    const result = await repos.solicitacoesCompra.updateById(id, {
+      status: 'cancelada',
+      motivoCancelamento: body.motivo,
+      canceladoEm: new Date(),
+      avaliadorUserId: req.user?.id || null,
+      avaliadorNome: req.user?.name || req.user?.email || null,
+    });
+    sendJson(res, { solicitacao: result });
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
 async function handleAprovarSolicitacao(req, id, body, res) {
   try {
-    // Permissão: gerente precisa ter 'solicitacoes-compra:aprovar' nas abas do nível.
-    const nivelId = req.user?.nivelAcessoId;
-    let podeAprovar = !nivelId; // sem nível = admin sem perfil → libera
-    if (nivelId) {
-      const nivel = await repos.niveisAcesso.findById(nivelId);
-      podeAprovar = !!(nivel?.abas || []).includes('solicitacoes-compra:aprovar');
+    if (!await _temPermissao(req, 'solicitacoes-compra:aprovar')) {
+      return sendError(res, 403, 'Sem permissão para aprovar solicitações');
     }
-    if (!podeAprovar) return sendError(res, 403, 'Sem permissão para aprovar solicitações');
 
     const sol = await repos.solicitacoesCompra.findById(id);
     if (!sol) return sendError(res, 404, 'Solicitação não encontrada');
-    if (sol.status !== 'pendente') return sendError(res, 400, `Solicitação já está ${sol.status}`);
+    if (sol.status === 'pendente_avaliacao') {
+      return sendError(res, 400, 'Solicitação aguarda avaliação do financeiro antes de poder ser aprovada');
+    }
+    if (sol.status !== 'pendente_aprovacao') return sendError(res, 400, `Solicitação já está ${sol.status}`);
 
     const itensSol = Array.isArray(sol.itens) ? sol.itens : (typeof sol.itens === 'string' ? JSON.parse(sol.itens) : []);
     if (!itensSol.length) return sendError(res, 400, 'Solicitação sem itens');
@@ -4773,17 +4867,13 @@ async function handleAprovarSolicitacao(req, id, body, res) {
 
 async function handleRejeitarSolicitacao(req, id, body, res) {
   try {
-    const nivelId = req.user?.nivelAcessoId;
-    let pode = !nivelId;
-    if (nivelId) {
-      const nivel = await repos.niveisAcesso.findById(nivelId);
-      pode = !!(nivel?.abas || []).includes('solicitacoes-compra:aprovar');
+    if (!await _temPermissao(req, 'solicitacoes-compra:aprovar')) {
+      return sendError(res, 403, 'Sem permissão para rejeitar solicitações');
     }
-    if (!pode) return sendError(res, 403, 'Sem permissão para rejeitar solicitações');
 
     const sol = await repos.solicitacoesCompra.findById(id);
     if (!sol) return sendError(res, 404, 'Solicitação não encontrada');
-    if (sol.status !== 'pendente') return sendError(res, 400, `Solicitação já está ${sol.status}`);
+    if (sol.status !== 'pendente_aprovacao') return sendError(res, 400, `Solicitação já está ${sol.status}`);
 
     const result = await repos.solicitacoesCompra.updateById(id, {
       status: 'rejeitada',
