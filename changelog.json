@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.0.34",
+      "date": "2026-05-05",
+      "summary": "Correção: tela de Atualizações agora carrega no servidor",
+      "changes": [
+        "Histórico de atualizações voltou a aparecer corretamente em Configurações."
+      ]
+    },
+    {
       "version": "1.0.33",
       "date": "2026-05-05",
       "summary": "Reforço de segurança e correção dos botões Configuração, RDO e Almoxarifado",

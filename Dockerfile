@@ -12,6 +12,7 @@ COPY analyze.js ./
 COPY index.html ./
 COPY manifest.webmanifest ./
 COPY sw.js ./
+COPY changelog.json ./
 COPY css ./css
 COPY js ./js
 COPY assets ./assets
