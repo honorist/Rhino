@@ -750,6 +750,69 @@ CREATE TABLE IF NOT EXISTS veiculo_manutencoes (
 CREATE INDEX IF NOT EXISTS idx_manut_veiculo ON veiculo_manutencoes (veiculo_id);
 CREATE INDEX IF NOT EXISTS idx_manut_data    ON veiculo_manutencoes (data DESC);
 
+-- ============ Histórico de status de contratos (cobrança mensal) ============
+-- Cada mudança de status em `contracts` insere uma linha aqui.
+-- Permite calcular dias ativos por contrato em qualquer mês.
+CREATE TABLE IF NOT EXISTS contract_status_history (
+  id          BIGSERIAL PRIMARY KEY,
+  contract_id TEXT NOT NULL REFERENCES contracts(id) ON DELETE CASCADE,
+  status      TEXT NOT NULL,
+  valid_from  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_csh_contract_from ON contract_status_history (contract_id, valid_from);
+
+-- Backfill: contrato existente sem registro ganha uma linha com status atual desde sua criação
+INSERT INTO contract_status_history (contract_id, status, valid_from)
+SELECT c.id, c.status, c.created_at
+FROM contracts c
+WHERE NOT EXISTS (SELECT 1 FROM contract_status_history h WHERE h.contract_id = c.id);
+
+-- Trigger: registra mudança de status sempre que UPDATE muda o valor
+CREATE OR REPLACE FUNCTION log_contract_status_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.status IS DISTINCT FROM OLD.status THEN
+    INSERT INTO contract_status_history (contract_id, status, valid_from)
+    VALUES (NEW.id, NEW.status, NOW());
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_contract_status_history ON contracts;
+CREATE TRIGGER trg_contract_status_history
+AFTER UPDATE ON contracts
+FOR EACH ROW EXECUTE FUNCTION log_contract_status_change();
+
+-- INSERT: ao criar contrato, primeira linha do histórico
+CREATE OR REPLACE FUNCTION log_contract_status_insert()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO contract_status_history (contract_id, status, valid_from)
+  VALUES (NEW.id, COALESCE(NEW.status, 'ativo'), COALESCE(NEW.created_at, NOW()));
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_contract_status_insert ON contracts;
+CREATE TRIGGER trg_contract_status_insert
+AFTER INSERT ON contracts
+FOR EACH ROW EXECUTE FUNCTION log_contract_status_insert();
+
+-- Migração: admin ganha rota '#/cobranca' nas abas (idempotente)
+DO $$
+DECLARE r RECORD; abas_atual JSONB;
+BEGIN
+  FOR r IN SELECT id, abas FROM niveis_acesso WHERE id = 'admin' LOOP
+    abas_atual := r.abas;
+    IF NOT abas_atual ? '#/cobranca' THEN
+      abas_atual := abas_atual || '"#/cobranca"'::jsonb;
+    END IF;
+    UPDATE niveis_acesso SET abas = abas_atual WHERE id = r.id;
+  END LOOP;
+END $$;
+
 -- ============ Trigger genérico de updated_at ============
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$

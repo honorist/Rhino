@@ -24,6 +24,7 @@ const routes = {
   '#/frota':        { view: window.Frota,           label: 'Frota',           icon: _ic('truck'),       group: 'obras' },
   '#/previsao':     { view: window.Previsao,        label: 'Previsão',        icon: _ic('trending-up'),  group: 'financeiro' },
   '#/ai-chat':      { view: window.AiChat,         label: 'Assistente IA',   icon: _ic('message-square'), group: 'financeiro' },
+  '#/cobranca':     { view: window.CobrancaMensal, label: 'Cobrança',        icon: _ic('credit-card') },
   '#/configuracao': { view: window.Configuracao,   label: 'Configuração',    icon: _ic('settings') },
   '#/usuarios':     { view: window.Usuarios,       label: null,              icon: null },  // acessível via Configuração
   '#/auditoria':    { view: window.Auditoria,      label: null,              icon: null },  // acessível via Configuração
