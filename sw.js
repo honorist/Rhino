@@ -139,19 +139,20 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Estáticos:
-  //  JS/CSS → network-first (código muda a cada deploy; versão antiga = bug)
-  //  Imagens/fontes → stale-while-revalidate (safe — nunca mudam entre deploys)
+  //  JS/CSS → cache-first (cache busta a cada deploy via VERSION → STATIC_CACHE/RUNTIME_CACHE)
+  //  Imagens/fontes → stale-while-revalidate
   if (isStatic(url)) {
     const isCode = /\.(?:css|js)$/.test(url.pathname);
     if (isCode) {
       event.respondWith(
-        fetch(req)
-          .then((res) => {
+        caches.match(req).then((cached) => {
+          if (cached) return cached;
+          return fetch(req).then((res) => {
             const copy = res.clone();
             caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy)).catch(() => {});
             return res;
-          })
-          .catch(() => caches.match(req).then((r) => r || new Response('', { status: 503 })))
+          }).catch(() => new Response('', { status: 503 }));
+        })
       );
     } else {
       // Imagens, fontes, SVGs: stale-while-revalidate é seguro

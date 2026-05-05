@@ -4,7 +4,7 @@ window.Socios = {
     app.innerHTML = '<div class="loading-spinner">Carregando...</div>';
 
     try {
-      await Store.loadAll();
+      await Store.loadFor(['socios','investimentos']);
 
       const totalParticipacao = Store.state.socios.reduce((sum, s) => sum + s.participacao, 0);
 

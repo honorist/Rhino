@@ -1,5 +1,62 @@
 // Route definitions — icons via rhIcon() (Lucide-style SVG)
 const _ic = (n) => (window.rhIcon ? window.rhIcon(n, 18) : '');
+
+// Lazy-loaded scripts: removidos do index.html eager, carregam só quando a rota é acessada.
+// Cada chave bate com matchRoute → carrega e re-resolve view antes do render.
+const _lazyManifest = {
+  '#/contratos/:id': {
+    viewName: 'ContratoDetail',
+    scripts: [
+      './js/views/ContratoDetail.js',
+      './js/views/contrato/charts.js',
+      './js/views/contrato/visao-geral.js',
+      './js/views/contrato/organograma.js',
+      './js/views/contrato/rdos.js',
+      './js/views/contrato/rdo-form.js',
+      './js/views/contrato/rdo-pdf.js',
+      './js/views/contrato/modais.js',
+      './js/views/contrato/cronograma.js',
+      './js/views/contrato/export-pdf.js',
+      './js/views/contrato/modais-extra.js',
+    ],
+  },
+  '#/manual':       { viewName: 'Manual',       scripts: ['./js/views/Manual.js'] },
+  '#/ai-chat':      { viewName: 'AiChat',       scripts: ['./js/views/AiChat.js'] },
+  '#/previsao':     { viewName: 'Previsao',     scripts: ['./js/views/Previsao.js'] },
+  '#/auditoria':    { viewName: 'Auditoria',    scripts: ['./js/views/Auditoria.js'] },
+  '#/comparativo':  { viewName: 'Comparativo',  scripts: ['./js/views/Comparativo.js'] },
+  '#/configuracao': { viewName: 'Configuracao', scripts: ['./js/views/Configuracao.js'] },
+  '#/conciliacao':  { viewName: 'Conciliacao',  scripts: ['./js/views/Conciliacao.js'] },
+  '#/estoque':      { viewName: 'Estoque',      scripts: ['./js/views/Estoque.js'] },
+  '#/rdos':         { viewName: 'RDOs',         scripts: ['./js/views/RDOs.js'] },
+};
+
+const _lazyLoaded = new Set();
+const _lazyInflight = new Map();
+function _injectScript(src) {
+  if (_lazyLoaded.has(src)) return Promise.resolve();
+  if (_lazyInflight.has(src)) return _lazyInflight.get(src);
+  const p = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = false; // preserva ordem entre scripts injetados
+    s.onload = () => { _lazyLoaded.add(src); resolve(); };
+    s.onerror = () => reject(new Error('Falha ao carregar ' + src));
+    document.head.appendChild(s);
+  });
+  _lazyInflight.set(src, p);
+  return p;
+}
+async function _loadLazyForPattern(pattern) {
+  const m = _lazyManifest[pattern];
+  if (!m) return;
+  // Carrega em ordem (script principal primeiro, depois sub-módulos)
+  for (const src of m.scripts) {
+    await _injectScript(src);
+  }
+  if (routes[pattern]) routes[pattern].view = window[m.viewName] || routes[pattern].view;
+}
+
 const routes = {
   '#/dashboard':    { view: window.Dashboard,      label: 'Dashboard',       icon: _ic('home') },
   '#/proposta':     { view: null,                  label: 'Proposta',        icon: _ic('file-text'), soon: true },
@@ -24,8 +81,8 @@ const routes = {
   '#/frota':        { view: window.Frota,           label: 'Frota',           icon: _ic('truck'),       group: 'obras' },
   '#/previsao':     { view: window.Previsao,        label: 'Previsão',        icon: _ic('trending-up'),  group: 'financeiro' },
   '#/ai-chat':      { view: window.AiChat,         label: 'Assistente IA',   icon: _ic('message-square'), group: 'financeiro' },
-  '#/cobranca':     { view: window.CobrancaMensal, label: 'Cobrança',        icon: _ic('credit-card') },
   '#/configuracao': { view: window.Configuracao,   label: 'Configuração',    icon: _ic('settings') },
+  '#/cobranca':     { view: window.CobrancaMensal, label: 'Cobrança',        icon: _ic('credit-card') },
   '#/usuarios':     { view: window.Usuarios,       label: null,              icon: null },  // acessível via Configuração
   '#/auditoria':    { view: window.Auditoria,      label: null,              icon: null },  // acessível via Configuração
   '#/manual':       { view: window.Manual,         label: null,              icon: null }
@@ -598,11 +655,11 @@ function matchRoute(hash) {
       const regex = pattern.replace(':id', '([^/]+)');
       const match = hash.match(new RegExp(`^${regex}$`));
       if (match) {
-        return { view: config.view, params: { id: match[1] } };
+        return { view: config.view, params: { id: match[1] }, pattern, config };
       }
     } else {
       if (hash === pattern) {
-        return { view: config.view, params: {} };
+        return { view: config.view, params: {}, pattern, config };
       }
     }
   }
@@ -730,7 +787,22 @@ function renderNavItem(link, nfAlerts, cpAlerts, recAlerts) {
     </li>`;
 }
 
-function renderSidebar() {
+let _sidebarSig = null;
+function _sidebarSignature(nf, cp, rec, doc, docDet, perfilAtual) {
+  const u = auth.user();
+  // hash inclui contadores, perfil, usuário e estado dos grupos (que não dependem da rota)
+  const groupsState = ['obras','rh','financeiro'].map(k => sidebarGroups.get(k) ? '1' : '0').join('');
+  return [
+    nf, cp, rec, doc, docDet.vencidos, docDet.vencendo,
+    perfilAtual ? perfilAtual.id : '',
+    u ? (u.id || u.email) : '',
+    u && u.nivelAcessoId ? '1' : '0',
+    groupsState
+  ].join('|');
+}
+
+function renderSidebar(opts) {
+  const force = opts && opts.force;
   const sidebar = document.getElementById('sidebar');
   const nfAlerts  = getNFAlertCount();
   const cpAlerts  = getContasPagarAlertCount();
@@ -739,6 +811,14 @@ function renderSidebar() {
   const docAlertDetail = getDocumentosAlertDetail();
   const currentHash = location.hash || '#/dashboard';
   const perfilAtual = perfil.get();
+
+  // Memo: se nada mudou (alertas, perfil, usuário, grupos), não re-renderiza o HTML inteiro.
+  // A classe .active é tratada por updateSidebarActiveState() à parte.
+  const sig = _sidebarSignature(nfAlerts, cpAlerts, recAlerts, docAlerts, docAlertDetail, perfilAtual);
+  if (!force && sidebar && sidebar.innerHTML && sig === _sidebarSig) {
+    return;
+  }
+  _sidebarSig = sig;
 
   // Definição de grupos da sidebar (RH e Financeiro). Cada grupo é dropdown.
   const groups = [
@@ -952,13 +1032,30 @@ async function navigate() {
 
   const match = matchRoute(hash);
 
-  if (!match || !match.view) {
+  if (!match) {
     location.hash = perfil.primeiraAba();
     return;
   }
 
   const app = document.getElementById('app');
   app.innerHTML = '<div class="loading-spinner">Carregando...</div>';
+
+  // Lazy: carrega scripts da rota se ainda não tiver view resolvida
+  if (!match.view && _lazyManifest[match.pattern]) {
+    try {
+      await _loadLazyForPattern(match.pattern);
+      match.view = routes[match.pattern].view;
+    } catch (e) {
+      console.error('Falha ao carregar módulo da rota', match.pattern, e);
+      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar módulo. Tente recarregar a página.</p></div>';
+      return;
+    }
+  }
+
+  if (!match.view) {
+    location.hash = perfil.primeiraAba();
+    return;
+  }
 
   try {
     await match.view.render(match.params);

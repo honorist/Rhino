@@ -142,10 +142,24 @@ async function removeByIdCascade(id) {
 }
 
 // Envelope no shape do contracts.json: { contracts: [...], saidas: [...] }
-async function getEnvelope() {
+// Limita saidas para evitar payloads enormes em telas que só usam recentes.
+// opts.lite=true → pula filhos (organograma, rdos, aditivos, marcos, ocorrencias) e saidas
+//                  para telas que só listam contratos (ex: ContasPagar, NotasFiscais, selects).
+const SAIDAS_DEFAULT_LIMIT = 2000;
+async function findAllLite() {
+  const contracts = await db.getMany(`SELECT * FROM contracts ORDER BY created_at DESC`);
+  return contracts.map(c => ({ ...c, organograma: [], rdos: [], aditivos: [], marcos: [], ocorrencias: [] }));
+}
+async function getEnvelope(opts) {
+  const lite = !!(opts && opts.lite);
+  if (lite) {
+    const contracts = await findAllLite();
+    return { contracts, saidas: [] };
+  }
+  const limit = (opts && Number.isFinite(opts.saidasLimit)) ? opts.saidasLimit : SAIDAS_DEFAULT_LIMIT;
   const [contracts, saidas] = await Promise.all([
     findAllWithChildren(),
-    db.getMany(`SELECT * FROM saidas ORDER BY date DESC, created_at DESC`),
+    db.getMany(`SELECT * FROM saidas ORDER BY date DESC, created_at DESC LIMIT $1`, [limit]),
   ]);
   return { contracts, saidas };
 }

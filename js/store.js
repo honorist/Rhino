@@ -75,7 +75,22 @@ window.Store = {
     return `${sign}R$ ${fmt(abs, 2)}`;
   },
 
-  async loadAll() {
+  _loadedAt: 0,
+  _loadAllInflight: null,
+  LOAD_ALL_TTL_MS: 60_000,
+
+  async loadAll(opts) {
+    const force = opts && opts.force;
+    const now = Date.now();
+    if (!force && this._loadedAt && (now - this._loadedAt) < this.LOAD_ALL_TTL_MS) {
+      return; // dados frescos
+    }
+    if (this._loadAllInflight) return this._loadAllInflight;
+    this._loadAllInflight = this._loadAllImpl();
+    try { await this._loadAllInflight; } finally { this._loadAllInflight = null; }
+  },
+
+  async _loadAllImpl() {
     try {
       this.state.loading = true;
       // Verifica r.ok antes de parsear JSON — evita erros crípticos quando a sessão expira
@@ -115,6 +130,7 @@ window.Store = {
       this.state.solicitacoes_compra = solicitacoes.solicitacoes || [];
       this.state.veiculos = veiculos.veiculos || [];
       this.state.error = null;
+      this._loadedAt = Date.now();
       this.notify();
     } catch (e) {
       this.state.error = e.message;
@@ -122,6 +138,53 @@ window.Store = {
     } finally {
       this.state.loading = false;
     }
+  },
+
+  invalidate() { this._loadedAt = 0; this._sliceLoadedAt = {}; },
+
+  // ─── Loaders por fatia (alternativa a loadAll quando view só precisa de 1-2 fatias) ───
+  _sliceLoadedAt: {},
+  _sliceInflight: {},
+  SLICE_TTL_MS: 60_000,
+  _slices: {
+    contracts:    { url: '/api/contracts',          apply(j){ this.state.contracts = j.contracts || []; this.state.saidas = j.saidas || this.state.saidas; } },
+    contracts_lite:{ url: '/api/contracts?lite=1',  apply(j){ this.state.contracts = j.contracts || []; }, sliceKey: 'contracts' },
+    caixa:        { url: '/api/caixa',              apply(j){ this.state.caixa = j.entries || []; } },
+    base:         { url: '/api/base',               apply(j){ this.state.base = j.items || []; } },
+    socios:       { url: '/api/socios',             apply(j){ this.state.socios = j.socios || []; } },
+    investimentos:{ url: '/api/investimentos',      apply(j){ this.state.investimentos = j.investimentos || []; } },
+    notas_fiscais:{ url: '/api/notas-fiscais',      apply(j){ this.state.notas_fiscais = j.notas_fiscais || []; } },
+    tipos_base:   { url: '/api/tipos-base',         apply(j){ this.state.tipos_base = j.tipos || []; } },
+    clientes:     { url: '/api/clientes',           apply(j){ this.state.clientes = j.clientes || []; } },
+    fornecedores: { url: '/api/fornecedores',       apply(j){ this.state.fornecedores = j.fornecedores || []; } },
+    contas_pagar: { url: '/api/contas-pagar',       apply(j){ this.state.contas_pagar = j.contas || []; } },
+    recursos:     { url: '/api/recursos',           apply(j){ this.state.recursos = j.recursos || []; } },
+    solicitacoes_compra: { url: '/api/solicitacoes-compra', apply(j){ this.state.solicitacoes_compra = j.solicitacoes || []; } },
+    veiculos:     { url: '/api/veiculos',           apply(j){ this.state.veiculos = j.veiculos || []; } },
+  },
+
+  async loadOnly(slice, opts) {
+    const def = this._slices[slice];
+    if (!def) throw new Error('Slice desconhecido: ' + slice);
+    const key = def.sliceKey || slice;
+    const force = opts && opts.force;
+    const now = Date.now();
+    if (!force && this._sliceLoadedAt[key] && (now - this._sliceLoadedAt[key]) < this.SLICE_TTL_MS) return;
+    if (this._sliceInflight[slice]) return this._sliceInflight[slice];
+    const p = (async () => {
+      const res = await fetch(def.url);
+      if (!res.ok) throw new Error(`HTTP ${res.status} (${def.url})`);
+      const j = await res.json();
+      def.apply.call(this, j);
+      this._sliceLoadedAt[key] = Date.now();
+      this.notify();
+    })();
+    this._sliceInflight[slice] = p;
+    try { await p; } finally { delete this._sliceInflight[slice]; }
+  },
+
+  async loadFor(slices, opts) {
+    await Promise.all(slices.map(s => this.loadOnly(s, opts).catch(e => { console.warn('loadFor', s, e); })));
   },
 
   async loadDashboard(params) {

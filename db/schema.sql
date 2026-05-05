@@ -285,6 +285,7 @@ CREATE TABLE IF NOT EXISTS saidas (
 );
 CREATE INDEX IF NOT EXISTS idx_saidas_contract ON saidas(contract_id);
 CREATE INDEX IF NOT EXISTS idx_saidas_nf ON saidas(nf_id);
+CREATE INDEX IF NOT EXISTS idx_saidas_date_created ON saidas(date DESC, created_at DESC);
 
 -- ============ Organograma (membros por contrato) ============
 CREATE TABLE IF NOT EXISTS organograma_membros (

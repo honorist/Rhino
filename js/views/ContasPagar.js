@@ -6,7 +6,7 @@ window.ContasPagar = {
     app.innerHTML = '<div class="loading-spinner">Carregando...</div>';
 
     try {
-      await Store.loadAll();
+      await Store.loadFor(['contas_pagar','fornecedores','contracts_lite']);
       // Dispara processamento de recorrências em background (F7) — idempotente
       fetch('/api/contas-pagar/processar-recorrencias', { method: 'POST' }).catch(() => {});
 

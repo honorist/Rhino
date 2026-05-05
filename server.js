@@ -130,9 +130,10 @@ function sendJson(res, body, status = 200) {
 }
 
 // ============ Route handlers ============
-async function handleGetContracts(res) {
+async function handleGetContracts(res, query) {
   try {
-    sendJson(res, await repos.contracts.getEnvelope());
+    const lite = !!(query && (query.lite === '1' || query.lite === 'true'));
+    sendJson(res, await repos.contracts.getEnvelope({ lite }));
   } catch (e) {
     sendError(res, 500, e.message);
   }
@@ -2937,7 +2938,7 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   }
   // API routes
   if (pathname === '/api/contracts' && method === 'GET') {
-    return handleGetContracts(res);
+    return handleGetContracts(res, parsedUrl.query);
   }
   if (pathname === '/api/contracts' && method === 'POST') {
     return handlePostContract(body, res);

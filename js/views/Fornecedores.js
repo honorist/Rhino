@@ -14,7 +14,7 @@ window.Fornecedores = {
     app.innerHTML = '<div class="loading-spinner">Carregando...</div>';
 
     try {
-      await Store.loadAll();
+      await Store.loadFor(['fornecedores']);
 
       // Coleta todos os materiais únicos já cadastrados
       const todosMateriais = [...new Set(

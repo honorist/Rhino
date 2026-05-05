@@ -6,7 +6,7 @@ window.Clientes = {
     app.innerHTML = '<div class="loading-spinner">Carregando...</div>';
 
     try {
-      await Store.loadAll();
+      await Store.loadFor(['clientes']);
 
       const termo = (this.busca || '').toLowerCase().trim();
       const filtrados = termo
