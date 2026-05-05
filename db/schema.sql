@@ -800,16 +800,20 @@ CREATE TRIGGER trg_contract_status_insert
 AFTER INSERT ON contracts
 FOR EACH ROW EXECUTE FUNCTION log_contract_status_insert();
 
--- Migração: admin ganha rota '#/cobranca' nas abas (idempotente)
+-- Migração: perfis administrativos ganham rota '#/cobranca' nas abas (idempotente).
+-- Dá pra qualquer perfil cujo id ou label contenha 'admin' ou 'gerente' (case-insensitive).
 DO $$
 DECLARE r RECORD; abas_atual JSONB;
 BEGIN
-  FOR r IN SELECT id, abas FROM niveis_acesso WHERE id = 'admin' LOOP
+  FOR r IN
+    SELECT id, abas FROM niveis_acesso
+    WHERE LOWER(id) ~ '(admin|gerente)' OR LOWER(COALESCE(label, '')) ~ '(admin|gerente)'
+  LOOP
     abas_atual := r.abas;
     IF NOT abas_atual ? '#/cobranca' THEN
       abas_atual := abas_atual || '"#/cobranca"'::jsonb;
+      UPDATE niveis_acesso SET abas = abas_atual WHERE id = r.id;
     END IF;
-    UPDATE niveis_acesso SET abas = abas_atual WHERE id = r.id;
   END LOOP;
 END $$;
 

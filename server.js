@@ -4243,10 +4243,10 @@ function _cobrancaFaixaLabel(n) {
   return '16+ contratos';
 }
 
+// Pode acessar a tela de cobrança? Verifica a permissão '#/cobranca' nas abas do perfil.
+// Sem perfil ativo = libera (admin de fato sem nível atribuído).
 async function _eAdmin(req) {
-  const nivelId = req.user?.nivelAcessoId;
-  if (!nivelId) return true; // sem perfil = admin sem nível atribuído
-  return nivelId === 'admin';
+  return await _temPermissao(req, '#/cobranca');
 }
 
 // Calcula dias com status='ativo' que se sobrepõem ao mês [ano, mes].
