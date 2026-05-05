@@ -8,6 +8,34 @@ window.Frota = {
 
   TIPOS: ['carro', 'caminhao', 'van', 'moto', 'equipamento', 'outro'],
 
+  // ── Placa: padrão antigo (ABC-1234) e Mercosul (ABC1D23) ──
+  // Normaliza removendo tudo que não é alfanumérico e botando maiúsculo.
+  _normalizarPlaca(s) {
+    return (s || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+  },
+  // Aplica máscara conforme detecta o padrão (após 4 dígitos = antigo; com letra na 5ª = Mercosul).
+  _formatPlaca(s) {
+    const limpa = this._normalizarPlaca(s);
+    if (limpa.length <= 3) return limpa;
+    // Posição 4: dígito = padrão antigo (ABC-1234) | letra = inválido transitório
+    const c4 = limpa[3];
+    if (/[0-9]/.test(c4)) {
+      // Padrão antigo: insere hífen entre letras e números
+      return limpa.slice(0, 3) + '-' + limpa.slice(3);
+    }
+    // Mercosul: ABC1D23 → não usa hífen
+    return limpa;
+  },
+  _placaValida(s) {
+    const limpa = this._normalizarPlaca(s);
+    if (limpa.length !== 7) return false;
+    // Antigo: 3 letras + 4 dígitos
+    if (/^[A-Z]{3}[0-9]{4}$/.test(limpa)) return true;
+    // Mercosul: 3 letras + 1 dígito + 1 letra + 2 dígitos
+    if (/^[A-Z]{3}[0-9][A-Z][0-9]{2}$/.test(limpa)) return true;
+    return false;
+  },
+
   // Calcula a manutenção mais próxima do vencimento.
   // Retorna { plano, status, kmRestante, diasRestante, label } ou null se não há plano ativo.
   _proximaManut(v) {
@@ -214,7 +242,10 @@ window.Frota = {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Placa *</label>
-                <input class="form-control" name="placa" required value="${escapeHtml(v?.placa || '')}" placeholder="AAA-0000" style="text-transform:uppercase;">
+                <input class="form-control" name="placa" id="inpPlaca" required maxlength="8"
+                  value="${escapeHtml(v?.placa || '')}" placeholder="ABC-1234 ou ABC1D23"
+                  style="text-transform:uppercase;font-family:monospace;letter-spacing:1px;">
+                <span style="font-size:12px;color:var(--color-text-muted);">Aceita padrão antigo (ABC-1234) e Mercosul (ABC1D23).</span>
               </div>
               <div class="form-group">
                 <label class="form-label">Tipo</label>
@@ -291,11 +322,24 @@ window.Frota = {
 
     this._initEnderecoSearch();
 
+    // Máscara de placa em tempo real (aceita padrão antigo e Mercosul)
+    const inpPlaca = document.getElementById('inpPlaca');
+    if (inpPlaca) {
+      inpPlaca.addEventListener('input', (e) => {
+        const formatted = this._formatPlaca(e.target.value);
+        if (formatted !== e.target.value) e.target.value = formatted;
+      });
+    }
+
     document.getElementById('btnSalv').addEventListener('click', async () => {
       const fd = new FormData(document.getElementById('formVeic'));
       const data = Object.fromEntries(fd);
-      data.placa = (data.placa || '').toUpperCase();
+      data.placa = this._normalizarPlaca(data.placa || '');
       if (!data.placa) { window.showToast('Placa obrigatória', 'error'); return; }
+      if (!this._placaValida(data.placa)) {
+        window.showToast('Placa inválida — use ABC-1234 (antigo) ou ABC1D23 (Mercosul)', 'error');
+        return;
+      }
       try {
         const url = v ? `/api/veiculos/${v.id}` : '/api/veiculos';
         const method = v ? 'PUT' : 'POST';
@@ -564,8 +608,14 @@ window.Frota = {
               <span style="font-size:12px;color:var(--color-text-muted);">Vincular ao plano atualiza "Último KM/data" automaticamente.</span>
             </div>
             <div class="form-group">
-              <label class="form-label">Descrição</label>
-              <textarea class="form-control" name="descricao" rows="2"></textarea>
+              <label class="form-label">Serviços executados / O que foi feito *</label>
+              <textarea class="form-control" name="descricao" rows="5" required
+                placeholder="Liste o que foi realizado. Exemplos:&#10;- Troca de óleo do motor (5L) e filtro&#10;- Troca de filtro de ar e cabine&#10;- Alinhamento e balanceamento&#10;- Substituição das pastilhas de freio dianteiras&#10;- Verificação geral / cortesia"></textarea>
+              <span style="font-size:12px;color:var(--color-text-muted);">Quanto mais detalhado, melhor para o histórico.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Observações adicionais</label>
+              <textarea class="form-control" name="observacoes" rows="2" placeholder="Notas, garantia, próximos pontos de atenção..."></textarea>
             </div>
             <div class="form-row">
               <div class="form-group">
