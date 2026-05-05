@@ -3289,6 +3289,8 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/cancelar$/) && method === 'POST') return handleCancelarSolicitacao(req, pathname.split('/')[3], body, res);
   if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/aprovar$/) && method === 'POST')  return handleAprovarSolicitacao(req, pathname.split('/')[3], body, res);
   if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/rejeitar$/) && method === 'POST') return handleRejeitarSolicitacao(req, pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/comprar$/) && method === 'POST')  return handleComprarSolicitacao(req, pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/receber$/) && method === 'POST')  return handleReceberSolicitacao(req, pathname.split('/')[3], body, res);
 
   // ── Frota / Veículos ──
   if (pathname === '/api/veiculos' && method === 'GET')  return handleListVeiculos(res);
@@ -4676,8 +4678,8 @@ async function handleListSolicitacoesCompra(query, res) {
 
 async function handlePostSolicitacaoCompra(req, body, res) {
   try {
-    // Encarregado cria com itens (descrição + qtd + observações) + justificativa.
-    // Destino e preços são definidos pelo financeiro na avaliação.
+    // Encarregado cria com itens + qtd + destino (sede ou obra) + justificativa.
+    // Preços são definidos pelo financeiro na avaliação.
     const itens = _normalizaItensInicial(body.itens);
     if (!itens.length) return sendError(res, 400, 'Adicione pelo menos um item válido');
     const id = generateId('sol');
@@ -4685,8 +4687,8 @@ async function handlePostSolicitacaoCompra(req, body, res) {
       id,
       solicitanteUserId: req.user?.id || null,
       solicitanteNome: req.user?.name || req.user?.email || null,
-      contractId: null,
-      almoxarifadoDestinoId: null,
+      contractId: body.contractId || null,
+      almoxarifadoDestinoId: await _resolveAlmoxId(body.almoxarifadoDestinoId || 'auto-central'),
       fornecedorId: null,
       itens: JSON.stringify(itens),
       valorTotal: 0,
@@ -4707,6 +4709,10 @@ async function handlePutSolicitacaoCompra(id, body, res) {
     }
     const allowed = {};
     if (body.justificativa !== undefined) allowed.justificativa = body.justificativa;
+    if (body.contractId !== undefined) allowed.contractId = body.contractId || null;
+    if (body.almoxarifadoDestinoId !== undefined) {
+      allowed.almoxarifadoDestinoId = await _resolveAlmoxId(body.almoxarifadoDestinoId);
+    }
     if (body.itens !== undefined) {
       allowed.itens = JSON.stringify(_normalizaItensInicial(body.itens));
     }
@@ -4741,11 +4747,10 @@ async function handleAvaliarSolicitacao(req, id, body, res) {
       return sendError(res, 400, 'Cada item precisa ter ao menos uma cotação');
     }
 
+    // Destino vem do encarregado e NÃO é alterado pelo financeiro.
     const allowed = {
       itens: JSON.stringify(itens),
       valorTotal: total,
-      contractId: body.contractId || null,
-      almoxarifadoDestinoId: await _resolveAlmoxId(body.almoxarifadoDestinoId || 'auto-central'),
       fornecedorId: body.fornecedorId || fornecedorIdEscolhido || null,
       avaliadorUserId: req.user?.id || null,
       avaliadorNome: req.user?.name || req.user?.email || null,
@@ -4797,15 +4802,94 @@ async function handleAprovarSolicitacao(req, id, body, res) {
     }
     if (sol.status !== 'pendente_aprovacao') return sendError(res, 400, `Solicitação já está ${sol.status}`);
 
+    // Aprovação só autoriza — a Conta a Pagar nasce no /comprar (financeiro registra a compra),
+    // e a entrada de estoque nasce no /receber (quando o material chega).
+    const result = await repos.solicitacoesCompra.updateById(id, {
+      status: 'aprovada',
+      aprovadorUserId: req.user?.id || null,
+      aprovadorNome: req.user?.name || req.user?.email || null,
+      aprovadoEm: new Date(),
+    });
+    sendJson(res, { solicitacao: result });
+  } catch (e) {
+    console.error('[aprovar-solicitacao]', e);
+    sendError(res, 400, e.message);
+  }
+}
+
+// Financeiro registra que a compra foi efetivamente feita junto ao fornecedor.
+// Cria a Conta a Pagar e marca a solicitação como 'comprada'.
+async function handleComprarSolicitacao(req, id, body, res) {
+  try {
+    if (!await _temPermissao(req, 'solicitacoes-compra:avaliar')) {
+      return sendError(res, 403, 'Sem permissão para registrar compras');
+    }
+    const sol = await repos.solicitacoesCompra.findById(id);
+    if (!sol) return sendError(res, 404, 'Solicitação não encontrada');
+    if (sol.status !== 'aprovada') {
+      return sendError(res, 400, `Só é possível registrar compra de solicitações aprovadas (atual: ${sol.status})`);
+    }
+
+    const venc = body.dataVencimento || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+    const fornecedorId = body.fornecedorId || sol.fornecedorId || null;
+    const numeroPedido = (body.numeroPedido || '').trim();
+    const dataPrevistaEntrega = body.dataPrevistaEntrega || null;
+
+    const result = await db.withTransaction(async (client) => {
+      // Cria Conta a Pagar com o valor já definido na avaliação
+      const cpId = generateId('cp');
+      await client.query(
+        `INSERT INTO contas_pagar
+          (id, descricao, valor, data_vencimento, fornecedor_id, contract_id, status, observacoes, category)
+         VALUES ($1,$2,$3,$4,$5,$6,'aberto',$7,$8)`,
+        [cpId,
+         `Solicitação de compra #${sol.numero || id.slice(-6)}${numeroPedido ? ' · pedido ' + numeroPedido : ''}`,
+         sol.valorTotal, venc, fornecedorId, sol.contractId,
+         sol.justificativa || '', 'Estoque']
+      );
+
+      const upd = await client.query(
+        `UPDATE solicitacoes_compra
+         SET status = 'comprada',
+             comprador_user_id = $2, comprador_nome = $3, comprado_em = NOW(),
+             numero_pedido = $4, data_prevista_entrega = $5,
+             conta_pagar_id = $6, fornecedor_id = COALESCE($7, fornecedor_id), updated_at = NOW()
+         WHERE id = $1 RETURNING *`,
+        [id, req.user?.id || null, req.user?.name || req.user?.email || null,
+         numeroPedido || null, dataPrevistaEntrega, cpId, fornecedorId]
+      );
+      return db.rowToCamel(upd.rows[0]);
+    });
+
+    sendJson(res, { solicitacao: result });
+  } catch (e) {
+    console.error('[comprar-solicitacao]', e);
+    sendError(res, 400, e.message);
+  }
+}
+
+// Almoxarife / financeiro confirma chegada do material — gera entrada de estoque.
+async function handleReceberSolicitacao(req, id, body, res) {
+  try {
+    if (!await _temPermissao(req, 'solicitacoes-compra:receber')) {
+      return sendError(res, 403, 'Sem permissão para confirmar recebimento');
+    }
+    const sol = await repos.solicitacoesCompra.findById(id);
+    if (!sol) return sendError(res, 404, 'Solicitação não encontrada');
+    if (sol.status !== 'comprada') {
+      return sendError(res, 400, `Só é possível receber solicitações compradas (atual: ${sol.status})`);
+    }
+
     const itensSol = Array.isArray(sol.itens) ? sol.itens : (typeof sol.itens === 'string' ? JSON.parse(sol.itens) : []);
     if (!itensSol.length) return sendError(res, 400, 'Solicitação sem itens');
     const destinoId = sol.almoxarifadoDestinoId || await ensureAlmoxarifadoCentral();
+    const dataReceb = body.dataRecebimento || new Date().toISOString().split('T')[0];
+    const nfReceb = (body.nfRecebimento || '').trim();
+    const obsReceb = (body.obsRecebimento || '').trim();
 
-    // Tudo dentro de uma transação: cria movimentações + conta a pagar + atualiza solicitação.
     const result = await db.withTransaction(async (client) => {
       const movIds = [];
       for (const it of itensSol) {
-        // Só cria entrada quando há item de estoque vinculado.
         if (!it.itemEstoqueId || !(parseFloat(it.qtd) > 0)) continue;
         const movId = generateId('mov');
         await client.query(
@@ -4813,11 +4897,11 @@ async function handleAprovarSolicitacao(req, id, body, res) {
             (id, item_id, almoxarifado_destino_id, tipo, quantidade, custo_unit, contract_id, data, documento, user_id, notas)
            VALUES ($1,$2,$3,'entrada',$4,$5,$6,$7,$8,$9,$10)`,
           [movId, it.itemEstoqueId, destinoId, it.qtd, it.precoUnit || 0, sol.contractId,
-           new Date().toISOString().split('T')[0], `Solicitação ${id}`, req.user?.id || null,
-           `Aprovada por ${req.user?.name || ''}`.trim()]
+           dataReceb, nfReceb || `Solicitação ${id}`, req.user?.id || null,
+           `Recebida por ${req.user?.name || ''}`.trim()]
         );
         await _ajustarSaldo(client, it.itemEstoqueId, destinoId, parseFloat(it.qtd));
-        // Recalcula custo médio ponderado quando há custo informado
+        // Recalcula custo médio ponderado
         if ((parseFloat(it.precoUnit) || 0) > 0) {
           const item = (await client.query('SELECT custo_medio FROM itens_estoque WHERE id = $1', [it.itemEstoqueId])).rows[0];
           const saldoTotal = parseFloat((await client.query(
@@ -4834,33 +4918,22 @@ async function handleAprovarSolicitacao(req, id, body, res) {
         movIds.push(movId);
       }
 
-      // Cria Conta a Pagar com valor total
-      const cpId = generateId('cp');
-      const venc = body.dataVencimento || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
-      await client.query(
-        `INSERT INTO contas_pagar
-          (id, descricao, valor, data_vencimento, fornecedor_id, contract_id, status, observacoes, category)
-         VALUES ($1,$2,$3,$4,$5,$6,'aberto',$7,$8)`,
-        [cpId, `Solicitação de compra #${sol.numero || id.slice(-6)}`, sol.valorTotal,
-         venc, sol.fornecedorId, sol.contractId,
-         sol.justificativa || '', 'Estoque']
-      );
-
-      // Atualiza a solicitação
       const upd = await client.query(
         `UPDATE solicitacoes_compra
-         SET status = 'aprovada', aprovador_user_id = $2, aprovador_nome = $3, aprovado_em = NOW(),
-             conta_pagar_id = $4, movimentacao_ids = $5, updated_at = NOW()
+         SET status = 'recebida',
+             recebedor_user_id = $2, recebedor_nome = $3, recebido_em = NOW(),
+             data_recebimento = $4, nf_recebimento = $5, obs_recebimento = $6,
+             movimentacao_ids = $7, updated_at = NOW()
          WHERE id = $1 RETURNING *`,
         [id, req.user?.id || null, req.user?.name || req.user?.email || null,
-         cpId, JSON.stringify(movIds)]
+         dataReceb, nfReceb || null, obsReceb || null, JSON.stringify(movIds)]
       );
       return db.rowToCamel(upd.rows[0]);
     });
 
     sendJson(res, { solicitacao: result });
   } catch (e) {
-    console.error('[aprovar-solicitacao]', e);
+    console.error('[receber-solicitacao]', e);
     sendError(res, 400, e.message);
   }
 }

@@ -9,12 +9,15 @@ window.SolicitacoesCompra = {
   _abas() { return window.perfil?.abas?.() || null; },
   _podeAvaliar() { const a = this._abas(); return !a || a.includes('solicitacoes-compra:avaliar'); },
   _podeAprovar() { const a = this._abas(); return !a || a.includes('solicitacoes-compra:aprovar'); },
+  _podeReceber() { const a = this._abas(); return !a || a.includes('solicitacoes-compra:receber'); },
 
   _etapaCfg(status) {
     return {
       pendente_avaliacao: { bg: '#FEF3C7', color: '#92400E', label: '🟡 Aguardando financeiro' },
       pendente_aprovacao: { bg: '#FED7AA', color: '#9A3412', label: '🟠 Aguardando gerente' },
-      aprovada:           { bg: '#D1FAE5', color: '#065F46', label: '✅ Aprovada' },
+      aprovada:           { bg: '#DBEAFE', color: '#1E40AF', label: '🔵 Aprovada · aguardando compra' },
+      comprada:           { bg: '#E0E7FF', color: '#3730A3', label: '📦 Comprada · aguardando entrega' },
+      recebida:           { bg: '#D1FAE5', color: '#065F46', label: '✅ Recebida' },
       rejeitada:          { bg: '#FEE2E2', color: '#991B1B', label: '❌ Rejeitada' },
       cancelada:          { bg: '#F3F4F6', color: '#6B7280', label: '🚫 Cancelada' },
     }[status] || { bg: '#F3F4F6', color: '#6B7280', label: status || '—' };
@@ -49,6 +52,7 @@ window.SolicitacoesCompra = {
     const contratos = Store.state.contracts || [];
     const podeAvaliar = this._podeAvaliar();
     const podeAprovar = this._podeAprovar();
+    const podeReceber = this._podeReceber();
 
     let lista = todas;
     if (this.filtroStatus) lista = lista.filter(s => s.status === this.filtroStatus);
@@ -57,7 +61,8 @@ window.SolicitacoesCompra = {
     const kpiAvaliacao = todas.filter(s => s.status === 'pendente_avaliacao').length;
     const kpiAprovacao = todas.filter(s => s.status === 'pendente_aprovacao').length;
     const kpiAprov = todas.filter(s => s.status === 'aprovada').length;
-    const kpiCancRej = todas.filter(s => s.status === 'rejeitada' || s.status === 'cancelada').length;
+    const kpiComprada = todas.filter(s => s.status === 'comprada').length;
+    const kpiRecebida = todas.filter(s => s.status === 'recebida').length;
     const kpiTotalAprov = todas.filter(s => s.status === 'pendente_aprovacao').reduce((sum, s) => sum + (parseFloat(s.valorTotal) || 0), 0);
 
     const html = `
@@ -69,7 +74,7 @@ window.SolicitacoesCompra = {
         <button class="btn btn-primary btn-lg" id="btnNovaSolicitacao">+ Nova Solicitação</button>
       </div>
 
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-md);margin-bottom:var(--sp-lg);">
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:var(--sp-md);margin-bottom:var(--sp-lg);">
         <div class="card" style="padding:var(--sp-md);">
           <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">🟡 Aguardando financeiro</div>
           <div style="font-size:28px;font-weight:800;color:#92400E;">${kpiAvaliacao}</div>
@@ -80,12 +85,16 @@ window.SolicitacoesCompra = {
           <div style="font-size:13px;color:var(--color-text-muted);">${Store.formatBRL(kpiTotalAprov)} para aprovar</div>
         </div>
         <div class="card" style="padding:var(--sp-md);">
-          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">✅ Aprovadas</div>
-          <div style="font-size:28px;font-weight:800;color:#065F46;">${kpiAprov}</div>
+          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">🔵 A comprar</div>
+          <div style="font-size:28px;font-weight:800;color:#1E40AF;">${kpiAprov}</div>
         </div>
         <div class="card" style="padding:var(--sp-md);">
-          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">Rejeitadas / Canceladas</div>
-          <div style="font-size:28px;font-weight:800;color:#6B7280;">${kpiCancRej}</div>
+          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">📦 A receber</div>
+          <div style="font-size:28px;font-weight:800;color:#3730A3;">${kpiComprada}</div>
+        </div>
+        <div class="card" style="padding:var(--sp-md);">
+          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">✅ Recebidas</div>
+          <div style="font-size:28px;font-weight:800;color:#065F46;">${kpiRecebida}</div>
         </div>
       </div>
 
@@ -97,7 +106,9 @@ window.SolicitacoesCompra = {
               <option value="">Todas</option>
               <option value="pendente_avaliacao" ${this.filtroStatus==='pendente_avaliacao'?'selected':''}>🟡 Aguardando financeiro</option>
               <option value="pendente_aprovacao" ${this.filtroStatus==='pendente_aprovacao'?'selected':''}>🟠 Aguardando gerente</option>
-              <option value="aprovada"           ${this.filtroStatus==='aprovada'?'selected':''}>✅ Aprovada</option>
+              <option value="aprovada"           ${this.filtroStatus==='aprovada'?'selected':''}>🔵 Aprovada (a comprar)</option>
+              <option value="comprada"           ${this.filtroStatus==='comprada'?'selected':''}>📦 Comprada (a receber)</option>
+              <option value="recebida"           ${this.filtroStatus==='recebida'?'selected':''}>✅ Recebida</option>
               <option value="rejeitada"          ${this.filtroStatus==='rejeitada'?'selected':''}>❌ Rejeitada</option>
               <option value="cancelada"          ${this.filtroStatus==='cancelada'?'selected':''}>🚫 Cancelada</option>
             </select>
@@ -132,13 +143,12 @@ window.SolicitacoesCompra = {
               ` : lista.map(s => {
                 const contrato = contratos.find(c => c.id === s.contractId);
                 const itens = Array.isArray(s.itens) ? s.itens : (s.itens ? JSON.parse(s.itens) : []);
-                const semDestino = s.status === 'pendente_avaliacao';
                 const semValor = s.status === 'pendente_avaliacao';
                 return `
                 <tr>
                   <td>${s.createdAt ? new Date(s.createdAt).toLocaleDateString('pt-BR') : '—'}</td>
                   <td>${escapeHtml(s.solicitanteNome || '—')}</td>
-                  <td>${semDestino ? '<span class="text-muted" style="font-style:italic;">(a definir)</span>' : (contrato ? '🏗️ ' + escapeHtml(contrato.name) : '🏢 Sede')}</td>
+                  <td>${contrato ? '🏗️ ' + escapeHtml(contrato.name) : '🏢 Sede'}</td>
                   <td>${itens.length} ${itens.length === 1 ? 'item' : 'itens'}</td>
                   <td>${semValor ? '<span class="text-muted">—</span>' : `<strong>${Store.formatBRL(parseFloat(s.valorTotal) || 0)}</strong>`}</td>
                   <td>${this._badgeEtapa(s.status)}</td>
@@ -152,6 +162,12 @@ window.SolicitacoesCompra = {
                       ${s.status === 'pendente_aprovacao' && podeAprovar ? `
                         <a class="action-link btn-aprovar"  data-id="${s.id}" style="color:#065F46;font-weight:700;">Aprovar</a>
                         <a class="action-link btn-rejeitar" data-id="${s.id}" style="color:#991B1B;">Rejeitar</a>
+                      ` : ''}
+                      ${s.status === 'aprovada' && podeAvaliar ? `
+                        <a class="action-link btn-comprar"  data-id="${s.id}" style="color:#1E40AF;font-weight:700;">Registrar compra</a>
+                      ` : ''}
+                      ${s.status === 'comprada' && podeReceber ? `
+                        <a class="action-link btn-receber"  data-id="${s.id}" style="color:#3730A3;font-weight:700;">Confirmar chegada</a>
                       ` : ''}
                       ${s.status === 'pendente_avaliacao' ? `<a class="action-link btn-editar"  data-id="${s.id}">Editar</a>` : ''}
                       ${s.status === 'pendente_avaliacao' ? `<a class="action-link danger btn-excluir" data-id="${s.id}">Excluir</a>` : ''}
@@ -178,12 +194,16 @@ window.SolicitacoesCompra = {
     document.querySelectorAll('.btn-cancelar').forEach(b => b.addEventListener('click', e => this.cancelar(e.target.dataset.id)));
     document.querySelectorAll('.btn-aprovar').forEach(b => b.addEventListener('click', e => this.showModalAprovar(e.target.dataset.id)));
     document.querySelectorAll('.btn-rejeitar').forEach(b => b.addEventListener('click', e => this.rejeitar(e.target.dataset.id)));
+    document.querySelectorAll('.btn-comprar').forEach(b => b.addEventListener('click', e => this.showModalComprar(e.target.dataset.id)));
+    document.querySelectorAll('.btn-receber').forEach(b => b.addEventListener('click', e => this.showModalReceber(e.target.dataset.id)));
   },
 
   // ── 1ª etapa: ENCARREGADO cria/edita ───────────────────────────────────
   showModalCriar(id) {
     const s = id ? (Store.state.solicitacoes_compra || []).find(x => x.id === id) : null;
     const itensIniciais = s ? (Array.isArray(s.itens) ? s.itens : JSON.parse(s.itens || '[]')) : [{ descricao: '', qtd: 1, observacoes: '' }];
+    const contratos = (Store.state.contracts || []).filter(c => c.status === 'ativo' || c.status === 'pausado');
+    const destinoAtual = s?.contractId ? `obra:${s.contractId}` : 'sede';
 
     const renderLinha = (it, idx) => `
       <tr data-i="${idx}" class="item-row">
@@ -200,11 +220,20 @@ window.SolicitacoesCompra = {
           <div class="modal-header">
             <div>
               <h2 class="modal-title">${s ? 'Editar Solicitação' : 'Nova Solicitação de Compra'}</h2>
-              <div style="font-size:13px;color:var(--color-text-muted);margin-top:4px;">Informe o que precisa e a quantidade. O Financeiro vai precificar e o Gerente aprovar.</div>
+              <div style="font-size:13px;color:var(--color-text-muted);margin-top:4px;">Informe o que precisa, a quantidade e onde será usado. O Financeiro vai precificar e o Gerente aprovar.</div>
             </div>
             <button class="modal-close">✕</button>
           </div>
           <form id="formSolicitacao" class="modal-content">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Destino *</label>
+                <select class="form-control" name="destino" required>
+                  <option value="sede" ${destinoAtual==='sede'?'selected':''}>🏢 Sede / Almoxarifado Central</option>
+                  ${contratos.map(c => `<option value="obra:${c.id}" ${destinoAtual===`obra:${c.id}`?'selected':''}>🏗️ Obra · ${escapeHtml(c.name)}</option>`).join('')}
+                </select>
+              </div>
+            </div>
             <div class="form-group">
               <label class="form-label">Justificativa *</label>
               <textarea class="form-control" name="justificativa" rows="2" required placeholder="Por que esses materiais são necessários?">${escapeHtml(s?.justificativa || '')}</textarea>
@@ -259,10 +288,17 @@ window.SolicitacoesCompra = {
       if (!itens.length) { window.showToast('Adicione pelo menos um item válido', 'error'); return; }
       const justificativa = (fd.get('justificativa') || '').trim();
       if (!justificativa) { window.showToast('Justificativa obrigatória', 'error'); return; }
+      const destino = fd.get('destino') || 'sede';
+      let contractId = null, almoxarifadoDestinoId = 'auto-central';
+      if (destino.startsWith('obra:')) {
+        contractId = destino.slice(5);
+        almoxarifadoDestinoId = `auto-obra:${contractId}`;
+      }
       try {
         const url = s ? `/api/solicitacoes-compra/${s.id}` : '/api/solicitacoes-compra';
         const method = s ? 'PUT' : 'POST';
-        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ itens, justificativa }) });
+        const payload = { itens, justificativa, contractId, almoxarifadoDestinoId };
+        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
         window.showToast(s ? 'Solicitação atualizada' : 'Solicitação enviada para avaliação', 'success');
         close();
@@ -344,16 +380,8 @@ window.SolicitacoesCompra = {
           </div>
           <div class="modal-content">
             ${s.justificativa ? `<div style="padding:10px;background:var(--color-surface-2);border-radius:6px;margin-bottom:var(--sp-md);"><strong>Justificativa:</strong><br>${escapeHtml(s.justificativa)}</div>` : ''}
-
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Destino *</label>
-                <select class="form-control" id="selDestino">
-                  <option value="sede">🏢 Sede / Almoxarifado Central</option>
-                  ${contratos.map(c => `<option value="obra:${c.id}">🏗️ Obra · ${escapeHtml(c.name)}</option>`).join('')}
-                </select>
-                <span style="font-size:12px;color:var(--color-text-muted);">A entrada do estoque vai pra esse destino quando aprovada.</span>
-              </div>
+            <div style="padding:10px;background:#EFF6FF;border-left:3px solid #3B82F6;border-radius:4px;margin-bottom:var(--sp-md);font-size:14px;">
+              <strong>Destino definido pelo solicitante:</strong> ${(() => { const c = contratos.find(x => x.id === s.contractId); return c ? '🏗️ ' + escapeHtml(c.name) : '🏢 Sede / Almoxarifado Central'; })()}
             </div>
 
             <h3 style="margin:var(--sp-lg) 0 var(--sp-sm);font-size:16px;">Cotações por item</h3>
@@ -457,16 +485,10 @@ window.SolicitacoesCompra = {
           window.showToast(`Escolha uma cotação válida para "${it.descricao}"`, 'error'); return;
         }
       }
-      const destino = document.getElementById('selDestino').value;
-      let contractId = null, almoxarifadoDestinoId = 'auto-central';
-      if (destino.startsWith('obra:')) {
-        contractId = destino.slice(5);
-        almoxarifadoDestinoId = `auto-obra:${contractId}`;
-      }
       try {
         const res = await fetch(`/api/solicitacoes-compra/${s.id}/avaliar`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contractId, almoxarifadoDestinoId, itens: estado })
+          body: JSON.stringify({ itens: estado })
         });
         if (!res.ok) throw new Error(await res.text());
         window.showToast('Enviada para aprovação do gerente', 'success');
@@ -538,7 +560,7 @@ window.SolicitacoesCompra = {
             <button class="btn btn-secondary" id="btnFechar">Fechar</button>
             <div style="display:flex;gap:8px;">
               <button class="btn btn-danger" id="btnRejeitar">Rejeitar</button>
-              <button class="btn btn-primary" id="btnAprovar">✅ Aprovar (gera estoque + CP)</button>
+              <button class="btn btn-primary" id="btnAprovar">✅ Aprovar (autorizar compra)</button>
             </div>
           </div>
         </div>
@@ -550,7 +572,7 @@ window.SolicitacoesCompra = {
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnFechar').addEventListener('click', close);
     document.getElementById('btnAprovar').addEventListener('click', async () => {
-      if (!confirm('Aprovar? Será gerada uma entrada de estoque e Conta a Pagar.')) return;
+      if (!confirm('Aprovar? O financeiro poderá então registrar a compra junto ao fornecedor.')) return;
       try {
         const res = await fetch(`/api/solicitacoes-compra/${id}/aprovar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
         if (!res.ok) throw new Error(await res.text());
@@ -584,6 +606,139 @@ window.SolicitacoesCompra = {
       window.showToast('Solicitação excluída', 'success');
       this.render();
     } catch (e) { window.showToast(e.message, 'error'); }
+  },
+
+  // ── 4ª etapa: FINANCEIRO registra compra (gera CP) ────────────────────
+  showModalComprar(id) {
+    const s = (Store.state.solicitacoes_compra || []).find(x => x.id === id);
+    if (!s) return;
+    const fornecedores = Store.state.fornecedores || [];
+    const itens = Array.isArray(s.itens) ? s.itens : JSON.parse(s.itens || '[]');
+    // Fornecedor padrão = o da cotação escolhida do primeiro item
+    const fornecedorPadrao = s.fornecedorId || (itens[0]?.cotacoes?.[itens[0]?.cotacaoEscolhidaIdx]?.fornecedorId) || '';
+    const hoje = new Date();
+    const venc30 = new Date(hoje.getTime() + 30 * 86400000).toISOString().split('T')[0];
+    const html = `
+      <div class="modal-overlay" id="modalComprar">
+        <div class="modal" style="width:560px;">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">Registrar compra</h2>
+              <div style="font-size:13px;color:var(--color-text-muted);">Vai gerar a Conta a Pagar de ${Store.formatBRL(parseFloat(s.valorTotal) || 0)}</div>
+            </div>
+            <button class="modal-close">✕</button>
+          </div>
+          <form id="formComprar" class="modal-content">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Nº do pedido junto ao fornecedor</label>
+                <input class="form-control" name="numeroPedido" placeholder="Ex: 12345 / OC-2026-007">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Previsão de entrega</label>
+                <input class="form-control" name="dataPrevistaEntrega" type="date">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Fornecedor</label>
+                <select class="form-control" name="fornecedorId">
+                  <option value="">— Selecionar —</option>
+                  ${fornecedores.map(f => `<option value="${f.id}" ${fornecedorPadrao===f.id?'selected':''}>${escapeHtml(f.nome || f.razaoSocial)}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Vencimento da CP *</label>
+                <input class="form-control" name="dataVencimento" type="date" value="${venc30}" required>
+              </div>
+            </div>
+          </form>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnCancC">Cancelar</button>
+            <button class="btn btn-primary" id="btnSalvC">Registrar compra (gera CP)</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalComprar');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnCancC').addEventListener('click', close);
+
+    document.getElementById('btnSalvC').addEventListener('click', async () => {
+      const fd = new FormData(document.getElementById('formComprar'));
+      const data = Object.fromEntries(fd);
+      try {
+        const res = await fetch(`/api/solicitacoes-compra/${id}/comprar`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error(await res.text());
+        window.showToast('Compra registrada — Conta a Pagar gerada', 'success');
+        close();
+        this.render();
+      } catch (e) { window.showToast(e.message, 'error'); }
+    });
+  },
+
+  // ── 5ª etapa: ALMOXARIFE/FINANCEIRO confirma chegada (gera entrada) ───
+  showModalReceber(id) {
+    const s = (Store.state.solicitacoes_compra || []).find(x => x.id === id);
+    if (!s) return;
+    const hoje = new Date().toISOString().split('T')[0];
+    const itens = Array.isArray(s.itens) ? s.itens : JSON.parse(s.itens || '[]');
+    const html = `
+      <div class="modal-overlay" id="modalReceber">
+        <div class="modal" style="width:560px;">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">Confirmar chegada do material</h2>
+              <div style="font-size:13px;color:var(--color-text-muted);">${itens.length} ${itens.length === 1 ? 'item' : 'itens'} entram no estoque ao confirmar</div>
+            </div>
+            <button class="modal-close">✕</button>
+          </div>
+          <form id="formReceber" class="modal-content">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Data de recebimento *</label>
+                <input class="form-control" name="dataRecebimento" type="date" value="${hoje}" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nº da NF do fornecedor</label>
+                <input class="form-control" name="nfRecebimento" placeholder="Opcional">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Observações</label>
+              <textarea class="form-control" name="obsRecebimento" rows="2" placeholder="Ex: 1 caixa amassada, conferido por ..."></textarea>
+            </div>
+          </form>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnCancR">Cancelar</button>
+            <button class="btn btn-primary" id="btnSalvR">Confirmar chegada (gera entrada)</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalReceber');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnCancR').addEventListener('click', close);
+
+    document.getElementById('btnSalvR').addEventListener('click', async () => {
+      const fd = new FormData(document.getElementById('formReceber'));
+      const data = Object.fromEntries(fd);
+      try {
+        const res = await fetch(`/api/solicitacoes-compra/${id}/receber`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error(await res.text());
+        window.showToast('Recebimento confirmado — entrada de estoque gerada', 'success');
+        close();
+        this.render();
+      } catch (e) { window.showToast(e.message, 'error'); }
+    });
   },
 
   // ── DETALHE com timeline ──────────────────────────────────────────────
@@ -621,12 +776,37 @@ window.SolicitacoesCompra = {
       return html;
     }
 
-    if (s.status === 'aprovada') {
-      html += marco('#10B981', '✅', 'Aprovada', `${escapeHtml(s.aprovadorNome || '—')} (Gerente) · ${this._fmtDt(s.aprovadoEm)}${s.contaPagarId ? '<br>Conta a Pagar: <code>' + s.contaPagarId.slice(-8) + '</code>' : ''}`);
-    } else if (s.status === 'rejeitada') {
+    if (s.status === 'rejeitada') {
       html += marco('#EF4444', '❌', 'Rejeitada', `${escapeHtml(s.aprovadorNome || '—')} (Gerente) · ${this._fmtDt(s.aprovadoEm)}${s.motivoRejeicao ? '<br><em>Motivo: ' + escapeHtml(s.motivoRejeicao) + '</em>' : ''}`);
+      return html;
+    }
+
+    if (s.aprovadoEm) {
+      html += marco('#3B82F6', '✅', 'Aprovada', `${escapeHtml(s.aprovadorNome || '—')} (Gerente) · ${this._fmtDt(s.aprovadoEm)}`);
     } else {
       html += aguardando('Aguardando aprovação do gerente');
+      return html;
+    }
+
+    if (s.compradoEm) {
+      const det = `${escapeHtml(s.compradorNome || '—')} (Financeiro) · ${this._fmtDt(s.compradoEm)}` +
+        (s.numeroPedido ? `<br>Pedido: <code>${escapeHtml(s.numeroPedido)}</code>` : '') +
+        (s.contaPagarId ? `<br>Conta a Pagar: <code>${s.contaPagarId.slice(-8)}</code>` : '') +
+        (s.dataPrevistaEntrega ? `<br>Previsão de entrega: ${new Date(s.dataPrevistaEntrega + 'T12:00:00').toLocaleDateString('pt-BR')}` : '');
+      html += marco('#6366F1', '📦', 'Comprada', det);
+    } else {
+      html += aguardando('Aguardando compra pelo financeiro');
+      return html;
+    }
+
+    if (s.recebidoEm) {
+      const det = `${escapeHtml(s.recebedorNome || '—')} · ${this._fmtDt(s.recebidoEm)}` +
+        (s.dataRecebimento ? `<br>Data: ${new Date(s.dataRecebimento + 'T12:00:00').toLocaleDateString('pt-BR')}` : '') +
+        (s.nfRecebimento ? `<br>NF: <code>${escapeHtml(s.nfRecebimento)}</code>` : '') +
+        (s.obsRecebimento ? `<br><em>${escapeHtml(s.obsRecebimento)}</em>` : '');
+      html += marco('#10B981', '🏭', 'Recebida (estoque atualizado)', det);
+    } else {
+      html += aguardando('Aguardando chegada do material');
     }
     return html;
   },

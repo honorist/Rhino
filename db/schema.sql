@@ -643,6 +643,20 @@ ALTER TABLE solicitacoes_compra
   ADD COLUMN IF NOT EXISTS cancelado_em        TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS motivo_cancelamento TEXT;
 
+-- Migração v1.0.26: etapas de compra e recebimento (separadas da aprovação).
+ALTER TABLE solicitacoes_compra
+  ADD COLUMN IF NOT EXISTS comprador_user_id     TEXT REFERENCES users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS comprador_nome        TEXT,
+  ADD COLUMN IF NOT EXISTS comprado_em           TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS numero_pedido         TEXT,
+  ADD COLUMN IF NOT EXISTS data_prevista_entrega DATE,
+  ADD COLUMN IF NOT EXISTS recebedor_user_id     TEXT REFERENCES users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS recebedor_nome        TEXT,
+  ADD COLUMN IF NOT EXISTS recebido_em           TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS data_recebimento      DATE,
+  ADD COLUMN IF NOT EXISTS nf_recebimento        TEXT,
+  ADD COLUMN IF NOT EXISTS obs_recebimento       TEXT;
+
 -- Solicitações antigas com status 'pendente' viram pendente_aprovacao se já tinham preço,
 -- ou pendente_avaliacao se não tinham. (Banco virgem: nada acontece — segura.)
 UPDATE solicitacoes_compra SET status = 'pendente_aprovacao'
@@ -650,16 +664,17 @@ UPDATE solicitacoes_compra SET status = 'pendente_aprovacao'
 UPDATE solicitacoes_compra SET status = 'pendente_avaliacao'
   WHERE status = 'pendente';
 
--- Atualiza CHECK constraint pra aceitar os novos status (drop+create idempotente)
+-- Atualiza CHECK constraint pra aceitar os 7 status (drop+create idempotente)
 ALTER TABLE solicitacoes_compra DROP CONSTRAINT IF EXISTS solicitacoes_compra_status_check;
 ALTER TABLE solicitacoes_compra ADD CONSTRAINT solicitacoes_compra_status_check
-  CHECK (status IN ('pendente_avaliacao','pendente_aprovacao','aprovada','rejeitada','cancelada'));
+  CHECK (status IN ('pendente_avaliacao','pendente_aprovacao','aprovada','comprada','recebida','rejeitada','cancelada'));
 
--- Migração v1.0.25: financeiro e admin ganham 'solicitacoes-compra:avaliar' nas abas.
+-- Migração v1.0.25/26: permissões — financeiro/admin avaliam, financeiro+operador+admin recebem.
 -- Idempotente: só adiciona se ainda não tiver.
 DO $$
 DECLARE r RECORD; abas_atual JSONB;
 BEGIN
+  -- Avaliar: financeiro + admin
   FOR r IN SELECT id, abas FROM niveis_acesso WHERE id IN ('financeiro', 'admin') LOOP
     abas_atual := r.abas;
     IF NOT abas_atual ? 'solicitacoes-compra:avaliar' THEN
@@ -667,6 +682,14 @@ BEGIN
     END IF;
     IF NOT abas_atual ? '#/solicitacoes-compra' THEN
       abas_atual := abas_atual || '"#/solicitacoes-compra"'::jsonb;
+    END IF;
+    UPDATE niveis_acesso SET abas = abas_atual WHERE id = r.id;
+  END LOOP;
+  -- Receber chegada: financeiro + operador + admin
+  FOR r IN SELECT id, abas FROM niveis_acesso WHERE id IN ('financeiro', 'operador', 'admin') LOOP
+    abas_atual := r.abas;
+    IF NOT abas_atual ? 'solicitacoes-compra:receber' THEN
+      abas_atual := abas_atual || '"solicitacoes-compra:receber"'::jsonb;
     END IF;
     UPDATE niveis_acesso SET abas = abas_atual WHERE id = r.id;
   END LOOP;
