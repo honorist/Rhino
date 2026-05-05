@@ -1,6 +1,21 @@
 {
   "entries": [
     {
+      "version": "1.0.33",
+      "date": "2026-05-05",
+      "summary": "Reforço de segurança e correção dos botões Configuração, RDO e Almoxarifado",
+      "changes": [
+        "Botões Configuração, RDO e Almoxarifado voltaram a abrir normalmente.",
+        "Operações administrativas (gerenciar usuários, baixar backup, alterar perfis) agora são bloqueadas no servidor para usuários não-administradores — antes só a interface escondia, sem proteção real.",
+        "Tela de Níveis de Acesso protegida contra códigos maliciosos em nomes/cores customizadas.",
+        "Sistema de limite de tentativas de login mais robusto contra tentativas de burlar via cabeçalhos falsos.",
+        "Erros ao carregar dados agora aparecem como aviso visível, em vez de falhar silenciosamente.",
+        "Listeners de cliques são limpos ao trocar de tela — evita acumular handlers e causar travamentos.",
+        "Sessão expirada agora avisa e recarrega — antes mostrava erro confuso.",
+        "Pequenas correções internas para evitar conflitos quando você troca de tela rapidamente."
+      ]
+    },
+    {
       "version": "1.0.32",
       "date": "2026-05-05",
       "summary": "Histórico de atualizações disponível para consulta",

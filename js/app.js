@@ -25,10 +25,6 @@ const _lazyManifest = {
   '#/previsao':     { viewName: 'Previsao',     scripts: ['./js/views/Previsao.js'] },
   '#/auditoria':    { viewName: 'Auditoria',    scripts: ['./js/views/Auditoria.js'] },
   '#/comparativo':  { viewName: 'Comparativo',  scripts: ['./js/views/Comparativo.js'] },
-  '#/configuracao': { viewName: 'Configuracao', scripts: ['./js/views/Configuracao.js'] },
-  '#/conciliacao':  { viewName: 'Conciliacao',  scripts: ['./js/views/Conciliacao.js'] },
-  '#/estoque':      { viewName: 'Estoque',      scripts: ['./js/views/Estoque.js'] },
-  '#/rdos':         { viewName: 'RDOs',         scripts: ['./js/views/RDOs.js'] },
 };
 
 const _lazyLoaded = new Set();
@@ -1021,7 +1017,28 @@ function updateSidebarActiveState(hash) {
   });
 }
 
+// ─── View lifecycle: registry de cleanups por view ───
+// Views que adicionam listeners ao document/window devem registrar via window.viewLifecycle.onCleanup(fn).
+// Tudo é chamado quando a próxima navegação ocorre — evita leak de handlers entre telas.
+window.viewLifecycle = (function() {
+  let cleanups = [];
+  return {
+    onCleanup(fn) { if (typeof fn === 'function') cleanups.push(fn); },
+    flush() {
+      const arr = cleanups; cleanups = [];
+      for (const fn of arr) {
+        try { fn(); } catch (e) { console.warn('viewLifecycle cleanup error:', e); }
+      }
+    }
+  };
+})();
+
+let _navToken = 0;
 async function navigate() {
+  // Token incrementa a cada chamada. Operações async checam se ainda são a última.
+  const myToken = ++_navToken;
+  // Limpa listeners da view anterior antes de montar a próxima
+  window.viewLifecycle.flush();
   const hash = location.hash || '#/dashboard';
 
   // Bloquear rota não permitida para o perfil atual
@@ -1044,8 +1061,10 @@ async function navigate() {
   if (!match.view && _lazyManifest[match.pattern]) {
     try {
       await _loadLazyForPattern(match.pattern);
+      if (myToken !== _navToken) return; // navegação superada por outra
       match.view = routes[match.pattern].view;
     } catch (e) {
+      if (myToken !== _navToken) return;
       console.error('Falha ao carregar módulo da rota', match.pattern, e);
       app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar módulo. Tente recarregar a página.</p></div>';
       return;
@@ -1059,7 +1078,9 @@ async function navigate() {
 
   try {
     await match.view.render(match.params);
+    if (myToken !== _navToken) return;
   } catch (e) {
+    if (myToken !== _navToken) return;
     console.error('Navigation error:', e);
     app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar página. Tente novamente.</p></div>';
   }

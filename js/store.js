@@ -45,6 +45,15 @@ window.Store = {
     this.listeners.forEach(fn => fn(this.state));
   },
 
+  // setState aplica um patch ao state e dispara notify atomicamente.
+  // Use em vez de mutar campos isolados em sequência (evita estados intermediários
+  // visíveis para subscribers).
+  setState(patch) {
+    if (!patch || typeof patch !== 'object') return;
+    Object.assign(this.state, patch);
+    this.notify();
+  },
+
   formatBRL(value) {
     // Mascara valor se o perfil atual não tem permissão de ver valores
     if (window.perfil && typeof window.perfil.podeVerValores === 'function' && !window.perfil.podeVerValores()) {
@@ -184,13 +193,35 @@ window.Store = {
   },
 
   async loadFor(slices, opts) {
-    await Promise.all(slices.map(s => this.loadOnly(s, opts).catch(e => { console.warn('loadFor', s, e); })));
+    const results = await Promise.allSettled(slices.map(s => this.loadOnly(s, opts)));
+    const failed = results
+      .map((r, i) => r.status === 'rejected' ? { slice: slices[i], reason: r.reason } : null)
+      .filter(Boolean);
+    if (failed.length) {
+      const msg = `Falha ao carregar: ${failed.map(f => f.slice).join(', ')}`;
+      this.state.error = msg;
+      this.notify();
+      if (typeof window.showToast === 'function') {
+        window.showToast(msg, 'error');
+      }
+      console.error('[Store.loadFor]', failed);
+    }
   },
 
   async loadDashboard(params) {
     try {
       const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-      const data = await fetch('/api/dashboard' + qs).then(r => r.json());
+      const res = await fetch('/api/dashboard' + qs);
+      if (res.status === 401) {
+        // Sessão expirada: redireciona pro login em vez de mostrar erro críptico
+        if (typeof window.showToast === 'function') {
+          window.showToast('Sessão expirada. Faça login novamente.', 'warning');
+        }
+        setTimeout(() => location.reload(), 1500);
+        throw new Error('Sessão expirada');
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status} (${res.url})`);
+      const data = await res.json();
       this.state.dashboard = data;
       this.notify();
       return data;

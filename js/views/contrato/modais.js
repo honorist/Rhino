@@ -277,10 +277,12 @@
       }, 450);
     });
 
-    document.addEventListener('click', e => {
+    const _onDocClickDetail = e => {
       if (!document.getElementById('enderecoWrapDetail')?.contains(e.target))
         dropdown.style.display = 'none';
-    });
+    };
+    document.addEventListener('click', _onDocClickDetail);
+    window.viewLifecycle && window.viewLifecycle.onCleanup(() => document.removeEventListener('click', _onDocClickDetail));
   },
 
   });

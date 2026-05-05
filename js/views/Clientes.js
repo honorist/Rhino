@@ -380,10 +380,12 @@ window.Clientes = {
       }, 450);
     });
 
-    document.addEventListener('click', e => {
+    const _onDocClick = e => {
       if (!document.getElementById('enderecoWrap')?.contains(e.target))
         dropdown.style.display = 'none';
-    });
+    };
+    document.addEventListener('click', _onDocClick);
+    window.viewLifecycle && window.viewLifecycle.onCleanup(() => document.removeEventListener('click', _onDocClick));
   },
 
   async deleteCliente(id) {

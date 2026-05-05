@@ -2685,11 +2685,16 @@ function serveStaticFile(pathname, res) {
 
   const contentType = contentTypeMap[ext] || 'application/octet-stream';
   const headers = { 'Content-Type': contentType };
-  // Desabilita cache para JS/CSS/HTML durante desenvolvimento — evita ter que forçar reload
-  if (['.js', '.css', '.html'].includes(ext)) {
+  // HTML sempre revalidar (entrypoint que injeta __APP_VERSION__).
+  // JS/CSS: revalidar via no-cache (valida com servidor, mas pode reusar cache em 304).
+  // O Service Worker faz cache-first usando VERSION; este header só importa pra requests
+  // diretos que não passam pelo SW (incógnito, primeiro acesso).
+  if (ext === '.html') {
     headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0';
     headers['Pragma'] = 'no-cache';
     headers['Expires'] = '0';
+  } else if (ext === '.js' || ext === '.css') {
+    headers['Cache-Control'] = 'no-cache';
   }
   res.writeHead(200, headers);
   if (ext === '.html') {
@@ -2788,7 +2793,7 @@ const server = http.createServer((req, res) => {
     && /^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/fotos$/.test(pathname);
   if (isRdoFotoUpload) {
     (async () => {
-      if (await applyAuthMiddleware(req, res, pathname)) return;
+      if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
       const parts = pathname.split('/');
       handlePostRdoFoto(parts[3], parts[5], req, res);
     })();
@@ -2800,7 +2805,7 @@ const server = http.createServer((req, res) => {
     && /^\/api\/recursos\/[^/]+\/documentos\/[^/]+\/arquivo$/.test(pathname);
   if (isRecursoDocArqUpload) {
     (async () => {
-      if (await applyAuthMiddleware(req, res, pathname)) return;
+      if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
       const parts = pathname.split('/');
       handlePostRecursoDocArquivo(parts[3], parts[5], req, res);
     })();
@@ -2811,7 +2816,7 @@ const server = http.createServer((req, res) => {
   const isOfxImport = req.method === 'POST' && pathname === '/api/caixa/importar-ofx';
   if (isOfxImport) {
     (async () => {
-      if (await applyAuthMiddleware(req, res, pathname)) return;
+      if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
       handleImportarOfx(req, res);
     })();
     return;
@@ -2822,7 +2827,7 @@ const server = http.createServer((req, res) => {
     && /^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/assinaturas$/.test(pathname);
   if (isRdoAssinaturaUpload) {
     (async () => {
-      if (await applyAuthMiddleware(req, res, pathname)) return;
+      if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
       const parts = pathname.split('/');
       handlePostRdoAssinatura(parts[5], req, res);
     })();
@@ -2851,13 +2856,13 @@ const server = http.createServer((req, res) => {
         body = {};
       }
       req._auditBody = body;
-      if (await applyAuthMiddleware(req, res, pathname)) return;
+      if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
       await captureAuditBefore(req, pathname);
       routeRequest(pathname, req.method, body, res, parsedUrl, req);
     });
   } else {
     (async () => {
-      if (await applyAuthMiddleware(req, res, pathname)) return;
+      if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
       await captureAuditBefore(req, pathname);
       routeRequest(pathname, req.method, null, res, parsedUrl, req);
     })();
@@ -2873,7 +2878,32 @@ const AUTH_WHITELIST = new Set([
   '/api/auth/reset-password',
   '/api/portal/login',
 ]);
-async function applyAuthMiddleware(req, res, pathname) {
+// Rotas privilegiadas — exigem nivel_acesso_id = 'admin'.
+// Match exato OU prefixo (ex: /api/users/:id cobre por prefixo).
+const ADMIN_PATH_PREFIXES = [
+  '/api/users',
+  '/api/backup',
+  '/api/admin/',
+  '/api/niveis-acesso',
+  '/api/lgpd/delete-account',
+];
+function isAdminRoute(pathname, method) {
+  // GET /api/niveis-acesso é necessário pra exibir perfis no login → liberar leitura
+  if (pathname === '/api/niveis-acesso' && method === 'GET') return false;
+  return ADMIN_PATH_PREFIXES.some(p =>
+    pathname === p || pathname.startsWith(p + '/') || pathname.startsWith(p)
+  );
+}
+function requireAdmin(req, res) {
+  if (!req.user) { sendError(res, 401, 'Não autenticado'); return false; }
+  if (req.user.nivel_acesso_id !== 'admin' && req.user.nivelAcessoId !== 'admin') {
+    sendError(res, 403, 'Acesso restrito a administradores');
+    return false;
+  }
+  return true;
+}
+
+async function applyAuthMiddleware(req, res, pathname, method) {
   if (!pathname.startsWith('/api/')) return false;
 
   // Rate limit global pra /api/* — 1000 req / min por IP (anti-DDoS / abuso)
@@ -2893,6 +2923,10 @@ async function applyAuthMiddleware(req, res, pathname) {
       return true;
     }
     req.user = user;
+    // Bloqueio server-side de rotas admin (defesa em profundidade — frontend já filtra UI)
+    if (isAdminRoute(pathname, method)) {
+      if (!requireAdmin(req, res)) return true;
+    }
     return false;
   } catch (e) {
     sendError(res, 500, e.message);

@@ -1,3 +1,13 @@
+// Sanitiza cor CSS — aceita apenas hex curto/longo (#abc, #abcd, #aabbcc, #aabbccdd) ou nome simples.
+// Bloqueia injeção via "; background-image: url(...)" ou similar em atributos style.
+function _safeCorCss(cor) {
+  if (typeof cor !== 'string') return '#999';
+  const v = cor.trim();
+  if (/^#[0-9A-Fa-f]{3,8}$/.test(v)) return v;
+  if (/^[a-zA-Z]{3,30}$/.test(v)) return v;
+  return '#999';
+}
+
 window.Configuracao = {
   currentSection: 'tipos_custo',
 
@@ -213,17 +223,17 @@ window.Configuracao = {
           </div>
           <label style="display:flex;justify-content:center;cursor:pointer;" title="Pode ver ${aba.label}">
             <input type="checkbox" class="nivel-checkbox"
-                   data-nivel="${nivel.id}" data-route="${verRoute}"
+                   data-nivel="${escapeHtml(nivel.id)}" data-route="${escapeHtml(verRoute)}"
                    ${verChecked ? 'checked' : ''}
-                   style="width:15px;height:15px;accent-color:${nivel.cor};cursor:pointer;">
+                   style="width:15px;height:15px;accent-color:${_safeCorCss(nivel.cor)};cursor:pointer;">
           </label>
           ${isSpecial ? '<span></span>' : `
             <label style="display:flex;justify-content:center;cursor:${verChecked ? 'pointer' : 'not-allowed'};opacity:${verChecked ? '1' : '0.3'};" title="Pode editar / criar / excluir em ${aba.label}">
               <input type="checkbox" class="nivel-checkbox"
-                     data-nivel="${nivel.id}" data-route="${editRoute}"
+                     data-nivel="${escapeHtml(nivel.id)}" data-route="${escapeHtml(editRoute)}"
                      ${editChecked ? 'checked' : ''}
                      ${verChecked ? '' : 'disabled'}
-                     style="width:15px;height:15px;accent-color:${nivel.cor};cursor:${verChecked ? 'pointer' : 'not-allowed'};">
+                     style="width:15px;height:15px;accent-color:${_safeCorCss(nivel.cor)};cursor:${verChecked ? 'pointer' : 'not-allowed'};">
             </label>
           `}
         </div>
@@ -246,13 +256,18 @@ window.Configuracao = {
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:var(--sp-lg);">
-        ${niveis.map(nivel => `
-          <div class="card" style="border-top:3px solid ${nivel.cor};">
+        ${niveis.map(nivel => {
+          const corSegura = _safeCorCss(nivel.cor);
+          const idSeguro = escapeHtml(nivel.id);
+          const labelSeguro = escapeHtml(nivel.label);
+          const iconSeguro = escapeHtml(nivel.icon || '');
+        return `
+          <div class="card" style="border-top:3px solid ${corSegura};">
             <div class="card-header" style="padding-bottom:var(--sp-md);">
               <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-                <span style="font-size:24px;">${nivel.icon}</span>
+                <span style="font-size:24px;">${iconSeguro}</span>
                 <div>
-                  <h3 style="margin:0;font-size:16px;font-weight:700;color:${nivel.cor};">${nivel.label}</h3>
+                  <h3 style="margin:0;font-size:16px;font-weight:700;color:${corSegura};">${labelSeguro}</h3>
                   <div style="font-size:15px;color:var(--color-text-muted);">
                     ${(nivel.abas || []).length} aba${(nivel.abas || []).length !== 1 ? 's' : ''} habilitada${(nivel.abas || []).length !== 1 ? 's' : ''}
                   </div>
@@ -260,7 +275,7 @@ window.Configuracao = {
               </div>
             </div>
 
-            <div style="display:flex;flex-direction:column;gap:var(--sp-xs);" id="nivel-${nivel.id}">
+            <div style="display:flex;flex-direction:column;gap:var(--sp-xs);" id="nivel-${idSeguro}">
               <!-- Cabeçalho das colunas -->
               <div style="display:grid;grid-template-columns:1fr 60px 60px;gap:8px;padding:0 var(--sp-sm) 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--rh-ink-500);border-bottom:1px solid var(--color-border);margin-bottom:6px;">
                 <span></span>
@@ -282,12 +297,13 @@ window.Configuracao = {
             </div>
 
             <div style="padding-top:var(--sp-md);border-top:1px solid var(--color-border);margin-top:var(--sp-sm);">
-              <button class="btn btn-primary btn-salvar-nivel" data-nivel="${nivel.id}" style="width:100%;background:${nivel.cor};border-color:${nivel.cor};">
-                Salvar ${nivel.label}
+              <button class="btn btn-primary btn-salvar-nivel" data-nivel="${idSeguro}" style="width:100%;background:${corSegura};border-color:${corSegura};">
+                Salvar ${labelSeguro}
               </button>
             </div>
           </div>
-        `).join('')}
+        `;
+        }).join('')}
       </div>
     `;
   },

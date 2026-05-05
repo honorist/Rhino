@@ -1192,9 +1192,11 @@ window.Recursos = {
       }, 450);
     });
 
-    document.addEventListener('click', e => {
+    const _onDocClickRec = e => {
       if (!document.getElementById('enderecoWrapRec')?.contains(e.target)) dropdown.style.display = 'none';
-    });
+    };
+    document.addEventListener('click', _onDocClickRec);
+    window.viewLifecycle && window.viewLifecycle.onCleanup(() => document.removeEventListener('click', _onDocClickRec));
   },
 
   async deleteRecurso(id) {
