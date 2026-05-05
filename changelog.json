@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.0.35",
+      "date": "2026-05-05",
+      "summary": "Correção: lista de usuários voltou a aparecer para administradores",
+      "changes": [
+        "Corrigido: lista de usuários cadastrados estava aparecendo vazia para administradores (nenhum dado foi perdido — era apenas a verificação de permissão bloqueando a leitura).",
+        "Os usuários, suas senhas e permissões continuam todos no banco como antes."
+      ]
+    },
+    {
       "version": "1.0.34",
       "date": "2026-05-05",
       "summary": "Correção: tela de Atualizações agora carrega no servidor",

@@ -2896,7 +2896,12 @@ function isAdminRoute(pathname, method) {
 }
 function requireAdmin(req, res) {
   if (!req.user) { sendError(res, 401, 'Não autenticado'); return false; }
-  if (req.user.nivel_acesso_id !== 'admin' && req.user.nivelAcessoId !== 'admin') {
+  // Convenção do projeto:
+  //   - nivelAcessoId = null  → super admin (pode escolher qualquer perfil na UI)
+  //   - nivelAcessoId = 'admin' → admin explícito
+  //   - qualquer outro valor   → usuário restrito
+  const nivel = req.user.nivelAcessoId ?? req.user.nivel_acesso_id ?? null;
+  if (nivel !== null && nivel !== 'admin') {
     sendError(res, 403, 'Acesso restrito a administradores');
     return false;
   }
