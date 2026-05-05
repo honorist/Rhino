@@ -245,6 +245,20 @@ window.Documentos = {
     return `${day}/${m}/${y}`;
   },
 
+  _badgeValidacao(d) {
+    if (!d.templateId) return `<span style="font-size:12px;color:var(--color-text-muted);">—</span>`;
+    const v = d.validacao;
+    if (!v) return `<span class="badge" style="background:#F3F4F6;color:#6B7280;font-size:12px;padding:2px 8px;border-radius:10px;">⏳ Não validado</span>`;
+    const cfg = {
+      conforme:     { bg: '#D1FAE5', color: '#065F46', label: '✅ Conforme' },
+      parcial:      { bg: '#FEF3C7', color: '#92400E', label: '⚠️ Parcial' },
+      nao_conforme: { bg: '#FEE2E2', color: '#991B1B', label: '❌ Não conforme' },
+      nao_validado: { bg: '#F3F4F6', color: '#6B7280', label: '⏳ Não validado' },
+    }[v.status] || { bg: '#F3F4F6', color: '#6B7280', label: v.status };
+    const score = v.score != null ? ` ${v.score}%` : '';
+    return `<span class="badge" title="${escapeHtml(v.resumo || '')}" style="background:${cfg.bg};color:${cfg.color};font-size:12px;padding:2px 8px;border-radius:10px;font-weight:700;">${cfg.label}${score}</span>`;
+  },
+
   // ── MODAL: LISTA DE DOCUMENTOS DO COLABORADOR ─────────────────────────────
   showDocumentos(recursoId) {
     const r = (Store.state.recursos || []).find(x => x.id === recursoId);
@@ -252,7 +266,7 @@ window.Documentos = {
     const docs = r.documentos || [];
 
     const rows = docs.length === 0
-      ? `<tr><td colspan="6" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum documento cadastrado</td></tr>`
+      ? `<tr><td colspan="7" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum documento cadastrado</td></tr>`
       : docs.map(d => {
           const status = this._statusDoc(d);
           const dias = this._diasRestantes(d);
@@ -261,9 +275,11 @@ window.Documentos = {
             <td style="font-size:15px;">${this._fmtDate(d.dataEmissao)}</td>
             <td style="font-size:15px;">${this._fmtDate(d.dataVencimento)}</td>
             <td>${this._badgeStatus(status, dias)}</td>
+            <td>${this._badgeValidacao(d)}</td>
             <td style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(d.responsavel || '—')}</td>
             <td>
               <div class="actions-cell">
+                ${d.templateId ? `<a class="action-link btn-validar-doc" data-rid="${r.id}" data-did="${d.id}">Ver validação</a>` : ''}
                 <a class="action-link btn-edit-doc" data-rid="${r.id}" data-did="${d.id}">Editar</a>
                 <a class="action-link danger btn-del-doc" data-rid="${r.id}" data-did="${d.id}">Excluir</a>
               </div>
@@ -293,6 +309,7 @@ window.Documentos = {
                     <th>Emissão</th>
                     <th>Validade</th>
                     <th>Status</th>
+                    <th>Validação IA</th>
                     <th>Responsável</th>
                     <th>Ações</th>
                   </tr>
@@ -326,6 +343,105 @@ window.Documentos = {
         const btn = e.target.closest('[data-rid]');
         this._deleteDocumento(btn.dataset.rid, btn.dataset.did, overlay);
       }));
+    overlay.querySelectorAll('.btn-validar-doc').forEach(b =>
+      b.addEventListener('click', e => {
+        const btn = e.target.closest('[data-rid]');
+        this.showModalValidacao(btn.dataset.rid, btn.dataset.did);
+      }));
+  },
+
+  // ── MODAL: RELATÓRIO DE VALIDAÇÃO IA ──────────────────────────────────
+  showModalValidacao(recursoId, docId) {
+    const r = (Store.state.recursos || []).find(x => x.id === recursoId);
+    const d = r?.documentos?.find(x => x.id === docId);
+    if (!d) return;
+    const tpl = (Store.state.doc_templates || []).find(x => x.id === d.templateId);
+    const v = d.validacao;
+
+    const renderRel = (val) => {
+      if (!val) return '<p class="text-muted" style="text-align:center;padding:var(--sp-lg);">Documento ainda não foi validado. Clique em "Validar agora".</p>';
+      if (val.status === 'nao_validado') {
+        return `<div style="padding:var(--sp-md);background:#FEF3C7;border-left:3px solid #F59E0B;border-radius:6px;">
+          <strong>⏳ Não validado</strong><br>
+          <span style="font-size:13px;">${escapeHtml(val.motivo || val.erro || 'Validação pendente')}</span>
+        </div>`;
+      }
+      const cor = val.status === 'conforme' ? '#10B981' : val.status === 'parcial' ? '#F59E0B' : '#EF4444';
+      const item = (label, ok, extra) => `<li style="display:flex;gap:8px;align-items:flex-start;margin-bottom:4px;font-size:13px;">
+        <span style="color:${ok ? '#10B981' : '#EF4444'};font-weight:700;flex-shrink:0;">${ok ? '✓' : '✗'}</span>
+        <div><strong>${escapeHtml(label)}</strong>${extra ? `<div style="font-size:12px;color:var(--color-text-muted);">${extra}</div>` : ''}</div>
+      </li>`;
+      return `
+        <div style="display:flex;gap:16px;align-items:center;margin-bottom:var(--sp-md);">
+          <div style="font-size:42px;font-weight:800;color:${cor};">${val.score || 0}%</div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:15px;">${escapeHtml(val.resumo || '')}</div>
+            <div style="font-size:12px;color:var(--color-text-muted);">Validado em ${val.validadoEm ? new Date(val.validadoEm).toLocaleString('pt-BR') : '—'} · ${val.modelo || ''}</div>
+          </div>
+        </div>
+        ${(val.problemas || []).length ? `
+          <div style="padding:10px;background:#FEE2E2;border-left:3px solid #EF4444;border-radius:4px;margin-bottom:var(--sp-md);">
+            <strong>Problemas detectados:</strong>
+            <ul style="margin:6px 0 0;padding-left:18px;font-size:13px;">${val.problemas.map(p => `<li>${escapeHtml(p)}</li>`).join('')}</ul>
+          </div>
+        ` : ''}
+        ${(val.secoes || []).length ? `
+          <h4 style="margin:var(--sp-md) 0 6px;font-size:14px;">Seções esperadas</h4>
+          <ul style="list-style:none;padding:0;">${val.secoes.map(s => item(`Seção ${s.ordem || ''}: ${s.observacao ? '' : ''}`.trim() + (s.observacao || ''), s.encontrada)).join('')}</ul>
+        ` : ''}
+        ${(val.campos || []).length ? `
+          <h4 style="margin:var(--sp-md) 0 6px;font-size:14px;">Campos extraídos</h4>
+          <ul style="list-style:none;padding:0;">${val.campos.map(c => item(c.nome, c.encontrado, c.valor ? `Valor: ${escapeHtml(c.valor)}` : '')).join('')}</ul>
+        ` : ''}
+        ${(val.elementos_visuais || []).length ? `
+          <h4 style="margin:var(--sp-md) 0 6px;font-size:14px;">Elementos visuais</h4>
+          <ul style="list-style:none;padding:0;">${val.elementos_visuais.map(e => item(e.descricao, e.encontrado)).join('')}</ul>
+        ` : ''}
+      `;
+    };
+
+    const html = `
+      <div class="modal-overlay" id="modalValOverlay">
+        <div class="modal" style="width:680px;max-height:90vh;overflow-y:auto;">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title">Validação IA — ${escapeHtml(d.tipoLabel || d.tipo)}</h2>
+              <div style="font-size:13px;color:var(--color-text-muted);">Template: ${escapeHtml(tpl?.nome || d.templateId)}</div>
+            </div>
+            <button class="modal-close">✕</button>
+          </div>
+          <div class="modal-content" id="valBody">${renderRel(v)}</div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnFecharVal">Fechar</button>
+            <button class="btn btn-primary" id="btnRevalidar">🔄 Validar agora</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalValOverlay');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnFecharVal').addEventListener('click', close);
+
+    document.getElementById('btnRevalidar').addEventListener('click', async () => {
+      const btn = document.getElementById('btnRevalidar');
+      btn.disabled = true; btn.textContent = '⏳ Validando...';
+      document.getElementById('valBody').innerHTML = '<p style="text-align:center;padding:var(--sp-lg);color:var(--color-text-muted);">⏳ Analisando documento com Claude Vision... (pode levar 5-10s)</p>';
+      try {
+        const res = await fetch(`/api/recursos/${recursoId}/documentos/${docId}/validar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        document.getElementById('valBody').innerHTML = renderRel(data.validacao);
+        await Store.loadAll();
+        window.showToast('Validação concluída', 'success');
+      } catch (e) {
+        document.getElementById('valBody').innerHTML = `<div style="padding:var(--sp-md);background:#FEE2E2;border-radius:6px;">Erro: ${escapeHtml(e.message)}</div>`;
+        window.showToast(e.message, 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = '🔄 Validar agora';
+      }
+    });
   },
 
   // ── MODAL: ADICIONAR / EDITAR DOCUMENTO ───────────────────────────────────

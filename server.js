@@ -3260,6 +3260,9 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname.match(/^\/api\/recursos\/[^/]+\/documentos\/[^/]+\/arquivo$/) && method === 'DELETE') {
     return handleDeleteRecursoDocArquivo(pathname.split('/')[3], pathname.split('/')[5], res);
   }
+  if (pathname.match(/^\/api\/recursos\/[^/]+\/documentos\/[^/]+\/validar$/) && method === 'POST') {
+    return handleValidarDocumento(pathname.split('/')[3], pathname.split('/')[5], res);
+  }
   // Admin: lista todos os arquivos do sistema
   if (pathname === '/api/admin/arquivos' && method === 'GET') {
     return handleGetAdminArquivos(res);
@@ -3944,6 +3947,7 @@ async function handlePostDocTemplate(body, res) {
       empresaId: body.empresaId || null,
       checklist: JSON.stringify(Array.isArray(body.checklist) ? body.checklist : []),
       periodicidadeMeses: Number.isFinite(parseInt(body.periodicidadeMeses)) ? parseInt(body.periodicidadeMeses) : 12,
+      metadata: JSON.stringify(body.metadata && typeof body.metadata === 'object' ? body.metadata : {}),
       body: body.body || null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -3962,6 +3966,9 @@ async function handlePutDocTemplate(id, body, res) {
     for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
     if (body.checklist !== undefined) {
       allowed.checklist = JSON.stringify(Array.isArray(body.checklist) ? body.checklist : []);
+    }
+    if (body.metadata !== undefined) {
+      allowed.metadata = JSON.stringify(body.metadata && typeof body.metadata === 'object' ? body.metadata : {});
     }
     if (body.periodicidadeMeses !== undefined) {
       allowed.periodicidadeMeses = Number.isFinite(parseInt(body.periodicidadeMeses)) ? parseInt(body.periodicidadeMeses) : 12;
@@ -3985,6 +3992,236 @@ async function handleDeleteDocTemplate(id, res) {
   }
 }
 
+// ============ Validação de documento contra template (Claude Vision) ============
+// Lê o BYTEA do arquivo, converte PDF→imagem se preciso, redimensiona com jimp,
+// chama Claude Vision com o checklist do template e retorna relatório estruturado.
+// SEMPRE retorna um objeto válido — em caso de erro, retorna status nao_validado.
+async function _validarDocComTemplate(arquivoBuffer, mimeType, template) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return { status: 'nao_validado', motivo: 'ANTHROPIC_API_KEY não configurada' };
+  const meta = template?.metadata || {};
+  const secoes = Array.isArray(meta.secoes) ? meta.secoes : [];
+  const campos = Array.isArray(meta.campos) ? meta.campos : [];
+  const visuais = Array.isArray(meta.elementos_visuais) ? meta.elementos_visuais : [];
+  if (!secoes.length && !campos.length && !visuais.length) {
+    return { status: 'nao_validado', motivo: 'template sem padrão de validação configurado' };
+  }
+
+  let imageBuffer = arquivoBuffer;
+  let mediaType = 'image/png';
+
+  try {
+    if (mimeType === 'application/pdf') {
+      const { pdf } = require('pdf-to-img');
+      const doc = await pdf(arquivoBuffer, { scale: 1.5 });
+      // primeira página como PNG
+      const it = doc[Symbol.asyncIterator]();
+      const first = await it.next();
+      if (!first.value) throw new Error('PDF sem páginas legíveis');
+      imageBuffer = first.value;
+      mediaType = 'image/png';
+    } else if (/^image\//.test(mimeType)) {
+      mediaType = mimeType;
+    } else {
+      return { status: 'nao_validado', motivo: `Tipo de arquivo não suportado pra validação: ${mimeType}` };
+    }
+    // Redimensiona se for muito grande (custo Claude proporcional)
+    try {
+      const { Jimp } = require('jimp');
+      const img = await Jimp.read(imageBuffer);
+      if (img.bitmap.width > 1280) {
+        img.resize({ w: 1280 });
+        imageBuffer = await img.getBuffer('image/png');
+        mediaType = 'image/png';
+      }
+    } catch (eImg) {
+      console.warn('[validar-doc] jimp falhou, usando imagem original:', eImg.message);
+    }
+  } catch (e) {
+    return { status: 'nao_validado', erro: 'falha ao preparar imagem: ' + e.message };
+  }
+
+  const promptTexto = `
+Você é um auditor rigoroso de documentos trabalhistas brasileiros.
+
+Analise a IMAGEM acima (uma página do documento enviado) e verifique se ela atende aos requisitos abaixo. Responda APENAS com um JSON válido (sem markdown, sem comentários) no formato exato indicado.
+
+REQUISITOS:
+
+Seções esperadas (na ordem informada, todas obrigatórias salvo indicação):
+${secoes.map(s => `- ordem ${s.ordem}: ${s.nome}${s.obrigatorio === false ? ' (opcional)' : ''}`).join('\n') || '(nenhuma)'}
+
+Campos a extrair do texto:
+${campos.map(c => `- ${c.nome}${c.obrigatorio === false ? ' (opcional)' : ''}${c.regex ? ` (formato: ${c.regex})` : ''}`).join('\n') || '(nenhum)'}
+
+Elementos visuais esperados:
+${visuais.map(v => `- ${v.descricao}${v.obrigatorio === false ? ' (opcional)' : ''}`).join('\n') || '(nenhum)'}
+
+Instruções extras:
+${meta.instrucoes_extras || '(nenhuma)'}
+
+FORMATO DE RESPOSTA (JSON puro):
+{
+  "secoes": [{"ordem": 1, "encontrada": true, "observacao": "..."}],
+  "campos": [{"nome": "Nome", "encontrado": true, "valor": "..."}],
+  "elementos_visuais": [{"descricao": "Assinatura", "encontrado": true}],
+  "problemas": ["item específico que não atende"],
+  "resumo": "frase curta sobre conformidade geral"
+}
+`.trim();
+
+  let texto;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 30000);
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1500,
+        system: 'Você é um auditor de documentos. Responda APENAS com JSON válido, sem markdown.',
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBuffer.toString('base64') } },
+            { type: 'text', text: promptTexto },
+          ],
+        }],
+      }),
+    });
+    clearTimeout(timer);
+    if (!resp.ok) {
+      const errText = await resp.text();
+      return { status: 'nao_validado', erro: `Claude HTTP ${resp.status}: ${errText.slice(0, 200)}` };
+    }
+    const json = await resp.json();
+    texto = json?.content?.[0]?.text || '';
+  } catch (e) {
+    return { status: 'nao_validado', erro: 'falha ao chamar Claude: ' + e.message };
+  }
+
+  // Extrai JSON da resposta (tolerante a fences ```json ... ```)
+  let parsed;
+  try {
+    const m = texto.match(/\{[\s\S]*\}/);
+    parsed = JSON.parse(m ? m[0] : texto);
+  } catch {
+    return { status: 'nao_validado', erro: 'Claude não retornou JSON válido', resposta: texto.slice(0, 300) };
+  }
+
+  // Calcula score: peso por categoria, considerando obrigatórios
+  let totalPeso = 0, atendidoPeso = 0;
+  const checaSec = (s, idx) => {
+    const obr = secoes[idx]?.obrigatorio !== false;
+    const peso = obr ? 2 : 1;
+    totalPeso += peso;
+    if (s.encontrada) atendidoPeso += peso;
+  };
+  const checaCampo = (c, idx) => {
+    const obr = campos[idx]?.obrigatorio !== false;
+    const peso = obr ? 2 : 1;
+    totalPeso += peso;
+    let ok = c.encontrado;
+    // Verifica regex se houver
+    if (ok && campos[idx]?.regex && c.valor) {
+      try { ok = new RegExp(campos[idx].regex).test(c.valor); } catch {}
+    }
+    if (ok) atendidoPeso += peso;
+  };
+  const checaVis = (v, idx) => {
+    const obr = visuais[idx]?.obrigatorio !== false;
+    const peso = obr ? 2 : 1;
+    totalPeso += peso;
+    if (v.encontrado) atendidoPeso += peso;
+  };
+  (parsed.secoes || []).forEach(checaSec);
+  (parsed.campos || []).forEach(checaCampo);
+  (parsed.elementos_visuais || []).forEach(checaVis);
+  const score = totalPeso > 0 ? Math.round((atendidoPeso / totalPeso) * 100) : 0;
+  const status = score >= 90 ? 'conforme' : score >= 60 ? 'parcial' : 'nao_conforme';
+
+  return {
+    status,
+    score,
+    validadoEm: new Date().toISOString(),
+    modelo: 'claude-haiku-4-5-20251001',
+    secoes: parsed.secoes || [],
+    campos: parsed.campos || [],
+    elementos_visuais: parsed.elementos_visuais || [],
+    problemas: parsed.problemas || [],
+    resumo: parsed.resumo || '',
+  };
+}
+
+// Roda validação em background e atualiza o JSONB do recurso quando termina.
+// Não retorna nada — silencia erros pra não impactar o fluxo principal.
+async function _validarDocBackground(recursoId, docId) {
+  try {
+    const rec = await repos.recursos.findById(recursoId);
+    if (!rec) return;
+    const docs = rec.documentos || [];
+    const idx = docs.findIndex(d => d.id === docId);
+    if (idx === -1) return;
+    const doc = docs[idx];
+    if (!doc.templateId) return;
+    const tpl = await repos.docTemplates.findById(doc.templateId);
+    if (!tpl) return;
+
+    const arq = await db.getOne(
+      `SELECT mime_type, data FROM recurso_doc_arquivos WHERE recurso_id = $1 AND doc_id = $2 ORDER BY created_at DESC LIMIT 1`,
+      [recursoId, docId]
+    );
+    if (!arq) return;
+
+    const validacao = await _validarDocComTemplate(arq.data, arq.mimeType, tpl);
+
+    // Re-busca o recurso (pode ter mudado) e atualiza só o doc
+    const recAtual = await repos.recursos.findById(recursoId);
+    const docsAtual = recAtual.documentos || [];
+    const idx2 = docsAtual.findIndex(d => d.id === docId);
+    if (idx2 === -1) return;
+    docsAtual[idx2] = { ...docsAtual[idx2], validacao, updatedAt: new Date().toISOString() };
+    await repos.recursos.updateById(recursoId, {
+      documentos: JSON.stringify(docsAtual),
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (e) {
+    console.warn('[validar-doc-bg] erro:', e.message);
+  }
+}
+
+async function handleValidarDocumento(recursoId, docId, res) {
+  try {
+    const rec = await repos.recursos.findById(recursoId);
+    if (!rec) return sendError(res, 404, 'Recurso não encontrado');
+    const docs = rec.documentos || [];
+    const idx = docs.findIndex(d => d.id === docId);
+    if (idx === -1) return sendError(res, 404, 'Documento não encontrado');
+    const doc = docs[idx];
+    if (!doc.templateId) return sendError(res, 400, 'Documento não tem template associado');
+    const tpl = await repos.docTemplates.findById(doc.templateId);
+    if (!tpl) return sendError(res, 404, 'Template não encontrado');
+    const arq = await db.getOne(
+      `SELECT mime_type, data FROM recurso_doc_arquivos WHERE recurso_id = $1 AND doc_id = $2 ORDER BY created_at DESC LIMIT 1`,
+      [recursoId, docId]
+    );
+    if (!arq) return sendError(res, 400, 'Documento sem arquivo anexado');
+
+    const validacao = await _validarDocComTemplate(arq.data, arq.mimeType, tpl);
+    docs[idx] = { ...doc, validacao, updatedAt: new Date().toISOString() };
+    await repos.recursos.updateById(recursoId, {
+      documentos: JSON.stringify(docs),
+      updatedAt: new Date().toISOString(),
+    });
+    sendJson(res, { validacao });
+  } catch (e) {
+    console.error('[validar-doc]', e);
+    sendError(res, 400, e.message);
+  }
+}
+
 // ============ Documentos de colaboradores handlers ============
 async function handleAddDocumento(recursoId, body, res) {
   try {
@@ -3994,12 +4231,14 @@ async function handleAddDocumento(recursoId, body, res) {
       id: generateId('doc'),
       tipo:           body.tipo || '',
       tipoLabel:      body.tipoLabel || body.tipo || '',
+      templateId:     body.templateId || null,
       dataEmissao:    body.dataEmissao || '',
       dataVencimento: body.dataVencimento || '',
       responsavel:    body.responsavel || '',
       resultado:      body.resultado || '',
       observacoes:    body.observacoes || '',
       nomeArquivo:    body.nomeArquivo || null,
+      validacao:      null,  // preenchido após validação por IA quando há arquivo + template
       createdAt:  new Date().toISOString(),
       updatedAt:  new Date().toISOString(),
     };
@@ -4145,6 +4384,12 @@ function handlePostRecursoDocArquivo(recursoId, docId, req, res) {
       });
 
       sendJson(res, { ok: true, arquivo: docs[docIdx].arquivo });
+
+      // Trigger validação em background se houver template associado.
+      // Não bloqueia a resposta — o frontend faz refresh e pega o validacao.
+      if (docs[docIdx].templateId) {
+        setImmediate(() => _validarDocBackground(recursoId, docId));
+      }
     } catch (e) {
       sendError(res, 400, e.message);
     }

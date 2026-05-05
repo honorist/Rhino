@@ -588,6 +588,39 @@ window.Configuracao = {
       </div>
     `).join('');
 
+    // Padrão rigoroso (metadata JSONB) — usado pela IA pra validar uploads
+    const meta = t?.metadata || {};
+    const secoesIniciais  = Array.isArray(meta.secoes) ? meta.secoes : [];
+    const camposIniciais  = Array.isArray(meta.campos) ? meta.campos : [];
+    const visuaisIniciais = Array.isArray(meta.elementos_visuais) ? meta.elementos_visuais : [];
+    const instrIniciais   = meta.instrucoes_extras || '';
+
+    const renderSecoes = (arr) => arr.map((s, i) => `
+      <div class="secao-row" data-i="${i}" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
+        <span style="width:30px;font-weight:700;color:var(--color-text-muted);">${i+1}.</span>
+        <input class="form-control" data-f="nome" style="flex:1;" placeholder="Ex: Cabeçalho com logo" value="${escapeHtml(s.nome || '')}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;white-space:nowrap;"><input type="checkbox" data-f="obrigatorio" ${s.obrigatorio !== false ? 'checked' : ''}>Obrig.</label>
+        <button type="button" class="btn btn-sm btn-ghost rm-secao" style="color:#DC2626;">✕</button>
+      </div>
+    `).join('');
+
+    const renderCampos = (arr) => arr.map((c, i) => `
+      <div class="campo-row" data-i="${i}" style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:6px;align-items:center;margin-bottom:6px;">
+        <input class="form-control" data-f="nome" placeholder="Ex: CPF" value="${escapeHtml(c.nome || '')}">
+        <input class="form-control" data-f="regex" placeholder="Regex (opcional) ex: \\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}" value="${escapeHtml(c.regex || '')}" style="font-family:monospace;font-size:12px;">
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;white-space:nowrap;"><input type="checkbox" data-f="obrigatorio" ${c.obrigatorio !== false ? 'checked' : ''}>Obrig.</label>
+        <button type="button" class="btn btn-sm btn-ghost rm-campo" style="color:#DC2626;">✕</button>
+      </div>
+    `).join('');
+
+    const renderVisuais = (arr) => arr.map((v, i) => `
+      <div class="visual-row" data-i="${i}" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
+        <input class="form-control" data-f="descricao" style="flex:1;" placeholder="Ex: Assinatura do médico, Carimbo, Foto 3x4" value="${escapeHtml(v.descricao || '')}">
+        <label style="display:flex;align-items:center;gap:4px;font-size:13px;white-space:nowrap;"><input type="checkbox" data-f="obrigatorio" ${v.obrigatorio !== false ? 'checked' : ''}>Obrig.</label>
+        <button type="button" class="btn btn-sm btn-ghost rm-visual" style="color:#DC2626;">✕</button>
+      </div>
+    `).join('');
+
     const html = `
       <div class="modal-overlay" id="modalTplOverlay">
         <div class="modal" style="width:600px;max-height:90vh;overflow-y:auto;">
@@ -635,6 +668,42 @@ window.Configuracao = {
               ${checklist.length === 0 ? `<p style="font-size:15px;color:var(--color-text-muted);">Nenhum campo adicionado. Clique em "+ Adicionar Campo" para inserir itens do checklist.</p>` : ''}
             </div>
 
+            <details class="form-group" style="border:1px solid var(--color-border);border-radius:8px;padding:var(--sp-md);margin-top:var(--sp-md);" ${(secoesIniciais.length || camposIniciais.length || visuaisIniciais.length) ? 'open' : ''}>
+              <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#7C3AED;">🤖 Padrão rigoroso de validação (IA verifica os uploads)</summary>
+              <div style="margin-top:var(--sp-md);font-size:13px;color:var(--color-text-muted);">
+                Quando o colaborador subir um arquivo com este template selecionado, o sistema usa Claude Vision pra checar automaticamente se o documento atende aos itens abaixo. Deixe vazio se quiser apenas o checklist manual.
+              </div>
+
+              <div style="margin-top:var(--sp-md);">
+                <label class="form-label" style="display:flex;justify-content:space-between;align-items:center;">
+                  <span>Seções esperadas (em ordem)</span>
+                  <button type="button" class="btn btn-sm btn-ghost" id="btnAddSecao">+ Adicionar seção</button>
+                </label>
+                <div id="secoesContainer">${renderSecoes(secoesIniciais)}</div>
+              </div>
+
+              <div style="margin-top:var(--sp-md);">
+                <label class="form-label" style="display:flex;justify-content:space-between;align-items:center;">
+                  <span>Campos a extrair (com regex opcional)</span>
+                  <button type="button" class="btn btn-sm btn-ghost" id="btnAddCampo">+ Adicionar campo</button>
+                </label>
+                <div id="camposContainer">${renderCampos(camposIniciais)}</div>
+              </div>
+
+              <div style="margin-top:var(--sp-md);">
+                <label class="form-label" style="display:flex;justify-content:space-between;align-items:center;">
+                  <span>Elementos visuais (assinatura, carimbo, foto…)</span>
+                  <button type="button" class="btn btn-sm btn-ghost" id="btnAddVisual">+ Adicionar elemento</button>
+                </label>
+                <div id="visuaisContainer">${renderVisuais(visuaisIniciais)}</div>
+              </div>
+
+              <div style="margin-top:var(--sp-md);">
+                <label class="form-label">Instruções extras pra IA</label>
+                <textarea class="form-control" name="instrucoesExtras" rows="2" placeholder="Ex: 'Verificar se atende NR-7. Recusar se vencido há mais de 1 mês.'">${escapeHtml(instrIniciais)}</textarea>
+              </div>
+            </details>
+
             <div class="form-group" style="border-top:1px solid var(--color-border);padding-top:var(--sp-md);margin-top:var(--sp-sm);">
               <label class="form-label" style="display:flex;justify-content:space-between;">
                 <span>📋 Corpo do Documento (para Gerar PDF por contrato)</span>
@@ -672,6 +741,40 @@ window.Configuracao = {
       refreshChecklist();
     });
 
+    // Padrão rigoroso (metadata) — listas mutáveis
+    let secoesArr  = [...secoesIniciais];
+    let camposArr  = [...camposIniciais];
+    let visuaisArr = [...visuaisIniciais];
+
+    const refreshSecoes = () => {
+      const c = document.getElementById('secoesContainer');
+      c.innerHTML = renderSecoes(secoesArr);
+      c.querySelectorAll('.rm-secao').forEach(b => b.addEventListener('click', e => {
+        const i = +e.target.closest('.secao-row').dataset.i;
+        secoesArr.splice(i, 1); refreshSecoes();
+      }));
+    };
+    const refreshCampos = () => {
+      const c = document.getElementById('camposContainer');
+      c.innerHTML = renderCampos(camposArr);
+      c.querySelectorAll('.rm-campo').forEach(b => b.addEventListener('click', e => {
+        const i = +e.target.closest('.campo-row').dataset.i;
+        camposArr.splice(i, 1); refreshCampos();
+      }));
+    };
+    const refreshVisuais = () => {
+      const c = document.getElementById('visuaisContainer');
+      c.innerHTML = renderVisuais(visuaisArr);
+      c.querySelectorAll('.rm-visual').forEach(b => b.addEventListener('click', e => {
+        const i = +e.target.closest('.visual-row').dataset.i;
+        visuaisArr.splice(i, 1); refreshVisuais();
+      }));
+    };
+    refreshSecoes(); refreshCampos(); refreshVisuais();
+    document.getElementById('btnAddSecao').addEventListener('click', () => { secoesArr.push({ nome: '', obrigatorio: true }); refreshSecoes(); });
+    document.getElementById('btnAddCampo').addEventListener('click', () => { camposArr.push({ nome: '', regex: '', obrigatorio: true }); refreshCampos(); });
+    document.getElementById('btnAddVisual').addEventListener('click', () => { visuaisArr.push({ descricao: '', obrigatorio: true }); refreshVisuais(); });
+
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnCancelarTpl').addEventListener('click', close);
@@ -687,12 +790,40 @@ window.Configuracao = {
         if (campo) checklistAtual.push({ campo, obrigatorio });
       });
 
+      // Coleta padrão rigoroso atual do DOM (após edições)
+      const secoesAtual = [];
+      document.querySelectorAll('#secoesContainer .secao-row').forEach((r, i) => {
+        const nome = r.querySelector('[data-f="nome"]').value.trim();
+        const obrig = r.querySelector('[data-f="obrigatorio"]').checked;
+        if (nome) secoesAtual.push({ ordem: i + 1, nome, obrigatorio: obrig });
+      });
+      const camposAtual = [];
+      document.querySelectorAll('#camposContainer .campo-row').forEach(r => {
+        const nome  = r.querySelector('[data-f="nome"]').value.trim();
+        const regex = r.querySelector('[data-f="regex"]').value.trim();
+        const obrig = r.querySelector('[data-f="obrigatorio"]').checked;
+        if (nome) camposAtual.push({ nome, regex: regex || null, obrigatorio: obrig });
+      });
+      const visuaisAtual = [];
+      document.querySelectorAll('#visuaisContainer .visual-row').forEach(r => {
+        const desc  = r.querySelector('[data-f="descricao"]').value.trim();
+        const obrig = r.querySelector('[data-f="obrigatorio"]').checked;
+        if (desc) visuaisAtual.push({ descricao: desc, obrigatorio: obrig });
+      });
+      const metadata = {
+        secoes: secoesAtual,
+        campos: camposAtual,
+        elementos_visuais: visuaisAtual,
+        instrucoes_extras: (fd.get('instrucoesExtras') || '').trim(),
+      };
+
       const payload = {
         nome:               fd.get('nome'),
         tipoDocumento:      fd.get('tipoDocumento'),
         empresaId:          fd.get('empresaId') || null,
         periodicidadeMeses: parseInt(fd.get('periodicidadeMeses')) || 12,
         checklist:          checklistAtual,
+        metadata,
         body:               fd.get('body') || null,
       };
 
