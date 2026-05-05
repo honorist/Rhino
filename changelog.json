@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.0.37",
+      "date": "2026-05-05",
+      "summary": "Caixa reconciliado e gráfico do dashboard mais legível",
+      "changes": [
+        "Caixa estava sem 23 saídas correspondentes a contas a pagar antigas (já marcadas como pagas). As entradas foram recriadas com base nas datas e valores originais.",
+        "Saldo do caixa agora reflete os pagamentos que de fato aconteceram.",
+        "Eixo Y do gráfico do Dashboard agora mostra valores com ponto separando milhar/milhão (ex: R$ 1.234.567) em vez de abreviações como '1.0M'.",
+        "Removido endpoint administrativo temporário usado na reconciliação."
+      ]
+    },
+    {
       "version": "1.0.35",
       "date": "2026-05-05",
       "summary": "Correção: lista de usuários voltou a aparecer para administradores",

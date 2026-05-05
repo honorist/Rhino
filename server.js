@@ -1905,62 +1905,6 @@ async function handlePagarConta(id, body, res) {
   }
 }
 
-// Reconcilia caixa a partir de contas_pagar pagas que perderam (ou nunca tiveram)
-// a entrada correspondente em caixa. Para cada conta com status=pago e caixaEntryId
-// inexistente, recria a entrada usando o mesmo ID (preserva o link).
-// GET ?apply=1 → aplica; sem query → dry-run (lista o que faria).
-async function handleReconcileCaixaFromContasPagar(query, res) {
-  try {
-    const apply = !!(query && (query.apply === '1' || query.apply === 'true'));
-    const contas = await repos.contasPagar.findAll();
-    const caixa = await repos.caixa.findAll();
-    const caixaIds = new Set(caixa.map(e => e.id));
-    const candidatos = contas.filter(c =>
-      c.status === 'pago' && c.caixaEntryId && !caixaIds.has(c.caixaEntryId)
-    );
-    const planos = candidatos.map(c => ({
-      caixaEntryId: c.caixaEntryId,
-      contaId: c.id,
-      type: 'saida',
-      description: c.descricao + (c.numeroNF ? ` — NF ${c.numeroNF}` : '') + (c.formaPagamento ? ` [${c.formaPagamento}]` : ''),
-      value: parseFloat(c.valorPago) || parseFloat(c.valor) || 0,
-      date: c.dataPagamento || c.dataVencimento || new Date().toISOString().split('T')[0],
-      contractId: c.contractId || null,
-      category: c.category || 'fornecedor',
-      formaPagamento: c.formaPagamento || null,
-    }));
-    if (!apply) {
-      return sendJson(res, {
-        mode: 'dry-run',
-        candidatos: planos.length,
-        totalSaida: planos.reduce((s, p) => s + p.value, 0),
-        amostra: planos.slice(0, 5),
-      });
-    }
-    let criados = 0;
-    for (const p of planos) {
-      await repos.caixa.create({
-        id: p.caixaEntryId,
-        type: 'saida',
-        description: p.description,
-        value: p.value,
-        date: p.date,
-        contractId: p.contractId,
-        baseItemId: null,
-        category: p.category,
-        notes: `Reconciliação automática (caixa apagado pós-pagamento)`,
-        formaPagamento: p.formaPagamento,
-        contaPagarId: p.contaId,
-        createdAt: new Date().toISOString(),
-      });
-      criados++;
-    }
-    sendJson(res, { mode: 'applied', criados, totalSaida: planos.reduce((s, p) => s + p.value, 0) });
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
 async function handleEstornarConta(id, res) {
   try {
     const conta = await repos.contasPagar.findById(id);
@@ -3293,10 +3237,6 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   }
 
   // Contas a Pagar routes
-  // Reconciliação caixa↔contas_pagar (admin-only via ADMIN_PATH_PREFIXES → /api/admin/)
-  if (pathname === '/api/admin/reconcile-caixa' && method === 'GET') {
-    return handleReconcileCaixaFromContasPagar(parsedUrl.query, res);
-  }
   if (pathname === '/api/contas-pagar' && method === 'GET') return handleGetContasPagar(res);
   if (pathname === '/api/contas-pagar' && method === 'POST') return handlePostContaPagar(body, res);
   if (pathname.match(/^\/api\/contas-pagar\/[^/]+$/) && method === 'PUT') {

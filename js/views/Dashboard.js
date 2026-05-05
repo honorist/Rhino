@@ -1048,11 +1048,15 @@ window.Dashboard = {
 
     const podeVerValores = !window.perfil || typeof window.perfil.podeVerValores !== 'function' || window.perfil.podeVerValores();
     const fmt = v => podeVerValores ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v) : 'R$ ●●●●●';
+    // Padrão brasileiro: . separa milhar/milhão. Eixo Y mostra valor cheio
+    // (ex: R$ 1.234.567) — mais legível que abreviações.
+    const _nfBR = new Intl.NumberFormat('pt-BR', {
+      style: 'currency', currency: 'BRL', maximumFractionDigits: 0
+    });
     const fmtTick = v => {
       if (!podeVerValores) return '●●●';
-      if (v >= 1000000) return 'R$' + (v/1000000).toFixed(1) + 'M';
-      if (v >= 1000) return 'R$' + (v/1000).toFixed(0) + 'k';
-      return 'R$' + v;
+      const n = Number(v) || 0;
+      return n < 0 ? '-' + _nfBR.format(Math.abs(n)) : _nfBR.format(n);
     };
     const hoje = new Date().toISOString().split('T')[0];
 
