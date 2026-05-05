@@ -1,0 +1,51 @@
+{
+  "entries": [
+    {
+      "version": "1.0.32",
+      "date": "2026-05-05",
+      "summary": "Histórico de atualizações disponível para consulta",
+      "changes": [
+        "Nova seção \"Atualizações\" em Configurações: agora você pode ver o que mudou em cada versão do sistema, em linguagem simples.",
+        "Cada nova versão a partir desta passa a registrar suas mudanças aqui automaticamente."
+      ]
+    },
+    {
+      "version": "1.0.31",
+      "date": "2026-05-05",
+      "summary": "Sistema mais rápido para abrir e trocar de telas",
+      "changes": [
+        "Telas abrem mais rápido — o sistema agora carrega só o que você está usando, em vez de tudo de uma vez no começo.",
+        "Trocar de tela ficou mais leve: ele lembra dos dados já carregados por 1 minuto e não fica buscando do zero a cada clique.",
+        "Listas de contratos em telas como Contas a Pagar carregam só o resumo dos contratos, sem detalhes pesados que aquela tela não usa.",
+        "O ícone de Cobrança no menu lateral foi movido para a última posição.",
+        "Melhorias internas para deixar a navegação mais fluida em conexões lentas e celular."
+      ]
+    },
+    {
+      "version": "1.0.29",
+      "date": "2026-04-23",
+      "summary": "Nova tela de Cobrança Mensal do app",
+      "changes": [
+        "Adicionada tela de Cobrança (visível só para administrador) com cálculo automático do valor mensal a pagar pelo uso do sistema.",
+        "Inclui projeção do mês atual, histórico, tabela de faixas de preço e exportação em CSV."
+      ]
+    },
+    {
+      "version": "1.0.27",
+      "date": "2026-04-15",
+      "summary": "Templates de documentos com validação automática por IA",
+      "changes": [
+        "Templates de documentos agora seguem padrão mais rigoroso e são validados automaticamente pela IA antes de serem aceitos."
+      ]
+    },
+    {
+      "version": "1.0.26",
+      "date": "2026-04-10",
+      "summary": "Fluxo de Solicitações de Compra reorganizado",
+      "changes": [
+        "Solicitações de compra agora seguem 5 etapas claras: criar, avaliar, aprovar, comprar e receber.",
+        "Cada etapa tem permissões e responsáveis definidos pelo nível de acesso do usuário."
+      ]
+    }
+  ]
+}

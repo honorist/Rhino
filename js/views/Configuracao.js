@@ -30,6 +30,7 @@ window.Configuracao = {
             ${this.renderMenuItem('notificacoes', '🔔', 'Notificações Push')}
             ${this.renderMenuItem('lgpd', '🔒', 'Privacidade (LGPD)')}
             ${this.renderMenuItem('tour', '🗺️', 'Tour Guiado')}
+            ${this.renderMenuItem('atualizacoes', '🆕', 'Atualizações')}
             <a href="#/usuarios" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;text-decoration:none;color:var(--color-text);margin-top:4px;border-top:1px solid var(--color-border);padding-top:14px;">
               <span style="display:inline-flex;align-items:center;color:var(--rh-ink-500);">${window.rhIcon ? window.rhIcon('user-plus', 16) : ''}</span><span>Usuários e Logins</span>
             </a>
@@ -49,6 +50,7 @@ window.Configuracao = {
             ${this.currentSection === 'notificacoes'   ? this.renderNotificacoesPush() : ''}
             ${this.currentSection === 'lgpd'           ? this.renderLgpd() : ''}
             ${this.currentSection === 'tour'           ? this.renderTour() : ''}
+            ${this.currentSection === 'atualizacoes'   ? this.renderAtualizacoes() : ''}
           </div>
         </div>
       `;
@@ -330,6 +332,7 @@ window.Configuracao = {
     if (this.currentSection === 'arquivos') this.attachArquivosListeners();
     if (this.currentSection === 'feature_flags') this.attachFeatureFlagsListeners();
     if (this.currentSection === 'notificacoes') this.attachPushListeners();
+    if (this.currentSection === 'atualizacoes') this.loadAtualizacoes();
 
     const btnLgpd = document.getElementById('btnLgpdDelete');
     if (btnLgpd) {
@@ -1130,6 +1133,70 @@ window.Configuracao = {
         <button class="btn btn-primary" id="btnRestarTour">🚀 Iniciar Tour</button>
       </div>
     `;
+  },
+
+  // ── Atualizações (changelog em linguagem leiga) ───────────────────────────
+  renderAtualizacoes() {
+    const versaoAtual = (window.__APP_VERSION__ || '');
+    return `
+      <div class="page-header" style="margin-bottom:var(--sp-lg);">
+        <div>
+          <h2 style="font-size:20px;font-weight:700;margin:0;">🆕 Atualizações</h2>
+          <p class="page-subtitle">O que mudou em cada versão do sistema</p>
+        </div>
+        <div style="font-size:13px;color:var(--color-text-muted);">
+          Versão atual: <strong style="color:var(--color-primary);">${escapeHtml(versaoAtual || '—')}</strong>
+        </div>
+      </div>
+      <div id="changelogContent" class="card">
+        <div class="loading-spinner">Carregando histórico…</div>
+      </div>
+    `;
+  },
+
+  async loadAtualizacoes() {
+    const box = document.getElementById('changelogContent');
+    if (!box) return;
+    try {
+      const res = await fetch('/changelog.json', { cache: 'no-cache' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const entries = (data.entries || []);
+      if (!entries.length) {
+        box.innerHTML = '<p style="color:var(--color-text-muted);">Nenhuma atualização registrada ainda.</p>';
+        return;
+      }
+      const versaoAtual = (window.__APP_VERSION__ || '').replace(/^v/, '');
+      box.innerHTML = entries.map(e => {
+        const isAtual = e.version === versaoAtual;
+        const dataFmt = e.date ? this._fmtDataChangelog(e.date) : '';
+        return `
+          <div style="padding:14px 0;border-bottom:1px solid var(--color-border);">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+              <strong style="font-size:17px;color:var(--color-primary);">v${escapeHtml(e.version)}</strong>
+              ${isAtual ? '<span style="background:var(--color-success);color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;">ATUAL</span>' : ''}
+              ${dataFmt ? `<span style="color:var(--color-text-muted);font-size:13px;">${escapeHtml(dataFmt)}</span>` : ''}
+            </div>
+            ${e.summary ? `<div style="font-weight:600;margin-bottom:8px;font-size:15px;">${escapeHtml(e.summary)}</div>` : ''}
+            <ul style="margin:0;padding-left:20px;color:var(--color-text);font-size:14px;line-height:1.6;">
+              ${(e.changes || []).map(c => `<li style="margin-bottom:4px;">${escapeHtml(c)}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }).join('');
+      // Remove a borda do último item
+      const last = box.querySelector('div:last-child');
+      if (last) last.style.borderBottom = 'none';
+    } catch (e) {
+      box.innerHTML = `<p style="color:var(--color-danger);">Não foi possível carregar o histórico de atualizações.</p>`;
+    }
+  },
+
+  _fmtDataChangelog(d) {
+    try {
+      const dt = new Date(d + 'T12:00:00');
+      return dt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+    } catch { return d; }
   },
 
   // ── Notificações Push ──────────────────────────────────────────────────────
