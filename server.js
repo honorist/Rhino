@@ -589,6 +589,10 @@ async function handleDashboard(res, query) {
     const base = { items: await repos.baseItems.findAll() };
     const notasFiscais = { notas_fiscais: await repos.notasFiscais.findAll() };
 
+    // Janela do gráfico — configurável via ?projDays (30/60/90, default 60, max 180).
+    // Controla TANTO o histórico (passado) quanto a projeção (futuro).
+    const projDays = Math.min(180, Math.max(7, parseInt(query?.projDays) || 60));
+
     // Period filter: mes=1-12, ano=YYYY, or modo='ano' for full year
     const hoje = new Date();
     const filtroAno = query && query.ano ? parseInt(query.ano) : null;
@@ -695,8 +699,10 @@ async function handleDashboard(res, query) {
         }
       }
     } else {
-      // Default: last 30 days
-      for (let i = 29; i >= 0; i--) {
+      // Default: últimos N dias (N = projDays). Amostra a cada `histStep` dias
+      // pra manter o gráfico legível em janelas grandes.
+      const histStep = projDays <= 30 ? 1 : projDays <= 60 ? 2 : 3;
+      for (let i = projDays - 1; i >= 0; i -= histStep) {
         const dia = new Date();
         dia.setDate(dia.getDate() - i);
         dia.setHours(23, 59, 59, 999);
@@ -707,6 +713,14 @@ async function handleDashboard(res, query) {
           data: dia.toISOString().split('T')[0],
           saldo: saldoAteODia
         });
+      }
+      // Garante que o último ponto seja exatamente HOJE (caso o passo pule)
+      if (historicoCaixa.length === 0 || historicoCaixa[historicoCaixa.length - 1].data !== new Date().toISOString().split('T')[0]) {
+        const hojeFim = new Date(); hojeFim.setHours(23, 59, 59, 999);
+        const saldoHoje = entriesOrdenadas
+          .filter(e => new Date(e.date) <= hojeFim)
+          .reduce((sum, e) => e.type === 'entrada' ? sum + e.value : sum - e.value, 0);
+        historicoCaixa.push({ data: new Date().toISOString().split('T')[0], saldo: saldoHoje });
       }
     }
 
@@ -775,8 +789,6 @@ async function handleDashboard(res, query) {
       else if (c.dataVencimento && c.dataVencimento <= em7DiasStrCP) contasPagarStatus.proximasVencer++;
     });
 
-    // Saldo projetado acumulado para o gráfico — configurável via ?projDays (30/60/90, default 60, max 180)
-    const projDays = Math.min(180, Math.max(7, parseInt(query?.projDays) || 60));
     const contasVencidasTotal = contasPagar.contas
       .filter(c => c.status === 'pendente' && c.dataVencimento && c.dataVencimento <= hojeStrCP)
       .reduce((s, c) => s + (parseFloat(c.valor) || 0), 0);

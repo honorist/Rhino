@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.0.38",
+      "date": "2026-05-05",
+      "summary": "Botões 30/60/90 do gráfico do Dashboard agora também ampliam a visão do passado",
+      "changes": [
+        "Antes os botões 30d/60d/90d só mudavam a projeção futura. Agora também aumentam quantos dias de histórico aparecem no gráfico.",
+        "Em janelas maiores (60 e 90 dias) os pontos são amostrados (a cada 2 ou 3 dias) pra manter o gráfico legível."
+      ]
+    },
+    {
       "version": "1.0.37",
       "date": "2026-05-05",
       "summary": "Caixa reconciliado e gráfico do dashboard mais legível",
