@@ -107,7 +107,7 @@ window.SolicitacoesCompra = {
               <tr>
                 <th>Data</th>
                 <th>Solicitante</th>
-                <th>Contrato</th>
+                <th>Destino</th>
                 <th>Itens</th>
                 <th>Valor</th>
                 <th>Status</th>
@@ -124,7 +124,7 @@ window.SolicitacoesCompra = {
                 <tr>
                   <td>${s.createdAt ? new Date(s.createdAt).toLocaleDateString('pt-BR') : '—'}</td>
                   <td>${escapeHtml(s.solicitanteNome || '—')}</td>
-                  <td>${contrato ? escapeHtml(contrato.name) : '<span class="text-muted">—</span>'}</td>
+                  <td>${contrato ? '🏗️ ' + escapeHtml(contrato.name) : '🏢 Sede'}</td>
                   <td>${itens.length} ${itens.length === 1 ? 'item' : 'itens'}</td>
                   <td><strong>${Store.formatBRL(parseFloat(s.valorTotal) || 0)}</strong></td>
                   <td>${this._badgeStatus(s.status)}</td>
@@ -187,11 +187,12 @@ window.SolicitacoesCompra = {
           <form id="formSolicitacao" class="modal-content">
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Contrato (obra)</label>
-                <select class="form-control" name="contractId">
-                  <option value="">— Não vinculada a uma obra —</option>
-                  ${contratos.map(c => `<option value="${c.id}" ${s?.contractId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
+                <label class="form-label">Destino *</label>
+                <select class="form-control" name="destino" required>
+                  <option value="sede" ${(!s?.contractId)?'selected':''}>🏢 Sede / Almoxarifado Central</option>
+                  ${contratos.map(c => `<option value="obra:${c.id}" ${s?.contractId===c.id?'selected':''}>🏗️ Obra · ${escapeHtml(c.name)}</option>`).join('')}
                 </select>
+                <span style="font-size:12px;color:var(--color-text-muted);">A entrada do estoque vai pra esse destino quando aprovada.</span>
               </div>
               <div class="form-group">
                 <label class="form-label">Fornecedor</label>
@@ -305,8 +306,18 @@ window.SolicitacoesCompra = {
       });
       if (!itens.length) { window.showToast('Adicione pelo menos um item válido', 'error'); return; }
 
+      // "destino" é "sede" ou "obra:<contractId>"
+      const destino = fd.get('destino') || 'sede';
+      let contractId = null;
+      let almoxarifadoDestinoId = 'auto-central';
+      if (destino.startsWith('obra:')) {
+        contractId = destino.slice(5);
+        almoxarifadoDestinoId = `auto-obra:${contractId}`;
+      }
+
       const payload = {
-        contractId: fd.get('contractId') || null,
+        contractId,
+        almoxarifadoDestinoId,
         fornecedorId: fd.get('fornecedorId') || null,
         justificativa: fd.get('justificativa') || '',
         itens,
@@ -345,7 +356,7 @@ window.SolicitacoesCompra = {
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:var(--sp-md);">
               <div><strong>Solicitante:</strong> ${escapeHtml(s.solicitanteNome || '—')}</div>
               <div><strong>Data:</strong> ${s.createdAt ? new Date(s.createdAt).toLocaleDateString('pt-BR') : '—'}</div>
-              <div><strong>Contrato:</strong> ${contrato ? escapeHtml(contrato.name) : '—'}</div>
+              <div><strong>Destino:</strong> ${contrato ? '🏗️ ' + escapeHtml(contrato.name) : '🏢 Sede / Almoxarifado Central'}</div>
               <div><strong>Fornecedor:</strong> ${fornecedor ? escapeHtml(fornecedor.nome || fornecedor.razaoSocial) : '—'}</div>
             </div>
             ${s.justificativa ? `<div style="padding:10px;background:var(--color-surface-2);border-radius:6px;margin-bottom:var(--sp-md);"><strong>Justificativa:</strong><br>${escapeHtml(s.justificativa)}</div>` : ''}
