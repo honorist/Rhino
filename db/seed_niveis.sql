@@ -1,6 +1,6 @@
 INSERT INTO niveis_acesso (id, label, icon, cor, abas) VALUES
   ('admin',      'Administrador', 'shield',     '#55588B', '["#/dashboard","#/contratos","#/caixa","#/notas-fiscais","#/contas-pagar","#/socios","#/investimentos","#/clientes","#/fornecedores","#/recursos","#/base","#/obras","#/frota","#/solicitacoes-compra","#/cobranca","#/auditoria","#/configuracao","#/usuarios","solicitacoes-compra:avaliar","solicitacoes-compra:aprovar","solicitacoes-compra:receber","contrato-tab:visao","contrato-tab:financeiro","contrato-tab:equipe","contrato-tab:rdo","contrato-tab:pendencias"]'::jsonb),
-  ('gerente',    'Gerente',       'briefcase',  '#7C3AED', '["#/dashboard","#/contratos","#/caixa","#/notas-fiscais","#/contas-pagar","#/clientes","#/fornecedores","#/recursos","#/obras","#/frota","#/solicitacoes-compra","#/estoque","solicitacoes-compra:aprovar","edit:#/frota","contrato-tab:visao","contrato-tab:financeiro","contrato-tab:equipe","contrato-tab:rdo","contrato-tab:pendencias"]'::jsonb),
+  ('gerente',    'Gerente',       'briefcase',  '#7C3AED', '["#/dashboard","#/contratos","#/caixa","#/notas-fiscais","#/contas-pagar","#/clientes","#/fornecedores","#/recursos","#/obras","#/frota","#/solicitacoes-compra","#/estoque","#/cobranca","solicitacoes-compra:aprovar","edit:#/frota","contrato-tab:visao","contrato-tab:financeiro","contrato-tab:equipe","contrato-tab:rdo","contrato-tab:pendencias"]'::jsonb),
   ('gestor',     'Gestor',        'briefcase',  '#0891B2', '["#/dashboard","#/contratos","#/caixa","#/notas-fiscais","#/contas-pagar","#/clientes","#/fornecedores","#/recursos","#/obras","#/frota","#/solicitacoes-compra","contrato-tab:visao","contrato-tab:financeiro","contrato-tab:equipe","contrato-tab:rdo","contrato-tab:pendencias"]'::jsonb),
   ('financeiro', 'Financeiro',    'dollar-sign','#10B981', '["#/dashboard","#/caixa","#/notas-fiscais","#/contas-pagar","#/contratos","#/clientes","#/fornecedores","#/solicitacoes-compra","solicitacoes-compra:avaliar","solicitacoes-compra:receber","contrato-tab:visao","contrato-tab:financeiro"]'::jsonb),
   ('operador',   'Operador',      'clipboard',  '#F59E0B', '["#/contratos","#/obras","#/recursos","#/frota","#/solicitacoes-compra","solicitacoes-compra:receber","contrato-tab:visao","contrato-tab:equipe","contrato-tab:rdo"]'::jsonb)
@@ -19,5 +19,18 @@ BEGIN
       abas_atual := abas_atual || '"#/solicitacoes-compra"'::jsonb;
     END IF;
     UPDATE niveis_acesso SET abas = abas_atual WHERE id = r.id;
+  END LOOP;
+END $$;
+
+-- Migração: admin e gerente ganham '#/cobranca' nas abas (idempotente)
+DO $$
+DECLARE r RECORD; abas_atual JSONB;
+BEGIN
+  FOR r IN SELECT id, abas FROM niveis_acesso WHERE id IN ('admin', 'gerente') LOOP
+    abas_atual := r.abas;
+    IF NOT abas_atual ? '#/cobranca' THEN
+      abas_atual := abas_atual || '"#/cobranca"'::jsonb;
+      UPDATE niveis_acesso SET abas = abas_atual WHERE id = r.id;
+    END IF;
   END LOOP;
 END $$;
