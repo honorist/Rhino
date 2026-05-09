@@ -7,13 +7,13 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 // Helper: estado limpo a cada teste, com login automático
 async function freshApp(page) {
-  await page.goto(BASE_URL);
+  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
   await page.evaluate(() => {
     try {
       Object.keys(localStorage).filter(k => k.startsWith('rhino:') || k.startsWith('rhino-')).forEach(k => localStorage.removeItem(k));
       sessionStorage.clear();
     } catch {}
-  });
+  }).catch(() => {});
   await page.goto(BASE_URL);
 
   // Aguarda login form ou profile picker (depende de haver sessão ativa)

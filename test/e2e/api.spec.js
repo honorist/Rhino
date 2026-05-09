@@ -222,7 +222,8 @@ test.describe('Aditivos, Marcos e Ocorrências', () => {
 
   test.beforeAll(async () => {
     const ctx = await api();
-    const r = await ctx.post('/api/contracts', { data: { name: 'PW Aditivos Contract', value: 100000 } });
+    const r = await ctx.post('/api/contracts', { data: { name: 'PW Aditivos Contract', client: 'PW Test', value: 100000 } });
+    expect(r.status()).toBe(200);
     contractId = (await r.json()).contracts.find(c => c.name === 'PW Aditivos Contract').id;
   });
 
