@@ -77,6 +77,11 @@ window.Dashboard = {
       // Pipeline de medições (mês corrente)
       const pipeline = this._calcPipeline(nfsList, saidasList);
 
+      // Colaboradores ativos
+      const recursos = Store.state.recursos || [];
+      const colaboradoresAtivos = recursos.filter(r => r.status === 'funcionario').length;
+      const colaboradoresCandidatos = recursos.filter(r => r.status === 'candidato').length;
+
       // Aportes acumulados (sócios + investimentos com origem 'empresa')
       const aportesSocios = sociosList.reduce((s, x) => s + (parseFloat(x.aporteTotal || x.aporte_total || x.aporte) || 0), 0);
       const aportesEmpresa = investList
@@ -350,6 +355,14 @@ window.Dashboard = {
               spark: _spark45.entradasAcum,
               deltaTone: 'pos',
               tooltip: `${Store.formatBRL(aportesTotal)} · Capital próprio injetado historicamente (sócios + empresa).`,
+            })}
+            ${_kpi({
+              href: '#/recursos',
+              label: 'Colaboradores',
+              value: colaboradoresAtivos,
+              tone: colaboradoresAtivos > 0 ? 'pos' : '',
+              meta: colaboradoresCandidatos > 0 ? `+ ${colaboradoresCandidatos} candidato${colaboradoresCandidatos !== 1 ? 's' : ''}` : 'ativos',
+              tooltip: `${colaboradoresAtivos} funcionário${colaboradoresAtivos !== 1 ? 's' : ''} ativo${colaboradoresAtivos !== 1 ? 's' : ''} cadastrado${colaboradoresAtivos !== 1 ? 's' : ''}.${colaboradoresCandidatos > 0 ? ` Mais ${colaboradoresCandidatos} candidato${colaboradoresCandidatos !== 1 ? 's' : ''} no pipeline.` : ''}`,
             })}
             ${rdoStats ? _kpi({
               href: '#/rdos',
