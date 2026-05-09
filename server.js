@@ -5908,14 +5908,103 @@ async function bootstrap() {
   }
 }
 
+// ── Backup automático diário por email ─────────────────────────────────────
+const BACKUP_EMAIL = process.env.BACKUP_EMAIL || process.env.ADMIN_EMAIL || '';
+const BACKUP_HOUR  = parseInt(process.env.BACKUP_HOUR || '3', 10); // 3h da manhã (UTC)
+
+async function _runEmailBackup() {
+  const email = require('./lib/email');
+  if (!BACKUP_EMAIL) {
+    console.warn('[backup] BACKUP_EMAIL não configurado — pulando envio');
+    return;
+  }
+  try {
+    const safe = async (fn) => { try { return await fn(); } catch { return []; } };
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    const payload = {
+      _meta: { version: APP_VERSION, generatedAt: new Date().toISOString(), format: 'rhino-backup-v1' },
+      contracts:      await safe(() => repos.contracts.findAllWithChildren()),
+      saidas:         await safe(() => repos.saidas.findAll()),
+      caixa:          await safe(() => repos.caixa.findAll()),
+      base:           await safe(() => repos.baseItems.findAll()),
+      socios:         await safe(() => repos.socios.findAll()),
+      investimentos:  await safe(() => repos.investimentos.findAll()),
+      notas_fiscais:  await safe(() => repos.notasFiscais.findAll()),
+      tipos_base:     await safe(() => repos.tiposBase.findAll()),
+      clientes:       await safe(() => repos.clientes.findAll()),
+      fornecedores:   await safe(() => repos.fornecedores.findAll()),
+      contas_pagar:   await safe(() => repos.contasPagar.findAll()),
+      niveis_acesso:  await safe(() => repos.niveisAcesso.findAll()),
+      recursos:       await safe(() => repos.recursos.findAll()),
+      doc_templates:  await safe(() => repos.docTemplates.findAll()),
+    };
+    const json = JSON.stringify(payload);
+    const sizeMB = (Buffer.byteLength(json) / 1024 / 1024).toFixed(2);
+    const filename = `rhino-backup-${timestamp}.json`;
+    const base64 = Buffer.from(json).toString('base64');
+
+    const tableRows = Object.entries(payload)
+      .filter(([k]) => k !== '_meta')
+      .map(([k, v]) => `<tr><td style="padding:4px 12px 4px 0;color:#6b7280;">${k}</td><td style="padding:4px 0;font-weight:600;">${Array.isArray(v) ? v.length : '—'} registros</td></tr>`)
+      .join('');
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:520px;margin:auto;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
+        <div style="background:#55588B;color:#fff;padding:16px 24px;font-size:17px;font-weight:700;">Rhino — Backup diário</div>
+        <div style="padding:20px 24px;font-size:14px;line-height:1.6;">
+          <p>Backup gerado automaticamente em <strong>${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</strong>.</p>
+          <table style="width:100%;border-collapse:collapse;margin:12px 0;">${tableRows}</table>
+          <p style="color:#6b7280;font-size:13px;">Tamanho: ${sizeMB} MB · Arquivo: ${filename}</p>
+          <p style="color:#6b7280;font-size:13px;">O arquivo JSON está anexado. Para restaurar, use <code>scripts/migrate-json-to-pg.js</code>.</p>
+        </div>
+        <div style="background:#f9fafb;padding:12px 24px;font-size:12px;color:#6b7280;">Rhino · Backup automático diário às ${BACKUP_HOUR}h UTC</div>
+      </div>`;
+
+    const result = await email.send({
+      to: BACKUP_EMAIL,
+      subject: `Rhino Backup ${new Date().toLocaleDateString('pt-BR')} — ${sizeMB} MB`,
+      html,
+      text: `Backup Rhino gerado em ${new Date().toISOString()}. Tamanho: ${sizeMB} MB.`,
+      attachments: [{ filename, content: base64, type: 'application/json', disposition: 'attachment' }],
+    });
+
+    if (result.ok) console.log(`[backup] Email enviado para ${BACKUP_EMAIL} (${sizeMB} MB)`);
+    else console.warn('[backup] Falha ao enviar email:', result.error);
+  } catch (e) {
+    console.error('[backup] Erro ao gerar backup:', e.message);
+  }
+}
+
+function _scheduleBackup() {
+  function msUntilNextRun() {
+    const now = new Date();
+    const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), BACKUP_HOUR, 0, 0, 0));
+    if (next <= now) next.setUTCDate(next.getUTCDate() + 1);
+    return next - now;
+  }
+  const scheduleNext = () => {
+    const ms = msUntilNextRun();
+    console.log(`[backup] Próximo backup agendado em ${(ms / 3600000).toFixed(1)}h`);
+    setTimeout(async () => {
+      await _runEmailBackup();
+      scheduleNext();
+    }, ms);
+  };
+  scheduleNext();
+}
+
 if (require.main === module) {
   bootstrap().finally(() => {
     server.listen(PORT, () => {
       console.log(`Rhino running at http://localhost:${PORT}`);
+      _scheduleBackup();
     });
   });
 } else {
-  bootstrap().finally(() => server.listen(PORT));
+  bootstrap().finally(() => {
+    server.listen(PORT);
+    _scheduleBackup();
+  });
 }
 
 module.exports = { __server: server };
