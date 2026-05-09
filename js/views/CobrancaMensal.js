@@ -4,6 +4,7 @@
 window.CobrancaMensal = {
   _meses: [],
   _projecao: null,
+  _aiUsage: null,
 
   TAXA_FIXA: 500,
   FAIXAS: [
@@ -24,12 +25,14 @@ window.CobrancaMensal = {
     const app = document.getElementById('app');
     app.innerHTML = '<div class="loading-spinner">Carregando cobrança...</div>';
     try {
-      const [hist, proj] = await Promise.all([
+      const [hist, proj, aiStats] = await Promise.all([
         fetch('/api/cobranca-mensal/historico').then(r => r.ok ? r.json() : { meses: [] }),
         fetch('/api/cobranca-mensal/projecao-atual').then(r => r.ok ? r.json() : null),
+        fetch('/api/ai-usage/stats').then(r => r.ok ? r.json() : null).catch(() => null),
       ]);
       this._meses = hist.meses || [];
       this._projecao = proj;
+      this._aiUsage = aiStats;
       this._draw();
     } catch (e) {
       app.innerHTML = `<div class="card"><p class="text-danger">Erro: ${escapeHtml(e.message)}</p></div>`;
@@ -80,6 +83,8 @@ window.CobrancaMensal = {
           <div style="font-size:13px;color:var(--color-text-muted);">soma dos últimos meses</div>
         </div>
       </div>
+
+      ${this._renderAiUsage()}
 
       <div style="display:grid;grid-template-columns:2fr 1fr;gap:var(--sp-md);">
         <!-- Histórico -->
@@ -146,6 +151,46 @@ window.CobrancaMensal = {
       this.showDetalhe(ano, mes);
     }));
     document.getElementById('btnExportar').addEventListener('click', () => this.exportarCSV());
+  },
+
+  _renderAiUsage() {
+    const ai = this._aiUsage;
+    if (!ai) return '';
+    const m = ai.monthly || {};
+    const t = ai.allTime || {};
+    const fmtUSD = v => '$' + (Number(v) || 0).toFixed(4);
+    const fmtTok = v => Number(v || 0).toLocaleString('pt-BR');
+    return `
+      <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-md);border-left:4px solid #7C3AED;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:var(--sp-sm);">
+          <span style="font-size:15px;font-weight:700;color:#5B21B6;">IA — Uso Claude API</span>
+          <span style="font-size:12px;color:var(--color-text-muted);font-style:italic;">Haiku · validação de documentos</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-sm);font-size:13px;">
+          <div style="background:var(--color-surface-2);border-radius:8px;padding:10px 12px;">
+            <div style="color:var(--color-text-muted);font-size:11px;text-transform:uppercase;font-weight:700;">Chamadas este mês</div>
+            <div style="font-size:22px;font-weight:800;color:#5B21B6;">${fmtTok(m.calls)}</div>
+          </div>
+          <div style="background:var(--color-surface-2);border-radius:8px;padding:10px 12px;">
+            <div style="color:var(--color-text-muted);font-size:11px;text-transform:uppercase;font-weight:700;">Tokens este mês</div>
+            <div style="font-size:22px;font-weight:800;">${fmtTok((m.input_tokens || 0) + (m.output_tokens || 0))}</div>
+            <div style="font-size:11px;color:var(--color-text-muted);">${fmtTok(m.input_tokens)} in · ${fmtTok(m.output_tokens)} out</div>
+          </div>
+          <div style="background:var(--color-surface-2);border-radius:8px;padding:10px 12px;">
+            <div style="color:var(--color-text-muted);font-size:11px;text-transform:uppercase;font-weight:700;">Custo este mês</div>
+            <div style="font-size:22px;font-weight:800;color:#065F46;">${fmtUSD(m.cost_usd)}</div>
+          </div>
+          <div style="background:var(--color-surface-2);border-radius:8px;padding:10px 12px;">
+            <div style="color:var(--color-text-muted);font-size:11px;text-transform:uppercase;font-weight:700;">Custo total acumulado</div>
+            <div style="font-size:22px;font-weight:800;">${fmtUSD(t.cost_usd)}</div>
+            <div style="font-size:11px;color:var(--color-text-muted);">${fmtTok(t.calls)} chamadas totais</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--color-text-muted);">
+          Preço Haiku: $0,80/M tokens de entrada · $4,00/M tokens de saída
+        </div>
+      </div>
+    `;
   },
 
   showDetalhe(ano, mes) {

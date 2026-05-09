@@ -827,6 +827,20 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- ============ Uso de IA (Claude) ============
+CREATE TABLE IF NOT EXISTS ai_usage (
+  id            BIGSERIAL PRIMARY KEY,
+  ts            TIMESTAMPTZ DEFAULT NOW(),
+  model         TEXT NOT NULL,
+  input_tokens  INTEGER NOT NULL DEFAULT 0,
+  output_tokens INTEGER NOT NULL DEFAULT 0,
+  cost_usd      NUMERIC(10,6) NOT NULL DEFAULT 0,
+  recurso_id    TEXT,
+  doc_id        TEXT,
+  status        TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_ts ON ai_usage (ts);
+
 DO $$
 DECLARE t TEXT;
 BEGIN

@@ -875,6 +875,33 @@ async function handleDashboard(res, query) {
   }
 }
 
+async function handleAiUsageStats(res) {
+  try {
+    const [monthly, allTime] = await Promise.all([
+      db.getOne(`
+        SELECT
+          COUNT(*)::int AS calls,
+          COALESCE(SUM(input_tokens), 0)::bigint AS input_tokens,
+          COALESCE(SUM(output_tokens), 0)::bigint AS output_tokens,
+          COALESCE(SUM(cost_usd), 0) AS cost_usd
+        FROM ai_usage
+        WHERE ts >= date_trunc('month', NOW())
+      `),
+      db.getOne(`
+        SELECT
+          COUNT(*)::int AS calls,
+          COALESCE(SUM(input_tokens), 0)::bigint AS input_tokens,
+          COALESCE(SUM(output_tokens), 0)::bigint AS output_tokens,
+          COALESCE(SUM(cost_usd), 0) AS cost_usd
+        FROM ai_usage
+      `),
+    ]);
+    return sendJson(res, { ok: true, monthly, allTime });
+  } catch (e) {
+    return sendError(res, 500, e.message);
+  }
+}
+
 // Backup: dump do PG pras pastas JSON (útil antes de refatorar ou restaurar)
 async function handleBackup(res) {
   try {
@@ -2905,6 +2932,7 @@ const ADMIN_PATH_PREFIXES = [
   '/api/admin/',
   '/api/niveis-acesso',
   '/api/lgpd/delete-account',
+  '/api/ai-usage',
 ];
 function isAdminRoute(pathname, method) {
   // GET /api/niveis-acesso é necessário pra exibir perfis no login → liberar leitura
@@ -3187,6 +3215,9 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname === '/api/backup/email' && method === 'POST') {
     _runEmailBackup().catch(e => console.error('[backup/email]', e.message));
     return sendJson(res, { ok: true, message: `Backup iniciado — será enviado para ${BACKUP_EMAIL}` });
+  }
+  if (pathname === '/api/ai-usage/stats' && method === 'GET') {
+    return handleAiUsageStats(res);
   }
   if (pathname === '/api/health' && method === 'GET') {
     return handleHealth(res);
@@ -4169,6 +4200,20 @@ FORMATO DE RESPOSTA (JSON puro):
     }
     const json = await resp.json();
     texto = json?.content?.[0]?.text || '';
+    // Registra uso da API para billing interno
+    try {
+      const inputTok = json?.usage?.input_tokens || 0;
+      const outputTok = json?.usage?.output_tokens || 0;
+      // Haiku 4.5: $0.80/MTok input, $4.00/MTok output
+      const costUsd = (inputTok * 0.0000008) + (outputTok * 0.000004);
+      await db.query(
+        `INSERT INTO ai_usage (model, input_tokens, output_tokens, cost_usd, status)
+         VALUES ($1, $2, $3, $4, $5)`,
+        ['claude-haiku-4-5-20251001', inputTok, outputTok, costUsd, 'ok'],
+      );
+    } catch (eUsage) {
+      console.warn('[ai-usage] falha ao registrar:', eUsage.message);
+    }
   } catch (e) {
     return { status: 'nao_validado', erro: 'falha ao chamar Claude: ' + e.message };
   }
@@ -5980,6 +6025,7 @@ async function _runEmailBackup() {
 }
 
 function _scheduleBackup() {
+  if (process.env.NODE_ENV === 'test') return; // skip in CI/test environment
   function msUntilNextRun() {
     const now = new Date();
     const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), BACKUP_HOUR, 0, 0, 0));
@@ -5992,7 +6038,7 @@ function _scheduleBackup() {
     setTimeout(async () => {
       await _runEmailBackup();
       scheduleNext();
-    }, ms);
+    }, ms).unref();
   };
   scheduleNext();
 }
