@@ -10,7 +10,7 @@ function createRepo(table, opts = {}) {
     if (keys.length === 0) {
       return db.getMany(`SELECT * FROM ${table} ORDER BY ${orderBy}`);
     }
-    const where = keys.map((k, i) => `${db.camelToSnake(k)} = $${i + 1}`).join(' AND ');
+    const where = keys.map((k, i) => `"${db.camelToSnake(k)}" = $${i + 1}`).join(' AND ');
     const values = keys.map((k) => filters[k]);
     return db.getMany(`SELECT * FROM ${table} WHERE ${where} ORDER BY ${orderBy}`, values);
   }
@@ -36,7 +36,7 @@ function createRepo(table, opts = {}) {
     let sql = `SELECT COUNT(*)::int AS n FROM ${table}`;
     let values = [];
     if (keys.length) {
-      const where = keys.map((k, i) => `${db.camelToSnake(k)} = $${i + 1}`).join(' AND ');
+      const where = keys.map((k, i) => `"${db.camelToSnake(k)}" = $${i + 1}`).join(' AND ');
       values = keys.map((k) => filters[k]);
       sql += ` WHERE ${where}`;
     }

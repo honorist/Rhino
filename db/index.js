@@ -71,7 +71,7 @@ async function getMany(text, params) {
 async function insert(table, obj) {
   const keys = Object.keys(obj);
   if (keys.length === 0) throw new Error(`insert ${table}: objeto vazio`);
-  const cols = keys.map(camelToSnake);
+  const cols = keys.map(k => `"${camelToSnake(k)}"`);
   const placeholders = keys.map((_, i) => `$${i + 1}`);
   const values = keys.map((k) => obj[k]);
   const sql = `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`;
@@ -82,7 +82,7 @@ async function insert(table, obj) {
 async function update(table, id, obj) {
   const keys = Object.keys(obj).filter((k) => k !== 'id');
   if (keys.length === 0) return getOne(`SELECT * FROM ${table} WHERE id = $1`, [id]);
-  const sets = keys.map((k, i) => `${camelToSnake(k)} = $${i + 1}`);
+  const sets = keys.map((k, i) => `"${camelToSnake(k)}" = $${i + 1}`);
   const values = keys.map((k) => obj[k]);
   values.push(id);
   const sql = `UPDATE ${table} SET ${sets.join(', ')} WHERE id = $${values.length} RETURNING *`;

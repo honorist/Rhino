@@ -978,20 +978,14 @@ async function handleHealth(res) {
     db: 'unknown',
     uptime_s: Math.round((Date.now() - APP_START) / 1000),
     version: APP_VERSION,
-    node: process.version,
     timestamp: new Date().toISOString(),
   };
   try {
     const db = require('./db');
     const ok = await db.ping();
     result.db = ok ? 'ok' : 'down';
-    if (ok) {
-      const ver = await db.getOne('SELECT version() AS v');
-      if (ver) result.db_version = String(ver.v).split(' ')[1];
-    }
   } catch (e) {
     result.db = 'down';
-    result.db_error = e.message;
   }
   const status = result.db === 'ok' ? 200 : 503;
   res.writeHead(status, { 'Content-Type': 'application/json' });
@@ -1071,12 +1065,18 @@ async function handleForgotPassword(req, body, res) {
   }
 }
 
-async function handleResetPassword(body, res) {
+async function handleResetPassword(req, body, res) {
   try {
+    const rlKey = rateLimit.clientKey(req, 'reset-password');
+    const rl = rateLimit.check(rlKey, { max: 10, windowMs: 60 * 60 * 1000 });
+    if (!rl.ok) {
+      res.setHeader('Retry-After', String(rl.retryAfterSec));
+      return sendError(res, 429, 'Muitas tentativas. Tente novamente mais tarde.');
+    }
     const token = (body.token || '').trim();
     const newPassword = body.password || '';
     if (!token || !newPassword) return sendError(res, 400, 'Token e nova senha são obrigatórios');
-    if (newPassword.length < 6) return sendError(res, 400, 'Senha precisa ter no mínimo 6 caracteres');
+    if (newPassword.length < 8) return sendError(res, 400, 'Senha precisa ter no mínimo 8 caracteres');
 
     const result = await auth.consumeResetToken(token, newPassword);
     if (!result) return sendError(res, 400, 'Token inválido ou expirado');
@@ -1157,11 +1157,19 @@ async function applyPortalAuth(req, res) {
   return false;
 }
 
-async function handlePortalLogin(body, res) {
+async function handlePortalLogin(req, body, res) {
   try {
     const emailRaw = (body.email || '').trim().toLowerCase();
     const senha = body.senha || '';
     if (!emailRaw || !senha) return sendError(res, 400, 'Email e senha são obrigatórios');
+
+    // Rate limit: 5 tentativas / 15 min por IP+email
+    const rlKey = rateLimit.clientKey(req, 'portal-login:' + emailRaw);
+    const rl = rateLimit.check(rlKey, { max: 5, windowMs: 15 * 60 * 1000 });
+    if (!rl.ok) {
+      res.setHeader('Retry-After', String(rl.retryAfterSec));
+      return sendError(res, 429, `Muitas tentativas. Tente novamente em ${rl.retryAfterSec} segundos.`);
+    }
 
     const cliente = await db.getOne(
       'SELECT id, nome, empresa, portal_password_hash FROM clientes WHERE LOWER(portal_email) = $1',
@@ -1173,15 +1181,22 @@ async function handlePortalLogin(body, res) {
     const ok = await bcrypt.compare(senha, cliente.portal_password_hash);
     if (!ok) return sendError(res, 401, 'Email ou senha incorretos');
 
+    // Sucesso — devolve slot consumido
+    rateLimit.refund(rlKey);
+
     const sid = generateId('pses');
     const expiresAt = new Date(Date.now() + PORTAL_SESSION_DAYS * 86400 * 1000);
     await db.query(
       'INSERT INTO portal_sessions (id, cliente_id, expires_at) VALUES ($1, $2, $3)',
       [sid, cliente.id, expiresAt.toISOString()]
     );
-    res.setHeader('Set-Cookie',
-      `${PORTAL_COOKIE}=${sid}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${PORTAL_SESSION_DAYS * 86400}`
-    );
+    const isProd = process.env.NODE_ENV === 'production';
+    const cookieParts = [
+      `${PORTAL_COOKIE}=${sid}`, 'HttpOnly', 'Path=/', 'SameSite=Strict',
+      `Max-Age=${PORTAL_SESSION_DAYS * 86400}`,
+    ];
+    if (isProd) cookieParts.push('Secure');
+    res.setHeader('Set-Cookie', cookieParts.join('; '));
     sendJson(res, { ok: true, cliente: { id: cliente.id, nome: cliente.nome, empresa: cliente.empresa } });
   } catch (e) { sendError(res, 500, e.message); }
 }
@@ -1189,7 +1204,10 @@ async function handlePortalLogin(body, res) {
 async function handlePortalLogout(req, res) {
   const sid = auth.parseCookies(req)[PORTAL_COOKIE];
   if (sid) await db.query('DELETE FROM portal_sessions WHERE id = $1', [sid]).catch(() => {});
-  res.setHeader('Set-Cookie', `${PORTAL_COOKIE}=; HttpOnly; Path=/; Max-Age=0`);
+  const isProd = process.env.NODE_ENV === 'production';
+  const cookieParts = [`${PORTAL_COOKIE}=`, 'HttpOnly', 'Path=/', 'SameSite=Strict', 'Max-Age=0'];
+  if (isProd) cookieParts.push('Secure');
+  res.setHeader('Set-Cookie', cookieParts.join('; '));
   sendJson(res, { ok: true });
 }
 
@@ -1362,7 +1380,7 @@ async function handlePostUser(body, res) {
     const email = (body.email || '').trim();
     const password = body.password || '';
     if (!email || !password) return sendError(res, 400, 'Email e senha são obrigatórios');
-    if (password.length < 6) return sendError(res, 400, 'Senha precisa ter no mínimo 6 caracteres');
+    if (password.length < 8) return sendError(res, 400, 'Senha precisa ter no mínimo 8 caracteres');
 
     const exists = await auth.findUserByEmail(email);
     if (exists) return sendError(res, 400, 'Já existe um usuário com este email');
@@ -1390,7 +1408,7 @@ async function handlePutUser(id, body, res) {
     if (body.socioId !== undefined) allowed.socioId = body.socioId || null;
     if (body.isActive !== undefined) allowed.isActive = !!body.isActive;
     if (body.password) {
-      if (String(body.password).length < 6) return sendError(res, 400, 'Senha precisa ter no mínimo 6 caracteres');
+      if (String(body.password).length < 8) return sendError(res, 400, 'Senha precisa ter no mínimo 8 caracteres');
       allowed.passwordHash = await auth.hash(body.password);
     }
     allowed.updatedAt = new Date().toISOString();
@@ -1407,6 +1425,15 @@ async function handleDeleteUser(id, req, res) {
   try {
     if (req.user && req.user.id === id) {
       return sendError(res, 400, 'Você não pode deletar seu próprio usuário');
+    }
+    const target = await repos.users.findById(id);
+    if (target && !target.nivel_acesso_id) {
+      const superAdmins = await db.getOne(
+        `SELECT COUNT(*)::int AS n FROM users WHERE nivel_acesso_id IS NULL AND is_active = TRUE`
+      );
+      if (superAdmins && superAdmins.n <= 1) {
+        return sendError(res, 400, 'Não é possível remover o último super admin');
+      }
     }
     await repos.users.removeById(id);
     sendJson(res, { users: (await repos.users.findAll()).map(sanitizeUser) });
@@ -2919,7 +2946,9 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ error: 'JSON inválido' }));
         return;
       }
-      req._auditBody = body;
+      // Nunca logar campos sensíveis no audit
+      const { password, passwordHash, token, senha, ...safeBody } = body;
+      req._auditBody = safeBody;
       if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
       await captureAuditBefore(req, pathname);
       routeRequest(pathname, req.method, body, res, parsedUrl, req);
@@ -2936,7 +2965,6 @@ const server = http.createServer((req, res) => {
 // Middleware: rotas /api/* exigem sessão, exceto whitelist abaixo.
 const AUTH_WHITELIST = new Set([
   '/api/health',
-  '/api/metrics',
   '/api/auth/login',
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
@@ -3010,11 +3038,11 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname === '/api/auth/logout' && method === 'POST') return handleLogout(req, res);
   if (pathname === '/api/auth/me' && method === 'GET') return handleMe(req, res);
   if (pathname === '/api/auth/forgot-password' && method === 'POST') return handleForgotPassword(req, body, res);
-  if (pathname === '/api/auth/reset-password' && method === 'POST') return handleResetPassword(body, res);
+  if (pathname === '/api/auth/reset-password' && method === 'POST') return handleResetPassword(req, body, res);
   if (pathname === '/api/auth/accept-terms' && method === 'POST') return handleAcceptTerms(req, res);
 
   // ============ Portal do Cliente ============
-  if (pathname === '/api/portal/login' && method === 'POST') return handlePortalLogin(body, res);
+  if (pathname === '/api/portal/login' && method === 'POST') return handlePortalLogin(req, body, res);
   if (pathname.startsWith('/api/portal/')) {
     (async () => {
       if (await applyPortalAuth(req, res)) return;
@@ -3739,8 +3767,17 @@ function _parseOFX(content) {
 async function handleImportarOfx(req, res) {
   try {
     const chunks = [];
+    const MAX_OFX_BYTES = 5 * 1024 * 1024; // 5 MB
+    let totalSize = 0;
     await new Promise((resolve, reject) => {
-      req.on('data', d => chunks.push(d));
+      req.on('data', d => {
+        totalSize += d.length;
+        if (totalSize > MAX_OFX_BYTES) {
+          req.destroy();
+          return reject(new Error('Arquivo OFX muito grande (máx 5 MB)'));
+        }
+        chunks.push(d);
+      });
       req.on('end', resolve);
       req.on('error', reject);
     });
@@ -4960,6 +4997,7 @@ async function handleListMovimentacoes(query, res) {
     if (query.to)        { vals.push(query.to);        conds.push(`m.data <= $${vals.length}`); }
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
     const lim = Math.min(parseInt(query.limit) || 200, 1000);
+    vals.push(lim);
     const rows = await db.getMany(
       `SELECT m.*, i.descricao AS item_desc, i.unidade,
               ao.nome AS origem_nome, ad.nome AS destino_nome,
@@ -4969,7 +5007,7 @@ async function handleListMovimentacoes(query, res) {
        LEFT JOIN almoxarifados ao ON ao.id = m.almoxarifado_origem_id
        LEFT JOIN almoxarifados ad ON ad.id = m.almoxarifado_destino_id
        LEFT JOIN contracts c ON c.id = m.contract_id
-       ${where} ORDER BY m.data DESC, m.created_at DESC LIMIT ${lim}`,
+       ${where} ORDER BY m.data DESC, m.created_at DESC LIMIT $${vals.length}`,
       vals
     );
     sendJson(res, { movimentacoes: rows });
@@ -5176,7 +5214,9 @@ function _normalizaItensComCotacoes(arr) {
 
 async function _temPermissao(req, perm) {
   const nivelId = req.user?.nivelAcessoId;
-  if (!nivelId) return true; // admin sem perfil ativo
+  // nivelAcessoId === null significa super admin (criado via bootstrapAdmin ou sem perfil atribuído).
+  // Super admins têm acesso irrestrito por convenção — requireAdmin já validou isso antes.
+  if (!nivelId) return true;
   const nivel = await repos.niveisAcesso.findById(nivelId);
   return !!(nivel?.abas || []).includes(perm);
 }
