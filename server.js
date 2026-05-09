@@ -9,6 +9,14 @@ const APP_VERSION = process.env.APP_VERSION || (() => {
 const url = require('url');
 const crypto = require('crypto');
 
+process.on('unhandledRejection', (reason) => {
+  console.error('[server] unhandledRejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[server] uncaughtException:', err);
+  process.exit(1);
+});
+
 const PORT = process.env.PORT || 3001;
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data');
 const BACKUPS_DIR = path.join(DATA_DIR, 'backups');
@@ -904,23 +912,12 @@ async function handleAiUsageStats(res) {
 
 // Backup: dump do PG pras pastas JSON (útil antes de refatorar ou restaurar)
 async function handleBackup(res) {
+  // Redireciona para o backup por email (Railway usa disco efêmero; escrita local não persiste).
   try {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-    const dumps = {
-      contracts: await repos.contracts.getEnvelope(),
-      caixa: { entries: await repos.caixa.findAll() },
-      base: { items: await repos.baseItems.findAll() },
-      notas_fiscais: { notas_fiscais: await repos.notasFiscais.findAll() },
-      contas_pagar: { contas: await repos.contasPagar.findAll() },
-      clientes: { clientes: await repos.clientes.findAll() },
-    };
-    for (const [name, payload] of Object.entries(dumps)) {
-      const filepath = path.join(BACKUPS_DIR, `${name}_pgdump_${timestamp}.json`);
-      fs.writeFileSync(filepath, JSON.stringify(payload, null, 2), 'utf8');
-    }
-    sendJson(res, { message: 'Backup completed', timestamp });
+    await _runEmailBackup();
+    sendJson(res, { message: 'Backup enviado por email' });
   } catch (e) {
-    sendError(res, 400, e.message);
+    sendError(res, 500, 'Falha ao enviar backup');
   }
 }
 
@@ -2828,6 +2825,14 @@ const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
+  // Security headers
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'same-origin');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+
   if (req.method === 'OPTIONS') {
     res.writeHead(200);
     res.end();
@@ -2885,6 +2890,17 @@ const server = http.createServer((req, res) => {
   let body = '';
   let bodySize = 0;
   if (['POST', 'PUT'].includes(req.method)) {
+    // Enforce Content-Type for JSON API routes (only when body is present)
+    if (pathname.startsWith('/api/')) {
+      const ct = req.headers['content-type'] || '';
+      const hasBody = (req.headers['content-length'] && req.headers['content-length'] !== '0')
+        || req.headers['transfer-encoding'];
+      if (hasBody && !ct.includes('application/json') && !ct.includes('multipart/form-data') && !ct.includes('text/')) {
+        res.writeHead(415, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Content-Type deve ser application/json' }));
+        return;
+      }
+    }
     req.on('data', chunk => {
       bodySize += chunk.length;
       if (bodySize > MAX_BODY_BYTES) {
@@ -2899,7 +2915,9 @@ const server = http.createServer((req, res) => {
       try {
         body = body ? JSON.parse(body) : {};
       } catch (e) {
-        body = {};
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'JSON inválido' }));
+        return;
       }
       req._auditBody = body;
       if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
@@ -5904,15 +5922,18 @@ async function bootstrap() {
 
     // Auto-aplicar schema.sql na primeira execução (cloud deploy: Railway/Render).
     // Idempotente — todos CREATE TABLE são "IF NOT EXISTS".
-    try {
-      const schemaPath = path.join(__dirname, 'db', 'schema.sql');
-      if (fs.existsSync(schemaPath)) {
-        const sql = fs.readFileSync(schemaPath, 'utf8');
-        await db.query(sql);
-        console.log('[server] Schema aplicado');
+    // Desabilitar com AUTO_SCHEMA=0 se preferir gerenciar migrações manualmente.
+    if (process.env.AUTO_SCHEMA !== '0') {
+      try {
+        const schemaPath = path.join(__dirname, 'db', 'schema.sql');
+        if (fs.existsSync(schemaPath)) {
+          const sql = fs.readFileSync(schemaPath, 'utf8');
+          await db.query(sql);
+          console.log('[server] Schema aplicado');
+        }
+      } catch (e) {
+        console.warn('[server] Aviso ao aplicar schema:', e.message);
       }
-    } catch (e) {
-      console.warn('[server] Aviso ao aplicar schema:', e.message);
     }
 
     await auth.bootstrapAdmin();
@@ -6072,17 +6093,27 @@ function _scheduleBackup() {
 }
 
 if (require.main === module) {
-  bootstrap().finally(() => {
-    server.listen(PORT, () => {
-      console.log(`Rhino running at http://localhost:${PORT}`);
-      _scheduleBackup();
+  bootstrap()
+    .then(() => {
+      server.listen(PORT, () => {
+        console.log(`Rhino running at http://localhost:${PORT}`);
+        _scheduleBackup();
+      });
+    })
+    .catch(err => {
+      console.error('[server] Falha no bootstrap:', err);
+      process.exit(1);
     });
-  });
 } else {
-  bootstrap().finally(() => {
-    server.listen(PORT);
-    _scheduleBackup();
-  });
+  bootstrap()
+    .then(() => {
+      server.listen(PORT);
+      _scheduleBackup();
+    })
+    .catch(err => {
+      console.error('[server] Falha no bootstrap:', err);
+      process.exit(1);
+    });
 }
 
 module.exports = { __server: server };
