@@ -35,11 +35,11 @@
 
     es.addEventListener('hello', (e) => {
       backoff = 1000;
-      try { dispatch('rh:hello', JSON.parse(e.data)); } catch {}
+      try { dispatch('rh:hello', JSON.parse(e.data)); } catch (err) { console.warn('[realtime] hello parse error', err); }
     });
 
     es.addEventListener('presence', (e) => {
-      try { dispatch('rh:presence', JSON.parse(e.data)); } catch {}
+      try { dispatch('rh:presence', JSON.parse(e.data)); } catch (err) { console.warn('[realtime] presence parse error', err); }
     });
 
     es.addEventListener('mutation', (e) => {
@@ -116,7 +116,7 @@
         if (window.RhinoUI && RhinoUI.toast) RhinoUI.toast('Dados atualizados', { type: 'info', duration: 1500 });
         // Dispara hashchange para o router re-renderizar a view ativa
         window.dispatchEvent(new HashChangeEvent('hashchange'));
-      } catch {}
+      } catch (err) { console.error('[realtime] refresh failed', err); }
     }, 600);
   }
 

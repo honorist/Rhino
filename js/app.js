@@ -1343,7 +1343,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 2) Carrega níveis e dados (já autenticado)
   await perfil.load();
-  await Store.loadAll();
+  await Store.loadAll().catch(err => console.error('[boot] Store.loadAll falhou', err));
 
   // 3) Perfil de acesso:
   //    - Se o usuário tem nivel_acesso_id atrelado, aplica direto (sem picker).

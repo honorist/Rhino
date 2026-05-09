@@ -78,7 +78,8 @@
           credentials: 'same-origin',
         });
         if (!res.ok) failed.push(item);
-      } catch {
+      } catch (err) {
+        console.error('[offline] sync item failed', item.method, item.url, err);
         failed.push(item);
       }
     }

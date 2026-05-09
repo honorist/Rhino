@@ -336,7 +336,7 @@ async function handlePutSaida(id, body, res) {
       // Se a data mudou, realoca entre NFs
       if (dataMudou && nf) {
         const novaData = allowedSaida.date;
-        const outrasDaNfAtual = (await repos.saidas.findAll()).filter(s => s.nfId === nf.id && s.id !== id);
+        const outrasDaNfAtual = (await repos.saidas.findAll({ nfId: nf.id })).filter(s => s.id !== id);
         if (outrasDaNfAtual.length === 0) {
           await repos.notasFiscais.removeById(nf.id);
         } else {
@@ -411,7 +411,7 @@ async function handleDeleteSaida(id, res) {
         if (nf.emitida) {
           return sendError(res, 400, 'Não é possível excluir saída cujo BM já foi emitido. Cancele a emissão do BM primeiro.');
         }
-        const outrasSaidas = (await repos.saidas.findAll()).filter(s => s.nfId === nf.id && s.id !== id);
+        const outrasSaidas = (await repos.saidas.findAll({ nfId: nf.id })).filter(s => s.id !== id);
         if (outrasSaidas.length === 0) {
           await repos.notasFiscais.removeById(nf.id);
         } else {
@@ -666,61 +666,66 @@ async function handleDashboard(res, query) {
 
     // Histórico de saldo de caixa: adapts to selected period
     const historicoCaixa = [];
+    // Pre-sort ascending uma vez; running sum evita O(n×d) re-scan por ponto
     const entriesOrdenadas = [...caixa.entries].sort((a, b) => new Date(a.date) - new Date(b.date));
 
     if (periodoInicio && periodoFim) {
-      // Show day-by-day for the selected month, or month-by-month for full year
       if (modoAno) {
-        // Month-by-month for the year
+        // Month-by-month — running sum O(n + 12)
+        let rsSum = 0, rsIdx = 0;
         for (let m = 0; m < 12; m++) {
           const fimMes = new Date(filtroAno, m + 1, 0, 23, 59, 59, 999);
-          // All entries up to end of this month
-          const saldoAteOMes = entriesOrdenadas
-            .filter(e => new Date(e.date) <= fimMes)
-            .reduce((sum, e) => e.type === 'entrada' ? sum + e.value : sum - e.value, 0);
+          while (rsIdx < entriesOrdenadas.length && new Date(entriesOrdenadas[rsIdx].date) <= fimMes) {
+            const e = entriesOrdenadas[rsIdx++];
+            rsSum += e.type === 'entrada' ? e.value : -e.value;
+          }
           historicoCaixa.push({
             data: `${filtroAno}-${String(m + 1).padStart(2, '0')}-01`,
-            saldo: saldoAteOMes,
+            saldo: rsSum,
             label: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][m]
           });
         }
       } else {
-        // Day-by-day for the selected month
+        // Day-by-day — running sum O(n + dias)
         const diasNoMes = new Date(filtroAno, filtroMes, 0).getDate();
+        let rsSum = 0, rsIdx = 0;
         for (let d = 1; d <= diasNoMes; d++) {
-          const dia = new Date(filtroAno, filtroMes - 1, d, 23, 59, 59, 999);
-          const saldoAteODia = entriesOrdenadas
-            .filter(e => new Date(e.date) <= dia)
-            .reduce((sum, e) => e.type === 'entrada' ? sum + e.value : sum - e.value, 0);
+          const diaEnd = new Date(filtroAno, filtroMes - 1, d, 23, 59, 59, 999);
+          while (rsIdx < entriesOrdenadas.length && new Date(entriesOrdenadas[rsIdx].date) <= diaEnd) {
+            const e = entriesOrdenadas[rsIdx++];
+            rsSum += e.type === 'entrada' ? e.value : -e.value;
+          }
           historicoCaixa.push({
             data: `${filtroAno}-${String(filtroMes).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
-            saldo: saldoAteODia
+            saldo: rsSum
           });
         }
       }
     } else {
       // Default: últimos N dias (N = projDays). Amostra a cada `histStep` dias
-      // pra manter o gráfico legível em janelas grandes.
       const histStep = projDays <= 30 ? 1 : projDays <= 60 ? 2 : 3;
+      let rsSum = 0, rsIdx = 0;
       for (let i = projDays - 1; i >= 0; i -= histStep) {
         const dia = new Date();
         dia.setDate(dia.getDate() - i);
         dia.setHours(23, 59, 59, 999);
-        const saldoAteODia = entriesOrdenadas
-          .filter(e => new Date(e.date) <= dia)
-          .reduce((sum, e) => e.type === 'entrada' ? sum + e.value : sum - e.value, 0);
+        while (rsIdx < entriesOrdenadas.length && new Date(entriesOrdenadas[rsIdx].date) <= dia) {
+          const e = entriesOrdenadas[rsIdx++];
+          rsSum += e.type === 'entrada' ? e.value : -e.value;
+        }
         historicoCaixa.push({
           data: dia.toISOString().split('T')[0],
-          saldo: saldoAteODia
+          saldo: rsSum
         });
       }
       // Garante que o último ponto seja exatamente HOJE (caso o passo pule)
       if (historicoCaixa.length === 0 || historicoCaixa[historicoCaixa.length - 1].data !== new Date().toISOString().split('T')[0]) {
         const hojeFim = new Date(); hojeFim.setHours(23, 59, 59, 999);
-        const saldoHoje = entriesOrdenadas
-          .filter(e => new Date(e.date) <= hojeFim)
-          .reduce((sum, e) => e.type === 'entrada' ? sum + e.value : sum - e.value, 0);
-        historicoCaixa.push({ data: new Date().toISOString().split('T')[0], saldo: saldoHoje });
+        while (rsIdx < entriesOrdenadas.length && new Date(entriesOrdenadas[rsIdx].date) <= hojeFim) {
+          const e = entriesOrdenadas[rsIdx++];
+          rsSum += e.type === 'entrada' ? e.value : -e.value;
+        }
+        historicoCaixa.push({ data: new Date().toISOString().split('T')[0], saldo: rsSum });
       }
     }
 
@@ -738,36 +743,27 @@ async function handleDashboard(res, query) {
     });
 
     // Projeção de fluxo de caixa futuro (próximos 90 dias)
-    // Cada NF emitida até dataLimite gera uma entrada em: dataLimite + prazoRecebimento
+    // Pré-computa datas de recebimento uma vez — O(n) — em vez de O(90×2n)
+    const _nfsProjMap = new Map();
+    for (const nf of notasFiscais.notas_fiscais) {
+      if (nf.emitida || !(nf.valor > 0) || !nf.dataLimite) continue;
+      const prazo = Number.isFinite(parseInt(nf.prazoRecebimento)) ? parseInt(nf.prazoRecebimento) : 30;
+      const dtRec = new Date(nf.dataLimite + 'T12:00:00');
+      dtRec.setDate(dtRec.getDate() + prazo);
+      const diaStr = dtRec.toISOString().split('T')[0];
+      if (!_nfsProjMap.has(diaStr)) _nfsProjMap.set(diaStr, []);
+      _nfsProjMap.get(diaStr).push({
+        nfId: nf.id, numero: nf.numero, contractId: nf.contractId,
+        valor: nf.valor, dataEmissao: nf.dataLimite, prazoRecebimento: prazo
+      });
+    }
+
     const projecaoFutura = [];
     for (let i = 1; i <= 90; i++) {
       const dia = new Date();
       dia.setDate(dia.getDate() + i);
       const diaStr = dia.toISOString().split('T')[0];
-
-      // Entradas esperadas neste dia (NFs não-emitidas cujo recebimento cai nesta data)
-      // NFs já emitidas não entram aqui pois a entrada no caixa já foi criada
-      const entradasEsperadas = notasFiscais.notas_fiscais
-        .filter(nf => !nf.emitida && nf.valor > 0)
-        .filter(nf => {
-          const prazo = (Number.isFinite(parseInt(nf.prazoRecebimento)) ? parseInt(nf.prazoRecebimento) : 30);
-          const dtEmissao = new Date(nf.dataLimite + 'T12:00:00');
-          const dtRecebimento = new Date(dtEmissao);
-          dtRecebimento.setDate(dtRecebimento.getDate() + prazo);
-          return dtRecebimento.toISOString().split('T')[0] === diaStr;
-        })
-        .map(nf => {
-          const prazo = (Number.isFinite(parseInt(nf.prazoRecebimento)) ? parseInt(nf.prazoRecebimento) : 30);
-          return {
-            nfId: nf.id,
-            numero: nf.numero,
-            contractId: nf.contractId,
-            valor: nf.valor,
-            dataEmissao: nf.dataLimite,
-            prazoRecebimento: prazo
-          };
-        });
-
+      const entradasEsperadas = _nfsProjMap.get(diaStr) || [];
       if (entradasEsperadas.length > 0) {
         projecaoFutura.push({
           data: diaStr,
@@ -1177,12 +1173,11 @@ async function handlePortalDashboard(req, res) {
   try {
     const clienteId = req.portalCliente.id;
     const [allContracts, allNfs] = await Promise.all([
-      repos.contracts.findAll(),
+      repos.contracts.findAll({ clientId: clienteId }),
       repos.notasFiscais.findAll(),
     ]);
 
     const contratos = allContracts
-      .filter(c => c.clientId === clienteId)
       .map(c => {
         const saidas = Array.isArray(c.saidas) ? c.saidas : [];
         const totalGasto = saidas.reduce((s, x) => s + (parseFloat(x.value) || 0), 0);
@@ -1207,9 +1202,7 @@ async function handlePortalDashboard(req, res) {
 
     // Collect RDOs from the client's contracts (last 15 across all contracts, most recent first)
     const rdosAll = [];
-    allContracts
-      .filter(c => c.clientId === clienteId)
-      .forEach(c => {
+    allContracts.forEach(c => {
         const rdos = Array.isArray(c.rdos) ? c.rdos : [];
         rdos.forEach(r => {
           const fotos = Array.isArray(r.fotos) ? r.fotos.slice(0, 4) : [];
@@ -2660,8 +2653,36 @@ async function handleDeleteOcorrencia(contractId, id, res) {
 
 // ============ Static file serving ============
 const STATIC_ROOT = path.resolve(__dirname);
+// In-memory cache para evitar fs.readFileSync síncrono em cada request.
+// APP_VERSION é constante no processo, então o conteúdo injetado não muda.
+const _staticCache = new Map();
+
+const _contentTypeMap = {
+  '.html': 'text/html',
+  '.js': 'application/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.webmanifest': 'application/manifest+json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.woff':  'font/woff',
+  '.woff2': 'font/woff2'
+};
 
 function serveStaticFile(pathname, res) {
+  // Cache check primeiro — evita path.resolve, existsSync e readFileSync na rota quente
+  if (_staticCache.has(pathname)) {
+    const { headers, body } = _staticCache.get(pathname);
+    res.writeHead(200, headers);
+    res.end(body);
+    return;
+  }
+
   const filepath = path.resolve(STATIC_ROOT, '.' + pathname);
 
   // Prevent path traversal: resolved path must stay within project root
@@ -2678,29 +2699,10 @@ function serveStaticFile(pathname, res) {
   }
 
   const ext = path.extname(filepath).toLowerCase();
-  const contentTypeMap = {
-    '.html': 'text/html',
-    '.js': 'application/javascript',
-    '.css': 'text/css',
-    '.json': 'application/json',
-    '.webmanifest': 'application/manifest+json',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.webp': 'image/webp',
-    '.gif': 'image/gif',
-    '.svg': 'image/svg+xml',
-    '.ico': 'image/x-icon',
-    '.woff':  'font/woff',
-    '.woff2': 'font/woff2'
-  };
-
-  const contentType = contentTypeMap[ext] || 'application/octet-stream';
+  const contentType = _contentTypeMap[ext] || 'application/octet-stream';
   const headers = { 'Content-Type': contentType };
   // HTML sempre revalidar (entrypoint que injeta __APP_VERSION__).
   // JS/CSS: revalidar via no-cache (valida com servidor, mas pode reusar cache em 304).
-  // O Service Worker faz cache-first usando VERSION; este header só importa pra requests
-  // diretos que não passam pelo SW (incógnito, primeiro acesso).
   if (ext === '.html') {
     headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0';
     headers['Pragma'] = 'no-cache';
@@ -2708,25 +2710,30 @@ function serveStaticFile(pathname, res) {
   } else if (ext === '.js' || ext === '.css') {
     headers['Cache-Control'] = 'no-cache';
   }
-  res.writeHead(200, headers);
+
+  let body;
   if (ext === '.html') {
     // Injeta versão do app para que a sidebar mostre v1.x.y dinâmico
-    const html = fs.readFileSync(filepath, 'utf8').replace(
-      '</head>',
-      `<script>window.__APP_VERSION__="${APP_VERSION}";</script></head>`
+    body = Buffer.from(
+      fs.readFileSync(filepath, 'utf8').replace(
+        '</head>',
+        `<script>window.__APP_VERSION__="${APP_VERSION}";</script></head>`
+      )
     );
-    res.end(html);
   } else if (pathname === '/sw.js') {
     // Injeta a versão no Service Worker para que o cache seja invalidado a cada deploy
-    // O SW usa VERSION como chave de cache; se mudar, o activate limpa o cache antigo.
-    const sw = fs.readFileSync(filepath, 'utf8').replace(
-      "'__RHINO_VERSION__'",
-      `'rhino-v${APP_VERSION}'`
+    body = Buffer.from(
+      fs.readFileSync(filepath, 'utf8').replace(
+        "'__RHINO_VERSION__'",
+        `'rhino-v${APP_VERSION}'`
+      )
     );
-    res.end(sw);
   } else {
-    res.end(fs.readFileSync(filepath));
+    body = fs.readFileSync(filepath);
   }
+  _staticCache.set(pathname, { headers, body });
+  res.writeHead(200, headers);
+  res.end(body);
 }
 
 // ============ Observabilidade ============

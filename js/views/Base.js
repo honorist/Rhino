@@ -282,10 +282,12 @@ window.Base = {
         this.render();
       });
 
+      let _filterTimer = null;
       document.querySelectorAll('.btn-filtro').forEach(btn => {
         btn.addEventListener('click', e => {
           this.currentTypeFilter = e.currentTarget.dataset.filtro;
-          this.render();
+          clearTimeout(_filterTimer);
+          _filterTimer = setTimeout(() => this.render(), 150);
         });
       });
 
@@ -293,7 +295,8 @@ window.Base = {
         btn.addEventListener('click', e => {
           const tipo = e.currentTarget.dataset.tipo;
           this.currentTypeFilter = this.currentTypeFilter === tipo ? 'todos' : tipo;
-          this.render();
+          clearTimeout(_filterTimer);
+          _filterTimer = setTimeout(() => this.render(), 150);
         });
       });
 
