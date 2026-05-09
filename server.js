@@ -3184,6 +3184,10 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname === '/api/backup/download' && method === 'GET') {
     return handleBackupDownload(res);
   }
+  if (pathname === '/api/backup/email' && method === 'POST') {
+    _runEmailBackup().catch(e => console.error('[backup/email]', e.message));
+    return sendJson(res, { ok: true, message: `Backup iniciado — será enviado para ${BACKUP_EMAIL}` });
+  }
   if (pathname === '/api/health' && method === 'GET') {
     return handleHealth(res);
   }
