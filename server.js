@@ -4109,51 +4109,76 @@ async function _validarDocComTemplate(arquivoBuffer, mimeType, template) {
     return { status: 'nao_validado', motivo: 'template sem padrão de validação configurado' };
   }
 
-  let imageBuffer = arquivoBuffer;
-  let mediaType = 'image/png';
+  // Coleta imagens (PDF: até 5 páginas amostradas; imagem: 1 página)
+  let images = []; // [{data, mediaType, pagina}]
+  let totalPaginas = 1;
 
   try {
     if (mimeType === 'application/pdf') {
       const { pdf } = require('pdf-to-img');
-      const doc = await pdf(arquivoBuffer, { scale: 1.5 });
-      // primeira página como PNG
-      const it = doc[Symbol.asyncIterator]();
-      const first = await it.next();
-      if (!first.value) throw new Error('PDF sem páginas legíveis');
-      imageBuffer = first.value;
-      mediaType = 'image/png';
+      const { Jimp } = require('jimp');
+      const allPages = [];
+      for await (const page of await pdf(arquivoBuffer, { scale: 1.2 })) {
+        allPages.push(page);
+      }
+      if (!allPages.length) throw new Error('PDF sem páginas legíveis');
+      totalPaginas = allPages.length;
+
+      // Seleciona índices estratégicos: primeira, distribuídas, última (máx 5)
+      const idxSet = new Set([0]);
+      if (totalPaginas > 1) idxSet.add(totalPaginas - 1);
+      if (totalPaginas >= 4) {
+        const step = Math.floor(totalPaginas / 3);
+        idxSet.add(step);
+        idxSet.add(step * 2);
+      }
+      if (totalPaginas >= 10) idxSet.add(Math.floor(totalPaginas / 2));
+
+      for (const idx of [...idxSet].sort((a, b) => a - b)) {
+        let imgBuf = allPages[idx];
+        try {
+          const img = await Jimp.read(imgBuf);
+          if (img.bitmap.width > 1024) { img.resize({ w: 1024 }); imgBuf = await img.getBuffer('image/png'); }
+        } catch {}
+        images.push({ data: imgBuf.toString('base64'), mediaType: 'image/png', pagina: idx + 1 });
+      }
     } else if (/^image\//.test(mimeType)) {
-      mediaType = mimeType;
+      let imgBuf = arquivoBuffer;
+      try {
+        const { Jimp } = require('jimp');
+        const img = await Jimp.read(imgBuf);
+        if (img.bitmap.width > 1280) { img.resize({ w: 1280 }); imgBuf = await img.getBuffer('image/png'); }
+      } catch (eImg) {
+        console.warn('[validar-doc] jimp falhou:', eImg.message);
+      }
+      images.push({ data: imgBuf.toString('base64'), mediaType: mimeType });
     } else {
       return { status: 'nao_validado', motivo: `Tipo de arquivo não suportado pra validação: ${mimeType}` };
-    }
-    // Redimensiona se for muito grande (custo Claude proporcional)
-    try {
-      const { Jimp } = require('jimp');
-      const img = await Jimp.read(imageBuffer);
-      if (img.bitmap.width > 1280) {
-        img.resize({ w: 1280 });
-        imageBuffer = await img.getBuffer('image/png');
-        mediaType = 'image/png';
-      }
-    } catch (eImg) {
-      console.warn('[validar-doc] jimp falhou, usando imagem original:', eImg.message);
     }
   } catch (e) {
     return { status: 'nao_validado', erro: 'falha ao preparar imagem: ' + e.message };
   }
 
+  const isMultiPage = totalPaginas > 1;
+  const paginasEsperadas = meta.total_paginas_esperado ? Number(meta.total_paginas_esperado) : null;
+
   const promptTexto = `
 Você é um auditor rigoroso de documentos trabalhistas brasileiros.
 
-Analise a IMAGEM acima (uma página do documento enviado) e verifique se ela atende aos requisitos abaixo. Responda APENAS com um JSON válido (sem markdown, sem comentários) no formato exato indicado.
+${isMultiPage
+  ? `O documento enviado tem ${totalPaginas} página(s) no total.${paginasEsperadas ? ` O template exige exatamente ${paginasEsperadas} páginas.` : ''}
+As imagens abaixo são amostras de páginas selecionadas (cada uma identificada com "Página X de ${totalPaginas}").
+Avalie a conformidade com base nas imagens e no total de páginas informado.`
+  : 'Analise a IMAGEM abaixo e verifique se ela atende aos requisitos.'}
+
+Responda APENAS com um JSON válido (sem markdown, sem comentários) no formato exato indicado.
 
 REQUISITOS:
 
 Seções esperadas (na ordem informada, todas obrigatórias salvo indicação):
 ${secoes.map(s => `- ordem ${s.ordem}: ${s.nome}${s.obrigatorio === false ? ' (opcional)' : ''}`).join('\n') || '(nenhuma)'}
 
-Campos a extrair do texto:
+Campos a extrair:
 ${campos.map(c => `- ${c.nome}${c.obrigatorio === false ? ' (opcional)' : ''}${c.regex ? ` (formato: ${c.regex})` : ''}`).join('\n') || '(nenhum)'}
 
 Elementos visuais esperados:
@@ -4164,6 +4189,7 @@ ${meta.instrucoes_extras || '(nenhuma)'}
 
 FORMATO DE RESPOSTA (JSON puro):
 {
+  "total_paginas": ${totalPaginas},
   "secoes": [{"ordem": 1, "encontrada": true, "observacao": "..."}],
   "campos": [{"nome": "Nome", "encontrado": true, "valor": "..."}],
   "elementos_visuais": [{"descricao": "Assinatura", "encontrado": true}],
@@ -4172,25 +4198,27 @@ FORMATO DE RESPOSTA (JSON puro):
 }
 `.trim();
 
+  // Monta content com imagens intercaladas de label de página
+  const contentItems = [];
+  for (const img of images) {
+    if (img.pagina) contentItems.push({ type: 'text', text: `--- Página ${img.pagina} de ${totalPaginas} ---` });
+    contentItems.push({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } });
+  }
+  contentItems.push({ type: 'text', text: promptTexto });
+
   let texto;
   try {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 30000);
+    const timer = setTimeout(() => ctrl.abort(), 60000);
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       signal: ctrl.signal,
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1500,
+        max_tokens: 2000,
         system: 'Você é um auditor de documentos. Responda APENAS com JSON válido, sem markdown.',
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBuffer.toString('base64') } },
-            { type: 'text', text: promptTexto },
-          ],
-        }],
+        messages: [{ role: 'user', content: contentItems }],
       }),
     });
     clearTimeout(timer);
