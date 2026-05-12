@@ -233,7 +233,7 @@
             </div>
             <div class="form-group">
               <label class="form-label">Observações</label>
-              <textarea class="form-control" name="notes" style="min-height:60px;" placeholder="Detalhes adicionais...">${item?.notes || ''}</textarea>
+              <textarea class="form-control" name="notes" style="min-height:60px;" placeholder="Detalhes adicionais...">${window.escapeHtml(item?.notes || '')}</textarea>
             </div>
           </form>
           <div class="modal-footer">

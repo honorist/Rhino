@@ -145,7 +145,7 @@ window.Socios = {
             </div>
             <div class="form-group">
               <label class="form-label">Notas</label>
-              <textarea class="form-control" name="notes">${socio?.notes || ''}</textarea>
+              <textarea class="form-control" name="notes">${window.escapeHtml(socio?.notes || '')}</textarea>
             </div>
           </form>
           <div class="modal-footer">

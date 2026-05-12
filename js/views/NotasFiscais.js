@@ -454,7 +454,7 @@ window.NotasFiscais = {
 
             <div class="form-group" style="margin-top:var(--sp-md);">
               <label class="form-label">Observações</label>
-              <textarea class="form-control" name="observacoes" style="min-height:70px;">${nf?.observacoes || ''}</textarea>
+              <textarea class="form-control" name="observacoes" style="min-height:70px;">${window.escapeHtml(nf?.observacoes || '')}</textarea>
             </div>
           </form>
           <div class="modal-footer">

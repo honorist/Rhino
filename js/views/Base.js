@@ -397,7 +397,7 @@ window.Base = {
 
             <div class="form-group">
               <label class="form-label">Observações</label>
-              <textarea class="form-control" name="notes">${item?.notes || ''}</textarea>
+              <textarea class="form-control" name="notes">${window.escapeHtml(item?.notes || '')}</textarea>
             </div>
           </form>
           <div class="modal-footer">

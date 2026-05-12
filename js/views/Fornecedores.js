@@ -217,7 +217,7 @@ window.Fornecedores = {
             <!-- Notas -->
             <div class="form-group" style="margin-top:var(--sp-lg);padding-top:var(--sp-lg);border-top:1px solid var(--color-border);">
               <label class="form-label">Observações</label>
-              <textarea class="form-control" name="notas" style="min-height:60px;" placeholder="Condições comerciais, prazo de entrega, etc.">${fornecedor?.notas || ''}</textarea>
+              <textarea class="form-control" name="notas" style="min-height:60px;" placeholder="Condições comerciais, prazo de entrega, etc.">${window.escapeHtml(fornecedor?.notas || '')}</textarea>
             </div>
           </form>
           <div class="modal-footer">

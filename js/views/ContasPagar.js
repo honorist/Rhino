@@ -388,7 +388,7 @@ window.ContasPagar = {
             </div>
             <div class="form-group">
               <label class="form-label">Observações</label>
-              <textarea class="form-control" name="observacoes" style="min-height:56px;">${conta?.observacoes || ''}</textarea>
+              <textarea class="form-control" name="observacoes" style="min-height:56px;">${window.escapeHtml(conta?.observacoes || '')}</textarea>
             </div>
             <div class="form-group" style="border-top:1px solid var(--color-border);padding-top:var(--sp-sm);margin-top:var(--sp-sm);">
               <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">

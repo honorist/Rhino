@@ -231,83 +231,160 @@ async function handlePushSubscribe(body, userId, res) {
   } catch (e) { sendError(res, 500, e.message); }
 }
 
-async function handlePushUnsubscribe(body, res) {
+/**
+ * Remove uma push subscription do usuário autenticado.
+ *
+ * Apenas remove subscriptions que pertencem ao próprio usuário — sem isso, um
+ * usuário autenticado poderia desativar notificações de qualquer outro (basta
+ * conhecer o endpoint, que é semi-público em sites com SW).
+ *
+ * @param {{ endpoint?: string }} body  Payload com o endpoint a remover.
+ * @param {import('http').IncomingMessage & { user?: { id: string } }} req  Request com user injetado pelo auth middleware.
+ * @param {import('http').ServerResponse} res
+ */
+async function handlePushUnsubscribe(body, req, res) {
   try {
-    await db.query('DELETE FROM push_subscriptions WHERE endpoint=$1', [body?.endpoint]);
+    if (!body?.endpoint || typeof body.endpoint !== 'string' || !body.endpoint.startsWith('https://')) {
+      return sendError(res, 400, 'Endpoint inválido');
+    }
+    if (!req.user?.id) return sendError(res, 401, 'Não autenticado');
+    await db.query(
+      'DELETE FROM push_subscriptions WHERE endpoint=$1 AND user_id=$2',
+      [body.endpoint, req.user.id]
+    );
     sendJson(res, { ok: true });
   } catch (e) { sendError(res, 500, e.message); }
 }
 
+/**
+ * Cria uma saída + BM (Boletim de Medição) vinculado a um contrato.
+ *
+ * FIX P0-1/P1-5 (backend review): toda a sequência (validação de teto contratual +
+ * upsert da NF + create da saída) roda dentro de uma transação que toma
+ * `SELECT contracts FOR UPDATE`. Isso serializa requests concorrentes sobre o
+ * mesmo contrato — antes, dois POSTs simultâneos podiam ambos passar pela
+ * validação e ultrapassar o valor do contrato.
+ *
+ * @param {string} contractId
+ * @param {{ value?: number|string, date?: string, type?: string, description?: string, prazoRecebimento?: number }} body
+ * @param {import('http').ServerResponse} res
+ */
 async function handlePostSaida(contractId, body, res) {
   try {
-    const contract = await repos.contracts.findById(contractId);
-    if (!contract) return sendError(res, 404, 'Contract not found');
+    const result = await db.withTransaction(async (client) => {
+      // Lock pessimista no contrato — serializa todas as escritas sobre ele.
+      const contractRow = await client.query(
+        'SELECT * FROM contracts WHERE id = $1 FOR UPDATE',
+        [contractId]
+      );
+      if (contractRow.rows.length === 0) {
+        const err = new Error('Contract not found');
+        err.statusCode = 404;
+        throw err;
+      }
+      const contract = await repos.contracts.findById(contractId); // mesmo dado, mas pelo factory (camelCase)
 
-    const valor = parseFloat(body.value) || 0;
-    const dataSaida = body.date || new Date().toISOString().split('T')[0];
+      const valor = parseFloat(body.value) || 0;
+      const dataSaida = body.date || new Date().toISOString().split('T')[0];
 
-    const nfsAll = await repos.notasFiscais.findAll();
-    const nfsContrato = nfsAll.filter(nf => nf.contractId === contractId);
-    const totalMedidoAtual = nfsContrato.reduce((s, nf) => s + (parseFloat(nf.valor) || 0), 0);
-    if (contract.value > 0 && totalMedidoAtual + valor > parseFloat(contract.value) + 0.01) {
-      return sendError(res, 400,
-        `BM ultrapassa o valor do contrato. Disponível para medir: R$ ${(parseFloat(contract.value) - totalMedidoAtual).toFixed(2).replace('.', ',')}`);
-    }
+      const nfsAll = await repos.notasFiscais.findAll();
+      const nfsContrato = nfsAll.filter(nf => nf.contractId === contractId);
+      const totalMedidoAtual = nfsContrato.reduce((s, nf) => s + (parseFloat(nf.valor) || 0), 0);
+      if (contract.value > 0 && totalMedidoAtual + valor > parseFloat(contract.value) + 0.01) {
+        const err = new Error(`BM ultrapassa o valor do contrato. Disponível para medir: R$ ${(parseFloat(contract.value) - totalMedidoAtual).toFixed(2).replace('.', ',')}`);
+        err.statusCode = 400;
+        throw err;
+      }
 
-    // Busca NF do mesmo dia (não emitida) para agregar
-    let nf = nfsContrato.find(n => n.dataLimite === dataSaida && !n.emitida);
-    let numeroNf;
+      // Busca NF do mesmo dia (não emitida) para agregar
+      let nf = nfsContrato.find(n => n.dataLimite === dataSaida && !n.emitida);
+      let numeroNf;
 
-    if (nf) {
-      const novoValor = (parseFloat(nf.valor) || 0) + valor;
-      await repos.notasFiscais.updateById(nf.id, { valor: novoValor, updatedAt: new Date().toISOString() });
-      numeroNf = nf.numero;
-    } else {
-      const numeroBm = String(nfsContrato.length + 1).padStart(3, '0');
-      numeroNf = `BM-${numeroBm}`;
-      const newNf = {
-        id: generateId('nf'),
-        numero: numeroNf,
+      if (nf) {
+        const novoValor = (parseFloat(nf.valor) || 0) + valor;
+        await repos.notasFiscais.updateById(nf.id, { valor: novoValor, updatedAt: new Date().toISOString() });
+        numeroNf = nf.numero;
+      } else {
+        const numeroBm = String(nfsContrato.length + 1).padStart(3, '0');
+        numeroNf = `BM-${numeroBm}`;
+        const newNf = {
+          id: generateId('nf'),
+          numero: numeroNf,
+          contractId,
+          dataLimite: dataSaida,
+          valor,
+          prazoRecebimento: (Number.isFinite(parseInt(body.prazoRecebimento)) ? parseInt(body.prazoRecebimento) : 30),
+          observacoes: body.description || '',
+          emitida: false,
+          dataEmissaoReal: null,
+          caixaEntryId: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        await repos.notasFiscais.create(newNf);
+        nf = newNf;
+      }
+
+      const saida = {
+        id: generateId('sai'),
         contractId,
-        dataLimite: dataSaida,
-        valor,
-        prazoRecebimento: (Number.isFinite(parseInt(body.prazoRecebimento)) ? parseInt(body.prazoRecebimento) : 30),
-        observacoes: body.description || '',
-        emitida: false,
-        dataEmissaoReal: null,
-        caixaEntryId: null,
+        type: body.type || 'material',
+        description: body.description || '',
+        value: valor,
+        date: dataSaida,
+        nfId: nf.id,
+        numeroBm: numeroNf,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
-      await repos.notasFiscais.create(newNf);
-      nf = newNf;
-    }
-
-    const saida = {
-      id: generateId('sai'),
-      contractId,
-      type: body.type || 'material',
-      description: body.description || '',
-      value: valor,
-      date: dataSaida,
-      nfId: nf.id,
-      numeroBm: numeroNf,
-      createdAt: new Date().toISOString(),
-    };
-    await repos.saidas.create(saida);
-
+      await repos.saidas.create(saida);
+      return { ok: true };
+    });
     const env = await repos.contracts.getEnvelope();
     sendJson(res, { ...env, notas_fiscais: await repos.notasFiscais.findAll() });
   } catch (e) {
-    sendError(res, 400, e.message);
+    sendError(res, e.statusCode || 400, e.message);
   }
 }
 
+/**
+ * Atualiza uma saída — tipo, descrição, data, valor, prazo.
+ *
+ * FIX P0-1/P1-5: pega advisory lock por contrato no início do handler.
+ * `pg_advisory_xact_lock` é liberado automaticamente ao fim da transação;
+ * serializa edits concorrentes no mesmo contrato (mas não bloqueia contratos
+ * diferentes — escalável). Internamente continua usando repos (pool) — o lock
+ * serializa o read-compute-write da validação de teto.
+ *
+ * @param {string} id
+ * @param {object} body
+ * @param {import('http').ServerResponse} res
+ */
 async function handlePutSaida(id, body, res) {
   try {
     const saida = await repos.saidas.findById(id);
     if (!saida) return sendError(res, 404, 'Saida not found');
 
+    // Lock advisory por contrato (hash do contractId → int). Auto-libera no commit.
+    // Outras requests para o mesmo contrato bloqueiam aqui até esta terminar.
+    await db.withTransaction(async (client) => {
+      await client.query(
+        'SELECT pg_advisory_xact_lock(hashtext($1)::int)',
+        [String(saida.contractId)]
+      );
+      await _handlePutSaidaInner(id, body, saida, res);
+    });
+  } catch (e) {
+    if (!res.headersSent) sendError(res, e.statusCode || 400, e.message);
+  }
+}
+
+/**
+ * Implementação interna de PUT /saida — separada para rodar dentro de
+ * `db.withTransaction`. Repos usam o pool (commits imediatos), o advisory
+ * lock serializa o read-compute-write.
+ */
+async function _handlePutSaidaInner(id, body, saida, res) {
+  try {
     const allowedSaida = {};
     const fields = ['type', 'description', 'date'];
     for (const f of fields) { if (body[f] !== undefined) allowedSaida[f] = body[f]; }
@@ -408,34 +485,52 @@ async function handlePutSaida(id, body, res) {
   }
 }
 
+/**
+ * Exclui uma saída + ajusta a NF associada (zera ou recalcula valor).
+ *
+ * FIX P0-1: usa lock pessimista no contrato pai para serializar com POST/PUT
+ * concorrentes. Sem lock, dois deletes simultâneos podiam ler o mesmo conjunto
+ * de outrasSaidas e remover a NF duas vezes (segundo delete falha em
+ * `removeById` por not found — irrita logs mas não corrompe).
+ *
+ * @param {string} id  ID da saída.
+ * @param {import('http').ServerResponse} res
+ */
 async function handleDeleteSaida(id, res) {
   try {
     const saida = await repos.saidas.findById(id);
     if (!saida) return sendError(res, 404, 'Saída não encontrada');
 
-    if (saida.nfId) {
-      const nf = await repos.notasFiscais.findById(saida.nfId);
-      if (nf) {
-        if (nf.emitida) {
-          return sendError(res, 400, 'Não é possível excluir saída cujo BM já foi emitido. Cancele a emissão do BM primeiro.');
-        }
-        const outrasSaidas = (await repos.saidas.findAll({ nfId: nf.id })).filter(s => s.id !== id);
-        if (outrasSaidas.length === 0) {
-          await repos.notasFiscais.removeById(nf.id);
-        } else {
-          await repos.notasFiscais.updateById(nf.id, {
-            valor: Math.max(0, (parseFloat(nf.valor) || 0) - (parseFloat(saida.value) || 0)),
-            updatedAt: new Date().toISOString(),
-          });
+    await db.withTransaction(async (client) => {
+      // Lock no contrato para serializar com POST/PUT de saídas/NFs.
+      await client.query('SELECT id FROM contracts WHERE id = $1 FOR UPDATE', [saida.contractId]);
+
+      if (saida.nfId) {
+        const nf = await repos.notasFiscais.findById(saida.nfId);
+        if (nf) {
+          if (nf.emitida) {
+            const err = new Error('Não é possível excluir saída cujo BM já foi emitido. Cancele a emissão do BM primeiro.');
+            err.statusCode = 400;
+            throw err;
+          }
+          const outrasSaidas = (await repos.saidas.findAll({ nfId: nf.id })).filter(s => s.id !== id);
+          if (outrasSaidas.length === 0) {
+            await repos.notasFiscais.removeById(nf.id);
+          } else {
+            await repos.notasFiscais.updateById(nf.id, {
+              valor: Math.max(0, (parseFloat(nf.valor) || 0) - (parseFloat(saida.value) || 0)),
+              updatedAt: new Date().toISOString(),
+            });
+          }
         }
       }
-    }
-    await repos.saidas.removeById(id);
+      await repos.saidas.removeById(id);
+    });
 
     const env = await repos.contracts.getEnvelope();
     sendJson(res, { ...env, notas_fiscais: await repos.notasFiscais.findAll() });
   } catch (e) {
-    sendError(res, 400, e.message);
+    sendError(res, e.statusCode || 400, e.message);
   }
 }
 
@@ -1442,7 +1537,22 @@ async function handleDeleteUser(id, req, res) {
   }
 }
 
-async function handleMetrics(res) {
+/**
+ * Endpoint de métricas operacionais. Restrito a admins.
+ *
+ * Expõe: contadores de requests, uso de memória RSS/heap e contagem por tabela.
+ * Sem `req.user` o handler retorna 401; nivel diferente de admin retorna 403.
+ * Antes era acessível anonimamente — fix A-03 da security review.
+ *
+ * @param {import('http').ServerResponse} res
+ * @param {import('http').IncomingMessage & { user?: { id: string, nivelAcessoId: string | null } }} req
+ */
+async function handleMetrics(res, req) {
+  if (!req || !req.user) return sendError(res, 401, 'Não autenticado');
+  // Apenas admin (nivelAcessoId null) tem acesso a métricas operacionais.
+  if (req.user.nivelAcessoId !== null && req.user.nivelAcessoId !== 'admin') {
+    return sendError(res, 403, 'Acesso restrito a administradores');
+  }
   const mem = process.memoryUsage();
   const out = {
     ...metrics,
@@ -1592,18 +1702,33 @@ async function handlePostInvestimento(body, res) {
   }
 }
 
+/**
+ * Exclui um aporte de investimento + entrada de caixa + base item órfão.
+ *
+ * FIX P1-3: serializa via advisory lock para evitar que dois deletes
+ * concorrentes apaguem o mesmo caixaEntry duas vezes ou o baseItem em race com
+ * outra operação. Não é atomic-rollback completo (repos ainda usam pool), mas
+ * garante ordering. Para rollback verdadeiro, ver TODO sobre passar `client`
+ * aos repos.
+ *
+ * @param {string} id
+ * @param {import('http').ServerResponse} res
+ */
 async function handleDeleteInvestimento(id, res) {
   try {
-    const aporte = await repos.investimentos.findById(id);
-    if (aporte && aporte.caixaEntryId) {
-      await repos.caixa.removeById(aporte.caixaEntryId);
-    }
-    if (aporte && aporte.baseItemId) {
-      const baseItem = await repos.baseItems.findById(aporte.baseItemId);
-      if (baseItem && (!baseItem.allocations || baseItem.allocations.length === 0)) {
-        await repos.baseItems.removeById(aporte.baseItemId);
+    await db.withTransaction(async (client) => {
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('investimentos:' || $1)::int)", [id]);
+      const aporte = await repos.investimentos.findById(id);
+      if (aporte && aporte.caixaEntryId) {
+        await repos.caixa.removeById(aporte.caixaEntryId);
       }
-    }
+      if (aporte && aporte.baseItemId) {
+        const baseItem = await repos.baseItems.findById(aporte.baseItemId);
+        if (baseItem && (!baseItem.allocations || baseItem.allocations.length === 0)) {
+          await repos.baseItems.removeById(aporte.baseItemId);
+        }
+      }
+    });
     const { envelope } = await writeCollection('investimentos', 'investimentos', (repo) => repo.removeById(id));
     sendJson(res, envelope);
   } catch (e) {
@@ -1922,42 +2047,56 @@ async function handleDeleteContaPagar(id, res) {
   }
 }
 
+/**
+ * Paga uma conta a pagar: cria entrada de caixa e atualiza status para 'pago'.
+ *
+ * FIX P1-3: serializa via advisory lock por conta — evita que dois pagamentos
+ * simultâneos criem duas entradas de caixa duplicadas.
+ *
+ * @param {string} id
+ * @param {{ dataPagamento?: string, valorPago?: number|string, formaPagamento?: string }} body
+ * @param {import('http').ServerResponse} res
+ */
 async function handlePagarConta(id, body, res) {
   try {
-    const conta = await repos.contasPagar.findById(id);
-    if (!conta) return sendError(res, 404, 'Conta não encontrada');
-    if (conta.status === 'pago') return sendError(res, 400, 'Conta já foi paga');
+    const envelope = await db.withTransaction(async (client) => {
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('conta:' || $1)::int)", [id]);
+      const conta = await repos.contasPagar.findById(id);
+      if (!conta) { const err = new Error('Conta não encontrada'); err.statusCode = 404; throw err; }
+      if (conta.status === 'pago') { const err = new Error('Conta já foi paga'); err.statusCode = 400; throw err; }
 
-    const dataPagamento = body.dataPagamento || new Date().toISOString().split('T')[0];
-    const valorPago = parseFloat(body.valorPago) || parseFloat(conta.valor) || 0;
-    const caixaEntry = {
-      id: generateId('cxa'),
-      type: 'saida',
-      description: conta.descricao + (conta.numeroNF ? ` — NF ${conta.numeroNF}` : '') + (body.formaPagamento ? ` [${body.formaPagamento}]` : ''),
-      value: valorPago,
-      date: dataPagamento,
-      contractId: conta.contractId || null,
-      baseItemId: null,
-      category: conta.category || 'fornecedor',
-      notes: `Pagamento de conta: ${conta.descricao}`,
-      formaPagamento: body.formaPagamento || null,
-      contaPagarId: conta.id,
-      createdAt: new Date().toISOString(),
-    };
-    await repos.caixa.create(caixaEntry);
-    const { envelope } = await writeCollection('contasPagar', 'contas', (repo) =>
-      repo.updateById(id, {
-        status: 'pago',
-        dataPagamento,
-        valorPago,
+      const dataPagamento = body.dataPagamento || new Date().toISOString().split('T')[0];
+      const valorPago = parseFloat(body.valorPago) || parseFloat(conta.valor) || 0;
+      const caixaEntry = {
+        id: generateId('cxa'),
+        type: 'saida',
+        description: conta.descricao + (conta.numeroNF ? ` — NF ${conta.numeroNF}` : '') + (body.formaPagamento ? ` [${body.formaPagamento}]` : ''),
+        value: valorPago,
+        date: dataPagamento,
+        contractId: conta.contractId || null,
+        baseItemId: null,
+        category: conta.category || 'fornecedor',
+        notes: `Pagamento de conta: ${conta.descricao}`,
         formaPagamento: body.formaPagamento || null,
-        caixaEntryId: caixaEntry.id,
-        updatedAt: new Date().toISOString(),
-      })
-    );
+        contaPagarId: conta.id,
+        createdAt: new Date().toISOString(),
+      };
+      await repos.caixa.create(caixaEntry);
+      const { envelope } = await writeCollection('contasPagar', 'contas', (repo) =>
+        repo.updateById(id, {
+          status: 'pago',
+          dataPagamento,
+          valorPago,
+          formaPagamento: body.formaPagamento || null,
+          caixaEntryId: caixaEntry.id,
+          updatedAt: new Date().toISOString(),
+        })
+      );
+      return envelope;
+    });
     sendJson(res, envelope);
   } catch (e) {
-    sendError(res, 400, e.message);
+    sendError(res, e.statusCode || 400, e.message);
   }
 }
 
@@ -2070,50 +2209,63 @@ async function handleDeleteNotaFiscal(id, res) {
   }
 }
 
-// Marca NF como emitida e cria entrada agendada no caixa
+/**
+ * Marca NF como emitida e cria entrada agendada no caixa.
+ *
+ * FIX P1-3: lock advisory por NF — evita duas emissões concorrentes criarem
+ * dois caixaEntries duplicados.
+ *
+ * @param {string} id
+ * @param {{ dataEmissaoReal?: string }} body
+ * @param {import('http').ServerResponse} res
+ */
 async function handleEmitirNotaFiscal(id, body, res) {
   try {
-    const nf = await repos.notasFiscais.findById(id);
-    if (!nf) return sendError(res, 404, 'Nota fiscal não encontrada');
-    if (nf.emitida) return sendError(res, 400, 'Nota fiscal já foi emitida');
+    const result = await db.withTransaction(async (client) => {
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('nf:' || $1)::int)", [id]);
+      const nf = await repos.notasFiscais.findById(id);
+      if (!nf) { const err = new Error('Nota fiscal não encontrada'); err.statusCode = 404; throw err; }
+      if (nf.emitida) { const err = new Error('Nota fiscal já foi emitida'); err.statusCode = 400; throw err; }
 
-    const dataEmissaoReal = body.dataEmissaoReal || new Date().toISOString().split('T')[0];
-    const prazo = Number.isFinite(parseInt(nf.prazoRecebimento)) ? parseInt(nf.prazoRecebimento) : 30;
-    const dtRecebimento = new Date(dataEmissaoReal + 'T12:00:00');
-    dtRecebimento.setDate(dtRecebimento.getDate() + prazo);
-    const dataRecebimento = dtRecebimento.toISOString().split('T')[0];
+      const dataEmissaoReal = body.dataEmissaoReal || new Date().toISOString().split('T')[0];
+      const prazo = Number.isFinite(parseInt(nf.prazoRecebimento)) ? parseInt(nf.prazoRecebimento) : 30;
+      const dtRecebimento = new Date(dataEmissaoReal + 'T12:00:00');
+      dtRecebimento.setDate(dtRecebimento.getDate() + prazo);
+      const dataRecebimento = dtRecebimento.toISOString().split('T')[0];
 
-    const contract = nf.contractId ? await repos.contracts.findById(nf.contractId) : null;
-    const descricao = `Recebimento NF ${nf.numero}${contract ? ` - ${contract.client}` : ''}`;
+      const contract = nf.contractId ? await repos.contracts.findById(nf.contractId) : null;
+      const descricao = `Recebimento NF ${nf.numero}${contract ? ` - ${contract.client}` : ''}`;
 
-    const caixaEntry = {
-      id: generateId('cxa'),
-      type: 'entrada',
-      description: descricao,
-      value: parseFloat(nf.valor) || 0,
-      date: dataRecebimento,
-      contractId: nf.contractId,
-      baseItemId: null,
-      category: 'nota_fiscal',
-      notes: `NF ${nf.numero} emitida em ${dataEmissaoReal}, prazo ${prazo} dias`,
-      nfId: nf.id,
-      createdAt: new Date().toISOString(),
-    };
-    await repos.caixa.create(caixaEntry);
-    await repos.notasFiscais.updateById(id, {
-      emitida: true,
-      dataEmissaoReal,
-      caixaEntryId: caixaEntry.id,
-      updatedAt: new Date().toISOString(),
+      const caixaEntry = {
+        id: generateId('cxa'),
+        type: 'entrada',
+        description: descricao,
+        value: parseFloat(nf.valor) || 0,
+        date: dataRecebimento,
+        contractId: nf.contractId,
+        baseItemId: null,
+        category: 'nota_fiscal',
+        notes: `NF ${nf.numero} emitida em ${dataEmissaoReal}, prazo ${prazo} dias`,
+        nfId: nf.id,
+        createdAt: new Date().toISOString(),
+      };
+      await repos.caixa.create(caixaEntry);
+      await repos.notasFiscais.updateById(id, {
+        emitida: true,
+        dataEmissaoReal,
+        caixaEntryId: caixaEntry.id,
+        updatedAt: new Date().toISOString(),
+      });
+      return { dataRecebimento, valor: nf.valor };
     });
 
     sendJson(res, {
       notas_fiscais: await repos.notasFiscais.findAll(),
       caixa: { entries: await repos.caixa.findAll() },
-      mensagem: `NF marcada como emitida. Entrada de ${nf.valor} agendada para ${dataRecebimento}`,
+      mensagem: `NF marcada como emitida. Entrada de ${result.valor} agendada para ${result.dataRecebimento}`,
     });
   } catch (e) {
-    sendError(res, 400, e.message);
+    sendError(res, e.statusCode || 400, e.message);
   }
 }
 
@@ -2483,6 +2635,33 @@ function parseMultipart(buffer, boundary) {
 
 const FOTO_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const FOTO_MAX_BYTES = 8 * 1024 * 1024;
+/**
+ * Mapeia Content-Type → extensão segura. Usado para evitar que a extensão venha
+ * do nome de arquivo do cliente (ex: `foto.jpg.svg` resultaria em SVG XSS).
+ * Fixes A-05 e A-06.
+ */
+const FOTO_EXT_FROM_MIME = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+};
+/**
+ * Verifica que os primeiros bytes de um Buffer correspondem a um magic-number de
+ * imagem aceito (JPEG `FF D8`, PNG `89 50 4E 47`, RIFF/WEBP). Defesa contra
+ * payloads disfarçados de imagem (ex: PHP/HTML com extensão e header forjados).
+ *
+ * @param {Buffer} buf
+ * @returns {boolean}
+ */
+function _isAllowedImageMagic(buf) {
+  if (!buf || buf.length < 12) return false;
+  if (buf[0] === 0xFF && buf[1] === 0xD8) return true; // JPEG
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return true; // PNG
+  // RIFF....WEBP
+  if (buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+      buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50) return true;
+  return false;
+}
 
 function handlePostRdoFoto(contractId, rdoId, req, res) {
   const contentType = req.headers['content-type'] || '';
@@ -2528,11 +2707,18 @@ function handlePostRdoFoto(contractId, rdoId, req, res) {
 
       const adicionadas = [];
       for (const arq of arquivos) {
-        if (arq.contentType && !FOTO_ALLOWED_TYPES.includes(arq.contentType)) continue;
+        // FIX A-05: rejeita upload sem Content-Type ou com tipo não permitido.
+        // O `arq.contentType &&` original permitia bypass simplesmente omitindo o header.
+        if (!arq.contentType || !FOTO_ALLOWED_TYPES.includes(arq.contentType)) continue;
         if (arq.data.length > FOTO_MAX_BYTES) continue;
-        const ext = (arq.filename.match(/\.[a-z0-9]+$/i) || ['.jpg'])[0].toLowerCase();
+        // Defesa em profundidade: magic-bytes batem com o Content-Type declarado.
+        if (!_isAllowedImageMagic(arq.data)) continue;
+        // FIX A-06: extensão vem do MIME validado, nunca do filename do cliente
+        // (que pode ser `foto.jpg.svg` → XSS persistente quando servido depois).
+        const ext = FOTO_EXT_FROM_MIME[arq.contentType] || '.jpg';
         const fotoId = generateId('foto');
         const filename = fotoId + ext;
+        // TODO P1-2: substituir writeFileSync por fs.promises.writeFile para não bloquear o event loop.
         fs.writeFileSync(path.join(pastaRdo, filename), arq.data);
         adicionadas.push({
           id: fotoId, filename, legenda,
@@ -2753,13 +2939,19 @@ function serveStaticFile(pathname, res) {
   const contentType = _contentTypeMap[ext] || 'application/octet-stream';
   const headers = { 'Content-Type': contentType };
   // HTML sempre revalidar (entrypoint que injeta __APP_VERSION__).
-  // JS/CSS: revalidar via no-cache (valida com servidor, mas pode reusar cache em 304).
+  // JS/CSS: cache-first com `stale-while-revalidate` — o SW (sw.js) já invalida
+  // por VERSION a cada deploy via `caches.delete(<old>)` no `activate`. Antes
+  // estava `no-cache` o que forçava 30+ requisições condicionais por navegação.
+  // SVG/PNG/WOFF: cacheáveis longos com revalidação em background.
   if (ext === '.html') {
     headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0';
     headers['Pragma'] = 'no-cache';
     headers['Expires'] = '0';
   } else if (ext === '.js' || ext === '.css') {
-    headers['Cache-Control'] = 'no-cache';
+    headers['Cache-Control'] = 'public, max-age=3600, stale-while-revalidate=86400';
+  } else if (ext === '.svg' || ext === '.png' || ext === '.jpg' || ext === '.jpeg' ||
+             ext === '.webp' || ext === '.woff2' || ext === '.woff' || ext === '.ico') {
+    headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800';
   }
 
   let body;
@@ -3269,7 +3461,7 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
     return handleHealth(res);
   }
   if (pathname === '/api/metrics' && method === 'GET') {
-    return handleMetrics(res);
+    return handleMetrics(res, req);
   }
 
   // Sócios routes
@@ -3516,11 +3708,14 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
     return sendJson(res, { publicKey: pk });
   }
   if (pathname === '/api/push/subscribe' && method === 'POST') {
-    const userId = req._userId || null;
+    // FIX C-02: o middleware de auth seta `req.user`, não `req._userId`. Antes,
+    // toda subscription era registrada com user_id=null (impossibilitava revogação).
+    const userId = req.user?.id || null;
     return handlePushSubscribe(body, userId, res);
   }
   if (pathname === '/api/push/unsubscribe' && method === 'POST') {
-    return handlePushUnsubscribe(body, res);
+    // FIX A-02: passa req para o handler validar ownership do endpoint.
+    return handlePushUnsubscribe(body, req, res);
   }
 
   // Static files
@@ -5811,8 +6006,13 @@ function handlePostRdoAssinatura(rdoId, req, res) {
 
       const arq = parts.find(p => p.filename && p.data && p.data.length > 0);
       if (!arq) return sendError(res, 400, 'Nenhuma imagem enviada');
-      if (arq.contentType && !ASSINATURA_ALLOWED_TYPES.includes(arq.contentType)) {
+      // FIX A-05: Content-Type obrigatório (antes `arq.contentType &&` permitia bypass).
+      if (!arq.contentType || !ASSINATURA_ALLOWED_TYPES.includes(arq.contentType)) {
         return sendError(res, 400, 'Tipo não permitido (use PNG, JPG ou WEBP)');
+      }
+      // Defesa em profundidade: magic-bytes batem com o MIME declarado.
+      if (!_isAllowedImageMagic(arq.data)) {
+        return sendError(res, 400, 'Arquivo não é uma imagem válida');
       }
       if (arq.data.length > ASSINATURA_MAX_BYTES) {
         return sendError(res, 413, 'Assinatura excede 2 MB');
