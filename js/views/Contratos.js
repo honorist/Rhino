@@ -911,7 +911,7 @@ window.Contratos = {
               </div>
               <div class="form-group">
                 <label class="form-label">Notas/Observações</label>
-                <textarea class="form-control" name="notes" style="min-height:80px;">${contract?.notes || ''}</textarea>
+                <textarea class="form-control" name="notes" style="min-height:80px;">${window.escapeHtml(contract?.notes || '')}</textarea>
               </div>
             </div>
           </form>
@@ -997,7 +997,9 @@ window.Contratos = {
                   window.Contratos._miniMap.remove();
                   window.Contratos._miniMap = null;
                 }
-                setTimeout(() => {
+                setTimeout(async () => {
+                  if (typeof L === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('leaflet');
+                  if (typeof L === 'undefined') return;
                   window.Contratos._miniMap = L.map(mapaDiv, { zoomControl: true, scrollWheelZoom: false })
                     .setView([parseFloat(clienteSel.lat), parseFloat(clienteSel.lng)], 15);
                   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(window.Contratos._miniMap);
@@ -1121,7 +1123,9 @@ window.Contratos = {
 
     const mostrarMiniMapa = (lat, lng, label) => {
       mapaDiv.style.display = 'block';
-      setTimeout(() => {
+      setTimeout(async () => {
+        if (typeof L === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('leaflet');
+        if (typeof L === 'undefined') return;
         if (this._miniMap) { this._miniMap.remove(); this._miniMap = null; }
         this._miniMap = L.map(mapaDiv, { zoomControl: true, scrollWheelZoom: false })
           .setView([lat, lng], 15);
@@ -1151,12 +1155,13 @@ window.Contratos = {
 
           if (!results.length) { dropdown.style.display = 'none'; return; }
 
+          // FIX P0-2: escapa retorno do Nominatim (terceiro, não confiável).
           dropdown.innerHTML = results.map((r, i) => {
             const name = r.display_name.split(',').slice(0, 3).join(',');
             const detail = r.display_name.split(',').slice(3).join(',').trim();
-            return `<div class="nominatim-item" data-i="${i}" data-lat="${r.lat}" data-lng="${r.lon}" data-name="${r.display_name.replace(/"/g, '&quot;')}">
-              <strong>${name}</strong>
-              <span>${detail}</span>
+            return `<div class="nominatim-item" data-i="${i}" data-lat="${window.escapeHtml(r.lat)}" data-lng="${window.escapeHtml(r.lon)}" data-name="${window.escapeHtml(r.display_name)}">
+              <strong>${window.escapeHtml(name)}</strong>
+              <span>${window.escapeHtml(detail)}</span>
             </div>`;
           }).join('');
           dropdown.style.display = 'block';

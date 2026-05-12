@@ -13,13 +13,13 @@ window.Previsao = {
       const res = await fetch(`/api/dashboard?projDays=${this._days}`, { credentials: 'same-origin' });
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
-      this._renderPage(app, data);
+      await this._renderPage(app, data);
     } catch (e) {
       app.innerHTML = `<div class="card"><p class="text-danger">Erro: ${e.message}</p></div>`;
     }
   },
 
-  _renderPage(app, data) {
+  async _renderPage(app, data) {
     const { saldoProjetado = [], projecaoFutura = [], caixaBalance = 0, contasPagarStatus = {}, ocorrenciasVirtuais = [] } = data;
     const fmt = (v) => Store.formatBRL ? Store.formatBRL(v) : 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
     const saldoFinal = saldoProjetado.length ? saldoProjetado[saldoProjetado.length - 1].saldo : caixaBalance;
@@ -120,12 +120,15 @@ window.Previsao = {
       });
     });
 
-    // Chart
-    this._renderChart(saldoProjetado, caixaBalance);
+    // Chart — Chart.js lazy: carrega só quando esta rota é visitada.
+    await this._renderChart(saldoProjetado, caixaBalance);
   },
 
-  _renderChart(points, saldoAtual) {
-    if (!window.Chart) return;
+  async _renderChart(points, saldoAtual) {
+    if (typeof window.Chart === 'undefined' && window.RhinoLazy) {
+      await window.RhinoLazy.ensure('chart');
+    }
+    if (typeof window.Chart === 'undefined') return; // falha de rede silenciada
     const canvas = document.getElementById('previsao-chart');
     if (!canvas) return;
     if (this._chartInstance) { this._chartInstance.destroy(); this._chartInstance = null; }

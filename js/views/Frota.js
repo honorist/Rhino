@@ -368,7 +368,8 @@ window.Frota = {
           const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&accept-language=pt-BR`);
           const arr = await res.json();
           if (!arr.length) { drop.style.display = 'none'; return; }
-          drop.innerHTML = arr.map(r => `<div class="nominatim-item" data-lat="${r.lat}" data-lng="${r.lon}" data-name="${(r.display_name).replace(/"/g, '&quot;')}">${escapeHtml(r.display_name)}</div>`).join('');
+          // FIX P0-2: escapa data-* do Nominatim (já escapava no texto via escapeHtml).
+          drop.innerHTML = arr.map(r => `<div class="nominatim-item" data-lat="${window.escapeHtml(r.lat)}" data-lng="${window.escapeHtml(r.lon)}" data-name="${window.escapeHtml(r.display_name)}">${escapeHtml(r.display_name)}</div>`).join('');
           drop.style.display = 'block';
           drop.querySelectorAll('.nominatim-item').forEach(el => el.addEventListener('click', () => {
             input.value = el.dataset.name;
@@ -669,7 +670,11 @@ window.Frota = {
     } catch (e) { window.showToast(e.message, 'error'); }
   },
 
-  showDistancias(veiculoId) {
+  async showDistancias(veiculoId) {
+    // Carrega geo.js sob demanda.
+    if (typeof window.GeoUtils === 'undefined' && window.RhinoLazy) {
+      await window.RhinoLazy.ensure('geo');
+    }
     const v = (Store.state.veiculos || []).find(x => x.id === veiculoId);
     if (!v) return;
     if (!v.lat || !v.lng) { window.showToast('Veículo sem localização cadastrada', 'error'); return; }

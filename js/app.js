@@ -25,6 +25,16 @@ const _lazyManifest = {
   '#/previsao':     { viewName: 'Previsao',     scripts: ['./js/views/Previsao.js'] },
   '#/auditoria':    { viewName: 'Auditoria',    scripts: ['./js/views/Auditoria.js'] },
   '#/comparativo':  { viewName: 'Comparativo',  scripts: ['./js/views/Comparativo.js'] },
+  // Views adicionais movidas para lazy (Tier 3 — confirmadas sem cross-referência).
+  // Cada uma só é baixada quando o usuário visita a rota correspondente.
+  '#/portal':              { viewName: 'Portal',             scripts: ['./js/views/Portal.js'] },
+  '#/relatorios':          { viewName: 'Relatorio',          scripts: ['./js/views/Relatorio.js'] },
+  '#/cobranca':            { viewName: 'CobrancaMensal',     scripts: ['./js/views/CobrancaMensal.js'] },
+  '#/conciliacao':         { viewName: 'Conciliacao',        scripts: ['./js/views/Conciliacao.js'] },
+  '#/usuarios':            { viewName: 'Usuarios',           scripts: ['./js/views/Usuarios.js'] },
+  '#/solicitacoes-compra': { viewName: 'SolicitacoesCompra', scripts: ['./js/views/SolicitacoesCompra.js'] },
+  '#/frota':               { viewName: 'Frota',              scripts: ['./js/views/Frota.js'] },
+  '#/estoque':             { viewName: 'Estoque',            scripts: ['./js/views/Estoque.js'] },
 };
 
 const _lazyLoaded = new Set();

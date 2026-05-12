@@ -4,10 +4,12 @@
 (function () {
   if (!window.ContratoDetail) { console.error('[contrato/charts] requires ContratoDetail core'); return; }
   Object.assign(window.ContratoDetail, {
-  renderPizza(dados) {
+  async renderPizza(dados) {
     if (this.chart) { this.chart.destroy(); this.chart = null; }
     const canvas = document.getElementById('chartPizzaContrato');
-    if (!canvas || typeof Chart === 'undefined') return;
+    if (!canvas) return;
+    if (typeof Chart === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('chart');
+    if (typeof Chart === 'undefined') return;
 
     const _pvv = !window.perfil || typeof window.perfil.podeVerValores !== 'function' || window.perfil.podeVerValores();
     const fmt = v => _pvv ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v) : 'R$ ●●●●●';
@@ -78,7 +80,7 @@
     });
   },
 
-  renderBarrasOrcado(tipos, orcadoPorTipo, realizadoPorTipo) {
+  async renderBarrasOrcado(tipos, orcadoPorTipo, realizadoPorTipo) {
     if (this.chartBarras) { this.chartBarras.destroy(); this.chartBarras = null; }
     const canvas = document.getElementById('chartBarrasOrcado');
     if (!canvas || typeof Chart === 'undefined' || tipos.length === 0) return;
@@ -140,7 +142,9 @@
   async renderCurvaS(contract, nfsContrato, saidas, totalBase, totalPassagens, totalCompras) {
     if (this.chartCurvaS) { this.chartCurvaS.destroy(); this.chartCurvaS = null; }
     const canvas = document.getElementById('canvasCurvaS');
-    if (!canvas || typeof Chart === 'undefined') return;
+    if (!canvas) return;
+    if (typeof Chart === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('chart');
+    if (typeof Chart === 'undefined') return;
     if (!contract.startDate || !contract.endDate || !(contract.value > 0)) return;
 
     const start = new Date(contract.startDate + 'T12:00:00');
@@ -336,10 +340,12 @@
     }
   },
 
-  renderPizzaOrcamento(orcadoPorTipo, totalOrcado) {
+  async renderPizzaOrcamento(orcadoPorTipo, totalOrcado) {
     if (this.chartOrcamento) { this.chartOrcamento.destroy(); this.chartOrcamento = null; }
     const canvas = document.getElementById('chartPizzaOrcamento');
-    if (!canvas || typeof Chart === 'undefined') return;
+    if (!canvas) return;
+    if (typeof Chart === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('chart');
+    if (typeof Chart === 'undefined') return;
 
     const TIPOS_LABEL = { mao_de_obra: 'Mão de Obra', material: 'Material', hospedagem: 'Hospedagem', transporte: 'Transporte', base: 'BASE', outros: 'Outros' };
     const TIPOS_COLOR = { mao_de_obra: '#7C3AED', material: '#D97706', hospedagem: '#0891B2', transporte: '#059669', base: '#3182CE', outros: '#9CA3AF' };

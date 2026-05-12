@@ -592,7 +592,7 @@ window.Recursos = {
         <div style="display:flex;justify-content:space-between;align-items:flex-start;">
           <div>
             <div style="font-weight:700;">${this._fmtDate(f.dataInicio)} → ${f.dataFim ? this._fmtDate(f.dataFim) : '?'}</div>
-            <div style="font-size:15px;color:var(--color-text-muted);">${f.observacoes || ''}</div>
+            <div style="font-size:15px;color:var(--color-text-muted);">${window.escapeHtml(f.observacoes || '')}</div>
           </div>
           <button class="btn-excluir-folga action-link danger" data-folga-id="${f.id}" style="font-size:15px;">Excluir</button>
         </div>
@@ -789,11 +789,17 @@ window.Recursos = {
   },
 
   // ── MAPA: FUNCIONÁRIO + OBRAS ──────────────────────────────────────────────
-  // Helpers movidos para js/lib/geo.js (window.GeoUtils). Wrappers mantidos
-  // como aliases para preservar a API interna que esta view já usava.
+  // Helpers movidos para js/lib/geo.js (window.GeoUtils). Wrappers carregam o
+  // módulo lazy se ainda não estiver disponível — economiza o request de geo.js
+  // em rotas que não usam mapa.
+  async _ensureGeo() {
+    if (typeof window.GeoUtils === 'undefined' && window.RhinoLazy) {
+      await window.RhinoLazy.ensure('geo');
+    }
+  },
   _haversine(lat1, lng1, lat2, lng2)        { return window.GeoUtils.haversine(lat1, lng1, lat2, lng2); },
   _fetchRotaOSRM(lat1, lng1, lat2, lng2)    { return window.GeoUtils.fetchRotaOSRM(lat1, lng1, lat2, lng2); },
-  _fmtMin(min)                              { return window.GeoUtils.fmtMin(min); },
+  _fmtMin(min)                              { return (window.GeoUtils && window.GeoUtils.fmtMin) ? window.GeoUtils.fmtMin(min) : `${Math.round(min)} min`; },
 
   // Calcula rotas reais para cada obra via OSRM, com concorrência limitada.
   // Atualiza a UI (cards + header) e o mapa (troca linha reta por rota real) conforme cada resposta.
@@ -892,7 +898,9 @@ window.Recursos = {
     }
   },
 
-  showDistancias(recursoId) {
+  async showDistancias(recursoId) {
+    // Carrega geo.js sob demanda — só usado nesta tela e no mapa geral.
+    await this._ensureGeo();
     const r = (Store.state.recursos || []).find(x => x.id === recursoId);
     if (!r || !r.lat || !r.lng) return;
 
@@ -966,8 +974,10 @@ window.Recursos = {
     overlay.querySelector('.modal-close').addEventListener('click', close);
     overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 
-    // Inicializar mapa
-    setTimeout(() => {
+    // Inicializar mapa (Leaflet sob demanda)
+    setTimeout(async () => {
+      if (typeof L === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('leaflet');
+      if (typeof L === 'undefined') return;
       const map = L.map('mapaDistancias').setView([parseFloat(r.lat), parseFloat(r.lng)], 6);
       this._distMap = map;
 
@@ -1078,7 +1088,9 @@ window.Recursos = {
     overlay.querySelector('.modal-close').addEventListener('click', close);
     overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 
-    setTimeout(() => {
+    setTimeout(async () => {
+      if (typeof L === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('leaflet');
+      if (typeof L === 'undefined') return;
       const centerLat = recursos.length ? parseFloat(recursos[0].lat) : obras.length ? parseFloat(obras[0].lat) : -15;
       const centerLng = recursos.length ? parseFloat(recursos[0].lng) : obras.length ? parseFloat(obras[0].lng) : -47;
       const map = L.map('mapaGeral').setView([centerLat, centerLng], 5);
@@ -1154,7 +1166,9 @@ window.Recursos = {
 
     const mostrarMapa = (la, lo, label) => {
       mapaDiv.style.display = 'block';
-      setTimeout(() => {
+      setTimeout(async () => {
+        if (typeof L === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('leaflet');
+        if (typeof L === 'undefined') return;
         if (this._miniMap) { this._miniMap.remove(); this._miniMap = null; }
         this._miniMap = L.map(mapaDiv, { zoomControl: true, scrollWheelZoom: false }).setView([la, lo], 14);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(this._miniMap);
@@ -1174,10 +1188,11 @@ window.Recursos = {
           const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=6&addressdetails=1`, { headers: { 'Accept-Language': 'pt-BR,pt;q=0.9' } });
           const results = await res.json();
           if (!results.length) { dropdown.style.display = 'none'; return; }
+          // FIX P0-2: escapa retorno do Nominatim.
           dropdown.innerHTML = results.map(r => {
             const name   = r.display_name.split(',').slice(0,3).join(',');
             const detail = r.display_name.split(',').slice(3).join(',').trim();
-            return `<div class="nominatim-item" data-lat="${r.lat}" data-lng="${r.lon}" data-name="${r.display_name.replace(/"/g,'&quot;')}"><strong>${name}</strong><span>${detail}</span></div>`;
+            return `<div class="nominatim-item" data-lat="${window.escapeHtml(r.lat)}" data-lng="${window.escapeHtml(r.lon)}" data-name="${window.escapeHtml(r.display_name)}"><strong>${window.escapeHtml(name)}</strong><span>${window.escapeHtml(detail)}</span></div>`;
           }).join('');
           dropdown.style.display = 'block';
           dropdown.querySelectorAll('.nominatim-item').forEach(el => {

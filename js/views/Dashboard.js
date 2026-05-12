@@ -22,6 +22,9 @@ window.Dashboard = {
 
   async render() {
     const app = document.getElementById('app');
+    // Disparar carregamento de Chart.js em paralelo com o skeleton — quando o
+    // renderChart() for chamado mais abaixo, await garantirá que esteja pronto.
+    if (window.RhinoLazy) window.RhinoLazy.ensure('chart').catch(() => {});
     app.innerHTML = `
       <div class="dashboard-skeleton" aria-busy="true">
         <div class="grid grid-4" style="margin-bottom:24px;">
@@ -769,7 +772,7 @@ window.Dashboard = {
       this._aplicarPreferenciasDash();
       this._injetarBotaoCustomizar();
 
-      this.renderChart(dash);
+      await this.renderChart(dash);
       this._bindPeriodoCtrl();
 
     } catch (e) {
@@ -1054,7 +1057,11 @@ window.Dashboard = {
     `;
   },
 
-  renderChart(dash) {
+  async renderChart(dash) {
+    // Aguarda Chart.js (disparado em paralelo no início de render()).
+    if (typeof window.Chart === 'undefined' && window.RhinoLazy) {
+      await window.RhinoLazy.ensure('chart');
+    }
     if (this.chart) { this.chart.destroy(); this.chart = null; }
     const canvas = document.getElementById('chartSaude');
     if (!canvas || typeof Chart === 'undefined') return;

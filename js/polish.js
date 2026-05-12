@@ -9,28 +9,13 @@
   'use strict';
 
   // ───────────────────────────────────────────────
-  // 0. Hard-refresh por sessão
+  // 0. (REMOVIDO) Hard-refresh por sessão
   // ───────────────────────────────────────────────
-  // Na primeira carga de cada sessão (nova aba/janela ou reabrir o site),
-  // limpa todos os caches do SW e recarrega — garante código e dados frescos.
-  // sessionStorage faz a guarda contra loop infinito: a flag dura só enquanto
-  // a aba está aberta, então fechar e reabrir dispara o refresh de novo.
-  (function sessionHardRefresh() {
-    const KEY = 'rhino-session-refreshed';
-    if (sessionStorage.getItem(KEY)) return;
-    sessionStorage.setItem(KEY, '1');
-    if (!('caches' in window)) return; // sem SW/cache nada a fazer
-    Promise.resolve()
-      .then(() => caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))))
-      .then(() => {
-        if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
-          return navigator.serviceWorker.getRegistrations()
-            .then((regs) => Promise.all(regs.map((r) => r.update().catch(() => {}))));
-        }
-      })
-      .finally(() => location.reload());
-  })();
-
+  // O IIFE `sessionHardRefresh` foi removido — ele apagava TODOS os caches do
+  // SW e forçava location.reload() a cada nova aba/janela. Custo: +1,5–3s por
+  // sessão e zero benefício, pois o SW já invalida cache via APP_VERSION
+  // injetado em sw.js (`activate` handler descarta caches stale).
+  //
   // ───────────────────────────────────────────────
   // 1. Service worker
   // ───────────────────────────────────────────────

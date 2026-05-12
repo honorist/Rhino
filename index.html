@@ -4,15 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script>
-    // Garante que URLs relativas resolvam corretamente em subpastas (ex: GitHub Pages /Rhino/)
+    /**
+     * Resolve URLs relativas corretamente quando o app é servido a partir de subpastas
+     * (ex: GitHub Pages em `/Rhino/`). Injeta um `<base href>` apontando para o
+     * diretório atual.
+     *
+     * NOTA: a versão anterior usava `document.write()` que (a) bloqueia o HTML parser
+     * forçando reparsing, (b) é deprecado em SW contexts e (c) impede que os
+     * preconnects abaixo comecem em paralelo. Substituído por `insertBefore` —
+     * mesma semântica, sem reparse.
+     */
     (function(){
       var p = location.pathname;
-      // Se pathname não termina em barra e não é um arquivo, adiciona barra
       if (!p.endsWith('/') && !/\.[a-z0-9]+$/i.test(p)) {
         history.replaceState(null, '', p + '/' + location.search + location.hash);
       }
       var dir = location.pathname.replace(/[^/]*$/, '');
-      document.write('<base href="' + dir + '">');
+      var base = document.createElement('base');
+      base.href = dir;
+      document.head.insertBefore(base, document.head.firstChild);
     })();
   </script>
   <title>Rhino — Gestão Empresarial</title>
@@ -21,8 +31,12 @@
   <link rel="preconnect" href="https://unpkg.com" crossorigin>
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <!-- Fontes consolidadas em uma única requisição com display=swap (evita waterfall de @import no CSS) -->
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700;800&display=swap">
+  <!-- Fontes consolidadas (display=swap evita FOIT). Pesos reduzidos do conjunto
+       300-800 original para os pesos efetivamente usados na UI — economiza 6-9 woff2. -->
+  <link rel="preload" as="style" crossorigin
+        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Inter:wght@400;500;600&family=Inter+Tight:wght@700&display=swap">
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Inter:wght@400;500;600&family=Inter+Tight:wght@700&display=swap">
   <link rel="dns-prefetch" href="https://a.tile.openstreetmap.org">
   <link rel="dns-prefetch" href="https://b.tile.openstreetmap.org">
   <link rel="dns-prefetch" href="https://c.tile.openstreetmap.org">
@@ -30,7 +44,8 @@
   <link rel="stylesheet" href="./css/components.css">
   <link rel="stylesheet" href="./css/theme-v2.css">
   <link rel="stylesheet" href="./css/polish.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <!-- Leaflet CSS é carregado sob demanda por RhinoLazy.ensure('leaflet')
+       (que inclui a dep 'leaflet-css'). Não precisa eager aqui. -->
   <link rel="manifest" href="./manifest.webmanifest">
   <meta name="theme-color" content="#55588B">
   <meta name="application-name" content="Rhino">
@@ -94,17 +109,12 @@
     </main>
   </div>
 
-  <!-- Bibliotecas pesadas (jsPDF, SignaturePad, Mermaid) carregam sob demanda
-       via js/lazy.js — economiza ~900 KB no boot. Leaflet permanece eager por
-       ser usado em múltiplas views. Todos os scripts usam defer p/ não bloquear
-       o parse e fazer o boot loader aparecer imediatamente. -->
-  <script src="./js/lib/chart.js" defer></script>
+  <!-- Bibliotecas carregadas sob demanda via js/lazy.js (jsPDF, SignaturePad,
+       Mermaid, Chart, Leaflet, geo, recurrence). Apenas icons.js (~3 KB) e
+       lazy.js (precisa estar disponível) permanecem eager. -->
   <script src="./js/lib/icons.js" defer></script>
-  <script src="./js/lib/recurrence.js" defer></script>
-  <script src="./js/lib/geo.js" defer></script>
   <script src="./js/lazy.js" defer></script>
   <script src="./js/exports.js" defer></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="" defer></script>
 
   <!-- Modo local (browser-only) descontinuado: agora rodamos sempre contra o servidor real
        (server.js + Postgres). Para reativar o modo offline com localStorage,
@@ -125,22 +135,16 @@
   <script src="./js/views/Investimentos.js" defer></script>
   <script src="./js/views/NotasFiscais.js" defer></script>
   <script src="./js/views/ContasPagar.js" defer></script>
-  <script src="./js/views/Conciliacao.js" defer></script>
+  <!-- Conciliacao, Estoque, SolicitacoesCompra, Frota, CobrancaMensal,
+       Usuarios, Portal, Relatorio → lazy via _lazyManifest -->
   <script src="./js/views/Base.js" defer></script>
-  <script src="./js/views/Estoque.js" defer></script>
-  <script src="./js/views/SolicitacoesCompra.js" defer></script>
-  <script src="./js/views/Frota.js" defer></script>
-  <script src="./js/views/CobrancaMensal.js" defer></script>
   <script src="./js/views/Configuracao.js" defer></script>
-  <script src="./js/views/Usuarios.js" defer></script>
   <script src="./js/views/RDOs.js" defer></script>
   <!-- Auditoria → lazy via _lazyManifest -->
   <script src="./js/views/Obras.js" defer></script>
   <script src="./js/views/Recursos.js" defer></script>
   <script src="./js/views/Documentos.js" defer></script>
   <!-- Manual / Previsao / AiChat → lazy via _lazyManifest -->
-  <script src="./js/views/Portal.js" defer></script>
-  <script src="./js/views/Relatorio.js" defer></script>
   <script src="./js/bm.js" defer></script>
   <script src="./js/push.js" defer></script>
   <script src="./js/app.js" defer></script>

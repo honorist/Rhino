@@ -253,7 +253,7 @@ window.Clientes = {
             </div>
             <div class="form-group">
               <label class="form-label">Notas</label>
-              <textarea class="form-control" name="notas" style="min-height:60px;">${cliente?.notas || ''}</textarea>
+              <textarea class="form-control" name="notas" style="min-height:60px;">${window.escapeHtml(cliente?.notas || '')}</textarea>
             </div>
 
             <!-- Acesso ao Portal -->
@@ -326,8 +326,11 @@ window.Clientes = {
     const mapaDiv  = document.getElementById('miniMapa');
     if (!input) return;
 
-    const mostrarMiniMapa = (la, lo, label) => {
+    const mostrarMiniMapa = async (la, lo, label) => {
       mapaDiv.style.display = 'block';
+      // Carrega Leaflet sob demanda — economiza ~160 KB em rotas sem mapa.
+      if (typeof L === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('leaflet');
+      if (typeof L === 'undefined') return;
       setTimeout(() => {
         if (this._miniMap) { this._miniMap.remove(); this._miniMap = null; }
         this._miniMap = L.map(mapaDiv, { zoomControl: true, scrollWheelZoom: false })
@@ -355,11 +358,14 @@ window.Clientes = {
           const results = await res.json();
           if (!results.length) { dropdown.style.display = 'none'; return; }
 
+          // FIX P0-2: escapa retorno do Nominatim (terceiro, não confiável) antes
+          // de inserir em innerHTML. Sem isso, um resultado com `<img onerror=...>`
+          // resulta em XSS no contexto autenticado da aplicação.
           dropdown.innerHTML = results.map(r => {
             const name   = r.display_name.split(',').slice(0, 3).join(',');
             const detail = r.display_name.split(',').slice(3).join(',').trim();
-            return `<div class="nominatim-item" data-lat="${r.lat}" data-lng="${r.lon}" data-name="${r.display_name.replace(/"/g, '&quot;')}">
-              <strong>${name}</strong><span>${detail}</span>
+            return `<div class="nominatim-item" data-lat="${window.escapeHtml(r.lat)}" data-lng="${window.escapeHtml(r.lon)}" data-name="${window.escapeHtml(r.display_name)}">
+              <strong>${window.escapeHtml(name)}</strong><span>${window.escapeHtml(detail)}</span>
             </div>`;
           }).join('');
           dropdown.style.display = 'block';

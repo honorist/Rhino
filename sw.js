@@ -6,12 +6,26 @@
    VERSION é injetado pelo servidor com a versão atual do app,
    garantindo que o cache seja invalidado a cada deploy.
 */
-// VERSION é substituído pelo servidor em runtime. Se o placeholder não for injetado
-// (ex: servindo o arquivo diretamente sem passar pelo servidor), usa timestamp para
-// garantir que o cache antigo com o placeholder nunca bloqueie deploys futuros.
-const VERSION = '__RHINO_VERSION__' !== '__RHINO_VERSION__'
-  ? '__RHINO_VERSION__'
-  : ('dev-' + Math.floor(Date.now() / 60000)); // muda a cada minuto em dev
+/**
+ * VERSION do cache do Service Worker.
+ *
+ * O servidor substitui o placeholder `__RHINO_VERSION__` em runtime pela versão
+ * real do app (ver server.js — bloco de serve do sw.js). Quando o placeholder
+ * NÃO é substituído (arquivo servido sem passar pelo servidor, dev local sem
+ * APP_VERSION) caímos no fallback `dev-${timestamp}` que muda a cada hora —
+ * tempo suficiente para uma sessão de dev sem invalidar agressivamente.
+ *
+ * IMPORTANTE: o teste anterior `'__RHINO_VERSION__' !== '__RHINO_VERSION__'`
+ * era uma tautologia sempre `false`, então o ramo de produção NUNCA executava
+ * e o cache era invalidado a cada minuto em produção também. Veja regression
+ * checked-in via prefixo `__RHINO_`.
+ *
+ * @type {string}
+ */
+const _RAW_VERSION = '__RHINO_VERSION__';
+const VERSION = _RAW_VERSION.startsWith('__RHINO_')
+  ? ('dev-' + Math.floor(Date.now() / (60 * 60 * 1000))) // muda a cada hora em dev
+  : _RAW_VERSION;
 const STATIC_CACHE = `${VERSION}-static`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 const API_CACHE = `${VERSION}-api`;

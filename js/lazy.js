@@ -20,6 +20,24 @@
       crossorigin: '',
       check: () => typeof window.L !== 'undefined',
     },
+    // Chart.js — usado apenas em Dashboard, RDOs, Previsao e contrato/charts.
+    // ~220 KB minificado — não carregar eager nas rotas que não plotam gráficos.
+    'chart': {
+      type: 'js',
+      src: './js/lib/chart.js',
+      check: () => typeof window.Chart !== 'undefined',
+    },
+    // Utilitários locais — pequenos mas evita 2 round-trips a mais no boot.
+    'geo': {
+      type: 'js',
+      src: './js/lib/geo.js',
+      check: () => typeof window.GeoUtils !== 'undefined',
+    },
+    'recurrence': {
+      type: 'js',
+      src: './js/lib/recurrence.js',
+      check: () => typeof window.RhinoRecurrence !== 'undefined',
+    },
     'jspdf': {
       type: 'js',
       src: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
@@ -45,7 +63,10 @@
           window.mermaid.initialize({
             startOnLoad: false,
             theme: 'base',
-            securityLevel: 'loose',
+            // 'strict' bloqueia HTML/JS em labels — Manual usa apenas texto puro,
+            // não precisa de 'loose'. Se algum diagrama mostrar problema visual,
+            // troque por 'antiscript' (permite HTML simples mas bloqueia <script>).
+            securityLevel: 'strict',
             flowchart: {
               htmlLabels: true,
               curve: 'basis',

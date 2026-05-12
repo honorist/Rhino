@@ -6,6 +6,10 @@ window.Caixa = {
     app.innerHTML = '<div class="loading-spinner">Carregando...</div>';
 
     try {
+      // Carrega recurrence.js sob demanda (BASE virtual occurrences).
+      if (typeof window.RhinoRecurrence === 'undefined' && window.RhinoLazy) {
+        await window.RhinoLazy.ensure('recurrence');
+      }
       await Store.loadAll();
 
       const num = v => parseFloat(v) || 0;
@@ -488,13 +492,15 @@ window.Caixa = {
 
   _showOfxResultado(data) {
     const fmt = (v) => 'R$ ' + Math.abs(Number(v)).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    // FIX P0-4: escapa dados do arquivo OFX (origem externa, podem conter HTML/JS
+    // se o arquivo for malicioso ou se o parser do servidor não sanitizar).
     const rows = (data.transacoes || []).map(t => `
       <tr>
-        <td>${t.data}</td>
-        <td style="max-width:280px;word-break:break-word;">${t.memo || '—'}</td>
+        <td>${window.escapeHtml(t.data)}</td>
+        <td style="max-width:280px;word-break:break-word;">${window.escapeHtml(t.memo || '—')}</td>
         <td style="font-weight:700;color:${t.tipo==='entrada'?'var(--color-success)':'var(--color-danger)'};">${t.tipo==='saida'?'-':'+'} ${fmt(t.valor)}</td>
         <td><span class="badge" style="background:${t.status==='conciliado'?'#D1FAE5':'#FEF3C7'};color:${t.status==='conciliado'?'#065F46':'#92400E'};">${t.status==='conciliado'?'✅ Conciliado':'🆕 Novo'}</span></td>
-        <td style="font-size:13px;color:var(--color-text-muted);">${t.match?t.match.description:'—'}</td>
+        <td style="font-size:13px;color:var(--color-text-muted);">${t.match ? window.escapeHtml(t.match.description) : '—'}</td>
       </tr>`).join('');
 
     const html = `
@@ -689,7 +695,7 @@ window.Caixa = {
             </div>
             <div class="form-group">
               <label class="form-label">Descrição *</label>
-              <input class="form-control" name="description" value="${entry?.description || ''}" required>
+              <input class="form-control" name="description" value="${window.escapeHtml(entry?.description || '')}" required>
             </div>
             <div class="form-row">
               <div class="form-group">

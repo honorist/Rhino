@@ -118,7 +118,7 @@
             <div style="border-top: 1px solid var(--color-border); padding-top: var(--sp-lg); margin-top: var(--sp-lg);">
               <div class="form-group">
                 <label class="form-label">Notas/Observações</label>
-                <textarea class="form-control" name="notes" style="min-height: 80px;">${contract.notes || ''}</textarea>
+                <textarea class="form-control" name="notes" style="min-height: 80px;">${window.escapeHtml(contract.notes || '')}</textarea>
               </div>
             </div>
           </form>
@@ -218,7 +218,9 @@
     const mapaDiv = document.getElementById('miniMapaDetail');
     if (!mapaDiv) return;
     mapaDiv.style.display = 'block';
-    setTimeout(() => {
+    setTimeout(async () => {
+      if (typeof L === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('leaflet');
+      if (typeof L === 'undefined') return;
       if (this._miniMapDetail) { this._miniMapDetail.remove(); this._miniMapDetail = null; }
       this._miniMapDetail = L.map(mapaDiv, { zoomControl: true, scrollWheelZoom: false })
         .setView([la, lo], 15);

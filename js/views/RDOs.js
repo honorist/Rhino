@@ -21,7 +21,7 @@ const RDOs = {
     this.draw();
   },
 
-  draw() {
+  async draw() {
     const root = document.getElementById('app');
     const { rdos, stats } = this._cache;
 
@@ -232,10 +232,14 @@ const RDOs = {
       this._downloadCsv(`obras-atrasadas-${stats.hoje}.csv`, rows);
     });
 
-    // Gráfico de aderência diária
-    if (stats.aderenciaDiaria && stats.aderenciaDiaria.length > 0 && window.Chart) {
+    // Gráfico de aderência diária — carrega Chart.js sob demanda.
+    if (stats.aderenciaDiaria && stats.aderenciaDiaria.length > 0) {
       const canvas = document.getElementById('chartAderencia');
       if (canvas) {
+        if (typeof window.Chart === 'undefined' && window.RhinoLazy) {
+          await window.RhinoLazy.ensure('chart');
+        }
+        if (typeof window.Chart === 'undefined') return; // falha de rede silenciada
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         const txt = isDark ? '#e5e7eb' : '#374151';
         const grid = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';

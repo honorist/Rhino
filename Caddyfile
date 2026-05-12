@@ -1,16 +1,20 @@
 # Substitua "rhino.example.com" pelo seu domínio.
 # Caddy obtém SSL via Let's Encrypt automaticamente.
 rhino.example.com {
-    encode zstd gzip
+    # `br` (brotli) primeiro — Caddy escolhe o primeiro suportado pelo browser.
+    # Brotli compacta JS/CSS 15-25% mais que gzip, zstd é fallback para clients sem br.
+    encode br zstd gzip
+
     reverse_proxy rhino:3001 {
         header_up X-Real-IP {remote_host}
         health_uri /api/health
         health_interval 30s
         health_timeout 5s
     }
-    # Block access to sensitive paths
+
+    # Block access to sensitive paths (servidor Node também bloqueia, mas defesa em profundidade)
     @forbidden {
-        path /data/* /db/* /scripts/* /node_modules/* /.env /.env.example /Dockerfile /docker-compose*.yml /package*.json
+        path /data/* /db/* /scripts/* /node_modules/* /.env /.env.* /Dockerfile /docker-compose*.yml /package*.json /server.log /*.log /changelog.json /render.yaml /railway.json /fly.toml
     }
     respond @forbidden 403
 }

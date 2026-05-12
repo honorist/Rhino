@@ -79,7 +79,7 @@ window.Obras = {
         </div>
       `;
 
-      this._initMap();
+      await this._initMap();
       this._bindFiltros();
 
     } catch (e) {
@@ -138,11 +138,13 @@ window.Obras = {
     return contratos;
   },
 
-  _initMap() {
+  async _initMap() {
     if (this._map) { this._map.remove(); this._map = null; }
 
     const mapaDiv = document.getElementById('mapaObras');
-    if (!mapaDiv || typeof L === 'undefined') return;
+    if (!mapaDiv) return;
+    if (typeof L === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('leaflet');
+    if (typeof L === 'undefined') return;
 
     // Centro padrão: Brasil
     this._map = L.map('mapaObras').setView([-15.7801, -47.9292], 5);
