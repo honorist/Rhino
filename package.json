@@ -8,6 +8,13 @@
     "dev": "node server.js",
     "test": "node --test test/**/*.test.js",
     "test:e2e": "playwright test test/e2e/api.spec.js",
+    "test:headers": "node --test test/headers.test.js",
+    "test:validate": "node --test test/validate.test.js",
+    "test:healthz": "node --test test/healthz.test.js",
+    "db:migrate": "node-pg-migrate up --migrations-dir db/migrations --migration-file-language sql",
+    "db:migrate:down": "node-pg-migrate down --migrations-dir db/migrations --migration-file-language sql",
+    "db:migrate:status": "node-pg-migrate status --migrations-dir db/migrations --migration-file-language sql",
+    "db:migrate:fake": "node-pg-migrate up --fake --migrations-dir db/migrations --migration-file-language sql",
     "db:migrate-json": "node scripts/migrate-json-to-pg.js",
     "backup:prod": "node scripts/backup-prod.js"
   },
@@ -23,6 +30,7 @@
     "node": ">=18"
   },
   "devDependencies": {
-    "@playwright/test": "^1.59.1"
+    "@playwright/test": "^1.59.1",
+    "node-pg-migrate": "^8.0.4"
   }
 }

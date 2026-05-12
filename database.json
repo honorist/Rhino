@@ -1,0 +1,9 @@
+{
+  "defaultEnv": "default",
+  "default": {
+    "url": { "ENV": "DATABASE_URL" }
+  },
+  "test": {
+    "url": { "ENV": "DATABASE_URL_TEST" }
+  }
+}

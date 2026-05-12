@@ -34,6 +34,7 @@ const email = require('./lib/email');
 const rateLimit = require('./lib/rate-limit');
 const audit = require('./lib/audit');
 const bus = require('./lib/bus');
+const { validateBody, schemas, ValidationError } = require('./lib/validate');
 
 // Web Push — inicializa só se VAPID keys estiverem presentes
 let _webPush = null;
@@ -284,8 +285,7 @@ async function handlePostSaida(contractId, body, res) {
       }
       const contract = await repos.contracts.findById(contractId); // mesmo dado, mas pelo factory (camelCase)
 
-      const valor = parseFloat(body.value) || 0;
-      const dataSaida = body.date || new Date().toISOString().split('T')[0];
+      const { value: valor, date: dataSaida, type: saidaType, description: saidaDesc } = validateBody(schemas.saidaPost, body);
 
       const nfsAll = await repos.notasFiscais.findAll();
       const nfsContrato = nfsAll.filter(nf => nf.contractId === contractId);
@@ -313,8 +313,8 @@ async function handlePostSaida(contractId, body, res) {
           contractId,
           dataLimite: dataSaida,
           valor,
-          prazoRecebimento: (Number.isFinite(parseInt(body.prazoRecebimento)) ? parseInt(body.prazoRecebimento) : 30),
-          observacoes: body.description || '',
+          prazoRecebimento: (Number.isFinite(parseInt(body.prazoRecebimento, 10)) ? parseInt(body.prazoRecebimento, 10) : 30),
+          observacoes: saidaDesc,
           emitida: false,
           dataEmissaoReal: null,
           caixaEntryId: null,
@@ -328,8 +328,8 @@ async function handlePostSaida(contractId, body, res) {
       const saida = {
         id: generateId('sai'),
         contractId,
-        type: body.type || 'material',
-        description: body.description || '',
+        type: saidaType,
+        description: saidaDesc,
         value: valor,
         date: dataSaida,
         nfId: nf.id,
@@ -385,10 +385,7 @@ async function handlePutSaida(id, body, res) {
  */
 async function _handlePutSaidaInner(id, body, saida, res) {
   try {
-    const allowedSaida = {};
-    const fields = ['type', 'description', 'date'];
-    for (const f of fields) { if (body[f] !== undefined) allowedSaida[f] = body[f]; }
-    if (body.value !== undefined) allowedSaida.value = parseFloat(body.value) || 0;
+    const allowedSaida = { ...validateBody(schemas.saidaPut, body) };
 
     if (saida.nfId) {
       const nf = await repos.notasFiscais.findById(saida.nfId);
@@ -1983,26 +1980,24 @@ async function handleGetContasPagar(res) {
 
 async function handlePostContaPagar(body, res) {
   try {
-    if (!body.descricao || !body.valor || parseFloat(body.valor) <= 0) {
-      return sendError(res, 400, 'Descrição e valor (>0) são obrigatórios');
-    }
+    const p = validateBody(schemas.contaPagarPost, body);
     const conta = {
       id: generateId('cp'),
-      descricao: body.descricao || '',
-      fornecedorId: body.fornecedorId || null,
-      numeroNF: body.numeroNF || '',
-      valor: parseFloat(body.valor) || 0,
-      dataEmissao: body.dataEmissao || new Date().toISOString().split('T')[0],
-      dataVencimento: body.dataVencimento || null,
+      descricao: p.descricao,
+      fornecedorId: p.fornecedorId,
+      numeroNF: p.numeroNF,
+      valor: p.valor,
+      dataEmissao: p.dataEmissao,
+      dataVencimento: p.dataVencimento,
       status: 'pendente',
       dataPagamento: null,
       caixaEntryId: null,
-      contractId: body.contractId || null,
-      category: body.category || 'fornecedor',
-      observacoes: body.observacoes || '',
-      recorrente: !!body.recorrente,
-      periodicidade: body.periodicidade || null,
-      recorrenciaOrigemId: body.recorrenciaOrigemId || null,
+      contractId: p.contractId,
+      category: p.category,
+      observacoes: p.observacoes,
+      recorrente: p.recorrente,
+      periodicidade: p.periodicidade,
+      recorrenciaOrigemId: p.recorrenciaOrigemId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -2131,17 +2126,15 @@ async function handleGetNotasFiscais(res) {
 
 async function handlePostNotaFiscal(body, res) {
   try {
-    if (!body.numero || !body.contractId || !body.dataLimite) {
-      return sendError(res, 400, 'Número, contrato e data limite são obrigatórios');
-    }
+    const p = validateBody(schemas.notaFiscalPost, body);
     const nf = {
       id: generateId('nf'),
-      numero: body.numero,
-      contractId: body.contractId,
-      dataLimite: body.dataLimite,
-      valor: parseFloat(body.valor) || 0,
-      prazoRecebimento: (Number.isFinite(parseInt(body.prazoRecebimento)) ? parseInt(body.prazoRecebimento) : 30),
-      observacoes: body.observacoes || '',
+      numero: p.numero,
+      contractId: p.contractId,
+      dataLimite: p.dataLimite,
+      valor: p.valor,
+      prazoRecebimento: p.prazoRecebimento,
+      observacoes: p.observacoes,
       emitida: false,
       dataEmissaoReal: null,
       caixaEntryId: null,
@@ -2160,15 +2153,7 @@ async function handlePutNotaFiscal(id, body, res) {
     const existing = await repos.notasFiscais.findById(id);
     if (!existing) return sendError(res, 404, 'Nota fiscal not found');
 
-    const allowed = {};
-    const fields = ['numero', 'contractId', 'observacoes'];
-    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
-    if (body.valor !== undefined) allowed.valor = parseFloat(body.valor) || 0;
-    if (body.prazoRecebimento !== undefined) {
-      allowed.prazoRecebimento = (Number.isFinite(parseInt(body.prazoRecebimento)) ? parseInt(body.prazoRecebimento) : 30);
-    }
-    if (body.dataLimite !== undefined) allowed.dataLimite = body.dataLimite || null;
-    if (body.dataEmissaoReal !== undefined) allowed.dataEmissaoReal = body.dataEmissaoReal || null;
+    const allowed = { ...validateBody(schemas.notaFiscalPut, body) };
     allowed.updatedAt = new Date().toISOString();
 
     const updated = { ...existing, ...allowed };
@@ -3048,6 +3033,18 @@ const server = http.createServer((req, res) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'same-origin');
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  res.setHeader('X-DNS-Prefetch-Control', 'off');
+  res.setHeader('Content-Security-Policy', [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openstreetmap.org",
+    "connect-src 'self' https://*.openstreetmap.org https://nominatim.openstreetmap.org",
+    "worker-src 'self' blob:",
+    "frame-ancestors 'none'",
+  ].join('; '));
   if (process.env.NODE_ENV === 'production') {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
@@ -3055,6 +3052,23 @@ const server = http.createServer((req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(200);
     res.end();
+    return;
+  }
+
+  // /healthz e /readyz — sem autenticação, sem logging de auditoria
+  if (pathname === '/healthz' || pathname === '/readyz') {
+    (async () => {
+      const result = { status: 'ok', db: 'unknown', uptime_s: Math.round((Date.now() - APP_START) / 1000), version: APP_VERSION };
+      try {
+        result.db = (await require('./db').ping()) ? 'ok' : 'down';
+      } catch { result.db = 'down'; }
+      if (result.db !== 'ok') {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ ...result, status: 'error' }));
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(result));
+    })();
     return;
   }
 
@@ -3157,6 +3171,8 @@ const server = http.createServer((req, res) => {
 // Middleware: rotas /api/* exigem sessão, exceto whitelist abaixo.
 const AUTH_WHITELIST = new Set([
   '/api/health',
+  '/healthz',
+  '/readyz',
   '/api/auth/login',
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
