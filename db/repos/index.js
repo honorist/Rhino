@@ -1,6 +1,15 @@
-// Barrel — importe tudo de um só lugar:
-//   const repos = require('./db/repos');
-//   const contracts = await repos.contracts.findAll();
+/**
+ * @file Barrel de repositórios — importação única para todos os repos.
+ *
+ * @example
+ *   const repos = require('./db/repos');
+ *   const contracts = await repos.contracts.findAll();
+ *   const novoCliente = await repos.clientes.create({ nome: 'Acme', ... });
+ *
+ * Cada export é um repositório criado por `_factory.createRepo(table, opts)`
+ * ou um módulo customizado que estende o factory (ex: `contracts.js` adiciona
+ * `getEnvelope()` que junta saidas + budget + organograma + rdos).
+ */
 module.exports = {
   contracts:      require('./contracts'),
   saidas:         require('./saidas'),

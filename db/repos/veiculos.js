@@ -1,9 +1,22 @@
+/**
+ * @file Repositório de `veiculos` — frota da empresa.
+ *
+ * Estende CRUD com queries que aninham filhos (`planos` + `manutencoes`) numa
+ * única chamada — evita N+1 do antipadrão "findAll + for(i) fetchChildren".
+ * Mesmo padrão usado em `contracts.js` para envelopes.
+ */
 const db = require('../index');
 const { createRepo } = require('./_factory');
 
 const base = createRepo('veiculos', { orderBy: 'placa ASC' });
 
-// Retorna veículos com planos[] e manutencoes[] aninhados — padrão de contracts.js.
+/**
+ * Lista todos os veículos com `planos[]` e `manutencoes[]` aninhados. Busca
+ * em paralelo via 3 queries (veiculos + planos + manutencoes filtrados por
+ * `IN (...)`) e faz join in-memory via Map para performance.
+ *
+ * @returns {Promise<Array<object & { planos: object[], manutencoes: object[] }>>}
+ */
 async function findAllWithChildren() {
   const veiculos = await db.getMany(`SELECT * FROM veiculos ORDER BY placa ASC`);
   if (!veiculos.length) return [];
@@ -34,6 +47,11 @@ async function findAllWithChildren() {
   }));
 }
 
+/**
+ * Single-veículo com filhos aninhados. Retorna `null` se não encontrado.
+ * @param {string} id
+ * @returns {Promise<object | null>}
+ */
 async function findByIdWithChildren(id) {
   const veiculo = await db.getOne(`SELECT * FROM veiculos WHERE id = $1`, [id]);
   if (!veiculo) return null;
@@ -44,6 +62,10 @@ async function findByIdWithChildren(id) {
   return { ...veiculo, planos, manutencoes };
 }
 
+/**
+ * Envelope completo da frota — usado pelo frontend ao carregar a tela.
+ * @returns {Promise<{ veiculos: object[] }>}
+ */
 async function getEnvelope() {
   return { veiculos: await findAllWithChildren() };
 }

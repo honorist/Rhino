@@ -1,9 +1,32 @@
+/**
+ * @file Repositório de `contracts` — repositório mais complexo do app.
+ *
+ * Estende CRUD com:
+ * - Operações no campo JSONB `budget` (adicionar/atualizar/remover sub-itens
+ *   atomicamente — `updateBudgetItem` usa transação para read-modify-write).
+ * - `findAllWithChildren` / `findByIdWithChildren`: carrega filhos
+ *   (organograma, rdos, aditivos, marcos, ocorrências) numa única chamada via
+ *   3-4 queries paralelas + join in-memory, evitando N+1.
+ * - `getEnvelope`: shape do contracts.json que o frontend ainda consome
+ *   ({ contracts, saidas }), com flag `lite` para telas que só precisam dos
+ *   contratos sem filhos pesados.
+ * - `removeByIdCascade`: deleta o contrato + tudo vinculado (caixa, NFs, contas
+ *   a pagar, investimentos) numa transação. CASCADE do schema cobre saidas,
+ *   organograma e rdos automaticamente.
+ */
 const db = require('../index');
 const { createRepo } = require('./_factory');
 
 const base = createRepo('contracts');
 
-// Operações específicas de budget (subitens em JSONB)
+/**
+ * Adiciona um item ao array JSONB `budget` do contrato (concatena).
+ * Atomic via UPDATE em SQL (sem race window).
+ *
+ * @param {string} contractId
+ * @param {object} item
+ * @returns {Promise<object | null>}  Contrato atualizado.
+ */
 async function addBudgetItem(contractId, item) {
   const sql = `
     UPDATE contracts
@@ -13,6 +36,15 @@ async function addBudgetItem(contractId, item) {
   return db.getOne(sql, [contractId, JSON.stringify(item)]);
 }
 
+/**
+ * Atualiza um item específico do `budget` por `itemId`. Read-modify-write
+ * dentro de transação evita perda de updates concorrentes.
+ *
+ * @param {string} contractId
+ * @param {string} itemId
+ * @param {Partial<object>} patch
+ * @returns {Promise<object | null>}
+ */
 async function updateBudgetItem(contractId, itemId, patch) {
   return db.withTransaction(async (client) => {
     const cur = await client.query('SELECT budget FROM contracts WHERE id = $1', [contractId]);
@@ -28,6 +60,13 @@ async function updateBudgetItem(contractId, itemId, patch) {
   });
 }
 
+/**
+ * Remove um item do `budget` por `itemId`.
+ *
+ * @param {string} contractId
+ * @param {string} itemId
+ * @returns {Promise<object | null>}
+ */
 async function removeBudgetItem(contractId, itemId) {
   return db.withTransaction(async (client) => {
     const cur = await client.query('SELECT budget FROM contracts WHERE id = $1', [contractId]);
@@ -42,8 +81,17 @@ async function removeBudgetItem(contractId, itemId) {
 }
 
 // ============ Carregamento com filhos aninhados ============
-// Retorna um array de contratos, cada um com organograma[] e rdos[] embutidos.
-// Mantém o shape esperado pelo frontend (que ainda lê do JSON).
+
+/**
+ * Lista todos os contratos com filhos aninhados (organograma, rdos, aditivos,
+ * marcos, ocorrências). Executa 6 queries em paralelo (1 master + 5 children
+ * com IN-clause) e faz join in-memory via Map. Performance O(n+m) vs O(n×m)
+ * do antipadrão "for each contract → fetch children".
+ *
+ * Mantém shape esperado pelo frontend.
+ *
+ * @returns {Promise<Array<object & { organograma: object[], rdos: object[], aditivos: object[], marcos: object[], ocorrencias: object[] }>>}
+ */
 async function findAllWithChildren() {
   const contracts = await db.getMany(
     `SELECT * FROM contracts ORDER BY created_at DESC`
@@ -112,6 +160,12 @@ async function findAllWithChildren() {
   }));
 }
 
+/**
+ * Single-contrato com todos os filhos aninhados.
+ *
+ * @param {string} id
+ * @returns {Promise<object | null>}
+ */
 async function findByIdWithChildren(id) {
   const contract = await db.getOne(`SELECT * FROM contracts WHERE id = $1`, [id]);
   if (!contract) return null;
@@ -125,11 +179,18 @@ async function findByIdWithChildren(id) {
   return { ...contract, organograma, rdos, aditivos, marcos, ocorrencias };
 }
 
-// Apaga o contrato e TUDO que está vinculado a ele.
-// FK CASCADE remove saidas/organograma_membros/rdos automaticamente.
-// Aqui apagamos manualmente o que está como ON DELETE SET NULL no schema:
-// notas_fiscais (BMs/Contas a Receber), contas_pagar, caixa, investimentos.
-// Tudo dentro de uma transação — ou apaga tudo, ou nada.
+/**
+ * Apaga o contrato e TUDO que está vinculado a ele.
+ *
+ * - FK CASCADE no schema cuida automaticamente: `saidas`, `organograma_membros`,
+ *   `rdos`, `contract_aditivos`, `contract_marcos`, `contract_ocorrencias`.
+ * - Aqui apagamos manualmente o que está como ON DELETE SET NULL no schema:
+ *   `notas_fiscais` (BMs/Contas a Receber), `contas_pagar`, `caixa`, `investimentos`.
+ * - Tudo dentro de uma transação — atômico (rollback em erro).
+ *
+ * @param {string} id
+ * @returns {Promise<boolean>}  `true` se o contrato foi removido.
+ */
 async function removeByIdCascade(id) {
   return db.withTransaction(async (client) => {
     await client.query('DELETE FROM caixa WHERE contract_id = $1', [id]);
@@ -141,15 +202,27 @@ async function removeByIdCascade(id) {
   });
 }
 
-// Envelope no shape do contracts.json: { contracts: [...], saidas: [...] }
-// Limita saidas para evitar payloads enormes em telas que só usam recentes.
-// opts.lite=true → pula filhos (organograma, rdos, aditivos, marcos, ocorrencias) e saidas
-//                  para telas que só listam contratos (ex: ContasPagar, NotasFiscais, selects).
+/** Limite default de saídas no envelope (evita payloads multi-MB). */
 const SAIDAS_DEFAULT_LIMIT = 2000;
+
+/**
+ * Lista "lite" de contratos — sem filhos aninhados. Para telas que só
+ * precisam de contratos para selects/lookups.
+ *
+ * @returns {Promise<object[]>}
+ */
 async function findAllLite() {
   const contracts = await db.getMany(`SELECT * FROM contracts ORDER BY created_at DESC`);
   return contracts.map(c => ({ ...c, organograma: [], rdos: [], aditivos: [], marcos: [], ocorrencias: [] }));
 }
+
+/**
+ * Envelope completo no shape `{ contracts, saidas }` (formato esperado pelo
+ * frontend, que historicamente lia de JSON).
+ *
+ * @param {{ lite?: boolean, saidasLimit?: number }} [opts]
+ * @returns {Promise<{ contracts: object[], saidas: object[] }>}
+ */
 async function getEnvelope(opts) {
   const lite = !!(opts && opts.lite);
   if (lite) {
