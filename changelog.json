@@ -1,6 +1,19 @@
 {
   "entries": [
     {
+      "version": "1.1.5",
+      "date": "2026-05-13",
+      "summary": "PDF agora usa o timbrado oficial Rhino como imagem de fundo",
+      "changes": [
+        "Cliente apontou que o PDF gerado não estava usando o template — saída visualmente diferente das propostas modelo.",
+        "Investigação: a imagem do Template.dotx (1654×2339 px) é a página A4 INTEIRA com logo, decoração e tudo, NÃO uma logo pequena de canto como eu estava usando.",
+        "Correção: imagem do template agora é desenhada como FUNDO COMPLETO de cada página do PDF. O conteúdo escreve POR CIMA dela.",
+        "Margens ajustadas: 135pt à esquerda (≈4,7 cm) pra não invadir a área onde a logo Rhino vermelha está desenhada no fundo. Conteúdo todo fica deslocado pra direita, exatamente como nos modelos PT&PC_22-26, PC_08-26, etc.",
+        "Removido o header/footer customizado que o gerador desenhava por cima — agora o timbrado vem 100% da imagem oficial. Apenas a numeração de página (canto inferior direito) é adicionada.",
+        "Numeração de página + data + número da proposta posicionados corretamente no topo da área de conteúdo, em vez de fora dela."
+      ]
+    },
+    {
       "version": "1.1.4",
       "date": "2026-05-13",
       "summary": "Propostas: PDF reabilitado + anexos PDF concatenados na sequência",
