@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.1.8",
+      "date": "2026-05-13",
+      "summary": "PDF: mais deslocamento à direita + correção de textos embolados",
+      "changes": [
+        "PDF: margem esquerda aumentada de 135pt para 165pt (~5.8 cm) — conteúdo fica mais distante da logo Rhino do fundo, melhor proporção visual.",
+        "PDF: corrigido o problema de textos embolados em parágrafos com CONTRATADA/CONTRATANTE em negrito. A função de renderização agora usa um caminho simples quando o parágrafo não tem destaque (mais rápido e sem quebras estranhas), e segmentos contínuos quando há destaque (preservando espaços e alinhamento)."
+      ]
+    },
+    {
       "version": "1.1.7",
       "date": "2026-05-13",
       "summary": "DOCX: imagem do timbrado agora cobre a página A4 inteira",
