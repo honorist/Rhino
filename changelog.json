@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.1.7",
+      "date": "2026-05-13",
+      "summary": "DOCX: imagem do timbrado agora cobre a página A4 inteira",
+      "changes": [
+        "Correção: a imagem de fundo do DOCX estava aparecendo menor que o A4 — eu passei o tamanho em pontos (595×842) mas a lib `docx` espera pixels @ 96 dpi. Ajustado para 794×1123 px (A4 = 21×29,7 cm @ 96 dpi).",
+        "Agora a imagem do timbrado oficial Rhino cobre a página inteira no DOCX, idêntica ao PDF (que já estava correto)."
+      ]
+    },
+    {
       "version": "1.1.6",
       "date": "2026-05-13",
       "summary": "DOCX agora também usa o timbrado oficial Rhino como fundo (igual ao PDF)",
