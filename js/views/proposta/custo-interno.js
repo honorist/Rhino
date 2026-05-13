@@ -104,8 +104,8 @@
                     </select>
                   </td>
                   <td><input type="text" class="form-control cu-desc" data-id="${c.id}" value="${escapeHtml(c.descricao || '')}"></td>
-                  <td><input type="text" class="form-control brl-input cu-val" data-id="${c.id}" value="${window.BRLInput.toDisplay(c.valor)}" inputmode="decimal"></td>
-                  <td><input type="number" class="form-control cu-pct" data-id="${c.id}" value="${c.percentual ?? ''}" step="0.01" placeholder="opcional"></td>
+                  <td><input type="text" class="form-control prop-input-num brl-input cu-val" data-id="${c.id}" value="${window.BRLInput.toDisplay(c.valor)}" inputmode="decimal"></td>
+                  <td><input type="text" inputmode="decimal" class="form-control prop-input-num cu-pct" data-id="${c.id}" value="${c.percentual ?? ''}" placeholder="opcional"></td>
                   <td><button class="btn-cu-del" data-id="${c.id}" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:18px;">×</button></td>
                 </tr>
               `).join('')}

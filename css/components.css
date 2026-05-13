@@ -698,3 +698,19 @@ textarea.form-control {
 }
 .radio-card:hover { transform: translateY(-1px); }
 .radio-card.is-selected { box-shadow: 0 2px 8px rgba(31,73,125,.15); }
+
+/* Inputs numericos das tabelas de Investimento e Custo Interno —
+   alinhamento a direita, sem os spinners nativos do browser que comem
+   espaco do valor em colunas estreitas */
+.prop-input-num {
+  text-align: right;
+  padding-right: 8px;
+  -moz-appearance: textfield;
+  appearance: textfield;
+  font-variant-numeric: tabular-nums;
+}
+.prop-input-num::-webkit-outer-spin-button,
+.prop-input-num::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

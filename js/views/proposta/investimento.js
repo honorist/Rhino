@@ -70,8 +70,8 @@
               <thead>
                 <tr>
                   <th>Cargo / Função</th>
-                  <th style="width:80px;">Qtd</th>
-                  <th style="width:100px;">Horas</th>
+                  <th style="width:100px;">Qtd</th>
+                  <th style="width:110px;">Horas</th>
                   <th style="width:140px;">R$ / Hora</th>
                   <th style="width:160px;">Total</th>
                   <th style="width:50px;"></th>
@@ -83,9 +83,9 @@
                 ` : linhas.map((l, idx) => `
                   <tr data-idx="${idx}">
                     <td><input type="text" class="form-control hh-cargo" data-idx="${idx}" value="${escapeHtml(l.cargo || '')}" placeholder="Ex: Soldador, Caldeireiro, Ajudante"></td>
-                    <td><input type="number" class="form-control hh-qtd" data-idx="${idx}" min="0" step="1" value="${l.qtd || 0}"></td>
-                    <td><input type="number" class="form-control hh-horas" data-idx="${idx}" min="0" step="0.5" value="${l.horas || 0}"></td>
-                    <td><input type="text" class="form-control brl-input hh-vh" data-idx="${idx}" value="${window.BRLInput.toDisplay(l.valorHora)}" inputmode="decimal"></td>
+                    <td><input type="text" inputmode="numeric" class="form-control prop-input-num hh-qtd" data-idx="${idx}" value="${l.qtd || 0}"></td>
+                    <td><input type="text" inputmode="decimal" class="form-control prop-input-num hh-horas" data-idx="${idx}" value="${l.horas || 0}"></td>
+                    <td><input type="text" class="form-control prop-input-num brl-input hh-vh" data-idx="${idx}" value="${window.BRLInput.toDisplay(l.valorHora)}" inputmode="decimal"></td>
                     <td style="font-weight:600;text-align:right;">${fmtBRL(calcTotalHH(l))}</td>
                     <td><button class="btn-hh-del" data-idx="${idx}" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:18px;">×</button></td>
                   </tr>
@@ -118,7 +118,7 @@
               <thead>
                 <tr>
                   <th>Item / Descrição</th>
-                  <th style="width:80px;">Qtd</th>
+                  <th style="width:100px;">Qtd</th>
                   <th style="width:80px;">Unid.</th>
                   <th style="width:140px;">R$ Unit</th>
                   <th style="width:160px;">Total</th>
@@ -131,9 +131,9 @@
                 ` : linhas.map((l, idx) => `
                   <tr data-idx="${idx}">
                     <td><input type="text" class="form-control mat-item" data-idx="${idx}" value="${escapeHtml(l.item || '')}" placeholder="Ex: Tubo AC SCH40 4&quot;"></td>
-                    <td><input type="number" class="form-control mat-qtd" data-idx="${idx}" min="0" step="0.01" value="${l.qtd || 0}"></td>
+                    <td><input type="text" inputmode="decimal" class="form-control prop-input-num mat-qtd" data-idx="${idx}" value="${l.qtd || 0}"></td>
                     <td><input type="text" class="form-control mat-unid" data-idx="${idx}" value="${escapeHtml(l.unid || 'un')}" placeholder="un, kg, m"></td>
-                    <td><input type="text" class="form-control brl-input mat-vu" data-idx="${idx}" value="${window.BRLInput.toDisplay(l.valorUnit)}" inputmode="decimal"></td>
+                    <td><input type="text" class="form-control prop-input-num brl-input mat-vu" data-idx="${idx}" value="${window.BRLInput.toDisplay(l.valorUnit)}" inputmode="decimal"></td>
                     <td style="font-weight:600;text-align:right;">${fmtBRL(calcTotalMat(l))}</td>
                     <td><button class="btn-mat-del" data-idx="${idx}" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:18px;">×</button></td>
                   </tr>
