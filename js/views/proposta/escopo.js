@@ -61,19 +61,37 @@
       `;
     }
 
+    /**
+     * Captura o estado atual do DOM (textos digitados nos textareas) e mescla
+     * com `itens`. Isso evita perder texto não-flushado do debounce de 300ms
+     * quando o usuário clica em algum botão que re-renderiza a aba.
+     */
+    function snapshot() {
+      const textareas = container.querySelectorAll('.item-texto');
+      const lista = itens.map(it => ({ ...it }));
+      textareas.forEach(t => {
+        const idx = parseInt(t.dataset.idx, 10);
+        if (!isNaN(idx) && lista[idx]) {
+          lista[idx].texto = t.value;
+        }
+      });
+      return lista;
+    }
+
     const commit = (novosItens) => onChange({ escopo: novosItens });
 
     container.querySelector('#btnAddItem')?.addEventListener('click', () => {
-      const novos = [...itens, { id: uid(), texto: '', incluso: true, ordem: itens.length }];
-      onChange({ escopo: novos });
-      // Re-renderiza a aba
+      const atuais = snapshot();
+      const novos = [...atuais, { id: uid(), texto: '', incluso: true, ordem: atuais.length }];
+      commit(novos);
       render(container, { ...p, escopo: novos }, onChange);
     });
 
     container.querySelectorAll('.chip-escopo-toggle').forEach(b => {
       b.addEventListener('click', () => {
         const idx = parseInt(b.dataset.idx, 10);
-        const novos = itens.map((it, i) => i === idx ? { ...it, incluso: !(it.incluso !== false) } : it);
+        const atuais = snapshot();
+        const novos = atuais.map((it, i) => i === idx ? { ...it, incluso: !(it.incluso !== false) } : it);
         commit(novos);
         render(container, { ...p, escopo: novos }, onChange);
       });
@@ -84,17 +102,22 @@
       t.addEventListener('input', () => {
         clearTimeout(timer);
         timer = setTimeout(() => {
-          const idx = parseInt(t.dataset.idx, 10);
-          const novos = itens.map((it, i) => i === idx ? { ...it, texto: t.value } : it);
-          commit(novos);
+          // snapshot pega TODOS os textos (não só o que mudou), garantindo sync
+          commit(snapshot());
         }, 300);
+      });
+      // Salvar também ao perder foco (flush imediato — antes do usuário poder clicar em botão)
+      t.addEventListener('blur', () => {
+        clearTimeout(timer);
+        commit(snapshot());
       });
     });
 
     container.querySelectorAll('.btn-del-item').forEach(b => {
       b.addEventListener('click', () => {
         const idx = parseInt(b.dataset.idx, 10);
-        const novos = itens.filter((_, i) => i !== idx).map((it, i) => ({ ...it, ordem: i }));
+        const atuais = snapshot();
+        const novos = atuais.filter((_, i) => i !== idx).map((it, i) => ({ ...it, ordem: i }));
         commit(novos);
         render(container, { ...p, escopo: novos }, onChange);
       });
@@ -104,7 +127,8 @@
       b.addEventListener('click', () => {
         const idx = parseInt(b.dataset.idx, 10);
         if (idx === 0) return;
-        const novos = [...itens];
+        const atuais = snapshot();
+        const novos = [...atuais];
         [novos[idx-1], novos[idx]] = [novos[idx], novos[idx-1]];
         novos.forEach((it, i) => it.ordem = i);
         commit(novos);
@@ -114,8 +138,9 @@
     container.querySelectorAll('.btn-down').forEach(b => {
       b.addEventListener('click', () => {
         const idx = parseInt(b.dataset.idx, 10);
-        if (idx === itens.length - 1) return;
-        const novos = [...itens];
+        const atuais = snapshot();
+        if (idx === atuais.length - 1) return;
+        const novos = [...atuais];
         [novos[idx+1], novos[idx]] = [novos[idx], novos[idx+1]];
         novos.forEach((it, i) => it.ordem = i);
         commit(novos);
