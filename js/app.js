@@ -39,7 +39,6 @@ const _lazyManifest = {
   '#/proposta/:id':        { viewName: 'PropostaDetail',     scripts: [
     './js/views/PropostaDetail.js',
     './js/views/proposta/dados-gerais.js',
-    './js/views/proposta/apresentacao.js',
     './js/views/proposta/escopo.js',
     './js/views/proposta/obrigacoes.js',
     './js/views/proposta/cronograma.js',
@@ -50,6 +49,7 @@ const _lazyManifest = {
     './js/views/proposta/acoes.js',
   ]},
   '#/clausulas':           { viewName: 'Clausulas',          scripts: ['./js/views/Clausulas.js'] },
+  '#/apresentacao':        { viewName: 'Apresentacao',       scripts: ['./js/views/Apresentacao.js'] },
 };
 
 const _lazyLoaded = new Set();
@@ -83,6 +83,7 @@ const routes = {
   '#/proposta':     { view: null,                  label: 'Propostas',       icon: _ic('file-text') },
   '#/proposta/:id': { view: null,                  label: null,              icon: null },
   '#/clausulas':    { view: null,                  label: null,              icon: null },
+  '#/apresentacao': { view: null,                  label: null,              icon: null },
   '#/contratos':    { view: window.Contratos,      label: 'Contratos',       icon: _ic('briefcase') },
   '#/contratos/:id':{ view: window.ContratoDetail, label: null,              icon: null },
   '#/comparativo':  { view: window.Comparativo,   label: null,              icon: null },
@@ -478,7 +479,7 @@ const perfil = {
     const base = route.replace(/(#\/[^/]+).*/, '$1');
     // Rotas universais — qualquer perfil autenticado pode abrir
     // (controle fino fica em cada tela, ex: ver/editar)
-    const universais = ['#/manual', '#/usuarios', '#/rdos', '#/auditoria', '#/estoque', '#/comparativo', '#/solicitacoes-compra', '#/frota', '#/proposta', '#/clausulas'];
+    const universais = ['#/manual', '#/usuarios', '#/rdos', '#/auditoria', '#/estoque', '#/comparativo', '#/solicitacoes-compra', '#/frota', '#/proposta', '#/clausulas', '#/apresentacao'];
     if (universais.includes(base)) return true;
     return abas.includes(base);
   },

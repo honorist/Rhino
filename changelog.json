@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.2.0",
+      "date": "2026-05-13",
+      "summary": "Apresentação como configuração global + logos de clientes nos Cases",
+      "changes": [
+        "Aba 'Apresentação' removida de dentro do editor de proposta — agora é uma tela GLOBAL (#/apresentacao) acessível pelo botão '🏢 Apresentação' no header da lista de propostas, ao lado de Cláusulas.",
+        "Os textos APRESENTAÇÃO, CASES DE SUCESSO RECENTES e SEGURANÇA E SAÚDE são preenchidos UMA ÚNICA VEZ e aplicados automaticamente a todas as propostas geradas (DOCX, PDF e Preview). Sem precisar redigitar em cada proposta.",
+        "Galeria de Logos de Clientes para a seção Cases — faça upload de logos (Suzano, Arauco, Klabin, etc.) e elas aparecem em GRADE na seção 'Cases de Sucesso' do DOCX/PDF/Preview, ordenadas conforme o campo 'Ordem'.",
+        "Logos: JPG, PNG ou WebP até 2 MB cada. Cada logo pode ser editada (nome, ordem), desativada temporariamente ou excluída. Armazenadas no banco como BYTEA, sem dependência de disco.",
+        "Permissão automática para perfis admin/gerente continua aplicada via migration (mesma lógica das outras telas)."
+      ]
+    },
+    {
       "version": "1.1.9",
       "date": "2026-05-13",
       "summary": "Correção PDF (tabelas embaralhadas, páginas em branco) + DOCX margem maior",

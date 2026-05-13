@@ -39,4 +39,6 @@ module.exports = {
   propostaCustos:       require('./proposta_custos'),
   propostaAnexos:       require('./proposta_anexos'),
   clausulas:            require('./clausulas'),
+  appSettings:          require('./app_settings'),
+  caseLogos:            require('./case_logos'),
 };

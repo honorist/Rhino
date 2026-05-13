@@ -957,3 +957,27 @@ CREATE TABLE IF NOT EXISTS proposta_anexos (
 );
 CREATE INDEX IF NOT EXISTS idx_proposta_anexos_proposta ON proposta_anexos (proposta_id);
 CREATE INDEX IF NOT EXISTS idx_proposta_anexos_secao    ON proposta_anexos (proposta_id, secao);
+
+CREATE TABLE IF NOT EXISTS app_settings (
+  key         TEXT PRIMARY KEY,
+  value       JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+INSERT INTO app_settings (key, value)
+VALUES ('proposta_apresentacao', '{"apresentacao":"","casesSucesso":"","segurancaSaude":""}'::jsonb)
+ON CONFLICT (key) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS case_logos (
+  id          TEXT PRIMARY KEY,
+  nome        TEXT NOT NULL,
+  cliente_id  TEXT REFERENCES clientes(id) ON DELETE SET NULL,
+  data        BYTEA NOT NULL,
+  mime_type   TEXT,
+  size_bytes  INTEGER,
+  ordem       INTEGER DEFAULT 0,
+  ativo       BOOLEAN DEFAULT TRUE,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_case_logos_ativo ON case_logos (ativo);
+CREATE INDEX IF NOT EXISTS idx_case_logos_ordem ON case_logos (ordem);

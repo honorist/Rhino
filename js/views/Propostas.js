@@ -68,6 +68,7 @@ window.Propostas = {
             </p>
           </div>
           <div style="display:flex;gap:8px;">
+            <a class="btn btn-secondary btn-lg" href="#/apresentacao" title="Apresentação da empresa (texto + logos de cases — usada em todas as propostas)">🏢 Apresentação</a>
             <a class="btn btn-secondary btn-lg" href="#/clausulas" title="Biblioteca de cláusulas reusáveis">📖 Cláusulas</a>
             <button class="btn btn-primary btn-lg" id="btnNovaProposta">+ Nova Proposta</button>
           </div>
