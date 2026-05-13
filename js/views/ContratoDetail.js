@@ -267,6 +267,13 @@ window.ContratoDetail = {
 
         <!-- Resumo orientado a Boletim de Medição -->
         ${this._tab === 'visao' ? `
+        ${contract.metadata && contract.metadata.propostaId ? `
+          <div style="margin-bottom:var(--sp-md);padding:10px 16px;background:rgba(31,73,125,.08);border-left:3px solid #1F497D;border-radius:6px;font-size:14px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
+            <span style="font-weight:700;color:#1F497D;">📋 Origem: Proposta ${escapeHtml(`PC_${contract.metadata.propostaNumero || ''}-${String(contract.metadata.propostaAno || '').padStart(2,'0')}${contract.metadata.propostaRevisao > 0 ? ' Rev.' + String(contract.metadata.propostaRevisao).padStart(2,'0') : ''}`)}</span>
+            <a href="#/proposta/${escapeHtml(contract.metadata.propostaId)}" style="color:#1F497D;font-weight:600;text-decoration:underline;">Ver proposta →</a>
+            ${contract.status === 'prospeccao' ? '<span style="color:var(--color-text-muted);">Contrato em prospecção — será ativado quando a proposta for aceita.</span>' : ''}
+          </div>
+        ` : ''}
         ${contract.retencaoPercent > 0 ? `<div style="margin-bottom:var(--sp-md);padding:10px 16px;background:rgba(213,158,46,.1);border-left:3px solid #D69E2E;border-radius:6px;font-size:14px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;"><span style="font-weight:700;color:#D69E2E;">⚠ Retenção ${parseFloat(contract.retencaoPercent).toFixed(1)}%</span><span style="color:var(--color-text-muted);">Valor retido estimado: <strong>${Store.formatBRL(totalEmitido * parseFloat(contract.retencaoPercent) / 100)}</strong> (sobre ${Store.formatBRL(totalEmitido)} emitido)</span></div>` : ''}
         <div class="card mb-2xl" style="padding:0;overflow:hidden;">
           <div style="display:grid;grid-template-columns:repeat(4,1fr);">

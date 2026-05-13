@@ -27,6 +27,8 @@ window.Store = {
     users: [],
     solicitacoes_compra: [],
     veiculos: [],
+    propostas: [],
+    clausulas: [],
     dashboard: null,
     loading: false,
     error: null
@@ -170,6 +172,8 @@ window.Store = {
     recursos:     { url: '/api/recursos',           apply(j){ this.state.recursos = j.recursos || []; } },
     solicitacoes_compra: { url: '/api/solicitacoes-compra', apply(j){ this.state.solicitacoes_compra = j.solicitacoes || []; } },
     veiculos:     { url: '/api/veiculos',           apply(j){ this.state.veiculos = j.veiculos || []; } },
+    propostas:    { url: '/api/propostas',          apply(j){ this.state.propostas = j.propostas || []; } },
+    clausulas:    { url: '/api/clausulas',          apply(j){ this.state.clausulas = j.clausulas || []; } },
   },
 
   async loadOnly(slice, opts) {
@@ -1143,7 +1147,165 @@ window.Store = {
     this.state.niveis_acesso = r.niveis || [];
     this.notify();
     return r;
-  }
+  },
+
+  // ===== Propostas Comerciais =====
+  async criarProposta(data) {
+    const res = await fetch('/api/propostas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    if (r.propostasEnvelope) this.state.propostas = r.propostasEnvelope.propostas || [];
+    // Atualiza contratos se backend retornou (contrato em prospecção criado)
+    if (r.contract) {
+      // re-fetch leve dos contratos pra refletir o novo
+      this.invalidate();
+      try { await this.loadOnly('contracts_lite', { force: true }); } catch {}
+    }
+    this.notify();
+    return r;
+  },
+
+  async fetchProposta(id) {
+    const res = await fetch(`/api/propostas/${id}`);
+    if (!res.ok) throw new Error(await res.text());
+    const j = await res.json();
+    return j.proposta;
+  },
+
+  async atualizarProposta(id, patch) {
+    const res = await fetch(`/api/propostas/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const j = await res.json();
+    // Patch local: substitui a proposta no array
+    if (j.proposta) {
+      this.state.propostas = (this.state.propostas || []).map(p =>
+        p.id === id ? { ...p, ...j.proposta } : p
+      );
+      this.notify();
+    }
+    return j.proposta;
+  },
+
+  async deletarProposta(id) {
+    const res = await fetch(`/api/propostas/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await res.text());
+    const j = await res.json();
+    this.state.propostas = j.propostas || [];
+    this.notify();
+    return j;
+  },
+
+  async enviarProposta(id) {
+    const res = await fetch(`/api/propostas/${id}/enviar`, { method: 'POST' });
+    if (!res.ok) throw new Error(await res.text());
+    const j = await res.json();
+    if (j.envelope) this.state.propostas = j.envelope.propostas || [];
+    this.notify();
+    return j;
+  },
+
+  async aceitarProposta(id) {
+    const res = await fetch(`/api/propostas/${id}/aceitar`, { method: 'POST' });
+    if (!res.ok) throw new Error(await res.text());
+    const j = await res.json();
+    if (j.envelope) this.state.propostas = j.envelope.propostas || [];
+    if (j.contractsEnvelope) this.state.contracts = j.contractsEnvelope.contracts || this.state.contracts;
+    this.notify();
+    return j;
+  },
+
+  async rejeitarProposta(id, motivo) {
+    const res = await fetch(`/api/propostas/${id}/rejeitar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ motivo }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const j = await res.json();
+    if (j.envelope) this.state.propostas = j.envelope.propostas || [];
+    this.notify();
+    return j;
+  },
+
+  async duplicarProposta(id) {
+    const res = await fetch(`/api/propostas/${id}/duplicar`, { method: 'POST' });
+    if (!res.ok) throw new Error(await res.text());
+    const j = await res.json();
+    if (j.envelope) this.state.propostas = j.envelope.propostas || [];
+    this.notify();
+    return j;
+  },
+
+  // Custos internos (privados)
+  async criarPropostaCusto(propostaId, data) {
+    const res = await fetch(`/api/propostas/${propostaId}/custos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return (await res.json()).proposta;
+  },
+
+  async atualizarPropostaCusto(propostaId, custoId, data) {
+    const res = await fetch(`/api/propostas/${propostaId}/custos/${custoId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return (await res.json()).proposta;
+  },
+
+  async deletarPropostaCusto(propostaId, custoId) {
+    const res = await fetch(`/api/propostas/${propostaId}/custos/${custoId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await res.text());
+    return (await res.json()).proposta;
+  },
+
+  // Cláusulas (biblioteca)
+  async criarClausula(data) {
+    const res = await fetch('/api/clausulas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const j = await res.json();
+    this.state.clausulas = j.clausulas || [];
+    this.notify();
+    return j;
+  },
+
+  async atualizarClausula(id, data) {
+    const res = await fetch(`/api/clausulas/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const j = await res.json();
+    this.state.clausulas = j.clausulas || [];
+    this.notify();
+    return j;
+  },
+
+  async deletarClausula(id) {
+    const res = await fetch(`/api/clausulas/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await res.text());
+    const j = await res.json();
+    this.state.clausulas = j.clausulas || [];
+    this.notify();
+    return j;
+  },
 };
 
 // ─── BRL Currency Input Utility ───

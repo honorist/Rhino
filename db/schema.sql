@@ -849,7 +849,8 @@ BEGIN
       'socios','niveis_acesso','clientes','fornecedores',
       'base_items','recursos','contracts','notas_fiscais',
       'contas_pagar','investimentos','doc_templates','rdos','users',
-      'solicitacoes_compra','veiculos','veiculo_planos','veiculo_manutencoes'
+      'solicitacoes_compra','veiculos','veiculo_planos','veiculo_manutencoes',
+      'propostas','clausulas'
     ])
   LOOP
     EXECUTE format(
@@ -861,3 +862,98 @@ BEGIN
     );
   END LOOP;
 END $$;
+
+-- ============ Propostas (Módulo de Propostas de Serviço) ============
+CREATE TABLE IF NOT EXISTS propostas (
+  id                     TEXT PRIMARY KEY,
+  numero                 TEXT NOT NULL,
+  ano                    INTEGER NOT NULL,
+  revisao                INTEGER NOT NULL DEFAULT 0,
+  proposta_pai_id        TEXT REFERENCES propostas(id) ON DELETE SET NULL,
+  tipo                   TEXT NOT NULL DEFAULT 'ambos' CHECK (tipo IN ('hh','material','ambos')),
+  cliente_id             TEXT REFERENCES clientes(id) ON DELETE SET NULL,
+  cliente_nome           TEXT,
+  cliente_empresa        TEXT,
+  cliente_contato        TEXT,
+  cliente_cargo          TEXT,
+  cliente_email          TEXT,
+  cliente_telefone       TEXT,
+  cliente_documento      TEXT,
+  cliente_endereco       TEXT,
+  referencia             TEXT,
+  titulo                 TEXT NOT NULL,
+  objetivo               TEXT,
+  saudacao               TEXT,
+  escopo                 JSONB DEFAULT '[]'::jsonb,
+  obrigacoes_contratada  JSONB DEFAULT '[]'::jsonb,
+  obrigacoes_contratante JSONB DEFAULT '[]'::jsonb,
+  cronograma             JSONB DEFAULT '[]'::jsonb,
+  investimento_hh        JSONB DEFAULT '[]'::jsonb,
+  investimento_mat       JSONB DEFAULT '[]'::jsonb,
+  valor_total            NUMERIC(15,2) DEFAULT 0,
+  condicoes_pagamento    TEXT,
+  prazo_execucao         TEXT,
+  validade_dias          INTEGER DEFAULT 15,
+  garantia_meses         INTEGER,
+  observacoes            TEXT,
+  signatario             TEXT DEFAULT 'Deyvison Veloso',
+  signatario_cargo       TEXT DEFAULT 'Diretor',
+  data_emissao           DATE DEFAULT CURRENT_DATE,
+  data_envio             TIMESTAMPTZ,
+  data_aceite            TIMESTAMPTZ,
+  data_rejeicao          TIMESTAMPTZ,
+  status                 TEXT NOT NULL DEFAULT 'rascunho'
+                          CHECK (status IN ('rascunho','enviada','aceita','rejeitada','expirada')),
+  contrato_id            TEXT REFERENCES contracts(id) ON DELETE SET NULL,
+  metadata               JSONB DEFAULT '{}'::jsonb,
+  created_at             TIMESTAMPTZ DEFAULT NOW(),
+  updated_at             TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (numero, ano, revisao)
+);
+CREATE INDEX IF NOT EXISTS idx_propostas_cliente  ON propostas (cliente_id);
+CREATE INDEX IF NOT EXISTS idx_propostas_status   ON propostas (status);
+CREATE INDEX IF NOT EXISTS idx_propostas_contrato ON propostas (contrato_id);
+CREATE INDEX IF NOT EXISTS idx_propostas_ano_num  ON propostas (ano DESC, numero DESC);
+
+CREATE TABLE IF NOT EXISTS proposta_custos (
+  id            TEXT PRIMARY KEY,
+  proposta_id   TEXT NOT NULL REFERENCES propostas(id) ON DELETE CASCADE,
+  categoria     TEXT NOT NULL,
+  descricao     TEXT,
+  valor         NUMERIC(15,2) DEFAULT 0,
+  percentual    NUMERIC(7,4),
+  ordem         INTEGER DEFAULT 0,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_proposta_custos_proposta ON proposta_custos (proposta_id);
+
+CREATE TABLE IF NOT EXISTS clausulas (
+  id            TEXT PRIMARY KEY,
+  titulo        TEXT NOT NULL,
+  texto         TEXT NOT NULL,
+  categoria     TEXT NOT NULL,
+  tags          TEXT[] DEFAULT '{}',
+  ativa         BOOLEAN DEFAULT TRUE,
+  uso_count     INTEGER DEFAULT 0,
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_clausulas_categoria ON clausulas (categoria);
+CREATE INDEX IF NOT EXISTS idx_clausulas_tags      ON clausulas USING GIN (tags);
+CREATE INDEX IF NOT EXISTS idx_clausulas_ativa     ON clausulas (ativa);
+
+CREATE TABLE IF NOT EXISTS proposta_anexos (
+  id            TEXT PRIMARY KEY,
+  proposta_id   TEXT NOT NULL REFERENCES propostas(id) ON DELETE CASCADE,
+  tipo          TEXT NOT NULL CHECK (tipo IN ('pdf','imagem')),
+  nome          TEXT NOT NULL,
+  data          BYTEA NOT NULL,
+  mime_type     TEXT,
+  size_bytes    INTEGER,
+  legenda       TEXT,
+  secao         TEXT DEFAULT 'anexo_final',
+  ordem         INTEGER DEFAULT 0,
+  created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_proposta_anexos_proposta ON proposta_anexos (proposta_id);
+CREATE INDEX IF NOT EXISTS idx_proposta_anexos_secao    ON proposta_anexos (proposta_id, secao);

@@ -180,6 +180,7 @@ window.Clientes = {
           </div>
           <div class="modal-footer">
             <button class="btn btn-secondary" id="btnFechar">Fechar</button>
+            <button class="btn btn-secondary" id="btnGerarProposta" title="Cria nova proposta com este cliente já preenchido">📋 Gerar Proposta</button>
             <button class="btn btn-primary" id="btnEditarDet">Editar</button>
           </div>
         </div>
@@ -192,6 +193,16 @@ window.Clientes = {
     document.getElementById('btnFechar').addEventListener('click', close);
     overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
     document.getElementById('btnEditarDet').addEventListener('click', () => { close(); this.showModal(clienteId); });
+    document.getElementById('btnGerarProposta')?.addEventListener('click', () => {
+      close();
+      // Navega para Propostas e abre modal "Nova" pré-preenchido com este cliente
+      location.hash = '#/proposta';
+      setTimeout(() => {
+        if (window.Propostas && typeof window.Propostas.showModalNova === 'function') {
+          window.Propostas.showModalNova({ clienteId });
+        }
+      }, 300);
+    });
   },
 
   showModal(clienteId) {

@@ -32,9 +32,18 @@ window.Portal = {
 
     wrap.innerHTML = '<div style="text-align:center;padding:60px;color:var(--color-text-muted);">Carregando…</div>';
     try {
-      const res = await fetch('/api/portal/dashboard');
-      if (res.status === 401) { this._logout(wrap); return; }
-      this._data = await res.json();
+      const [resDash, resPropostas] = await Promise.all([
+        fetch('/api/portal/dashboard'),
+        fetch('/api/portal/propostas').catch(() => ({ ok: false })),
+      ]);
+      if (resDash.status === 401) { this._logout(wrap); return; }
+      this._data = await resDash.json();
+      if (resPropostas && resPropostas.ok) {
+        try { this._data.propostas = (await resPropostas.json()).propostas || []; }
+        catch { this._data.propostas = []; }
+      } else {
+        this._data.propostas = [];
+      }
       this._renderDashboard(wrap);
     } catch {
       wrap.innerHTML = '<div style="text-align:center;padding:60px;color:#c33;">Erro ao carregar dados. Recarregue a página.</div>';
@@ -175,6 +184,36 @@ window.Portal = {
               </div>
             `).join('')}
           </div>
+
+          <!-- Propostas Comerciais -->
+          ${(d.propostas && d.propostas.length > 0) ? `
+            <div class="card" style="margin-bottom:var(--sp-xl);">
+              <div style="padding:var(--sp-lg);border-bottom:1px solid var(--color-border);">
+                <h2 style="margin:0;font-size:16px;font-weight:700;">Minhas Propostas</h2>
+                <p style="margin:4px 0 0;font-size:13px;color:var(--color-text-muted);">${d.propostas.length} proposta(s) — clique para baixar</p>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Número</th><th>Título</th><th>Valor</th><th>Emissão</th><th>Status</th><th>Baixar</th></tr></thead>
+                  <tbody>
+                    ${d.propostas.map(p => `
+                      <tr>
+                        <td><strong>PC_${escapeHtml(p.numero)}-${String(p.ano).padStart(2,'0')}${p.revisao > 0 ? ' Rev.' + String(p.revisao).padStart(2,'0') : ''}</strong></td>
+                        <td>${escapeHtml(p.titulo)}</td>
+                        <td>${fmt(p.valorTotal || p.valor_total)}</td>
+                        <td>${fmtDate(p.dataEmissao || p.data_emissao)}</td>
+                        <td><span style="font-weight:600;color:${p.status === 'aceita' ? '#10b981' : p.status === 'rejeitada' ? '#dc2626' : p.status === 'expirada' ? '#f59e0b' : '#3b82f6'};">${p.status}</span></td>
+                        <td>
+                          <a href="/api/portal/propostas/${p.id}/pdf" target="_blank" class="action-link" style="margin-right:8px;">PDF</a>
+                          <a href="/api/portal/propostas/${p.id}/docx" target="_blank" class="action-link">DOCX</a>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ` : ''}
 
           <!-- Notas Fiscais -->
           ${d.nfs.length > 0 ? `

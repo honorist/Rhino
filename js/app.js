@@ -35,6 +35,20 @@ const _lazyManifest = {
   '#/solicitacoes-compra': { viewName: 'SolicitacoesCompra', scripts: ['./js/views/SolicitacoesCompra.js'] },
   '#/frota':               { viewName: 'Frota',              scripts: ['./js/views/Frota.js'] },
   '#/estoque':             { viewName: 'Estoque',            scripts: ['./js/views/Estoque.js'] },
+  '#/proposta':            { viewName: 'Propostas',          scripts: ['./js/views/Propostas.js'] },
+  '#/proposta/:id':        { viewName: 'PropostaDetail',     scripts: [
+    './js/views/PropostaDetail.js',
+    './js/views/proposta/dados-gerais.js',
+    './js/views/proposta/escopo.js',
+    './js/views/proposta/obrigacoes.js',
+    './js/views/proposta/cronograma.js',
+    './js/views/proposta/investimento.js',
+    './js/views/proposta/custo-interno.js',
+    './js/views/proposta/anexos.js',
+    './js/views/proposta/preview.js',
+    './js/views/proposta/acoes.js',
+  ]},
+  '#/clausulas':           { viewName: 'Clausulas',          scripts: ['./js/views/Clausulas.js'] },
 };
 
 const _lazyLoaded = new Set();
@@ -65,7 +79,9 @@ async function _loadLazyForPattern(pattern) {
 
 const routes = {
   '#/dashboard':    { view: window.Dashboard,      label: 'Dashboard',       icon: _ic('home') },
-  '#/proposta':     { view: null,                  label: 'Proposta',        icon: _ic('file-text'), soon: true },
+  '#/proposta':     { view: null,                  label: 'Propostas',       icon: _ic('file-text') },
+  '#/proposta/:id': { view: null,                  label: null,              icon: null },
+  '#/clausulas':    { view: null,                  label: null,              icon: null },
   '#/contratos':    { view: window.Contratos,      label: 'Contratos',       icon: _ic('briefcase') },
   '#/contratos/:id':{ view: window.ContratoDetail, label: null,              icon: null },
   '#/comparativo':  { view: window.Comparativo,   label: null,              icon: null },

@@ -1828,6 +1828,514 @@ async function handleDeleteCliente(id, res) {
   }
 }
 
+// ============ Propostas Comerciais ============
+async function handleGetPropostas(res) {
+  try {
+    sendJson(res, await repos.propostas.getEnvelope());
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handleGetProposta(id, res) {
+  try {
+    const proposta = await repos.propostas.findByIdWithChildren(id);
+    if (!proposta) return sendError(res, 404, 'Proposta não encontrada');
+    sendJson(res, { proposta });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handlePostProposta(body, res) {
+  try {
+    if (!body.titulo || !String(body.titulo).trim()) {
+      return sendError(res, 400, 'Título é obrigatório');
+    }
+    if (!body.clienteId && !body.clienteNome && !body.clienteEmpresa) {
+      return sendError(res, 400, 'Cliente é obrigatório');
+    }
+    // Se vier cliente_id, faz snapshot dos campos do cliente atual
+    if (body.clienteId) {
+      const cli = await repos.clientes.findById(body.clienteId);
+      if (cli) {
+        body.clienteNome      = body.clienteNome      || cli.nome || null;
+        body.clienteEmpresa   = body.clienteEmpresa   || cli.empresa || cli.nome || null;
+        body.clienteContato   = body.clienteContato   || cli.nome || null;
+        body.clienteCargo     = body.clienteCargo     || cli.cargo || null;
+        body.clienteEmail     = body.clienteEmail     || cli.email || null;
+        body.clienteTelefone  = body.clienteTelefone  || cli.telefone || null;
+        body.clienteEndereco  = body.clienteEndereco  || cli.endereco || null;
+      }
+    }
+    const { proposta, contract } = await repos.propostas.createWithContract(body);
+    sendJson(res, { proposta, contract, propostasEnvelope: await repos.propostas.getEnvelope() });
+  } catch (e) {
+    console.error('[propostas] erro POST:', e);
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handlePutProposta(id, body, res) {
+  try {
+    const allowed = {};
+    const camelFields = [
+      'tipo','clienteId','clienteNome','clienteEmpresa','clienteContato','clienteCargo',
+      'clienteEmail','clienteTelefone','clienteDocumento','clienteEndereco',
+      'referencia','titulo','objetivo','saudacao',
+      'condicoesPagamento','prazoExecucao','observacoes',
+      'signatario','signatarioCargo','status',
+    ];
+    for (const f of camelFields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    // Campos numéricos
+    if (body.valorTotal !== undefined) allowed.valorTotal = parseFloat(body.valorTotal) || 0;
+    if (body.validadeDias !== undefined) allowed.validadeDias = parseInt(body.validadeDias, 10) || 15;
+    if (body.garantiaMeses !== undefined) {
+      allowed.garantiaMeses = body.garantiaMeses === null || body.garantiaMeses === ''
+        ? null : parseInt(body.garantiaMeses, 10);
+    }
+    // JSONB
+    for (const f of ['escopo','obrigacoesContratada','obrigacoesContratante','cronograma','investimentoHh','investimentoMat','metadata']) {
+      if (body[f] !== undefined) allowed[f] = JSON.stringify(body[f]);
+    }
+    if (body.dataEmissao !== undefined) allowed.dataEmissao = body.dataEmissao || null;
+    allowed.updatedAt = new Date().toISOString();
+
+    const result = await repos.propostas.updateById(id, allowed);
+    if (!result) return sendError(res, 404, 'Proposta não encontrada');
+
+    // Se valorTotal mudou e há contrato vinculado, sincroniza o value do contrato
+    if (body.valorTotal !== undefined && result.contratoId) {
+      try {
+        await repos.contracts.updateById(result.contratoId, { value: allowed.valorTotal });
+      } catch (syncErr) {
+        console.error('[propostas] falha ao sincronizar value do contrato:', syncErr.message);
+      }
+    }
+    const proposta = await repos.propostas.findByIdWithChildren(id);
+    sendJson(res, { proposta });
+  } catch (e) {
+    console.error('[propostas] erro PUT:', e);
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handleDeleteProposta(id, res) {
+  try {
+    const proposta = await repos.propostas.findById(id);
+    if (!proposta) return sendError(res, 404, 'Proposta não encontrada');
+    // Desvincula contrato (mantém em prospecção; usuário decide se apaga depois)
+    if (proposta.contratoId) {
+      try {
+        await db.query(
+          `UPDATE contracts
+              SET metadata = metadata - 'propostaId' - 'propostaNumero' - 'propostaAno' - 'propostaRevisao' - 'origem'
+            WHERE id = $1`,
+          [proposta.contratoId]
+        );
+      } catch (e) {
+        console.error('[propostas] falha ao desvincular contrato:', e.message);
+      }
+    }
+    await repos.propostas.removeById(id);
+    sendJson(res, await repos.propostas.getEnvelope());
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handleEnviarProposta(id, res) {
+  try {
+    const result = await repos.propostas.enviar(id);
+    if (!result) return sendError(res, 404, 'Proposta não encontrada');
+    sendJson(res, { proposta: result, envelope: await repos.propostas.getEnvelope() });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handleAceitarProposta(id, res) {
+  try {
+    const { proposta, contract } = await repos.propostas.aceitar(id);
+    sendJson(res, {
+      proposta,
+      contract,
+      envelope: await repos.propostas.getEnvelope(),
+      contractsEnvelope: await repos.contracts.getEnvelope({ lite: true }),
+    });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handleRejeitarProposta(id, body, res) {
+  try {
+    const result = await repos.propostas.rejeitar(id, body.motivo);
+    if (!result) return sendError(res, 404, 'Proposta não encontrada');
+    sendJson(res, { proposta: result, envelope: await repos.propostas.getEnvelope() });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handleDuplicarProposta(id, res) {
+  try {
+    const nova = await repos.propostas.duplicarNovaRevisao(id);
+    sendJson(res, { proposta: nova, envelope: await repos.propostas.getEnvelope() });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+// ── Custos internos ──
+async function handlePostPropostaCusto(propostaId, body, res) {
+  try {
+    const custo = {
+      id: generateId('cst'),
+      propostaId,
+      categoria: body.categoria || 'outros',
+      descricao: body.descricao || '',
+      valor: parseFloat(body.valor) || 0,
+      percentual: body.percentual != null ? parseFloat(body.percentual) : null,
+      ordem: parseInt(body.ordem, 10) || 0,
+    };
+    await repos.propostaCustos.create(custo);
+    const proposta = await repos.propostas.findByIdWithChildren(propostaId);
+    sendJson(res, { proposta });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handlePutPropostaCusto(propostaId, custoId, body, res) {
+  try {
+    const allowed = {};
+    if (body.categoria !== undefined)  allowed.categoria = body.categoria;
+    if (body.descricao !== undefined)  allowed.descricao = body.descricao;
+    if (body.valor !== undefined)      allowed.valor = parseFloat(body.valor) || 0;
+    if (body.percentual !== undefined) allowed.percentual = body.percentual === null || body.percentual === '' ? null : parseFloat(body.percentual);
+    if (body.ordem !== undefined)      allowed.ordem = parseInt(body.ordem, 10) || 0;
+    const result = await repos.propostaCustos.updateById(custoId, allowed);
+    if (!result) return sendError(res, 404, 'Custo não encontrado');
+    const proposta = await repos.propostas.findByIdWithChildren(propostaId);
+    sendJson(res, { proposta });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handleDeletePropostaCusto(propostaId, custoId, res) {
+  try {
+    await repos.propostaCustos.removeById(custoId);
+    const proposta = await repos.propostas.findByIdWithChildren(propostaId);
+    sendJson(res, { proposta });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+// ============ Anexos de Proposta (PDFs + Imagens) ============
+const PROPOSTA_ANEXO_MAX_BYTES = 8 * 1024 * 1024; // 8 MB por arquivo
+const PROPOSTA_IMG_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
+const PROPOSTA_PDF_MIME  = 'application/pdf';
+
+function handleUploadPropostaAnexo(propostaId, req, res) {
+  const contentType = req.headers['content-type'] || '';
+  const mBoundary = contentType.match(/boundary=(.+)$/);
+  if (!mBoundary) return sendError(res, 400, 'Content-Type multipart esperado');
+  const boundary = mBoundary[1].replace(/^"|"$/g, '');
+
+  const chunks = [];
+  let totalSize = 0;
+  const MAX_TOTAL = PROPOSTA_ANEXO_MAX_BYTES + 64 * 1024;
+
+  req.on('data', c => {
+    totalSize += c.length;
+    if (totalSize > MAX_TOTAL) {
+      sendError(res, 413, `Arquivo muito grande (limite ${PROPOSTA_ANEXO_MAX_BYTES/1024/1024} MB)`);
+      req.destroy();
+      return;
+    }
+    chunks.push(c);
+  });
+
+  req.on('end', async () => {
+    try {
+      const proposta = await repos.propostas.findById(propostaId);
+      if (!proposta) return sendError(res, 404, 'Proposta não encontrada');
+
+      const body = Buffer.concat(chunks);
+      const parts = parseMultipart(body, boundary);
+
+      const tipoPart  = parts.find(p => p.name === 'tipo');
+      const secaoPart = parts.find(p => p.name === 'secao');
+      const filePart  = parts.find(p => p.filename && p.data && p.data.length > 0);
+      if (!filePart) return sendError(res, 400, 'Nenhum arquivo enviado');
+
+      const tipo = (tipoPart && tipoPart.data.toString('utf8')) || (filePart.contentType?.startsWith('image/') ? 'imagem' : 'pdf');
+      const secao = (secaoPart && secaoPart.data.toString('utf8')) || (tipo === 'imagem' ? 'escopo' : 'anexo_final');
+
+      // Valida tipo
+      if (tipo === 'imagem') {
+        if (!filePart.contentType || !PROPOSTA_IMG_MIMES.includes(filePart.contentType))
+          return sendError(res, 400, 'Imagem precisa ser JPEG, PNG ou WebP');
+        if (!_isAllowedImageMagic(filePart.data))
+          return sendError(res, 400, 'Conteúdo do arquivo não bate com o tipo declarado');
+      } else if (tipo === 'pdf') {
+        if (filePart.contentType !== PROPOSTA_PDF_MIME)
+          return sendError(res, 400, 'Anexo precisa ser PDF');
+        // PDF magic: %PDF-
+        if (!(filePart.data[0] === 0x25 && filePart.data[1] === 0x50 && filePart.data[2] === 0x44 && filePart.data[3] === 0x46))
+          return sendError(res, 400, 'Arquivo não é um PDF válido');
+      } else {
+        return sendError(res, 400, 'Tipo inválido (use "imagem" ou "pdf")');
+      }
+
+      const anexoId = generateId('anx');
+      await repos.propostaAnexos.create({
+        id: anexoId,
+        propostaId,
+        tipo,
+        nome: filePart.filename,
+        dataBuffer: filePart.data,
+        mimeType: filePart.contentType,
+        sizeBytes: filePart.data.length,
+        secao,
+        ordem: 0,
+      });
+
+      const propostaAtualizada = await repos.propostas.findByIdWithChildren(propostaId);
+      sendJson(res, { proposta: propostaAtualizada, anexoId });
+    } catch (e) {
+      console.error('[propostas/anexos] erro upload:', e);
+      sendError(res, 400, e.message);
+    }
+  });
+}
+
+async function handleGetPropostaAnexo(propostaId, anexoId, res) {
+  try {
+    const a = await repos.propostaAnexos.findByIdWithData(anexoId);
+    if (!a || a.propostaId !== propostaId) return sendError(res, 404, 'Anexo não encontrado');
+    res.writeHead(200, {
+      'Content-Type': a.mimeType || 'application/octet-stream',
+      'Content-Length': a.data.length,
+      'Content-Disposition': `inline; filename="${a.nome.replace(/"/g, '')}"`,
+      'Cache-Control': 'private, max-age=3600',
+    });
+    res.end(a.data);
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handlePutPropostaAnexo(propostaId, anexoId, body, res) {
+  try {
+    const allowed = {};
+    if (body.legenda !== undefined) allowed.legenda = body.legenda;
+    if (body.ordem !== undefined)   allowed.ordem = parseInt(body.ordem, 10) || 0;
+    if (body.secao !== undefined)   allowed.secao = body.secao;
+    await repos.propostaAnexos.updateById(anexoId, allowed);
+    const proposta = await repos.propostas.findByIdWithChildren(propostaId);
+    sendJson(res, { proposta });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handleDeletePropostaAnexo(propostaId, anexoId, res) {
+  try {
+    await repos.propostaAnexos.removeById(anexoId);
+    const proposta = await repos.propostas.findByIdWithChildren(propostaId);
+    sendJson(res, { proposta });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+// ============ Geração de DOCX/PDF/Preview de proposta ============
+async function _loadPropostaComAnexosBinarios(propostaId) {
+  const proposta = await repos.propostas.findByIdWithChildren(propostaId);
+  if (!proposta) return null;
+  // Carrega `data` BYTEA de cada anexo de imagem (para embed em DOCX/PDF)
+  const anexosMeta = proposta.anexos || [];
+  const anexosComData = await Promise.all(anexosMeta.map(async (a) => {
+    if (a.tipo === 'imagem') {
+      const full = await repos.propostaAnexos.findByIdWithData(a.id);
+      return full || a;
+    }
+    return a;
+  }));
+  return { ...proposta, anexos: anexosComData };
+}
+
+async function handleGetPropostaDocx(propostaId, res) {
+  try {
+    const { gerarDocx, isDocxAvailable } = require('./lib/proposta-docx');
+    if (!isDocxAvailable()) {
+      return sendError(res, 500, 'Lib `docx` não instalada. Rode `npm install` no servidor.');
+    }
+    const proposta = await _loadPropostaComAnexosBinarios(propostaId);
+    if (!proposta) return sendError(res, 404, 'Proposta não encontrada');
+    const buf = await gerarDocx(proposta);
+    const cfg = require('./lib/proposta-template-config');
+    const numeroLimpo = cfg.formatNumeroCompleto(proposta).replace(/[^A-Za-z0-9_-]+/g, '_');
+    const fname = `Proposta_${numeroLimpo}.docx`;
+    res.writeHead(200, {
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'Content-Length': buf.length,
+      'Content-Disposition': `attachment; filename="${fname}"`,
+    });
+    res.end(buf);
+  } catch (e) {
+    console.error('[propostas/docx] erro:', e);
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handleGetPropostaPdf(propostaId, res) {
+  try {
+    const { gerarPdf, isPdfAvailable } = require('./lib/proposta-pdf');
+    if (!isPdfAvailable()) {
+      return sendError(res, 500, 'Lib `puppeteer` não instalada. Rode `npm install puppeteer` no servidor.');
+    }
+    const proposta = await _loadPropostaComAnexosBinarios(propostaId);
+    if (!proposta) return sendError(res, 404, 'Proposta não encontrada');
+    const buf = await gerarPdf(proposta);
+    const cfg = require('./lib/proposta-template-config');
+    const numeroLimpo = cfg.formatNumeroCompleto(proposta).replace(/[^A-Za-z0-9_-]+/g, '_');
+    const fname = `Proposta_${numeroLimpo}.pdf`;
+    res.writeHead(200, {
+      'Content-Type': 'application/pdf',
+      'Content-Length': buf.length,
+      'Content-Disposition': `inline; filename="${fname}"`,
+    });
+    res.end(buf);
+  } catch (e) {
+    console.error('[propostas/pdf] erro:', e);
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handleGetPropostaPreview(propostaId, res) {
+  try {
+    const { renderHtml } = require('./lib/proposta-html');
+    const proposta = await repos.propostas.findByIdWithChildren(propostaId);
+    if (!proposta) return sendError(res, 404, 'Proposta não encontrada');
+    const html = renderHtml(proposta);
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(html);
+  } catch (e) {
+    console.error('[propostas/preview] erro:', e);
+    sendError(res, 500, e.message);
+  }
+}
+
+// ============ Portal do Cliente — Propostas ============
+async function handlePortalListPropostas(req, res) {
+  try {
+    const clienteId = req.portalCliente.id;
+    const propostas = await db.getMany(
+      `SELECT id, numero, ano, revisao, titulo, referencia, tipo,
+              valor_total, validade_dias, data_emissao, data_envio,
+              status, created_at, updated_at
+         FROM propostas
+        WHERE cliente_id = $1 AND status IN ('enviada','aceita','rejeitada','expirada')
+        ORDER BY data_emissao DESC, created_at DESC`,
+      [clienteId]
+    );
+    sendJson(res, { propostas });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handlePortalPropostaPdf(req, propostaId, res) {
+  try {
+    const proposta = await repos.propostas.findById(propostaId);
+    if (!proposta || proposta.clienteId !== req.portalCliente.id) {
+      return sendError(res, 404, 'Proposta não encontrada');
+    }
+    if (proposta.status === 'rascunho') {
+      return sendError(res, 403, 'Proposta ainda em rascunho — aguarde o envio');
+    }
+    return handleGetPropostaPdf(propostaId, res);
+  } catch (e) { sendError(res, 500, e.message); }
+}
+
+async function handlePortalPropostaDocx(req, propostaId, res) {
+  try {
+    const proposta = await repos.propostas.findById(propostaId);
+    if (!proposta || proposta.clienteId !== req.portalCliente.id) {
+      return sendError(res, 404, 'Proposta não encontrada');
+    }
+    if (proposta.status === 'rascunho') {
+      return sendError(res, 403, 'Proposta ainda em rascunho — aguarde o envio');
+    }
+    return handleGetPropostaDocx(propostaId, res);
+  } catch (e) { sendError(res, 500, e.message); }
+}
+
+// ============ Cláusulas (biblioteca reusável) ============
+async function handleGetClausulas(res, query) {
+  try {
+    const filtros = {
+      categoria: query?.categoria || undefined,
+      termo: query?.termo || undefined,
+      ativa: query?.ativa === '0' || query?.ativa === 'false' ? false :
+             query?.ativa === '1' || query?.ativa === 'true' ? true : undefined,
+    };
+    const clausulas = await repos.clausulas.buscar(filtros);
+    sendJson(res, { clausulas });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+async function handlePostClausula(body, res) {
+  try {
+    if (!body.titulo || !body.texto || !body.categoria) {
+      return sendError(res, 400, 'Título, texto e categoria são obrigatórios');
+    }
+    const clausula = {
+      id: generateId('cla'),
+      titulo: body.titulo,
+      texto: body.texto,
+      categoria: body.categoria,
+      tags: Array.isArray(body.tags) ? body.tags : [],
+      ativa: body.ativa !== false,
+    };
+    await repos.clausulas.create(clausula);
+    sendJson(res, { clausulas: await repos.clausulas.findAll() });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handlePutClausula(id, body, res) {
+  try {
+    const allowed = {};
+    for (const f of ['titulo','texto','categoria','ativa']) {
+      if (body[f] !== undefined) allowed[f] = body[f];
+    }
+    if (Array.isArray(body.tags)) allowed.tags = body.tags;
+    const result = await repos.clausulas.updateById(id, allowed);
+    if (!result) return sendError(res, 404, 'Cláusula não encontrada');
+    sendJson(res, { clausulas: await repos.clausulas.findAll() });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handleDeleteClausula(id, res) {
+  try {
+    await repos.clausulas.removeById(id);
+    sendJson(res, { clausulas: await repos.clausulas.findAll() });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
 // ============ Fornecedores ============
 async function handleGetFornecedores(res) {
   const data = await readCollection('fornecedores.json', 'fornecedores', 'fornecedores');
@@ -3118,6 +3626,17 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Multipart (upload de anexo de proposta)
+  const isPropostaAnexoUpload = req.method === 'POST'
+    && /^\/api\/propostas\/[^/]+\/anexos$/.test(pathname);
+  if (isPropostaAnexoUpload) {
+    (async () => {
+      if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
+      handleUploadPropostaAnexo(pathname.split('/')[3], req, res);
+    })();
+    return;
+  }
+
   // Parse body for POST/PUT requests
   const MAX_BODY_BYTES = 1_000_000; // 1 MB
   let body = '';
@@ -3256,6 +3775,11 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
       if (await applyPortalAuth(req, res)) return;
       if (pathname === '/api/portal/logout' && method === 'POST') return handlePortalLogout(req, res);
       if (pathname === '/api/portal/dashboard' && method === 'GET') return handlePortalDashboard(req, res);
+      if (pathname === '/api/portal/propostas' && method === 'GET') return handlePortalListPropostas(req, res);
+      const mPdf = pathname.match(/^\/api\/portal\/propostas\/([^/]+)\/pdf$/);
+      if (mPdf && method === 'GET') return handlePortalPropostaPdf(req, mPdf[1], res);
+      const mDoc = pathname.match(/^\/api\/portal\/propostas\/([^/]+)\/docx$/);
+      if (mDoc && method === 'GET') return handlePortalPropostaDocx(req, mDoc[1], res);
       sendError(res, 404, 'Rota do portal não encontrada');
     })();
     return;
@@ -3516,6 +4040,82 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   }
   if (pathname.match(/^\/api\/clientes\/[^/]+$/) && method === 'DELETE') {
     return handleDeleteCliente(pathname.split('/')[3], res);
+  }
+
+  // ============ Propostas Comerciais ============
+  if (pathname === '/api/propostas' && method === 'GET')  return handleGetPropostas(res);
+  if (pathname === '/api/propostas' && method === 'POST') return handlePostProposta(body, res);
+  if (pathname.match(/^\/api\/propostas\/[^/]+$/) && method === 'GET') {
+    return handleGetProposta(pathname.split('/')[3], res);
+  }
+  if (pathname.match(/^\/api\/propostas\/[^/]+$/) && method === 'PUT') {
+    return handlePutProposta(pathname.split('/')[3], body, res);
+  }
+  if (pathname.match(/^\/api\/propostas\/[^/]+$/) && method === 'PATCH') {
+    return handlePutProposta(pathname.split('/')[3], body, res); // reusa PUT
+  }
+  if (pathname.match(/^\/api\/propostas\/[^/]+$/) && method === 'DELETE') {
+    return handleDeleteProposta(pathname.split('/')[3], res);
+  }
+  if (pathname.match(/^\/api\/propostas\/[^/]+\/enviar$/) && method === 'POST') {
+    return handleEnviarProposta(pathname.split('/')[3], res);
+  }
+  if (pathname.match(/^\/api\/propostas\/[^/]+\/aceitar$/) && method === 'POST') {
+    return handleAceitarProposta(pathname.split('/')[3], res);
+  }
+  if (pathname.match(/^\/api\/propostas\/[^/]+\/rejeitar$/) && method === 'POST') {
+    return handleRejeitarProposta(pathname.split('/')[3], body, res);
+  }
+  if (pathname.match(/^\/api\/propostas\/[^/]+\/duplicar$/) && method === 'POST') {
+    return handleDuplicarProposta(pathname.split('/')[3], res);
+  }
+  // Custos internos por proposta
+  if (pathname.match(/^\/api\/propostas\/[^/]+\/custos$/) && method === 'POST') {
+    return handlePostPropostaCusto(pathname.split('/')[3], body, res);
+  }
+  if (pathname.match(/^\/api\/propostas\/[^/]+\/custos\/[^/]+$/) && method === 'PUT') {
+    const p = pathname.split('/');
+    return handlePutPropostaCusto(p[3], p[5], body, res);
+  }
+  if (pathname.match(/^\/api\/propostas\/[^/]+\/custos\/[^/]+$/) && method === 'DELETE') {
+    const p = pathname.split('/');
+    return handleDeletePropostaCusto(p[3], p[5], res);
+  }
+  // Anexos de proposta (PDF + imagens — multipart upload)
+  if (pathname.match(/^\/api\/propostas\/[^/]+\/anexos$/) && method === 'POST') {
+    return handleUploadPropostaAnexo(pathname.split('/')[3], req, res);
+  }
+  if (pathname.match(/^\/api\/propostas\/[^/]+\/anexos\/[^/]+$/) && method === 'GET') {
+    const p = pathname.split('/');
+    return handleGetPropostaAnexo(p[3], p[5], res);
+  }
+  if (pathname.match(/^\/api\/propostas\/[^/]+\/anexos\/[^/]+$/) && method === 'PUT') {
+    const p = pathname.split('/');
+    return handlePutPropostaAnexo(p[3], p[5], body, res);
+  }
+  if (pathname.match(/^\/api\/propostas\/[^/]+\/anexos\/[^/]+$/) && method === 'DELETE') {
+    const p = pathname.split('/');
+    return handleDeletePropostaAnexo(p[3], p[5], res);
+  }
+  // DOCX / PDF / Preview HTML
+  if (pathname.match(/^\/api\/propostas\/[^/]+\/docx$/) && method === 'GET') {
+    return handleGetPropostaDocx(pathname.split('/')[3], res);
+  }
+  if (pathname.match(/^\/api\/propostas\/[^/]+\/pdf$/) && method === 'GET') {
+    return handleGetPropostaPdf(pathname.split('/')[3], res);
+  }
+  if (pathname.match(/^\/api\/propostas\/[^/]+\/preview$/) && method === 'GET') {
+    return handleGetPropostaPreview(pathname.split('/')[3], res);
+  }
+
+  // ============ Cláusulas (biblioteca) ============
+  if (pathname === '/api/clausulas' && method === 'GET')  return handleGetClausulas(res, parsedUrl.query);
+  if (pathname === '/api/clausulas' && method === 'POST') return handlePostClausula(body, res);
+  if (pathname.match(/^\/api\/clausulas\/[^/]+$/) && method === 'PUT') {
+    return handlePutClausula(pathname.split('/')[3], body, res);
+  }
+  if (pathname.match(/^\/api\/clausulas\/[^/]+$/) && method === 'DELETE') {
+    return handleDeleteClausula(pathname.split('/')[3], res);
   }
 
   // Fornecedores routes

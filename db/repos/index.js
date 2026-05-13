@@ -35,4 +35,8 @@ module.exports = {
   veiculos:             require('./veiculos'),
   veiculoPlanos:        require('./veiculo_planos'),
   veiculoManutencoes:   require('./veiculo_manutencoes'),
+  propostas:            require('./propostas'),
+  propostaCustos:       require('./proposta_custos'),
+  propostaAnexos:       require('./proposta_anexos'),
+  clausulas:            require('./clausulas'),
 };
