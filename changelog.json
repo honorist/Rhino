@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.4",
+      "date": "2026-05-13",
+      "summary": "Correção PDF: numeração de páginas (Página 1 de 3 aparecendo na pág 4)",
+      "changes": [
+        "Bug: a numeração de página estava errada — 'Página 1 de 3' aparecia em páginas além da 3ª. Causa: o `text()` que escrevia o número no rodapé estava criando páginas vazias adicionais durante o loop de numeração, dobrando a contagem.",
+        "Fix: capturado o `totalPages` ANTES do loop (em vez de ler `range.count` que mudava durante a iteração). Posição do texto ajustada (height limitada, y mais alto) para evitar overflow que disparava nova página.",
+        "Verificação: o mesmo conteúdo de teste gerava 6 páginas com o bug e agora gera 3 — o número correto."
+      ]
+    },
+    {
       "version": "1.2.3",
       "date": "2026-05-13",
       "summary": "PDF: páginas alternando com/sem timbrado — corrigido",
