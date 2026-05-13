@@ -57,9 +57,15 @@ const _lazyInflight = new Map();
 function _injectScript(src) {
   if (_lazyLoaded.has(src)) return Promise.resolve();
   if (_lazyInflight.has(src)) return _lazyInflight.get(src);
+  // Cache-busting: anexa ?v=APP_VERSION pra forçar download de JS novo
+  // quando uma nova versão é deployada. O sw.js faz cache-first em JS,
+  // então sem isso o usuário ficava preso ao JS antigo cacheado.
+  const v = (window.__APP_VERSION__ || 'dev');
+  const sep = src.includes('?') ? '&' : '?';
+  const finalSrc = src + sep + 'v=' + encodeURIComponent(v);
   const p = new Promise((resolve, reject) => {
     const s = document.createElement('script');
-    s.src = src;
+    s.src = finalSrc;
     s.async = false; // preserva ordem entre scripts injetados
     s.onload = () => { _lazyLoaded.add(src); resolve(); };
     s.onerror = () => reject(new Error('Falha ao carregar ' + src));

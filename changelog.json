@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.2.2",
+      "date": "2026-05-13",
+      "summary": "Correção: novos botões/telas agora aparecem sem precisar de hard refresh",
+      "changes": [
+        "Bug: o service worker faz cache-first nos arquivos JavaScript. Quando uma nova versão é deployada, o app continua usando os JS antigos cacheados — por isso o botão Apresentação não aparecia na lista de propostas.",
+        "Fix: o carregador de scripts (`_injectScript`) agora anexa `?v={APP_VERSION}` no URL de cada JS lazy-loaded. Cada deploy invalida o cache automaticamente — não precisa mais Ctrl+Shift+R."
+      ]
+    },
+    {
       "version": "1.2.1",
       "date": "2026-05-13",
       "summary": "Correção urgente: PDF não gerava (recursão infinita)",
