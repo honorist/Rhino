@@ -1,6 +1,32 @@
 {
   "entries": [
     {
+      "version": "1.1.0",
+      "date": "2026-05-13",
+      "summary": "Novo módulo: Propostas Comerciais com geração de contrato em prospecção",
+      "changes": [
+        "Nova tela \"Propostas\" no menu lateral: crie propostas comerciais (PC_NN-AA) com numeração sequencial automática por ano.",
+        "Ao salvar uma proposta, o sistema cria AUTOMATICAMENTE um contrato em status \"prospecção\" vinculado — aparece direto no chip Prospecção da tela de Contratos.",
+        "Editor com 8 abas: Dados Gerais, Escopo, Obrigações, Cronograma, Investimento, Custo Interno, Anexos, Preview. Tudo salva sozinho enquanto você digita (autosave a cada 800ms).",
+        "Cada item de escopo tem um chip clicável que alterna entre ESCOPO (verde) e FORA DE ESCOPO (vermelho) — itens \"fora\" viram a seção EXCLUSÕES no documento final.",
+        "Três tipos de proposta: Mão de Obra (HH), Material, ou Ambos. As tabelas de Investimento se adaptam automaticamente ao tipo selecionado.",
+        "Cronograma vem pré-preenchido com 4 fases padrão (Engenharia, Aquisições, Instalação, Comissionamento) — editáveis. Inclui visualização Gantt em mini-barras.",
+        "Aba \"Custo Interno\" (PRIVADA, nunca aparece para o cliente): registre custos por categoria (mão de obra, material, BDI, lucro, impostos) e veja a margem calculada automaticamente.",
+        "Biblioteca de Cláusulas reusáveis (#/clausulas): catalogue cláusulas de obrigações, pagamento, garantia, geral, com tags e busca. Picker direto no editor de proposta.",
+        "Anexos: upload de PDFs (desenhos técnicos, certificados) e imagens ilustrativas que aparecem na seção \"IMAGENS ILUSTRATIVAS\" do documento.",
+        "Geração de DOCX timbrado seguindo o padrão Rhino (logo, fontes Trebuchet MS/Arial, signatário Deyvison Veloso/Diretor, 16 seções na ordem fixa). Botão \"DOCX\" no header do editor.",
+        "Preview HTML do documento dentro do app — visualize antes de baixar.",
+        "Botão \"Nova Revisão\" duplica a proposta atual com Rev.+1, mantendo a anterior arquivada para histórico.",
+        "Quando você marca uma proposta como \"Aceita\", o contrato em prospecção vinculado vira automaticamente \"Ativo\" — sem retrabalho.",
+        "Ação \"Gerar Proposta\" disponível direto no detalhe de cada cliente (auto-preenche dados do cliente).",
+        "Na tela do contrato em prospecção, aparece um card \"Origem: Proposta PC_NN-AA\" com link de volta para a proposta original.",
+        "Portal do Cliente: seção \"Minhas Propostas\" mostra propostas enviadas, com botões para baixar DOCX direto.",
+        "Bibioteca inicial com 17 cláusulas padrão pré-cadastradas (Obrigações Contratada/Contratante, Pagamento 20/65/15, Garantia 18 meses, Validade, Foro Três Lagoas/MS).",
+        "Migrations agora rodam automaticamente a cada deploy via preDeployCommand do Railway (banco sempre em dia com o código).",
+        "Limitação: geração de PDF temporariamente desabilitada (puppeteer precisa ser instalado manualmente no servidor). DOCX funciona normal."
+      ]
+    },
+    {
       "version": "1.0.39",
       "date": "2026-05-05",
       "summary": "Mapa de Obras com o dobro de altura",
