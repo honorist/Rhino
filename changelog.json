@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.1.6",
+      "date": "2026-05-13",
+      "summary": "DOCX agora também usa o timbrado oficial Rhino como fundo (igual ao PDF)",
+      "changes": [
+        "Aplicada no DOCX a mesma correção do PDF v1.1.5: imagem do template é agora desenhada como FUNDO COMPLETO de cada página (via ImageRun floating + behindDocument), e o conteúdo escreve POR CIMA.",
+        "Margens do DOCX ajustadas: esquerda 1.9\" (~4,8 cm) pra deslocar o texto à direita, longe da logo Rhino vermelha que está no lado esquerdo da imagem de fundo.",
+        "Removido cabeçalho customizado (que sobrepunha a logo do timbrado) — restou apenas a paginação no rodapé direito.",
+        "Cidade, data e número da proposta (\"PROPOSTA COMERCIAL · PC_NN-AA\") agora aparecem no topo do corpo, alinhados à direita — exatamente como nos modelos PT&PC_22-26 e PC_08-26."
+      ]
+    },
+    {
       "version": "1.1.5",
       "date": "2026-05-13",
       "summary": "PDF agora usa o timbrado oficial Rhino como imagem de fundo",
