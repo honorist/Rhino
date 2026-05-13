@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.3",
+      "date": "2026-05-13",
+      "summary": "PDF: páginas alternando com/sem timbrado — corrigido",
+      "changes": [
+        "Bug: PDF estava alternando páginas com a imagem de fundo (timbrado) e páginas sem. A flag anti-recursão da v1.2.1 bloqueava o desenho do background em algumas páginas quando o text() do conteúdo principal disparava o evento `pageAdded`.",
+        "Fix: separação em 2 camadas. (1) `pageAdded` desenha apenas a imagem de fundo — sem chamar text(), portanto sem recursão. (2) No final, depois de todo o conteúdo, um único loop via `bufferedPageRange + switchToPage` escreve a numeração 'Página X de Y' por cima.",
+        "Resultado: todas as páginas têm o timbrado, mesmo as criadas pelo auto-flow de texto."
+      ]
+    },
+    {
       "version": "1.2.2",
       "date": "2026-05-13",
       "summary": "Correção: novos botões/telas agora aparecem sem precisar de hard refresh",
