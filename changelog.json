@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.1",
+      "date": "2026-05-13",
+      "summary": "Correção urgente: PDF não gerava (recursão infinita)",
+      "changes": [
+        "Bug introduzido na v1.1.9: o evento `pageAdded` chamava `drawPageNumber` que usava `doc.text()` e isso disparava `pageAdded` de novo → loop infinito (Maximum call stack size exceeded). PDF retornava erro 500.",
+        "Fix: adicionada flag anti-recursão `_drawingChrome` que bloqueia chamadas aninhadas do evento. Testado localmente, PDF de 468 KB gera sem erro.",
+        "Sobre 'Botão Apresentação não aparece': depois do deploy, faça **Ctrl+Shift+R** no browser para limpar o cache do JavaScript. O service worker pode estar segurando a versão antiga sem o botão."
+      ]
+    },
+    {
       "version": "1.2.0",
       "date": "2026-05-13",
       "summary": "Apresentação como configuração global + logos de clientes nos Cases",
