@@ -8,6 +8,7 @@
 window.Clausulas = {
   filtroCategoria: 'todas',
   busca: '',
+  viewMode: localStorage.getItem('clausulas-view') || 'cards',  // 'cards' | 'tabela'
 
   CATEGORIAS: [
     { v: 'todas',                  l: 'Todas' },
@@ -50,7 +51,15 @@ window.Clausulas = {
             <h1 class="page-title">Biblioteca de Cláusulas</h1>
             <p class="page-subtitle">${totalGeral} cláusula${totalGeral !== 1 ? 's' : ''} cadastrada${totalGeral !== 1 ? 's' : ''} · reutilizáveis em propostas</p>
           </div>
-          <div style="display:flex;gap:8px;">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div class="view-toggle" style="display:inline-flex;border:1px solid var(--color-border, #ccc);border-radius:6px;overflow:hidden;">
+              <button class="btn-view-mode${this.viewMode === 'cards' ? ' is-active' : ''}" data-view="cards"
+                      style="padding:6px 12px;border:none;cursor:pointer;background:${this.viewMode === 'cards' ? '#1F497D' : 'transparent'};color:${this.viewMode === 'cards' ? 'white' : 'inherit'};font-size:13px;"
+                      title="Visualizar como cards">⊞ Cards</button>
+              <button class="btn-view-mode${this.viewMode === 'tabela' ? ' is-active' : ''}" data-view="tabela"
+                      style="padding:6px 12px;border:none;cursor:pointer;background:${this.viewMode === 'tabela' ? '#1F497D' : 'transparent'};color:${this.viewMode === 'tabela' ? 'white' : 'inherit'};font-size:13px;border-left:1px solid var(--color-border, #ccc);"
+                      title="Visualizar como tabela">☰ Tabela</button>
+            </div>
             <a class="btn btn-secondary btn-lg" href="#/proposta">← Voltar para Propostas</a>
             <button class="btn btn-primary btn-lg" id="btnNovaClausula">+ Nova Cláusula</button>
           </div>
@@ -68,13 +77,15 @@ window.Clausulas = {
           <input class="form-control" id="inputBuscaCla" placeholder="🔍 Buscar por título, texto ou tag..." value="${escapeHtml(this.busca)}">
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;">
-          ${clausulas.length === 0 ? `
-            <div class="card" style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);grid-column:1/-1;">
-              Nenhuma cláusula encontrada.
-            </div>
-          ` : clausulas.map(c => this._renderCard(c)).join('')}
-        </div>
+        ${clausulas.length === 0 ? `
+          <div class="card" style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">
+            Nenhuma cláusula encontrada.
+          </div>
+        ` : (this.viewMode === 'tabela' ? this._renderTabela(clausulas) : `
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;">
+            ${clausulas.map(c => this._renderCard(c)).join('')}
+          </div>
+        `)}
       `;
 
       this._attachEvents();
@@ -82,6 +93,59 @@ window.Clausulas = {
       console.error('[Clausulas] erro:', e);
       app.innerHTML = `<div class="error-banner">Erro: ${escapeHtml(e.message)}</div>`;
     }
+  },
+
+  _renderTabela(clausulas) {
+    return `
+      <div class="card" style="padding:0;">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:240px;">Título</th>
+                <th style="width:180px;">Categoria</th>
+                <th>Texto</th>
+                <th style="width:160px;">Tags</th>
+                <th style="width:60px;text-align:center;">Uso</th>
+                <th style="width:80px;text-align:center;">Status</th>
+                <th style="width:160px;">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${clausulas.map(c => {
+                const catLabel = this.CATEGORIAS.find(x => x.v === c.categoria)?.l || c.categoria;
+                const tags = Array.isArray(c.tags) ? c.tags : [];
+                return `
+                  <tr style="${!c.ativa ? 'opacity:.55;' : ''}">
+                    <td><strong>${escapeHtml(c.titulo)}</strong></td>
+                    <td><span style="font-size:12px;color:#1F497D;font-weight:600;">${escapeHtml(catLabel)}</span></td>
+                    <td style="font-size:13px;color:var(--color-text-muted);max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(c.texto)}">${escapeHtml(c.texto.length > 120 ? c.texto.slice(0, 120) + '…' : c.texto)}</td>
+                    <td>
+                      ${tags.length === 0 ? '<span class="text-muted" style="font-size:11px;">—</span>' :
+                        tags.slice(0, 3).map(t => `<span class="badge" style="background:#f1f5f9;color:#475569;font-size:10px;margin-right:3px;">${escapeHtml(t)}</span>`).join('') +
+                        (tags.length > 3 ? `<span style="font-size:10px;color:#94a3b8;">+${tags.length - 3}</span>` : '')}
+                    </td>
+                    <td style="text-align:center;font-weight:600;color:${c.usoCount > 0 ? '#1F497D' : '#94a3b8'};">${c.usoCount || 0}</td>
+                    <td style="text-align:center;">
+                      ${c.ativa
+                        ? '<span class="badge" style="background:rgba(16,185,129,.15);color:#10b981;font-size:11px;">ativa</span>'
+                        : '<span class="badge" style="background:#fee;color:#900;font-size:11px;">inativa</span>'}
+                    </td>
+                    <td>
+                      <div class="actions-cell">
+                        <a class="action-link btn-editar-cla" data-id="${c.id}">Editar</a>
+                        <a class="action-link btn-toggle-cla" data-id="${c.id}">${c.ativa ? 'Desativar' : 'Ativar'}</a>
+                        <a class="action-link danger btn-excluir-cla" data-id="${c.id}">×</a>
+                      </div>
+                    </td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
   },
 
   _renderCard(c) {
@@ -111,6 +175,14 @@ window.Clausulas = {
   },
 
   _attachEvents() {
+    // Toggle de visualização cards/tabela
+    document.querySelectorAll('.btn-view-mode').forEach(b => {
+      b.addEventListener('click', () => {
+        this.viewMode = b.dataset.view;
+        localStorage.setItem('clausulas-view', this.viewMode);
+        this.render();
+      });
+    });
     document.querySelectorAll('.rh-chip[data-cat]').forEach(b => {
       b.addEventListener('click', () => { this.filtroCategoria = b.dataset.cat; this.render(); });
     });

@@ -92,6 +92,17 @@ window.Dashboard = {
         .reduce((s, i) => s + (parseFloat(i.value || i.valor) || 0), 0);
       const aportesTotal = aportesSocios + aportesEmpresa;
 
+      // Propostas em prospecção (rascunho + enviada — ainda não viraram contrato ativo)
+      try { await Store.loadFor(['propostas']); } catch (_) {}
+      const propostasState = Store.state.propostas || [];
+      const propostasRascunho = propostasState.filter(p => p.status === 'rascunho').length;
+      const propostasEnviada = propostasState.filter(p => p.status === 'enviada').length;
+      const propostasAceita = propostasState.filter(p => p.status === 'aceita').length;
+      const propostasProspeccao = propostasRascunho + propostasEnviada;
+      const valorPropostasProspeccao = propostasState
+        .filter(p => p.status === 'rascunho' || p.status === 'enviada')
+        .reduce((s, p) => s + (parseFloat(p.valorTotal || p.valor_total) || 0), 0);
+
       // A receber (NFs emitidas, valor + contagens)
       const nfsEmitidas = nfsList.filter(n => n.emitida || n.status === 'emitida');
       const nfsPendentes = nfsList.filter(n => !n.emitida && n.status !== 'emitida');
@@ -349,6 +360,14 @@ window.Dashboard = {
               meta: `${dash.activeContracts} contrato${dash.activeContracts !== 1 ? 's' : ''} ativo${dash.activeContracts !== 1 ? 's' : ''}`,
               spark: _spark45.saldo.map((v, i) => v - (_spark45.saidasAcum[i] || 0)),
               tooltip: 'Média aritmética simples das margens dos contratos ativos. Margem = (valor − saídas) ÷ valor × 100.',
+            })}
+            ${_kpi({
+              href: '#/proposta',
+              label: 'Prospecção',
+              value: propostasProspeccao,
+              tone: propostasProspeccao > 0 ? 'warn' : '',
+              meta: `${propostasRascunho} rascunho · ${propostasEnviada} enviada${propostasAceita > 0 ? ' · ' + propostasAceita + ' aceita' : ''}`,
+              tooltip: `${propostasProspeccao} proposta${propostasProspeccao !== 1 ? 's' : ''} em prospecção (rascunho + enviadas aguardando resposta).${valorPropostasProspeccao > 0 ? ' Valor potencial: ' + Store.formatBRL(valorPropostasProspeccao) + '.' : ''} Clique para ver todas as propostas.`,
             })}
             ${_kpi({
               href: '#/socios',
