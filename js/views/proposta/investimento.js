@@ -61,40 +61,51 @@
     function renderTabelaHH(linhas, subtotal) {
       return `
         <div style="border:1px solid #e2e8f0;border-radius:8px;padding:16px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <h4 style="margin:0;color:#1F497D;">Mão de Obra (HH)</h4>
             <button class="btn btn-secondary" id="btnAddHH">+ Adicionar linha</button>
           </div>
+          <p class="text-muted" style="margin:0 0 12px;font-size:12px;">
+            <strong>HE 50% / 100%</strong> são calculadas automaticamente sobre o valor-hora (50% e 100% de acréscimo) — exibidas para referência mas <strong>NÃO somam no total da proposta</strong>. Hora extra será cobrada via aditivo de contrato.
+          </p>
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>Cargo / Função</th>
-                  <th style="width:100px;">Qtd</th>
-                  <th style="width:110px;">Horas</th>
-                  <th style="width:140px;">R$ / Hora</th>
-                  <th style="width:160px;">Total</th>
-                  <th style="width:50px;"></th>
+                  <th style="width:80px;">Qtd</th>
+                  <th style="width:90px;">Horas</th>
+                  <th style="width:120px;">R$ / Hora</th>
+                  <th style="width:120px;" title="Valor-hora com acréscimo de 50% (referência)">HE 50%</th>
+                  <th style="width:120px;" title="Valor-hora com acréscimo de 100% (referência)">HE 100%</th>
+                  <th style="width:140px;">Total (normal)</th>
+                  <th style="width:40px;"></th>
                 </tr>
               </thead>
               <tbody>
                 ${linhas.length === 0 ? `
-                  <tr><td colspan="6" style="text-align:center;padding:16px;color:#94a3b8;">Nenhuma linha. Clique em "+ Adicionar linha".</td></tr>
-                ` : linhas.map((l, idx) => `
+                  <tr><td colspan="8" style="text-align:center;padding:16px;color:#94a3b8;">Nenhuma linha. Clique em "+ Adicionar linha".</td></tr>
+                ` : linhas.map((l, idx) => {
+                  const vh = parseFloat(l.valorHora) || 0;
+                  const he50 = vh * 1.5;
+                  const he100 = vh * 2.0;
+                  return `
                   <tr data-idx="${idx}">
                     <td><input type="text" class="form-control hh-cargo" data-idx="${idx}" value="${escapeHtml(l.cargo || '')}" placeholder="Ex: Soldador, Caldeireiro, Ajudante"></td>
                     <td><input type="text" inputmode="numeric" class="form-control prop-input-num hh-qtd" data-idx="${idx}" value="${l.qtd || 0}"></td>
                     <td><input type="text" inputmode="decimal" class="form-control prop-input-num hh-horas" data-idx="${idx}" value="${l.horas || 0}"></td>
                     <td><input type="text" class="form-control prop-input-num brl-input hh-vh" data-idx="${idx}" value="${window.BRLInput.toDisplay(l.valorHora)}" inputmode="decimal"></td>
+                    <td style="text-align:right;font-weight:500;color:#f59e0b;background:#fffbeb;" title="Valor-hora + 50% (calculado)">${fmtBRL(he50)}</td>
+                    <td style="text-align:right;font-weight:500;color:#dc2626;background:#fef2f2;" title="Valor-hora + 100% (calculado)">${fmtBRL(he100)}</td>
                     <td style="font-weight:600;text-align:right;">${fmtBRL(calcTotalHH(l))}</td>
                     <td><button class="btn-hh-del" data-idx="${idx}" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:18px;">×</button></td>
                   </tr>
-                `).join('')}
+                `;}).join('')}
               </tbody>
               ${linhas.length > 0 ? `
                 <tfoot>
                   <tr style="background:#f1f5f9;">
-                    <td colspan="4" style="text-align:right;font-weight:600;">Subtotal HH:</td>
+                    <td colspan="6" style="text-align:right;font-weight:600;">Subtotal HH (horas normais):</td>
                     <td style="font-weight:700;color:#1F497D;text-align:right;">${fmtBRL(subtotal)}</td>
                     <td></td>
                   </tr>

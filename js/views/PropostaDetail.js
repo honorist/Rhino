@@ -86,7 +86,7 @@ window.PropostaDetail = {
     const numeroCompleto = `PC_${p.numero}-${String(p.ano).padStart(2,'0')}${p.revisao > 0 ? ` Rev.${String(p.revisao).padStart(2,'0')}` : ''}`;
     const cliente = p.clienteEmpresa || p.clienteNome || '— sem cliente —';
 
-    const tabsOrdem = ['dados','escopo','obrigacoes','cronograma','investimento','custo-interno','anexos','preview'];
+    const tabsOrdem = ['dados','apresentacao','escopo','obrigacoes','cronograma','investimento','custo-interno','anexos','preview'];
     const tabs = tabsOrdem
       .map(id => this.tabs[id])
       .filter(t => t && (!t.condition || t.condition(p)));

@@ -39,6 +39,7 @@ const _lazyManifest = {
   '#/proposta/:id':        { viewName: 'PropostaDetail',     scripts: [
     './js/views/PropostaDetail.js',
     './js/views/proposta/dados-gerais.js',
+    './js/views/proposta/apresentacao.js',
     './js/views/proposta/escopo.js',
     './js/views/proposta/obrigacoes.js',
     './js/views/proposta/cronograma.js',
