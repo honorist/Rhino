@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.1.2",
+      "date": "2026-05-13",
+      "summary": "Propostas: usa Template.dotx oficial Rhino como base do DOCX",
+      "changes": [
+        "Cliente forneceu Template.dotx (Modelos Personalizados do Office) com header, footer, estilos e theme corporativos prontos. Esse template agora é a BASE de todas as propostas geradas.",
+        "Pipeline novo: gerador cria o corpo do documento (texto, tabelas, listas) e injeta dentro do template, mantendo logo, header com dados, footer com numeração, fontes Trebuchet MS/Arial MT e cores corporativas exatamente como o Word original.",
+        "Fallback automático: se o template não puder ser carregado, gera o DOCX programático antigo (sem quebrar)."
+      ]
+    },
+    {
       "version": "1.1.1",
       "date": "2026-05-13",
       "summary": "Propostas: hora extra HE 50%/100%, apresentação, CONTRATADA em negrito + correções",
