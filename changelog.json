@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.2.6",
+      "date": "2026-05-13",
+      "summary": "Imagens ilustrativas: ordem ajustada para depois do Escopo",
+      "changes": [
+        "As imagens ilustrativas anexadas (seção 'escopo' nos anexos) agora aparecem DEPOIS da lista do Escopo, em vez de antes — ordem mais natural: Objetivo → Escopo → Imagens → Exclusões → Obrigações...",
+        "Ajuste aplicado nos 3 outputs: PDF, DOCX e Preview HTML."
+      ]
+    },
+    {
       "version": "1.2.5",
       "date": "2026-05-13",
       "summary": "Correção: PDFs anexos voltam a ser concatenados no PDF final",
