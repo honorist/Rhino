@@ -178,6 +178,8 @@ window.Configuracao = {
     // Os children têm prefixo 'contrato-tab:' e ficam indentados sob a página pai.
     const todasAbas = [
       { route: '#/dashboard',     label: 'Dashboard',       icon: ic('home'),            grupo: 'Principal' },
+      { route: '#/proposta',      label: 'Propostas',       icon: ic('file-text'),       grupo: 'Principal' },
+      { route: '#/clausulas',     label: 'Biblioteca de Cláusulas', icon: ic('book'),     grupo: 'Principal' },
       { route: '#/contratos',     label: 'Contratos',       icon: ic('briefcase'),       grupo: 'Principal',
         children: [
           { route: 'contrato-tab:visao',      label: 'Aba Visão Geral',  icon: ic('eye') },

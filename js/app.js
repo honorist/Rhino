@@ -477,7 +477,7 @@ const perfil = {
     const base = route.replace(/(#\/[^/]+).*/, '$1');
     // Rotas universais — qualquer perfil autenticado pode abrir
     // (controle fino fica em cada tela, ex: ver/editar)
-    const universais = ['#/manual', '#/usuarios', '#/rdos', '#/auditoria', '#/estoque', '#/comparativo', '#/solicitacoes-compra', '#/frota'];
+    const universais = ['#/manual', '#/usuarios', '#/rdos', '#/auditoria', '#/estoque', '#/comparativo', '#/solicitacoes-compra', '#/frota', '#/proposta', '#/clausulas'];
     if (universais.includes(base)) return true;
     return abas.includes(base);
   },
