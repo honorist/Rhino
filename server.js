@@ -2171,20 +2171,17 @@ async function _loadPropostaComAnexosBinarios(propostaId) {
 
 async function handleGetPropostaDocx(propostaId, res) {
   try {
-    const { gerarDocx, gerarDocxComTemplate, isDocxAvailable } = require('./lib/proposta-docx');
+    const { gerarDocx, isDocxAvailable } = require('./lib/proposta-docx');
     if (!isDocxAvailable()) {
       return sendError(res, 500, 'Lib `docx` não instalada. Rode `npm install` no servidor.');
     }
     const proposta = await _loadPropostaComAnexosBinarios(propostaId);
     if (!proposta) return sendError(res, 404, 'Proposta não encontrada');
-    // Usa o template oficial Rhino quando disponível; fallback programático.
-    let buf;
-    try {
-      buf = await gerarDocxComTemplate(proposta);
-    } catch (e) {
-      console.warn('[propostas/docx] template falhou, usando programático:', e.message);
-      buf = await gerarDocx(proposta);
-    }
+    // NOTA: tentativa de injetar conteudo no Template.dotx (v1.1.2) gerou
+    // DOCX corrompido por causa de rIds conflitantes entre meu document.xml
+    // e os _rels do template. Revertido para gerador programatico que ja
+    // usa logo, cores e fontes do template via lib `docx`.
+    const buf = await gerarDocx(proposta);
     const cfg = require('./lib/proposta-template-config');
     const numeroLimpo = cfg.formatNumeroCompleto(proposta).replace(/[^A-Za-z0-9_-]+/g, '_');
     const fname = `Proposta_${numeroLimpo}.docx`;
