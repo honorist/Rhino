@@ -1,6 +1,26 @@
 {
   "entries": [
     {
+      "version": "1.1.1",
+      "date": "2026-05-13",
+      "summary": "Propostas: hora extra HE 50%/100%, apresentação, CONTRATADA em negrito + correções",
+      "changes": [
+        "Novo indicador \"Prospecção\" no Dashboard mostrando quantidade de propostas em rascunho/enviada e valor potencial total (clique leva direto para Propostas).",
+        "Aba Investimento (HH): novas colunas HE 50% e HE 100% calculadas automaticamente sobre o valor-hora — apenas para referência, NÃO somam no total da proposta (hora extra será cobrada via aditivo de contrato).",
+        "Nova aba \"Apresentação\" no editor de propostas com 3 campos opcionais: APRESENTAÇÃO (sobre a empresa), CASES DE SUCESSO RECENTES (bullets) e SEGURANÇA E SAÚDE (políticas e NRs). Vazio = oculto no DOCX/Preview.",
+        "Documentos gerados (DOCX e Preview) agora exibem CONTRATADA e CONTRATANTE sempre em NEGRITO MAIÚSCULO — padrão jurídico/comercial brasileiro. Aplicado em saudação, objetivo, obrigações, condições de pagamento, prazo e observações.",
+        "Biblioteca de Cláusulas: toggle Cards / Tabela no canto superior direito. Modo tabela mostra 7 colunas (Título, Categoria, Texto, Tags, Uso, Status, Ações). Preferência salva entre sessões.",
+        "Gerador de DOCX agora usa a logo e fontes do Template.docx oficial Rhino (Arial MT corpo, Trebuchet MS títulos, cores corporativas do theme).",
+        "Aba Dados Gerais do editor de propostas compactada — labels menores, menos espaço vertical, mais densidade visual.",
+        "Inputs numéricos das tabelas de Investimento e Custo Interno agora alinhados à direita, sem as setinhas nativas do browser que cortavam o valor em colunas estreitas.",
+        "Item \"Propostas\" aparece corretamente no menu lateral (faltava permissão padrão); admin/gerente já recebem permissão automática via migration.",
+        "Tela de Níveis de Acesso agora lista \"Propostas\" e \"Biblioteca de Cláusulas\" como abas configuráveis.",
+        "Detalhe do cliente ganhou botão \"Gerar Proposta\" — cria nova proposta com dados do cliente já preenchidos.",
+        "Card \"Origem: Proposta PC_NN-AA\" aparece no detalhe do contrato em prospecção, com link de volta para a proposta de origem.",
+        "Correção: ao clicar nas setas (▲▼) ou em \"+ Adicionar Item\" na aba Escopo, o texto digitado nos itens não é mais apagado (era um problema de debounce do autosave)."
+      ]
+    },
+    {
       "version": "1.1.0",
       "date": "2026-05-13",
       "summary": "Novo módulo: Propostas Comerciais com geração de contrato em prospecção",
