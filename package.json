@@ -11,10 +11,7 @@
     "test:headers": "node --test test/headers.test.js",
     "test:validate": "node --test test/validate.test.js",
     "test:healthz": "node --test test/healthz.test.js",
-    "db:migrate": "node-pg-migrate up --migrations-dir db/migrations --migration-file-language sql",
-    "db:migrate:down": "node-pg-migrate down --migrations-dir db/migrations --migration-file-language sql",
-    "db:migrate:status": "node-pg-migrate status --migrations-dir db/migrations --migration-file-language sql",
-    "db:migrate:fake": "node-pg-migrate up --fake --migrations-dir db/migrations --migration-file-language sql",
+    "db:migrate": "node scripts/run-migrations.js",
     "db:migrate-json": "node scripts/migrate-json-to-pg.js",
     "backup:prod": "node scripts/backup-prod.js"
   },
@@ -23,7 +20,6 @@
     "chart.js": "^4.5.1",
     "docx": "^9.6.1",
     "jimp": "^1.6.1",
-    "node-pg-migrate": "^8.0.4",
     "pdf-to-img": "^6.0.0",
     "pg": "^8.20.0",
     "web-push": "^3.6.7"
