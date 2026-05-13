@@ -1,6 +1,21 @@
 {
   "entries": [
     {
+      "version": "1.1.4",
+      "date": "2026-05-13",
+      "summary": "Propostas: PDF reabilitado + anexos PDF concatenados na sequência",
+      "changes": [
+        "Geração de PDF da proposta REABILITADA (estava com erro 500 desde a v1.1.0 quando o puppeteer foi removido por estourar o build).",
+        "Nova stack: pdfkit (gera PDF do zero) + pdf-lib (concatena anexos). Tudo pure-JS, sem dependência de Chromium — leve e rápido.",
+        "Anexos PDF da proposta agora SÃO INCLUÍDOS no PDF final, na sequência, após o conteúdo principal. Cada PDF anexo entra com suas páginas originais preservadas.",
+        "Nova seção \"Anexos\" no fim do documento lista todos os PDFs e imagens com seus nomes — e indica que os PDFs seguem nas próximas páginas.",
+        "Imagens ilustrativas (anexos marcados como \"escopo\") aparecem inline no PDF entre Objetivo e Escopo.",
+        "Cabeçalho do PDF: logo Rhino + cidade/data alinhada à direita + identificação da proposta (PC_NN-AA).",
+        "Rodapé do PDF: contato da empresa + numeração \"Página X de Y\" em todas as páginas.",
+        "CONTRATADA/CONTRATANTE também em negrito no PDF (mesmo padrão do DOCX e do Preview HTML)."
+      ]
+    },
+    {
       "version": "1.1.3",
       "date": "2026-05-13",
       "summary": "Correção urgente: DOCX gerado a partir do template estava corrompido",
