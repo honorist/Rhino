@@ -2157,14 +2157,13 @@ async function handleDeletePropostaAnexo(propostaId, anexoId, res) {
 async function _loadPropostaComAnexosBinarios(propostaId) {
   const proposta = await repos.propostas.findByIdWithChildren(propostaId);
   if (!proposta) return null;
-  // Carrega `data` BYTEA de cada anexo de imagem (para embed em DOCX/PDF)
+  // Carrega `data` BYTEA de TODOS os anexos: imagens (embed inline) e PDFs
+  // (concatenação na sequência via pdf-lib). Sem isso, o concatenador filtra
+  // por `a.data` e pula os PDFs anexos.
   const anexosMeta = proposta.anexos || [];
   const anexosComData = await Promise.all(anexosMeta.map(async (a) => {
-    if (a.tipo === 'imagem') {
-      const full = await repos.propostaAnexos.findByIdWithData(a.id);
-      return full || a;
-    }
-    return a;
+    const full = await repos.propostaAnexos.findByIdWithData(a.id);
+    return full || a;
   }));
   // Apresentação global + logos de cases (centralizado, não duplicado por proposta)
   let apresentacao = {};

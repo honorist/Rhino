@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.2.5",
+      "date": "2026-05-13",
+      "summary": "Correção: PDFs anexos voltam a ser concatenados no PDF final",
+      "changes": [
+        "Bug: PDFs anexados à proposta não estavam aparecendo no final do PDF gerado. O carregador de anexos só estava lendo o conteúdo binário das IMAGENS, mas não dos PDFs — quando o concatenador filtrava por `data` preenchido, os PDFs eram pulados.",
+        "Fix: o `data` BYTEA agora é carregado para TODOS os tipos de anexo (PDFs e imagens). PDFs anexos voltam a ser concatenados na ordem, nas últimas páginas do PDF principal."
+      ]
+    },
+    {
       "version": "1.2.4",
       "date": "2026-05-13",
       "summary": "Correção PDF: numeração de páginas (Página 1 de 3 aparecendo na pág 4)",
