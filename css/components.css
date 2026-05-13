@@ -699,6 +699,46 @@ textarea.form-control {
 .radio-card:hover { transform: translateY(-1px); }
 .radio-card.is-selected { box-shadow: 0 2px 8px rgba(31,73,125,.15); }
 
+/* Aba "Dados Gerais" do editor de proposta — layout compacto */
+.prop-dados-card {
+  padding: 16px 20px;
+}
+.prop-section-title {
+  margin: 14px 0 8px;
+  color: #1F497D;
+  border-bottom: 2px solid #1F497D;
+  padding-bottom: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+}
+.prop-section-title:first-child { margin-top: 0; }
+.prop-grid {
+  display: grid;
+  gap: 10px 12px;
+  margin-bottom: 12px;
+}
+.prop-grid-2 { grid-template-columns: 1fr 1fr; }
+.prop-fg { margin: 0; }
+.prop-fg .form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 3px;
+  display: block;
+}
+.prop-fg .form-control {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+.prop-fg textarea.form-control {
+  padding: 6px 10px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.prop-fg.full { grid-column: 1 / -1; }
+
 /* Inputs numericos das tabelas de Investimento e Custo Interno —
    alinhamento a direita, sem os spinners nativos do browser que comem
    espaco do valor em colunas estreitas */

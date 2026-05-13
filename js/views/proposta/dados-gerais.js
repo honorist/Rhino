@@ -5,11 +5,11 @@
   function render(container, p, onChange) {
     const clientes = (window.Store?.state?.clientes) || [];
     container.innerHTML = `
-      <div class="card" style="padding:24px;">
-        <h3 style="margin-top:0;color:#1F497D;border-bottom:2px solid #1F497D;padding-bottom:8px;">Identificação do Cliente</h3>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
-          <div class="form-group" style="grid-column:1/-1;">
-            <label class="form-label">Cliente cadastrado (puxa dados automaticamente)</label>
+      <div class="card prop-dados-card">
+        <h3 class="prop-section-title">Identificação do Cliente</h3>
+        <div class="prop-grid prop-grid-2">
+          <div class="form-group prop-fg full">
+            <label class="form-label">Cliente cadastrado</label>
             <select class="form-control" id="pSelectCliente">
               <option value="">— Sem cliente vinculado (preenchimento manual) —</option>
               ${clientes.map(c => `
@@ -18,49 +18,48 @@
                 </option>
               `).join('')}
             </select>
-            <small class="form-hint">Mudar o cliente substitui empresa/contato/email/telefone. Snapshots ficam guardados na proposta mesmo se o cliente for apagado depois.</small>
           </div>
-          <div class="form-group">
+          <div class="form-group prop-fg">
             <label class="form-label">Empresa (Razão social)</label>
             <input type="text" class="form-control" id="pClienteEmpresa" value="${escapeHtml(p.clienteEmpresa || '')}">
           </div>
-          <div class="form-group">
+          <div class="form-group prop-fg">
             <label class="form-label">CNPJ</label>
             <input type="text" class="form-control" id="pClienteDocumento" value="${escapeHtml(p.clienteDocumento || '')}">
           </div>
-          <div class="form-group">
+          <div class="form-group prop-fg">
             <label class="form-label">Att.: (Contato)</label>
             <input type="text" class="form-control" id="pClienteContato" value="${escapeHtml(p.clienteContato || '')}" placeholder="Ex: Engº João da Silva">
           </div>
-          <div class="form-group">
+          <div class="form-group prop-fg">
             <label class="form-label">Cargo</label>
             <input type="text" class="form-control" id="pClienteCargo" value="${escapeHtml(p.clienteCargo || '')}" placeholder="Ex: Coordenador de Manutenção">
           </div>
-          <div class="form-group">
+          <div class="form-group prop-fg">
             <label class="form-label">Email</label>
             <input type="email" class="form-control" id="pClienteEmail" value="${escapeHtml(p.clienteEmail || '')}">
           </div>
-          <div class="form-group">
+          <div class="form-group prop-fg">
             <label class="form-label">Telefone</label>
             <input type="text" class="form-control" id="pClienteTelefone" value="${escapeHtml(p.clienteTelefone || '')}">
           </div>
-          <div class="form-group" style="grid-column:1/-1;">
+          <div class="form-group prop-fg full">
             <label class="form-label">Endereço da obra</label>
             <input type="text" class="form-control" id="pClienteEndereco" value="${escapeHtml(p.clienteEndereco || '')}">
           </div>
         </div>
 
-        <h3 style="color:#1F497D;border-bottom:2px solid #1F497D;padding-bottom:8px;">Identificação da Proposta</h3>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
-          <div class="form-group" style="grid-column:1/-1;">
+        <h3 class="prop-section-title">Identificação da Proposta</h3>
+        <div class="prop-grid prop-grid-2">
+          <div class="form-group prop-fg full">
             <label class="form-label">Título do serviço *</label>
             <input type="text" class="form-control" id="pTitulo" value="${escapeHtml(p.titulo || '')}" required>
           </div>
-          <div class="form-group" style="grid-column:1/-1;">
+          <div class="form-group prop-fg full">
             <label class="form-label">Ref.: (Identificação da obra)</label>
             <input type="text" class="form-control" id="pReferencia" value="${escapeHtml(p.referencia || '')}" placeholder="Ex: Tanque T-401 — Linha L-202">
           </div>
-          <div class="form-group">
+          <div class="form-group prop-fg">
             <label class="form-label">Tipo</label>
             <select class="form-control" id="pTipo">
               <option value="hh"       ${p.tipo === 'hh' ? 'selected' : ''}>Mão de Obra (HH)</option>
@@ -68,45 +67,45 @@
               <option value="ambos"    ${p.tipo === 'ambos' ? 'selected' : ''}>HH + Material</option>
             </select>
           </div>
-          <div class="form-group">
+          <div class="form-group prop-fg">
             <label class="form-label">Data de emissão</label>
             <input type="date" class="form-control" id="pDataEmissao" value="${p.dataEmissao || ''}">
           </div>
-          <div class="form-group">
+          <div class="form-group prop-fg">
             <label class="form-label">Validade (dias)</label>
             <input type="number" class="form-control" id="pValidadeDias" min="1" max="365" value="${p.validadeDias || 15}">
           </div>
-          <div class="form-group">
-            <label class="form-label">Garantia (meses) — opcional</label>
-            <input type="number" class="form-control" id="pGarantiaMeses" min="0" max="60" value="${p.garantiaMeses ?? ''}" placeholder="Deixe vazio para sem garantia">
-            <small class="form-hint">18 = padrão para fabricação; 12 = padrão para serviço; vazio = sem garantia.</small>
+          <div class="form-group prop-fg">
+            <label class="form-label">Garantia (meses)</label>
+            <input type="number" class="form-control" id="pGarantiaMeses" min="0" max="60" value="${p.garantiaMeses ?? ''}" placeholder="vazio = sem">
           </div>
         </div>
 
-        <h3 style="color:#1F497D;border-bottom:2px solid #1F497D;padding-bottom:8px;">Texto de Abertura</h3>
-        <div class="form-group" style="margin-bottom:16px;">
+        <h3 class="prop-section-title">Texto de Abertura</h3>
+        <div class="form-group prop-fg" style="margin-bottom:10px;">
           <label class="form-label">Objetivo</label>
-          <textarea class="form-control" id="pObjetivo" rows="4" placeholder="Descrição do que a proposta visa atender...">${escapeHtml(p.objetivo || '')}</textarea>
+          <textarea class="form-control" id="pObjetivo" rows="3" placeholder="Descrição do que a proposta visa atender...">${escapeHtml(p.objetivo || '')}</textarea>
         </div>
-        <div class="form-group" style="margin-bottom:16px;">
+        <div class="form-group prop-fg" style="margin-bottom:10px;">
           <label class="form-label">Saudação (parágrafo de abertura)</label>
-          <textarea class="form-control" id="pSaudacao" rows="3" placeholder="Em atendimento à solicitação de fornecimento...">${escapeHtml(p.saudacao || 'Em atendimento à solicitação de fornecimento, a Rhino Manutenções apresenta a seguinte proposta comercial para sua apreciação.')}</textarea>
+          <textarea class="form-control" id="pSaudacao" rows="2" placeholder="Em atendimento à solicitação de fornecimento...">${escapeHtml(p.saudacao || 'Em atendimento à solicitação de fornecimento, a Rhino Manutenções apresenta a seguinte proposta comercial para sua apreciação.')}</textarea>
         </div>
 
         <h3 style="color:#1F497D;border-bottom:2px solid #1F497D;padding-bottom:8px;">Encerramento</h3>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-          <div class="form-group">
+        <h3 class="prop-section-title">Encerramento</h3>
+        <div class="prop-grid prop-grid-2">
+          <div class="form-group prop-fg">
             <label class="form-label">Signatário</label>
             <input type="text" class="form-control" id="pSignatario" value="${escapeHtml(p.signatario || 'Deyvison Veloso')}">
           </div>
-          <div class="form-group">
+          <div class="form-group prop-fg">
             <label class="form-label">Cargo</label>
             <input type="text" class="form-control" id="pSignatarioCargo" value="${escapeHtml(p.signatarioCargo || 'Diretor')}">
           </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Observações finais (opcional)</label>
-          <textarea class="form-control" id="pObservacoes" rows="3">${escapeHtml(p.observacoes || '')}</textarea>
+          <div class="form-group prop-fg full">
+            <label class="form-label">Observações finais (opcional)</label>
+            <textarea class="form-control" id="pObservacoes" rows="2">${escapeHtml(p.observacoes || '')}</textarea>
+          </div>
         </div>
       </div>
     `;
