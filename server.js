@@ -34,6 +34,7 @@ const email = require('./lib/email');
 const rateLimit = require('./lib/rate-limit');
 const audit = require('./lib/audit');
 const bus = require('./lib/bus');
+const perms = require('./lib/permissions');
 const { validateBody, schemas, ValidationError } = require('./lib/validate');
 
 // Web Push — inicializa só se VAPID keys estiverem presentes
@@ -1121,6 +1122,7 @@ async function handleLogin(req, body, res) {
         nivelAcessoId: user.nivelAcessoId, socioId: user.socioId,
         acceptedTermsAt: user.acceptedTermsAt || null,
       },
+      permissions: await perms.summary(user),
     });
   } catch (e) {
     sendError(res, 500, e.message);
@@ -1208,6 +1210,7 @@ async function handleMe(req, res) {
       nivelAcessoId: u.nivelAcessoId, socioId: u.socioId,
       acceptedTermsAt: u.acceptedTermsAt || null,
     },
+    permissions: await perms.summary(u),
   });
 }
 
@@ -1458,7 +1461,10 @@ function sanitizeUser(u) {
   return rest;
 }
 
-async function handleGetUsers(res) {
+async function handleGetUsers(req, res) {
+  if (!(await perms.can(req.user, 'users', 'view'))) {
+    return sendError(res, 403, 'Sem permissão para listar usuários');
+  }
   try {
     const rows = await repos.users.findAll();
     sendJson(res, { users: rows.map(sanitizeUser) });
@@ -1467,7 +1473,13 @@ async function handleGetUsers(res) {
   }
 }
 
-async function handlePostUser(body, res) {
+async function handlePostUser(req, body, res) {
+  if (!(await perms.can(req.user, 'users', 'create'))) {
+    return sendError(res, 403, 'Sem permissão para criar usuários');
+  }
+  if (!perms.canAssignNivel(req.user, body.nivelAcessoId)) {
+    return sendError(res, 403, 'Você não pode criar usuários com esse nível de acesso');
+  }
   try {
     const email = (body.email || '').trim();
     const password = body.password || '';
@@ -1491,8 +1503,23 @@ async function handlePostUser(body, res) {
   }
 }
 
-async function handlePutUser(id, body, res) {
+async function handlePutUser(req, id, body, res) {
+  if (!(await perms.can(req.user, 'users', 'update'))) {
+    return sendError(res, 403, 'Sem permissão para editar usuários');
+  }
   try {
+    // Anti-escalada: não-super-admin não modifica usuário privilegiado (admin / super admin)
+    const target = await repos.users.findById(id);
+    if (!target) return sendError(res, 404, 'Usuário não encontrado');
+    const targetNivel = target.nivelAcessoId ?? null;
+    const targetIsPrivileged = targetNivel === null || targetNivel === 'admin';
+    if (targetIsPrivileged && !perms.isSuperAdmin(req.user)) {
+      return sendError(res, 403, 'Você não pode editar um usuário administrador');
+    }
+    if (body.nivelAcessoId !== undefined && !perms.canAssignNivel(req.user, body.nivelAcessoId)) {
+      return sendError(res, 403, 'Você não pode atribuir esse nível de acesso');
+    }
+
     const allowed = {};
     if (body.name !== undefined) allowed.name = body.name;
     if (body.email !== undefined) allowed.email = String(body.email).trim().toLowerCase();
@@ -1514,12 +1541,23 @@ async function handlePutUser(id, body, res) {
 }
 
 async function handleDeleteUser(id, req, res) {
+  if (!(await perms.can(req.user, 'users', 'delete'))) {
+    return sendError(res, 403, 'Sem permissão para remover usuários');
+  }
   try {
     if (req.user && req.user.id === id) {
       return sendError(res, 400, 'Você não pode deletar seu próprio usuário');
     }
     const target = await repos.users.findById(id);
-    if (target && !target.nivel_acesso_id) {
+    if (!target) return sendError(res, 404, 'Usuário não encontrado');
+
+    const targetNivel = target.nivelAcessoId ?? null;
+    const targetIsPrivileged = targetNivel === null || targetNivel === 'admin';
+    if (targetIsPrivileged && !perms.isSuperAdmin(req.user)) {
+      return sendError(res, 403, 'Você não pode remover um usuário administrador');
+    }
+
+    if (targetNivel === null) {
       const superAdmins = await db.getOne(
         `SELECT COUNT(*)::int AS n FROM users WHERE nivel_acesso_id IS NULL AND is_active = TRUE`
       );
@@ -3836,10 +3874,11 @@ const AUTH_WHITELIST = new Set([
   '/api/auth/reset-password',
   '/api/portal/login',
 ]);
-// Rotas privilegiadas — exigem nivel_acesso_id = 'admin'.
-// Match exato OU prefixo (ex: /api/users/:id cobre por prefixo).
+// Rotas privilegiadas — exigem nivel_acesso_id = 'admin' (ou super admin).
+// `/api/users/*` foi removido daqui em v1.2.7: agora cada handler chama `perms.can()`
+// individualmente, permitindo que perfis com `edit:#/usuarios` (ex.: gerente) também
+// gerenciem usuários — com bloqueio anti-escalada (não promovem para admin).
 const ADMIN_PATH_PREFIXES = [
-  '/api/users',
   '/api/backup',
   '/api/admin/',
   '/api/niveis-acesso',
@@ -3849,18 +3888,18 @@ const ADMIN_PATH_PREFIXES = [
 function isAdminRoute(pathname, method) {
   // GET /api/niveis-acesso é necessário pra exibir perfis no login → liberar leitura
   if (pathname === '/api/niveis-acesso' && method === 'GET') return false;
+  // Match exato OU prefixo de path-segment (evita falso match como /api/users-foo)
   return ADMIN_PATH_PREFIXES.some(p =>
-    pathname === p || pathname.startsWith(p + '/') || pathname.startsWith(p)
+    pathname === p || pathname.startsWith(p.endsWith('/') ? p : p + '/')
   );
 }
 function requireAdmin(req, res) {
   if (!req.user) { sendError(res, 401, 'Não autenticado'); return false; }
-  // Convenção do projeto:
-  //   - nivelAcessoId = null  → super admin (pode escolher qualquer perfil na UI)
+  // Convenção do projeto (delega para perms.isSuperAdmin — fonte única):
+  //   - nivelAcessoId = null    → super admin (pode escolher qualquer perfil na UI)
   //   - nivelAcessoId = 'admin' → admin explícito
-  //   - qualquer outro valor   → usuário restrito
-  const nivel = req.user.nivelAcessoId ?? req.user.nivel_acesso_id ?? null;
-  if (nivel !== null && nivel !== 'admin') {
+  //   - qualquer outro valor    → usuário restrito
+  if (!perms.isSuperAdmin(req.user)) {
     sendError(res, 403, 'Acesso restrito a administradores');
     return false;
   }
@@ -3931,10 +3970,10 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname === '/api/rdos' && method === 'GET') return handleGetRdosGlobal(res);
 
   // ============ Users CRUD ============
-  if (pathname === '/api/users' && method === 'GET') return handleGetUsers(res);
-  if (pathname === '/api/users' && method === 'POST') return handlePostUser(body, res);
+  if (pathname === '/api/users' && method === 'GET') return handleGetUsers(req, res);
+  if (pathname === '/api/users' && method === 'POST') return handlePostUser(req, body, res);
   if (pathname.match(/^\/api\/users\/[^/]+$/) && method === 'PUT') {
-    return handlePutUser(pathname.split('/')[3], body, res);
+    return handlePutUser(req, pathname.split('/')[3], body, res);
   }
   if (pathname.match(/^\/api\/users\/[^/]+$/) && method === 'DELETE') {
     return handleDeleteUser(pathname.split('/')[3], req, res);

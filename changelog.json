@@ -1,6 +1,19 @@
 {
   "entries": [
     {
+      "version": "1.2.7",
+      "date": "2026-05-15",
+      "summary": "Permissões: gerente passa a poder gerenciar usuários (e refator do modelo de permissão)",
+      "changes": [
+        "Bug: perfil 'gerente' recebia 403 ao tentar criar/editar usuários — rota /api/users estava hard-coded como admin-only.",
+        "Fix: /api/users agora usa o novo modelo de permissão por recurso. Qualquer perfil com 'edit:#/usuarios' nas abas pode listar, criar, editar e remover usuários.",
+        "Migração concede 'edit:#/usuarios' ao perfil 'gerente' (idempotente).",
+        "Anti-escalada: usuário não super-admin não pode criar nem promover outros usuários para nível 'admin' / super admin, nem editar usuários administradores.",
+        "Refator: novo módulo lib/permissions.js centraliza checagens (can / canAssignNivel / summary / isSuperAdmin). requireAdmin agora delega para perms.isSuperAdmin — fonte única.",
+        "API: /api/auth/login e /api/auth/me agora retornam o objeto `permissions` resolvido pelo servidor (superAdmin + abas), pronto pra frontend consumir como fonte autoritativa."
+      ]
+    },
+    {
       "version": "1.2.6",
       "date": "2026-05-13",
       "summary": "Imagens ilustrativas: ordem ajustada para depois do Escopo",
