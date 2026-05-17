@@ -34,15 +34,23 @@ window.Portal = {
     try {
       const [resDash, resPropostas] = await Promise.all([
         fetch('/api/portal/dashboard'),
-        fetch('/api/portal/propostas').catch(() => ({ ok: false })),
+        fetch('/api/portal/propostas').catch(e => {
+          console.warn('[Portal] /api/portal/propostas falhou:', e?.message || e);
+          return { ok: false, _failed: true };
+        }),
       ]);
       if (resDash.status === 401) { this._logout(wrap); return; }
       this._data = await resDash.json();
       if (resPropostas && resPropostas.ok) {
         try { this._data.propostas = (await resPropostas.json()).propostas || []; }
-        catch { this._data.propostas = []; }
+        catch (e) {
+          console.warn('[Portal] parse de propostas falhou:', e?.message || e);
+          this._data.propostas = [];
+          this._data._propostasErro = true;
+        }
       } else {
         this._data.propostas = [];
+        if (resPropostas?._failed) this._data._propostasErro = true;
       }
       this._renderDashboard(wrap);
     } catch {
@@ -274,7 +282,12 @@ window.Portal = {
     `;
 
     document.getElementById('btnPortalLogout').addEventListener('click', async () => {
-      await fetch('/api/portal/logout', { method: 'POST' }).catch(() => {});
+      // Loga falha mas continua o logout client-side (segurança: melhor remover
+      // estado local mesmo que o server não confirme, pra não deixar usuário
+      // "preso" se houver problema de rede). Sessão no PG é purgada por
+      // expiração eventualmente.
+      await fetch('/api/portal/logout', { method: 'POST' })
+        .catch(e => console.warn('[Portal] logout server-side falhou — sessão local removida mesmo assim:', e?.message || e));
       sessionStorage.removeItem('rhino-portal-cliente');
       this._cliente = null;
       this._data = null;

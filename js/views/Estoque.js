@@ -40,11 +40,17 @@ window.Estoque = {
   },
 
   async _loadAll() {
-    const safe = (p) => p.then(r => r.ok ? r.json() : null).catch(() => null);
+    const safe = (p, label) => p.then(r => r.ok ? r.json() : null).catch(e => {
+      console.warn(`[Estoque] fetch ${label} falhou:`, e?.message || e);
+      return null;
+    });
     const [visao, movs, _] = await Promise.all([
-      safe(fetch('/api/estoque/visao-geral')),
-      safe(fetch('/api/estoque/movimentacoes?limit=200')),
-      Store.loadAll().catch(() => null),  // contratos pra modais
+      safe(fetch('/api/estoque/visao-geral'), 'visao-geral'),
+      safe(fetch('/api/estoque/movimentacoes?limit=200'), 'movimentacoes'),
+      Store.loadAll().catch(e => {
+        console.warn('[Estoque] Store.loadAll falhou — contratos podem faltar nos modais:', e?.message || e);
+        return null;
+      }),
     ]);
     this._almoxs = visao?.almoxarifados || [];
     this._itens = visao?.itens || [];

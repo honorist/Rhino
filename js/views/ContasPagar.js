@@ -7,8 +7,10 @@ window.ContasPagar = {
 
     try {
       await Store.loadFor(['contas_pagar','fornecedores','contracts_lite']);
-      // Dispara processamento de recorrências em background (F7) — idempotente
-      fetch('/api/contas-pagar/processar-recorrencias', { method: 'POST' }).catch(() => {});
+      // Dispara processamento de recorrências em background (F7) — idempotente.
+      // Fire-and-forget é OK, mas o erro deve ser logado pra facilitar diagnóstico.
+      fetch('/api/contas-pagar/processar-recorrencias', { method: 'POST' })
+        .catch(e => console.warn('[ContasPagar] processar-recorrencias falhou:', e?.message || e));
 
       const contas = Store.state.contas_pagar || [];
       const hojeStr = new Date().toISOString().split('T')[0];

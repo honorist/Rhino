@@ -24,7 +24,8 @@ window.Dashboard = {
     const app = document.getElementById('app');
     // Disparar carregamento de Chart.js em paralelo com o skeleton — quando o
     // renderChart() for chamado mais abaixo, await garantirá que esteja pronto.
-    if (window.RhinoLazy) window.RhinoLazy.ensure('chart').catch(() => {});
+    if (window.RhinoLazy) window.RhinoLazy.ensure('chart')
+      .catch(e => console.error('[Dashboard] falha ao pré-carregar Chart.js — gráficos podem não renderizar:', e?.message || e));
     app.innerHTML = `
       <div class="dashboard-skeleton" aria-busy="true">
         <div class="grid grid-4" style="margin-bottom:24px;">
@@ -63,19 +64,26 @@ window.Dashboard = {
 
       // Dados extra para novas seções (não bloqueia se falhar)
       let nfsList = [], saidasList = [], cpList = [], sociosList = [], investList = [];
+      const _fetchOr = (url, fallback, label) =>
+        fetch(url).then(r => r.ok ? r.json() : fallback).catch(e => {
+          console.warn(`[Dashboard] ${label} falhou — KPIs podem ficar com fallback:`, e?.message || e);
+          return fallback;
+        });
       try {
         const [nfR, cpR, socR, invR] = await Promise.all([
-          fetch('/api/notas-fiscais').then(r => r.ok ? r.json() : { notasFiscais: [] }).catch(() => ({ notasFiscais: [] })),
-          fetch('/api/contas-pagar').then(r => r.ok ? r.json() : { contasPagar: [] }).catch(() => ({ contasPagar: [] })),
-          fetch('/api/socios').then(r => r.ok ? r.json() : { socios: [] }).catch(() => ({ socios: [] })),
-          fetch('/api/investimentos').then(r => r.ok ? r.json() : { investimentos: [] }).catch(() => ({ investimentos: [] })),
+          _fetchOr('/api/notas-fiscais', { notasFiscais: [] }, 'notas-fiscais'),
+          _fetchOr('/api/contas-pagar', { contasPagar: [] }, 'contas-pagar'),
+          _fetchOr('/api/socios', { socios: [] }, 'socios'),
+          _fetchOr('/api/investimentos', { investimentos: [] }, 'investimentos'),
         ]);
         nfsList = nfR.notasFiscais || nfR.notas_fiscais || [];
         cpList = cpR.contasPagar || cpR.contas || [];
         sociosList = socR.socios || [];
         investList = invR.investimentos || [];
         saidasList = Store.state.saidas || [];
-      } catch (_) {}
+      } catch (e) {
+        console.warn('[Dashboard] erro inesperado no Promise.all de dados extras:', e?.message || e);
+      }
 
       // Pipeline de medições (mês corrente)
       const pipeline = this._calcPipeline(nfsList, saidasList);

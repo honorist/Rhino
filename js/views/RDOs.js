@@ -193,6 +193,11 @@ const RDOs = {
         const contractId = tr.dataset.contractId;
         // Busca o RDO completo via API do contrato (que traz os RDOs aninhados)
         try {
+          // FIX silent-failure: ContratoDetail é lazy. Carrega antes pra evitar
+          // que o ?. engula undefined e o click silenciosamente caia no fallback.
+          if (typeof _loadLazyForPattern === 'function') {
+            await _loadLazyForPattern('#/contratos/:id').catch(() => {});
+          }
           const r = await fetch('/api/contracts').then(res => res.json());
           const c = (r.contracts || []).find(x => x.id === contractId);
           const rdo = c ? (c.rdos || []).find(x => x.id === rdoId) : null;
@@ -202,6 +207,7 @@ const RDOs = {
             location.hash = '#/contratos/' + contractId;
           }
         } catch (e) {
+          console.warn('[RDOs] falha ao abrir detalhe do RDO:', e);
           location.hash = '#/contratos/' + contractId;
         }
       });
@@ -346,19 +352,27 @@ RDOs.showPickerContrato = function () {
   const close = () => overlay.remove();
   overlay.querySelector('.modal-close').addEventListener('click', close);
   document.getElementById('btnPickerCancel').addEventListener('click', close);
-  document.getElementById('btnPickerOk').addEventListener('click', () => {
+  document.getElementById('btnPickerOk').addEventListener('click', async () => {
     const id = document.getElementById('pickerContractId').value;
     if (!id) {
       if (window.showToast) window.showToast('Selecione um contrato.', 'error');
       return;
     }
     close();
+    // FIX silent-failure: ContratoDetail é lazy. Sem carregar antes, o ?.
+    // engolia undefined e o click "OK" não fazia nada visível ao usuário.
+    try {
+      if (typeof _loadLazyForPattern === 'function') {
+        await _loadLazyForPattern('#/contratos/:id');
+      }
+    } catch (err) {
+      console.error('[RDOs/picker] falha ao carregar ContratoDetail:', err);
+    }
     if (window.ContratoDetail?.showModalRdo) {
-      // Reusa o modal completo de criação de RDO
       window.ContratoDetail.showModalRdo(id);
     } else {
       // Fallback: navega pra tela do contrato com aba RDO
-      window.ContratoDetail._tab = 'rdo';
+      if (window.ContratoDetail) window.ContratoDetail._tab = 'rdo';
       location.hash = '#/contratos/' + id;
     }
   });

@@ -39,7 +39,7 @@ window.PropostaDetail = {
       // Carrega proposta completa + slices auxiliares
       const [proposta] = await Promise.all([
         Store.fetchProposta(id),
-        Store.loadFor(['clientes', 'clausulas']).catch(() => {}),
+        Store.loadFor(['clientes', 'clausulas']).catch(e => console.warn('[PropostaDetail] loadFor clientes/clausulas falhou — selects podem ficar vazios:', e?.message || e)),
       ]);
       if (!proposta) {
         app.innerHTML = '<div class="error-banner">Proposta não encontrada</div>';

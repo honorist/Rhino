@@ -122,9 +122,20 @@ window.Recursos = {
 
     // Click na linha → abre modal de detalhe do colaborador (reusa ContratoDetail.showDetalheColaborador)
     document.querySelectorAll('.row-recurso').forEach(tr => {
-      tr.addEventListener('click', (e) => {
+      tr.addEventListener('click', async (e) => {
         if (e.target.closest('.actions-cell')) return;
         const id = tr.dataset.id;
+        // FIX silent-failure: ContratoDetail é lazy. Sem carregar antes, o ?.
+        // engolia undefined e o click silenciosamente não fazia nada.
+        try {
+          if (typeof _loadLazyForPattern === 'function') {
+            await _loadLazyForPattern('#/contratos/:id');
+          }
+        } catch (err) {
+          console.error('[Recursos] falha ao carregar ContratoDetail:', err);
+          if (window.showToast) window.showToast('Não foi possível abrir o detalhe.', 'error');
+          return;
+        }
         if (window.ContratoDetail?.showDetalheColaborador) {
           window.ContratoDetail.showDetalheColaborador(id);
         }

@@ -1,6 +1,20 @@
 {
   "entries": [
     {
+      "version": "1.2.14",
+      "date": "2026-05-17",
+      "summary": "Fix de 10 silent failures (3 críticos com mesmo padrão do Portal)",
+      "changes": [
+        "CRÍTICO: 3 botões com o mesmo bug do 'Área do Cliente' agora funcionam:",
+        "  - RDOs.js:199 — click na linha de RDO carrega ContratoDetail antes de abrir o detalhe",
+        "  - RDOs.js:356 — botão 'OK' do seletor de contrato p/ criar RDO carrega ContratoDetail antes",
+        "  - Recursos.js:128 — click na linha de colaborador carrega ContratoDetail antes de abrir o modal",
+        "Bug histórico: window.ContratoDetail?.method() silenciosamente não fazia nada porque o módulo é lazy. Agora chama _loadLazyForPattern('#/contratos/:id') antes.",
+        "Observabilidade: 7 catches silenciosos passaram a logar (PropostaDetail, Estoque, ContasPagar, Dashboard 2x, Portal 2x). Diagnóstico de produção fica muito mais fácil quando algo falhar.",
+        "Portal: logout client-side agora roda mesmo se o server falhar — não deixa o usuário 'preso' por problema de rede."
+      ]
+    },
+    {
       "version": "1.2.13",
       "date": "2026-05-17",
       "summary": "Fix histórico: link 'Área do Cliente' do modal de login funciona",
