@@ -465,7 +465,10 @@ const perfil = {
     try {
       const r = await fetch('/api/niveis-acesso').then(res => res.json());
       this._niveis = r.niveis || [];
-    } catch { this._niveis = []; }
+    } catch (e) {
+      console.warn('[perfil] /api/niveis-acesso falhou — permissões resolverão como vazias:', e?.message || e);
+      this._niveis = [];
+    }
   },
 
   get() {

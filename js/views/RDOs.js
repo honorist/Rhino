@@ -196,7 +196,9 @@ const RDOs = {
           // FIX silent-failure: ContratoDetail é lazy. Carrega antes pra evitar
           // que o ?. engula undefined e o click silenciosamente caia no fallback.
           if (typeof _loadLazyForPattern === 'function') {
-            await _loadLazyForPattern('#/contratos/:id').catch(() => {});
+            await _loadLazyForPattern('#/contratos/:id').catch(e => {
+              console.warn('[RDOs] lazy-load de ContratoDetail falhou — caindo no fallback de hash:', e?.message || e);
+            });
           }
           const r = await fetch('/api/contracts').then(res => res.json());
           const c = (r.contracts || []).find(x => x.id === contractId);

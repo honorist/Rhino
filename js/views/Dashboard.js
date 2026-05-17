@@ -53,7 +53,9 @@ window.Dashboard = {
       try {
         const r = await fetch('/api/rdos');
         if (r.ok) rdoStats = (await r.json()).stats || null;
-      } catch (_) {}
+      } catch (e) {
+        console.warn('[Dashboard] /api/rdos falhou — KPIs de compliance ficarão zerados:', e?.message || e);
+      }
       this._rdoStats = rdoStats;
 
       // F6: Anomaly detection (não bloqueia)
@@ -101,7 +103,8 @@ window.Dashboard = {
       const aportesTotal = aportesSocios + aportesEmpresa;
 
       // Propostas em prospecção (rascunho + enviada — ainda não viraram contrato ativo)
-      try { await Store.loadFor(['propostas']); } catch (_) {}
+      try { await Store.loadFor(['propostas']); }
+      catch (e) { console.warn('[Dashboard] Store.loadFor(propostas) falhou — KPIs de prospecção ficarão zerados:', e?.message || e); }
       const propostasState = Store.state.propostas || [];
       const propostasRascunho = propostasState.filter(p => p.status === 'rascunho').length;
       const propostasEnviada = propostasState.filter(p => p.status === 'enviada').length;

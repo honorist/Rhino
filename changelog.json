@@ -1,6 +1,19 @@
 {
   "entries": [
     {
+      "version": "1.2.15",
+      "date": "2026-05-17",
+      "summary": "Observabilidade: mais 8 catches silenciosos passam a logar",
+      "changes": [
+        "Segunda varredura de silent failures após a v1.2.14. Nenhum bug funcional — apenas diagnóstico:",
+        "  - app.js (perfil.load): /api/niveis-acesso falhando ficava invisível e permissões caíam pra vazio sem aviso.",
+        "  - polish.js: falha de REGISTRO inicial do service worker agora aparece (updates periódicos seguem silenciosos pra não poluir console).",
+        "  - bm.js: erro ao embutir logo no PDF de medição agora é logado.",
+        "  - Auditoria.js, Contratos.js, Dashboard.js (2x): catches de fetch/Store não-bloqueantes ganharam mensagens explicativas.",
+        "  - RDOs.js:199 — catch do lazy-load de ContratoDetail (que cai no fallback de hash) agora loga em vez de engolir."
+      ]
+    },
+    {
       "version": "1.2.14",
       "date": "2026-05-17",
       "summary": "Fix de 10 silent failures (3 críticos com mesmo padrão do Portal)",

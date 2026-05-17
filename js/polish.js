@@ -38,11 +38,13 @@
             if (sw.state === 'installed' && navigator.serviceWorker.controller) askSkip(sw);
           });
         });
+        // SW update silencioso de propósito (não polui console a cada 5min),
+        // mas a falha de REGISTRO inicial precisa aparecer pra diagnosticar PWA.
         setInterval(() => reg.update().catch(() => {}), 5 * 60 * 1000);
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible') reg.update().catch(() => {});
         });
-      }).catch(() => {});
+      }).catch(e => console.warn('[SW] registro do service worker falhou — PWA desabilitado:', e?.message || e));
     });
   }
 

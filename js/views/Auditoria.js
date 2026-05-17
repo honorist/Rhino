@@ -132,7 +132,8 @@ window.Auditoria = {
     const root = document.getElementById('app');
     root.innerHTML = '<div class="loading-spinner">Carregando...</div>';
     // Carrega entidades em paralelo para resolver nomes amigáveis
-    try { if (window.Store && Store.loadAll) await Store.loadAll(); } catch (_) {}
+    try { if (window.Store && Store.loadAll) await Store.loadAll(); }
+    catch (e) { console.warn('[Auditoria] Store.loadAll falhou — nomes amigáveis podem ficar como IDs:', e?.message || e); }
     await this._fetch();
     this._draw();
   },

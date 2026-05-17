@@ -74,7 +74,8 @@ window.BM = {
 
     // Logo Rhino (esquerda)
     if (logo) {
-      try { doc.addImage(logo, 'PNG', mgn + 2, y + 2, 34, 18); } catch (e) {}
+      try { doc.addImage(logo, 'PNG', mgn + 2, y + 2, 34, 18); }
+      catch (e) { console.warn('[BM] addImage do logo falhou — PDF segue sem logo:', e?.message || e); }
     }
 
     // Título central

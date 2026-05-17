@@ -136,7 +136,9 @@ window.Contratos = {
       try {
         const r = await fetch('/api/rdos');
         if (r.ok) rdoStats = (await r.json()).stats || null;
-      } catch (_) {}
+      } catch (e) {
+        console.warn('[Contratos] /api/rdos falhou — selos de compliance ficarão ocultos:', e?.message || e);
+      }
       const semRdoIds = new Set((rdoStats?.obrasSemRdoOntem || []).map(o => o.contractId));
       const atrasadasMap = new Map((rdoStats?.obrasAtrasadas || []).map(o => [o.contractId, o]));
 
