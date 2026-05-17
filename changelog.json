@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.2.13",
+      "date": "2026-05-17",
+      "summary": "Fix histórico: link 'Área do Cliente' do modal de login funciona",
+      "changes": [
+        "Bug (commit db4361e, desde a v1.0.0): clicar em 'Área do Cliente' no modal de login não fazia nada — o handler chamava window.Portal?.init() mas Portal.js é lazy e não estava carregado, então a optional chaining silenciava o erro.",
+        "Fix: o handler agora carrega Portal.js via _loadLazyForPattern('#/portal') antes de chamar init."
+      ]
+    },
+    {
       "version": "1.2.12",
       "date": "2026-05-17",
       "summary": "Força re-login global (sessions e portal_sessions limpas)",

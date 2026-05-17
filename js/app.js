@@ -270,8 +270,17 @@ async function showLoginModal() {
           }
         });
         document.getElementById('goForgot').addEventListener('click', (e) => { e.preventDefault(); mode = 'forgot'; draw(); });
-        document.getElementById('goPortal')?.addEventListener('click', (e) => {
+        document.getElementById('goPortal')?.addEventListener('click', async (e) => {
           e.preventDefault();
+          // Portal.js é lazy — precisa carregar ANTES de chamar init.
+          // Bug histórico (db4361e): chamava window.Portal?.init() direto, mas
+          // Portal era undefined e o click silenciosamente não fazia nada.
+          try {
+            await _loadLazyForPattern('#/portal');
+          } catch (err) {
+            console.error('[goPortal] falha ao carregar Portal:', err);
+            return;
+          }
           overlay.remove();
           window.Portal?.init();
           resolve('portal');
