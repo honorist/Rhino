@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.2.12",
+      "date": "2026-05-17",
+      "summary": "Força re-login global (sessions e portal_sessions limpas)",
+      "changes": [
+        "Migration limpa as tabelas sessions e portal_sessions — todos os usuários precisam fazer login novamente.",
+        "Necessário após v1.2.8 (gerente edit:*) + v1.2.11 (CSP/rate-limit) — garante que cada usuário receba o snapshot atual de permissions do servidor no próximo login."
+      ]
+    },
+    {
       "version": "1.2.11",
       "date": "2026-05-17",
       "summary": "Hardening de CSP: vendor de libs + rate-limit persistente em Postgres",
