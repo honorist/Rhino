@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.8",
+      "date": "2026-05-17",
+      "summary": "Gerente ganha permissão de edição nas rotas operacionais",
+      "changes": [
+        "Bug: perfil 'gerente' em produção conseguia VER quase tudo (contratos, caixa, notas, contas a pagar, clientes, etc.) mas não conseguia OPERAR — botões de criar/editar/excluir ficavam escondidos pelo frontend (js/app.js:podeEditar), porque o seed só dava 'edit:#/frota'.",
+        "Fix: migration 20260517000000_gerente_edit_permissions.sql concede 'edit:' para todas as rotas que o gerente já visualiza: contratos, caixa, notas-fiscais, contas-pagar, clientes, fornecedores, recursos, obras, solicitacoes-compra, estoque, cobranca. Não inclui configuracao/auditoria/dashboard (admin-only ou view-only).",
+        "Idempotente: a migration usa `?` operator do JSONB e só adiciona o que faltar."
+      ]
+    },
+    {
       "version": "1.2.7",
       "date": "2026-05-15",
       "summary": "Permissões: gerente passa a poder gerenciar usuários (e refator do modelo de permissão)",
