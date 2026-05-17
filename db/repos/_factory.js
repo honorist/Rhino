@@ -6,17 +6,27 @@
  * Repositórios específicos (`contracts`, `rdos`, `caixa`) podem importar e
  * estender adicionando métodos customizados (JOINs, agregações, etc.).
  *
- * Atenção P1-3 da DB review: `findAll()` retorna todas as linhas sem LIMIT.
- * Para tabelas que crescem indefinidamente (caixa, audit_log, saidas), prefira
- * passar filtros ou criar um método paginado.
+ * FIX P1-3 da DB review: `findAll()` aplica um cap defensivo (DEFAULT_LIMIT)
+ * para evitar OOM em tabelas que crescem indefinidamente (caixa, audit_log,
+ * saidas). Callers podem passar `{ limit, offset }` para paginar, ou
+ * `{ limit: null }` para opt-out (uso raro — só quando se sabe que a tabela
+ * é pequena por natureza, ex.: niveis_acesso). Quando o cap é atingido,
+ * emite warning no log para sinalizar que aquele caller precisa paginar.
  */
 
 const db = require('../index');
 
+/** Cap defensivo para findAll. Tabelas que crescem devem paginar via opts.limit. */
+const DEFAULT_LIMIT = 5000;
+
 /**
+ * @typedef {object} FindOpts
+ * @property {number|null} [limit]   Máximo de linhas (null = sem limite). Default: 5000.
+ * @property {number} [offset]       Offset (para paginação).
+ *
  * @typedef {object} Repo
  * @property {string} table
- * @property {(filters?: Record<string, unknown>) => Promise<object[]>} findAll
+ * @property {(filters?: Record<string, unknown>, opts?: FindOpts) => Promise<object[]>} findAll
  * @property {(id: string|number) => Promise<object | null>} findById
  * @property {(data: Record<string, unknown>) => Promise<object>} create
  * @property {(id: string|number, data: Record<string, unknown>) => Promise<object | null>} updateById
@@ -35,20 +45,31 @@ function createRepo(table, opts = {}) {
   const orderBy = opts.orderBy || 'created_at DESC';
 
   /**
-   * Retorna todas as linhas, opcionalmente filtradas por colunas (AND).
+   * Retorna linhas filtradas (AND) com cap defensivo de DEFAULT_LIMIT.
    * Filtros são parametrizados; chaves em camelCase são convertidas.
    *
    * @param {Record<string, unknown>} [filters]
+   * @param {FindOpts} [opts]
    * @returns {Promise<object[]>}
    */
-  async function findAll(filters = {}) {
+  async function findAll(filters = {}, opts = {}) {
+    const limit = opts.limit === null ? null : (opts.limit ?? DEFAULT_LIMIT);
+    const offset = opts.offset || 0;
     const keys = Object.keys(filters);
-    if (keys.length === 0) {
-      return db.getMany(`SELECT * FROM ${table} ORDER BY ${orderBy}`);
-    }
-    const where = keys.map((k, i) => `"${db.camelToSnake(k)}" = $${i + 1}`).join(' AND ');
+    const where = keys.length
+      ? 'WHERE ' + keys.map((k, i) => `"${db.camelToSnake(k)}" = $${i + 1}`).join(' AND ')
+      : '';
     const values = keys.map((k) => filters[k]);
-    return db.getMany(`SELECT * FROM ${table} WHERE ${where} ORDER BY ${orderBy}`, values);
+    let sql = `SELECT * FROM ${table} ${where} ORDER BY ${orderBy}`;
+    if (limit !== null) {
+      sql += ` LIMIT ${limit} OFFSET ${offset}`;
+    }
+    const rows = await db.getMany(sql, values);
+    // Sinaliza callers que precisam paginar (atingiram o cap default)
+    if (limit !== null && opts.limit === undefined && rows.length >= DEFAULT_LIMIT) {
+      console.warn(`[findAll] ${table}: ${rows.length} linhas (cap default ${DEFAULT_LIMIT} atingido) — adicione paginação ao caller`);
+    }
+    return rows;
   }
 
   /**

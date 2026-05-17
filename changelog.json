@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.2.10",
+      "date": "2026-05-17",
+      "summary": "Cap defensivo em findAll: protege contra OOM em tabelas que crescem",
+      "changes": [
+        "PERF: factory de repositórios aplica LIMIT 5000 default em findAll. Evita OOM em produção quando caixa/saídas/audit_log crescerem.",
+        "API: findAll(filters, { limit, offset }) — passe limit:null para opt-out, ou número específico para paginar.",
+        "Log warning quando o cap default é atingido — sinal de que aquele caller precisa paginar.",
+        "Handler de backup atualizado para opt-out do cap (precisa dump completo)."
+      ]
+    },
+    {
       "version": "1.2.9",
       "date": "2026-05-17",
       "summary": "Hardening de segurança: reset de senha, vazamento de erros 5xx, sanitizeUser e upload assíncrono",
