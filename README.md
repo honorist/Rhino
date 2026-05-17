@@ -4,6 +4,24 @@ Sistema de gestão empresarial para empresas de construção e serviços industr
 
 Em produção: <https://rhino.up.railway.app>
 
+## Arquitetura
+
+```mermaid
+flowchart LR
+    user([Usuário]) --> cf[Cloudflare<br/>DDoS / WAF / cache]
+    cf --> rw[Railway<br/>Docker · Node 18+]
+    rw -->|"GET /*"| static[Estáticos<br/>HTML/CSS/JS + SW]
+    rw -->|"/api/*"| api[server.js<br/>HTTP nativo]
+    api --> auth[lib/auth<br/>bcrypt + sessões]
+    api --> perms[lib/permissions<br/>view/edit por recurso]
+    api --> repos[db/repos/*]
+    repos --> pg[(Postgres 16<br/>fonte única)]
+    api --> pdf[pdfkit + pdf-lib<br/>+ docx + jimp]
+    api --> push[web-push<br/>VAPID]
+    api --> mail[Resend<br/>email transacional]
+    static -. cache-bust ?v=APP_VERSION .-> static
+```
+
 ## Módulos
 
 **Operação**
