@@ -2,13 +2,16 @@
 const Usuarios = {
   async render() {
     const root = document.getElementById('app');
-    await Store.loadUsers().catch(() => {});
-    // Garante níveis carregados
+    await Store.loadUsers().catch((e) => {
+      console.warn('[Usuarios] falha ao carregar usuários:', e?.message || e);
+      if (window.toast) window.toast('Falha ao carregar usuários — recarregue a página', 'error');
+    });
+    // Garante níveis carregados via Store (consistente com o resto da app)
     if (!Store.state.niveis_acesso || Store.state.niveis_acesso.length === 0) {
-      try {
-        const r = await fetch('/api/niveis-acesso').then(res => res.json());
-        Store.state.niveis_acesso = r.niveis || [];
-      } catch {}
+      await Store.loadNiveisAcesso().catch((e) => {
+        console.warn('[Usuarios] falha ao carregar níveis de acesso:', e?.message || e);
+        if (window.toast) window.toast('Falha ao carregar perfis de acesso', 'error');
+      });
     }
 
     const users = Store.state.users || [];

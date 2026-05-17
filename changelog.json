@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.2.9",
+      "date": "2026-05-17",
+      "summary": "Hardening de segurança: reset de senha, vazamento de erros 5xx, sanitizeUser e upload assíncrono",
+      "changes": [
+        "SEC: link de redefinição de senha agora usa APP_BASE_URL (env var) em vez de headers Origin/Host — fechava vetor de phishing onde atacante forjava Origin e desviava o link de email para domínio próprio.",
+        "SEC: erros 5xx não expõem mais e.message ao cliente (vazava nomes de coluna e trechos de SQL do Postgres). Mensagem genérica + timestamp para correlação com logs server-side.",
+        "SEC: sanitizeUser passa a remover password_hash também em snake_case (defensivo contra rows que escaparem do rowToCamel).",
+        "PERF: upload de fotos RDO agora usa fs.promises.writeFile — não bloqueia mais o event loop durante uploads grandes.",
+        "UX: tela de Usuários mostra toast quando falha ao carregar usuários ou perfis de acesso (antes silenciava o erro)."
+      ]
+    },
+    {
       "version": "1.2.8",
       "date": "2026-05-17",
       "summary": "Gerente ganha permissão de edição nas rotas operacionais",

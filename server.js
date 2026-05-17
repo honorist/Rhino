@@ -129,9 +129,21 @@ async function writeCollection(repoName, arrayKey, fn) {
   return { envelope: { [arrayKey]: rows }, result };
 }
 
+// FIX SEC-04: 5xx NUNCA expõem `e.message` ao cliente — vazava nomes de coluna,
+// trechos de SQL e stack do Postgres pra qualquer usuário autenticado.
+// 4xx (validação) seguem expondo a mensagem, que é direcionada ao usuário final.
+// Detalhe interno é logado server-side com timestamp para correlação.
 function sendError(res, status, message) {
+  let payload;
+  if (status >= 500) {
+    const ts = new Date().toISOString();
+    console.error(`[5xx ${ts}] ${status}: ${message}`);
+    payload = { error: 'Erro interno do servidor', ts };
+  } else {
+    payload = { error: message };
+  }
   res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ error: message }));
+  res.end(JSON.stringify(payload));
 }
 
 function sendJson(res, body, status = 200) {
@@ -1146,9 +1158,10 @@ async function handleForgotPassword(req, body, res) {
     // Sempre responde sucesso (não vazar quais emails existem)
     if (user) {
       const { token } = await auth.createResetToken(user.id);
-      const origin = req.headers.origin || (req.headers['x-forwarded-proto'] && req.headers.host
-        ? `${req.headers['x-forwarded-proto']}://${req.headers.host}`
-        : 'http://localhost:3001');
+      // FIX SEC-03: link de reset usa APP_BASE_URL (variável de ambiente) como fonte
+      // de verdade — NUNCA os headers Origin/Host, que podem ser forjados pelo
+      // atacante apontando o link de email para domínio controlado por ele.
+      const origin = process.env.APP_BASE_URL || 'http://localhost:3001';
       const link = `${origin}/?action=reset-password&token=${token}`;
       const tmpl = email.tmplResetPassword({ nome: user.name, link, expiraEm: '1 hora' });
       await email.send({ to: user.email, subject: 'Rhino — redefinir sua senha', html: tmpl.html, text: tmpl.text });
@@ -1455,9 +1468,11 @@ async function handleGetRdosGlobal(res) {
 
 // ============ Users CRUD (admin) ============
 function sanitizeUser(u) {
-  // Nunca devolver password_hash pro frontend
+  // Nunca devolver password_hash pro frontend.
+  // Defensivo contra ambas as formas (camelCase pós-rowToCamel e snake_case bruto)
+  // pra evitar vazamento se algum row escapar do conversor.
   if (!u) return null;
-  const { passwordHash, ...rest } = u;
+  const { passwordHash, password_hash, ...rest } = u;
   return rest;
 }
 
@@ -3378,8 +3393,8 @@ function handlePostRdoFoto(contractId, rdoId, req, res) {
         const ext = FOTO_EXT_FROM_MIME[arq.contentType] || '.jpg';
         const fotoId = generateId('foto');
         const filename = fotoId + ext;
-        // TODO P1-2: substituir writeFileSync por fs.promises.writeFile para não bloquear o event loop.
-        fs.writeFileSync(path.join(pastaRdo, filename), arq.data);
+        // FIX P1-2: writeFile assíncrono não bloqueia o event loop durante uploads grandes.
+        await fs.promises.writeFile(path.join(pastaRdo, filename), arq.data);
         adicionadas.push({
           id: fotoId, filename, legenda,
           url: `/data/rdo-fotos/${rdoId}/${filename}`,
