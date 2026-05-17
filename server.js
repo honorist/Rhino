@@ -32,6 +32,7 @@ const auth = require('./lib/auth');
 const feriados = require('./lib/feriados');
 const email = require('./lib/email');
 const rateLimit = require('./lib/rate-limit');
+const pgRateLimit = require('./lib/pg-rate-limit');
 const audit = require('./lib/audit');
 const bus = require('./lib/bus');
 const perms = require('./lib/permissions');
@@ -1106,10 +1107,11 @@ async function handleLogin(req, body, res) {
     if (!emailIn || !password) return sendError(res, 400, 'Email e senha são obrigatórios');
 
     // Rate limit: 5 tentativas FALHAS / 15 min por IP+email.
-    // Logins bem sucedidos NÃO contam — evita travar usuário legítimo.
-    const rlKey = rateLimit.clientKey(req, 'login:' + emailIn.toLowerCase());
-    // Consulta sem consumir
-    const rlPeek = rateLimit.check(rlKey, { max: 5, windowMs: 15 * 60 * 1000 });
+    // Logins bem sucedidos NÃO contam — refund é chamado abaixo.
+    // FIX SEC-09: persistente em Postgres — sobrevive a restarts (antes
+    // o bucket in-memory zerava em cada redeploy do Railway).
+    const rlKey = pgRateLimit.clientKey(req, 'login:' + emailIn.toLowerCase());
+    const rlPeek = await pgRateLimit.check(rlKey, { max: 5, windowMs: 15 * 60 * 1000 });
     if (!rlPeek.ok) {
       res.setHeader('Retry-After', rlPeek.retryAfterSec);
       return sendError(res, 429, `Muitas tentativas. Tente novamente em ${rlPeek.retryAfterSec} segundos.`);
@@ -1118,12 +1120,11 @@ async function handleLogin(req, body, res) {
     const user = await auth.findUserByEmail(emailIn);
     const ok = user ? await auth.verify(password, user.passwordHash) : false;
     if (!user || !ok) {
-      // Falhou — registra tentativa no bucket
-      // (rlPeek já registrou um slot acima; mantém — total de 5 falhas em 15min)
+      // Falhou — o registro feito por check() acima permanece (conta como falha)
       return sendError(res, 401, 'Credenciais inválidas');
     }
-    // Sucesso — devolve o slot consumido (o login certo não deve contar contra o usuário)
-    rateLimit.refund(rlKey);
+    // Sucesso — devolve o slot consumido
+    await pgRateLimit.refund(rlKey);
 
     const session = await auth.createSession(user.id);
     auth.setSessionCookie(res, session.id, session.expiresAt);
@@ -1147,9 +1148,9 @@ async function handleForgotPassword(req, body, res) {
     const emailIn = (body.email || '').trim().toLowerCase();
     if (!emailIn) return sendError(res, 400, 'Email é obrigatório');
 
-    // Rate limit: 3 / hora por IP+email (evita spam de envio)
-    const rlKey = rateLimit.clientKey(req, 'forgot:' + emailIn);
-    const rl = rateLimit.check(rlKey, { max: 3, windowMs: 60 * 60 * 1000 });
+    // Rate limit: 3 / hora por IP+email (evita spam de envio) — persistente em PG
+    const rlKey = pgRateLimit.clientKey(req, 'forgot:' + emailIn);
+    const rl = await pgRateLimit.check(rlKey, { max: 3, windowMs: 60 * 60 * 1000 });
     if (!rl.ok) {
       // Resposta genérica pra não vazar info de rate limit por usuário
       return sendJson(res, { ok: true, message: 'Se o email existir, enviamos as instruções.' });
@@ -1175,8 +1176,9 @@ async function handleForgotPassword(req, body, res) {
 
 async function handleResetPassword(req, body, res) {
   try {
-    const rlKey = rateLimit.clientKey(req, 'reset-password');
-    const rl = rateLimit.check(rlKey, { max: 10, windowMs: 60 * 60 * 1000 });
+    // Rate limit: 10 / hora por IP (resgate de token) — persistente em PG
+    const rlKey = pgRateLimit.clientKey(req, 'reset-password');
+    const rl = await pgRateLimit.check(rlKey, { max: 10, windowMs: 60 * 60 * 1000 });
     if (!rl.ok) {
       res.setHeader('Retry-After', String(rl.retryAfterSec));
       return sendError(res, 429, 'Muitas tentativas. Tente novamente mais tarde.');
@@ -1272,9 +1274,9 @@ async function handlePortalLogin(req, body, res) {
     const senha = body.senha || '';
     if (!emailRaw || !senha) return sendError(res, 400, 'Email e senha são obrigatórios');
 
-    // Rate limit: 5 tentativas / 15 min por IP+email
-    const rlKey = rateLimit.clientKey(req, 'portal-login:' + emailRaw);
-    const rl = rateLimit.check(rlKey, { max: 5, windowMs: 15 * 60 * 1000 });
+    // Rate limit: 5 tentativas / 15 min por IP+email — persistente em PG
+    const rlKey = pgRateLimit.clientKey(req, 'portal-login:' + emailRaw);
+    const rl = await pgRateLimit.check(rlKey, { max: 5, windowMs: 15 * 60 * 1000 });
     if (!rl.ok) {
       res.setHeader('Retry-After', String(rl.retryAfterSec));
       return sendError(res, 429, `Muitas tentativas. Tente novamente em ${rl.retryAfterSec} segundos.`);
@@ -1291,7 +1293,7 @@ async function handlePortalLogin(req, body, res) {
     if (!ok) return sendError(res, 401, 'Email ou senha incorretos');
 
     // Sucesso — devolve slot consumido
-    rateLimit.refund(rlKey);
+    await pgRateLimit.refund(rlKey);
 
     const sid = generateId('pses');
     const expiresAt = new Date(Date.now() + PORTAL_SESSION_DAYS * 86400 * 1000);
@@ -3726,13 +3728,19 @@ const server = http.createServer((req, res) => {
   res.setHeader('Referrer-Policy', 'same-origin');
   res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
   res.setHeader('X-DNS-Prefetch-Control', 'off');
+  // FIX SEC-06: CSP fechada.
+  //  - script-src sem 'unsafe-inline' (bloqueia XSS persistente)
+  //  - script-src sem CDNs externas (libs vendoradas em /js/lib/vendor/)
+  //  - script-src-elem permite jsdelivr APENAS para mermaid ESM (Manual)
+  //  - style-src mantém 'unsafe-inline' (muitos inline styles em views;
+  //    refator separado, menor risco que script inline)
   res.setHeader('Content-Security-Policy', [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net",
+    "script-src 'self' https://cdn.jsdelivr.net",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openstreetmap.org",
-    "connect-src 'self' https://*.openstreetmap.org https://nominatim.openstreetmap.org",
+    "connect-src 'self' https://*.openstreetmap.org https://nominatim.openstreetmap.org https://cdn.jsdelivr.net",
     "worker-src 'self' blob:",
     "frame-ancestors 'none'",
   ].join('; '));
@@ -7008,6 +7016,11 @@ async function bootstrap() {
     try { await ensureAlmoxarifadoCentral(); } catch (e) { console.warn('[server] Aviso ao criar almox central:', e.message); }
     // Limpa sessões expiradas a cada hora
     setInterval(() => auth.purgeExpiredSessions().catch(() => {}), 60 * 60 * 1000);
+
+    // Cleanup do rate-limit persistente — diário, mantém últimos 7 dias.
+    // Roda 1x no boot pra limpar acúmulo de deploys anteriores, depois a cada 24h.
+    pgRateLimit.cleanup(7).then(n => n > 0 && console.log(`[pg-rate-limit] cleanup inicial: ${n} rows`)).catch(() => {});
+    setInterval(() => pgRateLimit.cleanup(7).catch(() => {}), 24 * 60 * 60 * 1000);
 
     // Push notifications — verifica contratos e contas a pagar a cada hora
     if (_webPush) {

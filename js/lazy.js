@@ -8,16 +8,16 @@
   'use strict';
 
   const REGISTRY = {
+    // FIX SEC-06: libs vendoradas localmente em js/lib/vendor/ para fechar
+    // o vetor de supply-chain das CDNs externas (unpkg, cdnjs, jsdelivr).
     'leaflet-css': {
       type: 'css',
-      href: 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
-      crossorigin: '',
+      href: './js/lib/vendor/leaflet.css',
     },
     'leaflet': {
       deps: ['leaflet-css'],
       type: 'js',
-      src: 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
-      crossorigin: '',
+      src: './js/lib/vendor/leaflet.js',
       check: () => typeof window.L !== 'undefined',
     },
     // Chart.js — usado apenas em Dashboard, RDOs, Previsao e contrato/charts.
@@ -40,20 +40,23 @@
     },
     'jspdf': {
       type: 'js',
-      src: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+      src: './js/lib/vendor/jspdf.umd.min.js',
       check: () => typeof window.jspdf !== 'undefined',
     },
     'jspdf-autotable': {
       deps: ['jspdf'],
       type: 'js',
-      src: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js',
+      src: './js/lib/vendor/jspdf.plugin.autotable.min.js',
       check: () => { try { const { jsPDF } = window.jspdf || {}; return typeof jsPDF?.API?.autoTable === 'function'; } catch { return false; } },
     },
     'signature_pad': {
       type: 'js',
-      src: 'https://cdn.jsdelivr.net/npm/signature_pad@4.2.0/dist/signature_pad.umd.min.js',
+      src: './js/lib/vendor/signature_pad.umd.min.js',
       check: () => typeof window.SignaturePad !== 'undefined',
     },
+    // Mermaid: ESM grande (~600 KB) usado só no Manual. Mantém CDN com SRI seria
+    // ideal mas mermaid não publica hash estável. Mantém CDN restrita por enquanto
+    // — Manual não é crítico, mas avaliar vendor no futuro.
     'mermaid': {
       type: 'module-init',
       check: () => typeof window.mermaid !== 'undefined',

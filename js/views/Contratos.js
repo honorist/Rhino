@@ -247,7 +247,7 @@ window.Contratos = {
                   const gaugeColor = pct >= 100 ? 'var(--color-success)' : pct >= 60 ? 'var(--color-warning)' : 'var(--color-primary)';
                   return `
                   <tr class="row-contrato" data-id="${c.id}" style="cursor:pointer;">
-                    <td style="width:36px;padding-left:12px;" onclick="event.stopPropagation()">
+                    <td class="js-stop" style="width:36px;padding-left:12px;">
                       <input type="checkbox" class="row-chk" data-id="${c.id}" ${this._selectedIds.has(c.id) ? 'checked' : ''} style="cursor:pointer;width:16px;height:16px;">
                     </td>
                     <td>

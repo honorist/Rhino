@@ -1,6 +1,19 @@
 {
   "entries": [
     {
+      "version": "1.2.11",
+      "date": "2026-05-17",
+      "summary": "Hardening de CSP: vendor de libs + rate-limit persistente em Postgres",
+      "changes": [
+        "SEC: rate-limit de login/portal-login/forgot/reset agora persiste em Postgres (tabela login_attempts) — sobrevive a restarts do Railway que antes davam ao atacante 5 tentativas frescas após cada deploy.",
+        "SEC: libs externas vendoradas em js/lib/vendor/ (Leaflet, jsPDF, jspdf-autotable, signature_pad) — fecha vetor de supply-chain das CDNs (unpkg, cdnjs). Apenas mermaid permanece em jsdelivr.",
+        "SEC: scripts inline do index.html (base-href, theme-init) extraídos para arquivos externos em js/boot/.",
+        "SEC: handlers inline (onclick='event.stopPropagation()' em 5 lugares + onerror em Portal) substituídos por classes (.js-stop, .js-hide-on-error) com delegação global em js/boot/inline-handlers.js.",
+        "SEC: CSP fechada — script-src sem 'unsafe-inline' e sem CDNs externas (exceto jsdelivr p/ mermaid). XSS persistente fica neutralizado.",
+        "Cleanup automático da tabela login_attempts (mantém últimos 7 dias) — roda no boot + 1x/dia."
+      ]
+    },
+    {
       "version": "1.2.10",
       "date": "2026-05-17",
       "summary": "Cap defensivo em findAll: protege contra OOM em tabelas que crescem",

@@ -3,33 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script>
-    /**
-     * Resolve URLs relativas corretamente quando o app é servido a partir de subpastas
-     * (ex: GitHub Pages em `/Rhino/`). Injeta um `<base href>` apontando para o
-     * diretório atual.
-     *
-     * NOTA: a versão anterior usava `document.write()` que (a) bloqueia o HTML parser
-     * forçando reparsing, (b) é deprecado em SW contexts e (c) impede que os
-     * preconnects abaixo comecem em paralelo. Substituído por `insertBefore` —
-     * mesma semântica, sem reparse.
-     */
-    (function(){
-      var p = location.pathname;
-      if (!p.endsWith('/') && !/\.[a-z0-9]+$/i.test(p)) {
-        history.replaceState(null, '', p + '/' + location.search + location.hash);
-      }
-      var dir = location.pathname.replace(/[^/]*$/, '');
-      var base = document.createElement('base');
-      base.href = dir;
-      document.head.insertBefore(base, document.head.firstChild);
-    })();
-  </script>
+  <!-- FIX SEC-06: scripts extraídos para arquivos externos para permitir CSP
+       sem 'unsafe-inline'. Carregar síncronos (sem defer) — precisam rodar
+       antes que qualquer outro recurso seja resolvido / antes do primeiro paint. -->
+  <script src="./js/boot/base-href.js"></script>
   <title>Rhino — Gestão Empresarial</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://unpkg.com" crossorigin>
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <!-- jsdelivr só é usado para mermaid (Manual). Outros preconnects removidos
+       junto com a vendorização das libs (FIX SEC-06). -->
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <!-- Fontes consolidadas (display=swap evita FOIT). Pesos reduzidos do conjunto
        300-800 original para os pesos efetivamente usados na UI — economiza 6-9 woff2. -->
@@ -57,28 +39,7 @@
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/logo.png">
   <link rel="mask-icon" href="./assets/favicon.svg" color="#55588B">
-  <script>
-    // Aplica tema salvo o quanto antes (evita flash).
-    // Sem preferência salva → respeita prefers-color-scheme do sistema.
-    (function(){
-      try {
-        var saved = localStorage.getItem('rhino-theme');
-        var prefersDark = !saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (saved === 'dark' || prefersDark) {
-          document.documentElement.setAttribute('data-theme', 'dark');
-        }
-        // Acompanha mudanças do sistema em tempo real (somente se o usuário não tiver escolhido)
-        if (!saved && window.matchMedia) {
-          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
-            if (!localStorage.getItem('rhino-theme')) {
-              if (e.matches) document.documentElement.setAttribute('data-theme', 'dark');
-              else document.documentElement.removeAttribute('data-theme');
-            }
-          });
-        }
-      } catch (e) {}
-    })();
-  </script>
+  <script src="./js/boot/theme-init.js"></script>
   <style>
     .leaflet-container { background: #E5E7EB; }
     .obra-popup { font-family: inherit; min-width: 200px; }
@@ -115,6 +76,8 @@
   <script src="./js/lib/icons.js" defer></script>
   <script src="./js/lazy.js" defer></script>
   <script src="./js/exports.js" defer></script>
+  <!-- FIX SEC-06: delegação global p/ substituir onclick/onerror inline removidos -->
+  <script src="./js/boot/inline-handlers.js" defer></script>
 
   <!-- Modo local (browser-only) descontinuado: agora rodamos sempre contra o servidor real
        (server.js + Postgres). Para reativar o modo offline com localStorage,

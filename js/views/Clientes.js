@@ -59,8 +59,8 @@ window.Clientes = {
                       ${c.setor ? `<div style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(c.setor)}</div>` : ''}
                       ${!c.cargo && !c.setor ? '—' : ''}
                     </td>
-                    <td>${c.telefone ? `<a href="tel:${escapeHtml(c.telefone)}" style="color:var(--color-primary);text-decoration:none;" onclick="event.stopPropagation()">${escapeHtml(c.telefone)}</a>` : '—'}</td>
-                    <td>${c.email ? `<a href="mailto:${escapeHtml(c.email)}" style="color:var(--color-primary);text-decoration:none;" onclick="event.stopPropagation()">${escapeHtml(c.email)}</a>` : '—'}</td>
+                    <td>${c.telefone ? `<a href="tel:${escapeHtml(c.telefone)}" class="js-stop" style="color:var(--color-primary);text-decoration:none;">${escapeHtml(c.telefone)}</a>` : '—'}</td>
+                    <td>${c.email ? `<a href="mailto:${escapeHtml(c.email)}" class="js-stop" style="color:var(--color-primary);text-decoration:none;">${escapeHtml(c.email)}</a>` : '—'}</td>
                     <td>
                       <div class="actions-cell">
                         <a class="action-link btn-editar" data-id="${c.id}">Editar</a>

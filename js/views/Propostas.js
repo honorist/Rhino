@@ -154,11 +154,11 @@ window.Propostas = {
         </td>
         <td>
           ${p.contratoId
-            ? `<a href="#/contratos/${p.contratoId}" class="action-link" onclick="event.stopPropagation()" title="Ver contrato vinculado">🔗 Ver</a>`
+            ? `<a href="#/contratos/${p.contratoId}" class="action-link js-stop" title="Ver contrato vinculado">🔗 Ver</a>`
             : '<span class="text-muted">—</span>'}
         </td>
         <td>
-          <div class="actions-cell" onclick="event.stopPropagation()">
+          <div class="actions-cell js-stop">
             <a class="action-link" href="#/proposta/${p.id}">Editar</a>
             <a class="action-link btn-duplicar" data-id="${p.id}" title="Nova revisão">Rev.+1</a>
             <a class="action-link danger btn-excluir" data-id="${p.id}">Excluir</a>

@@ -260,7 +260,7 @@ window.Portal = {
                     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
                       ${r.fotos.map(f => `
                         <a href="${escapeHtml(f.url || '')}" target="_blank" rel="noopener" style="display:block;width:80px;height:60px;border-radius:6px;overflow:hidden;flex-shrink:0;background:var(--color-surface-2);">
-                          <img src="${escapeHtml(f.url || '')}" alt="${escapeHtml(f.legenda || 'Foto')}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.style.display='none'">
+                          <img src="${escapeHtml(f.url || '')}" alt="${escapeHtml(f.legenda || 'Foto')}" class="js-hide-on-error" style="width:100%;height:100%;object-fit:cover;" loading="lazy">
                         </a>
                       `).join('')}
                     </div>
