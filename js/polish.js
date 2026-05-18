@@ -49,6 +49,57 @@
   }
 
   // ───────────────────────────────────────────────
+  // 1b. Version-check: detecta deploy novo e oferece atualização
+  // ───────────────────────────────────────────────
+  // Em paralelo com o SW update flow, polla /api/health a cada 2 min.
+  // Se a versão do servidor diverge da carregada em janela, mostra
+  // banner discreto com botão "Atualizar agora" que dispara reset-sw.
+  // Cobre o caso em que o SW antigo não consegue ver/instalar o novo.
+  (function versionCheck() {
+    const loadedVersion = window.__APP_VERSION__;
+    if (!loadedVersion || loadedVersion === 'dev') return;
+    let bannerShown = false;
+
+    function showBanner(serverVersion) {
+      if (bannerShown) return;
+      bannerShown = true;
+      const div = document.createElement('div');
+      div.id = 'rh-update-banner';
+      div.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);'
+        + 'background:#0b2545;color:#fff;padding:12px 18px;border-radius:8px;'
+        + 'box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:99999;font-size:14px;'
+        + 'display:flex;align-items:center;gap:14px;font-family:Nunito,sans-serif;';
+      div.innerHTML = '<span>Nova versão disponível (<b>v' + serverVersion + '</b>).</span>'
+        + '<button id="rh-update-now" style="background:#fff;color:#0b2545;border:0;'
+        + 'padding:6px 14px;border-radius:5px;font-weight:700;cursor:pointer;font-size:13px;">Atualizar agora</button>'
+        + '<button id="rh-update-later" style="background:transparent;color:#cbd5e1;border:0;'
+        + 'cursor:pointer;font-size:12px;">depois</button>';
+      document.body.appendChild(div);
+      document.getElementById('rh-update-now').onclick = () => {
+        location.href = '/reset-sw';
+      };
+      document.getElementById('rh-update-later').onclick = () => div.remove();
+    }
+
+    async function check() {
+      try {
+        const r = await fetch('/api/health', { cache: 'no-store' });
+        if (!r.ok) return;
+        const data = await r.json();
+        if (data.version && data.version !== loadedVersion) {
+          showBanner(data.version);
+        }
+      } catch {}
+    }
+
+    setTimeout(check, 30 * 1000);                  // primeira checagem após 30s
+    setInterval(check, 2 * 60 * 1000);              // depois a cada 2min
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') check();
+    });
+  })();
+
+  // ───────────────────────────────────────────────
   // 2. Boot loader fade-out
   // ───────────────────────────────────────────────
   window.RhinoBoot = {

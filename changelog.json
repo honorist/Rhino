@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.2.22",
+      "date": "2026-05-18",
+      "summary": "Força atualização: /reset-sw + banner 'nova versão' + sw.js no-store",
+      "changes": [
+        "Rota nova /reset-sw: página de emergência que desregistra TODOS os service workers do navegador, limpa caches, localStorage/sessionStorage e redireciona pra raiz. Abra https://rhino.up.railway.app/reset-sw uma vez quando ficar preso em versão antiga.",
+        "sw.js agora servido com Cache-Control: no-store, no-cache. Browser sempre baixa fresh — reg.update() detecta novas versões na hora em vez de depender do cache do browser.",
+        "Version-check periódico em polish.js: a cada 2 min (e em visibilitychange), bate em /api/health. Se a versão do servidor diverge da carregada na janela, mostra banner discreto na base 'Nova versão disponível [Atualizar agora] [depois]'. Botão 'Atualizar agora' aciona /reset-sw.",
+        "Resolve definitivamente o cenário em que o SW antigo segura o usuário em versão velha mesmo após deploy."
+      ]
+    },
+    {
       "version": "1.2.21",
       "date": "2026-05-18",
       "summary": "Service Worker: stale-while-revalidate em JS/CSS + hardening do Relatório",

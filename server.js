@@ -3625,6 +3625,12 @@ function serveStaticFile(pathname, res) {
     headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0';
     headers['Pragma'] = 'no-cache';
     headers['Expires'] = '0';
+  } else if (pathname === '/sw.js') {
+    // SW: sempre revalidar. Browsers que cacheiam o próprio SW prendem o
+    // usuário em versões antigas mesmo após deploy — `no-store` força
+    // download fresco a cada navegação, garantindo que reg.update() veja
+    // mudanças imediatamente.
+    headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0';
   } else if (ext === '.js' || ext === '.css') {
     headers['Cache-Control'] = 'public, max-age=3600, stale-while-revalidate=86400';
   } else if (ext === '.svg' || ext === '.png' || ext === '.jpg' || ext === '.jpeg' ||
@@ -3751,6 +3757,62 @@ const server = http.createServer((req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(200);
     res.end();
+    return;
+  }
+
+  // /reset-sw — página de emergência que desregistra Service Workers e limpa
+  // caches do browser. Necessário quando usuário fica preso em SW antigo
+  // que não está se atualizando sozinho. Não exige auth — o efeito é só
+  // limpar o estado local do próprio navegador do usuário.
+  if (pathname === '/reset-sw') {
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+    });
+    res.end(`<!doctype html>
+<html lang="pt-br"><head><meta charset="utf-8"><title>Rhino — Reset</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#0b2545;color:#fff;
+       display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;text-align:center;}
+  .box{max-width:480px}
+  h1{font-size:24px;margin:0 0 12px;font-weight:700}
+  p{font-size:14px;color:#cbd5e1;margin:6px 0;line-height:1.5}
+  .ok{color:#10b981;font-weight:700;font-size:16px;margin-top:16px}
+  .spin{display:inline-block;width:32px;height:32px;border:3px solid #1e3a5f;border-top-color:#fff;
+        border-radius:50%;animation:s 0.8s linear infinite;margin-bottom:12px}
+  @keyframes s{to{transform:rotate(360deg)}}
+</style></head>
+<body><div class="box">
+<div class="spin"></div>
+<h1>Atualizando Rhino…</h1>
+<p id="status">Limpando cache local e desregistrando workers.</p>
+<p class="ok" id="done" style="display:none">Pronto! Redirecionando…</p>
+</div>
+<script>
+(async function(){
+  const status = document.getElementById('status');
+  const done = document.getElementById('done');
+  try {
+    if ('serviceWorker' in navigator) {
+      status.textContent = 'Desregistrando service workers…';
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    if (window.caches) {
+      status.textContent = 'Limpando caches…';
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    try { localStorage.clear(); sessionStorage.clear(); } catch(e) {}
+    done.style.display = 'block';
+    setTimeout(() => location.replace('/'), 1200);
+  } catch (e) {
+    status.textContent = 'Erro: ' + (e && e.message || e) + ' — recarregue manualmente.';
+  }
+})();
+</script>
+</body></html>`);
     return;
   }
 
