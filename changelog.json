@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.2.23",
+      "date": "2026-05-18",
+      "summary": "Fix: /reset-sw travava no 'Atualizando…' (CSP bloqueava script inline)",
+      "changes": [
+        "Bug: CSP global do servidor (script-src 'self' sem 'unsafe-inline') bloqueava o JS inline da página /reset-sw, então a limpeza nunca rodava e o usuário ficava preso na tela de loading indefinidamente.",
+        "Fix: /reset-sw agora envia CSP própria com 'unsafe-inline' permitido APENAS pra essa rota — o resto do app mantém a CSP fechada do v1.2.11. Página é isolada e só executa limpeza de estado local."
+      ]
+    },
+    {
       "version": "1.2.22",
       "date": "2026-05-18",
       "summary": "Força atualização: /reset-sw + banner 'nova versão' + sw.js no-store",

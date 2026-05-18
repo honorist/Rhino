@@ -3765,9 +3765,12 @@ const server = http.createServer((req, res) => {
   // que não está se atualizando sozinho. Não exige auth — o efeito é só
   // limpar o estado local do próprio navegador do usuário.
   if (pathname === '/reset-sw') {
+    // CSP relaxada SÓ pra essa página: precisa de script inline pra rodar
+    // limpeza imediata sem depender de outro JS cacheado pelo SW.
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'",
     });
     res.end(`<!doctype html>
 <html lang="pt-br"><head><meta charset="utf-8"><title>Rhino — Reset</title>
