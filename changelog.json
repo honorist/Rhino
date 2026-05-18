@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.2.24",
+      "date": "2026-05-18",
+      "summary": "Auto-update 100% transparente: sem banner, sem botão, sem cliente fazer nada",
+      "changes": [
+        "Removido o banner 'Nova versão disponível'. O check periódico em /api/health agora aplica o upgrade silenciosamente quando detecta divergência: desregistra todos os service workers, limpa caches do browser e recarrega a página com query string de cache-bust.",
+        "Proteção contra perda de dados: se o usuário está digitando em algum input (focus ativo ou input nos últimos 2min), o reload é adiado em 30s até ele parar de mexer. Sem essa lógica, o usuário perderia formulário em preenchimento no meio de um deploy.",
+        "Proteção contra loop infinito: se a tentativa de upgrade pra v=X falhar (servidor continua reportando X mas página segue com versão antiga após reload), marca a tentativa em sessionStorage e desiste. Próximo deploy reinicia o ciclo.",
+        "Checks: 5s após boot, depois a cada 60s, e sempre que o usuário volta à aba (visibilitychange)."
+      ]
+    },
+    {
       "version": "1.2.23",
       "date": "2026-05-18",
       "summary": "Fix: /reset-sw travava no 'Atualizando…' (CSP bloqueava script inline)",

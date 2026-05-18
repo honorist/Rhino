@@ -49,36 +49,87 @@
   }
 
   // ───────────────────────────────────────────────
-  // 1b. Version-check: detecta deploy novo e oferece atualização
+  // 1b. Auto-update transparente
   // ───────────────────────────────────────────────
-  // Em paralelo com o SW update flow, polla /api/health a cada 2 min.
-  // Se a versão do servidor diverge da carregada em janela, mostra
-  // banner discreto com botão "Atualizar agora" que dispara reset-sw.
-  // Cobre o caso em que o SW antigo não consegue ver/instalar o novo.
-  (function versionCheck() {
+  // Quando o servidor tem versão diferente da carregada, força a
+  // atualização SILENCIOSAMENTE — sem banner, sem botão, sem URL
+  // pro usuário acessar. Apenas:
+  //   1) desregistra service workers
+  //   2) limpa caches do browser
+  //   3) recarrega a página
+  //
+  // Segurança contra reload-loop:
+  //  - flag em sessionStorage marca a tentativa atual
+  //  - se servidor continua reportando versão diferente após reload,
+  //    desiste (evita loop infinito por bug)
+  //
+  // Segurança contra perda de input:
+  //  - check periódico só dispara reload em visibilitychange
+  //    (usuário voltando à aba) ou se o app está há >2min sem
+  //    foco em campo de input
+  (function autoUpdate() {
     const loadedVersion = window.__APP_VERSION__;
     if (!loadedVersion || loadedVersion === 'dev') return;
-    let bannerShown = false;
 
-    function showBanner(serverVersion) {
-      if (bannerShown) return;
-      bannerShown = true;
-      const div = document.createElement('div');
-      div.id = 'rh-update-banner';
-      div.style.cssText = 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);'
-        + 'background:#0b2545;color:#fff;padding:12px 18px;border-radius:8px;'
-        + 'box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:99999;font-size:14px;'
-        + 'display:flex;align-items:center;gap:14px;font-family:Nunito,sans-serif;';
-      div.innerHTML = '<span>Nova versão disponível (<b>v' + serverVersion + '</b>).</span>'
-        + '<button id="rh-update-now" style="background:#fff;color:#0b2545;border:0;'
-        + 'padding:6px 14px;border-radius:5px;font-weight:700;cursor:pointer;font-size:13px;">Atualizar agora</button>'
-        + '<button id="rh-update-later" style="background:transparent;color:#cbd5e1;border:0;'
-        + 'cursor:pointer;font-size:12px;">depois</button>';
-      document.body.appendChild(div);
-      document.getElementById('rh-update-now').onclick = () => {
-        location.href = '/reset-sw';
-      };
-      document.getElementById('rh-update-later').onclick = () => div.remove();
+    const TENTATIVA_KEY = 'rh:upgrade-attempt';
+    let updating = false;
+    let pendingServerVersion = null;
+    let lastInputAt = Date.now();
+
+    document.addEventListener('input', () => { lastInputAt = Date.now(); }, true);
+    document.addEventListener('focusin', (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) {
+        lastInputAt = Date.now();
+      }
+    }, true);
+
+    function temInputAtivo() {
+      const el = document.activeElement;
+      if (el && ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName)) return true;
+      return (Date.now() - lastInputAt) < 120 * 1000; // 2 min de tolerância
+    }
+
+    async function aplicarUpgrade(serverVersion) {
+      if (updating) return;
+      updating = true;
+      try {
+        // Anti-loop: se já tentei pra essa mesma versão e não funcionou, desiste
+        const tentativa = sessionStorage.getItem(TENTATIVA_KEY);
+        if (tentativa === serverVersion) {
+          console.warn('[autoUpdate] já tentei atualizar pra v' + serverVersion +
+            ' e a versão carregada continua sendo ' + loadedVersion + ' — desistindo');
+          return;
+        }
+        sessionStorage.setItem(TENTATIVA_KEY, serverVersion);
+
+        // Desregistra todos os SWs
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister().catch(() => {})));
+        }
+        // Limpa todos os caches do browser
+        if (window.caches) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k).catch(() => {})));
+        }
+        // Recarrega com cache-bust no query string (garante HTML fresco)
+        const url = new URL(location.href);
+        url.searchParams.set('_v', serverVersion);
+        location.replace(url.toString());
+      } catch (e) {
+        console.error('[autoUpdate] falhou:', e);
+        updating = false;
+      }
+    }
+
+    function tentarAplicar() {
+      if (!pendingServerVersion) return;
+      if (temInputAtivo()) {
+        // Adia: usuário digitando algo. Tenta de novo ao voltar/em 30s.
+        setTimeout(tentarAplicar, 30 * 1000);
+        return;
+      }
+      aplicarUpgrade(pendingServerVersion);
     }
 
     async function check() {
@@ -86,14 +137,27 @@
         const r = await fetch('/api/health', { cache: 'no-store' });
         if (!r.ok) return;
         const data = await r.json();
-        if (data.version && data.version !== loadedVersion) {
-          showBanner(data.version);
+        if (!data.version || data.version === loadedVersion) {
+          // Versões iguais — limpa marca de tentativa se houver
+          sessionStorage.removeItem(TENTATIVA_KEY);
+          pendingServerVersion = null;
+          return;
         }
+        pendingServerVersion = data.version;
+        // Limpa marca se a versão divergente é DIFERENTE da última tentativa
+        // (significa que houve um novo deploy desde a tentativa fracassada)
+        if (sessionStorage.getItem(TENTATIVA_KEY) !== data.version) {
+          sessionStorage.removeItem(TENTATIVA_KEY);
+        }
+        tentarAplicar();
       } catch {}
     }
 
-    setTimeout(check, 30 * 1000);                  // primeira checagem após 30s
-    setInterval(check, 2 * 60 * 1000);              // depois a cada 2min
+    // Primeira checagem após 5s (não bloquear boot)
+    setTimeout(check, 5 * 1000);
+    // Re-check a cada 60s
+    setInterval(check, 60 * 1000);
+    // Sempre que usuário volta à aba, check imediato
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') check();
     });
