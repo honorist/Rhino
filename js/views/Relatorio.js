@@ -74,6 +74,13 @@
     }
   }
 
+  // Guard: alguns hooks do autoTable passam coords undefined em foot/spans.
+  // Sem isso, jsPDF.line lança "Invalid arguments" e mata a geração inteira.
+  function _hline(doc, x1, y1, x2, y2) {
+    if (![x1, y1, x2, y2].every(Number.isFinite)) return;
+    doc.line(x1, y1, x2, y2);
+  }
+
   // ── Header minimalista (letterhead com logo) ─────────────────
   function _drawLetterhead(doc, secaoNum, secaoTitulo) {
     // Logo pequeno top-left + label discreta ao lado
@@ -480,9 +487,10 @@
       const xEnd = PAGE_W - MARGIN - 8;
       doc.setDrawColor(...GREY_300);
       doc.setLineWidth(0.15);
-      doc.setLineDashPattern([0.6, 0.6], 0);
-      doc.line(xStart, y - 1, xEnd, y - 1);
-      doc.setLineDashPattern([], 0);
+      // setLineDashPattern só existe em jsPDF 2.x — guarda o estado original
+      try { doc.setLineDashPattern && doc.setLineDashPattern([0.6, 0.6], 0); } catch {}
+      _hline(doc, xStart, y - 1, xEnd, y - 1);
+      try { doc.setLineDashPattern && doc.setLineDashPattern([], 0); } catch {}
 
       doc.setTextColor(...GREY_500);
       doc.text(String(s.pagina), PAGE_W - MARGIN, y, { align: 'right' });
@@ -620,14 +628,14 @@
           const r = data.row;
           doc.setDrawColor(...NAVY);
           doc.setLineWidth(0.4);
-          doc.line(MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
+          _hline(doc, MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
         }
         // Linha sutil entre linhas do corpo
         if (data.section === 'body' && data.column.index === 0) {
           const r = data.row;
           doc.setDrawColor(...GREY_300);
           doc.setLineWidth(0.1);
-          doc.line(MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
+          _hline(doc, MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
         }
       },
       didParseCell(data) {
@@ -701,13 +709,13 @@
           const r = data.row;
           doc.setDrawColor(...NAVY);
           doc.setLineWidth(0.4);
-          doc.line(MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
+          _hline(doc, MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
         }
         if (data.section === 'body' && data.column.index === 0) {
           const r = data.row;
           doc.setDrawColor(...GREY_300);
           doc.setLineWidth(0.1);
-          doc.line(MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
+          _hline(doc, MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
         }
       },
     });
@@ -760,19 +768,19 @@
           const r = data.row;
           doc.setDrawColor(...NAVY);
           doc.setLineWidth(0.4);
-          doc.line(MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
+          _hline(doc, MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
         }
         if (data.section === 'body' && data.column.index === 0) {
           const r = data.row;
           doc.setDrawColor(...GREY_300);
           doc.setLineWidth(0.1);
-          doc.line(MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
+          _hline(doc, MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
         }
         if (data.section === 'foot' && data.column.index === 0) {
           const r = data.row;
           doc.setDrawColor(...NAVY);
           doc.setLineWidth(0.4);
-          doc.line(MARGIN, r.y, PAGE_W - MARGIN, r.y);
+          _hline(doc, MARGIN, r.y, PAGE_W - MARGIN, r.y);
         }
       },
       didParseCell(data) {
@@ -832,19 +840,19 @@
           const r = data.row;
           doc.setDrawColor(...NAVY);
           doc.setLineWidth(0.4);
-          doc.line(MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
+          _hline(doc, MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
         }
         if (data.section === 'body' && data.column.index === 0) {
           const r = data.row;
           doc.setDrawColor(...GREY_300);
           doc.setLineWidth(0.1);
-          doc.line(MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
+          _hline(doc, MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
         }
         if (data.section === 'foot' && data.column.index === 0) {
           const r = data.row;
           doc.setDrawColor(...NAVY);
           doc.setLineWidth(0.4);
-          doc.line(MARGIN, r.y, PAGE_W - MARGIN, r.y);
+          _hline(doc, MARGIN, r.y, PAGE_W - MARGIN, r.y);
         }
         // Destaque visual nas linhas críticas (>90d)
         if (data.section === 'body' && data.row.raw && data.row.raw[0] === 'Vencidas >90d') {
@@ -903,13 +911,13 @@
           const r = data.row;
           doc.setDrawColor(...NAVY);
           doc.setLineWidth(0.4);
-          doc.line(MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
+          _hline(doc, MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
         }
         if (data.section === 'body' && data.column.index === 0) {
           const r = data.row;
           doc.setDrawColor(...GREY_300);
           doc.setLineWidth(0.1);
-          doc.line(MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
+          _hline(doc, MARGIN, r.y + r.height, PAGE_W - MARGIN, r.y + r.height);
         }
       },
       didParseCell(data) {

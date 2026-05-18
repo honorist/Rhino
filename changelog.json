@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.2.20",
+      "date": "2026-05-18",
+      "summary": "Fix: 'Invalid arguments passed to jsPDF.line' ao gerar relatório",
+      "changes": [
+        "Causa raiz: didDrawCell do autoTable às vezes recebe data.row.y ou data.row.height undefined (foot/spans/colunas mescladas), e doc.line(NaN,...) lança exception que mata a geração inteira.",
+        "Adicionado helper _hline(doc, x1, y1, x2, y2) que valida Number.isFinite nas 4 coordenadas antes de chamar doc.line — drop silencioso se inválido.",
+        "13 chamadas de doc.line() dentro de didDrawCell migradas para _hline. As chamadas com coordenadas fixas (header/footer/capa) continuam usando doc.line direto.",
+        "setLineDashPattern (no sumário) protegido com try/catch + feature-detect — não trava em versões antigas do jsPDF."
+      ]
+    },
+    {
       "version": "1.2.19",
       "date": "2026-05-18",
       "summary": "Relatório Gerencial: logomarca Rhino na capa e no header de cada página",
