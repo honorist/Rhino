@@ -3659,7 +3659,7 @@ function _serveHtmlWithBootstrap(pathname, res) {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openstreetmap.org",
-    "connect-src 'self' https://*.openstreetmap.org https://nominatim.openstreetmap.org https://cdn.jsdelivr.net",
+    "connect-src 'self' https://*.openstreetmap.org https://nominatim.openstreetmap.org https://router.project-osrm.org https://cdn.jsdelivr.net",
     "worker-src 'self' blob:",
     "frame-ancestors 'none'",
   ].join('; ');
@@ -3834,7 +3834,7 @@ const server = http.createServer((req, res) => {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openstreetmap.org",
-    "connect-src 'self' https://*.openstreetmap.org https://nominatim.openstreetmap.org https://cdn.jsdelivr.net",
+    "connect-src 'self' https://*.openstreetmap.org https://nominatim.openstreetmap.org https://router.project-osrm.org https://cdn.jsdelivr.net",
     "worker-src 'self' blob:",
     "frame-ancestors 'none'",
   ].join('; '));

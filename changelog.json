@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.27",
+      "date": "2026-05-18",
+      "summary": "Fix: rota via rodovia entre pontos do mapa não calculava ('rota indisponível')",
+      "changes": [
+        "Causa: a CSP fechada (v1.2.11 + nonce v1.2.25) tinha connect-src com 'self' + tiles do OSM + nominatim, mas FALTAVA o domínio router.project-osrm.org — usado pelo GeoUtils.fetchRotaOSRM pra calcular rota real entre dois pontos (recurso → obra, veículo → obra).",
+        "O fetch era bloqueado pelo browser, o catch silencioso engolia e a UI mostrava 'rota indisponível' + apenas distância em linha reta.",
+        "Adicionado https://router.project-osrm.org ao connect-src nas 2 declarações de CSP (header global e header HTML com nonce)."
+      ]
+    },
+    {
       "version": "1.2.26",
       "date": "2026-05-18",
       "summary": "Fix: botões 'Excluir/Duplicar' em listas + gerente perdeu permissão de usuários",
