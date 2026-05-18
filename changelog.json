@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.2.16",
+      "date": "2026-05-18",
+      "summary": "Docs: README + ARCHITECTURE reescritos e Manual com novos diagramas",
+      "changes": [
+        "README.md reescrito: overview enxuto, C4 de containers, pipeline de deploy e Gantt típico de obra. Aponta pra ARCHITECTURE.md para a parte densa.",
+        "docs/ARCHITECTURE.md expandido: 5 ER diagrams (núcleo financeiro, plataforma/auth, suprimentos, comercial, frota), 5 sequence diagrams (login, saída→BM→NF→caixa, RDO+assinatura, solicitação de compra 5 etapas, SSE), fluxo de autorização e observabilidade.",
+        "Manual.js: 3 novos diagramas (journey do mês operacional, ER simplificado do financeiro, Gantt de obra de 6 meses). Embutidos na seção Início (panorama) e Cronograma (exemplo realista).",
+        "Sem mudanças de runtime ou schema."
+      ]
+    },
+    {
       "version": "1.2.15",
       "date": "2026-05-17",
       "summary": "Observabilidade: mais 8 catches silenciosos passam a logar",

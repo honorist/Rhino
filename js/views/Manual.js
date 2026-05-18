@@ -1,4 +1,6 @@
-// Manual do Usuário — versão 3.0 com fluxogramas Mermaid (declarativos, sempre alinhados).
+// Manual do Usuário — versão 3.1 com diagramas Mermaid (declarativos, sempre alinhados).
+// Tipos usados: flowchart (operações), erDiagram (modelo de dados), journey (UX de processos),
+// gantt (cronograma). Todos renderizados pelo mesmo runner em _renderMermaid().
 window.Manual = {
   _secao: 'inicio',
 
@@ -264,6 +266,85 @@ flowchart TD
 </pre>`;
   },
 
+  // ═════════════ Diagramas de panorama (overview) ═════════════
+
+  // Journey do mês operacional — mostra quem faz o quê e quando.
+  // Os números são satisfação (1=ruim, 5=ótimo) — útil pra identificar
+  // pontos de fricção que vale a pena automatizar/treinar.
+  _journeyMes() {
+    return `
+<pre class="mermaid">
+journey
+    title Mês operacional de um contrato típico
+    section Dia-a-dia
+      Lançar RDO em obras ativas: 5: Operador
+      Encarregado assina RDO: 4: Encarregado
+      Cliente/fiscal assina no app: 4: Cliente
+      Lançar contas a pagar: 4: Financeiro
+    section Final do mês
+      Consolidar saídas em BM: 5: Encarregado
+      Emitir nota fiscal: 4: Financeiro
+      Enviar BM ao cliente: 3: Comercial
+    section Recebimento
+      Conciliar extrato bancário: 4: Financeiro
+      Marcar entrada no caixa: 5: Financeiro
+      Saldo atualiza no Dashboard: 5: Diretoria
+</pre>`;
+  },
+
+  // ER simplificado do núcleo financeiro — ajuda novo usuário a entender
+  // como Saída, BM, NF e Caixa se conectam. Não tem campo de tabela, é
+  // só pra mostrar o "esqueleto" das relações.
+  _erFinanceiro() {
+    return `
+<pre class="mermaid">
+erDiagram
+    CONTRATO ||--o{ SAIDA          : "tem medições"
+    CONTRATO ||--o{ NF             : "fatura"
+    CONTRATO ||--o{ CONTA_A_PAGAR  : "rateia despesas"
+    SAIDA    }o--|| NF             : "compõe BM"
+    NF       ||--o{ CAIXA          : "vira entrada quando recebida"
+    CONTA_A_PAGAR ||--o{ CAIXA     : "vira saída quando paga"
+    FORNECEDOR ||--o{ CONTA_A_PAGAR : "cobra"
+    CLIENTE  ||--o{ CONTRATO       : "é faturado em"
+</pre>`;
+  },
+
+  // Gantt típico de uma obra de 6 meses — dá expectativa de prazo
+  // pro usuário entender em que fase do ciclo ele está.
+  _ganttObra() {
+    return `
+<pre class="mermaid">
+gantt
+    title Cronograma típico — obra de 6 meses
+    dateFormat YYYY-MM-DD
+    axisFormat %b/%y
+
+    section Comercial
+    Proposta enviada           :done,    p1, 2026-01-05, 10d
+    Assinatura do contrato     :done,    p2, after p1, 5d
+
+    section Mobilização
+    Organograma + ARTs         :active,  m1, 2026-01-22, 7d
+    Almoxarifado de obra       :         m2, after m1, 5d
+
+    section Execução
+    Etapa 1 - Desmontagem      :         e1, 2026-02-03, 30d
+    Etapa 2 - Estrutura        :         e2, after e1, 45d
+    Etapa 3 - Acabamento       :         e3, after e2, 30d
+
+    section Financeiro
+    BM 1 + NF                  :crit,    f1, 2026-02-28, 3d
+    BM 2 + NF                  :crit,    f2, 2026-03-31, 3d
+    BM 3 + NF                  :crit,    f3, 2026-04-30, 3d
+    Recebimento (prazo 30d)    :         f4, after f3, 30d
+
+    section Encerramento
+    Comissionamento + TR       :         z1, after e3, 7d
+    Encerramento contratual    :milestone, z2, after z1, 0d
+</pre>`;
+  },
+
   _conteudo() {
     return {
       inicio: `
@@ -292,6 +373,14 @@ flowchart TD
         <div class="man-tip">
           <strong>Atalho rápido:</strong> use o menu lateral (esquerda) ou os ícones nas seções para navegar. Cada tela tem botões "+ Novo" no canto superior direito.
         </div>
+
+        <h2 class="man-h2">🧭 Como tudo se conecta</h2>
+        <p class="man-p">O sistema gira em torno do <strong>contrato</strong>. Tudo o que acontece — saídas, NFs, contas, RDOs — é amarrado a ele. O esquema abaixo mostra o esqueleto do fluxo financeiro:</p>
+        ${this._erFinanceiro()}
+
+        <h2 class="man-h2">📅 O mês operacional típico</h2>
+        <p class="man-p">Quem faz o quê, e quando. Use isso pra mapear sua rotina nas funcionalidades do sistema:</p>
+        ${this._journeyMes()}
       `,
 
       dashboard: `
@@ -640,6 +729,11 @@ flowchart TD
         <h1 class="man-h1">📅 Cronograma físico-financeiro</h1>
         <p class="man-p">Planejamento de etapas (engenharia, aquisições, montagem, comissionamento) com peso, datas, custo e % executado. Aparece como nova aba dentro de cada contrato.</p>
 
+        <h2 class="man-h2">Exemplo de cronograma de obra de 6 meses</h2>
+        <p class="man-p">Pra ter ideia de como o Gantt fica preenchido, este é um exemplo realista — comercial, mobilização, 3 etapas de execução, 3 BMs intercaladas e encerramento:</p>
+        ${this._ganttObra()}
+
+        <h2 class="man-h2">Como construir o seu</h2>
         ${this._flowCronograma()}
 
         <h2 class="man-h2">Conceitos</h2>
