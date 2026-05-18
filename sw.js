@@ -153,33 +153,24 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Estáticos:
-  //  JS/CSS → cache-first (cache busta a cada deploy via VERSION → STATIC_CACHE/RUNTIME_CACHE)
-  //  Imagens/fontes → stale-while-revalidate
+  //  Todos → stale-while-revalidate.
+  //
+  //  Por que NÃO cache-first puro pra JS/CSS: dependia do SW novo ativar e
+  //  rodar clients.claim() pra invalidar o cache antigo. Em prática, o usuário
+  //  ficava preso na versão velha do código por horas — bugs corrigidos no
+  //  deploy não chegavam até ele fechar todas as abas. SWR resolve isso:
+  //  serve cache (instantâneo) E busca rede em paralelo pra atualizar o cache,
+  //  então a PRÓXIMA navegação já tem o código novo.
   if (isStatic(url)) {
-    const isCode = /\.(?:css|js)$/.test(url.pathname);
-    if (isCode) {
-      event.respondWith(
-        caches.match(req).then((cached) => {
-          if (cached) return cached;
-          return fetch(req).then((res) => {
-            const copy = res.clone();
-            caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy)).catch(() => {});
-            return res;
-          }).catch(() => new Response('', { status: 503 }));
-        })
-      );
-    } else {
-      // Imagens, fontes, SVGs: stale-while-revalidate é seguro
-      event.respondWith(
-        caches.match(req).then((cached) => {
-          const network = fetch(req).then((res) => {
-            const copy = res.clone();
-            caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy)).catch(() => {});
-            return res;
-          }).catch(() => cached);
-          return cached || network;
-        })
-      );
-    }
+    event.respondWith(
+      caches.match(req).then((cached) => {
+        const network = fetch(req).then((res) => {
+          const copy = res.clone();
+          caches.open(RUNTIME_CACHE).then((c) => c.put(req, copy)).catch(() => {});
+          return res;
+        }).catch(() => cached);
+        return cached || network;
+      })
+    );
   }
 });

@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.21",
+      "date": "2026-05-18",
+      "summary": "Service Worker: stale-while-revalidate em JS/CSS + hardening do Relatório",
+      "changes": [
+        "CAUSA RAIZ do 'mesmo erro depois do deploy' e do 'v---' no sidebar: o SW fazia cache-first puro em JS/CSS. Resultado: usuário ficava preso no código antigo até o SW novo ativar via clients.claim() — o que dependia das tabs fecharem. Bugs corrigidos no deploy não chegavam.",
+        "sw.js: JS/CSS agora usam stale-while-revalidate (mesmo que imagens). Serve cache (instantâneo) E busca rede em paralelo. Próxima navegação já tem o código novo.",
+        "Relatorio.js: as 2 chamadas de doc.line() restantes fora dos hooks (_drawKpi linha de KPI, _drawSectionTitle accent line) também migradas para _hline. Agora 100% das chamadas de line() do relatório são guardadas contra NaN/undefined."
+      ]
+    },
+    {
       "version": "1.2.20",
       "date": "2026-05-18",
       "summary": "Fix: 'Invalid arguments passed to jsPDF.line' ao gerar relatório",

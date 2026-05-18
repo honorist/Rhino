@@ -178,7 +178,7 @@
     // Linha de accent
     doc.setDrawColor(...NAVY);
     doc.setLineWidth(0.6);
-    doc.line(MARGIN, yTitle + 9, MARGIN + 14, yTitle + 9);
+    _hline(doc, MARGIN, yTitle + 9, MARGIN + 14, yTitle + 9);
 
     doc.setTextColor(...INK);
     return yTitle + 18;
@@ -206,7 +206,7 @@
     // Linha fina abaixo (separador sutil)
     doc.setDrawColor(...GREY_300);
     doc.setLineWidth(0.2);
-    doc.line(x, y + 20, x + w - 6, y + 20);
+    _hline(doc, x, y + 20, x + w - 6, y + 20);
 
     doc.setTextColor(...INK);
   }
