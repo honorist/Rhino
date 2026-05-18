@@ -1,6 +1,20 @@
 {
   "entries": [
     {
+      "version": "1.2.18",
+      "date": "2026-05-18",
+      "summary": "Relatório Gerencial redesenhado em estética executiva (Big4/auditoria)",
+      "changes": [
+        "Capa minimalista: off-white, faixa accent fina navy, hierarquia tipográfica (preamble + título 36pt + subtítulo), bloco de metadados (período, emissão, versão, classificação) e cláusula de confidencialidade. Saiu o 'R' gigante no quadradinho roxo.",
+        "Paleta reduzida a 1 cor de destaque (navy #0B2545) + escala de cinza. Removidas as cores chapadas roxo/verde/vermelho/amarelo das tabelas e KPI cards.",
+        "Sumário (Table of Contents) com numeração e linha pontilhada — padrão de relatório formal.",
+        "Seções numeradas (01, 02, ...) com título, subtítulo e linha de accent. Header minimalista (letterhead) e footer corporativo com 'Página X de Y', versão do sistema, período de referência e classificação 'CONFIDENCIAL'.",
+        "Sumário Executivo agora tem narrativa em português formal ('No período analisado, a empresa apresenta...') + 8 KPIs com variação % vs mês anterior.",
+        "Conteúdo novo: Concentração de Receita (top-5 + CR5), Aging de Contas a Receber por faixa (0/1-30/31-60/61-90/>90d), Runway de caixa, Riscos e Alertas priorizados por severidade, Notas Metodológicas com definições/fórmulas.",
+        "Tabelas com theme:'plain', sem alternância de cor, separadores em linha fina cinza, header com underline navy. Margens generosas (22mm)."
+      ]
+    },
+    {
       "version": "1.2.17",
       "date": "2026-05-18",
       "summary": "Fix: botão 'Relatório' do Dashboard (e comando do palette) não respondia",
