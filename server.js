@@ -3589,7 +3589,95 @@ const _contentTypeMap = {
   '.woff2': 'font/woff2'
 };
 
+// HTML inline bootstrap: injetado em cada response HTML com nonce CSP único.
+// Roda ANTES de qualquer outro JS — garante version-check transparente mesmo
+// quando o SW velho serve polish.js cacheado (que pode estar sem essa lógica).
+// Como HTML é no-store, esse código sempre roda fresco. Faz:
+//   1. Define window.__APP_VERSION__ pra sidebar mostrar a versão certa
+//   2. Bate em /api/health — se versão do servidor != versão dessa pagina,
+//      desregistra SWs + limpa caches + reload com cache-bust.
+//      Como o nonce muda a cada request, isso roda sempre 'no cache'.
+function _bootstrapInline(version) {
+  return `(function(){
+window.__APP_VERSION__="${version}";
+var loaded="${version}";
+function go(srv){
+  if(srv===loaded)return;
+  var key="rh:upgrade-attempt";
+  try{if(sessionStorage.getItem(key)===srv)return;sessionStorage.setItem(key,srv);}catch(e){}
+  Promise.resolve()
+    .then(function(){
+      if(!navigator.serviceWorker)return;
+      return navigator.serviceWorker.getRegistrations().then(function(rs){
+        return Promise.all(rs.map(function(r){return r.unregister().catch(function(){});}));
+      });
+    })
+    .then(function(){
+      if(!window.caches)return;
+      return caches.keys().then(function(ks){
+        return Promise.all(ks.map(function(k){return caches.delete(k).catch(function(){});}));
+      });
+    })
+    .then(function(){
+      var u=new URL(location.href);u.searchParams.set("_v",srv);
+      location.replace(u.toString());
+    });
+}
+function check(){
+  fetch("/api/health",{cache:"no-store"})
+    .then(function(r){return r.ok?r.json():null;})
+    .then(function(d){if(d&&d.version)go(d.version);})
+    .catch(function(){});
+}
+setTimeout(check,3000);
+setInterval(check,60000);
+document.addEventListener("visibilitychange",function(){
+  if(document.visibilityState==="visible")check();
+});
+})();`;
+}
+
+function _serveHtmlWithBootstrap(pathname, res) {
+  const filename = (pathname === '/' || pathname === '') ? '/index.html' : pathname;
+  const filepath = path.resolve(__dirname, '.' + filename);
+  if (!fs.existsSync(filepath)) {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('404 Not Found');
+    return;
+  }
+  // Nonce único por request — libera APENAS o nosso bootstrap inline na CSP.
+  const nonce = crypto.randomBytes(16).toString('base64');
+  const bootstrap = _bootstrapInline(APP_VERSION);
+  const html = fs.readFileSync(filepath, 'utf8').replace(
+    '</head>',
+    `<script nonce="${nonce}">${bootstrap}</script></head>`
+  );
+  // CSP com nonce — substitui a baseada em script-src 'self' apenas pra HTML.
+  const csp = [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net`,
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openstreetmap.org",
+    "connect-src 'self' https://*.openstreetmap.org https://nominatim.openstreetmap.org https://cdn.jsdelivr.net",
+    "worker-src 'self' blob:",
+    "frame-ancestors 'none'",
+  ].join('; ');
+  res.writeHead(200, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'Content-Security-Policy': csp,
+  });
+  res.end(html);
+}
+
 function serveStaticFile(pathname, res) {
+  // HTML nunca usa cache em memória — cada response tem nonce CSP único.
+  if (pathname === '/' || pathname.endsWith('.html')) {
+    return _serveHtmlWithBootstrap(pathname, res);
+  }
   // Cache check primeiro — evita path.resolve, existsSync e readFileSync na rota quente
   if (_staticCache.has(pathname)) {
     const { headers, body } = _staticCache.get(pathname);

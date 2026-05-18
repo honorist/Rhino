@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.2.25",
+      "date": "2026-05-18",
+      "summary": "Auto-update bootstrap inline com nonce CSP — funciona até pra usuários presos em SW antigo",
+      "changes": [
+        "DESCOBERTA: a CSP fechada (script-src 'self' sem unsafe-inline) do v1.2.11 estava bloqueando o <script> inline que injetava window.__APP_VERSION__. Por isso o sidebar mostrava 'v---' e o auto-update do v1.2.24 não tinha o que comparar.",
+        "FIX: cada response HTML agora gera um nonce CSP único (crypto.randomBytes), injeta um <script nonce=...> com bootstrap inline que: (1) define window.__APP_VERSION__ corretamente, (2) faz version-check em /api/health a cada 60s e em visibilitychange, (3) se versão diverge, desregistra SWs + limpa caches + reload com cache-bust. Tudo silencioso.",
+        "Como HTML é no-store e o nonce muda a cada request, o bootstrap inline sempre roda fresco — não importa quanto cache o usuário tenha. RESOLVE o caso do usuário preso em SW velho: ele abre a página, o bootstrap roda, detecta a divergência e força a atualização sem nenhuma intervenção.",
+        "Bootstrap é ~1.2 KB minificado, inline no <head>, roda antes de qualquer outro JS."
+      ]
+    },
+    {
       "version": "1.2.24",
       "date": "2026-05-18",
       "summary": "Auto-update 100% transparente: sem banner, sem botão, sem cliente fazer nada",
