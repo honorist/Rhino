@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.26",
+      "date": "2026-05-18",
+      "summary": "Fix: botões 'Excluir/Duplicar' em listas + gerente perdeu permissão de usuários",
+      "changes": [
+        "BUG ANTIGO no js/boot/inline-handlers.js: o handler de '.js-stop' chamava stopPropagation em CAPTURE phase, o que cancelava TODA propagação restante — inclusive os listeners normais (bubble) dos botões DENTRO do .js-stop. Resultado: cliques em 'Excluir', 'Duplicar', 'Editar' em qualquer linha clicável de tabela viravam no-op silencioso (caso relatado: delete de proposta na #/proposta).",
+        "Fix: o handler em capture agora ANEXA um listener one-shot no próprio .js-stop em bubble phase, em vez de parar a propagação imediatamente. Ordem correta: 1) listener do botão executa normalmente, 2) evento sobe pelo bubble, 3) ao chegar no .js-stop, propagação para — então não atinge o row pai.",
+        "Migration v1.2.26 (idempotente): re-aplica permissão '#/usuarios' + 'edit:#/usuarios' ao perfil 'gerente'. A v1.2.7 já fazia, mas em algumas instalações a permissão pode ter sido removida via UI de Níveis. Roda sempre — não duplica nem altera se já estiver presente."
+      ]
+    },
+    {
       "version": "1.2.25",
       "date": "2026-05-18",
       "summary": "Auto-update bootstrap inline com nonce CSP — funciona até pra usuários presos em SW antigo",
