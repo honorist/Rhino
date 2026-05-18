@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.17",
+      "date": "2026-05-18",
+      "summary": "Fix: botão 'Relatório' do Dashboard (e comando do palette) não respondia",
+      "changes": [
+        "Mesmo padrão dos bugs do v1.2.14: Relatorio.js é lazy (só carrega ao entrar em #/relatorios). O onclick chamava window.RhinoRelatorio?.gerar?.() — com o optional chaining engolindo undefined, o click virava no-op silencioso quando o usuário nunca tinha visitado a tela de relatórios.",
+        "Dashboard.js: botão '📄 Relatório' agora pré-carrega Relatorio.js via _loadLazyForPattern('#/relatorios') antes de chamar gerar(). Se mesmo após o load o módulo não estiver disponível, mostra alert + log de erro.",
+        "polish.js: mesmo fix aplicado no item 'Gerar Relatório PDF' do command palette (Ctrl+K)."
+      ]
+    },
+    {
       "version": "1.2.16",
       "date": "2026-05-18",
       "summary": "Docs: README + ARCHITECTURE reescritos e Manual com novos diagramas",

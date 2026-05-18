@@ -1297,7 +1297,23 @@ window.Dashboard = {
     btnRel.className = 'btn btn-secondary btn-sm';
     btnRel.innerHTML = '📄 Relatório';
     btnRel.title = 'Gerar relatório gerencial em PDF';
-    btnRel.addEventListener('click', () => window.RhinoRelatorio?.gerar?.());
+    btnRel.addEventListener('click', async () => {
+      // FIX silent-failure: Relatorio.js é lazy (só carrega em #/relatorios).
+      // Sem este preload o ?. engole o undefined e o click vira no-op silencioso.
+      try {
+        if (typeof _loadLazyForPattern === 'function' && !window.RhinoRelatorio) {
+          await _loadLazyForPattern('#/relatorios');
+        }
+      } catch (e) {
+        console.warn('[Dashboard] lazy-load de Relatorio falhou:', e?.message || e);
+      }
+      if (window.RhinoRelatorio?.gerar) {
+        window.RhinoRelatorio.gerar();
+      } else {
+        console.error('[Dashboard] RhinoRelatorio.gerar indisponível após lazy-load');
+        alert('Não foi possível carregar o gerador de relatório. Recarregue a página e tente novamente.');
+      }
+    });
 
     ctrl.appendChild(btnRel); // Relatório primeiro
     ctrl.appendChild(btn);    // Personalizar depois

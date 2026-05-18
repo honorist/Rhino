@@ -500,7 +500,16 @@ if (window.getCommandIndex) {
   window.getCommandIndex = function() {
     const list = orig();
     list.push({ label: 'Imprimir / Exportar PDF', run: () => window.RhinoPrint.print() });
-    list.push({ label: 'Gerar Relatório PDF', run: () => window.RhinoRelatorio?.gerar?.() });
+    list.push({ label: 'Gerar Relatório PDF', run: async () => {
+      // FIX silent-failure: Relatorio.js é lazy. Carrega antes pra evitar que o ?. engula undefined.
+      try {
+        if (typeof _loadLazyForPattern === 'function' && !window.RhinoRelatorio) {
+          await _loadLazyForPattern('#/relatorios');
+        }
+      } catch (e) { console.warn('[polish] lazy-load de Relatorio falhou:', e?.message || e); }
+      if (window.RhinoRelatorio?.gerar) window.RhinoRelatorio.gerar();
+      else alert('Não foi possível carregar o gerador de relatório.');
+    } });
     return list;
   };
 }
