@@ -28,25 +28,85 @@
   const MARGIN    = 22;               // margens generosas (Big4 padrão)
   const CONTENT_W = PAGE_W - 2 * MARGIN;
 
-  // ── Header minimalista (letterhead) ──────────────────────────
+  // ── Logo (cacheada após primeira leitura) ────────────────────
+  let _logoDataUrl = null;
+  let _logoRatio   = 2.67; // largura/altura (fallback caso falhe a leitura)
+
+  async function _loadLogo() {
+    if (_logoDataUrl) return _logoDataUrl;
+    try {
+      const resp = await fetch('assets/logo.png');
+      if (!resp.ok) return null;
+      const blob = await resp.blob();
+      const dataUrl = await new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+      if (!dataUrl) return null;
+      // Lê dimensões reais pra preservar proporção no PDF
+      const ratio = await new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => resolve(img.naturalWidth / img.naturalHeight);
+        img.onerror = () => resolve(_logoRatio);
+        img.src = dataUrl;
+      });
+      _logoDataUrl = dataUrl;
+      _logoRatio = ratio || _logoRatio;
+      return _logoDataUrl;
+    } catch (e) {
+      console.warn('[RhinoRelatorio] falha ao carregar logo:', e?.message || e);
+      return null;
+    }
+  }
+
+  // Embute logo mantendo proporção. Recebe altura desejada (mm).
+  function _drawLogo(doc, x, y, heightMm) {
+    if (!_logoDataUrl) return 0;
+    const w = heightMm * _logoRatio;
+    try {
+      doc.addImage(_logoDataUrl, 'PNG', x, y, w, heightMm);
+      return w;
+    } catch (e) {
+      console.warn('[RhinoRelatorio] addImage falhou:', e?.message || e);
+      return 0;
+    }
+  }
+
+  // ── Header minimalista (letterhead com logo) ─────────────────
   function _drawLetterhead(doc, secaoNum, secaoTitulo) {
-    // Linha fina + texto top-left "RHINO" e top-right "01 · Sumário"
+    // Logo pequeno top-left + label discreta ao lado
+    const logoH = 7; // mm — bem discreto no header
+    const logoW = _drawLogo(doc, MARGIN, 5, logoH);
+
+    if (logoW > 0) {
+      doc.setFont(FONT, 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...GREY_500);
+      doc.text('RELATÓRIO GERENCIAL', MARGIN + logoW + 4, 10);
+    } else {
+      // Fallback: só texto se a logo não carregar
+      doc.setFont(FONT, 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(...NAVY);
+      doc.text('RHINO', MARGIN, 10);
+      doc.setFont(FONT, 'normal');
+      doc.setTextColor(...GREY_500);
+      doc.text('RELATÓRIO GERENCIAL', MARGIN + 18, 10);
+    }
+
+    // Linha fina abaixo do letterhead
     doc.setDrawColor(...NAVY);
     doc.setLineWidth(0.4);
-    doc.line(MARGIN, 14, PAGE_W - MARGIN, 14);
-
-    doc.setFont(FONT, 'bold');
-    doc.setFontSize(8);
-    doc.setTextColor(...NAVY);
-    doc.text('RHINO', MARGIN, 11);
-
-    doc.setFont(FONT, 'normal');
-    doc.setTextColor(...GREY_500);
-    doc.text('RELATÓRIO GERENCIAL', MARGIN + 18, 11);
+    doc.line(MARGIN, 15, PAGE_W - MARGIN, 15);
 
     if (secaoNum) {
       const txt = String(secaoNum).padStart(2, '0') + '  ·  ' + (secaoTitulo || '').toUpperCase();
-      doc.text(txt, PAGE_W - MARGIN, 11, { align: 'right' });
+      doc.setFont(FONT, 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...GREY_500);
+      doc.text(txt, PAGE_W - MARGIN, 10, { align: 'right' });
     }
     doc.setTextColor(...INK);
   }
@@ -310,40 +370,45 @@
     return (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
   }
 
-  // ── PÁGINA 1: Capa minimalista ───────────────────────────────
+  // ── PÁGINA 1: Capa minimalista com logo ──────────────────────
   function _paginaCapa(doc, periodoLabel) {
     // Fundo off-white sutil
     doc.setFillColor(...PAPER);
     doc.rect(0, 0, PAGE_W, PAGE_H, 'F');
 
-    // Faixa accent fina superior esquerda
+    // Logo no topo da capa — alta proeminência (altura 22mm)
+    const logoH = 22;
+    const logoW = _drawLogo(doc, MARGIN, 18, logoH);
+    if (logoW === 0) {
+      // Fallback se a logo não carregar
+      doc.setFont(FONT, 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(...NAVY);
+      doc.text('RHINO', MARGIN, 22);
+      doc.setFont(FONT, 'normal');
+      doc.setTextColor(...GREY_500);
+      doc.text('GESTÃO EMPRESARIAL', MARGIN + 18, 22);
+    }
+
+    // Faixa accent fina vertical à esquerda do bloco do título
     doc.setFillColor(...NAVY);
-    doc.rect(MARGIN, 32, 1.2, 40, 'F');
+    doc.rect(MARGIN, 60, 1.2, 40, 'F');
 
-    // "RHINO" pequeno topo
-    doc.setFont(FONT, 'bold');
-    doc.setFontSize(8);
-    doc.setTextColor(...NAVY);
-    doc.text('RHINO', MARGIN, 18);
-    doc.setFont(FONT, 'normal');
-    doc.setTextColor(...GREY_500);
-    doc.text('GESTÃO EMPRESARIAL', MARGIN + 18, 18);
-
-    // Bloco principal — título à esquerda da faixa
+    // Bloco principal — título à direita da faixa accent
     doc.setFont(FONT, 'normal');
     doc.setFontSize(11);
     doc.setTextColor(...GREY_500);
-    doc.text('RELATÓRIO', MARGIN + 8, 42);
+    doc.text('RELATÓRIO', MARGIN + 8, 70);
 
     doc.setFont(FONT, 'bold');
     doc.setFontSize(36);
     doc.setTextColor(...INK);
-    doc.text('Gerencial', MARGIN + 8, 56);
+    doc.text('Gerencial', MARGIN + 8, 84);
 
     doc.setFont(FONT, 'normal');
     doc.setFontSize(14);
     doc.setTextColor(...GREY_700);
-    doc.text('Análise consolidada da operação', MARGIN + 8, 68);
+    doc.text('Análise consolidada da operação', MARGIN + 8, 96);
 
     // Bloco metadados — meio da página
     const yMeta = 130;
@@ -915,7 +980,7 @@
       window.showToast('Gerando relatório executivo…', 'info');
       try {
         await RhinoLazy.ensure(['jspdf', 'jspdf-autotable']);
-        await Store.loadAll();
+        await Promise.all([Store.loadAll(), _loadLogo()]);
 
         const nfsList = Store.state.notas_fiscais || [];
         const cpList  = Store.state.contas_pagar  || [];

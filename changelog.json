@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.2.19",
+      "date": "2026-05-18",
+      "summary": "Relatório Gerencial: logomarca Rhino na capa e no header de cada página",
+      "changes": [
+        "Capa: 'RHINO' textual substituído pelo logo real (assets/logo.png) em destaque no topo, altura 22mm. Bloco de título desceu pra acomodar.",
+        "Header (letterhead): logo discreto em 7mm de altura, mantém proporção real lida do arquivo (sem distorção).",
+        "Fallback automático: se a logo não carregar (fetch falha), volta para o texto 'RHINO' + 'RELATÓRIO GERENCIAL' usado antes.",
+        "Logo é cacheada após a primeira leitura — gerar relatórios em sequência não rebusca o arquivo."
+      ]
+    },
+    {
       "version": "1.2.18",
       "date": "2026-05-18",
       "summary": "Relatório Gerencial redesenhado em estética executiva (Big4/auditoria)",
