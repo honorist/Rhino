@@ -50,6 +50,7 @@ const _lazyManifest = {
   ]},
   '#/clausulas':           { viewName: 'Clausulas',          scripts: ['./js/views/Clausulas.js'] },
   '#/apresentacao':        { viewName: 'Apresentacao',       scripts: ['./js/views/Apresentacao.js'] },
+  '#/folha-pagamento':     { viewName: 'FolhaPagamento',     scripts: ['./js/views/FolhaPagamento.js'] },
 };
 
 const _lazyLoaded = new Set();
@@ -97,6 +98,7 @@ const routes = {
   '#/obras':        { view: window.Obras,          label: 'Mapa de Obras',   icon: _ic('map-pin'),         group: 'obras' },
   '#/clientes':     { view: window.Clientes,       label: 'Clientes',        icon: _ic('users'),       group: 'rh' },
   '#/recursos':     { view: window.Recursos,       label: 'Recursos',        icon: _ic('user-plus'),   group: 'rh' },
+  '#/folha-pagamento': { view: null,               label: 'Folha de Pagamento', icon: _ic('credit-card'), group: 'rh' },
   '#/documentos':   { view: window.Documentos,     label: 'Documentação',    icon: _ic('file-text'),   group: 'rh' },
   '#/fornecedores': { view: window.Fornecedores,   label: 'Fornecedores',    icon: _ic('truck'),       group: 'rh' },
   '#/caixa':        { view: window.Caixa,          label: 'Caixa',           icon: _ic('wallet'),      group: 'financeiro' },

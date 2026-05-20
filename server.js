@@ -80,6 +80,7 @@ const AUDIT_BEFORE_LOOKUP = {
   'niveis-acesso':  (id) => repos.niveisAcesso && repos.niveisAcesso.findById && repos.niveisAcesso.findById(id),
   'doc-templates':  (id) => repos.docTemplates && repos.docTemplates.findById && repos.docTemplates.findById(id),
   'users':          (id) => repos.users && repos.users.findById && repos.users.findById(id),
+  'folha-pagamento':(id) => repos.folhaPagamento && repos.folhaPagamento.findById && repos.folhaPagamento.findById(id),
 };
 
 function _auditFriendlyLabel(obj) {
@@ -2828,6 +2829,164 @@ async function handleEstornarConta(id, res) {
   }
 }
 
+// ============ Folha de Pagamento handlers ============
+const VALE_PCT = 0.40; // adiantamento (vale) = 40% do salário
+
+// POST /api/folha-pagamento/gerar — gera as linhas de folha do mês (idempotente).
+async function handleGerarFolha(body, res) {
+  try {
+    const competencia = (body && body.competencia) || new Date().toISOString().slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(competencia)) {
+      return sendError(res, 400, 'Competência inválida (use YYYY-MM)');
+    }
+    const [ano, mes] = competencia.split('-').map(Number);
+    const ultimoDia = String(new Date(ano, mes, 0).getDate()).padStart(2, '0');
+    const dataRef = `${competencia}-${ultimoDia}`;
+
+    const recursos = await repos.recursos.findAll();
+    const funcs = recursos.filter(r => r.status === 'funcionario' && parseFloat(r.salario) > 0);
+    const jaTem = new Set((await repos.folhaPagamento.findByCompetencia(competencia)).map(f => f.recursoId));
+
+    let criadas = 0;
+    for (const r of funcs) {
+      if (jaTem.has(r.id)) continue;
+      const salario = parseFloat(r.salario) || 0;
+      const contractId = (r.alocacaoAtual && r.alocacaoAtual.contractId) || null;
+      const elegivel = !!r.elegivelVale;
+      const valorVale = elegivel ? Math.round(salario * VALE_PCT * 100) / 100 : 0;
+      const valorSaldo = Math.round((salario - valorVale) * 100) / 100;
+
+      // Sede (sem contrato) → o salário vira um item BASE (rastreável, rateável).
+      const baseItemId = contractId ? null : generateId('bas');
+
+      const folhaRow = {
+        id: generateId('flh'),
+        recursoId: r.id,
+        recursoNome: r.nome || '',
+        competencia,
+        salarioBase: salario,
+        elegivelVale: elegivel,
+        contractId,
+        baseItemId,
+        valorVale,
+        valorSaldo,
+        valePago: false,
+        valeDataPagamento: null,
+        valeCaixaEntryId: null,
+        saldoPago: false,
+        saldoDataPagamento: null,
+        saldoCaixaEntryId: null,
+        observacoes: contractId ? '' : 'Despesa da Sede (BASE)',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      try {
+        await repos.folhaPagamento.create(folhaRow);
+      } catch (e) {
+        if (e && e.code === '23505') continue; // já existe (corrida) — idempotente
+        throw e;
+      }
+      // base_item criado só depois que a linha de folha "pegou" — evita órfão.
+      if (baseItemId) {
+        await repos.baseItems.create({
+          id: baseItemId,
+          description: `Salário ${r.nome || ''} — ${competencia}`,
+          type: 'salario',
+          value: salario,
+          date: dataRef,
+          notes: `Folha de pagamento ${competencia}`,
+          metadata: JSON.stringify({ origem: 'folha', recursoId: r.id, competencia }),
+        });
+      }
+      criadas++;
+    }
+    const folha = await repos.folhaPagamento.findByCompetencia(competencia);
+    sendJson(res, { competencia, criadas, folha });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+// GET /api/folha-pagamento?competencia=YYYY-MM
+async function handleGetFolha(query, res) {
+  try {
+    const competencia = (query && query.competencia) || new Date().toISOString().slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(competencia)) {
+      return sendError(res, 400, 'Competência inválida (use YYYY-MM)');
+    }
+    const folha = await repos.folhaPagamento.findByCompetencia(competencia);
+    sendJson(res, { competencia, folha });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
+// POST /api/folha-pagamento/:id/pagar — paga uma parcela (vale|saldo).
+async function handlePagarFolhaParcela(id, body, res) {
+  try {
+    const parcela = body && body.parcela;
+    if (parcela !== 'vale' && parcela !== 'saldo') {
+      return sendError(res, 400, "Campo 'parcela' deve ser 'vale' ou 'saldo'");
+    }
+    const folha = await db.withTransaction(async (client) => {
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('folha:' || $1)::int)", [id]);
+      const f = await repos.folhaPagamento.findById(id);
+      if (!f) { const e = new Error('Registro de folha não encontrado'); e.statusCode = 404; throw e; }
+      if (parcela === 'vale' && f.valePago)   { const e = new Error('Vale já foi pago');  e.statusCode = 400; throw e; }
+      if (parcela === 'saldo' && f.saldoPago) { const e = new Error('Saldo já foi pago'); e.statusCode = 400; throw e; }
+      const valor = parcela === 'vale' ? parseFloat(f.valorVale) : parseFloat(f.valorSaldo);
+      if (!(valor > 0)) { const e = new Error('Esta parcela não tem valor a pagar'); e.statusCode = 400; throw e; }
+
+      const dataPagamento = (body && body.dataPagamento) || new Date().toISOString().split('T')[0];
+      const label = parcela === 'vale' ? 'Vale' : 'Saldo';
+      const caixaEntry = {
+        id: generateId('cxa'),
+        type: 'saida',
+        description: `${label} salário ${f.recursoNome} — ${f.competencia}` +
+          (body && body.formaPagamento ? ` [${body.formaPagamento}]` : ''),
+        value: valor,
+        date: dataPagamento,
+        contractId: f.contractId || null,
+        baseItemId: f.baseItemId || null,
+        category: f.contractId ? 'mao_de_obra' : 'base',
+        notes: `Folha de pagamento ${f.competencia} — ${label}`,
+        formaPagamento: (body && body.formaPagamento) || null,
+        folhaPagamentoId: f.id,
+        createdAt: new Date().toISOString(),
+      };
+      await repos.caixa.create(caixaEntry);
+      const patch = parcela === 'vale'
+        ? { valePago: true, valeDataPagamento: dataPagamento, valeCaixaEntryId: caixaEntry.id, updatedAt: new Date().toISOString() }
+        : { saldoPago: true, saldoDataPagamento: dataPagamento, saldoCaixaEntryId: caixaEntry.id, updatedAt: new Date().toISOString() };
+      return repos.folhaPagamento.updateById(id, patch);
+    });
+    sendJson(res, { folha });
+  } catch (e) {
+    sendError(res, e.statusCode || 400, e.message);
+  }
+}
+
+// POST /api/folha-pagamento/:id/estornar — estorna uma parcela (vale|saldo).
+async function handleEstornarFolhaParcela(id, body, res) {
+  try {
+    const parcela = body && body.parcela;
+    if (parcela !== 'vale' && parcela !== 'saldo') {
+      return sendError(res, 400, "Campo 'parcela' deve ser 'vale' ou 'saldo'");
+    }
+    const f = await repos.folhaPagamento.findById(id);
+    if (!f) return sendError(res, 404, 'Registro de folha não encontrado');
+    const caixaEntryId = parcela === 'vale' ? f.valeCaixaEntryId : f.saldoCaixaEntryId;
+    if (caixaEntryId) await repos.caixa.removeById(caixaEntryId);
+    const patch = parcela === 'vale'
+      ? { valePago: false, valeDataPagamento: null, valeCaixaEntryId: null, updatedAt: new Date().toISOString() }
+      : { saldoPago: false, saldoDataPagamento: null, saldoCaixaEntryId: null, updatedAt: new Date().toISOString() };
+    const folha = await repos.folhaPagamento.updateById(id, patch);
+    sendJson(res, { folha });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
 // ============ Notas Fiscais handlers ============
 async function handleGetNotasFiscais(res) {
   const data = await readCollection('notas_fiscais.json', 'notasFiscais', 'notas_fiscais');
@@ -4141,6 +4300,7 @@ const MUTATION_PERMISSION_RULES = [
   { re: /^\/api\/notas-fiscais(\/|$)/,      screens: ['#/notas-fiscais', '#/contratos'] },
   { re: /^\/api\/contas-pagar(\/|$)/,       screens: ['#/contas-pagar'] },
   { re: /^\/api\/recursos(\/|$)/,           screens: ['#/recursos'] },
+  { re: /^\/api\/folha-pagamento(\/|$)/,    screens: ['#/folha-pagamento'] },
 ];
 
 /**
@@ -4608,6 +4768,20 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   }
   if (pathname.match(/^\/api\/contas-pagar\/[^/]+\/estornar$/) && method === 'POST') {
     return handleEstornarConta(pathname.split('/')[3], res);
+  }
+
+  // Folha de Pagamento routes
+  if (pathname === '/api/folha-pagamento' && method === 'GET') {
+    return handleGetFolha(parsedUrl.query, res);
+  }
+  if (pathname === '/api/folha-pagamento/gerar' && method === 'POST') {
+    return handleGerarFolha(body, res);
+  }
+  if (pathname.match(/^\/api\/folha-pagamento\/[^/]+\/pagar$/) && method === 'POST') {
+    return handlePagarFolhaParcela(pathname.split('/')[3], body, res);
+  }
+  if (pathname.match(/^\/api\/folha-pagamento\/[^/]+\/estornar$/) && method === 'POST') {
+    return handleEstornarFolhaParcela(pathname.split('/')[3], body, res);
   }
 
   // Notas Fiscais routes

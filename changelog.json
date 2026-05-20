@@ -1,6 +1,19 @@
 {
   "entries": [
     {
+      "version": "1.2.32",
+      "date": "2026-05-20",
+      "summary": "Novo módulo: Folha de Pagamento de colaboradores (salário + vale, controle mensal pago/pendente)",
+      "changes": [
+        "Nova tela 'Folha de Pagamento' (#/folha-pagamento) — visão mensal por colaborador: gera a folha do mês e controla pago/pendente do vale e do saldo.",
+        "Vale = adiantamento de 40% para colaboradores marcados como elegíveis (novo campo 'Elegível a vale' no cadastro do Recurso); saldo de 60% no fim do mês. Sem vale = 100% no saldo.",
+        "O custo do colaborador entra como despesa do contrato onde ele está alocado; sem alocação a contrato, entra na Sede — gera um item no módulo BASE (rastreável e rateável).",
+        "Ao pagar uma parcela, é gerado lançamento no Caixa com vínculo bidirecional folha↔caixa. Estorno remove o lançamento. Toda ação (gerar/pagar/estornar) é auditada.",
+        "Banco: nova tabela folha_pagamento; colunas novas recursos.elegivel_vale e caixa.folha_pagamento_id. Migration idempotente — não altera dados existentes.",
+        "Permissão #/folha-pagamento concedida a admin/gerente; enforcement server-side (C-04) nos endpoints /api/folha-pagamento/*."
+      ]
+    },
+    {
       "version": "1.2.31",
       "date": "2026-05-20",
       "summary": "Fix: botão 'Gerenciar em Recursos' no detalhe do colaborador não fazia nada quando aberto da própria tela de Recursos",

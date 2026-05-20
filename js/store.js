@@ -29,6 +29,7 @@ window.Store = {
     veiculos: [],
     propostas: [],
     clausulas: [],
+    folha: [],
     dashboard: null,
     loading: false,
     error: null
@@ -1037,6 +1038,39 @@ window.Store = {
     if (!res.ok) throw new Error(await res.text());
     const r = await res.json();
     this.state.contas_pagar = r.contas || []; this.notify(); return r;
+  },
+
+  // Folha de Pagamento
+  async loadFolha(competencia) {
+    const res = await fetch('/api/folha-pagamento?competencia=' + encodeURIComponent(competencia));
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this.state.folha = r.folha || []; this.notify(); return r;
+  },
+  async gerarFolha(competencia) {
+    const res = await fetch('/api/folha-pagamento/gerar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ competencia }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this.state.folha = r.folha || []; this.notify(); return r;
+  },
+  async pagarFolhaParcela(id, dados) {
+    const res = await fetch(`/api/folha-pagamento/${id}/pagar`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dados),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  },
+  async estornarFolhaParcela(id, parcela) {
+    const res = await fetch(`/api/folha-pagamento/${id}/estornar`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ parcela }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
   },
 
   async loadNiveisAcesso() {

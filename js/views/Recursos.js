@@ -358,6 +358,15 @@ window.Recursos = {
               </div>
               <div class="form-row">
                 <div class="form-group">
+                  <label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                    <input type="checkbox" name="elegivelVale" ${r?.elegivelVale ? 'checked' : ''}>
+                    Elegível a vale (adiantamento de 40% do salário)
+                  </label>
+                  <div class="form-helper">Se marcado, a Folha de Pagamento gera um vale de 40% além do saldo de 60%.</div>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
                   <label class="form-label">CNH</label>
                   <select class="form-control" name="cnh">
                     <option value="" ${!r?.cnh ? 'selected' : ''}>Não possui</option>
@@ -460,6 +469,7 @@ window.Recursos = {
       const data = Object.fromEntries(fd);
       if (!data.nome?.trim()) { window.showToast('Nome é obrigatório', 'error'); return; }
       if (data.salario) data.salario = window.BRLInput.parse(data.salario);
+      data.elegivelVale = !!data.elegivelVale;
 
       // Montar alocacaoAtual
       if (data.alocacao_contractId) {

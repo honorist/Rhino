@@ -125,6 +125,7 @@ CREATE TABLE IF NOT EXISTS recursos (
   profissao           TEXT,
   data_admissao       DATE,
   salario             NUMERIC(15,2) DEFAULT 0,
+  elegivel_vale       BOOLEAN NOT NULL DEFAULT FALSE,
   cnh                 TEXT,
   pis                 TEXT,
   data_desligamento   DATE,
@@ -233,6 +234,7 @@ CREATE TABLE IF NOT EXISTS caixa (
   forma_pagamento   TEXT,
   conta_pagar_id    TEXT REFERENCES contas_pagar(id) ON DELETE SET NULL,
   nf_id             TEXT REFERENCES notas_fiscais(id) ON DELETE SET NULL,
+  folha_pagamento_id TEXT,
   created_at        TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -240,6 +242,32 @@ CREATE INDEX IF NOT EXISTS idx_caixa_date ON caixa (date);
 CREATE INDEX IF NOT EXISTS idx_caixa_type ON caixa (type);
 CREATE INDEX IF NOT EXISTS idx_caixa_contract ON caixa (contract_id);
 CREATE INDEX IF NOT EXISTS idx_caixa_category ON caixa (category);
+CREATE INDEX IF NOT EXISTS idx_caixa_folha ON caixa (folha_pagamento_id);
+
+-- ============ Folha de Pagamento ============
+CREATE TABLE IF NOT EXISTS folha_pagamento (
+  id                   TEXT PRIMARY KEY,
+  recurso_id           TEXT NOT NULL REFERENCES recursos(id) ON DELETE RESTRICT,
+  recurso_nome         TEXT NOT NULL DEFAULT '',
+  competencia          TEXT NOT NULL,
+  salario_base         NUMERIC(15,2) NOT NULL DEFAULT 0,
+  elegivel_vale        BOOLEAN NOT NULL DEFAULT FALSE,
+  contract_id          TEXT REFERENCES contracts(id)  ON DELETE SET NULL,
+  base_item_id         TEXT REFERENCES base_items(id) ON DELETE SET NULL,
+  valor_vale           NUMERIC(15,2) NOT NULL DEFAULT 0,
+  valor_saldo          NUMERIC(15,2) NOT NULL DEFAULT 0,
+  vale_pago            BOOLEAN NOT NULL DEFAULT FALSE,
+  vale_data_pagamento  DATE,
+  vale_caixa_entry_id  TEXT,
+  saldo_pago           BOOLEAN NOT NULL DEFAULT FALSE,
+  saldo_data_pagamento DATE,
+  saldo_caixa_entry_id TEXT,
+  observacoes          TEXT,
+  created_at           TIMESTAMPTZ DEFAULT NOW(),
+  updated_at           TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_folha_recurso_comp ON folha_pagamento (recurso_id, competencia);
+CREATE INDEX IF NOT EXISTS idx_folha_competencia ON folha_pagamento (competencia);
 
 -- ============ Investimentos / Aportes ============
 CREATE TABLE IF NOT EXISTS investimentos (
