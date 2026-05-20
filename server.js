@@ -2880,13 +2880,8 @@ async function handleGerarFolha(body, res) {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      try {
-        await repos.folhaPagamento.create(folhaRow);
-      } catch (e) {
-        if (e && e.code === '23505') continue; // já existe (corrida) — idempotente
-        throw e;
-      }
-      // base_item criado só depois que a linha de folha "pegou" — evita órfão.
+      // O base_item da Sede precisa existir ANTES da linha de folha: a FK
+      // folha_pagamento.base_item_id → base_items(id) exige o pai primeiro.
       if (baseItemId) {
         await repos.baseItems.create({
           id: baseItemId,
@@ -2897,6 +2892,14 @@ async function handleGerarFolha(body, res) {
           notes: `Folha de pagamento ${competencia}`,
           metadata: JSON.stringify({ origem: 'folha', recursoId: r.id, competencia }),
         });
+      }
+      try {
+        await repos.folhaPagamento.create(folhaRow);
+      } catch (e) {
+        // Folha não "pegou" — remove o base_item órfão recém-criado.
+        if (baseItemId) await repos.baseItems.removeById(baseItemId).catch(() => {});
+        if (e && e.code === '23505') continue; // já existe (corrida) — idempotente
+        throw e;
       }
       criadas++;
     }
@@ -3869,7 +3872,7 @@ function serveStaticFile(pathname, res) {
   {
     const _seg = pathname.split('/')[1] || '';
     const _PUBLIC_DIRS = ['js', 'css', 'assets'];
-    const _PUBLIC_FILES = ['/sw.js', '/manifest.webmanifest'];
+    const _PUBLIC_FILES = ['/sw.js', '/manifest.webmanifest', '/changelog.json'];
     if (!_PUBLIC_DIRS.includes(_seg) && !_PUBLIC_FILES.includes(pathname)) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('404 Not Found');

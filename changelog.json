@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.2.34",
+      "date": "2026-05-20",
+      "summary": "Fix: 'Erro ao gerar folha do mês' e 'Não foi possível carregar o histórico de atualizações'",
+      "changes": [
+        "BUG (v1.2.32): gerar a folha do mês falhava com 'Erro interno do servidor' quando havia colaborador sem contrato (Sede). O código inseria a linha de folha_pagamento antes de criar o item BASE que a foreign key base_item_id exige — violava a constraint folha_pagamento_base_item_id_fkey.",
+        "Fix (server.js, handleGerarFolha): o item BASE da Sede passa a ser criado ANTES da linha de folha; se a inserção da folha falhar, o item BASE órfão é removido (preserva a garantia anti-órfão original).",
+        "BUG (regressão do hardening de segurança H-01): o allowlist de estáticos públicos bloqueava /changelog.json (404), e a aba 'Atualizações' exibia 'Não foi possível carregar o histórico de atualizações'.",
+        "Fix (server.js): /changelog.json incluído no allowlist de arquivos públicos — é histórico de versões em linguagem leiga, sem dado sensível."
+      ]
+    },
+    {
       "version": "1.2.33",
       "date": "2026-05-20",
       "summary": "Fix: Dashboard quebrava com 'Erro ao carregar dashboard' (ReferenceError: rdoStats)",
