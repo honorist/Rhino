@@ -5,12 +5,31 @@
  * Uso:
  *   node scripts/check-deploy.js https://rhino-production.up.railway.app admin@empresa.com SenhaForte
  */
-const url = process.argv[2];
-const email = process.argv[3];
-const password = process.argv[4];
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+// FIX C-01: credenciais via env vars ou ~/.rhino-deploy-creds (HOME do usuário,
+// fora do OneDrive) — evita senha na linha de comando / em arquivo sincronizado.
+function loadCreds() {
+  if (process.env.RHINO_ADMIN_EMAIL && process.env.RHINO_ADMIN_PASSWORD) {
+    return { email: process.env.RHINO_ADMIN_EMAIL, password: process.env.RHINO_ADMIN_PASSWORD };
+  }
+  const credPath = path.join(os.homedir(), '.rhino-deploy-creds');
+  if (fs.existsSync(credPath)) {
+    try { return JSON.parse(fs.readFileSync(credPath, 'utf8')); } catch { /* ignora */ }
+  }
+  return {};
+}
+
+const _creds = loadCreds();
+const url = process.argv[2] || process.env.RHINO_URL || 'https://rhino.up.railway.app';
+const email = process.argv[3] || _creds.email;
+const password = process.argv[4] || _creds.password;
 
 if (!url || !email || !password) {
   console.error('Uso: node scripts/check-deploy.js <URL> <ADMIN_EMAIL> <ADMIN_PASSWORD>');
+  console.error('  ou defina RHINO_ADMIN_EMAIL / RHINO_ADMIN_PASSWORD (e RHINO_URL).');
   process.exit(1);
 }
 

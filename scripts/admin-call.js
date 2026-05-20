@@ -7,14 +7,20 @@ const https = require('https');
 const { URL } = require('url');
 
 const HOST = process.env.RHINO_HOST || 'rhino.up.railway.app';
-const ROOT = path.resolve(__dirname, '..');
-
 function loadCreds() {
-  const credPath = path.join(ROOT, '.rhino-deploy-creds');
   if (process.env.RHINO_ADMIN_EMAIL && process.env.RHINO_ADMIN_PASSWORD) {
     return { email: process.env.RHINO_ADMIN_EMAIL, password: process.env.RHINO_ADMIN_PASSWORD };
   }
-  return JSON.parse(fs.readFileSync(credPath, 'utf8'));
+  // FIX C-01: o arquivo de credenciais fica no HOME do usuário, FORA da pasta
+  // do projeto (que sincroniza no OneDrive — senha não pode ir para a nuvem).
+  const credPath = path.join(require('os').homedir(), '.rhino-deploy-creds');
+  if (fs.existsSync(credPath)) {
+    return JSON.parse(fs.readFileSync(credPath, 'utf8'));
+  }
+  throw new Error(
+    'Credenciais ausentes. Defina RHINO_ADMIN_EMAIL e RHINO_ADMIN_PASSWORD, ' +
+    `ou crie ${credPath} (JSON: {"email","password"}).`
+  );
 }
 
 function request(method, urlStr, { headers = {}, body } = {}) {

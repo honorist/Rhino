@@ -6,12 +6,12 @@
 //   node scripts/backup-prod.js
 //
 // Configuração (uma vez):
-//   Crie .rhino-deploy-creds (JSON, gitignored) na raiz do projeto:
-//     { "email": "admin@dominio", "password": "..." }
-//   OU exporte vars de ambiente RHINO_ADMIN_EMAIL e RHINO_ADMIN_PASSWORD.
+//   Exporte RHINO_ADMIN_EMAIL e RHINO_ADMIN_PASSWORD,
+//   OU crie ~/.rhino-deploy-creds (JSON) no HOME do usuário — NUNCA na pasta
+//   do projeto, que sincroniza no OneDrive. Formato: { "email", "password" }
 //
 // O script:
-//   1. Lê credenciais (env vars > .rhino-deploy-creds)
+//   1. Lê credenciais (env vars > ~/.rhino-deploy-creds)
 //   2. Loga em https://rhino.up.railway.app/api/auth/login → guarda cookie
 //   3. Chama /api/backup/download → salva JSON e versão
 //   4. Sai com código 0 se OK; ≠0 em qualquer falha (use em CI / pre-push hook)
@@ -29,15 +29,17 @@ function loadCreds() {
   if (process.env.RHINO_ADMIN_EMAIL && process.env.RHINO_ADMIN_PASSWORD) {
     return { email: process.env.RHINO_ADMIN_EMAIL, password: process.env.RHINO_ADMIN_PASSWORD };
   }
-  const credPath = path.join(ROOT, '.rhino-deploy-creds');
+  // FIX C-01: arquivo de credenciais no HOME do usuário, FORA da pasta do
+  // projeto (que sincroniza no OneDrive — senha não pode ir para a nuvem).
+  const credPath = path.join(require('os').homedir(), '.rhino-deploy-creds');
   if (fs.existsSync(credPath)) {
     try { return JSON.parse(fs.readFileSync(credPath, 'utf8')); } catch (e) {
       throw new Error(`Falha ao ler ${credPath}: ${e.message}`);
     }
   }
   throw new Error(
-    'Credenciais ausentes. Crie .rhino-deploy-creds (JSON com email/password) ' +
-    'OU exporte RHINO_ADMIN_EMAIL e RHINO_ADMIN_PASSWORD.'
+    'Credenciais ausentes. Exporte RHINO_ADMIN_EMAIL e RHINO_ADMIN_PASSWORD, ' +
+    `ou crie ${credPath} (JSON com email/password).`
   );
 }
 
