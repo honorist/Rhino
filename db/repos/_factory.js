@@ -42,7 +42,16 @@ const DEFAULT_LIMIT = 5000;
  * @returns {Repo}
  */
 function createRepo(table, opts = {}) {
+  // FIX C-03: defesa em profundidade — `table` e `orderBy` entram cru no SQL.
+  // Hoje só vêm de literais; validar impede SQL injection caso algum dia um
+  // valor derivado de input do usuário chegue aqui.
+  if (!/^[a-z_][a-z0-9_]*$/i.test(table)) {
+    throw new Error(`createRepo: nome de tabela inválido: ${JSON.stringify(table)}`);
+  }
   const orderBy = opts.orderBy || 'created_at DESC';
+  if (!/^[a-z0-9_, ]+$/i.test(orderBy)) {
+    throw new Error(`createRepo: orderBy inválido: ${JSON.stringify(orderBy)}`);
+  }
 
   /**
    * Retorna linhas filtradas (AND) com cap defensivo de DEFAULT_LIMIT.
@@ -53,8 +62,10 @@ function createRepo(table, opts = {}) {
    * @returns {Promise<object[]>}
    */
   async function findAll(filters = {}, opts = {}) {
-    const limit = opts.limit === null ? null : (opts.limit ?? DEFAULT_LIMIT);
-    const offset = opts.offset || 0;
+    // FIX C-03: limit/offset entram cru no SQL — coagir a inteiro.
+    const rawLimit = opts.limit === null ? null : (opts.limit ?? DEFAULT_LIMIT);
+    const limit = rawLimit === null ? null : (Number.isInteger(rawLimit) ? rawLimit : DEFAULT_LIMIT);
+    const offset = Number.isInteger(opts.offset) ? opts.offset : 0;
     const keys = Object.keys(filters);
     const where = keys.length
       ? 'WHERE ' + keys.map((k, i) => `"${db.camelToSnake(k)}" = $${i + 1}`).join(' AND ')

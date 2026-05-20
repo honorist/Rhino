@@ -129,6 +129,17 @@ async function getMany(text, params) {
 }
 
 /**
+ * FIX C-03: valida que `table` é um identificador SQL simples antes de
+ * interpolar na query — insert/update/remove montam o nome da tabela cru.
+ * @param {string} table
+ */
+function assertTable(table) {
+  if (typeof table !== 'string' || !/^[a-z_][a-z0-9_]*$/i.test(table)) {
+    throw new Error(`Nome de tabela inválido: ${JSON.stringify(table)}`);
+  }
+}
+
+/**
  * INSERT genérico — aceita objeto camelCase, converte chaves para snake_case,
  * usa placeholders parametrizados, retorna a row inserida.
  *
@@ -137,6 +148,7 @@ async function getMany(text, params) {
  * @returns {Promise<object>}
  */
 async function insert(table, obj) {
+  assertTable(table);
   const keys = Object.keys(obj);
   if (keys.length === 0) throw new Error(`insert ${table}: objeto vazio`);
   const cols = keys.map(k => `"${camelToSnake(k)}"`);
@@ -155,6 +167,7 @@ async function insert(table, obj) {
  * @returns {Promise<object | null>}
  */
 async function update(table, id, obj) {
+  assertTable(table);
   const keys = Object.keys(obj).filter((k) => k !== 'id');
   if (keys.length === 0) return getOne(`SELECT * FROM ${table} WHERE id = $1`, [id]);
   const sets = keys.map((k, i) => `"${camelToSnake(k)}" = $${i + 1}`);
@@ -172,6 +185,7 @@ async function update(table, id, obj) {
  * @returns {Promise<boolean>}
  */
 async function remove(table, id) {
+  assertTable(table);
   const { rowCount } = await query(`DELETE FROM ${table} WHERE id = $1`, [id]);
   return rowCount > 0;
 }

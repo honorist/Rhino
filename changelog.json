@@ -1,6 +1,21 @@
 {
   "entries": [
     {
+      "version": "1.2.29",
+      "date": "2026-05-20",
+      "summary": "Segurança: corrige exposição de código-fonte, bypass de upload, XSS, vazamento de erro e adiciona cap de geração de documentos",
+      "changes": [
+        "AUDITORIA DE SEGURANÇA completa (testes ao vivo na produção + revisão de código). Confirmado OK: SQL 100% parametrizado, autenticação com tokens de 256 bits, rate limit de login funcionando (testado), headers de segurança completos, e o Portal externo isola clientes corretamente (cliente A não vê dados do cliente B).",
+        "[H-01] Código-fonte exposto (ALTA): serveStaticFile servia a raiz inteira do projeto — /server.js, /lib/auth.js, /db/schema.sql eram baixáveis por qualquer um, dando ao atacante o mapa completo do sistema. Adicionada allowlist: só /js, /css, /assets, /sw.js e /manifest.webmanifest são servidos.",
+        "[C-02] Upload de documento de RH (ALTA): a validação de MIME type tinha bypass — omitir o header Content-Type no multipart pulava o check inteiro, permitindo armazenar HTML/SVG com script. Corrigido para rejeitar quando o Content-Type está ausente.",
+        "[A-02] XSS persistente (ALTA): js/views/contrato/modais.js inseria dados do Nominatim (API externa, não confiável) no innerHTML sem escape. Agora usa window.escapeHtml() — mesmo padrão das demais views.",
+        "[A-01] handleDashboard expunha e.message (mensagens internas do Postgres) ao cliente em erro 500. Agora passa por sendError, que envia mensagem genérica e loga o detalhe só no servidor.",
+        "[A-05] Geração de PDF/DOCX de propostas não tinha limite — várias gerações em paralelo podiam esgotar CPU/memória do servidor. Adicionado cap de concorrência (máximo 3 simultâneas; excedente recebe 429).",
+        "[C-03] Defesa em profundidade: db.insert/update/remove e o factory de repositórios interpolavam o nome da tabela e o ORDER BY direto no SQL. Adicionada validação de identificador (hoje só recebem literais — previne SQL injection caso algum valor derivado de input chegue lá no futuro).",
+        "[M-06] Audit log: a redação de campos sensíveis não cobria variações como newPassword. Regex ampliada para password/senha/token/secret."
+      ]
+    },
+    {
       "version": "1.2.28",
       "date": "2026-05-20",
       "summary": "Perf: elimina waterfalls de requisições de API (Dashboard, Contratos) + unifica a CSP",

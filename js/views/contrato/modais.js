@@ -255,9 +255,10 @@
           if (!results.length) { dropdown.style.display = 'none'; return; }
 
           dropdown.innerHTML = results.map(r => {
-            const name   = r.display_name.split(',').slice(0, 3).join(',');
-            const detail = r.display_name.split(',').slice(3).join(',').trim();
-            return `<div class="nominatim-item" data-lat="${r.lat}" data-lng="${r.lon}" data-name="${r.display_name.replace(/"/g, '&quot;')}">
+            // FIX A-02: escapar dados do Nominatim (API externa) antes do innerHTML — XSS.
+            const name   = window.escapeHtml(r.display_name.split(',').slice(0, 3).join(','));
+            const detail = window.escapeHtml(r.display_name.split(',').slice(3).join(',').trim());
+            return `<div class="nominatim-item" data-lat="${window.escapeHtml(String(r.lat))}" data-lng="${window.escapeHtml(String(r.lon))}" data-name="${window.escapeHtml(r.display_name)}">
               <strong>${name}</strong><span>${detail}</span>
             </div>`;
           }).join('');

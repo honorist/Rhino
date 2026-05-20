@@ -984,8 +984,8 @@ async function handleDashboard(res, query) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(dashboard));
   } catch (e) {
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    // FIX A-01: nao expor e.message (mensagens internas do Postgres) ao cliente.
+    sendError(res, 500, e.message);
   }
 }
 
@@ -2238,7 +2238,17 @@ async function _loadPropostaComAnexosBinarios(propostaId) {
   return { ...proposta, anexos: anexosComData, _apresentacao: apresentacao, _caseLogos: caseLogos };
 }
 
+// FIX A-05: limita geração SIMULTÂNEA de documentos. PDF (Puppeteer) e DOCX
+// são caros em CPU/memória — sem cap, várias gerações em paralelo derrubam o
+// servidor. O rate limit global (1000/min) não protege contra isso.
+let _heavyGenInFlight = 0;
+const _HEAVY_GEN_MAX = 3;
+
 async function handleGetPropostaDocx(propostaId, res) {
+  if (_heavyGenInFlight >= _HEAVY_GEN_MAX) {
+    return sendError(res, 429, 'Servidor ocupado gerando documentos. Aguarde alguns segundos.');
+  }
+  _heavyGenInFlight++;
   try {
     const { gerarDocx, isDocxAvailable } = require('./lib/proposta-docx');
     if (!isDocxAvailable()) {
@@ -2263,10 +2273,16 @@ async function handleGetPropostaDocx(propostaId, res) {
   } catch (e) {
     console.error('[propostas/docx] erro:', e);
     sendError(res, 500, e.message);
+  } finally {
+    _heavyGenInFlight--;
   }
 }
 
 async function handleGetPropostaPdf(propostaId, res) {
+  if (_heavyGenInFlight >= _HEAVY_GEN_MAX) {
+    return sendError(res, 429, 'Servidor ocupado gerando documentos. Aguarde alguns segundos.');
+  }
+  _heavyGenInFlight++;
   try {
     const { gerarPdf, isPdfAvailable } = require('./lib/proposta-pdf');
     if (!isPdfAvailable()) {
@@ -2287,6 +2303,8 @@ async function handleGetPropostaPdf(propostaId, res) {
   } catch (e) {
     console.error('[propostas/pdf] erro:', e);
     sendError(res, 500, e.message);
+  } finally {
+    _heavyGenInFlight--;
   }
 }
 
@@ -3685,6 +3703,19 @@ function serveStaticFile(pathname, res) {
   // HTML nunca usa cache em memória — cada response tem nonce CSP único.
   if (pathname === '/' || pathname.endsWith('.html')) {
     return _serveHtmlWithBootstrap(pathname, res);
+  }
+  // FIX H-01: allowlist de recursos públicos do frontend. STATIC_ROOT é a raiz
+  // do projeto — sem esta checagem, /server.js, /lib/*.js, /db/schema.sql e todo
+  // o código do servidor ficam baixáveis pela web (white-box para o atacante).
+  {
+    const _seg = pathname.split('/')[1] || '';
+    const _PUBLIC_DIRS = ['js', 'css', 'assets'];
+    const _PUBLIC_FILES = ['/sw.js', '/manifest.webmanifest'];
+    if (!_PUBLIC_DIRS.includes(_seg) && !_PUBLIC_FILES.includes(pathname)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('404 Not Found');
+      return;
+    }
   }
   // Cache check primeiro — evita path.resolve, existsSync e readFileSync na rota quente
   if (_staticCache.has(pathname)) {
@@ -5823,7 +5854,9 @@ function handlePostRecursoDocArquivo(recursoId, docId, req, res) {
       const parts = parseMultipart(body, boundary);
       const arq = parts.find(p => p.filename && p.data && p.data.length > 0);
       if (!arq) return sendError(res, 400, 'Nenhum arquivo enviado');
-      if (arq.contentType && !ARQ_DOC_ALLOWED_TYPES.includes(arq.contentType)) {
+      // FIX C-02: bypass — sem '!arq.contentType', omitir o Content-Type no
+      // multipart pulava o check inteiro e permitia subir HTML/SVG com script.
+      if (!arq.contentType || !ARQ_DOC_ALLOWED_TYPES.includes(arq.contentType)) {
         return sendError(res, 400, `Tipo não permitido. Use: PDF, JPG ou PNG`);
       }
       if (arq.data.length > ARQ_DOC_MAX_BYTES) {
