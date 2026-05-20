@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.2.31",
+      "date": "2026-05-20",
+      "summary": "Fix: botão 'Gerenciar em Recursos' no detalhe do colaborador não fazia nada quando aberto da própria tela de Recursos",
+      "changes": [
+        "BUG: na tela de Recursos Humanos, clicar num colaborador abre o modal de detalhe; o botão 'Gerenciar em Recursos' era um <a href=\"#/recursos\"> SEM handler de clique. Como o usuário já estava em #/recursos, o hash não mudava, o navegador não disparava navegação — e nada acontecia (o modal nem fechava).",
+        "Fix (organograma.js, showDetalheColaborador): adicionado handler de clique ao botão — fecha o modal de detalhe e, se já estiver na tela de Recursos, abre direto o modal de gestão da pessoa (Recursos.showModal); se o detalhe foi aberto de outra tela (organograma de um contrato), navega normalmente para #/recursos."
+      ]
+    },
+    {
       "version": "1.2.30",
       "date": "2026-05-20",
       "summary": "Segurança [C-04]: enforcement server-side de permissão para mutações (antes era aplicado só no frontend)",

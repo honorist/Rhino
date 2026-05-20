@@ -959,6 +959,26 @@
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnFecharDetalhe').addEventListener('click', close);
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    // FIX: "Gerenciar em Recursos" era um <a href="#/recursos"> sem handler.
+    // Quando este modal é aberto de DENTRO da tela de Recursos, o hash já é
+    // #/recursos — clicar no link não muda o hash, o navegador não dispara
+    // navegação e nada acontecia (o modal nem fechava). Agora: fecha o detalhe
+    // e, se já estiver em Recursos, abre direto a gestão da pessoa; se veio de
+    // outra tela (organograma de contrato), navega para #/recursos.
+    const btnGerenciar = document.getElementById('btnIrRecursos');
+    if (btnGerenciar) {
+      btnGerenciar.addEventListener('click', (e) => {
+        e.preventDefault();
+        close();
+        const naTelaRecursos = location.hash.replace(/\/+$/, '') === '#/recursos';
+        if (naTelaRecursos && window.Recursos && typeof window.Recursos.showModal === 'function') {
+          window.Recursos.showModal(recursoId);
+        } else {
+          location.hash = '#/recursos';
+        }
+      });
+    }
   },
 
   // ── Drag & Drop no organograma ────────────────────────────────
