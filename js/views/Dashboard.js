@@ -61,7 +61,10 @@ window.Dashboard = {
           .catch(e => { console.warn('[Dashboard] Store.loadFor(propostas) falhou — KPIs de prospecção ficarão zerados:', e?.message || e); }),
       ]);
       const dash = Store.state.dashboard;
-      this._rdoStats = rdoJson ? (rdoJson.stats || null) : null;
+      // `rdoStats` local é usado mais abaixo na montagem do HTML (KPI de RDO,
+      // painel de aderência); `this._rdoStats` é usado por renderAlertas.
+      const rdoStats = rdoJson ? (rdoJson.stats || null) : null;
+      this._rdoStats = rdoStats;
       this._anomalias = anomJson ? (anomJson.anomalias || []) : [];
 
       // nf/cp/socios/investimentos: loadAll() JÁ trouxe as 4 — antes o Dashboard

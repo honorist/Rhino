@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.2.33",
+      "date": "2026-05-20",
+      "summary": "Fix: Dashboard quebrava com 'Erro ao carregar dashboard' (ReferenceError: rdoStats)",
+      "changes": [
+        "BUG (regressão da v1.2.28): a refatoração que eliminou o waterfall de requisições do Dashboard removeu a variável local `rdoStats`, mas o código que monta o HTML (KPI de aderência de RDO, painel de aderência) ainda a usava em várias linhas. O render() lançava ReferenceError e a tela exibia 'Erro ao carregar dashboard. Tente novamente.'",
+        "Fix: `rdoStats` reintroduzida como const local em Dashboard.render(), derivada da resposta de /api/rdos (this._rdoStats continua para o renderAlertas). node --check não pega esse tipo de erro — variável não declarada é erro de runtime, não de sintaxe."
+      ]
+    },
+    {
       "version": "1.2.32",
       "date": "2026-05-20",
       "summary": "Novo módulo: Folha de Pagamento de colaboradores (salário + vale, controle mensal pago/pendente)",
