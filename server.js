@@ -4113,6 +4113,53 @@ function requireAdmin(req, res) {
   return true;
 }
 
+// ============ FIX C-04: enforcement de permissão para mutações ============
+// O modelo de perfis (niveis_acesso.abas) era aplicado SÓ no frontend para a
+// maioria dos endpoints — qualquer usuário logado podia chamar a API direto
+// (curl / console do browser) e alterar dados de telas que o perfil dele nem
+// acessa. Aqui espelhamos no servidor a mesma regra do `podeAcessar` do
+// frontend: uma mutação (POST/PUT/DELETE/PATCH) numa tela NÃO-universal exige
+// que o usuário tenha essa tela nas `abas`.
+//
+// Telas universais (propostas, estoque, frota, solicitações, cláusulas) NÃO
+// são enforced — são abertas a qualquer usuário logado por design do app
+// (ver `universais` em js/app.js). Super admin / admin sempre passam.
+const MUTATION_METHODS = new Set(['POST', 'PUT', 'DELETE', 'PATCH']);
+
+// Regex de pathname → telas (#/rota) que liberam a mutação (qualquer uma serve).
+// O OR cobre recursos criados a partir de outra tela — ex.: um cliente novo
+// criado de dentro do formulário de contrato (gate do frontend = #/contratos).
+const MUTATION_PERMISSION_RULES = [
+  { re: /^\/api\/base\/[^/]+\/allocate$/,   screens: ['#/base', '#/contratos'] },
+  { re: /^\/api\/(contracts|saidas)(\/|$)/, screens: ['#/contratos'] },
+  { re: /^\/api\/(base|tipos-base)(\/|$)/,  screens: ['#/base'] },
+  { re: /^\/api\/caixa(\/|$)/,              screens: ['#/caixa'] },
+  { re: /^\/api\/socios(\/|$)/,             screens: ['#/socios'] },
+  { re: /^\/api\/investimentos(\/|$)/,      screens: ['#/investimentos'] },
+  { re: /^\/api\/clientes(\/|$)/,           screens: ['#/clientes', '#/contratos'] },
+  { re: /^\/api\/fornecedores(\/|$)/,       screens: ['#/fornecedores', '#/contratos', '#/contas-pagar'] },
+  { re: /^\/api\/notas-fiscais(\/|$)/,      screens: ['#/notas-fiscais', '#/contratos'] },
+  { re: /^\/api\/contas-pagar(\/|$)/,       screens: ['#/contas-pagar'] },
+  { re: /^\/api\/recursos(\/|$)/,           screens: ['#/recursos'] },
+];
+
+/**
+ * Bloqueia uma mutação se o usuário não tem acesso à tela correspondente.
+ * @returns {Promise<boolean>} true se bloqueou (resposta 403 já enviada).
+ */
+async function checkMutationPermission(req, res, pathname, method) {
+  if (!MUTATION_METHODS.has(method)) return false;        // não é mutação
+  if (perms.isSuperAdmin(req.user)) return false;         // admin / super admin passam
+  const rule = MUTATION_PERMISSION_RULES.find(r => r.re.test(pathname));
+  if (!rule) return false;                                // rota não mapeada → não bloqueia
+  const abas = await perms.loadAbas(req.user);
+  if (!abas) return false;                                // null = sem restrição
+  if (rule.screens.some(s => abas.includes(s))) return false;
+  console.warn(`[C-04] mutação bloqueada: user=${req.user?.id} ${method} ${pathname} — precisa de uma de: ${rule.screens.join(', ')}`);
+  sendError(res, 403, 'Você não tem permissão para esta operação.');
+  return true;
+}
+
 async function applyAuthMiddleware(req, res, pathname, method) {
   if (!pathname.startsWith('/api/')) return false;
 
@@ -4137,6 +4184,8 @@ async function applyAuthMiddleware(req, res, pathname, method) {
     if (isAdminRoute(pathname, method)) {
       if (!requireAdmin(req, res)) return true;
     }
+    // FIX C-04: enforcement server-side de permissão para mutações.
+    if (await checkMutationPermission(req, res, pathname, method)) return true;
     return false;
   } catch (e) {
     sendError(res, 500, e.message);

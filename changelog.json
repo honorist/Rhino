@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.2.30",
+      "date": "2026-05-20",
+      "summary": "Segurança [C-04]: enforcement server-side de permissão para mutações (antes era aplicado só no frontend)",
+      "changes": [
+        "[C-04] O modelo de perfis de acesso (niveis_acesso.abas) era aplicado SÓ no frontend para a maioria dos endpoints. Qualquer usuário logado podia chamar a API direto (curl, console do navegador) e criar/editar/apagar contratos, caixa, notas fiscais, recursos, etc. — ignorando completamente as restrições de tela do perfil dele. Só /api/users e rotas de admin tinham checagem no servidor.",
+        "Adicionado enforcement server-side em applyAuthMiddleware (checkMutationPermission): mutações (POST/PUT/DELETE/PATCH) em telas NÃO-universais — contratos, caixa, base, sócios, investimentos, clientes, fornecedores, notas-fiscais, contas-pagar, recursos — exigem que o usuário tenha acesso àquela tela nas abas. Espelha a regra podeAcessar do frontend.",
+        "Telas universais (propostas, estoque, frota, solicitações de compra, cláusulas) NÃO são enforced — são abertas a qualquer usuário logado por design do app. Cross-invocações são tratadas via OR de telas (ex.: criar cliente de dentro do formulário de contrato é liberado por #/contratos).",
+        "Validado contra os 5 perfis seed (admin, gerente, gestor, financeiro, operador): zero falso-positivo — quem usa o sistema pela tela não é afetado; apenas chamadas diretas à API fora do perfil passam a ser barradas com 403. Tentativas bloqueadas são logadas com prefixo [C-04] no stdout.",
+        "Super admin e admin continuam com bypass total. GETs (leitura) não foram alterados — o frontend depende de Store.loadAll buscar tudo; restringir leitura exige refatorar o loadAll (trabalho separado)."
+      ]
+    },
+    {
       "version": "1.2.29",
       "date": "2026-05-20",
       "summary": "Segurança: corrige exposição de código-fonte, bypass de upload, XSS, vazamento de erro e adiciona cap de geração de documentos",
