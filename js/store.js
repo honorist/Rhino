@@ -1072,6 +1072,15 @@ window.Store = {
     if (!res.ok) throw new Error(await res.text());
     return res.json();
   },
+  async limparFolha(competencia) {
+    const res = await fetch('/api/folha-pagamento/limpar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ competencia }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this.state.folha = r.folha || []; this.notify(); return r;
+  },
 
   async loadNiveisAcesso() {
     const res = await fetch('/api/niveis-acesso');

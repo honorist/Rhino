@@ -311,7 +311,6 @@
               <div style="font-size:13px;line-height:1.7;">
                 <div><strong>Status:</strong> <span style="color:${acidenteCor};font-weight:700;">${acidenteLbl}</span></div>
                 ${seg.diagnostico ? `<div><strong>Diagnóstico:</strong> ${escapeHtml(seg.diagnostico)}</div>` : ''}
-                <div><strong>Admissões:</strong> ${seg.admissoes || 0} · <strong>Demissões:</strong> ${seg.demissoes || 0}</div>
                 ${seg.comentarios ? `<div><strong>Observações:</strong> ${escapeHtml(seg.comentarios)}</div>` : ''}
               </div>
             </div>
@@ -599,7 +598,7 @@
       terc: [],
       equipamentos: [],
       atividades: [{ area: '', descricao: '', pctConcluida: 0, ocorrencias: '' }],
-      seguranca: { acidente: 'nao_houve', diagnostico: '', admissoes: 0, demissoes: 0, comentarios: '' },
+      seguranca: { acidente: 'nao_houve', diagnostico: '', comentarios: '' },
       fiscalizacaoComentarios: ''
     };
     // Recalcula prazo sempre (novo ou edição) com base no contrato + data do RDO.

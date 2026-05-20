@@ -401,7 +401,6 @@
       head: [[{ content: 'SEGURANÇA DO TRABALHO', colSpan: 2, styles: { halign: 'center', fillColor: [220, 38, 38], textColor: 255, fontSize: 8, fontStyle: 'bold' } }]],
       body: [
         [{ content: 'Acidente', styles: { fontStyle: 'bold', fillColor: [248, 240, 240] } }, acidLine],
-        [{ content: 'Admissões / Demissões', styles: { fontStyle: 'bold', fillColor: [248, 240, 240] } }, `${rdo.seguranca?.admissoes || 0} admissão(ões)    /    ${rdo.seguranca?.demissoes || 0} demissão(ões)`],
         [{ content: 'Tema do DDS', styles: { fontStyle: 'bold', fillColor: [248, 240, 240] } }, rdo.seguranca?.temaDds || '—'],
         [{ content: 'Tema de Meio Ambiente', styles: { fontStyle: 'bold', fillColor: [248, 240, 240] } }, rdo.seguranca?.temaMeioAmbiente || '—'],
         ...(rdo.seguranca?.diagnostico ? [[{ content: 'Diagnóstico', styles: { fontStyle: 'bold', fillColor: [248, 240, 240] } }, rdo.seguranca.diagnostico]] : []),

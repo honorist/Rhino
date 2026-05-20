@@ -58,7 +58,7 @@ window.FolhaPagamento = {
         ? `${fmt(f.valorVale)} &nbsp;${this._badge(f.valePago)} &nbsp;${acao('vale', f.valePago)}`
         : '<span class="text-muted">—</span>';
       const saldoCell = `${fmt(f.valorSaldo)} &nbsp;${this._badge(f.saldoPago)} &nbsp;${acao('saldo', f.saldoPago)}`;
-      return `<tr>
+      return `<tr class="row-folha" data-id="${f.recursoId}" style="cursor:pointer;" title="Ver dados do colaborador">
         <td><strong>${esc(f.recursoNome) || '—'}</strong></td>
         <td>${esc(this._nomeLocal(f))}</td>
         <td>${fmt(f.salarioBase)}</td>
@@ -77,6 +77,7 @@ window.FolhaPagamento = {
         </div>
         <div style="display:flex;gap:var(--sp-sm);align-items:center;">
           <input type="month" class="form-control" id="fpCompetencia" value="${this.competencia}" style="width:170px;">
+          ${folha.length > 0 ? '<button class="btn btn-ghost" id="fpLimpar">Limpar folha</button>' : ''}
           <button class="btn btn-primary btn-lg" id="fpGerar">Gerar folha do mês</button>
         </div>
       </div>
@@ -107,10 +108,34 @@ window.FolhaPagamento = {
       this._renderLista();
     });
     document.getElementById('fpGerar').addEventListener('click', () => this._gerar());
+    const btnLimpar = document.getElementById('fpLimpar');
+    if (btnLimpar) btnLimpar.addEventListener('click', () => this._limpar());
     app.querySelectorAll('.js-pagar').forEach(b =>
       b.addEventListener('click', () => this._pagar(b.dataset.id, b.dataset.parcela)));
     app.querySelectorAll('.js-estornar').forEach(b =>
       b.addEventListener('click', () => this._estornar(b.dataset.id, b.dataset.parcela)));
+
+    // Click na linha → abre o detalhe do colaborador (mesmo modal da aba Recursos).
+    app.querySelectorAll('.row-folha').forEach(tr => {
+      tr.addEventListener('click', async (e) => {
+        if (e.target.closest('.action-link')) return; // não dispara ao clicar em Pagar/Estornar
+        const id = tr.dataset.id;
+        if (!id) return;
+        try {
+          // ContratoDetail é lazy — carrega antes de chamar showDetalheColaborador.
+          if (typeof _loadLazyForPattern === 'function') {
+            await _loadLazyForPattern('#/contratos/:id');
+          }
+        } catch (err) {
+          console.error('[FolhaPagamento] falha ao carregar ContratoDetail:', err);
+          if (window.showToast) window.showToast('Não foi possível abrir o detalhe.', 'error');
+          return;
+        }
+        if (window.ContratoDetail?.showDetalheColaborador) {
+          window.ContratoDetail.showDetalheColaborador(id);
+        }
+      });
+    });
   },
 
   async _gerar() {
@@ -119,6 +144,18 @@ window.FolhaPagamento = {
       window.showToast(`Folha de ${this.competencia} gerada — ${r.criadas} novo(s) registro(s)`, 'success');
       this._renderLista();
     } catch (e) { window.showToast('Erro ao gerar folha: ' + e.message, 'error'); }
+  },
+
+  async _limpar() {
+    if (!confirm(`Limpar a folha de ${this.competencia}?\n\nOs registros ainda NÃO pagos (e suas contas a pagar) serão removidos. Os já pagos são mantidos.`)) return;
+    try {
+      const r = await Store.limparFolha(this.competencia);
+      window.showToast(
+        `${r.removidas} registro(s) removido(s)` + (r.mantidas ? ` · ${r.mantidas} mantido(s) (já pago)` : ''),
+        'success'
+      );
+      this._renderLista();
+    } catch (e) { window.showToast('Erro ao limpar: ' + e.message, 'error'); }
   },
 
   _pagar(id, parcela) {

@@ -1,6 +1,19 @@
 {
   "entries": [
     {
+      "version": "1.2.35",
+      "date": "2026-05-20",
+      "summary": "Folha de Pagamento: integração com Contas a Pagar, botão Limpar folha e clique no colaborador; correções no RDO e no cadastro de Recurso",
+      "changes": [
+        "Folha de Pagamento: ao gerar a folha do mês, cada colaborador passa a gerar lançamentos em Contas a Pagar — o saldo vence no último dia do mês e o vale (40%) vence no dia 20. Pagar ou estornar de qualquer lado (tela Folha ou módulo Contas a Pagar) é sincronizado automaticamente; o lançamento no Caixa é único, sem risco de pagar em dobro.",
+        "Folha de Pagamento: novo botão 'Limpar folha' — remove os registros do mês ainda NÃO pagos (e suas contas a pagar pendentes). Registros com vale ou saldo já pago são mantidos.",
+        "Folha de Pagamento: clicar na linha de um colaborador abre o detalhe dele (mesmo modal da aba Recursos).",
+        "BUG: o campo 'Elegível a vale' do cadastro de Recurso não era salvo — o handler do servidor ignorava o campo ao criar (handlePostRecurso) e ao editar (allowlist de handlePutRecurso não incluía elegivelVale). Corrigido.",
+        "RDO: removido o campo 'Admissões / Demissões' (descontinuado) da tela de detalhe do RDO e do PDF, além dos defaults vestigiais.",
+        "Banco: migration 20260521010000 — colunas de vínculo folha_pagamento ↔ contas_pagar (vale_conta_pagar_id, saldo_conta_pagar_id, folha_pagamento_id, folha_parcela). Idempotente."
+      ]
+    },
+    {
       "version": "1.2.34",
       "date": "2026-05-20",
       "summary": "Fix: 'Erro ao gerar folha do mês' e 'Não foi possível carregar o histórico de atualizações'",

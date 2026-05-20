@@ -2799,6 +2799,13 @@ async function handlePagarConta(id, body, res) {
           updatedAt: new Date().toISOString(),
         })
       );
+      // Conta originada da Folha de Pagamento — marca a parcela como paga lá também.
+      if (conta.folhaPagamentoId && (conta.folhaParcela === 'vale' || conta.folhaParcela === 'saldo')) {
+        const fPatch = conta.folhaParcela === 'vale'
+          ? { valePago: true, valeDataPagamento: dataPagamento, valeCaixaEntryId: caixaEntry.id, updatedAt: new Date().toISOString() }
+          : { saldoPago: true, saldoDataPagamento: dataPagamento, saldoCaixaEntryId: caixaEntry.id, updatedAt: new Date().toISOString() };
+        await repos.folhaPagamento.updateById(conta.folhaPagamentoId, fPatch).catch(() => {});
+      }
       return envelope;
     });
     sendJson(res, envelope);
@@ -2823,6 +2830,13 @@ async function handleEstornarConta(id, res) {
         updatedAt: new Date().toISOString(),
       })
     );
+    // Conta originada da Folha de Pagamento — estorna a parcela lá também.
+    if (conta.folhaPagamentoId && (conta.folhaParcela === 'vale' || conta.folhaParcela === 'saldo')) {
+      const fPatch = conta.folhaParcela === 'vale'
+        ? { valePago: false, valeDataPagamento: null, valeCaixaEntryId: null, updatedAt: new Date().toISOString() }
+        : { saldoPago: false, saldoDataPagamento: null, saldoCaixaEntryId: null, updatedAt: new Date().toISOString() };
+      await repos.folhaPagamento.updateById(conta.folhaPagamentoId, fPatch).catch(() => {});
+    }
     sendJson(res, envelope);
   } catch (e) {
     sendError(res, 400, e.message);
@@ -2901,6 +2915,48 @@ async function handleGerarFolha(body, res) {
         if (e && e.code === '23505') continue; // já existe (corrida) — idempotente
         throw e;
       }
+
+      // Contas a Pagar vinculadas — saldo vence no último dia do mês, vale (se
+      // houver) no dia 20. Pagar/estornar é sincronizado (folha ↔ conta).
+      const catConta = contractId ? 'mao_de_obra' : 'base';
+      const contasPatch = {};
+      const saldoContaId = generateId('cp');
+      await repos.contasPagar.create({
+        id: saldoContaId,
+        descricao: `Saldo salário ${r.nome || ''} — ${competencia}`,
+        valor: valorSaldo,
+        dataEmissao: dataRef,
+        dataVencimento: dataRef,
+        status: 'pendente',
+        contractId,
+        category: catConta,
+        observacoes: 'Gerado pela Folha de Pagamento',
+        folhaPagamentoId: folhaRow.id,
+        folhaParcela: 'saldo',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      contasPatch.saldoContaPagarId = saldoContaId;
+      if (elegivel && valorVale > 0) {
+        const valeContaId = generateId('cp');
+        await repos.contasPagar.create({
+          id: valeContaId,
+          descricao: `Vale salário ${r.nome || ''} — ${competencia}`,
+          valor: valorVale,
+          dataEmissao: dataRef,
+          dataVencimento: `${competencia}-20`,
+          status: 'pendente',
+          contractId,
+          category: catConta,
+          observacoes: 'Gerado pela Folha de Pagamento (vale 40%)',
+          folhaPagamentoId: folhaRow.id,
+          folhaParcela: 'vale',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+        contasPatch.valeContaPagarId = valeContaId;
+      }
+      await repos.folhaPagamento.updateById(folhaRow.id, contasPatch);
       criadas++;
     }
     const folha = await repos.folhaPagamento.findByCompetencia(competencia);
@@ -2961,7 +3017,16 @@ async function handlePagarFolhaParcela(id, body, res) {
       const patch = parcela === 'vale'
         ? { valePago: true, valeDataPagamento: dataPagamento, valeCaixaEntryId: caixaEntry.id, updatedAt: new Date().toISOString() }
         : { saldoPago: true, saldoDataPagamento: dataPagamento, saldoCaixaEntryId: caixaEntry.id, updatedAt: new Date().toISOString() };
-      return repos.folhaPagamento.updateById(id, patch);
+      const atualizada = await repos.folhaPagamento.updateById(id, patch);
+      // Sincroniza a conta a pagar vinculada — paga junto, mesmo lançamento de caixa.
+      const contaId = parcela === 'vale' ? f.valeContaPagarId : f.saldoContaPagarId;
+      if (contaId) {
+        await repos.contasPagar.updateById(contaId, {
+          status: 'pago', dataPagamento, valorPago: valor, caixaEntryId: caixaEntry.id,
+          formaPagamento: (body && body.formaPagamento) || null, updatedAt: new Date().toISOString(),
+        }).catch(() => {});
+      }
+      return atualizada;
     });
     sendJson(res, { folha });
   } catch (e) {
@@ -2984,9 +3049,45 @@ async function handleEstornarFolhaParcela(id, body, res) {
       ? { valePago: false, valeDataPagamento: null, valeCaixaEntryId: null, updatedAt: new Date().toISOString() }
       : { saldoPago: false, saldoDataPagamento: null, saldoCaixaEntryId: null, updatedAt: new Date().toISOString() };
     const folha = await repos.folhaPagamento.updateById(id, patch);
+    // Sincroniza a conta a pagar vinculada — volta a pendente.
+    const contaId = parcela === 'vale' ? f.valeContaPagarId : f.saldoContaPagarId;
+    if (contaId) {
+      await repos.contasPagar.updateById(contaId, {
+        status: 'pendente', dataPagamento: null, valorPago: null, caixaEntryId: null,
+        updatedAt: new Date().toISOString(),
+      }).catch(() => {});
+    }
     sendJson(res, { folha });
   } catch (e) {
     sendError(res, 400, e.message);
+  }
+}
+
+// POST /api/folha-pagamento/limpar — remove os registros NÃO pagos da competência
+// (e suas contas a pagar pendentes). Linhas com vale ou saldo já pago são mantidas.
+async function handleLimparFolha(body, res) {
+  try {
+    const competencia = (body && body.competencia) || '';
+    if (!/^\d{4}-\d{2}$/.test(competencia)) {
+      return sendError(res, 400, 'Competência inválida (use YYYY-MM)');
+    }
+    const folha = await repos.folhaPagamento.findByCompetencia(competencia);
+    let removidas = 0, mantidas = 0;
+    for (const f of folha) {
+      if (f.valePago || f.saldoPago) { mantidas++; continue; } // tem pagamento — preserva
+      // Contas a pagar vinculadas (ainda pendentes) — removidas junto.
+      for (const cpId of [f.valeContaPagarId, f.saldoContaPagarId]) {
+        if (cpId) await repos.contasPagar.removeById(cpId).catch(() => {});
+      }
+      // Ordem: folha_pagamento antes do base_item (FK base_item_id).
+      await repos.folhaPagamento.removeById(f.id);
+      if (f.baseItemId) await repos.baseItems.removeById(f.baseItemId).catch(() => {});
+      removidas++;
+    }
+    const restante = await repos.folhaPagamento.findByCompetencia(competencia);
+    sendJson(res, { competencia, removidas, mantidas, folha: restante });
+  } catch (e) {
+    sendError(res, 500, e.message);
   }
 }
 
@@ -3402,7 +3503,7 @@ async function handlePostRdo(contractId, body, res) {
       terc: JSON.stringify(Array.isArray(body.terc) ? body.terc : []),
       equipamentos: JSON.stringify(Array.isArray(body.equipamentos) ? body.equipamentos : []),
       atividades:   JSON.stringify(Array.isArray(body.atividades)   ? body.atividades   : []),
-      seguranca: JSON.stringify(body.seguranca || { acidente: 'nao_houve', diagnostico: '', admissoes: 0, demissoes: 0, comentarios: '' }),
+      seguranca: JSON.stringify(body.seguranca || { acidente: 'nao_houve', diagnostico: '', comentarios: '' }),
       fiscalizacaoComentarios: body.fiscalizacaoComentarios || '',
       totais: JSON.stringify(body.totais || { moi: 0, mod: 0, terc: 0, eqp: 0, homensHora: 0, horasParadas: 0, equipamentoHora: 0 }),
       fotos: '[]',
@@ -4780,6 +4881,9 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname === '/api/folha-pagamento/gerar' && method === 'POST') {
     return handleGerarFolha(body, res);
   }
+  if (pathname === '/api/folha-pagamento/limpar' && method === 'POST') {
+    return handleLimparFolha(body, res);
+  }
   if (pathname.match(/^\/api\/folha-pagamento\/[^/]+\/pagar$/) && method === 'POST') {
     return handlePagarFolhaParcela(pathname.split('/')[3], body, res);
   }
@@ -5359,6 +5463,7 @@ async function handlePostRecurso(body, res) {
       profissao: body.profissao || '',
       dataAdmissao: body.dataAdmissao || null,
       salario: parseFloat(body.salario) || 0,
+      elegivelVale: !!body.elegivelVale,
       cnh: body.cnh || '',
       pis: body.pis || '',
       dataDesligamento: body.dataDesligamento || null,
@@ -5390,6 +5495,7 @@ async function handlePutRecurso(id, body, res) {
       if (body[f] !== undefined) allowed[f] = body[f] || null;
     }
     if (body.salario !== undefined) allowed.salario = parseFloat(body.salario) || 0;
+    if (body.elegivelVale !== undefined) allowed.elegivelVale = !!body.elegivelVale;
     if (body.alocacaoAtual !== undefined) {
       allowed.alocacaoAtual = body.alocacaoAtual ? JSON.stringify(body.alocacaoAtual) : null;
     }

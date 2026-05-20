@@ -211,6 +211,8 @@ CREATE TABLE IF NOT EXISTS contas_pagar (
   observacoes       TEXT,
   valor_pago        NUMERIC(15,2),
   forma_pagamento   TEXT,
+  folha_pagamento_id TEXT,
+  folha_parcela     TEXT,
   created_at        TIMESTAMPTZ DEFAULT NOW(),
   updated_at        TIMESTAMPTZ DEFAULT NOW()
 );
@@ -262,6 +264,8 @@ CREATE TABLE IF NOT EXISTS folha_pagamento (
   saldo_pago           BOOLEAN NOT NULL DEFAULT FALSE,
   saldo_data_pagamento DATE,
   saldo_caixa_entry_id TEXT,
+  vale_conta_pagar_id  TEXT,
+  saldo_conta_pagar_id TEXT,
   observacoes          TEXT,
   created_at           TIMESTAMPTZ DEFAULT NOW(),
   updated_at           TIMESTAMPTZ DEFAULT NOW()
