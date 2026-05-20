@@ -44,48 +44,33 @@ window.Dashboard = {
       </div>`;
 
     try {
-      await Store.loadAll();
-      await Store.loadDashboard(this._buildParams());
+      // Carrega tudo em PARALELO. Antes era um waterfall de 6 etapas sequenciais
+      // (cada `await` esperava a anterior terminar) — ~6× a latência de rede.
+      // loadAll, loadDashboard, /api/rdos, /api/anomalias e loadFor(propostas)
+      // são independentes entre si; cada um trata o próprio erro (não bloqueia).
+      const [, , rdoJson, anomJson] = await Promise.all([
+        Store.loadAll(),
+        Store.loadDashboard(this._buildParams()),
+        fetch('/api/rdos')
+          .then(r => (r.ok ? r.json() : null))
+          .catch(e => { console.warn('[Dashboard] /api/rdos falhou — KPIs de compliance ficarão zerados:', e?.message || e); return null; }),
+        fetch('/api/anomalias')
+          .then(r => (r.ok ? r.json() : null))
+          .catch(() => null),
+        Store.loadFor(['propostas'])
+          .catch(e => { console.warn('[Dashboard] Store.loadFor(propostas) falhou — KPIs de prospecção ficarão zerados:', e?.message || e); }),
+      ]);
       const dash = Store.state.dashboard;
+      this._rdoStats = rdoJson ? (rdoJson.stats || null) : null;
+      this._anomalias = anomJson ? (anomJson.anomalias || []) : [];
 
-      // Compliance de RDOs (não bloqueia se falhar)
-      let rdoStats = null;
-      try {
-        const r = await fetch('/api/rdos');
-        if (r.ok) rdoStats = (await r.json()).stats || null;
-      } catch (e) {
-        console.warn('[Dashboard] /api/rdos falhou — KPIs de compliance ficarão zerados:', e?.message || e);
-      }
-      this._rdoStats = rdoStats;
-
-      // F6: Anomaly detection (não bloqueia)
-      try {
-        const ar = await fetch('/api/anomalias');
-        if (ar.ok) this._anomalias = (await ar.json()).anomalias || [];
-      } catch (_) { this._anomalias = []; }
-
-      // Dados extra para novas seções (não bloqueia se falhar)
-      let nfsList = [], saidasList = [], cpList = [], sociosList = [], investList = [];
-      const _fetchOr = (url, fallback, label) =>
-        fetch(url).then(r => r.ok ? r.json() : fallback).catch(e => {
-          console.warn(`[Dashboard] ${label} falhou — KPIs podem ficar com fallback:`, e?.message || e);
-          return fallback;
-        });
-      try {
-        const [nfR, cpR, socR, invR] = await Promise.all([
-          _fetchOr('/api/notas-fiscais', { notasFiscais: [] }, 'notas-fiscais'),
-          _fetchOr('/api/contas-pagar', { contasPagar: [] }, 'contas-pagar'),
-          _fetchOr('/api/socios', { socios: [] }, 'socios'),
-          _fetchOr('/api/investimentos', { investimentos: [] }, 'investimentos'),
-        ]);
-        nfsList = nfR.notasFiscais || nfR.notas_fiscais || [];
-        cpList = cpR.contasPagar || cpR.contas || [];
-        sociosList = socR.socios || [];
-        investList = invR.investimentos || [];
-        saidasList = Store.state.saidas || [];
-      } catch (e) {
-        console.warn('[Dashboard] erro inesperado no Promise.all de dados extras:', e?.message || e);
-      }
+      // nf/cp/socios/investimentos: loadAll() JÁ trouxe as 4 — antes o Dashboard
+      // refazia exatamente as mesmas 4 requisições. Agora lemos de Store.state.
+      const nfsList = Store.state.notas_fiscais || [];
+      const cpList = Store.state.contas_pagar || [];
+      const sociosList = Store.state.socios || [];
+      const investList = Store.state.investimentos || [];
+      const saidasList = Store.state.saidas || [];
 
       // Pipeline de medições (mês corrente)
       const pipeline = this._calcPipeline(nfsList, saidasList);
@@ -102,9 +87,8 @@ window.Dashboard = {
         .reduce((s, i) => s + (parseFloat(i.value || i.valor) || 0), 0);
       const aportesTotal = aportesSocios + aportesEmpresa;
 
-      // Propostas em prospecção (rascunho + enviada — ainda não viraram contrato ativo)
-      try { await Store.loadFor(['propostas']); }
-      catch (e) { console.warn('[Dashboard] Store.loadFor(propostas) falhou — KPIs de prospecção ficarão zerados:', e?.message || e); }
+      // Propostas em prospecção (rascunho + enviada — ainda não viraram contrato
+      // ativo). Já carregadas no Promise.all do início do render().
       const propostasState = Store.state.propostas || [];
       const propostasRascunho = propostasState.filter(p => p.status === 'rascunho').length;
       const propostasEnviada = propostasState.filter(p => p.status === 'enviada').length;

@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.2.28",
+      "date": "2026-05-20",
+      "summary": "Perf: elimina waterfalls de requisições de API (Dashboard, Contratos) + unifica a CSP",
+      "changes": [
+        "INVESTIGAÇÃO: a lentidão percebida ('app lento de usar') foi medida e diagnosticada — NÃO é o código. É latência geográfica: servidor no Railway (US-West/Califórnia) e usuário no Brasil, ~200ms por requisição; não há CDN na frente. Um estático servido da memória demora quase o mesmo que um endpoint com banco. Diagnóstico completo e playbooks em docs/PERFORMANCE.md.",
+        "Dashboard: render() carregava os dados em 6 etapas SEQUENCIAIS (loadAll → loadDashboard → /api/rdos → /api/anomalias → batch nf/cp/socios/investimentos → loadFor(propostas)), cada await esperando o anterior — ~6× a latência de rede. Agora é um único Promise.all. O batch de notas-fiscais/contas-pagar/socios/investimentos era REDUNDANTE (loadAll já trazia os 4 endpoints) — passou a ler de Store.state. Resultado: espera de rede da tela cai de ~1,5s para ~0,25s.",
+        "Contratos: render() fazia loadAll() e depois /api/rdos em série (2× a latência). Agora dispara /api/rdos em paralelo com loadAll().",
+        "CSP: as duas declarações de Content-Security-Policy (header HTML com nonce + header global) eram duplicadas e precisavam ser mantidas em sincronia na mão — foi exatamente a causa do bug da v1.2.27 (faltou OSRM em uma delas). Unificadas na função buildCsp(); a string gerada é byte-idêntica à anterior, só elimina a duplicação."
+      ]
+    },
+    {
       "version": "1.2.27",
       "date": "2026-05-18",
       "summary": "Fix: rota via rodovia entre pontos do mapa não calculava ('rota indisponível')",

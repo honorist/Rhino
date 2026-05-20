@@ -3637,6 +3637,23 @@ document.addEventListener("visibilitychange",function(){
 })();`;
 }
 
+// CSP — fonte única de verdade. Só o script-src varia entre respostas:
+// o HTML da SPA usa nonce (bootstrap inline); as demais respostas não.
+// Centralizar aqui evita o bug recorrente de adicionar um domínio externo
+// em apenas um dos lugares (causa do fix v1.2.27 — faltava OSRM).
+function buildCsp(scriptSrc) {
+  return [
+    "default-src 'self'",
+    scriptSrc,
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openstreetmap.org",
+    "connect-src 'self' https://*.openstreetmap.org https://nominatim.openstreetmap.org https://router.project-osrm.org https://cdn.jsdelivr.net",
+    "worker-src 'self' blob:",
+    "frame-ancestors 'none'",
+  ].join('; ');
+}
+
 function _serveHtmlWithBootstrap(pathname, res) {
   const filename = (pathname === '/' || pathname === '') ? '/index.html' : pathname;
   const filepath = path.resolve(__dirname, '.' + filename);
@@ -3652,17 +3669,8 @@ function _serveHtmlWithBootstrap(pathname, res) {
     '</head>',
     `<script nonce="${nonce}">${bootstrap}</script></head>`
   );
-  // CSP com nonce — substitui a baseada em script-src 'self' apenas pra HTML.
-  const csp = [
-    "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net`,
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' https://fonts.gstatic.com",
-    "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openstreetmap.org",
-    "connect-src 'self' https://*.openstreetmap.org https://nominatim.openstreetmap.org https://router.project-osrm.org https://cdn.jsdelivr.net",
-    "worker-src 'self' blob:",
-    "frame-ancestors 'none'",
-  ].join('; ');
+  // CSP com nonce — só o script-src difere; resto vem de buildCsp().
+  const csp = buildCsp(`script-src 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net`);
   res.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
@@ -3828,16 +3836,7 @@ const server = http.createServer((req, res) => {
   //  - script-src-elem permite jsdelivr APENAS para mermaid ESM (Manual)
   //  - style-src mantém 'unsafe-inline' (muitos inline styles em views;
   //    refator separado, menor risco que script inline)
-  res.setHeader('Content-Security-Policy', [
-    "default-src 'self'",
-    "script-src 'self' https://cdn.jsdelivr.net",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' https://fonts.gstatic.com",
-    "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openstreetmap.org",
-    "connect-src 'self' https://*.openstreetmap.org https://nominatim.openstreetmap.org https://router.project-osrm.org https://cdn.jsdelivr.net",
-    "worker-src 'self' blob:",
-    "frame-ancestors 'none'",
-  ].join('; '));
+  res.setHeader('Content-Security-Policy', buildCsp("script-src 'self' https://cdn.jsdelivr.net"));
   if (process.env.NODE_ENV === 'production') {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }

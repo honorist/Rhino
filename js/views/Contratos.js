@@ -105,6 +105,13 @@ window.Contratos = {
     app.innerHTML = this._skeletonHtml();
 
     try {
+      // /api/rdos é independente de loadAll() — dispara as duas em paralelo
+      // (antes era cascata: loadAll → /api/rdos = 2× a latência de rede).
+      const rdoStatsPromise = fetch('/api/rdos')
+        .then(r => (r.ok ? r.json() : null))
+        .then(j => (j ? (j.stats || null) : null))
+        .catch(e => { console.warn('[Contratos] /api/rdos falhou — selos de compliance ficarão ocultos:', e?.message || e); return null; });
+
       await Store.loadAll();
 
       let filtered = Store.state.contracts;
@@ -131,14 +138,8 @@ window.Contratos = {
       const pageStart = (this.currentPage - 1) * this.pageSize;
       const pagedContracts = filtered.slice(pageStart, pageStart + this.pageSize);
 
-      // Compliance de RDOs (não-bloqueante)
-      let rdoStats = null;
-      try {
-        const r = await fetch('/api/rdos');
-        if (r.ok) rdoStats = (await r.json()).stats || null;
-      } catch (e) {
-        console.warn('[Contratos] /api/rdos falhou — selos de compliance ficarão ocultos:', e?.message || e);
-      }
+      // Compliance de RDOs (não-bloqueante) — fetch disparado no início do render
+      const rdoStats = await rdoStatsPromise;
       const semRdoIds = new Set((rdoStats?.obrasSemRdoOntem || []).map(o => o.contractId));
       const atrasadasMap = new Map((rdoStats?.obrasAtrasadas || []).map(o => [o.contractId, o]));
 

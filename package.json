@@ -1,6 +1,6 @@
 {
   "name": "rhino",
-  "version": "1.2.27",
+  "version": "1.2.28",
   "description": "Business management app",
   "main": "server.js",
   "scripts": {
