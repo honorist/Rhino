@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.39",
+      "date": "2026-05-20",
+      "summary": "Idempotência: endpoints de pagamento e criação aceitam Idempotency-Key (retry de rede não duplica lançamento)",
+      "changes": [
+        "Endpoints críticos — criar conta a pagar, pagar conta, gerar folha e pagar parcela de folha — passam a aceitar o header HTTP 'Idempotency-Key'. Se a requisição for reenviada com a mesma chave (típico de retry após queda de rede), a resposta de sucesso original é devolvida sem reexecutar o efeito. Resultado: nenhum lançamento ou pagamento duplicado.",
+        "Reusar a mesma Idempotency-Key com um corpo diferente é rejeitado com HTTP 422. Sem o header, o comportamento é o de sempre — é opt-in.",
+        "Banco: nova tabela idempotency_keys (migration 20260521020000). Guarda apenas respostas de sucesso — erros continuam podendo ser refeitos num novo retry."
+      ]
+    },
+    {
       "version": "1.2.38",
       "date": "2026-05-20",
       "summary": "Fase 0 do plano de evolução: API versionada (/v1/), rollback de migrations e runbook operacional",

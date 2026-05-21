@@ -4471,6 +4471,60 @@ async function applyAuthMiddleware(req, res, pathname, method) {
   }
 }
 
+// ============ Idempotência ============
+// Endpoints críticos aceitam o header `Idempotency-Key`. Num retry de rede com
+// a mesma chave, a resposta de sucesso original é devolvida sem reexecutar o
+// efeito — evita lançamento/pagamento duplicado. Opt-in: sem o header, nada muda.
+async function withIdempotency(req, res, pathname, body, runHandler) {
+  const key = req.headers['idempotency-key'];
+  if (!key || typeof key !== 'string') return runHandler();
+
+  const method = req.method || 'POST';
+  const rowId = crypto.createHash('sha256').update(`${method} ${pathname} ${key}`).digest('hex');
+  const reqHash = crypto.createHash('sha256')
+    .update(typeof body === 'string' ? body : JSON.stringify(body || {})).digest('hex');
+
+  let existing;
+  try {
+    existing = await db.getOne(
+      'SELECT request_hash, status_code, response_body FROM idempotency_keys WHERE id = $1',
+      [rowId]
+    );
+  } catch {
+    return runHandler(); // tabela ausente / erro de DB — não bloqueia o request
+  }
+
+  if (existing) {
+    if (existing.requestHash && existing.requestHash !== reqHash) {
+      return sendError(res, 422, 'Idempotency-Key já usada com um corpo diferente');
+    }
+    res.writeHead(existing.statusCode, { 'Content-Type': 'application/json' });
+    res.end(existing.responseBody);
+    return;
+  }
+
+  // Primeira vez — executa capturando a resposta para replays futuros.
+  let capturedStatus = 200;
+  let capturedBody = '';
+  const origWriteHead = res.writeHead.bind(res);
+  const origEnd = res.end.bind(res);
+  res.writeHead = (status, ...rest) => { capturedStatus = status; return origWriteHead(status, ...rest); };
+  res.end = (chunk, ...rest) => {
+    if (chunk) capturedBody += chunk.toString();
+    const ret = origEnd(chunk, ...rest);
+    // Só guarda sucesso — erros (4xx/5xx) devem poder ser refeitos num retry.
+    if (capturedStatus >= 200 && capturedStatus < 300) {
+      db.query(
+        `INSERT INTO idempotency_keys (id, request_hash, status_code, response_body)
+         VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO NOTHING`,
+        [rowId, reqHash, capturedStatus, capturedBody]
+      ).catch(() => {});
+    }
+    return ret;
+  };
+  return runHandler();
+}
+
 function routeRequest(pathname, method, body, res, parsedUrl, req) {
   // ============ Auth routes ============
   if (pathname === '/api/auth/login' && method === 'POST') return handleLogin(req, body, res);
@@ -4874,7 +4928,7 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
 
   // Contas a Pagar routes
   if (pathname === '/api/contas-pagar' && method === 'GET') return handleGetContasPagar(res);
-  if (pathname === '/api/contas-pagar' && method === 'POST') return handlePostContaPagar(body, res);
+  if (pathname === '/api/contas-pagar' && method === 'POST') return withIdempotency(req, res, pathname, body, () => handlePostContaPagar(body, res));
   if (pathname.match(/^\/api\/contas-pagar\/[^/]+$/) && method === 'PUT') {
     return handlePutContaPagar(pathname.split('/')[3], body, res);
   }
@@ -4882,7 +4936,7 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
     return handleDeleteContaPagar(pathname.split('/')[3], res);
   }
   if (pathname.match(/^\/api\/contas-pagar\/[^/]+\/pagar$/) && method === 'POST') {
-    return handlePagarConta(pathname.split('/')[3], body, res);
+    return withIdempotency(req, res, pathname, body, () => handlePagarConta(pathname.split('/')[3], body, res));
   }
   if (pathname.match(/^\/api\/contas-pagar\/[^/]+\/estornar$/) && method === 'POST') {
     return handleEstornarConta(pathname.split('/')[3], res);
@@ -4893,13 +4947,13 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
     return handleGetFolha(parsedUrl.query, res);
   }
   if (pathname === '/api/folha-pagamento/gerar' && method === 'POST') {
-    return handleGerarFolha(body, res);
+    return withIdempotency(req, res, pathname, body, () => handleGerarFolha(body, res));
   }
   if (pathname === '/api/folha-pagamento/limpar' && method === 'POST') {
     return handleLimparFolha(body, res);
   }
   if (pathname.match(/^\/api\/folha-pagamento\/[^/]+\/pagar$/) && method === 'POST') {
-    return handlePagarFolhaParcela(pathname.split('/')[3], body, res);
+    return withIdempotency(req, res, pathname, body, () => handlePagarFolhaParcela(pathname.split('/')[3], body, res));
   }
   if (pathname.match(/^\/api\/folha-pagamento\/[^/]+\/estornar$/) && method === 'POST') {
     return handleEstornarFolhaParcela(pathname.split('/')[3], body, res);

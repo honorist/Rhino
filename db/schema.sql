@@ -273,6 +273,16 @@ CREATE TABLE IF NOT EXISTS folha_pagamento (
 CREATE UNIQUE INDEX IF NOT EXISTS uq_folha_recurso_comp ON folha_pagamento (recurso_id, competencia);
 CREATE INDEX IF NOT EXISTS idx_folha_competencia ON folha_pagamento (competencia);
 
+-- ============ Idempotência ============
+CREATE TABLE IF NOT EXISTS idempotency_keys (
+  id            TEXT PRIMARY KEY,
+  request_hash  TEXT,
+  status_code   INTEGER NOT NULL,
+  response_body TEXT NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_idempotency_created ON idempotency_keys (created_at);
+
 -- ============ Investimentos / Aportes ============
 CREATE TABLE IF NOT EXISTS investimentos (
   id             TEXT PRIMARY KEY,
