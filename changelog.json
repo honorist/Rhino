@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.37",
+      "date": "2026-05-20",
+      "summary": "Fix: usuário ficava preso na versão antiga do app a cada deploy (cache-busting dos scripts)",
+      "changes": [
+        "BUG: os JS/CSS carregados pelo index.html (store.js, app.js, views eager como ContasPagar) não tinham versão na URL. Com o cache do Service Worker (stale-while-revalidate), o navegador servia o código antigo — o usuário ficava uma versão atrás a cada deploy e precisava recarregar 2x ou limpar o cache. Era a causa de correções publicadas não 'pegarem'.",
+        "Fix (server.js): ao servir o index.html, o servidor anexa ?v=APP_VERSION a todos os JS/CSS eager. Como a URL muda a cada versão, o cache erra e busca o código novo já no primeiro reload. Os scripts lazy (app.js) já faziam isso.",
+        "Efeito: a partir desta versão, um único reload após um deploy traz o app atualizado."
+      ]
+    },
+    {
       "version": "1.2.36",
       "date": "2026-05-20",
       "summary": "Fix: contas a pagar geradas pela folha não apareciam na tela de Contas a Pagar",

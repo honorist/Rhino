@@ -3946,10 +3946,18 @@ function _serveHtmlWithBootstrap(pathname, res) {
   // Nonce único por request — libera APENAS o nosso bootstrap inline na CSP.
   const nonce = crypto.randomBytes(16).toString('base64');
   const bootstrap = _bootstrapInline(APP_VERSION);
-  const html = fs.readFileSync(filepath, 'utf8').replace(
-    '</head>',
-    `<script nonce="${nonce}">${bootstrap}</script></head>`
-  );
+  const html = fs.readFileSync(filepath, 'utf8')
+    .replace(
+      '</head>',
+      `<script nonce="${nonce}">${bootstrap}</script></head>`
+    )
+    // Cache-busting dos JS/CSS eager: anexa ?v=APP_VERSION. Sem isso o sw.js
+    // (stale-while-revalidate) serve o JS antigo cacheado e o usuário fica uma
+    // versão atrás a cada deploy. Os scripts lazy já versionam em app.js.
+    .replace(
+      /(src|href)="(\.\/(?:js|css)\/[^"]+\.(?:js|css))"/g,
+      `$1="$2?v=${APP_VERSION}"`
+    );
   // CSP com nonce — só o script-src difere; resto vem de buildCsp().
   const csp = buildCsp(`script-src 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net`);
   res.writeHead(200, {
