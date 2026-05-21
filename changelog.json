@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.49",
+      "date": "2026-05-21",
+      "summary": "Permissão de edição validada no servidor; correção do filtro de função",
+      "changes": [
+        "Segurança: a coluna 'Ed.' (editar) da matriz de Níveis de Acesso agora é validada também no servidor. Antes o servidor só conferia se o perfil tinha a tela; agora uma operação de criar/editar/excluir exige a permissão de edição daquela tela. Desmarcar 'Ed.' na matriz passa a tornar o perfil somente-leitura de verdade naquela tela.",
+        "Para não tirar acesso de ninguém, uma migração concedeu a permissão de edição de cada tela operacional que o perfil já podia operar — o comportamento atual foi 100% preservado. A partir daqui, o ajuste fino é feito na própria matriz.",
+        "Recursos Humanos: corrigido o filtro de função que abria atrás da tabela e não dava para clicar — agora a lista de funções aparece por cima."
+      ]
+    },
+    {
       "version": "1.2.48",
       "date": "2026-05-21",
       "summary": "Níveis de Acesso: Usuários e Auditoria deixam de abrir vazios para quem não tem permissão",

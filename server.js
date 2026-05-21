@@ -4613,9 +4613,9 @@ function requireAdmin(req, res) {
 // O modelo de perfis (niveis_acesso.abas) era aplicado SÓ no frontend para a
 // maioria dos endpoints — qualquer usuário logado podia chamar a API direto
 // (curl / console do browser) e alterar dados de telas que o perfil dele nem
-// acessa. Aqui espelhamos no servidor a mesma regra do `podeAcessar` do
+// acessa. Aqui espelhamos no servidor a mesma regra do `podeEditar` do
 // frontend: uma mutação (POST/PUT/DELETE/PATCH) numa tela NÃO-universal exige
-// que o usuário tenha essa tela nas `abas`.
+// que o usuário tenha permissão de EDIÇÃO (`edit:#/rota`) naquela tela nas `abas`.
 //
 // Telas universais (propostas, estoque, frota, solicitações, cláusulas) NÃO
 // são enforced — são abertas a qualquer usuário logado por design do app
@@ -4651,8 +4651,9 @@ async function checkMutationPermission(req, res, pathname, method) {
   if (!rule) return false;                                // rota não mapeada → não bloqueia
   const abas = await perms.loadAbas(req.user);
   if (!abas) return false;                                // null = sem restrição
-  if (rule.screens.some(s => abas.includes(s))) return false;
-  console.warn(`[C-04] mutação bloqueada: user=${req.user?.id} ${method} ${pathname} — precisa de uma de: ${rule.screens.join(', ')}`);
+  // Exige permissão de EDIÇÃO (edit:#/rota). O OR cobre cross-invocações.
+  if (rule.screens.some(s => abas.includes('edit:' + s))) return false;
+  console.warn(`[C-04] mutação bloqueada: user=${req.user?.id} ${method} ${pathname} — precisa de permissão de edição em uma de: ${rule.screens.join(', ')}`);
   sendError(res, 403, 'Você não tem permissão para esta operação.');
   return true;
 }

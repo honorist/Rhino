@@ -65,7 +65,7 @@ window.Recursos = {
           : this._statCard('Total', total, 'var(--color-primary)', '⊕')}
       </div>
 
-      <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-lg);">
+      <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-lg);position:relative;z-index:40;">
         <div style="display:flex;gap:var(--sp-md);align-items:center;flex-wrap:wrap;">
           <input class="form-control" id="inputBusca" placeholder="Buscar por nome, CPF, profissão..." value="${this.busca}" style="flex:1;min-width:200px;">
           <select class="form-control" id="filtroStatus" style="width:200px;">
