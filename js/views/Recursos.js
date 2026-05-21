@@ -1,6 +1,7 @@
 window.Recursos = {
   busca: '',
   filtroStatus: '',
+  filtroProfissao: '',
   _miniMap: null,
 
   async render() {
@@ -27,8 +28,13 @@ window.Recursos = {
         (r.profissao || '').toLowerCase().includes(termo) ||
         (r.endereco || '').toLowerCase().includes(termo);
       const matchStatus = !this.filtroStatus || r.status === this.filtroStatus;
-      return matchBusca && matchStatus;
+      const matchProfissao = !this.filtroProfissao || r.profissao === this.filtroProfissao;
+      return matchBusca && matchStatus && matchProfissao;
     });
+
+    // Funções/profissões distintas cadastradas, para o filtro suspenso.
+    const profissoes = [...new Set(recursos.map(r => (r.profissao || '').trim()).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
 
     const total          = recursos.length;
     const ativos         = recursos.filter(r => r.status === 'funcionario').length;
@@ -72,6 +78,10 @@ window.Recursos = {
             <option value="candidato"     ${this.filtroStatus === 'candidato'     ? 'selected' : ''}>Candidato</option>
             <option value="ex_funcionario"${this.filtroStatus === 'ex_funcionario'? 'selected' : ''}>Ex-Funcionário</option>
           </select>
+          <select class="form-control" id="filtroProfissao" style="width:200px;">
+            <option value="">Todas as funções</option>
+            ${profissoes.map(p => `<option value="${escapeHtml(p)}" ${this.filtroProfissao === p ? 'selected' : ''}>${escapeHtml(p)}</option>`).join('')}
+          </select>
         </div>
       </div>
 
@@ -91,7 +101,7 @@ window.Recursos = {
             <tbody>
               ${filtrados.length === 0
                 ? `<tr><td colspan="6" class="text-center text-muted" style="padding:var(--sp-xl);">
-                    ${termo || this.filtroStatus ? 'Nenhum resultado' : 'Nenhum cadastro ainda'}
+                    ${termo || this.filtroStatus || this.filtroProfissao ? 'Nenhum resultado' : 'Nenhum cadastro ainda'}
                    </td></tr>`
                 : filtrados.map(r => this._renderRow(r)).join('')}
             </tbody>
@@ -108,6 +118,10 @@ window.Recursos = {
     });
     document.getElementById('filtroStatus').addEventListener('change', e => {
       this.filtroStatus = e.target.value;
+      this._renderLista();
+    });
+    document.getElementById('filtroProfissao').addEventListener('change', e => {
+      this.filtroProfissao = e.target.value;
       this._renderLista();
     });
 

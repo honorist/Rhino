@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.2.45",
+      "date": "2026-05-21",
+      "summary": "Recursos Humanos: filtro por função",
+      "changes": [
+        "A tela de Recursos Humanos ganhou um filtro suspenso por função/profissão, ao lado do filtro de status. As opções são geradas automaticamente a partir das funções cadastradas e combinam com a busca por texto e o filtro de status."
+      ]
+    },
+    {
       "version": "1.2.44",
       "date": "2026-05-21",
       "summary": "Solicitação de compra: 'financeiro' renomeado para 'equipe de compras'",
