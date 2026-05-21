@@ -2851,6 +2851,25 @@ async function handleEstornarConta(id, res) {
 // ============ Folha de Pagamento handlers ============
 const VALE_PCT = 0.40; // adiantamento (vale) = 40% do salário
 
+// 5º dia útil (segunda a sexta; não considera feriados) do mês seguinte à
+// competência 'YYYY-MM' — é a data em que o saldo do salário deve ser pago.
+function quintoDiaUtil(competencia) {
+  const [ano, mes] = competencia.split('-').map(Number);
+  const d = new Date(ano, mes, 1); // dia 1 do mês seguinte (mes 1-12 → índice do próximo)
+  let uteis = 0;
+  while (true) {
+    const dow = d.getDay(); // 0 = domingo, 6 = sábado
+    if (dow !== 0 && dow !== 6) {
+      uteis++;
+      if (uteis === 5) break;
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
 // POST /api/folha-pagamento/gerar — gera as linhas de folha do mês (idempotente).
 async function handleGerarFolha(body, res) {
   try {
@@ -2861,6 +2880,7 @@ async function handleGerarFolha(body, res) {
     const [ano, mes] = competencia.split('-').map(Number);
     const ultimoDia = String(new Date(ano, mes, 0).getDate()).padStart(2, '0');
     const dataRef = `${competencia}-${ultimoDia}`;
+    const vencimentoSaldo = quintoDiaUtil(competencia); // saldo vence no 5º dia útil
 
     const recursos = await repos.recursos.findAll();
     const funcs = recursos.filter(r => r.status === 'funcionario' && parseFloat(r.salario) > 0);
@@ -2921,8 +2941,8 @@ async function handleGerarFolha(body, res) {
         throw e;
       }
 
-      // Contas a Pagar vinculadas — saldo vence no último dia do mês, vale (se
-      // houver) no dia 20. Pagar/estornar é sincronizado (folha ↔ conta).
+      // Contas a Pagar vinculadas — saldo vence no 5º dia útil do mês seguinte,
+      // vale (se houver) no dia 20. Pagar/estornar é sincronizado (folha ↔ conta).
       const catConta = contractId ? 'mao_de_obra' : 'base';
       const contasPatch = {};
       const saldoContaId = generateId('cp');
@@ -2931,7 +2951,7 @@ async function handleGerarFolha(body, res) {
         descricao: `Saldo salário ${r.nome || ''} — ${competencia}`,
         valor: valorSaldo,
         dataEmissao: dataRef,
-        dataVencimento: dataRef,
+        dataVencimento: vencimentoSaldo,
         status: 'pendente',
         contractId,
         category: catConta,

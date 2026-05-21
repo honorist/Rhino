@@ -113,7 +113,7 @@ window.FolhaPagamento = {
             <thead><tr>
               <th>Colaborador</th><th>Local de custo</th><th>Salário</th>
               <th>Vale (40%)</th><th>Proventos</th><th>Descontos</th>
-              <th>Saldo</th><th>Líquido</th><th>Lançamentos</th>
+              <th>A pagar (5º dia útil)</th><th>Líquido</th><th>Lançamentos</th>
             </tr></thead>
             <tbody>
               ${folha.length === 0
@@ -267,7 +267,7 @@ window.FolhaPagamento = {
             <h2 class="modal-title">Lançamentos — ${esc(f0.recursoNome)}</h2>
             <button class="modal-close">✕</button>
           </div>
-          <div class="modal-content" id="acertosBody"></div>
+          <div class="modal-content" id="acertosBody" style="max-height:62vh;overflow-y:auto;"></div>
           <div class="modal-footer">
             <button class="btn btn-ghost" id="acFechar">Fechar</button>
           </div>
@@ -305,60 +305,162 @@ window.FolhaPagamento = {
           </span>
         </div>`;
 
-      const secao = (titulo, arr, sinal, cor) => `
+      // Linha automática (salário base, vale 40%) — vem da própria folha, não é
+      // removível: só exibe o que já compõe o cálculo do saldo.
+      const linhaAuto = (titulo, valor, sinal, cor, extra) => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--color-border);">
+          <span class="text-muted">${titulo} <em style="font-size:11px;">· automático</em></span>
+          <span style="display:flex;gap:var(--sp-md);align-items:center;">
+            ${extra || ''}
+            <strong style="color:${cor};">${sinal}${fmt(valor)}</strong>
+          </span>
+        </div>`;
+
+      const secao = (titulo, cor, autoHtml, arr, sinal) => `
         <h3 style="margin:var(--sp-md) 0 4px;font-size:13px;color:${cor};">${titulo}</h3>
+        ${autoHtml}
         ${arr.length
           ? arr.map(it => linhaItem(it, sinal, cor)).join('')
-          : '<p class="text-muted" style="padding:6px 0;">Nenhum lançamento.</p>'}`;
+          : (autoHtml ? '' : '<p class="text-muted" style="padding:6px 0;">Nenhum lançamento.</p>')}`;
+
+      // O Vale (adiantamento 40%) aparece como desconto automático para os
+      // elegíveis — já está embutido no saldo, aqui só fica visível no registro.
+      const temVale = !!f.elegivelVale && (parseFloat(f.valorVale) || 0) > 0;
+      const valeHtml = temVale
+        ? linhaAuto('Vale — adiantamento 40%', f.valorVale, '−', '#991B1B', self._badge(f.valePago))
+        : '';
+      const salarioHtml = linhaAuto('Salário base', f.salarioBase, '+', '#065F46');
+
+      // Opções do seletor de itens prontos (proventos / descontos).
+      const optGroup = (tipo) => self._PRESETS.filter(p => p.tipo === tipo)
+        .map(p => `<option value="${p.key}">${esc(p.label)}${p.calc === 'outro' ? '…' : ''}</option>`).join('');
+      const optsProv = optGroup('provento');
+      const optsDesc = optGroup('desconto');
 
       const body = document.getElementById('acertosBody');
       body.innerHTML = `
         ${bloqueado ? '<p class="text-danger" style="margin-bottom:var(--sp-md);">Saldo já pago — estorne o saldo para editar os lançamentos.</p>' : ''}
-        ${secao('Proventos', proventos, '+', '#065F46')}
-        ${secao('Descontos', descontos, '−', '#991B1B')}
+        ${secao('Proventos', '#065F46', salarioHtml, proventos, '+')}
+        ${secao('Descontos', '#991B1B', valeHtml, descontos, '−')}
         <div style="margin-top:var(--sp-md);padding-top:var(--sp-md);border-top:2px solid var(--color-border);display:flex;justify-content:space-between;">
           <span class="text-muted">Saldo a pagar (com lançamentos)</span>
           <strong${(parseFloat(f.valorSaldo) || 0) < 0 ? ' style="color:#991B1B;"' : ''}>${fmt(f.valorSaldo)}</strong>
         </div>
         ${bloqueado ? '' : `
         <div style="margin-top:var(--sp-lg);">
+          <h3 style="margin:0 0 var(--sp-sm);font-size:13px;">Novo lançamento</h3>
           <div class="form-group">
+            <label class="form-label">Item</label>
+            <select class="form-control" id="acPreset">
+              <option value="">— escolha um item —</option>
+              <optgroup label="Proventos">${optsProv}</optgroup>
+              <optgroup label="Descontos">${optsDesc}</optgroup>
+            </select>
+          </div>
+          <div class="form-group" id="acDescWrap" style="display:none;">
             <label class="form-label">Descrição</label>
-            <input class="form-control" id="acDesc" type="text" maxlength="120"
-                   placeholder="Ex.: INSS, Hora extra, Vale-alimentação">
+            <input class="form-control" id="acDesc" type="text" maxlength="120" placeholder="Descreva o lançamento">
+          </div>
+          <div class="form-group" id="acQtdWrap" style="display:none;">
+            <label class="form-label" id="acQtdLabel">Quantidade</label>
+            <input class="form-control" id="acQtd" type="number" step="0.5" min="0" placeholder="0">
           </div>
           <div class="form-group">
             <label class="form-label">Valor (R$)</label>
             <input class="form-control" id="acValor" type="number" step="0.01" min="0" placeholder="0,00">
           </div>
-          <div style="display:flex;gap:var(--sp-md);">
-            <button class="btn btn-success" id="acAddProv" style="flex:1;">+ Provento</button>
-            <button class="btn btn-danger" id="acAddDesc" style="flex:1;">+ Desconto</button>
-          </div>
+          <p class="text-muted" id="acHint" style="font-size:11px;margin:-6px 0 var(--sp-sm);"></p>
+          <button class="btn btn-primary" id="acAdd" style="width:100%;">Adicionar lançamento</button>
         </div>`}`;
 
       body.querySelectorAll('.js-rm-item').forEach(b =>
         b.addEventListener('click', () => self._removerItem(id, b.dataset.item, refresh)));
+
       if (!bloqueado) {
-        document.getElementById('acAddProv').addEventListener('click', () => self._adicionarItem(id, 'provento', refresh));
-        document.getElementById('acAddDesc').addEventListener('click', () => self._adicionarItem(id, 'desconto', refresh));
+        const salario = parseFloat(f.salarioBase) || 0;
+        // Ajusta os campos do formulário conforme o item escolhido.
+        const aplicarPreset = () => {
+          const preset = self._PRESETS.find(p => p.key === document.getElementById('acPreset').value);
+          const descWrap = document.getElementById('acDescWrap');
+          const qtdWrap = document.getElementById('acQtdWrap');
+          const qtdInput = document.getElementById('acQtd');
+          const valorInput = document.getElementById('acValor');
+          const hint = document.getElementById('acHint');
+          descWrap.style.display = 'none';
+          qtdWrap.style.display = 'none';
+          qtdInput.value = '';
+          valorInput.value = '';
+          hint.textContent = '';
+          if (!preset) return;
+          if (preset.calc === 'outro') {
+            descWrap.style.display = '';
+            document.getElementById('acDesc').value = '';
+          } else if (preset.calc === 'sindical') {
+            valorInput.value = (Math.round(Math.min(salario * 0.02, 70) * 100) / 100).toFixed(2);
+            hint.textContent = '2% do salário, com teto de R$ 70,00.';
+          } else if (preset.calc === 'inss') {
+            valorInput.value = self._calcInss(salario).toFixed(2);
+            hint.textContent = 'INSS progressivo (tabela 2026) sobre ' + fmt(salario) + '. Ajuste se necessário.';
+          } else if (preset.calc === 'hora') {
+            qtdWrap.style.display = '';
+            document.getElementById('acQtdLabel').textContent = 'Horas extras';
+            qtdInput.step = '0.5';
+            hint.textContent = '(salário ÷ 220) × ' + preset.fator.toFixed(2).replace('.', ',') + ' por hora.';
+          } else if (preset.calc === 'falta') {
+            qtdWrap.style.display = '';
+            document.getElementById('acQtdLabel').textContent = 'Dias de falta';
+            qtdInput.step = '1';
+            hint.textContent = 'Salário ÷ 30 por dia de falta.';
+          } else if (preset.calc === 'atraso') {
+            qtdWrap.style.display = '';
+            document.getElementById('acQtdLabel').textContent = 'Minutos de atraso';
+            qtdInput.step = '1';
+            hint.textContent = 'Salário ÷ 220 ÷ 60 por minuto de atraso.';
+          }
+        };
+        // Recalcula o valor sugerido quando a quantidade muda.
+        const recalcular = () => {
+          const preset = self._PRESETS.find(p => p.key === document.getElementById('acPreset').value);
+          if (!preset) return;
+          const qtd = parseFloat(document.getElementById('acQtd').value) || 0;
+          let v = null;
+          if (preset.calc === 'hora') v = (salario / 220) * preset.fator * qtd;
+          else if (preset.calc === 'falta') v = (salario / 30) * qtd;
+          else if (preset.calc === 'atraso') v = (salario / 220 / 60) * qtd;
+          if (v !== null) document.getElementById('acValor').value = (Math.round(v * 100) / 100).toFixed(2);
+        };
+        document.getElementById('acPreset').addEventListener('change', aplicarPreset);
+        document.getElementById('acQtd').addEventListener('input', recalcular);
+        document.getElementById('acAdd').addEventListener('click', () => self._adicionarItem(id, refresh));
       }
     }
 
     paint();
   },
 
-  async _adicionarItem(folhaId, tipo, onDone) {
-    const descEl = document.getElementById('acDesc');
-    const valorEl = document.getElementById('acValor');
-    if (!descEl || !valorEl) return;
-    const descricao = (descEl.value || '').trim();
-    const valor = parseFloat(valorEl.value);
-    if (!descricao) { window.showToast('Informe a descrição do lançamento', 'error'); descEl.focus(); return; }
-    if (!(valor > 0)) { window.showToast('Informe um valor maior que zero', 'error'); valorEl.focus(); return; }
+  async _adicionarItem(folhaId, onDone) {
+    const presetEl = document.getElementById('acPreset');
+    if (!presetEl) return;
+    const preset = this._PRESETS.find(p => p.key === presetEl.value);
+    if (!preset) { window.showToast('Escolha um item da lista', 'error'); presetEl.focus(); return; }
+    const valor = Math.round((parseFloat(document.getElementById('acValor').value) || 0) * 100) / 100;
+    if (!(valor > 0)) { window.showToast('Informe um valor maior que zero', 'error'); return; }
+    let descricao;
+    if (preset.calc === 'outro') {
+      descricao = (document.getElementById('acDesc').value || '').trim();
+      if (!descricao) { window.showToast('Informe a descrição do lançamento', 'error'); return; }
+    } else if (preset.calc === 'hora' || preset.calc === 'falta' || preset.calc === 'atraso') {
+      const qtd = parseFloat(document.getElementById('acQtd').value) || 0;
+      const unid = preset.calc === 'hora' ? `${qtd}h`
+        : preset.calc === 'falta' ? `${qtd} ${qtd === 1 ? 'dia' : 'dias'}`
+        : `${qtd} min`;
+      descricao = qtd > 0 ? `${preset.label} (${unid})` : preset.label;
+    } else {
+      descricao = preset.label;
+    }
     try {
-      await Store.addFolhaItem(folhaId, { tipo, descricao, valor });
-      window.showToast(tipo === 'provento' ? 'Provento lançado' : 'Desconto lançado', 'success');
+      await Store.addFolhaItem(folhaId, { tipo: preset.tipo, descricao, valor });
+      window.showToast(preset.tipo === 'provento' ? 'Provento lançado' : 'Desconto lançado', 'success');
       await onDone();
     } catch (e) { window.showToast('Erro ao lançar: ' + e.message, 'error'); }
   },
@@ -370,5 +472,37 @@ window.FolhaPagamento = {
       window.showToast('Lançamento removido', 'success');
       await onDone();
     } catch (e) { window.showToast('Erro ao remover: ' + e.message, 'error'); }
+  },
+
+  // Itens comuns de folha — preenchem descrição/tipo e calculam o valor a
+  // partir do salário quando há fórmula. 'outro' libera descrição livre;
+  // 'livre' usa a descrição pronta e o valor digitado.
+  _PRESETS: [
+    { key: 'he50',    tipo: 'provento', label: 'Hora extra 50%',  calc: 'hora', fator: 1.5 },
+    { key: 'he60',    tipo: 'provento', label: 'Hora extra 60%',  calc: 'hora', fator: 1.6 },
+    { key: 'he70',    tipo: 'provento', label: 'Hora extra 70%',  calc: 'hora', fator: 1.7 },
+    { key: 'he100',   tipo: 'provento', label: 'Hora extra 100%', calc: 'hora', fator: 2.0 },
+    { key: 'plr',     tipo: 'provento', label: 'Participação nos lucros', calc: 'livre' },
+    { key: 'va',      tipo: 'provento', label: 'Vale-alimentação', calc: 'livre' },
+    { key: 'outro_p', tipo: 'provento', label: 'Outro provento',  calc: 'outro' },
+    { key: 'sind',    tipo: 'desconto', label: 'Contribuição sindical', calc: 'sindical' },
+    { key: 'inss',    tipo: 'desconto', label: 'INSS',            calc: 'inss' },
+    { key: 'falta',   tipo: 'desconto', label: 'Faltas',          calc: 'falta' },
+    { key: 'atraso',  tipo: 'desconto', label: 'Atrasos',         calc: 'atraso' },
+    { key: 'dsr',     tipo: 'desconto', label: 'D.S.R.',          calc: 'livre' },
+    { key: 'outro_d', tipo: 'desconto', label: 'Outro desconto',  calc: 'outro' },
+  ],
+
+  // INSS progressivo do segurado empregado — tabela 2026 (Portaria
+  // Interministerial MPS/MF nº 13, vigente desde 01/01/2026). Calcula faixa a
+  // faixa. ATENÇÃO: a tabela muda todo ano — revisar os limites e o teto.
+  _calcInss(salario) {
+    const s = Math.min(parseFloat(salario) || 0, 8475.55); // teto INSS 2026
+    if (s <= 0) return 0;
+    let inss = Math.min(s, 1621.00) * 0.075;
+    if (s > 1621.00) inss += (Math.min(s, 2902.84) - 1621.00) * 0.09;
+    if (s > 2902.84) inss += (Math.min(s, 4354.27) - 2902.84) * 0.12;
+    if (s > 4354.27) inss += (s - 4354.27) * 0.14;
+    return Math.round(inss * 100) / 100;
   },
 };

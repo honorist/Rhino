@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.42",
+      "date": "2026-05-21",
+      "summary": "Folha: lançamentos com itens prontos e cálculo automático, vencimento no 5º dia útil",
+      "changes": [
+        "O modal de Lançamentos passou a ter uma lista de itens prontos. Proventos: hora extra 50/60/70/100% (informando as horas), participação nos lucros e vale-alimentação. Descontos: contribuição sindical (2%, teto R$ 70), INSS (tabela progressiva oficial 2026), faltas (por dias), atrasos (por minutos) e D.S.R. — além da opção 'Outro' para itens livres. O valor é calculado automaticamente a partir do salário e continua editável.",
+        "O modal agora mostra o Salário base e o Vale (adiantamento de 40%) como linhas automáticas, deixando o cálculo do saldo transparente — o Vale aparece como desconto negativo para quem é elegível.",
+        "Correção do vencimento do saldo do salário: passa a ser o 5º dia útil do mês seguinte à competência (antes ia para o último dia do mês). A coluna 'Saldo' da folha foi renomeada para 'A pagar (5º dia útil)'."
+      ]
+    },
+    {
       "version": "1.2.41",
       "date": "2026-05-21",
       "summary": "Folha de Pagamento: lançamentos de descontos e proventos por colaborador",
