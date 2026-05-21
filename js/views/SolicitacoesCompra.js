@@ -1,6 +1,6 @@
 // Solicitações de Compra — fluxo de 3 etapas:
 //   1) Encarregado cria com itens (descrição + qtd) e justificativa
-//   2) Financeiro avalia: lança cotações por item, escolhe a vencedora, define destino → ou cancela
+//   2) Equipe de compras avalia: lança cotações por item, escolhe a vencedora, define destino → ou cancela
 //   3) Gerente aprova/rejeita; aprovação gera entrada de estoque + Conta a Pagar
 window.SolicitacoesCompra = {
   filtroStatus: '',
@@ -13,7 +13,7 @@ window.SolicitacoesCompra = {
 
   _etapaCfg(status) {
     return {
-      pendente_avaliacao: { bg: '#FEF3C7', color: '#92400E', label: '🟡 Aguardando financeiro' },
+      pendente_avaliacao: { bg: '#FEF3C7', color: '#92400E', label: '🟡 Aguardando equipe de compras' },
       pendente_aprovacao: { bg: '#FED7AA', color: '#9A3412', label: '🟠 Aguardando gerente' },
       aprovada:           { bg: '#DBEAFE', color: '#1E40AF', label: '🔵 Aprovada · aguardando compra' },
       comprada:           { bg: '#E0E7FF', color: '#3730A3', label: '📦 Comprada · aguardando entrega' },
@@ -76,7 +76,7 @@ window.SolicitacoesCompra = {
 
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:var(--sp-md);margin-bottom:var(--sp-lg);">
         <div class="card" style="padding:var(--sp-md);">
-          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">🟡 Aguardando financeiro</div>
+          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">🟡 Aguardando equipe de compras</div>
           <div style="font-size:28px;font-weight:800;color:#92400E;">${kpiAvaliacao}</div>
         </div>
         <div class="card" style="padding:var(--sp-md);">
@@ -104,7 +104,7 @@ window.SolicitacoesCompra = {
             <label class="form-label">Etapa</label>
             <select id="filtroStatus" class="form-control">
               <option value="">Todas</option>
-              <option value="pendente_avaliacao" ${this.filtroStatus==='pendente_avaliacao'?'selected':''}>🟡 Aguardando financeiro</option>
+              <option value="pendente_avaliacao" ${this.filtroStatus==='pendente_avaliacao'?'selected':''}>🟡 Aguardando equipe de compras</option>
               <option value="pendente_aprovacao" ${this.filtroStatus==='pendente_aprovacao'?'selected':''}>🟠 Aguardando gerente</option>
               <option value="aprovada"           ${this.filtroStatus==='aprovada'?'selected':''}>🔵 Aprovada (a comprar)</option>
               <option value="comprada"           ${this.filtroStatus==='comprada'?'selected':''}>📦 Comprada (a receber)</option>
@@ -220,7 +220,7 @@ window.SolicitacoesCompra = {
           <div class="modal-header">
             <div>
               <h2 class="modal-title">${s ? 'Editar Solicitação' : 'Nova Solicitação de Compra'}</h2>
-              <div style="font-size:13px;color:var(--color-text-muted);margin-top:4px;">Informe o que precisa, a quantidade e onde será usado. O Financeiro vai precificar e o Gerente aprovar.</div>
+              <div style="font-size:13px;color:var(--color-text-muted);margin-top:4px;">Informe o que precisa, a quantidade e onde será usado. A equipe de compras vai precificar e o Gerente aprovar.</div>
             </div>
             <button class="modal-close">✕</button>
           </div>
@@ -307,7 +307,7 @@ window.SolicitacoesCompra = {
     });
   },
 
-  // ── 2ª etapa: FINANCEIRO avalia ───────────────────────────────────────
+  // ── 2ª etapa: EQUIPE DE COMPRAS avalia ───────────────────────────────────────
   showModalAvaliar(id) {
     const s = (Store.state.solicitacoes_compra || []).find(x => x.id === id);
     if (!s) return;
@@ -526,7 +526,7 @@ window.SolicitacoesCompra = {
           <div class="modal-header">
             <div>
               <h2 class="modal-title">Aprovar Solicitação</h2>
-              <div style="font-size:13px;color:var(--color-text-muted);margin-top:4px;">Pré-aprovada pelo financeiro · Total: <strong>${Store.formatBRL(parseFloat(s.valorTotal) || 0)}</strong></div>
+              <div style="font-size:13px;color:var(--color-text-muted);margin-top:4px;">Pré-aprovada pela equipe de compras · Total: <strong>${Store.formatBRL(parseFloat(s.valorTotal) || 0)}</strong></div>
             </div>
             <button class="modal-close">✕</button>
           </div>
@@ -572,7 +572,7 @@ window.SolicitacoesCompra = {
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnFechar').addEventListener('click', close);
     document.getElementById('btnAprovar').addEventListener('click', async () => {
-      if (!confirm('Aprovar? O financeiro poderá então registrar a compra junto ao fornecedor.')) return;
+      if (!confirm('Aprovar? A equipe de compras poderá então registrar a compra junto ao fornecedor.')) return;
       try {
         const res = await fetch(`/api/solicitacoes-compra/${id}/aprovar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
         if (!res.ok) throw new Error(await res.text());
@@ -608,7 +608,7 @@ window.SolicitacoesCompra = {
     } catch (e) { window.showToast(e.message, 'error'); }
   },
 
-  // ── 4ª etapa: FINANCEIRO registra compra (gera CP) ────────────────────
+  // ── 4ª etapa: EQUIPE DE COMPRAS registra compra (gera CP) ────────────────────
   showModalComprar(id) {
     const s = (Store.state.solicitacoes_compra || []).find(x => x.id === id);
     if (!s) return;
@@ -681,7 +681,7 @@ window.SolicitacoesCompra = {
     });
   },
 
-  // ── 5ª etapa: ALMOXARIFE/FINANCEIRO confirma chegada (gera entrada) ───
+  // ── 5ª etapa: ALMOXARIFE/EQUIPE DE COMPRAS confirma chegada (gera entrada) ───
   showModalReceber(id) {
     const s = (Store.state.solicitacoes_compra || []).find(x => x.id === id);
     if (!s) return;
@@ -765,14 +765,14 @@ window.SolicitacoesCompra = {
     let html = marco('#3B82F6', '📝', 'Solicitada', `${escapeHtml(s.solicitanteNome || '—')} · ${this._fmtDt(s.createdAt)}`);
 
     if (s.status === 'cancelada') {
-      html += marco('#6B7280', '🚫', 'Cancelada', `${escapeHtml(s.avaliadorNome || '—')} (Financeiro) · ${this._fmtDt(s.canceladoEm)}${s.motivoCancelamento ? '<br><em>Motivo: ' + escapeHtml(s.motivoCancelamento) + '</em>' : ''}`);
+      html += marco('#6B7280', '🚫', 'Cancelada', `${escapeHtml(s.avaliadorNome || '—')} (Equipe de compras) · ${this._fmtDt(s.canceladoEm)}${s.motivoCancelamento ? '<br><em>Motivo: ' + escapeHtml(s.motivoCancelamento) + '</em>' : ''}`);
       return html;
     }
 
     if (s.avaliadoEm) {
-      html += marco('#F59E0B', '💰', `Avaliada (${Store.formatBRL(parseFloat(s.valorTotal) || 0)})`, `${escapeHtml(s.avaliadorNome || '—')} (Financeiro) · ${this._fmtDt(s.avaliadoEm)}`);
+      html += marco('#F59E0B', '💰', `Avaliada (${Store.formatBRL(parseFloat(s.valorTotal) || 0)})`, `${escapeHtml(s.avaliadorNome || '—')} (Equipe de compras) · ${this._fmtDt(s.avaliadoEm)}`);
     } else {
-      html += aguardando('Aguardando avaliação do financeiro');
+      html += aguardando('Aguardando avaliação da equipe de compras');
       return html;
     }
 
@@ -789,13 +789,13 @@ window.SolicitacoesCompra = {
     }
 
     if (s.compradoEm) {
-      const det = `${escapeHtml(s.compradorNome || '—')} (Financeiro) · ${this._fmtDt(s.compradoEm)}` +
+      const det = `${escapeHtml(s.compradorNome || '—')} (Equipe de compras) · ${this._fmtDt(s.compradoEm)}` +
         (s.numeroPedido ? `<br>Pedido: <code>${escapeHtml(s.numeroPedido)}</code>` : '') +
         (s.contaPagarId ? `<br>Conta a Pagar: <code>${s.contaPagarId.slice(-8)}</code>` : '') +
         (s.dataPrevistaEntrega ? `<br>Previsão de entrega: ${new Date(s.dataPrevistaEntrega + 'T12:00:00').toLocaleDateString('pt-BR')}` : '');
       html += marco('#6366F1', '📦', 'Comprada', det);
     } else {
-      html += aguardando('Aguardando compra pelo financeiro');
+      html += aguardando('Aguardando compra pela equipe de compras');
       return html;
     }
 

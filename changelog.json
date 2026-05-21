@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.2.44",
+      "date": "2026-05-21",
+      "summary": "Solicitação de compra: 'financeiro' renomeado para 'equipe de compras'",
+      "changes": [
+        "No fluxo de Solicitações de Compra, todas as menções a 'financeiro' passaram a se chamar 'equipe de compras': o status '🟡 Aguardando equipe de compras' (badge, card de KPI e filtro), os papéis na linha do tempo, os textos de avaliação e de compra, e as instruções de tela. O botão de envio já havia sido renomeado para 'Enviar para compras'."
+      ]
+    },
+    {
       "version": "1.2.43",
       "date": "2026-05-21",
       "summary": "Folha: INSS e sindical automáticos, lançamentos editáveis e 5º dia útil com feriados",
