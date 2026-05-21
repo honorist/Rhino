@@ -1,6 +1,6 @@
 {
   "name": "rhino",
-  "version": "1.2.39",
+  "version": "1.2.40",
   "description": "Business management app",
   "main": "server.js",
   "scripts": {
@@ -25,6 +25,7 @@
     "pdf-to-img": "^6.0.0",
     "pdfkit": "^0.18.0",
     "pg": "^8.20.0",
+    "pg-boss": "^12.18.2",
     "web-push": "^3.6.7"
   },
   "engines": {

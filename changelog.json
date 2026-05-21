@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.40",
+      "date": "2026-05-20",
+      "summary": "Jobs assíncronos: o envio de e-mail sai do caminho do request (fila pg-boss)",
+      "changes": [
+        "Nova fila de jobs assíncronos (pg-boss), embutida no próprio processo do servidor e usando o próprio Postgres — sem Redis e sem serviço extra.",
+        "O e-mail de redefinição de senha passa a ser enfileirado em vez de enviado de forma síncrona: o endpoint /api/auth/forgot-password responde na hora e o envio acontece em segundo plano, com retry automático em caso de falha. Se a fila estiver indisponível, o envio cai para o modo inline — o reset de senha nunca se perde.",
+        "Fica pronta a base para mover outros trabalhos pesados (relatórios, processamento) para segundo plano no futuro."
+      ]
+    },
+    {
       "version": "1.2.39",
       "date": "2026-05-20",
       "summary": "Idempotência: endpoints de pagamento e criação aceitam Idempotency-Key (retry de rede não duplica lançamento)",

@@ -31,6 +31,7 @@ const db = require('./db');
 const auth = require('./lib/auth');
 const feriados = require('./lib/feriados');
 const email = require('./lib/email');
+const queue = require('./lib/queue');
 const rateLimit = require('./lib/rate-limit');
 const pgRateLimit = require('./lib/pg-rate-limit');
 const audit = require('./lib/audit');
@@ -1167,7 +1168,11 @@ async function handleForgotPassword(req, body, res) {
       const origin = process.env.APP_BASE_URL || 'http://localhost:3001';
       const link = `${origin}/?action=reset-password&token=${token}`;
       const tmpl = email.tmplResetPassword({ nome: user.name, link, expiraEm: '1 hora' });
-      await email.send({ to: user.email, subject: 'Rhino — redefinir sua senha', html: tmpl.html, text: tmpl.text });
+      const msg = { to: user.email, subject: 'Rhino — redefinir sua senha', html: tmpl.html, text: tmpl.text };
+      // Enfileira o envio para não bloquear o request. Se a fila estiver
+      // indisponível, envia inline — o reset de senha nunca pode se perder.
+      const jobId = await queue.enqueue('email', msg).catch(() => null);
+      if (!jobId) await email.send(msg);
     }
     sendJson(res, { ok: true, message: 'Se o email existir, enviamos as instruções.' });
   } catch (e) {
@@ -7756,12 +7761,26 @@ function _scheduleBackup() {
   scheduleNext();
 }
 
+// ── Workers de jobs assíncronos (pg-boss) ──────────────────────────────────
+async function _emailWorker(data) {
+  const r = await email.send({ to: data.to, subject: data.subject, html: data.html, text: data.text });
+  if (!r.ok && !r.dev) throw new Error(r.error || 'falha ao enviar e-mail'); // throw → pg-boss reprocessa
+}
+
+function _registerWorkers() {
+  if (process.env.NODE_ENV === 'test') return; // sem fila em CI/test
+  queue.work('email', _emailWorker)
+    .then((ok) => { if (ok) console.log('[queue] worker de e-mail registrado'); })
+    .catch((e) => console.error('[queue] erro ao registrar workers:', e && e.message));
+}
+
 if (require.main === module) {
   bootstrap()
     .then(() => {
       server.listen(PORT, () => {
         console.log(`Rhino running at http://localhost:${PORT}`);
         _scheduleBackup();
+        _registerWorkers();
       });
     })
     .catch(err => {
@@ -7773,6 +7792,7 @@ if (require.main === module) {
     .then(() => {
       server.listen(PORT);
       _scheduleBackup();
+      _registerWorkers();
     })
     .catch(err => {
       console.error('[server] Falha no bootstrap:', err);
