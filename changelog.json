@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.46",
+      "date": "2026-05-21",
+      "summary": "Níveis de Acesso: tela refeita como matriz compacta + fluxo de Solicitação de Compra configurável",
+      "changes": [
+        "A tela Configurações → Níveis de Acesso foi refeita como uma matriz única: cada tela do sistema é uma linha e cada perfil é uma coluna, com as marcações 'Ver' e 'Ed.' (editar). Antes a lista inteira de telas era repetida em quatro cartões lado a lado, com muito espaço em branco — agora é uma tabela compacta, com cabeçalho fixo ao rolar e um único botão 'Salvar alterações' que grava todos os perfis modificados de uma vez.",
+        "A tela estava defasada e não acompanhava o app. Passou a listar todas as telas que faltavam: Solicitações de Compra, Almoxarifado, Frota, Folha de Pagamento, Conciliação, Cobrança, Previsão e Assistente IA. O rótulo 'Notas Fiscais' foi corrigido para 'Contas a Receber', acompanhando o nome atual do módulo.",
+        "O fluxo de Solicitação de Compra agora é configurável pela interface. As três etapas — avaliar e cotar (equipe de compras), aprovar ou rejeitar (gerência) e registrar recebimento — aparecem como sub-permissões recuadas sob a tela de Solicitações de Compra. Até então essas permissões só podiam ser definidas direto no banco de dados."
+      ]
+    },
+    {
       "version": "1.2.45",
       "date": "2026-05-21",
       "summary": "Recursos Humanos: filtro por função",

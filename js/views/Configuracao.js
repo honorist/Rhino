@@ -175,7 +175,10 @@ window.Configuracao = {
     const niveis = Store.state.niveis_acesso || [];
     const ic = (n) => window.rhIcon ? window.rhIcon(n, 14) : '';
     // Estrutura: páginas com sub-itens internos aninhados (children).
-    // Os children têm prefixo 'contrato-tab:' e ficam indentados sob a página pai.
+    // Os children têm prefixo 'contrato-tab:' (abas do contrato) ou
+    // 'solicitacoes-compra:' (etapas do fluxo de compra) e ficam indentados
+    // sob a página pai. Itens com esses prefixos são flags binárias (só "Ver").
+    // Mantenha esta lista em sincronia com as rotas de js/app.js.
     const todasAbas = [
       { route: '#/dashboard',     label: 'Dashboard',       icon: ic('home'),            grupo: 'Principal' },
       { route: '#/proposta',      label: 'Propostas',       icon: ic('file-text'),       grupo: 'Principal' },
@@ -190,16 +193,29 @@ window.Configuracao = {
         ] },
       { route: '#/rdos',          label: 'RDOs (todos)',    icon: ic('clipboard-check'), grupo: 'Obras' },
       { route: '#/obras',         label: 'Mapa de Obras',   icon: ic('map-pin'),         grupo: 'Obras' },
-      { route: '#/base',          label: 'BASE',            icon: ic('database'),        grupo: 'Financeiro' },
+      { route: '#/solicitacoes-compra', label: 'Solicitações de Compra', icon: ic('clipboard'), grupo: 'Obras',
+        children: [
+          { route: 'solicitacoes-compra:avaliar', label: 'Etapa · Avaliar e cotar (equipe de compras)', icon: ic('dollar-sign') },
+          { route: 'solicitacoes-compra:aprovar', label: 'Etapa · Aprovar ou rejeitar (gerência)',       icon: ic('check-circle') },
+          { route: 'solicitacoes-compra:receber', label: 'Etapa · Registrar recebimento',                icon: ic('package') },
+        ] },
+      { route: '#/estoque',       label: 'Almoxarifado',    icon: ic('package'),         grupo: 'Obras' },
+      { route: '#/frota',         label: 'Frota',           icon: ic('truck'),           grupo: 'Obras' },
       { route: '#/clientes',      label: 'Clientes',        icon: ic('users'),           grupo: 'RH' },
       { route: '#/fornecedores',  label: 'Fornecedores',    icon: ic('truck'),           grupo: 'RH' },
       { route: '#/recursos',      label: 'Recursos',        icon: ic('user-plus'),       grupo: 'RH' },
+      { route: '#/folha-pagamento', label: 'Folha de Pagamento', icon: ic('dollar-sign'), grupo: 'RH' },
       { route: '#/documentos',    label: 'Documentação',    icon: ic('file-text'),       grupo: 'RH' },
+      { route: '#/base',          label: 'BASE',            icon: ic('database'),        grupo: 'Financeiro' },
       { route: '#/caixa',         label: 'Caixa',           icon: ic('wallet'),          grupo: 'Financeiro' },
       { route: '#/contas-pagar',  label: 'Contas a Pagar',  icon: ic('minus-circle'),    grupo: 'Financeiro' },
-      { route: '#/notas-fiscais', label: 'Notas Fiscais',   icon: ic('receipt'),         grupo: 'Financeiro' },
+      { route: '#/notas-fiscais', label: 'Contas a Receber', icon: ic('receipt'),        grupo: 'Financeiro' },
+      { route: '#/conciliacao',   label: 'Conciliação',     icon: ic('check-circle'),    grupo: 'Financeiro' },
+      { route: '#/cobranca',      label: 'Cobrança',        icon: ic('receipt'),         grupo: 'Financeiro' },
       { route: '#/socios',        label: 'Sócios',          icon: ic('users'),           grupo: 'Financeiro' },
       { route: '#/investimentos', label: 'Aportes',         icon: ic('plus-circle'),     grupo: 'Financeiro' },
+      { route: '#/previsao',      label: 'Previsão',        icon: ic('trending-up'),     grupo: 'Financeiro' },
+      { route: '#/ai-chat',       label: 'Assistente IA',   icon: ic('activity'),        grupo: 'Financeiro' },
       { route: '#/configuracao',  label: 'Configuração',    icon: ic('settings'),        grupo: 'Sistema' },
       { route: '#/usuarios',      label: 'Usuários',        icon: ic('user-plus'),       grupo: 'Sistema' },
       { route: '#/auditoria',     label: 'Auditoria',       icon: ic('eye'),             grupo: 'Sistema' },
@@ -208,133 +224,179 @@ window.Configuracao = {
 
     const grupos = ['Principal', 'Obras', 'RH', 'Financeiro', 'Sistema', 'Restrições especiais'];
 
-    const renderRow = (nivel, aba, indented) => {
-      const verRoute = aba.route;
-      const editRoute = 'edit:' + aba.route;
-      const verChecked  = (nivel.abas || []).includes(verRoute);
-      const editChecked = (nivel.abas || []).includes(editRoute);
-      const isSpecial = aba.route.startsWith('special:') || aba.route.startsWith('contrato-tab:');
-      // Itens especiais (special:/contrato-tab:) são apenas flags binárias — não têm coluna Editar
+    if (!niveis.length) {
       return `
-        <div style="display:grid;grid-template-columns:1fr 60px 60px;gap:8px;align-items:center;padding:6px var(--sp-sm);${indented ? 'padding-left:32px;' : ''}border-radius:5px;transition:background .12s;"
-             onmouseenter="this.style.background='var(--color-bg)'"
-             onmouseleave="this.style.background='transparent'">
-          <div style="display:flex;align-items:center;gap:var(--sp-sm);min-width:0;">
-            <span style="display:inline-flex;align-items:center;color:var(--rh-ink-500);min-width:20px;">${aba.icon}</span>
-            <span style="font-size:14px;font-weight:${verChecked ? '600' : '400'};color:${verChecked ? 'var(--color-text)' : 'var(--color-text-muted)'};">${aba.label}</span>
-          </div>
-          <label style="display:flex;justify-content:center;cursor:pointer;" title="Pode ver ${aba.label}">
-            <input type="checkbox" class="nivel-checkbox"
-                   data-nivel="${escapeHtml(nivel.id)}" data-route="${escapeHtml(verRoute)}"
-                   ${verChecked ? 'checked' : ''}
-                   style="width:15px;height:15px;accent-color:${_safeCorCss(nivel.cor)};cursor:pointer;">
-          </label>
-          ${isSpecial ? '<span></span>' : `
-            <label style="display:flex;justify-content:center;cursor:${verChecked ? 'pointer' : 'not-allowed'};opacity:${verChecked ? '1' : '0.3'};" title="Pode editar / criar / excluir em ${aba.label}">
-              <input type="checkbox" class="nivel-checkbox"
-                     data-nivel="${escapeHtml(nivel.id)}" data-route="${escapeHtml(editRoute)}"
-                     ${editChecked ? 'checked' : ''}
-                     ${verChecked ? '' : 'disabled'}
-                     style="width:15px;height:15px;accent-color:${_safeCorCss(nivel.cor)};cursor:${verChecked ? 'pointer' : 'not-allowed'};">
-            </label>
-          `}
+        <div class="page-header" style="margin-bottom:var(--sp-lg);">
+          <div><h2 style="font-size:20px;font-weight:700;margin:0;">🔐 Níveis de Acesso</h2></div>
         </div>
+        <div class="card"><p style="color:var(--color-text-muted);">Nenhum perfil de acesso cadastrado.</p></div>
       `;
+    }
+
+    const corOf = (n) => _safeCorCss(n.cor);
+    const isFlag = (route) => route.startsWith('special:')
+      || route.startsWith('contrato-tab:')
+      || route.startsWith('solicitacoes-compra:');
+    const totalCols = 1 + niveis.length * 2;
+
+    // Uma linha da matriz: a tela à esquerda, um par de checkboxes (Ver/Ed) por perfil.
+    // Sub-permissões (flags) são binárias — um único checkbox que ocupa as 2 colunas.
+    const matrixRow = (aba, indented) => {
+      const flag = isFlag(aba.route);
+      const cells = niveis.map((n, i) => {
+        const cor = corOf(n);
+        const sep = i > 0 ? 'border-left:2px solid var(--color-border);' : '';
+        const verChecked = (n.abas || []).includes(aba.route);
+        if (flag) {
+          return `<td colspan="2" style="text-align:center;${sep}">
+            <input type="checkbox" class="nivel-checkbox" data-kind="ver"
+                   data-nivel="${escapeHtml(n.id)}" data-route="${escapeHtml(aba.route)}"
+                   ${verChecked ? 'checked' : ''}
+                   style="width:14px;height:14px;accent-color:${cor};">
+          </td>`;
+        }
+        const editChecked = (n.abas || []).includes('edit:' + aba.route);
+        const pair = escapeHtml(n.id + '|' + aba.route);
+        return `
+          <td style="text-align:center;${sep}">
+            <input type="checkbox" class="nivel-checkbox" data-kind="ver" data-pair="${pair}"
+                   data-nivel="${escapeHtml(n.id)}" data-route="${escapeHtml(aba.route)}"
+                   ${verChecked ? 'checked' : ''}
+                   style="width:14px;height:14px;accent-color:${cor};">
+          </td>
+          <td style="text-align:center;">
+            <input type="checkbox" class="nivel-checkbox" data-kind="ed" data-pair="${pair}"
+                   data-nivel="${escapeHtml(n.id)}" data-route="edit:${escapeHtml(aba.route)}"
+                   ${editChecked ? 'checked' : ''} ${verChecked ? '' : 'disabled'}
+                   style="width:14px;height:14px;accent-color:${cor};opacity:${verChecked ? '1' : '.35'};">
+          </td>`;
+      }).join('');
+      return `
+        <tr class="nivel-row">
+          <td style="${indented ? 'padding-left:30px;' : 'padding-left:10px;'}white-space:nowrap;${indented ? 'color:var(--color-text-muted);' : ''}">
+            <span style="display:inline-flex;vertical-align:-2px;color:var(--rh-ink-500);margin-right:6px;">${aba.icon}</span>${escapeHtml(aba.label)}
+          </td>
+          ${cells}
+        </tr>`;
     };
 
+    let bodyRows = '';
+    grupos.forEach(grupo => {
+      const abasGrupo = todasAbas.filter(a => a.grupo === grupo);
+      if (!abasGrupo.length) return;
+      bodyRows += `<tr><td colspan="${totalCols}" class="nivel-grupo">${escapeHtml(grupo)}</td></tr>`;
+      abasGrupo.forEach(aba => {
+        bodyRows += matrixRow(aba, false);
+        (aba.children || []).forEach(child => { bodyRows += matrixRow(child, true); });
+      });
+    });
+
+    const headPerfil = niveis.map((n, i) => `
+      <th colspan="2" style="border-bottom:3px solid ${corOf(n)};${i > 0 ? 'border-left:2px solid var(--color-border);' : ''}">
+        <span style="font-size:15px;margin-right:4px;">${escapeHtml(n.icon || '')}</span><span style="color:${corOf(n)};">${escapeHtml(n.label)}</span>
+      </th>`).join('');
+    const headVerEd = niveis.map((n, i) => `
+      <th style="${i > 0 ? 'border-left:2px solid var(--color-border);' : ''}width:46px;">Ver</th>
+      <th style="width:46px;">Ed.</th>`).join('');
+
     return `
-      <div class="page-header" style="margin-bottom:var(--sp-lg);">
+      <style>
+        .nivel-matrix{border-collapse:collapse;width:100%;font-size:13px;}
+        .nivel-matrix th,.nivel-matrix td{padding:4px 8px;}
+        .nivel-matrix thead tr:first-child th{position:sticky;top:0;z-index:2;
+          background:var(--color-surface);font-size:12px;font-weight:700;}
+        .nivel-matrix thead tr:nth-child(2) th{font-size:10px;font-weight:700;
+          text-transform:uppercase;letter-spacing:.04em;color:var(--rh-ink-500);
+          background:var(--color-surface);}
+        .nivel-matrix tbody tr.nivel-row{border-bottom:1px solid var(--color-border);}
+        .nivel-matrix tbody tr.nivel-row:hover{background:var(--color-bg);}
+        .nivel-matrix td.nivel-grupo{background:var(--color-bg);font-size:10px;font-weight:700;
+          text-transform:uppercase;letter-spacing:.07em;color:var(--rh-ink-500);padding:5px 10px;}
+        .nivel-matrix input[type=checkbox]{cursor:pointer;margin:0;}
+      </style>
+
+      <div class="page-header" style="margin-bottom:var(--sp-md);">
         <div>
           <h2 style="font-size:20px;font-weight:700;margin:0;">🔐 Níveis de Acesso</h2>
-          <p class="page-subtitle">Configure quais abas cada perfil pode visualizar</p>
+          <p class="page-subtitle">Matriz de permissões — uma linha por tela, uma coluna por perfil</p>
+        </div>
+        <button class="btn btn-primary" id="btnSalvarNiveis">💾 Salvar alterações</button>
+      </div>
+
+      <div class="card" style="background:rgba(49,130,206,.05);border-left:4px solid var(--color-info);padding:var(--sp-sm) var(--sp-md);margin-bottom:var(--sp-md);">
+        <div style="font-size:13px;line-height:1.5;">
+          <strong>ℹ️</strong> <strong>Ver</strong> mostra a tela no menu lateral; <strong>Ed.</strong> libera criar, editar e excluir.
+          Linhas recuadas são sub-permissões (abas de Contrato e etapas do fluxo de Solicitação de Compra).
+          Marque o que quiser e clique em <strong>Salvar alterações</strong>.
         </div>
       </div>
 
-      <div class="card mb-2xl" style="background:rgba(49,130,206,.05);border-left:4px solid var(--color-info);">
-        <div style="font-size:15px;">
-          <strong>ℹ️ Como funciona:</strong> Marque as abas que cada nível pode acessar. Salve cada perfil separadamente.
-          Esta configuração define o menu lateral visível para cada tipo de usuário.
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="overflow:auto;max-height:calc(100vh - 260px);">
+          <table class="nivel-matrix">
+            <thead>
+              <tr>
+                <th style="text-align:left;border-bottom:3px solid var(--color-border);">Tela / Permissão</th>
+                ${headPerfil}
+              </tr>
+              <tr>
+                <th style="text-align:left;"></th>
+                ${headVerEd}
+              </tr>
+            </thead>
+            <tbody>${bodyRows}</tbody>
+          </table>
         </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:var(--sp-lg);">
-        ${niveis.map(nivel => {
-          const corSegura = _safeCorCss(nivel.cor);
-          const idSeguro = escapeHtml(nivel.id);
-          const labelSeguro = escapeHtml(nivel.label);
-          const iconSeguro = escapeHtml(nivel.icon || '');
-        return `
-          <div class="card" style="border-top:3px solid ${corSegura};">
-            <div class="card-header" style="padding-bottom:var(--sp-md);">
-              <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-                <span style="font-size:24px;">${iconSeguro}</span>
-                <div>
-                  <h3 style="margin:0;font-size:16px;font-weight:700;color:${corSegura};">${labelSeguro}</h3>
-                  <div style="font-size:15px;color:var(--color-text-muted);">
-                    ${(nivel.abas || []).length} aba${(nivel.abas || []).length !== 1 ? 's' : ''} habilitada${(nivel.abas || []).length !== 1 ? 's' : ''}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div style="display:flex;flex-direction:column;gap:var(--sp-xs);" id="nivel-${idSeguro}">
-              <!-- Cabeçalho das colunas -->
-              <div style="display:grid;grid-template-columns:1fr 60px 60px;gap:8px;padding:0 var(--sp-sm) 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--rh-ink-500);border-bottom:1px solid var(--color-border);margin-bottom:6px;">
-                <span></span>
-                <span style="text-align:center;" title="Pode visualizar a aba">Ver</span>
-                <span style="text-align:center;" title="Pode criar / editar / excluir">Editar</span>
-              </div>
-              ${grupos.map(grupo => {
-                const abasGrupo = todasAbas.filter(a => a.grupo === grupo);
-                return `
-                  <div style="margin-bottom:var(--sp-sm);">
-                    <div class="rh-label" style="padding:var(--sp-xs) 0;border-bottom:1px solid var(--color-border);margin-bottom:var(--sp-xs);">${grupo}</div>
-                    ${abasGrupo.map(aba => `
-                      ${renderRow(nivel, aba, false)}
-                      ${(aba.children || []).map(child => renderRow(nivel, child, true)).join('')}
-                    `).join('')}
-                  </div>
-                `;
-              }).join('')}
-            </div>
-
-            <div style="padding-top:var(--sp-md);border-top:1px solid var(--color-border);margin-top:var(--sp-sm);">
-              <button class="btn btn-primary btn-salvar-nivel" data-nivel="${idSeguro}" style="width:100%;background:${corSegura};border-color:${corSegura};">
-                Salvar ${labelSeguro}
-              </button>
-            </div>
-          </div>
-        `;
-        }).join('')}
       </div>
     `;
   },
 
   attachListeners() {
-    // Níveis de acesso — atualizar label do checkbox ao marcar/desmarcar
+    // Níveis de acesso — matriz de permissões
+    this._niveisDirty = new Set();
     document.querySelectorAll('.nivel-checkbox').forEach(cb => {
       cb.addEventListener('change', e => {
-        const label = e.target.closest('label');
-        const span = label?.querySelectorAll('span')[1];
-        if (span) {
-          span.style.fontWeight = e.target.checked ? '600' : '400';
-          span.style.color = e.target.checked ? 'var(--color-text)' : 'var(--color-text-muted)';
+        const t = e.target;
+        this._niveisDirty.add(t.dataset.nivel);
+        // "Ver" comanda o "Ed." do mesmo par — sem ver a tela não há como editar.
+        if (t.dataset.kind === 'ver' && t.dataset.pair) {
+          const ed = [...document.querySelectorAll('.nivel-checkbox[data-kind="ed"]')]
+            .find(x => x.dataset.pair === t.dataset.pair);
+          if (ed) {
+            ed.disabled = !t.checked;
+            ed.style.opacity = t.checked ? '1' : '.35';
+            if (!t.checked) ed.checked = false;
+          }
         }
       });
     });
 
-    // Salvar nível de acesso
-    document.querySelectorAll('.btn-salvar-nivel').forEach(btn => {
-      btn.addEventListener('click', async e => {
-        const nivelId = e.target.dataset.nivel;
-        const checkboxes = document.querySelectorAll(`.nivel-checkbox[data-nivel="${nivelId}"]`);
-        const abas = [...checkboxes].filter(c => c.checked).map(c => c.dataset.route);
+    // Salvar — grava de uma vez todos os perfis que foram alterados
+    const btnSalvarNiveis = document.getElementById('btnSalvarNiveis');
+    if (btnSalvarNiveis) {
+      btnSalvarNiveis.addEventListener('click', async () => {
+        const dirty = [...(this._niveisDirty || [])];
+        if (!dirty.length) { window.showToast('Nenhuma alteração para salvar', 'info'); return; }
+        const txtOrig = btnSalvarNiveis.textContent;
+        btnSalvarNiveis.disabled = true;
+        btnSalvarNiveis.textContent = 'Salvando…';
         try {
-          await Store.updateNivelAcesso(nivelId, abas);
-          window.showToast('Nível de acesso salvo', 'success');
-        } catch (err) { window.showToast(err.message, 'error'); }
+          for (const nivelId of dirty) {
+            const checkboxes = document.querySelectorAll(
+              `.nivel-checkbox[data-nivel="${CSS.escape(nivelId)}"]`);
+            const abas = [...checkboxes].filter(c => c.checked).map(c => c.dataset.route);
+            await Store.updateNivelAcesso(nivelId, abas);
+          }
+          this._niveisDirty.clear();
+          window.showToast(`${dirty.length} perfil${dirty.length !== 1 ? 's' : ''} salvo${dirty.length !== 1 ? 's' : ''}`, 'success');
+          this.render();
+        } catch (err) {
+          window.showToast(err.message, 'error');
+          btnSalvarNiveis.disabled = false;
+          btnSalvarNiveis.textContent = txtOrig;
+        }
       });
-    });
+    }
 
     const btnNovo = document.getElementById('btnNovoTipo');
     if (btnNovo) btnNovo.addEventListener('click', () => this.showModalTipo());
