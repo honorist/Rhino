@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.2.36",
+      "date": "2026-05-20",
+      "summary": "Fix: contas a pagar geradas pela folha não apareciam na tela de Contas a Pagar",
+      "changes": [
+        "BUG: ao gerar ou limpar a folha do mês, as contas a pagar eram criadas corretamente no banco, mas a tela de Contas a Pagar continuava mostrando o estado antigo. O Store mantém um cache em memória por fatia (com TTL) e gerar a folha não o invalidava — a tela reaproveitava os dados velhos sem rebuscar do servidor.",
+        "Fix (store.js): gerarFolha, limparFolha, pagarFolhaParcela e estornarFolhaParcela passam a chamar Store.invalidate(), forçando Contas a Pagar, Caixa e BASE a rebuscarem do servidor na próxima abertura."
+      ]
+    },
+    {
       "version": "1.2.35",
       "date": "2026-05-20",
       "summary": "Folha de Pagamento: integração com Contas a Pagar, botão Limpar folha e clique no colaborador; correções no RDO e no cadastro de Recurso",

@@ -1054,6 +1054,9 @@ window.Store = {
     });
     if (!res.ok) throw new Error(await res.text());
     const r = await res.json();
+    // Gerar a folha cria contas a pagar / itens BASE — invalida o cache do Store
+    // para que Contas a Pagar, Caixa e BASE rebusquem do servidor.
+    this.invalidate();
     this.state.folha = r.folha || []; this.notify(); return r;
   },
   async pagarFolhaParcela(id, dados) {
@@ -1062,6 +1065,7 @@ window.Store = {
       body: JSON.stringify(dados),
     });
     if (!res.ok) throw new Error(await res.text());
+    this.invalidate(); // pagar mexe em conta a pagar + caixa — força rebusca
     return res.json();
   },
   async estornarFolhaParcela(id, parcela) {
@@ -1070,6 +1074,7 @@ window.Store = {
       body: JSON.stringify({ parcela }),
     });
     if (!res.ok) throw new Error(await res.text());
+    this.invalidate(); // estorno mexe em conta a pagar + caixa — força rebusca
     return res.json();
   },
   async limparFolha(competencia) {
@@ -1079,6 +1084,7 @@ window.Store = {
     });
     if (!res.ok) throw new Error(await res.text());
     const r = await res.json();
+    this.invalidate(); // limpar remove contas a pagar — força rebusca
     this.state.folha = r.folha || []; this.notify(); return r;
   },
 
