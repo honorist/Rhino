@@ -2851,15 +2851,47 @@ async function handleEstornarConta(id, res) {
 // ============ Folha de Pagamento handlers ============
 const VALE_PCT = 0.40; // adiantamento (vale) = 40% do salário
 
-// 5º dia útil (segunda a sexta; não considera feriados) do mês seguinte à
-// competência 'YYYY-MM' — é a data em que o saldo do salário deve ser pago.
+// Data da Páscoa (algoritmo de Computus / Gauss) — base dos feriados móveis.
+function dataPascoa(ano) {
+  const a = ano % 19;
+  const b = Math.floor(ano / 100);
+  const c = ano % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const mes = Math.floor((h + l - 7 * m + 114) / 31);
+  const dia = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(ano, mes - 1, dia);
+}
+
+// Feriados nacionais de um ano, como Set de 'MM-DD': os 9 fixos + a
+// Sexta-feira Santa (móvel). NÃO inclui pontos facultativos (Carnaval,
+// Corpus Christi) nem feriados estaduais/municipais.
+function feriadosNacionais(ano) {
+  const set = new Set(['01-01', '04-21', '05-01', '09-07', '10-12', '11-02', '11-15', '11-20', '12-25']);
+  const sexta = dataPascoa(ano);
+  sexta.setDate(sexta.getDate() - 2); // Sexta-feira Santa = Páscoa − 2 dias
+  set.add(String(sexta.getMonth() + 1).padStart(2, '0') + '-' + String(sexta.getDate()).padStart(2, '0'));
+  return set;
+}
+
+// 5º dia útil do mês seguinte à competência 'YYYY-MM' — data de vencimento do
+// saldo do salário. Nesta contagem o SÁBADO conta como dia útil; não contam
+// domingos nem feriados nacionais.
 function quintoDiaUtil(competencia) {
   const [ano, mes] = competencia.split('-').map(Number);
   const d = new Date(ano, mes, 1); // dia 1 do mês seguinte (mes 1-12 → índice do próximo)
+  const feriados = feriadosNacionais(d.getFullYear());
   let uteis = 0;
   while (true) {
-    const dow = d.getDay(); // 0 = domingo, 6 = sábado
-    if (dow !== 0 && dow !== 6) {
+    const mmdd = String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    if (d.getDay() !== 0 && !feriados.has(mmdd)) { // domingo (0) e feriados não contam
       uteis++;
       if (uteis === 5) break;
     }
@@ -2868,6 +2900,19 @@ function quintoDiaUtil(competencia) {
   const mm = String(d.getMonth() + 1).padStart(2, '0');
   const dd = String(d.getDate()).padStart(2, '0');
   return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+// INSS progressivo do segurado empregado — tabela 2026 (Portaria
+// Interministerial MPS/MF nº 13). Mantém os mesmos valores de
+// FolhaPagamento.js (_calcInss) — atualizar os dois quando a tabela mudar.
+function calcInss(salario) {
+  const s = Math.min(parseFloat(salario) || 0, 8475.55); // teto INSS 2026
+  if (s <= 0) return 0;
+  let inss = Math.min(s, 1621.00) * 0.075;
+  if (s > 1621.00) inss += (Math.min(s, 2902.84) - 1621.00) * 0.09;
+  if (s > 2902.84) inss += (Math.min(s, 4354.27) - 2902.84) * 0.12;
+  if (s > 4354.27) inss += (s - 4354.27) * 0.14;
+  return Math.round(inss * 100) / 100;
 }
 
 // POST /api/folha-pagamento/gerar — gera as linhas de folha do mês (idempotente).
@@ -2893,7 +2938,11 @@ async function handleGerarFolha(body, res) {
       const contractId = (r.alocacaoAtual && r.alocacaoAtual.contractId) || null;
       const elegivel = !!r.elegivelVale;
       const valorVale = elegivel ? Math.round(salario * VALE_PCT * 100) / 100 : 0;
-      const valorSaldo = Math.round((salario - valorVale) * 100) / 100;
+      // Descontos automáticos de todo colaborador — INSS e contribuição
+      // sindical. Já entram no saldo; viram itens editáveis/removíveis.
+      const inssAuto = calcInss(salario);
+      const sindicalAuto = Math.round(Math.min(salario * 0.02, 70) * 100) / 100;
+      const valorSaldo = Math.round((salario - valorVale - inssAuto - sindicalAuto) * 100) / 100;
 
       // Sede (sem contrato) → o salário vira um item BASE (rastreável, rateável).
       const baseItemId = contractId ? null : generateId('bas');
@@ -2982,6 +3031,24 @@ async function handleGerarFolha(body, res) {
         contasPatch.valeContaPagarId = valeContaId;
       }
       await repos.folhaPagamento.updateById(folhaRow.id, contasPatch);
+
+      // Lançamentos de desconto automáticos (INSS e sindical) — itens normais,
+      // que o usuário pode editar ou remover depois na tela de Lançamentos.
+      for (const auto of [
+        { descricao: 'INSS', valor: inssAuto },
+        { descricao: 'Contribuição sindical', valor: sindicalAuto },
+      ]) {
+        if (auto.valor > 0) {
+          await repos.folhaPagamentoItens.create({
+            id: generateId('fli'),
+            folhaPagamentoId: folhaRow.id,
+            tipo: 'desconto',
+            descricao: auto.descricao,
+            valor: auto.valor,
+            createdAt: new Date().toISOString(),
+          });
+        }
+      }
       criadas++;
     }
     const folha = await repos.folhaPagamento.findByCompetencia(competencia);
@@ -3096,6 +3163,33 @@ async function handleRemoveFolhaItem(id, itemId, res) {
         const e = new Error('Lançamento não encontrado'); e.statusCode = 404; throw e;
       }
       await repos.folhaPagamentoItens.removeById(itemId);
+      return recalcularSaldoFolha(id);
+    });
+    folha.itens = await repos.folhaPagamentoItens.findByFolha(id);
+    sendJson(res, { folha });
+  } catch (e) {
+    sendError(res, e.statusCode || 400, e.message);
+  }
+}
+
+// PUT /api/folha-pagamento/:id/itens/:itemId — edita o valor de um lançamento.
+async function handleUpdateFolhaItem(id, itemId, body, res) {
+  try {
+    const valor = Math.round((parseFloat(body && body.valor) || 0) * 100) / 100;
+    if (!(valor > 0)) return sendError(res, 400, 'O valor deve ser maior que zero');
+    const folha = await db.withTransaction(async (client) => {
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('folha:' || $1)::int)", [id]);
+      const f = await repos.folhaPagamento.findById(id);
+      if (!f) { const e = new Error('Registro de folha não encontrado'); e.statusCode = 404; throw e; }
+      if (f.saldoPago) {
+        const e = new Error('Saldo já pago — estorne o saldo antes de alterar os lançamentos');
+        e.statusCode = 400; throw e;
+      }
+      const item = await repos.folhaPagamentoItens.findById(itemId);
+      if (!item || item.folhaPagamentoId !== id) {
+        const e = new Error('Lançamento não encontrado'); e.statusCode = 404; throw e;
+      }
+      await repos.folhaPagamentoItens.updateById(itemId, { valor });
       return recalcularSaldoFolha(id);
     });
     folha.itens = await repos.folhaPagamentoItens.findByFolha(id);
@@ -5089,6 +5183,10 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname.match(/^\/api\/folha-pagamento\/[^/]+\/itens\/[^/]+$/) && method === 'DELETE') {
     const p = pathname.split('/');
     return handleRemoveFolhaItem(p[3], p[5], res);
+  }
+  if (pathname.match(/^\/api\/folha-pagamento\/[^/]+\/itens\/[^/]+$/) && method === 'PUT') {
+    const p = pathname.split('/');
+    return handleUpdateFolhaItem(p[3], p[5], body, res);
   }
 
   // Notas Fiscais routes

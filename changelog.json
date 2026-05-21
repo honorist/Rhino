@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.2.43",
+      "date": "2026-05-21",
+      "summary": "Folha: INSS e sindical automáticos, lançamentos editáveis e 5º dia útil com feriados",
+      "changes": [
+        "Ao gerar a folha, INSS e Contribuição sindical passam a ser lançados automaticamente como descontos de todos os colaboradores, já calculados a partir do salário. Continuam sendo itens normais — podem ser editados ou removidos na tela de Lançamentos.",
+        "Os lançamentos da folha (descontos e proventos) agora podem ter o valor editado direto no modal, além de removidos.",
+        "Correção do 5º dia útil (vencimento do saldo): o sábado conta como dia útil; domingos e feriados nacionais não contam — inclui a Sexta-feira Santa, calculada automaticamente. Pontos facultativos (Carnaval, Corpus Christi) e feriados estaduais/municipais não são considerados.",
+        "O item D.S.R. passou a se chamar 'Descanso Semanal Remunerado (D.S.R.)'.",
+        "Na nova solicitação de compra, o botão 'Enviar para o financeiro' foi renomeado para 'Enviar para compras'."
+      ]
+    },
+    {
       "version": "1.2.42",
       "date": "2026-05-21",
       "summary": "Folha: lançamentos com itens prontos e cálculo automático, vencimento no 5º dia útil",

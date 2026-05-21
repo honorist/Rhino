@@ -256,7 +256,7 @@ window.SolicitacoesCompra = {
           </form>
           <div class="modal-footer">
             <button class="btn btn-secondary" id="btnCancelar">Cancelar</button>
-            <button class="btn btn-primary" id="btnSalvar">${s ? 'Salvar' : 'Enviar para o financeiro'}</button>
+            <button class="btn btn-primary" id="btnSalvar">${s ? 'Salvar' : 'Enviar para compras'}</button>
           </div>
         </div>
       </div>

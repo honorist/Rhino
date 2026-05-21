@@ -1104,6 +1104,15 @@ window.Store = {
     this.invalidate(); // remover muda o saldo da conta a pagar — força rebusca
     return res.json();
   },
+  async updateFolhaItem(folhaId, itemId, dados) {
+    const res = await fetch(`/api/folha-pagamento/${folhaId}/itens/${itemId}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dados), // { valor }
+    });
+    if (!res.ok) throw new Error(await res.text());
+    this.invalidate(); // editar muda o saldo da conta a pagar — força rebusca
+    return res.json();
+  },
 
   async loadNiveisAcesso() {
     const res = await fetch('/api/niveis-acesso');

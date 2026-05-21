@@ -259,6 +259,7 @@ window.FolhaPagamento = {
     const esc = window.escapeHtml;
     const fmt = (v) => Store.formatBRL(parseFloat(v) || 0);
     const self = this;
+    let editId = null; // id do lançamento em edição inline (ou null)
 
     const html = `
       <div class="modal-overlay" id="modalOverlay">
@@ -296,14 +297,28 @@ window.FolhaPagamento = {
       const descontos = itens.filter(i => i.tipo === 'desconto');
       const bloqueado = !!f.saldoPago;
 
-      const linhaItem = (it, sinal, cor) => `
+      const linhaItem = (it, sinal, cor) => {
+        if (it.id === editId) {
+          return `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--color-border);">
+          <span>${esc(it.descricao)}</span>
+          <span style="display:flex;gap:var(--sp-sm);align-items:center;">
+            <input class="form-control" id="acEditValor" type="number" step="0.01" min="0"
+                   value="${parseFloat(it.valor) || 0}" style="width:108px;padding:4px 8px;">
+            <a class="action-link js-ed-save" data-item="${it.id}" title="Salvar">✓</a>
+            <a class="action-link danger js-ed-cancel" title="Cancelar">✕</a>
+          </span>
+        </div>`;
+        }
+        return `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--color-border);">
           <span>${esc(it.descricao)}</span>
           <span style="display:flex;gap:var(--sp-md);align-items:center;">
             <strong style="color:${cor};">${sinal}${fmt(it.valor)}</strong>
-            ${bloqueado ? '' : `<a class="action-link danger js-rm-item" data-item="${it.id}" title="Remover">✕</a>`}
+            ${bloqueado ? '' : `<a class="action-link js-ed-item" data-item="${it.id}" title="Editar">✎</a><a class="action-link danger js-rm-item" data-item="${it.id}" title="Remover">✕</a>`}
           </span>
         </div>`;
+      };
 
       // Linha automática (salário base, vale 40%) — vem da própria folha, não é
       // removível: só exibe o que já compõe o cálculo do saldo.
@@ -375,6 +390,22 @@ window.FolhaPagamento = {
 
       body.querySelectorAll('.js-rm-item').forEach(b =>
         b.addEventListener('click', () => self._removerItem(id, b.dataset.item, refresh)));
+      body.querySelectorAll('.js-ed-item').forEach(b =>
+        b.addEventListener('click', () => { editId = b.dataset.item; paint(); }));
+      const edSave = body.querySelector('.js-ed-save');
+      if (edSave) {
+        const salvar = async () => {
+          const ok = await self._editarItem(id, edSave.dataset.item,
+            document.getElementById('acEditValor').value);
+          if (ok) { editId = null; await refresh(); }
+        };
+        edSave.addEventListener('click', salvar);
+        const inp = document.getElementById('acEditValor');
+        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); salvar(); } });
+        inp.focus(); inp.select();
+      }
+      const edCancel = body.querySelector('.js-ed-cancel');
+      if (edCancel) edCancel.addEventListener('click', () => { editId = null; paint(); });
 
       if (!bloqueado) {
         const salario = parseFloat(f.salarioBase) || 0;
@@ -474,6 +505,16 @@ window.FolhaPagamento = {
     } catch (e) { window.showToast('Erro ao remover: ' + e.message, 'error'); }
   },
 
+  async _editarItem(folhaId, itemId, valor) {
+    const v = Math.round((parseFloat(valor) || 0) * 100) / 100;
+    if (!(v > 0)) { window.showToast('Informe um valor maior que zero', 'error'); return false; }
+    try {
+      await Store.updateFolhaItem(folhaId, itemId, { valor: v });
+      window.showToast('Lançamento atualizado', 'success');
+      return true;
+    } catch (e) { window.showToast('Erro ao atualizar: ' + e.message, 'error'); return false; }
+  },
+
   // Itens comuns de folha — preenchem descrição/tipo e calculam o valor a
   // partir do salário quando há fórmula. 'outro' libera descrição livre;
   // 'livre' usa a descrição pronta e o valor digitado.
@@ -489,7 +530,7 @@ window.FolhaPagamento = {
     { key: 'inss',    tipo: 'desconto', label: 'INSS',            calc: 'inss' },
     { key: 'falta',   tipo: 'desconto', label: 'Faltas',          calc: 'falta' },
     { key: 'atraso',  tipo: 'desconto', label: 'Atrasos',         calc: 'atraso' },
-    { key: 'dsr',     tipo: 'desconto', label: 'D.S.R.',          calc: 'livre' },
+    { key: 'dsr',     tipo: 'desconto', label: 'Descanso Semanal Remunerado (D.S.R.)', calc: 'livre' },
     { key: 'outro_d', tipo: 'desconto', label: 'Outro desconto',  calc: 'outro' },
   ],
 
