@@ -2979,9 +2979,109 @@ async function handleGetFolha(query, res) {
       return sendError(res, 400, 'Competência inválida (use YYYY-MM)');
     }
     const folha = await repos.folhaPagamento.findByCompetencia(competencia);
+    // Anexa os lançamentos (descontos/proventos) de cada linha, em lote (sem N+1).
+    if (folha.length) {
+      const itens = await repos.folhaPagamentoItens.findByFolhaIds(folha.map(f => f.id));
+      const porFolha = new Map();
+      for (const it of itens) {
+        if (!porFolha.has(it.folhaPagamentoId)) porFolha.set(it.folhaPagamentoId, []);
+        porFolha.get(it.folhaPagamentoId).push(it);
+      }
+      for (const f of folha) f.itens = porFolha.get(f.id) || [];
+    }
     sendJson(res, { competencia, folha });
   } catch (e) {
     sendError(res, 500, e.message);
+  }
+}
+
+// Recalcula o Saldo de uma linha de folha a partir dos lançamentos:
+// Saldo = (salário − vale) + Σproventos − Σdescontos. Sincroniza a conta a pagar.
+async function recalcularSaldoFolha(folhaId) {
+  const f = await repos.folhaPagamento.findById(folhaId);
+  if (!f) return null;
+  const itens = await repos.folhaPagamentoItens.findByFolha(folhaId);
+  let proventos = 0, descontos = 0;
+  for (const it of itens) {
+    const v = parseFloat(it.valor) || 0;
+    if (it.tipo === 'provento') proventos += v;
+    else if (it.tipo === 'desconto') descontos += v;
+  }
+  const saldoBase = (parseFloat(f.salarioBase) || 0) - (parseFloat(f.valorVale) || 0);
+  const novoSaldo = Math.round((saldoBase + proventos - descontos) * 100) / 100;
+  const atualizada = await repos.folhaPagamento.updateById(folhaId, {
+    valorSaldo: novoSaldo,
+    updatedAt: new Date().toISOString(),
+  });
+  // Mantém a conta a pagar do Saldo coerente com o novo valor.
+  if (f.saldoContaPagarId) {
+    await repos.contasPagar.updateById(f.saldoContaPagarId, {
+      valor: novoSaldo,
+      updatedAt: new Date().toISOString(),
+    }).catch(() => {});
+  }
+  return atualizada;
+}
+
+// POST /api/folha-pagamento/:id/itens — lança um desconto ou provento.
+async function handleAddFolhaItem(id, body, res) {
+  try {
+    const tipo = body && body.tipo;
+    if (tipo !== 'desconto' && tipo !== 'provento') {
+      return sendError(res, 400, "Campo 'tipo' deve ser 'desconto' ou 'provento'");
+    }
+    const descricao = String((body && body.descricao) || '').trim();
+    if (!descricao) return sendError(res, 400, 'Informe a descrição do lançamento');
+    const valor = Math.round((parseFloat(body && body.valor) || 0) * 100) / 100;
+    if (!(valor > 0)) return sendError(res, 400, 'O valor deve ser maior que zero');
+
+    const folha = await db.withTransaction(async (client) => {
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('folha:' || $1)::int)", [id]);
+      const f = await repos.folhaPagamento.findById(id);
+      if (!f) { const e = new Error('Registro de folha não encontrado'); e.statusCode = 404; throw e; }
+      if (f.saldoPago) {
+        const e = new Error('Saldo já pago — estorne o saldo antes de lançar descontos/proventos');
+        e.statusCode = 400; throw e;
+      }
+      await repos.folhaPagamentoItens.create({
+        id: generateId('fli'),
+        folhaPagamentoId: id,
+        tipo,
+        descricao,
+        valor,
+        createdAt: new Date().toISOString(),
+      });
+      return recalcularSaldoFolha(id);
+    });
+    folha.itens = await repos.folhaPagamentoItens.findByFolha(id);
+    sendJson(res, { folha });
+  } catch (e) {
+    sendError(res, e.statusCode || 400, e.message);
+  }
+}
+
+// DELETE /api/folha-pagamento/:id/itens/:itemId — remove um lançamento.
+async function handleRemoveFolhaItem(id, itemId, res) {
+  try {
+    const folha = await db.withTransaction(async (client) => {
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('folha:' || $1)::int)", [id]);
+      const f = await repos.folhaPagamento.findById(id);
+      if (!f) { const e = new Error('Registro de folha não encontrado'); e.statusCode = 404; throw e; }
+      if (f.saldoPago) {
+        const e = new Error('Saldo já pago — estorne o saldo antes de alterar os lançamentos');
+        e.statusCode = 400; throw e;
+      }
+      const item = await repos.folhaPagamentoItens.findById(itemId);
+      if (!item || item.folhaPagamentoId !== id) {
+        const e = new Error('Lançamento não encontrado'); e.statusCode = 404; throw e;
+      }
+      await repos.folhaPagamentoItens.removeById(itemId);
+      return recalcularSaldoFolha(id);
+    });
+    folha.itens = await repos.folhaPagamentoItens.findByFolha(id);
+    sendJson(res, { folha });
+  } catch (e) {
+    sendError(res, e.statusCode || 400, e.message);
   }
 }
 
@@ -4962,6 +5062,13 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   }
   if (pathname.match(/^\/api\/folha-pagamento\/[^/]+\/estornar$/) && method === 'POST') {
     return handleEstornarFolhaParcela(pathname.split('/')[3], body, res);
+  }
+  if (pathname.match(/^\/api\/folha-pagamento\/[^/]+\/itens$/) && method === 'POST') {
+    return handleAddFolhaItem(pathname.split('/')[3], body, res);
+  }
+  if (pathname.match(/^\/api\/folha-pagamento\/[^/]+\/itens\/[^/]+$/) && method === 'DELETE') {
+    const p = pathname.split('/');
+    return handleRemoveFolhaItem(p[3], p[5], res);
   }
 
   // Notas Fiscais routes

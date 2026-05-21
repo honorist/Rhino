@@ -1087,6 +1087,23 @@ window.Store = {
     this.invalidate(); // limpar remove contas a pagar — força rebusca
     this.state.folha = r.folha || []; this.notify(); return r;
   },
+  async addFolhaItem(folhaId, dados) {
+    const res = await fetch(`/api/folha-pagamento/${folhaId}/itens`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dados), // { tipo, descricao, valor }
+    });
+    if (!res.ok) throw new Error(await res.text());
+    this.invalidate(); // lançar muda o saldo da conta a pagar — força rebusca
+    return res.json();
+  },
+  async removeFolhaItem(folhaId, itemId) {
+    const res = await fetch(`/api/folha-pagamento/${folhaId}/itens/${itemId}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) throw new Error(await res.text());
+    this.invalidate(); // remover muda o saldo da conta a pagar — força rebusca
+    return res.json();
+  },
 
   async loadNiveisAcesso() {
     const res = await fetch('/api/niveis-acesso');

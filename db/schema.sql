@@ -273,6 +273,18 @@ CREATE TABLE IF NOT EXISTS folha_pagamento (
 CREATE UNIQUE INDEX IF NOT EXISTS uq_folha_recurso_comp ON folha_pagamento (recurso_id, competencia);
 CREATE INDEX IF NOT EXISTS idx_folha_competencia ON folha_pagamento (competencia);
 
+-- Lançamentos da folha: descontos (impostos, faltas...) e proventos (hora extra,
+-- vale-alimentação...). O Saldo é recalculado como 60% + Σproventos − Σdescontos.
+CREATE TABLE IF NOT EXISTS folha_pagamento_itens (
+  id                 TEXT PRIMARY KEY,
+  folha_pagamento_id TEXT NOT NULL REFERENCES folha_pagamento(id) ON DELETE CASCADE,
+  tipo               TEXT NOT NULL CHECK (tipo IN ('desconto','provento')),
+  descricao          TEXT NOT NULL DEFAULT '',
+  valor              NUMERIC(15,2) NOT NULL DEFAULT 0,
+  created_at         TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_fpi_folha ON folha_pagamento_itens (folha_pagamento_id);
+
 -- ============ Idempotência ============
 CREATE TABLE IF NOT EXISTS idempotency_keys (
   id            TEXT PRIMARY KEY,

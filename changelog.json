@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.41",
+      "date": "2026-05-21",
+      "summary": "Folha de Pagamento: lançamentos de descontos e proventos por colaborador",
+      "changes": [
+        "Cada colaborador na Folha de Pagamento ganha um link 'Lançamentos' que abre um modal para registrar Descontos (impostos, faltas e outros abatimentos) e Proventos (hora extra, vale-alimentação e outros benefícios), com descrição e valor — quantos forem necessários.",
+        "O Saldo a pagar passa a ser recalculado automaticamente como '60% do salário + proventos − descontos', e a conta a pagar correspondente é atualizada junto, mantendo o Financeiro coerente.",
+        "Novas colunas Proventos, Descontos e Líquido na grade da folha. Lançamentos só podem ser editados enquanto o Saldo não foi pago — depois disso é preciso estornar o Saldo primeiro."
+      ]
+    },
+    {
       "version": "1.2.40",
       "date": "2026-05-20",
       "summary": "Jobs assíncronos: o envio de e-mail sai do caminho do request (fila pg-boss)",

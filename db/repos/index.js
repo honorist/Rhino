@@ -22,6 +22,7 @@ module.exports = {
   caixa:          require('./caixa'),
   contasPagar:    require('./contas_pagar'),
   folhaPagamento: require('./folha_pagamento'),
+  folhaPagamentoItens: require('./folha_pagamento_itens'),
   notasFiscais:   require('./notas_fiscais'),
   investimentos:  require('./investimentos'),
   tiposBase:      require('./tipos_base'),
