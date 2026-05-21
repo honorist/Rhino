@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.2.38",
+      "date": "2026-05-20",
+      "summary": "Fase 0 do plano de evolução: API versionada (/v1/), rollback de migrations e runbook operacional",
+      "changes": [
+        "API versionada: /api/v1/* passa a ser o contrato público estável para integradores externos. Roteia para os mesmos handlers de /api/*, que continua funcionando para o front interno — sem quebra.",
+        "Migrations reversíveis: novo comando 'npm run db:rollback -- --yes' reverte a última migration aplicada usando o arquivo .down.sql correspondente. O run-migrations.js passa a ignorar arquivos *.down.sql. Convenção: toda migration nova vem acompanhada do seu .down.sql.",
+        "Documentação: novo docs/RUNBOOK.md — resposta a incidentes, como reverter deploy, restaurar backup (com drill mensal), rotação de secrets e correção de cache preso no navegador.",
+        "Segurança: confirmado que .env e .rhino-deploy-creds estão no .gitignore e fora do repositório git."
+      ]
+    },
+    {
       "version": "1.2.37",
       "date": "2026-05-20",
       "summary": "Fix: usuário ficava preso na versão antiga do app a cada deploy (cache-busting dos scripts)",

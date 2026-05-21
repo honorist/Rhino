@@ -41,9 +41,11 @@ async function main() {
       )
     `);
 
-    // 2. Lista arquivos .sql ordenados alfabeticamente
+    // 2. Lista arquivos .sql ordenados alfabeticamente.
+    //    Ignora *.down.sql — são scripts de rollback (ver rollback-migration.js),
+    //    nunca devem ser aplicados como migration forward.
     const files = fs.readdirSync(MIGRATIONS_DIR)
-      .filter(f => f.toLowerCase().endsWith('.sql'))
+      .filter(f => f.toLowerCase().endsWith('.sql') && !f.toLowerCase().endsWith('.down.sql'))
       .sort();
 
     if (files.length === 0) {

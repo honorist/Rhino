@@ -4078,7 +4078,13 @@ function logEvent(obj) {
 // ============ Request handler ============
 const server = http.createServer((req, res) => {
   const parsedUrl = url.parse(req.url, true);
-  const pathname = parsedUrl.pathname;
+  let pathname = parsedUrl.pathname;
+  // Versionamento de API: /api/v1/* é o contrato público estável para
+  // integradores externos. Internamente roteia igual a /api/* — o front
+  // interno segue em /api/* sem quebrar, e o /v1/ nunca muda de contrato.
+  if (pathname && pathname.startsWith('/api/v1/')) {
+    pathname = '/api/' + pathname.slice('/api/v1/'.length);
+  }
   const requestId = crypto.randomBytes(6).toString('hex');
   const t0 = Date.now();
   res.setHeader('X-Request-Id', requestId);
