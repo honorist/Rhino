@@ -1,0 +1,76 @@
+name: CI (testes unitários)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB:       rhino
+          POSTGRES_USER:     rhino
+          POSTGRES_PASSWORD: rhino_test_pwd
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL:   postgres://rhino:rhino_test_pwd@localhost:5432/rhino
+      ADMIN_EMAIL:    admin@rhino.local
+      ADMIN_PASSWORD: admin123
+      NODE_ENV:       test
+      RHINO_URL:      http://localhost:3001
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Apply schema to Postgres
+        run: psql "$DATABASE_URL" < db/schema.sql
+
+      - name: Run migrations
+        run: npm run db:migrate
+
+      - name: Syntax check (server.js)
+        run: node --check server.js
+
+      - name: Start app
+        run: |
+          node server.js > server.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fs http://localhost:3001/api/health >/dev/null 2>&1; then
+              echo "App ready after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "App did not start"; cat server.log; exit 1
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Upload server log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-server-log
+          path: server.log
