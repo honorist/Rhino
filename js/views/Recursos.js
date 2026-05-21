@@ -1,7 +1,7 @@
 window.Recursos = {
   busca: '',
   filtroStatus: '',
-  filtroProfissao: '',
+  filtroProfissoes: [],
   _miniMap: null,
 
   async render() {
@@ -19,22 +19,18 @@ window.Recursos = {
   _renderLista() {
     const app = document.getElementById('app');
     const recursos = Store.state.recursos || [];
-    const termo = (this.busca || '').toLowerCase().trim();
+    const filtrados = this._filtrarRecursos(recursos);
 
-    const filtrados = recursos.filter(r => {
-      const matchBusca = !termo ||
-        (r.nome || '').toLowerCase().includes(termo) ||
-        (r.cpf || '').includes(termo) ||
-        (r.profissao || '').toLowerCase().includes(termo) ||
-        (r.endereco || '').toLowerCase().includes(termo);
-      const matchStatus = !this.filtroStatus || r.status === this.filtroStatus;
-      const matchProfissao = !this.filtroProfissao || r.profissao === this.filtroProfissao;
-      return matchBusca && matchStatus && matchProfissao;
+    // Funções distintas (normalizadas) — deduplica variações de escrita/caixa
+    // ("PEDREIRO", "pedreiro", " Pedreiro " viram um único "Pedreiro").
+    const contagemCargo = {};
+    recursos.forEach(r => {
+      const c = this._normalizeCargo(r.profissao);
+      if (c) contagemCargo[c] = (contagemCargo[c] || 0) + 1;
     });
-
-    // Funções/profissões distintas cadastradas, para o filtro suspenso.
-    const profissoes = [...new Set(recursos.map(r => (r.profissao || '').trim()).filter(Boolean))]
+    const profissoes = Object.keys(contagemCargo)
       .sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+    const textoResultado = this._textoResultado(filtrados, recursos.length);
 
     const total          = recursos.length;
     const ativos         = recursos.filter(r => r.status === 'funcionario').length;
@@ -78,11 +74,9 @@ window.Recursos = {
             <option value="candidato"     ${this.filtroStatus === 'candidato'     ? 'selected' : ''}>Candidato</option>
             <option value="ex_funcionario"${this.filtroStatus === 'ex_funcionario'? 'selected' : ''}>Ex-Funcionário</option>
           </select>
-          <select class="form-control" id="filtroProfissao" style="width:200px;">
-            <option value="">Todas as funções</option>
-            ${profissoes.map(p => `<option value="${escapeHtml(p)}" ${this.filtroProfissao === p ? 'selected' : ''}>${escapeHtml(p)}</option>`).join('')}
-          </select>
+          ${this._renderCargoFilter(profissoes, contagemCargo)}
         </div>
+        <div id="recursosResultado" style="margin-top:var(--sp-sm);font-size:13px;color:var(--color-text-muted);display:${textoResultado ? 'block' : 'none'};">${textoResultado}</div>
       </div>
 
       <div class="card">
@@ -98,10 +92,10 @@ window.Recursos = {
                 <th>Ações</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="recursosTbody">
               ${filtrados.length === 0
                 ? `<tr><td colspan="6" class="text-center text-muted" style="padding:var(--sp-xl);">
-                    ${termo || this.filtroStatus || this.filtroProfissao ? 'Nenhum resultado' : 'Nenhum cadastro ainda'}
+                    ${this._temFiltro() ? 'Nenhum resultado' : 'Nenhum cadastro ainda'}
                    </td></tr>`
                 : filtrados.map(r => this._renderRow(r)).join('')}
             </tbody>
@@ -120,11 +114,14 @@ window.Recursos = {
       this.filtroStatus = e.target.value;
       this._renderLista();
     });
-    document.getElementById('filtroProfissao').addEventListener('change', e => {
-      this.filtroProfissao = e.target.value;
-      this._renderLista();
-    });
 
+    this._attachCargoFilter();
+    this._attachRowListeners();
+  },
+
+  // Religa os listeners das linhas da tabela (chamado no render completo e
+  // nas atualizações incrementais que só trocam o <tbody>).
+  _attachRowListeners() {
     document.querySelectorAll('.btn-editar-rec').forEach(b    => b.addEventListener('click', e => { e.stopPropagation(); this.showModal(e.target.dataset.id); }));
     document.querySelectorAll('.btn-folgas').forEach(b        => b.addEventListener('click', e => { e.stopPropagation(); this.showFolgas(e.target.dataset.id); }));
     document.querySelectorAll('.btn-distancia').forEach(b     => b.addEventListener('click', e => { e.stopPropagation(); this.showDistancias(e.target.dataset.id); }));
@@ -155,6 +152,157 @@ window.Recursos = {
         }
       });
     });
+  },
+
+  // ── Padronização de cargos/funções ─────────────────────────────────────────
+  // Remove espaços extras e aplica "primeira letra maiúscula" (sentence-case).
+  // Usado para exibir, agrupar e deduplicar funções escritas de forma diferente.
+  _normalizeCargo(s) {
+    const v = String(s || '').replace(/\s+/g, ' ').trim();
+    if (!v) return '';
+    return v.charAt(0).toLocaleUpperCase('pt-BR') + v.slice(1).toLocaleLowerCase('pt-BR');
+  },
+
+  _temFiltro() {
+    return !!((this.busca || '').trim() || this.filtroStatus || (this.filtroProfissoes || []).length);
+  },
+
+  _filtrarRecursos(recursos) {
+    const termo = (this.busca || '').toLowerCase().trim();
+    const sel = this.filtroProfissoes || [];
+    return recursos.filter(r => {
+      const matchBusca = !termo ||
+        (r.nome || '').toLowerCase().includes(termo) ||
+        (r.cpf || '').includes(termo) ||
+        (r.profissao || '').toLowerCase().includes(termo) ||
+        (r.endereco || '').toLowerCase().includes(termo);
+      const matchStatus = !this.filtroStatus || r.status === this.filtroStatus;
+      const matchCargo  = sel.length === 0 || sel.includes(this._normalizeCargo(r.profissao));
+      return matchBusca && matchStatus && matchCargo;
+    });
+  },
+
+  // Texto-resumo do resultado filtrado, com a contagem de cargos.
+  _textoResultado(filtrados, total) {
+    if (!this._temFiltro()) return '';
+    const nCargos = new Set(filtrados.map(r => this._normalizeCargo(r.profissao)).filter(Boolean)).size;
+    const p = filtrados.length === 1 ? 'pessoa' : 'pessoas';
+    const f = nCargos === 1 ? 'função' : 'funções';
+    return `Mostrando <strong>${filtrados.length}</strong> de ${total} ${p} · <strong>${nCargos}</strong> ${f}`;
+  },
+
+  _labelCargoFilter() {
+    const sel = this.filtroProfissoes || [];
+    if (sel.length === 0) return 'Todas as funções';
+    if (sel.length === 1) return sel[0];
+    return `${sel.length} funções selecionadas`;
+  },
+
+  // Filtro de função com multi-seleção (checkboxes em dropdown).
+  _renderCargoFilter(profissoes, contagem) {
+    const sel = this.filtroProfissoes || [];
+    const opts = profissoes.map(p => `
+      <label class="cargo-opt" data-cargo="${escapeHtml(p)}" style="display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;font-size:14px;">
+        <input type="checkbox" class="cargo-cb" value="${escapeHtml(p)}" ${sel.includes(p) ? 'checked' : ''} style="width:15px;height:15px;cursor:pointer;flex-shrink:0;">
+        <span style="flex:1;">${escapeHtml(p)}</span>
+        <span style="color:var(--color-text-muted);font-size:12px;">${contagem[p] || 0}</span>
+      </label>`).join('');
+    return `
+      <div id="cargoFilterWrap" style="position:relative;width:260px;">
+        <button type="button" id="cargoFilterBtn" class="form-control" style="display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;text-align:left;">
+          <span id="cargoFilterLabel" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(this._labelCargoFilter())}</span>
+          <span style="color:var(--color-text-muted);flex-shrink:0;">▾</span>
+        </button>
+        <div id="cargoFilterPanel" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:60;background:var(--color-surface);border:1px solid var(--color-border);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.18);">
+          <div style="padding:8px;border-bottom:1px solid var(--color-border);">
+            <input id="cargoFilterBusca" class="form-control" placeholder="🔎 Buscar função..." style="font-size:13px;height:34px;">
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 10px;font-size:12px;border-bottom:1px solid var(--color-border);">
+            <a id="cargoSelAll" style="color:var(--color-primary);cursor:pointer;">Marcar todas</a>
+            <a id="cargoSelNone" style="color:var(--color-text-muted);cursor:pointer;">Limpar seleção</a>
+          </div>
+          <div id="cargoFilterList" style="max-height:260px;overflow:auto;">
+            ${profissoes.length ? opts : '<div style="padding:12px;color:var(--color-text-muted);font-size:13px;text-align:center;">Nenhuma função cadastrada</div>'}
+          </div>
+        </div>
+      </div>`;
+  },
+
+  _attachCargoFilter() {
+    const btn   = document.getElementById('cargoFilterBtn');
+    const panel = document.getElementById('cargoFilterPanel');
+    const busca = document.getElementById('cargoFilterBusca');
+    if (!btn || !panel) return;
+
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const aberto = panel.style.display === 'block';
+      panel.style.display = aberto ? 'none' : 'block';
+      if (!aberto && busca) busca.focus();
+    });
+    panel.addEventListener('click', e => e.stopPropagation());
+
+    // Click fora fecha — um único handler no document, recriado a cada render.
+    if (this._cargoDocHandler) document.removeEventListener('click', this._cargoDocHandler);
+    this._cargoDocHandler = () => {
+      const p = document.getElementById('cargoFilterPanel');
+      if (p) p.style.display = 'none';
+    };
+    document.addEventListener('click', this._cargoDocHandler);
+
+    if (busca) {
+      busca.addEventListener('input', () => {
+        const t = busca.value.toLowerCase().trim();
+        document.querySelectorAll('#cargoFilterList .cargo-opt').forEach(opt => {
+          const c = (opt.dataset.cargo || '').toLowerCase();
+          opt.style.display = (!t || c.includes(t)) ? 'flex' : 'none';
+        });
+      });
+    }
+
+    const sincronizar = () => {
+      this.filtroProfissoes = [...document.querySelectorAll('#cargoFilterList .cargo-cb')]
+        .filter(x => x.checked).map(x => x.value);
+      this._refreshResultados();
+    };
+    document.querySelectorAll('#cargoFilterList .cargo-cb').forEach(cb => {
+      cb.addEventListener('change', sincronizar);
+    });
+    const selAll  = document.getElementById('cargoSelAll');
+    const selNone = document.getElementById('cargoSelNone');
+    if (selAll) selAll.addEventListener('click', e => {
+      e.stopPropagation();
+      document.querySelectorAll('#cargoFilterList .cargo-opt').forEach(opt => {
+        if (opt.style.display !== 'none') { const cb = opt.querySelector('.cargo-cb'); if (cb) cb.checked = true; }
+      });
+      sincronizar();
+    });
+    if (selNone) selNone.addEventListener('click', e => {
+      e.stopPropagation();
+      document.querySelectorAll('#cargoFilterList .cargo-cb').forEach(x => { x.checked = false; });
+      sincronizar();
+    });
+  },
+
+  // Atualiza só a tabela + contadores (mantém o dropdown de funções aberto).
+  _refreshResultados() {
+    const recursos  = Store.state.recursos || [];
+    const filtrados = this._filtrarRecursos(recursos);
+    const tbody = document.getElementById('recursosTbody');
+    if (tbody) {
+      tbody.innerHTML = filtrados.length === 0
+        ? `<tr><td colspan="6" class="text-center text-muted" style="padding:var(--sp-xl);">${this._temFiltro() ? 'Nenhum resultado' : 'Nenhum cadastro ainda'}</td></tr>`
+        : filtrados.map(r => this._renderRow(r)).join('');
+      this._attachRowListeners();
+    }
+    const res = document.getElementById('recursosResultado');
+    if (res) {
+      const txt = this._textoResultado(filtrados, recursos.length);
+      res.innerHTML = txt;
+      res.style.display = txt ? 'block' : 'none';
+    }
+    const lbl = document.getElementById('cargoFilterLabel');
+    if (lbl) lbl.textContent = this._labelCargoFilter();
   },
 
   _statCard(label, value, cor, icon) {
@@ -235,7 +383,7 @@ window.Recursos = {
         <strong>${escapeHtml(r.nome) || '—'}</strong>${docBadge}
         ${r.cpf ? `<div style="font-size:15px;color:var(--color-text-muted);font-family:monospace;">${escapeHtml(r.cpf)}</div>` : ''}
       </td>
-      <td>${escapeHtml(r.profissao) || '—'}</td>
+      <td>${escapeHtml(this._normalizeCargo(r.profissao)) || '—'}</td>
       <td>${statusBadge}</td>
       <td>${obraAtual}</td>
       <td>${folgaCell}</td>
@@ -348,7 +496,7 @@ window.Recursos = {
                 </div>
                 <div class="form-group">
                   <label class="form-label">Profissão / Função</label>
-                  <input class="form-control" name="profissao" value="${r?.profissao || ''}" placeholder="Ex: Eletricista, Pedreiro">
+                  <input class="form-control" name="profissao" value="${escapeHtml(this._normalizeCargo(r?.profissao))}" placeholder="Ex: Eletricista, Pedreiro">
                 </div>
               </div>
               <div class="form-row">
@@ -482,6 +630,8 @@ window.Recursos = {
       const fd   = new FormData(document.getElementById('formRecurso'));
       const data = Object.fromEntries(fd);
       if (!data.nome?.trim()) { window.showToast('Nome é obrigatório', 'error'); return; }
+      // Padroniza a função/cargo (primeira maiúscula) já na gravação.
+      if (data.profissao) data.profissao = this._normalizeCargo(data.profissao);
       if (data.salario) data.salario = window.BRLInput.parse(data.salario);
       data.elegivelVale = !!data.elegivelVale;
 
@@ -1152,7 +1302,7 @@ window.Recursos = {
 
         L.marker([lat, lng], { icon: icone }).addTo(map).bindPopup(
           `<strong>${escapeHtml(r.nome)}</strong><br>
-           <span style="font-size:15px;color:#374151;">${escapeHtml(r.profissao || '')}</span><br>
+           <span style="font-size:15px;color:#374151;">${escapeHtml(window.Recursos._normalizeCargo(r.profissao))}</span><br>
            ${obraAtual ? `<span style="font-size:15px;">📍 ${escapeHtml(obraAtual.name)}</span>` : ''}
            <br><span style="font-size:15px;color:#374151;">${escapeHtml(r.endereco || '')}</span>`
         );

@@ -1,6 +1,19 @@
 {
   "entries": [
     {
+      "version": "1.2.47",
+      "date": "2026-05-21",
+      "summary": "Recursos Humanos: filtro de função com multi-seleção e padronização; novo perfil Planejamento",
+      "changes": [
+        "Recursos Humanos: o filtro de função virou multi-seleção. Agora é possível marcar várias funções de uma vez (com busca dentro da lista, 'Marcar todas' e 'Limpar'). Ao lado de cada função aparece quantas pessoas a exercem.",
+        "Recursos Humanos: ao filtrar, uma linha de resumo mostra quantas pessoas e quantas funções estão no resultado.",
+        "Recursos Humanos: as funções foram organizadas e padronizadas. Variações de escrita que eram tratadas como funções diferentes ('PEDREIRO', 'pedreiro', ' Pedreiro ') passam a ser uma só. A exibição usa 'primeira letra maiúscula' (ex.: 'Eletricista') na tabela, no filtro, no mapa e no cadastro — e a padronização é gravada ao salvar o colaborador.",
+        "Níveis de Acesso: novo perfil 'Planejamento', com acesso à tela de Contratos e à etapa 'Avaliar e cotar' (equipe de compras) do fluxo de Solicitações de Compra.",
+        "Níveis de Acesso: a coluna do perfil 'Gerente' foi movida para a ponta direita da matriz.",
+        "Níveis de Acesso: as sub-permissões (linhas recuadas — abas do Contrato e etapas da Solicitação de Compra) deixaram de ter o checkbox 'no meio'. Agora ele fica na coluna 'Ver' e a coluna 'Ed.' mostra '—', deixando claro que é um interruptor único."
+      ]
+    },
+    {
       "version": "1.2.46",
       "date": "2026-05-21",
       "summary": "Níveis de Acesso: tela refeita como matriz compacta + fluxo de Solicitação de Compra configurável",

@@ -172,7 +172,10 @@ window.Configuracao = {
   },
 
   renderNiveisAcesso() {
-    const niveis = Store.state.niveis_acesso || [];
+    // Ordem das colunas: Gerente sempre na ponta direita (pedido do cliente);
+    // os demais perfis mantêm a ordem original (sort estável).
+    const niveis = [...(Store.state.niveis_acesso || [])]
+      .sort((a, b) => (a.id === 'gerente' ? 1 : 0) - (b.id === 'gerente' ? 1 : 0));
     const ic = (n) => window.rhIcon ? window.rhIcon(n, 14) : '';
     // Estrutura: páginas com sub-itens internos aninhados (children).
     // Os children têm prefixo 'contrato-tab:' (abas do contrato) ou
@@ -248,12 +251,17 @@ window.Configuracao = {
         const sep = i > 0 ? 'border-left:2px solid var(--color-border);' : '';
         const verChecked = (n.abas || []).includes(aba.route);
         if (flag) {
-          return `<td colspan="2" style="text-align:center;${sep}">
+          // Sub-permissão: interruptor único. Fica na coluna "Ver" (alinhado com
+          // os demais) e a coluna "Ed." mostra "—" — não se aplica.
+          return `
+          <td style="text-align:center;${sep}">
             <input type="checkbox" class="nivel-checkbox" data-kind="ver"
                    data-nivel="${escapeHtml(n.id)}" data-route="${escapeHtml(aba.route)}"
                    ${verChecked ? 'checked' : ''}
+                   title="Sub-permissão — marcado = liberado para este perfil"
                    style="width:14px;height:14px;accent-color:${cor};">
-          </td>`;
+          </td>
+          <td style="text-align:center;color:var(--color-text-muted);" title="Não se aplica a sub-permissões">—</td>`;
         }
         const editChecked = (n.abas || []).includes('edit:' + aba.route);
         const pair = escapeHtml(n.id + '|' + aba.route);
@@ -324,9 +332,10 @@ window.Configuracao = {
       </div>
 
       <div class="card" style="background:rgba(49,130,206,.05);border-left:4px solid var(--color-info);padding:var(--sp-sm) var(--sp-md);margin-bottom:var(--sp-md);">
-        <div style="font-size:13px;line-height:1.5;">
-          <strong>ℹ️</strong> <strong>Ver</strong> mostra a tela no menu lateral; <strong>Ed.</strong> libera criar, editar e excluir.
-          Linhas recuadas são sub-permissões (abas de Contrato e etapas do fluxo de Solicitação de Compra).
+        <div style="font-size:13px;line-height:1.6;">
+          <strong>ℹ️</strong> <strong>Ver</strong> = a tela aparece no menu lateral · <strong>Ed.</strong> = pode criar, editar e excluir nela.<br>
+          As <strong>linhas recuadas</strong> são sub-permissões (abas do Contrato e etapas do fluxo de Solicitação de Compra):
+          têm <strong>um único interruptor</strong> na coluna <strong>Ver</strong> — marcado = liberado; o "—" na coluna Ed. indica que ali não há "editar".
           Marque o que quiser e clique em <strong>Salvar alterações</strong>.
         </div>
       </div>
