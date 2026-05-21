@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.2.48",
+      "date": "2026-05-21",
+      "summary": "Níveis de Acesso: Usuários e Auditoria deixam de abrir vazios para quem não tem permissão",
+      "changes": [
+        "As telas 'Usuários e Logins' e 'Auditoria' não são mais rotas universais: antes qualquer perfil conseguia abri-las, mas os dados vinham bloqueados pelo servidor — a tela aparecia vazia ou com erro. Agora exigem a permissão correspondente nas abas do perfil (configurável na matriz de Níveis de Acesso).",
+        "Na tela de Configurações, os atalhos para 'Usuários e Logins' e 'Auditoria' só aparecem para quem tem acesso a essas telas."
+      ]
+    },
+    {
       "version": "1.2.47",
       "date": "2026-05-21",
       "summary": "Recursos Humanos: filtro de função com multi-seleção e padronização; novo perfil Planejamento",

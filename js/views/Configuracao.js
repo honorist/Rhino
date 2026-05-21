@@ -41,12 +41,14 @@ window.Configuracao = {
             ${this.renderMenuItem('lgpd', '🔒', 'Privacidade (LGPD)')}
             ${this.renderMenuItem('tour', '🗺️', 'Tour Guiado')}
             ${this.renderMenuItem('atualizacoes', '🆕', 'Atualizações')}
+            ${(!window.perfil || window.perfil.podeAcessar('#/usuarios')) ? `
             <a href="#/usuarios" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;text-decoration:none;color:var(--color-text);margin-top:4px;border-top:1px solid var(--color-border);padding-top:14px;">
               <span style="display:inline-flex;align-items:center;color:var(--rh-ink-500);">${window.rhIcon ? window.rhIcon('user-plus', 16) : ''}</span><span>Usuários e Logins</span>
-            </a>
+            </a>` : ''}
+            ${(!window.perfil || window.perfil.podeAcessar('#/auditoria')) ? `
             <a href="#/auditoria" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;text-decoration:none;color:var(--color-text);">
               <span style="display:inline-flex;align-items:center;color:var(--rh-ink-500);">${window.rhIcon ? window.rhIcon('eye', 16) : ''}</span><span>Auditoria</span>
-            </a>
+            </a>` : ''}
           </nav>
 
           <!-- Conteúdo da seção -->

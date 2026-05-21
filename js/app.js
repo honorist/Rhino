@@ -498,8 +498,10 @@ const perfil = {
     // Rotas de detalhe (ex: #/contratos/123) seguem a permissão da rota pai
     const base = route.replace(/(#\/[^/]+).*/, '$1');
     // Rotas universais — qualquer perfil autenticado pode abrir
-    // (controle fino fica em cada tela, ex: ver/editar)
-    const universais = ['#/manual', '#/usuarios', '#/rdos', '#/auditoria', '#/estoque', '#/comparativo', '#/solicitacoes-compra', '#/frota', '#/proposta', '#/clausulas', '#/apresentacao'];
+    // (controle fino fica em cada tela, ex: ver/editar).
+    // #/usuarios e #/auditoria NÃO são universais: exigem a permissão nas abas
+    // — senão abririam vazias (dados barrados no servidor) para quem não tem acesso.
+    const universais = ['#/manual', '#/rdos', '#/estoque', '#/comparativo', '#/solicitacoes-compra', '#/frota', '#/proposta', '#/clausulas', '#/apresentacao'];
     if (universais.includes(base)) return true;
     return abas.includes(base);
   },
