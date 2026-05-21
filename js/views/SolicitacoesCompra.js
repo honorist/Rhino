@@ -11,6 +11,13 @@ window.SolicitacoesCompra = {
   _podeAprovar() { const a = this._abas(); return !a || a.includes('solicitacoes-compra:aprovar'); },
   _podeReceber() { const a = this._abas(); return !a || a.includes('solicitacoes-compra:receber'); },
 
+  // Selo do tipo do item — só aparece quando é aluguel (compra é o padrão).
+  _tipoBadge(it) {
+    return (it && it.tipo === 'aluguel')
+      ? ' <span style="background:#EDE9FE;color:#5B21B6;font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;vertical-align:middle;">🔑 ALUGUEL</span>'
+      : '';
+  },
+
   _etapaCfg(status) {
     return {
       pendente_avaliacao: { bg: '#FEF3C7', color: '#92400E', label: '🟡 Aguardando equipe de compras' },
@@ -208,6 +215,12 @@ window.SolicitacoesCompra = {
     const renderLinha = (it, idx) => `
       <tr data-i="${idx}" class="item-row">
         <td><input class="form-control" data-f="descricao" placeholder="Descrição do material" value="${escapeHtml(it.descricao || '')}"></td>
+        <td>
+          <select class="form-control" data-f="tipo" style="width:120px;">
+            <option value="compra" ${it.tipo !== 'aluguel' ? 'selected' : ''}>🛒 Compra</option>
+            <option value="aluguel" ${it.tipo === 'aluguel' ? 'selected' : ''}>🔑 Aluguel</option>
+          </select>
+        </td>
         <td><input class="form-control" data-f="qtd" type="number" step="0.01" min="0" value="${it.qtd || 1}" style="width:90px;"></td>
         <td><input class="form-control" data-f="observacoes" placeholder="Notas (opcional)" value="${escapeHtml(it.observacoes || '')}"></td>
         <td><button type="button" class="btn btn-sm btn-ghost btn-rm-item" style="color:#DC2626;">✕</button></td>
@@ -246,6 +259,7 @@ window.SolicitacoesCompra = {
               <table style="width:100%;">
                 <thead><tr style="background:var(--color-surface-2);">
                   <th style="padding:8px;text-align:left;">Descrição *</th>
+                  <th style="padding:8px;text-align:left;">Tipo</th>
                   <th style="padding:8px;text-align:left;">Qtd *</th>
                   <th style="padding:8px;text-align:left;">Observações</th>
                   <th style="padding:8px;width:40px;"></th>
@@ -276,14 +290,20 @@ window.SolicitacoesCompra = {
       if (e.target.classList.contains('btn-rm-item')) e.target.closest('.item-row').remove();
     });
 
-    document.getElementById('btnSalvar').addEventListener('click', async () => {
+    const btnSalvar = document.getElementById('btnSalvar');
+    btnSalvar.addEventListener('click', async () => {
+      // Guarda anti-duplo-clique: sem isso, clicar 2x antes da resposta cria
+      // 2 solicitações (cada POST gera um registro novo no servidor).
+      if (btnSalvar.disabled) return;
+
       const fd = new FormData(document.getElementById('formSolicitacao'));
       const itens = [];
       document.querySelectorAll('.item-row').forEach(tr => {
         const desc = tr.querySelector('[data-f="descricao"]').value.trim();
         const qtd = parseFloat(tr.querySelector('[data-f="qtd"]').value) || 0;
         const obs = tr.querySelector('[data-f="observacoes"]').value.trim();
-        if (desc && qtd > 0) itens.push({ descricao: desc, qtd, observacoes: obs });
+        const tipo = tr.querySelector('[data-f="tipo"]').value === 'aluguel' ? 'aluguel' : 'compra';
+        if (desc && qtd > 0) itens.push({ descricao: desc, qtd, observacoes: obs, tipo });
       });
       if (!itens.length) { window.showToast('Adicione pelo menos um item válido', 'error'); return; }
       const justificativa = (fd.get('justificativa') || '').trim();
@@ -294,6 +314,11 @@ window.SolicitacoesCompra = {
         contractId = destino.slice(5);
         almoxarifadoDestinoId = `auto-obra:${contractId}`;
       }
+
+      // Desabilita só depois de validar — se o envio falhar, reabilita p/ nova tentativa.
+      const txtOrig = btnSalvar.textContent;
+      btnSalvar.disabled = true;
+      btnSalvar.textContent = 'Enviando…';
       try {
         const url = s ? `/api/solicitacoes-compra/${s.id}` : '/api/solicitacoes-compra';
         const method = s ? 'PUT' : 'POST';
@@ -303,7 +328,11 @@ window.SolicitacoesCompra = {
         window.showToast(s ? 'Solicitação atualizada' : 'Solicitação enviada para avaliação', 'success');
         close();
         this.render();
-      } catch (e) { window.showToast(e.message, 'error'); }
+      } catch (e) {
+        window.showToast(e.message, 'error');
+        btnSalvar.disabled = false;
+        btnSalvar.textContent = txtOrig;
+      }
     });
   },
 
@@ -327,7 +356,7 @@ window.SolicitacoesCompra = {
       <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-md);" data-i="${i}">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
           <div>
-            <strong style="font-size:15px;">${escapeHtml(it.descricao)}</strong>
+            <strong style="font-size:15px;">${escapeHtml(it.descricao)}</strong>${this._tipoBadge(it)}
             <span style="margin-left:8px;color:var(--color-text-muted);font-size:13px;">qtd: ${it.qtd}</span>
             ${it.observacoes ? `<div style="font-size:12px;color:var(--color-text-muted);">${escapeHtml(it.observacoes)}</div>` : ''}
           </div>
@@ -546,7 +575,7 @@ window.SolicitacoesCompra = {
                 <div class="card" style="padding:10px;margin-bottom:8px;">
                   <div style="display:flex;justify-content:space-between;">
                     <div>
-                      <strong>${escapeHtml(it.descricao)}</strong>
+                      <strong>${escapeHtml(it.descricao)}</strong>${this._tipoBadge(it)}
                       <span style="color:var(--color-text-muted);">qtd ${it.qtd} × ${Store.formatBRL(parseFloat(it.precoUnit) || 0)}</span>
                     </div>
                     <strong>${Store.formatBRL(it.qtd * (parseFloat(it.precoUnit) || 0))}</strong>
@@ -845,7 +874,7 @@ window.SolicitacoesCompra = {
                   return `
                     <div style="padding:8px 10px;border:1px solid var(--color-border);border-radius:6px;margin-bottom:6px;font-size:13px;">
                       <div style="display:flex;justify-content:space-between;">
-                        <strong>${escapeHtml(it.descricao)}</strong>
+                        <strong>${escapeHtml(it.descricao)}${this._tipoBadge(it)}</strong>
                         <span>qtd ${it.qtd}${(it.precoUnit) ? ` · ${Store.formatBRL(it.precoUnit)} = ${Store.formatBRL(it.qtd * it.precoUnit)}` : ''}</span>
                       </div>
                       ${it.observacoes ? `<div style="color:var(--color-text-muted);font-size:12px;">${escapeHtml(it.observacoes)}</div>` : ''}

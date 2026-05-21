@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.2.51",
+      "date": "2026-05-21",
+      "summary": "Solicitação de Compra: correção de duplicação e opção Compra/Aluguel por item",
+      "changes": [
+        "Corrigido o bug que duplicava a solicitação de compra: o botão 'Enviar para compras' não era desabilitado durante o envio, então um duplo-clique (ou clicar de novo achando que não respondeu) criava duas solicitações. Agora o botão desabilita e mostra 'Enviando…' até concluir; se der erro, reabilita para nova tentativa.",
+        "Cada item da solicitação agora tem a opção 'Compra' ou 'Aluguel'. Itens de aluguel ganham um selo 'ALUGUEL' visível na avaliação da equipe de compras, na aprovação e no detalhe da solicitação."
+      ]
+    },
+    {
       "version": "1.2.50",
       "date": "2026-05-21",
       "summary": "Novo perfil de acesso: Coordenador",
