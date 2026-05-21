@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.2.52",
+      "date": "2026-05-21",
+      "summary": "Novo módulo: Manutenção de Equipamentos",
+      "changes": [
+        "Nova tela 'Manutenção' (grupo Obras) para registrar equipamentos enviados para reparo — máquina de solda, ferramentas e outros. Cada registro guarda o equipamento, o defeito, a obra de origem, a oficina, a data de envio e a previsão de retorno.",
+        "Acompanhamento do retorno: a tela mostra há quantos dias o equipamento está fora, destaca em vermelho os que passaram da previsão e tem indicadores de 'Em manutenção', 'Atrasados' e 'Retornados'. O botão 'Registrar retorno' fecha o ciclo com data de retorno, custo do reparo e observações.",
+        "Níveis de Acesso: a tela 'Manutenção' entra na matriz de permissões; admin, gerente e coordenador já recebem acesso (ver e editar). Os botões de salvar têm proteção contra duplo-clique.",
+        "Banco: nova tabela 'manutencoes' (migration idempotente)."
+      ]
+    },
+    {
       "version": "1.2.51",
       "date": "2026-05-21",
       "summary": "Solicitação de Compra: correção de duplicação e opção Compra/Aluguel por item",

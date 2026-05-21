@@ -34,6 +34,7 @@ module.exports = {
   marcos:         require('./marcos'),
   ocorrencias:    require('./ocorrencias'),
   solicitacoesCompra:   require('./solicitacoes_compra'),
+  manutencoes:          require('./manutencoes'),
   veiculos:             require('./veiculos'),
   veiculoPlanos:        require('./veiculo_planos'),
   veiculoManutencoes:   require('./veiculo_manutencoes'),

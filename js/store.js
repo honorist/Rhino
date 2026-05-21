@@ -26,6 +26,7 @@ window.Store = {
     doc_templates: [],
     users: [],
     solicitacoes_compra: [],
+    manutencoes: [],
     veiculos: [],
     propostas: [],
     clausulas: [],
@@ -111,7 +112,7 @@ window.Store = {
         return res.json();
       };
       const safe = fn => fn.catch(() => ({}));
-      const [contracts, caixa, base, socios, investimentos, notas_fiscais, tipos_base, clientes, fornecedores, contas_pagar, recursos, solicitacoes, veiculos] = await Promise.all([
+      const [contracts, caixa, base, socios, investimentos, notas_fiscais, tipos_base, clientes, fornecedores, contas_pagar, recursos, solicitacoes, manutencoes, veiculos] = await Promise.all([
         fetch('/api/contracts').then(okJson),
         fetch('/api/caixa').then(okJson),
         fetch('/api/base').then(okJson),
@@ -124,6 +125,7 @@ window.Store = {
         safe(fetch('/api/contas-pagar').then(okJson)),
         safe(fetch('/api/recursos').then(okJson)),
         safe(fetch('/api/solicitacoes-compra').then(okJson)),
+        safe(fetch('/api/manutencoes').then(okJson)),
         safe(fetch('/api/veiculos').then(okJson))
       ]);
 
@@ -140,6 +142,7 @@ window.Store = {
       this.state.contas_pagar = contas_pagar.contas || [];
       this.state.recursos = recursos.recursos || [];
       this.state.solicitacoes_compra = solicitacoes.solicitacoes || [];
+      this.state.manutencoes = manutencoes.manutencoes || [];
       this.state.veiculos = veiculos.veiculos || [];
       this.state.error = null;
       this._loadedAt = Date.now();
@@ -172,6 +175,7 @@ window.Store = {
     contas_pagar: { url: '/api/contas-pagar',       apply(j){ this.state.contas_pagar = j.contas || []; } },
     recursos:     { url: '/api/recursos',           apply(j){ this.state.recursos = j.recursos || []; } },
     solicitacoes_compra: { url: '/api/solicitacoes-compra', apply(j){ this.state.solicitacoes_compra = j.solicitacoes || []; } },
+    manutencoes:  { url: '/api/manutencoes',        apply(j){ this.state.manutencoes = j.manutencoes || []; } },
     veiculos:     { url: '/api/veiculos',           apply(j){ this.state.veiculos = j.veiculos || []; } },
     propostas:    { url: '/api/propostas',          apply(j){ this.state.propostas = j.propostas || []; } },
     clausulas:    { url: '/api/clausulas',          apply(j){ this.state.clausulas = j.clausulas || []; } },

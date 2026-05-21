@@ -206,6 +206,7 @@ window.Configuracao = {
         ] },
       { route: '#/estoque',       label: 'Almoxarifado',    icon: ic('package'),         grupo: 'Obras' },
       { route: '#/frota',         label: 'Frota',           icon: ic('truck'),           grupo: 'Obras' },
+      { route: '#/manutencao',    label: 'Manutenção',      icon: ic('wrench'),          grupo: 'Obras' },
       { route: '#/clientes',      label: 'Clientes',        icon: ic('users'),           grupo: 'RH' },
       { route: '#/fornecedores',  label: 'Fornecedores',    icon: ic('truck'),           grupo: 'RH' },
       { route: '#/recursos',      label: 'Recursos',        icon: ic('user-plus'),       grupo: 'RH' },

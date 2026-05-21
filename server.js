@@ -4638,6 +4638,7 @@ const MUTATION_PERMISSION_RULES = [
   { re: /^\/api\/contas-pagar(\/|$)/,       screens: ['#/contas-pagar'] },
   { re: /^\/api\/recursos(\/|$)/,           screens: ['#/recursos'] },
   { re: /^\/api\/folha-pagamento(\/|$)/,    screens: ['#/folha-pagamento'] },
+  { re: /^\/api\/manutencoes(\/|$)/,        screens: ['#/manutencao'] },
 ];
 
 /**
@@ -5280,6 +5281,14 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/rejeitar$/) && method === 'POST') return handleRejeitarSolicitacao(req, pathname.split('/')[3], body, res);
   if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/comprar$/) && method === 'POST')  return handleComprarSolicitacao(req, pathname.split('/')[3], body, res);
   if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/receber$/) && method === 'POST')  return handleReceberSolicitacao(req, pathname.split('/')[3], body, res);
+
+  // ── Manutenção de Equipamentos ──
+  if (pathname === '/api/manutencoes' && method === 'GET')  return handleListManutencoes(parsedUrl.query, res);
+  if (pathname === '/api/manutencoes' && method === 'POST') return handlePostManutencao(req, body, res);
+  if (pathname.match(/^\/api\/manutencoes\/[^/]+$/) && method === 'PUT')    return handlePutManutencao(pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/manutencoes\/[^/]+$/) && method === 'DELETE') return handleDeleteManutencao(pathname.split('/')[3], res);
+  if (pathname.match(/^\/api\/manutencoes\/[^/]+\/retorno$/) && method === 'POST')  return handleRetornoManutencao(req, pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/manutencoes\/[^/]+\/cancelar$/) && method === 'POST') return handleCancelarManutencao(req, pathname.split('/')[3], body, res);
 
   // ── Frota / Veículos ──
   if (pathname === '/api/veiculos' && method === 'GET')  return handleListVeiculos(res);
@@ -7132,6 +7141,107 @@ async function handleDeleteSolicitacaoCompra(id, res) {
     if (!atual) return sendError(res, 404, 'Solicitação não encontrada');
     if (atual.status === 'aprovada') return sendError(res, 400, 'Solicitação aprovada não pode ser excluída');
     await repos.solicitacoesCompra.removeById(id);
+    sendJson(res, { ok: true });
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+// ============ Manutenção de Equipamentos ============
+// Ciclo: em_manutencao → retornado (ou cancelada). Equipamento é texto livre.
+
+async function handleListManutencoes(query, res) {
+  try {
+    const where = [];
+    const params = [];
+    if (query.status)     { params.push(query.status);     where.push(`status = $${params.length}`); }
+    if (query.contractId) { params.push(query.contractId); where.push(`contract_id = $${params.length}`); }
+    const sql = `SELECT * FROM manutencoes ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY created_at DESC LIMIT 500`;
+    const rows = await db.getMany(sql, params);
+    sendJson(res, { manutencoes: rows });
+  } catch (e) { sendError(res, 500, e.message); }
+}
+
+async function handlePostManutencao(req, body, res) {
+  try {
+    const equipamento = (body.equipamento || '').trim();
+    if (!equipamento) return sendError(res, 400, 'Informe o equipamento');
+    const data = {
+      id: generateId('man'),
+      equipamento,
+      contractId: body.contractId || null,
+      oficina: (body.oficina || '').trim(),
+      problema: (body.problema || '').trim(),
+      status: 'em_manutencao',
+      dataEnvio: body.dataEnvio || null,
+      dataRetornoPrevista: body.dataRetornoPrevista || null,
+      custo: 0,
+      observacoes: (body.observacoes || '').trim(),
+      solicitanteUserId: req.user?.id || null,
+      solicitanteNome: req.user?.name || req.user?.email || null,
+    };
+    const created = await repos.manutencoes.create(data);
+    sendJson(res, { manutencao: created });
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handlePutManutencao(id, body, res) {
+  try {
+    const atual = await repos.manutencoes.findById(id);
+    if (!atual) return sendError(res, 404, 'Manutenção não encontrada');
+    if (atual.status !== 'em_manutencao') {
+      return sendError(res, 400, 'Só é possível editar manutenções em andamento');
+    }
+    const allowed = {};
+    if (body.equipamento !== undefined) {
+      const eq = (body.equipamento || '').trim();
+      if (!eq) return sendError(res, 400, 'Informe o equipamento');
+      allowed.equipamento = eq;
+    }
+    if (body.contractId !== undefined)          allowed.contractId = body.contractId || null;
+    if (body.oficina !== undefined)             allowed.oficina = (body.oficina || '').trim();
+    if (body.problema !== undefined)            allowed.problema = (body.problema || '').trim();
+    if (body.dataEnvio !== undefined)           allowed.dataEnvio = body.dataEnvio || null;
+    if (body.dataRetornoPrevista !== undefined) allowed.dataRetornoPrevista = body.dataRetornoPrevista || null;
+    if (body.observacoes !== undefined)         allowed.observacoes = (body.observacoes || '').trim();
+    const result = await repos.manutencoes.updateById(id, allowed);
+    sendJson(res, { manutencao: result });
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handleRetornoManutencao(req, id, body, res) {
+  try {
+    const atual = await repos.manutencoes.findById(id);
+    if (!atual) return sendError(res, 404, 'Manutenção não encontrada');
+    if (atual.status !== 'em_manutencao') {
+      return sendError(res, 400, `Esta manutenção já está ${atual.status}`);
+    }
+    const allowed = {
+      status: 'retornado',
+      dataRetorno: body.dataRetorno || new Date().toISOString().slice(0, 10),
+      custo: parseFloat(body.custo) || 0,
+    };
+    if (body.observacoes != null && String(body.observacoes).trim()) {
+      allowed.observacoes = String(body.observacoes).trim();
+    }
+    const result = await repos.manutencoes.updateById(id, allowed);
+    sendJson(res, { manutencao: result });
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handleCancelarManutencao(req, id, body, res) {
+  try {
+    const atual = await repos.manutencoes.findById(id);
+    if (!atual) return sendError(res, 404, 'Manutenção não encontrada');
+    if (atual.status === 'retornado') return sendError(res, 400, 'Manutenção concluída não pode ser cancelada');
+    const result = await repos.manutencoes.updateById(id, { status: 'cancelada' });
+    sendJson(res, { manutencao: result });
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handleDeleteManutencao(id, res) {
+  try {
+    const atual = await repos.manutencoes.findById(id);
+    if (!atual) return sendError(res, 404, 'Manutenção não encontrada');
+    await repos.manutencoes.removeById(id);
     sendJson(res, { ok: true });
   } catch (e) { sendError(res, 400, e.message); }
 }
