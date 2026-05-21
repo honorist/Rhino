@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.2.50",
+      "date": "2026-05-21",
+      "summary": "Novo perfil de acesso: Coordenador",
+      "changes": [
+        "Criado o nível de acesso 'Coordenador' — perfil operacional de obras, com acesso a Dashboard, Contratos (ver e editar), Mapa de Obras, RDOs, Recursos (ver e editar) e Solicitações de Compra. O ajuste fino das permissões pode ser feito na matriz de Níveis de Acesso."
+      ]
+    },
+    {
       "version": "1.2.49",
       "date": "2026-05-21",
       "summary": "Permissão de edição validada no servidor; correção do filtro de função",
