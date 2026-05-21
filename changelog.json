@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.2.53",
+      "date": "2026-05-21",
+      "summary": "Correção: mudanças de permissão agora aparecem sem precisar re-selecionar o perfil",
+      "changes": [
+        "BUG: ao alterar as permissões de um perfil (na matriz de Níveis de Acesso ou por migração), as telas liberadas/bloqueadas só passavam a valer depois que o usuário re-selecionava o perfil ou fazia login de novo — porque o perfil ativo ficava guardado num snapshot antigo no navegador. Era a causa de a tela 'Manutenção' não aparecer no menu mesmo com o acesso já concedido.",
+        "Correção: ao carregar o app, o perfil ativo é re-sincronizado com as permissões atuais do servidor. Agora qualquer mudança de acesso passa a valer no próximo carregamento da página, sem re-login."
+      ]
+    },
+    {
       "version": "1.2.52",
       "date": "2026-05-21",
       "summary": "Novo módulo: Manutenção de Equipamentos",

@@ -469,6 +469,15 @@ const perfil = {
     try {
       const r = await fetch('/api/niveis-acesso').then(res => res.json());
       this._niveis = r.niveis || [];
+      // Re-sincroniza o perfil ativo. O snapshot em sessionStorage é tirado
+      // quando o usuário escolhe o perfil e fica desatualizado quando as
+      // permissões mudam (matriz de Níveis de Acesso ou migração). Sem isto,
+      // mudanças de acesso só apareciam após re-selecionar o perfil / re-login.
+      const ativo = this.get();
+      if (ativo && ativo.id) {
+        const fresco = this._niveis.find(n => n.id === ativo.id);
+        if (fresco) this.set(fresco);
+      }
     } catch (e) {
       console.warn('[perfil] /api/niveis-acesso falhou — permissões resolverão como vazias:', e?.message || e);
       this._niveis = [];
