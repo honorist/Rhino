@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.2.60",
+      "date": "2026-05-22",
+      "summary": "Alerta de RDO: atualização de hora em hora",
+      "changes": [
+        "A busca em segundo plano do alerta de RDO no menu passou de 10 em 10 minutos para 1 vez por hora — suficiente, já que o dado muda poucas vezes ao dia, e mais leve para o servidor."
+      ]
+    },
+    {
       "version": "1.2.59",
       "date": "2026-05-22",
       "summary": "Alertas no menu lateral para RDO, Compras, Manutenção e Frota",

@@ -1449,9 +1449,9 @@ window.addEventListener('hashchange', navigate);
 window.routes = routes;
 window.toggleTheme = toggleTheme;
 
-// Alerta de RDO no menu: busca /api/rdos no boot e a cada 10 min (cache).
+// Alerta de RDO no menu: busca /api/rdos no boot e a cada 1 hora (cache).
 setTimeout(refreshRdoAlertCount, 2500);
-setInterval(refreshRdoAlertCount, 10 * 60 * 1000);
+setInterval(refreshRdoAlertCount, 60 * 60 * 1000);
 
 document.addEventListener('DOMContentLoaded', async () => {
   applyTheme(getTheme());
