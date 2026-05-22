@@ -805,7 +805,61 @@ function getContasPagarAlertCount() {
   } catch { return 0; }
 }
 
-function renderNavItem(link, nfAlerts, cpAlerts, recAlerts) {
+// ── Alertas de Compras, Manutenção e Frota (dados já no Store) ─────────────
+function getComprasAlertCount() {
+  try {
+    const abertas = new Set(['pendente_avaliacao', 'pendente_aprovacao', 'aprovada', 'comprada']);
+    return (Store.state.solicitacoes_compra || []).filter(s => abertas.has(s.status)).length;
+  } catch { return 0; }
+}
+
+function getManutencaoAlertCount() {
+  try {
+    const abertas = new Set(['solicitada', 'pendente_aprovacao', 'aprovada', 'em_manutencao']);
+    return (Store.state.manutencoes || []).filter(m => abertas.has(m.status)).length;
+  } catch { return 0; }
+}
+
+// Veículos ativos com algum plano de manutenção vencido (por km, por data, ou nunca feito).
+function getFrotaAlertCount() {
+  try {
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    return (Store.state.veiculos || []).filter(v => {
+      if (v.status === 'inativo') return false;
+      const km = parseInt(v.kmAtual) || 0;
+      return (v.planos || []).some(p => {
+        if (p.ativo === false) return false;
+        if (p.intervaloKm && p.ultimoKm != null && (km - p.ultimoKm) >= p.intervaloKm) return true;
+        if (p.intervaloMeses && p.ultimaData) {
+          const d = new Date(String(p.ultimaData).slice(0, 10) + 'T12:00:00');
+          d.setMonth(d.getMonth() + parseInt(p.intervaloMeses));
+          if (d < hoje) return true;
+        }
+        if (p.ultimoKm == null && !p.ultimaData) return true; // plano nunca executado
+        return false;
+      });
+    }).length;
+  } catch { return 0; }
+}
+
+// RDO: "obras sem RDO no último dia útil" vem de /api/rdos (não está no Store).
+// Busca assíncrona com cache — atualizada no boot e a cada 10 min.
+let _rdoAlertCount = 0;
+function getRdosAlertCount() { return _rdoAlertCount; }
+async function refreshRdoAlertCount() {
+  try {
+    const r = await fetch('/api/rdos');
+    if (!r.ok) return;
+    const j = await r.json();
+    const n = ((j.stats && j.stats.obrasSemRdoOntem) || []).length;
+    if (n !== _rdoAlertCount) {
+      _rdoAlertCount = n;
+      try { renderSidebar({ force: true }); } catch (e) { /* sidebar ainda não montada */ }
+    }
+  } catch (e) { /* silencioso — alerta de RDO é best-effort */ }
+}
+
+function renderNavItem(link) {
   if (link.soon) {
     return `
       <li class="nav-item">
@@ -817,27 +871,13 @@ function renderNavItem(link, nfAlerts, cpAlerts, recAlerts) {
       </li>`;
   }
 
-  // Badge de alerta — "pill suave": vermelho (vencido) ou âmbar (só vencendo).
+  // Badge de alerta — "pill suave": vermelho (urgente) ou âmbar (atenção).
   // Mostra "9+" acima de 9; a contagem exata fica no tooltip (title).
-  const _badgeAlerta = (n, vencendo, titulo) => {
-    const txt = n > 9 ? '9+' : String(n);
-    return `<span class="nav-badge-alert${vencendo ? ' is-vencendo' : ''}" title="${titulo}">${txt}</span>`;
-  };
   let badge = '';
-  if (link.href === '#/notas-fiscais' && nfAlerts > 0) {
-    badge = _badgeAlerta(nfAlerts, false, `${nfAlerts} nota(s) fiscal(is) precisando de atenção`);
-  } else if (link.href === '#/contas-pagar' && cpAlerts > 0) {
-    badge = _badgeAlerta(cpAlerts, false, `${cpAlerts} conta(s) a pagar vencida(s)`);
-  } else if (link.href === '#/recursos' && recAlerts > 0) {
-    badge = _badgeAlerta(recAlerts, false, `${recAlerts} recurso(s) precisando de atenção`);
-  } else if (link.href === '#/documentos' && link.docAlerts > 0) {
-    // Âmbar quando há só documentos vencendo; vermelho quando há vencidos.
-    const det = link.docAlertDetail || { vencidos: 0, vencendo: 0 };
-    const soVencendo = !(det.vencidos > 0);
-    const titulo = det.vencidos > 0
-      ? `${det.vencidos} colaborador${det.vencidos !== 1 ? 'es' : ''} com docs vencidos${det.vencendo ? ` (+${det.vencendo} vencendo)` : ''}`
-      : `${det.vencendo} colaborador${det.vencendo !== 1 ? 'es' : ''} com docs vencendo nos próximos 30 dias`;
-    badge = _badgeAlerta(link.docAlerts, soVencendo, titulo);
+  const a = link.alerta;
+  if (a && a.n > 0) {
+    const txt = a.n > 9 ? '9+' : String(a.n);
+    badge = `<span class="nav-badge-alert${a.vencendo ? ' is-vencendo' : ''}" title="${a.titulo}">${txt}</span>`;
   }
 
   return `
@@ -851,12 +891,12 @@ function renderNavItem(link, nfAlerts, cpAlerts, recAlerts) {
 }
 
 let _sidebarSig = null;
-function _sidebarSignature(nf, cp, rec, doc, docDet, perfilAtual) {
+function _sidebarSignature(alertasSig, perfilAtual) {
   const u = auth.user();
-  // hash inclui contadores, perfil, usuário e estado dos grupos (que não dependem da rota)
+  // hash inclui alertas, perfil, usuário e estado dos grupos (que não dependem da rota)
   const groupsState = ['obras','rh','financeiro'].map(k => sidebarGroups.get(k) ? '1' : '0').join('');
   return [
-    nf, cp, rec, doc, docDet.vencidos, docDet.vencendo,
+    alertasSig,
     perfilAtual ? perfilAtual.id : '',
     u ? (u.id || u.email) : '',
     u && u.nivelAcessoId ? '1' : '0',
@@ -872,22 +912,38 @@ function renderSidebar(opts) {
   const recAlerts = getRecursosAlertCount();
   const docAlerts = getDocumentosAlertCount();
   const docAlertDetail = getDocumentosAlertDetail();
+  const rdoAlerts     = getRdosAlertCount();
+  const comprasAlerts = getComprasAlertCount();
+  const manutAlerts   = getManutencaoAlertCount();
+  const frotaAlerts   = getFrotaAlertCount();
   const currentHash = location.hash || '#/dashboard';
   const perfilAtual = perfil.get();
 
-  // Memo: se nada mudou (alertas, perfil, usuário, grupos), não re-renderiza o HTML inteiro.
-  // A classe .active é tratada por updateSidebarActiveState() à parte.
-  const sig = _sidebarSignature(nfAlerts, cpAlerts, recAlerts, docAlerts, docAlertDetail, perfilAtual);
+  // Mapa de alertas por rota. vencendo=true → âmbar (atenção); false → vermelho (urgente).
+  const _plur = (n, s, p) => `${n} ${n === 1 ? s : p}`;
+  const alertas = {};
+  if (nfAlerts > 0)      alertas['#/notas-fiscais']       = { n: nfAlerts,  vencendo: false, titulo: `${_plur(nfAlerts, 'nota fiscal precisando', 'notas fiscais precisando')} de atenção` };
+  if (cpAlerts > 0)      alertas['#/contas-pagar']        = { n: cpAlerts,  vencendo: false, titulo: _plur(cpAlerts, 'conta a pagar vencida', 'contas a pagar vencidas') };
+  if (recAlerts > 0)     alertas['#/recursos']            = { n: recAlerts, vencendo: false, titulo: `${_plur(recAlerts, 'recurso precisando', 'recursos precisando')} de atenção` };
+  if (docAlerts > 0)     alertas['#/documentos']          = { n: docAlerts, vencendo: !(docAlertDetail.vencidos > 0), titulo: docAlertDetail.vencidos > 0 ? `${docAlertDetail.vencidos} com documentos vencidos${docAlertDetail.vencendo ? ` (+${docAlertDetail.vencendo} vencendo)` : ''}` : `${docAlertDetail.vencendo} com documentos vencendo em 30 dias` };
+  if (rdoAlerts > 0)     alertas['#/rdos']                = { n: rdoAlerts, vencendo: false, titulo: `${_plur(rdoAlerts, 'obra', 'obras')} sem RDO no último dia útil` };
+  if (comprasAlerts > 0) alertas['#/solicitacoes-compra'] = { n: comprasAlerts, vencendo: true, titulo: `${_plur(comprasAlerts, 'solicitação de compra', 'solicitações de compra')} em aberto` };
+  if (manutAlerts > 0)   alertas['#/manutencao']          = { n: manutAlerts,   vencendo: true, titulo: `${_plur(manutAlerts, 'manutenção', 'manutenções')} em aberto` };
+  if (frotaAlerts > 0)   alertas['#/frota']               = { n: frotaAlerts,  vencendo: false, titulo: `${_plur(frotaAlerts, 'veículo', 'veículos')} com manutenção pendente` };
+
+  // Memo: re-renderiza só quando algo muda (alertas, perfil, usuário, grupos).
+  const alertasSig = Object.keys(alertas).sort().map(k => `${k}:${alertas[k].n}:${alertas[k].vencendo ? 'a' : 'r'}`).join(',');
+  const sig = _sidebarSignature(alertasSig, perfilAtual);
   if (!force && sidebar && sidebar.innerHTML && sig === _sidebarSig) {
     return;
   }
   _sidebarSig = sig;
 
-  // Definição de grupos da sidebar (RH e Financeiro). Cada grupo é dropdown.
+  // Grupos da sidebar. alertCount é somado depois, a partir dos links de cada grupo.
   const groups = [
-    { key: 'obras',      label: 'Obras',      icon: _ic('map-pin'),     alertCount: 0,                     btnId: 'btnObras' },
-    { key: 'rh',         label: 'RH',         icon: _ic('users'),       alertCount: recAlerts + docAlerts, btnId: 'btnRH' },
-    { key: 'financeiro', label: 'Financeiro', icon: _ic('dollar-sign'), alertCount: nfAlerts + cpAlerts,   btnId: 'btnFinanceiro' },
+    { key: 'obras',      label: 'Obras',      icon: _ic('map-pin'),     alertCount: 0, btnId: 'btnObras' },
+    { key: 'rh',         label: 'RH',         icon: _ic('users'),       alertCount: 0, btnId: 'btnRH' },
+    { key: 'financeiro', label: 'Financeiro', icon: _ic('dollar-sign'), alertCount: 0, btnId: 'btnFinanceiro' },
   ];
   const groupLinks = Object.fromEntries(groups.map(g => [g.key, []]));
   const topLinks = [];
@@ -896,7 +952,7 @@ function renderSidebar(opts) {
   for (const [pattern, config] of Object.entries(routes)) {
     if (!config.label || pattern.includes(':id')) continue;
     if (!perfil.podeAcessar(pattern)) continue;
-    const item = { href: pattern, label: config.label, icon: config.icon, soon: config.soon || false, docAlerts: pattern === '#/documentos' ? docAlerts : 0, docAlertDetail: pattern === '#/documentos' ? docAlertDetail : null };
+    const item = { href: pattern, label: config.label, icon: config.icon, soon: config.soon || false, alerta: alertas[pattern] || null };
     if (pattern === '#/configuracao') {
       configLink = item;
     } else if (config.group && groupLinks[config.group]) {
@@ -905,6 +961,11 @@ function renderSidebar(opts) {
       topLinks.push(item);
     }
   }
+
+  // Soma os alertas de cada grupo — vira o badge no cabeçalho do grupo recolhido.
+  groups.forEach(g => {
+    g.alertCount = groupLinks[g.key].reduce((s, l) => s + (l.alerta ? l.alerta.n : 0), 0);
+  });
 
   // Accordion: no máximo um grupo expandido por vez. Prioriza o grupo da
   // rota atual; senão, o primeiro que estiver marcado como aberto.
@@ -926,7 +987,7 @@ function renderSidebar(opts) {
           <span class="nav-group-arrow ${open ? 'open' : ''}">›</span>
         </button>
         <ul class="nav-group-children ${open ? 'open' : ''}">
-          ${links.map(l => renderNavItem(l, nfAlerts, cpAlerts, recAlerts)).join('')}
+          ${links.map(l => renderNavItem(l)).join('')}
         </ul>
       </li>`;
   }
@@ -945,9 +1006,9 @@ function renderSidebar(opts) {
       </button>
     </div>
     <ul class="nav-links">
-      ${topLinks.map(l => renderNavItem(l, nfAlerts, cpAlerts, recAlerts)).join('')}
+      ${topLinks.map(l => renderNavItem(l)).join('')}
       ${groupsHtml}
-      ${configLink ? renderNavItem(configLink, nfAlerts, cpAlerts, recAlerts) : ''}
+      ${configLink ? renderNavItem(configLink) : ''}
     </ul>
     <div class="sidebar-footer">
       ${auth.user() ? `
@@ -1387,6 +1448,10 @@ window.addEventListener('hashchange', navigate);
 // Expõe pra polish.js (command palette, etc.)
 window.routes = routes;
 window.toggleTheme = toggleTheme;
+
+// Alerta de RDO no menu: busca /api/rdos no boot e a cada 10 min (cache).
+setTimeout(refreshRdoAlertCount, 2500);
+setInterval(refreshRdoAlertCount, 10 * 60 * 1000);
 
 document.addEventListener('DOMContentLoaded', async () => {
   applyTheme(getTheme());
