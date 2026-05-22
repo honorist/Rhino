@@ -43,6 +43,7 @@ const { sendJson, sendError } = require('./lib/http-respond');
 const { createRouter } = require('./lib/router');
 const registerAuth = require('./routes/auth');
 const registerPortal = require('./routes/portal');
+const registerPlatform = require('./routes/platform');
 const { validateBody, schemas, ValidationError } = require('./lib/validate');
 
 // Web Push — inicializa só se VAPID keys estiverem presentes
@@ -4761,6 +4762,14 @@ registerPortal(apiRouter, {
   handlePortalDashboard, handlePortalListPropostas,
   handlePortalPropostaPdf, handlePortalPropostaDocx,
 });
+registerPlatform(apiRouter, {
+  bus, sendJson,
+  handleGetAudit, handleGetUsers, handlePostUser, handlePutUser, handleDeleteUser,
+  handleAiUsageStats, handleHealth, handleMetrics, handleGetAdminArquivos,
+  handleAiChat, handleAiClassify, handleGetFeatureFlags, handlePutFeatureFlag,
+  handleGlobalSearch, handleGetNiveisAcesso, handlePutNivelAcesso,
+  handlePushSubscribe, handlePushUnsubscribe,
+});
 
 function routeRequest(pathname, method, body, res, parsedUrl, req) {
   // Router modular — se o domínio já foi migrado, casa aqui e encerra.
@@ -4778,21 +4787,9 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
     return;
   }
 
-  // ============ Auditoria ============
-  if (pathname === '/api/audit' && method === 'GET') return handleGetAudit(parsedUrl.query, res);
-
   // ============ RDOs (visão global) ============
   if (pathname === '/api/rdos' && method === 'GET') return handleGetRdosGlobal(res);
 
-  // ============ Users CRUD ============
-  if (pathname === '/api/users' && method === 'GET') return handleGetUsers(req, res);
-  if (pathname === '/api/users' && method === 'POST') return handlePostUser(req, body, res);
-  if (pathname.match(/^\/api\/users\/[^/]+$/) && method === 'PUT') {
-    return handlePutUser(req, pathname.split('/')[3], body, res);
-  }
-  if (pathname.match(/^\/api\/users\/[^/]+$/) && method === 'DELETE') {
-    return handleDeleteUser(pathname.split('/')[3], req, res);
-  }
   // API routes
   if (pathname === '/api/contracts' && method === 'GET') {
     return handleGetContracts(res, parsedUrl.query);
@@ -4987,16 +4984,6 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
     _runEmailBackup().catch(e => console.error('[backup/email]', e.message));
     return sendJson(res, { ok: true, message: `Backup iniciado — será enviado para ${BACKUP_EMAIL}` });
   }
-  if (pathname === '/api/ai-usage/stats' && method === 'GET') {
-    return handleAiUsageStats(res);
-  }
-  if (pathname === '/api/health' && method === 'GET') {
-    return handleHealth(res);
-  }
-  if (pathname === '/api/metrics' && method === 'GET') {
-    return handleMetrics(res, req);
-  }
-
   // Sócios routes
   if (pathname === '/api/socios' && method === 'GET') {
     return handleGetSocios(res);
@@ -5256,11 +5243,6 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
     const parts = pathname.split('/');
     return handleCobrancaMensal(req, parseInt(parts[3]), parseInt(parts[4]), res);
   }
-  // Admin: lista todos os arquivos do sistema
-  if (pathname === '/api/admin/arquivos' && method === 'GET') {
-    return handleGetAdminArquivos(res);
-  }
-
   // ── Estoque ──
   if (pathname === '/api/estoque/itens' && method === 'GET')  return handleListItensEstoque(res);
   if (pathname === '/api/estoque/itens' && method === 'POST') return handlePostItemEstoque(body, res);
@@ -5335,52 +5317,8 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname === '/api/lgpd/export' && method === 'GET') return handleLgpdExport(req, res);
   if (pathname === '/api/lgpd/delete-account' && method === 'POST') return handleLgpdDelete(req, res);
 
-  // ── F15: AI Chat ──
-  if (pathname === '/api/ai/chat' && method === 'POST') return handleAiChat(body, res);
-
-  // ── F16: AI Classify ──
-  if (pathname === '/api/ai/classify-expense' && method === 'POST') return handleAiClassify(body, res);
-
   // ── F5: OFX Import ──
   if (pathname === '/api/caixa/importar-ofx' && method === 'POST') return handleImportarOfx(req, res);
-
-  // ── F18: Feature Flags ──
-  if (pathname === '/api/feature-flags' && method === 'GET') return handleGetFeatureFlags(res);
-  if (pathname.match(/^\/api\/feature-flags\/[^/]+$/) && method === 'PUT') return handlePutFeatureFlag(pathname.split('/')[3], body, res);
-
-  // Busca global cross-collection (M3)
-  if (pathname === '/api/search' && method === 'GET') return handleGlobalSearch(parsedUrl.query, res);
-
-  // Real-time event stream (G1)
-  if (pathname === '/api/stream' && method === 'GET') {
-    return bus.attach(req, res, { userId: req.user?.id, userEmail: req.user?.email });
-  }
-  // Lista de quem está online (G1) — útil pra avatar bar
-  if (pathname === '/api/online' && method === 'GET') {
-    return sendJson(res, { online: bus.online() });
-  }
-
-  // Níveis de Acesso routes
-  if (pathname === '/api/niveis-acesso' && method === 'GET') return handleGetNiveisAcesso(res);
-  if (pathname.match(/^\/api\/niveis-acesso\/[^/]+$/) && method === 'PUT') {
-    return handlePutNivelAcesso(pathname.split('/')[3], body, res);
-  }
-
-  // Push Notification routes
-  if (pathname === '/api/push/vapid-public-key' && method === 'GET') {
-    const pk = process.env.VAPID_PUBLIC_KEY || null;
-    return sendJson(res, { publicKey: pk });
-  }
-  if (pathname === '/api/push/subscribe' && method === 'POST') {
-    // FIX C-02: o middleware de auth seta `req.user`, não `req._userId`. Antes,
-    // toda subscription era registrada com user_id=null (impossibilitava revogação).
-    const userId = req.user?.id || null;
-    return handlePushSubscribe(body, userId, res);
-  }
-  if (pathname === '/api/push/unsubscribe' && method === 'POST') {
-    // FIX A-02: passa req para o handler validar ownership do endpoint.
-    return handlePushUnsubscribe(body, req, res);
-  }
 
   // Static files
   if (pathname === '/' || pathname === '') {

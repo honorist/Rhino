@@ -126,3 +126,95 @@ test('routes/portal.js — pdf e docx recebem (req, id, res)', async () => {
   assert.deepEqual(args.pdf, ['R', 'P1', 'S']);
   assert.deepEqual(args.docx, ['R', 'P2', 'S']);
 });
+
+// ─── routes/platform.js ──────────────────────────────────────────────────────
+
+test('routes/platform.js — registra exatamente as 21 rotas de plataforma', () => {
+  const router = createRouter();
+  require('../routes/platform')(router, {});
+  const rotas = router.list().map(r => `${r.method} ${r.pattern}`).sort();
+  assert.deepEqual(rotas, [
+    'DELETE /api/users/:id',
+    'GET /api/admin/arquivos',
+    'GET /api/ai-usage/stats',
+    'GET /api/audit',
+    'GET /api/feature-flags',
+    'GET /api/health',
+    'GET /api/metrics',
+    'GET /api/niveis-acesso',
+    'GET /api/online',
+    'GET /api/push/vapid-public-key',
+    'GET /api/search',
+    'GET /api/stream',
+    'GET /api/users',
+    'POST /api/ai/chat',
+    'POST /api/ai/classify-expense',
+    'POST /api/push/subscribe',
+    'POST /api/push/unsubscribe',
+    'POST /api/users',
+    'PUT /api/feature-flags/:id',
+    'PUT /api/niveis-acesso/:id',
+    'PUT /api/users/:id',
+  ]);
+});
+
+test('routes/platform.js — :param e ordens de argumentos não-triviais', () => {
+  const c = {};
+  const router = createRouter();
+  require('../routes/platform')(router, {
+    bus: { attach: () => {}, online: () => [] },
+    sendJson: () => {},
+    handlePutUser:        (req, id, body, res) => { c.putUser = [req, id, body, res]; },
+    handleDeleteUser:     (id, req, res)      => { c.delUser = [id, req, res]; },
+    handleMetrics:        (res, req)          => { c.metrics = [res, req]; },
+    handleGetAudit:       (query, res)        => { c.audit = [query, res]; },
+    handlePutFeatureFlag: (id, body, res)     => { c.ff = [id, body, res]; },
+    handlePutNivelAcesso: (id, body, res)     => { c.nivel = [id, body, res]; },
+  });
+  const base = { req: 'REQ', body: 'BODY', res: 'RES', parsedUrl: { query: 'QUERY' } };
+
+  router.dispatch({ ...base, method: 'PUT', pathname: '/api/users/U7' });
+  assert.deepEqual(c.putUser, ['REQ', 'U7', 'BODY', 'RES']);
+
+  router.dispatch({ ...base, method: 'DELETE', pathname: '/api/users/U7' });
+  assert.deepEqual(c.delUser, ['U7', 'REQ', 'RES']); // id vem primeiro
+
+  router.dispatch({ ...base, method: 'GET', pathname: '/api/metrics' });
+  assert.deepEqual(c.metrics, ['RES', 'REQ']); // res vem primeiro
+
+  router.dispatch({ ...base, method: 'GET', pathname: '/api/audit' });
+  assert.deepEqual(c.audit, ['QUERY', 'RES']); // parsedUrl.query
+
+  router.dispatch({ ...base, method: 'PUT', pathname: '/api/feature-flags/F1' });
+  assert.deepEqual(c.ff, ['F1', 'BODY', 'RES']);
+
+  router.dispatch({ ...base, method: 'PUT', pathname: '/api/niveis-acesso/N1' });
+  assert.deepEqual(c.nivel, ['N1', 'BODY', 'RES']);
+});
+
+test('routes/platform.js — push/subscribe deriva o userId de req.user.id', () => {
+  let args = null;
+  const router = createRouter();
+  require('../routes/platform')(router, {
+    handlePushSubscribe: (body, userId, res) => { args = [body, userId, res]; },
+  });
+  router.dispatch({ method: 'POST', pathname: '/api/push/subscribe',
+    body: 'BODY', res: 'RES', req: { user: { id: 'U9' } } });
+  assert.deepEqual(args, ['BODY', 'U9', 'RES']);
+});
+
+test('routes/platform.js — rotas inline (stream/online) usam o bus', () => {
+  const calls = [];
+  let onlinePayload = null;
+  const router = createRouter();
+  require('../routes/platform')(router, {
+    bus: { attach: (req, res, meta) => calls.push(['attach', req, res, meta]), online: () => ['user1'] },
+    sendJson: (res, body) => { onlinePayload = body; },
+  });
+  router.dispatch({ method: 'GET', pathname: '/api/stream', req: { user: { id: 'U1', email: 'e@x' } }, res: 'RES' });
+  assert.equal(calls[0][0], 'attach');
+  assert.deepEqual(calls[0][3], { userId: 'U1', userEmail: 'e@x' });
+
+  router.dispatch({ method: 'GET', pathname: '/api/online', res: 'RES' });
+  assert.deepEqual(onlinePayload, { online: ['user1'] });
+});
