@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.2.67",
+      "date": "2026-05-22",
+      "summary": "Melhorias internas — modularização do roteamento (rotas financeiras)",
+      "changes": [
+        "Continuação do fortalecimento interno, sem mudança visível no uso. Mais um bloco do roteamento do servidor foi modularizado — rotas financeiras de caixa, base de custos, sócios e investimentos. Nada muda nas telas; é organização de código com testes de regressão."
+      ]
+    },
+    {
       "version": "1.2.66",
       "date": "2026-05-22",
       "summary": "Melhorias internas — modularização do roteamento (continuação)",
