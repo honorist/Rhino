@@ -65,6 +65,9 @@ window.Dashboard = {
       // painel de aderência); `this._rdoStats` é usado por renderAlertas.
       const rdoStats = rdoJson ? (rdoJson.stats || null) : null;
       this._rdoStats = rdoStats;
+      // RDO é diário: cada (obra × dia útil) sem RDO conta 1 atraso.
+      const rdosAtrasados = (rdoStats?.aderenciaDiaria || [])
+        .reduce((s, d) => s + Math.max(0, (d.esperados || 0) - (d.feitos || 0)), 0);
       this._anomalias = anomJson ? (anomJson.anomalias || []) : [];
 
       // nf/cp/socios/investimentos: loadAll() JÁ trouxe as 4 — antes o Dashboard
@@ -150,8 +153,7 @@ window.Dashboard = {
       subParts.push(dash.caixaBalance >= 0 ? 'Caixa positivo' : 'Caixa negativo');
       const bmsAguard = pipeline.aguardEmissao.count;
       if (bmsAguard > 0) subParts.push(`${bmsAguard} BM${bmsAguard !== 1 ? 's' : ''} aguardando emissão`);
-      const semRdoCount = (rdoStats?.obrasSemRdoOntem || []).length;
-      if (semRdoCount > 0) subParts.push(`${semRdoCount} RDO${semRdoCount !== 1 ? 's' : ''} sem lançamento ontem`);
+      if (rdosAtrasados > 0) subParts.push(`${rdosAtrasados} RDO${rdosAtrasados !== 1 ? 's' : ''} atrasado${rdosAtrasados !== 1 ? 's' : ''}`);
 
       const totalSaidas = Store.state.saidas.reduce((sum, s) => sum + s.value, 0);
       const taxaDespesa = dash.totalContractValue > 0
@@ -391,7 +393,7 @@ window.Dashboard = {
               tone: rdoStats.aderencia7d >= 80 ? 'pos' : rdoStats.aderencia7d >= 50 ? 'warn' : 'neg',
               deltaIcon: rdoStats.aderencia7d >= 80 ? 'arrow-up' : 'arrow-down',
               deltaTone: rdoStats.aderencia7d >= 80 ? 'pos' : 'neg',
-              meta: rdoStats.obrasSemRdoOntem.length > 0 ? `${rdoStats.obrasSemRdoOntem.length} sem RDO ontem` : 'tudo em dia',
+              meta: rdosAtrasados > 0 ? `${rdosAtrasados} RDO${rdosAtrasados !== 1 ? 's' : ''} atrasado${rdosAtrasados !== 1 ? 's' : ''}` : 'tudo em dia',
               spark: (rdoStats.aderenciaDiaria || []).map(d => d.pct),
               tooltip: `Aderência = RDOs lançados ÷ (obras ativas × ${rdoStats.diasUteisAvaliados} dias úteis avaliados) × 100. Verde ≥80%, amarelo 50–79%, vermelho <50%.`,
             }) : ''}

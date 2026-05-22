@@ -851,7 +851,10 @@ async function refreshRdoAlertCount() {
     const r = await fetch('/api/rdos');
     if (!r.ok) return;
     const j = await r.json();
-    const n = ((j.stats && j.stats.obrasSemRdoOntem) || []).length;
+    // RDO é diário: cada (obra × dia útil) sem RDO conta como 1 atraso.
+    // Soma os faltantes nos últimos dias úteis avaliados (esperados − feitos).
+    const dias = (j.stats && j.stats.aderenciaDiaria) || [];
+    const n = dias.reduce((s, d) => s + Math.max(0, (d.esperados || 0) - (d.feitos || 0)), 0);
     if (n !== _rdoAlertCount) {
       _rdoAlertCount = n;
       try { renderSidebar({ force: true }); } catch (e) { /* sidebar ainda não montada */ }
@@ -926,7 +929,7 @@ function renderSidebar(opts) {
   if (cpAlerts > 0)      alertas['#/contas-pagar']        = { n: cpAlerts,  vencendo: false, titulo: _plur(cpAlerts, 'conta a pagar vencida', 'contas a pagar vencidas') };
   if (recAlerts > 0)     alertas['#/recursos']            = { n: recAlerts, vencendo: false, titulo: `${_plur(recAlerts, 'recurso precisando', 'recursos precisando')} de atenção` };
   if (docAlerts > 0)     alertas['#/documentos']          = { n: docAlerts, vencendo: !(docAlertDetail.vencidos > 0), titulo: docAlertDetail.vencidos > 0 ? `${docAlertDetail.vencidos} com documentos vencidos${docAlertDetail.vencendo ? ` (+${docAlertDetail.vencendo} vencendo)` : ''}` : `${docAlertDetail.vencendo} com documentos vencendo em 30 dias` };
-  if (rdoAlerts > 0)     alertas['#/rdos']                = { n: rdoAlerts, vencendo: false, titulo: `${_plur(rdoAlerts, 'obra', 'obras')} sem RDO no último dia útil` };
+  if (rdoAlerts > 0)     alertas['#/rdos']                = { n: rdoAlerts, vencendo: false, titulo: `${_plur(rdoAlerts, 'RDO atrasado', 'RDOs atrasados')} (dias úteis sem lançamento)` };
   if (comprasAlerts > 0) alertas['#/solicitacoes-compra'] = { n: comprasAlerts, vencendo: true, titulo: `${_plur(comprasAlerts, 'solicitação de compra', 'solicitações de compra')} em aberto` };
   if (manutAlerts > 0)   alertas['#/manutencao']          = { n: manutAlerts,   vencendo: true, titulo: `${_plur(manutAlerts, 'manutenção', 'manutenções')} em aberto` };
   if (frotaAlerts > 0)   alertas['#/frota']               = { n: frotaAlerts,  vencendo: false, titulo: `${_plur(frotaAlerts, 'veículo', 'veículos')} com manutenção pendente` };

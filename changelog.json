@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.2.61",
+      "date": "2026-05-22",
+      "summary": "RDO atrasado contado por dia útil (menu e Dashboard)",
+      "changes": [
+        "O alerta de RDO no menu lateral passou a contar cada dia útil sem RDO: se uma obra está há 3 dias úteis sem lançar RDO, conta como 3 — antes contava só 'obras sem RDO no último dia'.",
+        "Os indicadores de RDO no Dashboard (KPI 'Aderência RDO' e o resumo no topo) foram alinhados ao mesmo critério, mostrando 'X RDOs atrasados' em vez de 'X sem RDO ontem'."
+      ]
+    },
+    {
       "version": "1.2.60",
       "date": "2026-05-22",
       "summary": "Alerta de RDO: atualização de hora em hora",
