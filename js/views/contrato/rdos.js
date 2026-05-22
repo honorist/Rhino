@@ -328,7 +328,7 @@
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">
                   ${fotos.slice(0, 12).map(f => `
                     <div style="position:relative;aspect-ratio:1;background:var(--color-surface-2);border-radius:6px;overflow:hidden;">
-                      ${f.url ? `<img src="${f.url}" alt="${escapeHtml(f.legenda || '')}" style="width:100%;height:100%;object-fit:cover;">` : `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--color-text-muted);font-size:11px;">📷</div>`}
+                      ${f.url ? `<img src="${f.url}" alt="${escapeHtml(f.legenda || '')}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;">` : `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--color-text-muted);font-size:11px;">📷</div>`}
                     </div>
                   `).join('')}
                 </div>
@@ -389,7 +389,47 @@
         rdo.fiscalizacaoComentarios ? `📝 Obs: ${rdo.fiscalizacaoComentarios}` : '',
         fotos.length ? `📷 ${fotos.length} foto${fotos.length !== 1 ? 's' : ''}` : '',
       ].filter(Boolean).join('\n');
-      window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+
+      // Janela com o texto pronto — o encarregado copia e cola no grupo da obra.
+      const wHtml = `
+        <div class="modal-overlay" id="modalRdoWhats" style="z-index:10001;">
+          <div class="modal" style="width:480px;max-width:95vw;">
+            <div class="modal-header">
+              <h2 class="modal-title">💬 Resumo do RDO</h2>
+              <button class="modal-close" id="btnWhatsX">✕</button>
+            </div>
+            <div class="modal-content">
+              <p style="font-size:13px;color:var(--color-text-muted);margin:0 0 8px;">Copie o texto e cole no grupo da obra no WhatsApp.</p>
+              <textarea id="rdoWhatsText" readonly style="width:100%;height:280px;font-family:inherit;font-size:14px;line-height:1.55;padding:10px;border:1px solid var(--color-border);border-radius:8px;resize:vertical;background:var(--color-bg);color:var(--color-text);box-sizing:border-box;">${escapeHtml(text)}</textarea>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" id="btnWhatsFechar">Fechar</button>
+              <button class="btn btn-primary" id="btnWhatsCopiar">📋 Copiar texto</button>
+            </div>
+          </div>
+        </div>`;
+      document.body.insertAdjacentHTML('beforeend', wHtml);
+      const wOv = document.getElementById('modalRdoWhats');
+      const wClose = () => wOv.remove();
+      document.getElementById('btnWhatsX').addEventListener('click', wClose);
+      document.getElementById('btnWhatsFechar').addEventListener('click', wClose);
+      wOv.addEventListener('click', e => { if (e.target === wOv) wClose(); });
+      const ta = document.getElementById('rdoWhatsText');
+      ta.addEventListener('focus', () => ta.select());
+      document.getElementById('btnWhatsCopiar').addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(text);
+          if (window.showToast) window.showToast('Texto copiado! Cole no grupo do WhatsApp.', 'success');
+        } catch (e) {
+          ta.focus(); ta.select();
+          try {
+            document.execCommand('copy');
+            if (window.showToast) window.showToast('Texto copiado!', 'success');
+          } catch (e2) {
+            if (window.showToast) window.showToast('Selecione o texto e copie com Ctrl+C.', 'info');
+          }
+        }
+      });
     });
 
     // Assinaturas: carrega e habilita botão de adicionar

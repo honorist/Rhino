@@ -442,8 +442,9 @@ window.Dashboard = {
           const sem = (rdoStats.obrasSemRdoOntem || []).length;
           const lancados = Math.max(0, ativas - sem);
           const atrasadas = rdoStats.obrasAtrasadas || [];
-          const aderColor = rdoStats.aderencia7d >= 80 ? 'var(--rh-pos-strong)'
-                          : rdoStats.aderencia7d >= 50 ? 'var(--rh-warn-strong)'
+          const aderMes = rdoStats.aderenciaMes != null ? rdoStats.aderenciaMes : rdoStats.aderencia7d;
+          const aderColor = aderMes >= 80 ? 'var(--rh-pos-strong)'
+                          : aderMes >= 50 ? 'var(--rh-warn-strong)'
                           : 'var(--rh-neg-strong)';
           const semList = rdoStats.obrasSemRdoOntem || [];
           return `
@@ -458,7 +459,7 @@ window.Dashboard = {
                 : `<span class="rh-pill rh-pill-pos"><span class="rh-pill-dot"></span>em dia</span>`}
             </div>
             <div style="display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:8px 0;">
-              <div class="rh-display" style="font-size:42px;font-weight:800;color:${aderColor};line-height:1;grid-row:span 3;align-self:center;">${rdoStats.aderencia7d}%<div style="font-size:11px;font-weight:600;color:var(--rh-ink-500);text-transform:uppercase;letter-spacing:.06em;margin-top:6px;">aderência mês</div></div>
+              <div class="rh-display" style="font-size:42px;font-weight:800;color:${aderColor};line-height:1;grid-row:span 3;align-self:center;">${aderMes}%<div style="font-size:11px;font-weight:600;color:var(--rh-ink-500);text-transform:uppercase;letter-spacing:.06em;margin-top:6px;">aderência mês</div></div>
               <div style="border-top:1px solid var(--rh-ink-200);padding-top:8px;font-size:14px;color:var(--rh-ink-700);" title="Quantas obras ativas tiveram RDO lançado no último dia útil, sobre o total de obras ativas previstas.">Lançados ontem</div>
               <div style="border-top:1px solid var(--rh-ink-200);padding-top:8px;font-size:14px;font-weight:700;text-align:right;" title="X de Y obras ativas com RDO no último dia útil.">${lancados}<span style="color:var(--rh-ink-500);">/${ativas}</span></div>
               <div style="font-size:14px;color:var(--rh-ink-700);" title="Obras ativas que NÃO tiveram RDO lançado no último dia útil.">Sem RDO ontem</div>

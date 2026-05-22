@@ -1456,6 +1456,17 @@ async function handleGetRdosGlobal(res) {
     const hojeDow = new Date(hojeISO + 'T12:00:00').getDay();
     const ehFimDeSemana = hojeDow === 0 || hojeDow === 6;
 
+    // Aderência do mês corrente: RDOs feitos ÷ (obras ativas × dias úteis do mês até hoje).
+    const mesInicio = hojeISO.slice(0, 7) + '-01';
+    const diasUteisMes = feriados.ultimosNDiasUteis(45, hojeISO).filter(d => d >= mesInicio);
+    const setMes = new Set(diasUteisMes);
+    let feitosMes = 0;
+    for (const r of rdos) {
+      if (ativasIds.has(r.contractId) && setMes.has(r.data)) feitosMes++;
+    }
+    const esperadosMes = ativas.length * diasUteisMes.length;
+    const aderenciaMes = esperadosMes > 0 ? Math.round((feitosMes / esperadosMes) * 100) : 100;
+
     sendJson(res, {
       rdos,
       stats: {
@@ -1468,6 +1479,10 @@ async function handleGetRdosGlobal(res) {
         aderencia7d: aderencia,
         diasUteisAvaliados: ultimos7.length,
         aderenciaDiaria,
+        aderenciaMes,
+        diasUteisMes: diasUteisMes.length,
+        feitosMes,
+        esperadosMes,
       },
     });
   } catch (e) {

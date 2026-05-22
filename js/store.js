@@ -873,7 +873,10 @@ window.Store = {
   async uploadRdoFoto(contractId, rdoId, files, legenda) {
     const form = new FormData();
     if (legenda) form.append('legenda', legenda);
-    for (const f of files) form.append('arquivo', f, f.name);
+    for (const f of files) {
+      const comp = await this._compressImage(f);
+      form.append('arquivo', comp, comp.name);
+    }
     const res = await fetch(`/api/contracts/${contractId}/rdos/${rdoId}/fotos`, {
       method: 'POST', body: form
     });
@@ -883,6 +886,32 @@ window.Store = {
     }
     const r = await res.json();
     this.state.contracts = r.contracts || []; this.notify(); return r;
+  },
+
+  // Comprime/redimensiona a imagem no navegador antes do upload — reduz o
+  // tamanho do envio (importante no celular da obra), o armazenamento e a
+  // travada ao abrir o RDO. Qualquer falha → envia o arquivo original.
+  async _compressImage(file, maxDim = 1600, quality = 0.72) {
+    try {
+      if (!file || !file.type || !file.type.startsWith('image/') || file.type === 'image/gif') return file;
+      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      let w = bitmap.width, h = bitmap.height;
+      // Já é pequena (resolução e peso)? não recomprime.
+      if (Math.max(w, h) <= maxDim && file.size < 600 * 1024) { bitmap.close && bitmap.close(); return file; }
+      const scale = Math.min(1, maxDim / Math.max(w, h));
+      w = Math.round(w * scale); h = Math.round(h * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+      bitmap.close && bitmap.close();
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', quality));
+      if (!blob || blob.size >= file.size) return file; // não melhorou → mantém original
+      const nome = (file.name || 'foto').replace(/\.[^.]+$/, '') + '.jpg';
+      return new File([blob], nome, { type: 'image/jpeg' });
+    } catch (e) {
+      console.warn('[compressImage] falhou — enviando original:', e?.message || e);
+      return file;
+    }
   },
   async deleteRdoFoto(contractId, rdoId, fotoId) {
     const res = await fetch(`/api/contracts/${contractId}/rdos/${rdoId}/fotos/${fotoId}`, { method: 'DELETE' });

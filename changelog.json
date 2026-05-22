@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.2.63",
+      "date": "2026-05-22",
+      "summary": "RDO: aderência mensal real, foto comprimida no upload e WhatsApp como janela de copiar",
+      "changes": [
+        "O painel 'Aderência mensal' dos RDOs (Dashboard) agora calcula de verdade a aderência do mês corrente — RDOs feitos ÷ (obras ativas × dias úteis do mês até hoje). Antes mostrava, com rótulo errado, a aderência de 7 dias.",
+        "Fotos do RDO: ao adicionar uma foto, ela é comprimida e redimensionada no próprio navegador antes do envio (máx. 1600 px). Isso deixa o upload muito mais rápido no celular da obra, economiza armazenamento e corrige a travada ao abrir o RDO com fotos.",
+        "As fotos no detalhe do RDO passaram a carregar sob demanda (lazy), abrindo a janela mais rápido.",
+        "O botão de WhatsApp do RDO agora abre uma janela com o texto-resumo pronto e um botão 'Copiar' — é só colar no grupo da obra. Não depende mais de abrir o aplicativo do WhatsApp."
+      ]
+    },
+    {
       "version": "1.2.62",
       "date": "2026-05-22",
       "summary": "RDO: janela de detalhe mais larga e botão WhatsApp com resumo pronto",
