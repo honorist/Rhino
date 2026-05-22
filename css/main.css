@@ -426,6 +426,21 @@ body .page-subtitle                { font-size: 16.5px; }
   line-height: 1;
 }
 
+/* Linha compacta de utilidades no rodapé (Tema + Manual lado a lado) */
+.footer-utils {
+  display: flex;
+  gap: var(--sp-xs);
+}
+.footer-utils .theme-toggle-btn {
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+  padding: 9px 8px;
+}
+body.sb-collapsed .footer-utils {
+  flex-direction: column;
+}
+
 .sidebar-version {
   font-size: 15px;
   color: var(--color-text-muted);

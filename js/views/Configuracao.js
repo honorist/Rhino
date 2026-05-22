@@ -206,7 +206,11 @@ window.Configuracao = {
         ] },
       { route: '#/estoque',       label: 'Almoxarifado',    icon: ic('package'),         grupo: 'Obras' },
       { route: '#/frota',         label: 'Frota',           icon: ic('truck'),           grupo: 'Obras' },
-      { route: '#/manutencao',    label: 'Manutenção',      icon: ic('wrench'),          grupo: 'Obras' },
+      { route: '#/manutencao',    label: 'Manutenção',      icon: ic('wrench'),          grupo: 'Obras',
+        children: [
+          { route: 'manutencao:avaliar', label: 'Etapa · Avaliar — oficina/prazo/custo (equipe de compras)', icon: ic('dollar-sign') },
+          { route: 'manutencao:aprovar', label: 'Etapa · Aprovar ou rejeitar (gerência)',                    icon: ic('check-circle') },
+        ] },
       { route: '#/clientes',      label: 'Clientes',        icon: ic('users'),           grupo: 'RH' },
       { route: '#/fornecedores',  label: 'Fornecedores',    icon: ic('truck'),           grupo: 'RH' },
       { route: '#/recursos',      label: 'Recursos',        icon: ic('user-plus'),       grupo: 'RH' },
@@ -242,7 +246,8 @@ window.Configuracao = {
     const corOf = (n) => _safeCorCss(n.cor);
     const isFlag = (route) => route.startsWith('special:')
       || route.startsWith('contrato-tab:')
-      || route.startsWith('solicitacoes-compra:');
+      || route.startsWith('solicitacoes-compra:')
+      || route.startsWith('manutencao:');
     const totalCols = 1 + niveis.length * 2;
 
     // Uma linha da matriz: a tela à esquerda, um par de checkboxes (Ver/Ed) por perfil.

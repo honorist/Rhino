@@ -4638,7 +4638,6 @@ const MUTATION_PERMISSION_RULES = [
   { re: /^\/api\/contas-pagar(\/|$)/,       screens: ['#/contas-pagar'] },
   { re: /^\/api\/recursos(\/|$)/,           screens: ['#/recursos'] },
   { re: /^\/api\/folha-pagamento(\/|$)/,    screens: ['#/folha-pagamento'] },
-  { re: /^\/api\/manutencoes(\/|$)/,        screens: ['#/manutencao'] },
 ];
 
 /**
@@ -5289,6 +5288,9 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname.match(/^\/api\/manutencoes\/[^/]+$/) && method === 'DELETE') return handleDeleteManutencao(pathname.split('/')[3], res);
   if (pathname.match(/^\/api\/manutencoes\/[^/]+\/retorno$/) && method === 'POST')  return handleRetornoManutencao(req, pathname.split('/')[3], body, res);
   if (pathname.match(/^\/api\/manutencoes\/[^/]+\/cancelar$/) && method === 'POST') return handleCancelarManutencao(req, pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/manutencoes\/[^/]+\/avaliar$/)  && method === 'POST') return handleAvaliarManutencao(req, pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/manutencoes\/[^/]+\/aprovar$/)  && method === 'POST') return handleAprovarManutencao(req, pathname.split('/')[3], body, res);
+  if (pathname.match(/^\/api\/manutencoes\/[^/]+\/rejeitar$/) && method === 'POST') return handleRejeitarManutencao(req, pathname.split('/')[3], body, res);
 
   // ── Frota / Veículos ──
   if (pathname === '/api/veiculos' && method === 'GET')  return handleListVeiculos(res);
@@ -7146,7 +7148,10 @@ async function handleDeleteSolicitacaoCompra(id, res) {
 }
 
 // ============ Manutenção de Equipamentos ============
-// Ciclo: em_manutencao → retornado (ou cancelada). Equipamento é texto livre.
+// Fluxo: solicitada → pendente_aprovacao → aprovada → retornado
+//        (+ rejeitada / cancelada).
+// O solicitante só solicita; a equipe de compras avalia (oficina/prazo/custo);
+// a gerência aprova ou rejeita.
 
 async function handleListManutencoes(query, res) {
   try {
@@ -7160,6 +7165,7 @@ async function handleListManutencoes(query, res) {
   } catch (e) { sendError(res, 500, e.message); }
 }
 
+// 1ª etapa — solicitante: apenas o equipamento e o problema.
 async function handlePostManutencao(req, body, res) {
   try {
     const equipamento = (body.equipamento || '').trim();
@@ -7168,12 +7174,10 @@ async function handlePostManutencao(req, body, res) {
       id: generateId('man'),
       equipamento,
       contractId: body.contractId || null,
-      oficina: (body.oficina || '').trim(),
       problema: (body.problema || '').trim(),
-      status: 'em_manutencao',
-      dataEnvio: body.dataEnvio || null,
-      dataRetornoPrevista: body.dataRetornoPrevista || null,
+      status: 'solicitada',
       custo: 0,
+      custoEstimado: 0,
       observacoes: (body.observacoes || '').trim(),
       solicitanteUserId: req.user?.id || null,
       solicitanteNome: req.user?.name || req.user?.email || null,
@@ -7183,12 +7187,13 @@ async function handlePostManutencao(req, body, res) {
   } catch (e) { sendError(res, 400, e.message); }
 }
 
+// Solicitante edita enquanto ainda está 'solicitada'.
 async function handlePutManutencao(id, body, res) {
   try {
     const atual = await repos.manutencoes.findById(id);
     if (!atual) return sendError(res, 404, 'Manutenção não encontrada');
-    if (atual.status !== 'em_manutencao') {
-      return sendError(res, 400, 'Só é possível editar manutenções em andamento');
+    if (atual.status !== 'solicitada') {
+      return sendError(res, 400, 'Só é possível editar enquanto a manutenção está como solicitada');
     }
     const allowed = {};
     if (body.equipamento !== undefined) {
@@ -7196,23 +7201,95 @@ async function handlePutManutencao(id, body, res) {
       if (!eq) return sendError(res, 400, 'Informe o equipamento');
       allowed.equipamento = eq;
     }
-    if (body.contractId !== undefined)          allowed.contractId = body.contractId || null;
-    if (body.oficina !== undefined)             allowed.oficina = (body.oficina || '').trim();
-    if (body.problema !== undefined)            allowed.problema = (body.problema || '').trim();
-    if (body.dataEnvio !== undefined)           allowed.dataEnvio = body.dataEnvio || null;
-    if (body.dataRetornoPrevista !== undefined) allowed.dataRetornoPrevista = body.dataRetornoPrevista || null;
-    if (body.observacoes !== undefined)         allowed.observacoes = (body.observacoes || '').trim();
+    if (body.contractId !== undefined)  allowed.contractId = body.contractId || null;
+    if (body.problema !== undefined)    allowed.problema = (body.problema || '').trim();
+    if (body.observacoes !== undefined) allowed.observacoes = (body.observacoes || '').trim();
     const result = await repos.manutencoes.updateById(id, allowed);
     sendJson(res, { manutencao: result });
   } catch (e) { sendError(res, 400, e.message); }
 }
 
+// 2ª etapa — equipe de compras: define oficina, prazo e custo estimado.
+async function handleAvaliarManutencao(req, id, body, res) {
+  try {
+    if (!await _temPermissao(req, 'manutencao:avaliar')) {
+      return sendError(res, 403, 'Sem permissão para avaliar manutenções');
+    }
+    const atual = await repos.manutencoes.findById(id);
+    if (!atual) return sendError(res, 404, 'Manutenção não encontrada');
+    if (atual.status !== 'solicitada') {
+      return sendError(res, 400, `Esta manutenção já está ${atual.status}`);
+    }
+    const oficina = (body.oficina || '').trim();
+    if (!oficina) return sendError(res, 400, 'Informe a oficina / empresa que vai reparar');
+    const allowed = {
+      oficina,
+      custoEstimado: parseFloat(body.custoEstimado) || 0,
+      dataEnvio: body.dataEnvio || null,
+      dataRetornoPrevista: body.dataRetornoPrevista || null,
+      avaliadorUserId: req.user?.id || null,
+      avaliadorNome: req.user?.name || req.user?.email || null,
+      avaliadoEm: new Date(),
+      status: 'pendente_aprovacao',
+    };
+    if (body.observacoes != null && String(body.observacoes).trim()) {
+      allowed.observacoes = String(body.observacoes).trim();
+    }
+    const result = await repos.manutencoes.updateById(id, allowed);
+    sendJson(res, { manutencao: result });
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+// 3ª etapa — gerência aprova.
+async function handleAprovarManutencao(req, id, body, res) {
+  try {
+    if (!await _temPermissao(req, 'manutencao:aprovar')) {
+      return sendError(res, 403, 'Sem permissão para aprovar manutenções');
+    }
+    const atual = await repos.manutencoes.findById(id);
+    if (!atual) return sendError(res, 404, 'Manutenção não encontrada');
+    if (atual.status !== 'pendente_aprovacao') {
+      return sendError(res, 400, 'Só é possível aprovar manutenções aguardando aprovação');
+    }
+    const result = await repos.manutencoes.updateById(id, {
+      status: 'aprovada',
+      aprovadorUserId: req.user?.id || null,
+      aprovadorNome: req.user?.name || req.user?.email || null,
+      aprovadoEm: new Date(),
+    });
+    sendJson(res, { manutencao: result });
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+// 3ª etapa — gerência rejeita.
+async function handleRejeitarManutencao(req, id, body, res) {
+  try {
+    if (!await _temPermissao(req, 'manutencao:aprovar')) {
+      return sendError(res, 403, 'Sem permissão para rejeitar manutenções');
+    }
+    const atual = await repos.manutencoes.findById(id);
+    if (!atual) return sendError(res, 404, 'Manutenção não encontrada');
+    if (atual.status !== 'pendente_aprovacao') {
+      return sendError(res, 400, 'Só é possível rejeitar manutenções aguardando aprovação');
+    }
+    const result = await repos.manutencoes.updateById(id, {
+      status: 'rejeitada',
+      motivoRejeicao: (body.motivo || '').trim() || null,
+      aprovadorUserId: req.user?.id || null,
+      aprovadorNome: req.user?.name || req.user?.email || null,
+      aprovadoEm: new Date(),
+    });
+    sendJson(res, { manutencao: result });
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+// Encerramento — registra o retorno do equipamento.
 async function handleRetornoManutencao(req, id, body, res) {
   try {
     const atual = await repos.manutencoes.findById(id);
     if (!atual) return sendError(res, 404, 'Manutenção não encontrada');
-    if (atual.status !== 'em_manutencao') {
-      return sendError(res, 400, `Esta manutenção já está ${atual.status}`);
+    if (atual.status !== 'aprovada') {
+      return sendError(res, 400, 'Só é possível registrar retorno de manutenções aprovadas');
     }
     const allowed = {
       status: 'retornado',
@@ -7232,6 +7309,7 @@ async function handleCancelarManutencao(req, id, body, res) {
     const atual = await repos.manutencoes.findById(id);
     if (!atual) return sendError(res, 404, 'Manutenção não encontrada');
     if (atual.status === 'retornado') return sendError(res, 400, 'Manutenção concluída não pode ser cancelada');
+    if (atual.status === 'cancelada') return sendError(res, 400, 'Manutenção já cancelada');
     const result = await repos.manutencoes.updateById(id, { status: 'cancelada' });
     sendJson(res, { manutencao: result });
   } catch (e) { sendError(res, 400, e.message); }

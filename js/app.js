@@ -127,8 +127,8 @@ const sidebarGroups = {
   get(key) {
     try {
       const v = localStorage.getItem('rhino-group-' + key);
-      return v === null ? true : JSON.parse(v);
-    } catch { localStorage.removeItem('rhino-group-' + key); return true; }
+      return v === null ? false : JSON.parse(v);
+    } catch { localStorage.removeItem('rhino-group-' + key); return false; }
   },
   set(key, val) {
     localStorage.setItem('rhino-group-' + key, JSON.stringify(val));
@@ -512,7 +512,7 @@ const perfil = {
     // (controle fino fica em cada tela, ex: ver/editar).
     // #/usuarios e #/auditoria NÃO são universais: exigem a permissão nas abas
     // — senão abririam vazias (dados barrados no servidor) para quem não tem acesso.
-    const universais = ['#/manual', '#/rdos', '#/estoque', '#/comparativo', '#/solicitacoes-compra', '#/frota', '#/proposta', '#/clausulas', '#/apresentacao'];
+    const universais = ['#/manual', '#/rdos', '#/estoque', '#/comparativo', '#/solicitacoes-compra', '#/manutencao', '#/frota', '#/proposta', '#/clausulas', '#/apresentacao'];
     if (universais.includes(base)) return true;
     return abas.includes(base);
   },
@@ -900,14 +900,17 @@ function renderSidebar(opts) {
     }
   }
 
+  // Accordion: no máximo um grupo expandido por vez. Prioriza o grupo da
+  // rota atual; senão, o primeiro que estiver marcado como aberto.
+  const grupoAbertoKey =
+    (groups.find(g => groupLinks[g.key].some(l => currentHash.startsWith(l.href))) || {}).key
+    || (groups.find(g => groupLinks[g.key].length && sidebarGroups.get(g.key)) || {}).key
+    || null;
+
   function renderGroup(g) {
     const links = groupLinks[g.key];
     if (!links.length) return '';
-    // Respeita estritamente a preferência do usuário (default: aberto).
-    // Antes forçava aberto quando havia rota ativa, ignorando o toggle.
-    const isOpen = sidebarGroups.get(g.key);
-    const isActive = links.some(l => currentHash.startsWith(l.href));
-    const open = isOpen;
+    const open = g.key === grupoAbertoKey;
     return `
       <li class="nav-group-item">
         <button class="nav-group-header" id="${g.btnId}" data-group="${g.key}" data-tooltip="${g.label}">
@@ -964,14 +967,16 @@ function renderSidebar(opts) {
         `
       ) : ''}
 
-      <button id="btn-themer" class="theme-toggle-btn" title="Personalizar tema" data-tooltip="Tema" style="margin-bottom:4px;">
-        <span class="theme-toggle-icon">🎨</span>
-        <span>Tema</span>
-      </button>
-      <a href="#/manual" id="btn-manual" class="theme-toggle-btn" title="Abrir Manual do Usuário" data-tooltip="Manual" style="text-decoration:none;">
-        <span class="theme-toggle-icon">${_ic('book')}</span>
-        <span>Manual</span>
-      </a>
+      <div class="footer-utils">
+        <button id="btn-themer" class="theme-toggle-btn" title="Personalizar tema" data-tooltip="Tema">
+          <span class="theme-toggle-icon">🎨</span>
+          <span>Tema</span>
+        </button>
+        <a href="#/manual" id="btn-manual" class="theme-toggle-btn" title="Abrir Manual do Usuário" data-tooltip="Manual" style="text-decoration:none;">
+          <span class="theme-toggle-icon">${_ic('book')}</span>
+          <span>Manual</span>
+        </a>
+      </div>
       <div class="zoom-control" title="Ajustar tamanho da interface">
         <button id="zoom-out" class="zoom-btn" title="Diminuir (menor)">−</button>
         <button id="zoom-label" class="zoom-label" title="Clique para restaurar 100%">${Math.round(getZoom()*100)}%</button>
@@ -1009,11 +1014,14 @@ function renderSidebar(opts) {
       const arrow = item?.querySelector('.nav-group-arrow');
       if (!children || !arrow) return;
       const isOpen = children.classList.contains('open');
-      if (isOpen) {
-        children.classList.remove('open');
-        arrow.classList.remove('open');
-        sidebarGroups.set(groupKey, false);
-      } else {
+      // Accordion: fecha todos os grupos antes de (re)abrir o clicado.
+      document.querySelectorAll('.nav-group-item').forEach(it => {
+        it.querySelector('.nav-group-children')?.classList.remove('open');
+        it.querySelector('.nav-group-arrow')?.classList.remove('open');
+        const k = it.querySelector('.nav-group-header[data-group]')?.dataset.group;
+        if (k) sidebarGroups.set(k, false);
+      });
+      if (!isOpen) {
         children.classList.add('open');
         arrow.classList.add('open');
         sidebarGroups.set(groupKey, true);

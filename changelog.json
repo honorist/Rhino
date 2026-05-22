@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.2.54",
+      "date": "2026-05-21",
+      "summary": "Menu lateral repaginado + fluxo de aprovação na Manutenção",
+      "changes": [
+        "Menu lateral: os grupos (Obras, RH, Financeiro) agora funcionam em sanfona — ao abrir um, os outros fecham automaticamente. Por padrão começam recolhidos, deixando o menu mais enxuto.",
+        "Menu lateral: o rodapé foi reorganizado — 'Tema' e 'Manual' ficam lado a lado numa linha compacta, em vez de empilhados.",
+        "Manutenção de Equipamentos passou a ter fluxo de aprovação, igual ao de Solicitação de Compra: o solicitante apenas solicita (equipamento + problema); a equipe de compras avalia, definindo oficina, prazo e custo; a gerência aprova ou rejeita. Só depois de aprovada é que se registra o retorno.",
+        "Novos status da Manutenção: A avaliar → Aguardando aprovação → Em manutenção → Retornado (além de Rejeitada e Cancelada). Os indicadores no topo da tela acompanham cada etapa.",
+        "Permissões: as etapas 'Avaliar' e 'Aprovar' da Manutenção entram na matriz de Níveis de Acesso como sub-permissões. Quem já avalia/aprova Solicitações de Compra recebeu automaticamente o papel equivalente na Manutenção."
+      ]
+    },
+    {
       "version": "1.2.53",
       "date": "2026-05-21",
       "summary": "Correção: mudanças de permissão agora aparecem sem precisar re-selecionar o perfil",
