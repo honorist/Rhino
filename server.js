@@ -37,6 +37,8 @@ const pgRateLimit = require('./lib/pg-rate-limit');
 const audit = require('./lib/audit');
 const bus = require('./lib/bus');
 const perms = require('./lib/permissions');
+const fluxoCompra = require('./lib/fluxo-compra');
+const recorrencia = require('./lib/recorrencia');
 const { validateBody, schemas, ValidationError } = require('./lib/validate');
 
 // Web Push — inicializa só se VAPID keys estiverem presentes
@@ -5441,18 +5443,8 @@ async function handleGetAnomalias(res) {
 }
 
 // ============ F7: Contas Recorrentes ============
-function _calcProximaData(dateStr, periodicidade) {
-  const d = new Date(dateStr + 'T12:00:00');
-  switch (periodicidade) {
-    case 'semanal':    d.setDate(d.getDate() + 7); break;
-    case 'quinzenal':  d.setDate(d.getDate() + 15); break;
-    case 'trimestral': d.setMonth(d.getMonth() + 3); break;
-    case 'semestral':  d.setMonth(d.getMonth() + 6); break;
-    case 'anual':      d.setFullYear(d.getFullYear() + 1); break;
-    default:           d.setMonth(d.getMonth() + 1);
-  }
-  return d.toISOString().split('T')[0];
-}
+// Próxima data de recorrência — regra extraída para lib/recorrencia.js (testável).
+const _calcProximaData = recorrencia.proximaData;
 
 async function handleProcessarRecorrencias(res) {
   try {
@@ -7346,7 +7338,7 @@ async function handleAvaliarSolicitacao(req, id, body, res) {
     }
     const atual = await repos.solicitacoesCompra.findById(id);
     if (!atual) return sendError(res, 404, 'Solicitação não encontrada');
-    if (atual.status !== 'pendente_avaliacao') {
+    if (!fluxoCompra.podeTransicionar(atual.status, 'avaliar')) {
       return sendError(res, 400, `Solicitação já está ${atual.status}`);
     }
     const { itens, total, fornecedorIdEscolhido } = _normalizaItensComCotacoes(body.itens);
@@ -7380,7 +7372,7 @@ async function handleCancelarSolicitacao(req, id, body, res) {
     }
     const atual = await repos.solicitacoesCompra.findById(id);
     if (!atual) return sendError(res, 404, 'Solicitação não encontrada');
-    if (atual.status === 'aprovada' || atual.status === 'cancelada') {
+    if (!fluxoCompra.podeTransicionar(atual.status, 'cancelar')) {
       return sendError(res, 400, `Solicitação já está ${atual.status}`);
     }
     if (!body.motivo || !body.motivo.trim()) {
@@ -7408,7 +7400,7 @@ async function handleAprovarSolicitacao(req, id, body, res) {
     if (sol.status === 'pendente_avaliacao') {
       return sendError(res, 400, 'Solicitação aguarda avaliação do financeiro antes de poder ser aprovada');
     }
-    if (sol.status !== 'pendente_aprovacao') return sendError(res, 400, `Solicitação já está ${sol.status}`);
+    if (!fluxoCompra.podeTransicionar(sol.status, 'aprovar')) return sendError(res, 400, `Solicitação já está ${sol.status}`);
 
     // Aprovação só autoriza — a Conta a Pagar nasce no /comprar (financeiro registra a compra),
     // e a entrada de estoque nasce no /receber (quando o material chega).
@@ -7434,7 +7426,7 @@ async function handleComprarSolicitacao(req, id, body, res) {
     }
     const sol = await repos.solicitacoesCompra.findById(id);
     if (!sol) return sendError(res, 404, 'Solicitação não encontrada');
-    if (sol.status !== 'aprovada') {
+    if (!fluxoCompra.podeTransicionar(sol.status, 'comprar')) {
       return sendError(res, 400, `Só é possível registrar compra de solicitações aprovadas (atual: ${sol.status})`);
     }
 
@@ -7484,7 +7476,7 @@ async function handleReceberSolicitacao(req, id, body, res) {
     }
     const sol = await repos.solicitacoesCompra.findById(id);
     if (!sol) return sendError(res, 404, 'Solicitação não encontrada');
-    if (sol.status !== 'comprada') {
+    if (!fluxoCompra.podeTransicionar(sol.status, 'receber')) {
       return sendError(res, 400, `Só é possível receber solicitações compradas (atual: ${sol.status})`);
     }
 
@@ -7554,7 +7546,7 @@ async function handleRejeitarSolicitacao(req, id, body, res) {
 
     const sol = await repos.solicitacoesCompra.findById(id);
     if (!sol) return sendError(res, 404, 'Solicitação não encontrada');
-    if (sol.status !== 'pendente_aprovacao') return sendError(res, 400, `Solicitação já está ${sol.status}`);
+    if (!fluxoCompra.podeTransicionar(sol.status, 'rejeitar')) return sendError(res, 400, `Solicitação já está ${sol.status}`);
 
     const result = await repos.solicitacoesCompra.updateById(id, {
       status: 'rejeitada',
