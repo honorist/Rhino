@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.2.75",
+      "date": "2026-05-22",
+      "summary": "Melhorias internas — utilitário de IDs em módulo próprio",
+      "changes": [
+        "Continuação do fortalecimento interno, sem mudança visível no uso. O gerador de identificadores foi movido para um módulo utilitário dedicado, preparando a próxima etapa de organização do código. Nada muda nas telas."
+      ]
+    },
+    {
       "version": "1.2.74",
       "date": "2026-05-22",
       "summary": "Melhorias internas — handlers de autenticação em módulo próprio",
