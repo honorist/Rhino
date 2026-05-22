@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.2.64",
+      "date": "2026-05-22",
+      "summary": "RDO: corrige travada ao abrir e o clima bugado no resumo do WhatsApp",
+      "changes": [
+        "Corrigida a travada ao abrir um RDO: ao clicar num RDO da lista, o sistema baixava TODOS os contratos com tudo aninhado só para achar aquele RDO. Agora usa os contratos já em cache (pré-carregados ao abrir a tela de RDOs) — a janela abre na hora.",
+        "Corrigido o clima que saía como um texto JSON embaralhado no resumo do WhatsApp e na janela do RDO. O campo de clima às vezes vinha gravado como texto em vez de objeto; agora é interpretado corretamente e mostra, ex.: 'Bom' ou 'Bom de manhã, Nublado à tarde'."
+      ]
+    },
+    {
       "version": "1.2.63",
       "date": "2026-05-22",
       "summary": "RDO: aderência mensal real, foto comprimida no upload e WhatsApp como janela de copiar",

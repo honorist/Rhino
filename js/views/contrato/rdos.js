@@ -182,7 +182,13 @@
       if (!t || t === 'nao_houve' || t === 'sem_expediente') return '—';
       return ({ bom: '☀️ Bom', nublado: '⛅ Nublado', chuva: '🌧 Chuva' })[t] || t;
     };
-    const tempo = rdo.tempo || {};
+    // rdo.tempo pode vir como objeto OU como string JSON (às vezes duplamente
+    // encodada). Normaliza para objeto antes de usar.
+    let tempo = rdo.tempo || {};
+    for (let i = 0; i < 3 && typeof tempo === 'string'; i++) {
+      try { tempo = JSON.parse(tempo); } catch { tempo = {}; }
+    }
+    if (!tempo || typeof tempo !== 'object') tempo = {};
 
     const renderTabela = (titulo, arr, cols) => {
       if (arr.length === 0) return '';
@@ -376,11 +382,18 @@
         .filter(Boolean)
         .map(d => `• ${d}`)
         .join('\n');
+      // Clima do dia, a partir do objeto `tempo` já normalizado (manhã/tarde).
+      const _twMap = { bom: 'Bom', nublado: 'Nublado', chuva: 'Chuva', sem_expediente: 'Sem expediente', nao_houve: '—' };
+      const _climaP = p => (p && p.tempo) ? (_twMap[p.tempo] || p.tempo) : null;
+      const _cManha = _climaP(tempo.manha), _cTarde = _climaP(tempo.tarde);
+      const climaTxt = (_cManha && _cTarde)
+        ? (_cManha === _cTarde ? _cManha : `${_cManha} de manhã, ${_cTarde} à tarde`)
+        : (_cManha || _cTarde || '—');
       const text = [
         `📋 *RDO ${rdo.numero || ''} — ${fmt(rdo.data)}${rdo.diaSemana ? ` (${rdo.diaSemana})` : ''}*`,
         `🏗️ *${contract.name || ''}*`,
         '',
-        `🌡️ Clima: ${tempoLbl(rdo.tempo) || '—'}`,
+        `🌡️ Clima: ${climaTxt}`,
         totEfetivo > 0 ? `👷 Equipe: ${totEfetivo} no canteiro` : '',
         totEfetivo > 0 ? `   (${totMoi} MOI · ${totMod} MOD · ${totTerc} terceiros)` : '',
         equipNomes ? `🔧 Equipamentos: ${equipNomes}` : '',

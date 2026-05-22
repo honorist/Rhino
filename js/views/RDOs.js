@@ -13,6 +13,9 @@ const RDOs = {
       const r = await fetch('/api/rdos');
       if (!r.ok) throw new Error(await r.text());
       this._cache = await r.json();
+      // Pré-carrega os contratos (com RDOs aninhados) no Store — assim abrir
+      // um RDO da lista é instantâneo, sem baixar /api/contracts a cada clique.
+      await Store.loadOnly('contracts', { force: true }).catch(() => {});
     } catch (e) {
       root.innerHTML = `<div style="padding:var(--sp-xl);color:#c33;">Erro ao carregar: ${escapeHtml(e.message)}</div>`;
       return;
@@ -200,9 +203,16 @@ const RDOs = {
               console.warn('[RDOs] lazy-load de ContratoDetail falhou — caindo no fallback de hash:', e?.message || e);
             });
           }
-          const r = await fetch('/api/contracts').then(res => res.json());
-          const c = (r.contracts || []).find(x => x.id === contractId);
-          const rdo = c ? (c.rdos || []).find(x => x.id === rdoId) : null;
+          // Usa os contratos já em cache no Store (RDOs aninhados) — evita
+          // baixar /api/contracts inteiro a cada clique, o que travava a tela.
+          let c = (Store.state.contracts || []).find(x => x.id === contractId);
+          let rdo = c ? (c.rdos || []).find(x => x.id === rdoId) : null;
+          if (!rdo) {
+            // Fallback: não estava no cache — busca do servidor.
+            const r = await fetch('/api/contracts').then(res => res.json());
+            c = (r.contracts || []).find(x => x.id === contractId);
+            rdo = c ? (c.rdos || []).find(x => x.id === rdoId) : null;
+          }
           if (rdo && c && window.ContratoDetail?.showRdoDetail) {
             window.ContratoDetail.showRdoDetail(rdo, c);
           } else {
