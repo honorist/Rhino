@@ -218,3 +218,57 @@ test('routes/platform.js — rotas inline (stream/online) usam o bus', () => {
   router.dispatch({ method: 'GET', pathname: '/api/online', res: 'RES' });
   assert.deepEqual(onlinePayload, { online: ['user1'] });
 });
+
+// ─── routes/financeiro.js (2.4a — caixa, base, sócios, investimentos) ────────
+
+test('routes/financeiro.js — registra as 16 rotas de caixa/base/sócios/investimentos', () => {
+  const router = createRouter();
+  require('../routes/financeiro')(router, {});
+  const rotas = router.list().map(r => `${r.method} ${r.pattern}`).sort();
+  assert.deepEqual(rotas, [
+    'DELETE /api/base/:id',
+    'DELETE /api/caixa/:id',
+    'DELETE /api/investimentos/:id',
+    'DELETE /api/socios/:id',
+    'GET /api/base',
+    'GET /api/caixa',
+    'GET /api/investimentos',
+    'GET /api/socios',
+    'POST /api/base',
+    'POST /api/base/:id/allocate',
+    'POST /api/caixa',
+    'POST /api/investimentos',
+    'POST /api/socios',
+    'PUT /api/base/:id',
+    'PUT /api/caixa/:id',
+    'PUT /api/socios/:id',
+  ]);
+});
+
+test('routes/financeiro.js — rotas com :param despacham com (id, ...) na ordem certa', () => {
+  const c = {};
+  const router = createRouter();
+  require('../routes/financeiro')(router, {
+    handleGetCaixa:           (res)           => { c.getCaixa = [res]; },
+    handlePutCaixa:           (id, body, res) => { c.putCaixa = [id, body, res]; },
+    handleDeleteSocio:        (id, res)       => { c.delSocio = [id, res]; },
+    handleAllocateBase:       (id, body, res) => { c.alloc = [id, body, res]; },
+    handleDeleteInvestimento: (id, res)       => { c.delInv = [id, res]; },
+  });
+  const base = { req: 'REQ', body: 'BODY', res: 'RES' };
+
+  router.dispatch({ ...base, method: 'GET', pathname: '/api/caixa' });
+  assert.deepEqual(c.getCaixa, ['RES']);
+
+  router.dispatch({ ...base, method: 'PUT', pathname: '/api/caixa/C1' });
+  assert.deepEqual(c.putCaixa, ['C1', 'BODY', 'RES']);
+
+  router.dispatch({ ...base, method: 'DELETE', pathname: '/api/socios/S2' });
+  assert.deepEqual(c.delSocio, ['S2', 'RES']);
+
+  router.dispatch({ ...base, method: 'POST', pathname: '/api/base/B3/allocate' });
+  assert.deepEqual(c.alloc, ['B3', 'BODY', 'RES']);
+
+  router.dispatch({ ...base, method: 'DELETE', pathname: '/api/investimentos/I4' });
+  assert.deepEqual(c.delInv, ['I4', 'RES']);
+});

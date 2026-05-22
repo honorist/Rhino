@@ -44,6 +44,7 @@ const { createRouter } = require('./lib/router');
 const registerAuth = require('./routes/auth');
 const registerPortal = require('./routes/portal');
 const registerPlatform = require('./routes/platform');
+const registerFinanceiro = require('./routes/financeiro');
 const { validateBody, schemas, ValidationError } = require('./lib/validate');
 
 // Web Push — inicializa só se VAPID keys estiverem presentes
@@ -4770,6 +4771,12 @@ registerPlatform(apiRouter, {
   handleGlobalSearch, handleGetNiveisAcesso, handlePutNivelAcesso,
   handlePushSubscribe, handlePushUnsubscribe,
 });
+registerFinanceiro(apiRouter, {
+  handleGetCaixa, handlePostCaixa, handlePutCaixa, handleDeleteCaixa,
+  handleGetBase, handlePostBase, handlePutBase, handleDeleteBase, handleAllocateBase,
+  handleGetSocios, handlePostSocio, handlePutSocio, handleDeleteSocio,
+  handleGetInvestimentos, handlePostInvestimento, handleDeleteInvestimento,
+});
 
 function routeRequest(pathname, method, body, res, parsedUrl, req) {
   // Router modular — se o domínio já foi migrado, casa aqui e encerra.
@@ -4939,38 +4946,6 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
     const id = pathname.split('/')[3];
     return handleDeleteSaida(id, res);
   }
-  if (pathname === '/api/caixa' && method === 'GET') {
-    return handleGetCaixa(res);
-  }
-  if (pathname === '/api/caixa' && method === 'POST') {
-    return handlePostCaixa(body, res);
-  }
-  if (pathname.match(/^\/api\/caixa\/[^/]+$/) && method === 'PUT') {
-    const id = pathname.split('/')[3];
-    return handlePutCaixa(id, body, res);
-  }
-  if (pathname.match(/^\/api\/caixa\/[^/]+$/) && method === 'DELETE') {
-    const id = pathname.split('/')[3];
-    return handleDeleteCaixa(id, res);
-  }
-  if (pathname === '/api/base' && method === 'GET') {
-    return handleGetBase(res);
-  }
-  if (pathname === '/api/base' && method === 'POST') {
-    return handlePostBase(body, res);
-  }
-  if (pathname.match(/^\/api\/base\/[^/]+$/) && method === 'PUT') {
-    const id = pathname.split('/')[3];
-    return handlePutBase(id, body, res);
-  }
-  if (pathname.match(/^\/api\/base\/[^/]+$/) && method === 'DELETE') {
-    const id = pathname.split('/')[3];
-    return handleDeleteBase(id, res);
-  }
-  if (pathname.match(/^\/api\/base\/[^/]+\/allocate$/) && method === 'POST') {
-    const id = pathname.split('/')[3];
-    return handleAllocateBase(id, body, res);
-  }
   if (pathname === '/api/dashboard') {
     return handleDashboard(res, parsedUrl.query);
   }
@@ -4983,33 +4958,6 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname === '/api/backup/email' && method === 'POST') {
     _runEmailBackup().catch(e => console.error('[backup/email]', e.message));
     return sendJson(res, { ok: true, message: `Backup iniciado — será enviado para ${BACKUP_EMAIL}` });
-  }
-  // Sócios routes
-  if (pathname === '/api/socios' && method === 'GET') {
-    return handleGetSocios(res);
-  }
-  if (pathname === '/api/socios' && method === 'POST') {
-    return handlePostSocio(body, res);
-  }
-  if (pathname.match(/^\/api\/socios\/[^/]+$/) && method === 'PUT') {
-    const id = pathname.split('/')[3];
-    return handlePutSocio(id, body, res);
-  }
-  if (pathname.match(/^\/api\/socios\/[^/]+$/) && method === 'DELETE') {
-    const id = pathname.split('/')[3];
-    return handleDeleteSocio(id, res);
-  }
-
-  // Investimentos routes
-  if (pathname === '/api/investimentos' && method === 'GET') {
-    return handleGetInvestimentos(res);
-  }
-  if (pathname === '/api/investimentos' && method === 'POST') {
-    return handlePostInvestimento(body, res);
-  }
-  if (pathname.match(/^\/api\/investimentos\/[^/]+$/) && method === 'DELETE') {
-    const id = pathname.split('/')[3];
-    return handleDeleteInvestimento(id, res);
   }
 
   // Clientes routes
