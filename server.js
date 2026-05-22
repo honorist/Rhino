@@ -39,6 +39,7 @@ const bus = require('./lib/bus');
 const perms = require('./lib/permissions');
 const fluxoCompra = require('./lib/fluxo-compra');
 const recorrencia = require('./lib/recorrencia');
+const { sendJson, sendError } = require('./lib/http-respond');
 const { validateBody, schemas, ValidationError } = require('./lib/validate');
 
 // Web Push — inicializa só se VAPID keys estiverem presentes
@@ -138,23 +139,7 @@ async function writeCollection(repoName, arrayKey, fn) {
 // trechos de SQL e stack do Postgres pra qualquer usuário autenticado.
 // 4xx (validação) seguem expondo a mensagem, que é direcionada ao usuário final.
 // Detalhe interno é logado server-side com timestamp para correlação.
-function sendError(res, status, message) {
-  let payload;
-  if (status >= 500) {
-    const ts = new Date().toISOString();
-    console.error(`[5xx ${ts}] ${status}: ${message}`);
-    payload = { error: 'Erro interno do servidor', ts };
-  } else {
-    payload = { error: message };
-  }
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(payload));
-}
-
-function sendJson(res, body, status = 200) {
-  res.writeHead(status, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(body));
-}
+// sendJson / sendError → lib/http-respond.js (Fase 1 do desmembramento).
 
 // ============ Route handlers ============
 async function handleGetContracts(res, query) {
