@@ -58,4 +58,16 @@ module.exports = function registerPlatform(router, deps) {
     deps.handlePushSubscribe(ctx.body, ctx.req.user?.id || null, ctx.res));
   router.post('/api/push/unsubscribe', (ctx) =>
     deps.handlePushUnsubscribe(ctx.body, ctx.req, ctx.res));
+
+  // ── Dashboard / backup / anomalias / LGPD ──
+  router.get('/api/dashboard',       (ctx) => deps.handleDashboard(ctx.res, ctx.parsedUrl.query));
+  router.post('/api/backup',         (ctx) => deps.handleBackup(ctx.res));
+  router.get('/api/backup/download', (ctx) => deps.handleBackupDownload(ctx.res));
+  router.post('/api/backup/email',   (ctx) => {
+    deps._runEmailBackup().catch((e) => console.error('[backup/email]', e.message));
+    sendJson(ctx.res, { ok: true, message: `Backup iniciado — será enviado para ${deps.BACKUP_EMAIL}` });
+  });
+  router.get('/api/anomalias',            (ctx) => deps.handleGetAnomalias(ctx.res));
+  router.get('/api/lgpd/export',          (ctx) => deps.handleLgpdExport(ctx.req, ctx.res));
+  router.post('/api/lgpd/delete-account', (ctx) => deps.handleLgpdDelete(ctx.req, ctx.res));
 };

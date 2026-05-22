@@ -4773,6 +4773,8 @@ registerPlatform(apiRouter, {
   handleAiChat, handleAiClassify, handleGetFeatureFlags, handlePutFeatureFlag,
   handleGlobalSearch, handleGetNiveisAcesso, handlePutNivelAcesso,
   handlePushSubscribe, handlePushUnsubscribe,
+  handleDashboard, handleBackup, handleBackupDownload, _runEmailBackup, BACKUP_EMAIL,
+  handleGetAnomalias, handleLgpdExport, handleLgpdDelete,
 });
 registerFinanceiro(apiRouter, {
   withIdempotency,
@@ -4853,27 +4855,6 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
     })();
     return;
   }
-
-  if (pathname === '/api/dashboard') {
-    return handleDashboard(res, parsedUrl.query);
-  }
-  if (pathname === '/api/backup' && method === 'POST') {
-    return handleBackup(res);
-  }
-  if (pathname === '/api/backup/download' && method === 'GET') {
-    return handleBackupDownload(res);
-  }
-  if (pathname === '/api/backup/email' && method === 'POST') {
-    _runEmailBackup().catch(e => console.error('[backup/email]', e.message));
-    return sendJson(res, { ok: true, message: `Backup iniciado — será enviado para ${BACKUP_EMAIL}` });
-  }
-
-  // ── F6: Anomaly detection ──
-  if (pathname === '/api/anomalias' && method === 'GET') return handleGetAnomalias(res);
-
-  // ── F13: LGPD ──
-  if (pathname === '/api/lgpd/export' && method === 'GET') return handleLgpdExport(req, res);
-  if (pathname === '/api/lgpd/delete-account' && method === 'POST') return handleLgpdDelete(req, res);
 
   // Static files
   if (pathname === '/' || pathname === '') {
