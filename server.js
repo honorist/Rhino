@@ -40,6 +40,8 @@ const perms = require('./lib/permissions');
 const fluxoCompra = require('./lib/fluxo-compra');
 const recorrencia = require('./lib/recorrencia');
 const { sendJson, sendError } = require('./lib/http-respond');
+const { createRouter } = require('./lib/router');
+const registerAuth = require('./routes/auth');
 const { validateBody, schemas, ValidationError } = require('./lib/validate');
 
 // Web Push — inicializa só se VAPID keys estiverem presentes
@@ -4747,14 +4749,18 @@ async function withIdempotency(req, res, pathname, body, runHandler) {
   return runHandler();
 }
 
+// ── Router modular (Fase 2) — domínios migrados saem da cadeia de if abaixo ──
+const apiRouter = createRouter();
+registerAuth(apiRouter, {
+  handleLogin, handleLogout, handleMe,
+  handleForgotPassword, handleResetPassword, handleAcceptTerms,
+});
+
 function routeRequest(pathname, method, body, res, parsedUrl, req) {
-  // ============ Auth routes ============
-  if (pathname === '/api/auth/login' && method === 'POST') return handleLogin(req, body, res);
-  if (pathname === '/api/auth/logout' && method === 'POST') return handleLogout(req, res);
-  if (pathname === '/api/auth/me' && method === 'GET') return handleMe(req, res);
-  if (pathname === '/api/auth/forgot-password' && method === 'POST') return handleForgotPassword(req, body, res);
-  if (pathname === '/api/auth/reset-password' && method === 'POST') return handleResetPassword(req, body, res);
-  if (pathname === '/api/auth/accept-terms' && method === 'POST') return handleAcceptTerms(req, res);
+  // Router modular — se o domínio já foi migrado, casa aqui e encerra.
+  if (apiRouter.dispatch({ pathname, method, body, res, parsedUrl, req })) return;
+
+  // ============ Rotas legadas (migração por domínio em andamento) ============
 
   // ============ Portal do Cliente ============
   if (pathname === '/api/portal/login' && method === 'POST') return handlePortalLogin(req, body, res);
