@@ -204,7 +204,7 @@
 
     const html = `
       <div class="modal-overlay" id="modalRdoDetail">
-        <div class="modal" style="width:760px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+        <div class="modal" style="width:900px;max-width:95vw;max-height:90vh;overflow-y:auto;">
           <div class="modal-header">
             <div style="flex:1;min-width:0;">
               <h2 class="modal-title" style="margin:0;">RDO #${escapeHtml(String(rdo.numero || ''))} — ${fmt(rdo.data)}</h2>
@@ -368,16 +368,26 @@
     if (bPdf) bPdf.addEventListener('click', () => { close(); this.exportarRdoPdf(rdo, contract); });
     const bWhats = document.getElementById('btnRdoWhats');
     if (bWhats) bWhats.addEventListener('click', () => {
-      const atividades = (rdo.atividades || []).map(a => `• ${a.descricao || a.nome || ''}`).join('\n');
-      const moi = (rdo.moi || []).reduce((s, m) => s + (parseInt(m.quantidade) || 0), 0);
+      // Texto-padrão do RDO para o grupo de WhatsApp da obra (modelo com emojis).
+      const totEfetivo = totMoi + totMod + totTerc;
+      const equipNomes = eqp.map(e => e.nome).filter(Boolean).join(', ');
+      const atividadesTxt = atv
+        .map(a => (a.descricao || a.nome || '').trim())
+        .filter(Boolean)
+        .map(d => `• ${d}`)
+        .join('\n');
       const text = [
-        `*RDO ${rdo.numero || ''} — ${rdo.data || ''}*`,
-        `Obra: ${contract.name || ''}`,
-        rdo.os_numero ? `OS: ${rdo.os_numero}` : '',
-        `Clima: ${rdo.tempo || '—'}`,
-        moi > 0 ? `MOI: ${moi} pessoas` : '',
-        atividades ? `\nAtividades:\n${atividades}` : '',
-        rdo.fiscalizacaoComentarios ? `\nObservações: ${rdo.fiscalizacaoComentarios}` : '',
+        `📋 *RDO ${rdo.numero || ''} — ${fmt(rdo.data)}${rdo.diaSemana ? ` (${rdo.diaSemana})` : ''}*`,
+        `🏗️ *${contract.name || ''}*`,
+        '',
+        `🌡️ Clima: ${tempoLbl(rdo.tempo) || '—'}`,
+        totEfetivo > 0 ? `👷 Equipe: ${totEfetivo} no canteiro` : '',
+        totEfetivo > 0 ? `   (${totMoi} MOI · ${totMod} MOD · ${totTerc} terceiros)` : '',
+        equipNomes ? `🔧 Equipamentos: ${equipNomes}` : '',
+        atividadesTxt ? `\n✅ *O que foi feito hoje:*\n${atividadesTxt}` : '',
+        `\n🦺 Segurança: ${acidenteLbl}`,
+        rdo.fiscalizacaoComentarios ? `📝 Obs: ${rdo.fiscalizacaoComentarios}` : '',
+        fotos.length ? `📷 ${fotos.length} foto${fotos.length !== 1 ? 's' : ''}` : '',
       ].filter(Boolean).join('\n');
       window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
     });

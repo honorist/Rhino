@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.2.62",
+      "date": "2026-05-22",
+      "summary": "RDO: janela de detalhe mais larga e botão WhatsApp com resumo pronto",
+      "changes": [
+        "A janela de detalhe do RDO ficou mais larga (760 → 900 px), aproveitando melhor a tela.",
+        "O botão '💬 WhatsApp' do RDO agora monta um resumo pronto, com emojis, das informações mais relevantes do dia — obra, clima, efetivo (MOI/MOD/terceiros), equipamentos, atividades, segurança, observações e nº de fotos. Ao clicar, abre o WhatsApp com o texto pronto para enviar no grupo da obra."
+      ]
+    },
+    {
       "version": "1.2.61",
       "date": "2026-05-22",
       "summary": "RDO atrasado contado por dia útil (menu e Dashboard)",
