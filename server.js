@@ -4773,7 +4773,7 @@ registerPlatform(apiRouter, {
   handleAiChat, handleAiClassify, handleGetFeatureFlags, handlePutFeatureFlag,
   handleGlobalSearch, handleGetNiveisAcesso, handlePutNivelAcesso,
   handlePushSubscribe, handlePushUnsubscribe,
-  handleDashboard, handleBackup, handleBackupDownload, _runEmailBackup, BACKUP_EMAIL,
+  handleDashboard, handleBackup, handleBackupDownload, _runEmailBackup,
   handleGetAnomalias, handleLgpdExport, handleLgpdDelete,
 });
 registerFinanceiro(apiRouter, {

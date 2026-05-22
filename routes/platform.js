@@ -65,7 +65,8 @@ module.exports = function registerPlatform(router, deps) {
   router.get('/api/backup/download', (ctx) => deps.handleBackupDownload(ctx.res));
   router.post('/api/backup/email',   (ctx) => {
     deps._runEmailBackup().catch((e) => console.error('[backup/email]', e.message));
-    sendJson(ctx.res, { ok: true, message: `Backup iniciado — será enviado para ${deps.BACKUP_EMAIL}` });
+    const dest = process.env.BACKUP_EMAIL || process.env.ADMIN_EMAIL || '';
+    sendJson(ctx.res, { ok: true, message: `Backup iniciado — será enviado para ${dest}` });
   });
   router.get('/api/anomalias',            (ctx) => deps.handleGetAnomalias(ctx.res));
   router.get('/api/lgpd/export',          (ctx) => deps.handleLgpdExport(ctx.req, ctx.res));
