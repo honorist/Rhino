@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.2.70",
+      "date": "2026-05-22",
+      "summary": "Melhorias internas — modularização do roteamento (propostas comerciais)",
+      "changes": [
+        "Continuação do fortalecimento interno, sem mudança visível no uso. As rotas de propostas comerciais (incluindo anexos, custos, geração de DOCX/PDF e configuração de apresentação) foram modularizadas, completando o bloco comercial. Nada muda nas telas; é organização de código com testes de regressão."
+      ]
+    },
+    {
       "version": "1.2.69",
       "date": "2026-05-22",
       "summary": "Melhorias internas — modularização do roteamento (clientes, fornecedores, cláusulas)",
