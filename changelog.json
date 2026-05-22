@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.2.56",
+      "date": "2026-05-22",
+      "summary": "Alertas da barra lateral redesenhados + Manual completo",
+      "changes": [
+        "Os badges de alerta do menu lateral (Contas a Pagar, Contas a Receber, Recursos, Documentação) ganharam um visual mais leve: etiqueta discreta com fundo translúcido e número na cor da gravidade — vermelho para vencido, âmbar para vencendo — em vez do bloco vermelho chapado. Acima de 9 mostra '9+', e a contagem exata aparece ao passar o mouse. Com a barra recolhida, o alerta vira um pontinho no canto do ícone.",
+        "Manual do usuário completado com as telas que faltavam: Frota, Conciliação Bancária, Previsão de Caixa, Assistente IA e Cobrança do app."
+      ]
+    },
+    {
       "version": "1.2.55",
       "date": "2026-05-22",
       "summary": "Manual do usuário atualizado",

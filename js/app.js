@@ -817,21 +817,27 @@ function renderNavItem(link, nfAlerts, cpAlerts, recAlerts) {
       </li>`;
   }
 
+  // Badge de alerta — "pill suave": vermelho (vencido) ou âmbar (só vencendo).
+  // Mostra "9+" acima de 9; a contagem exata fica no tooltip (title).
+  const _badgeAlerta = (n, vencendo, titulo) => {
+    const txt = n > 9 ? '9+' : String(n);
+    return `<span class="nav-badge-alert${vencendo ? ' is-vencendo' : ''}" title="${titulo}">${txt}</span>`;
+  };
   let badge = '';
   if (link.href === '#/notas-fiscais' && nfAlerts > 0) {
-    badge = `<span class="nav-badge-alert">${nfAlerts}</span>`;
+    badge = _badgeAlerta(nfAlerts, false, `${nfAlerts} nota(s) fiscal(is) precisando de atenção`);
   } else if (link.href === '#/contas-pagar' && cpAlerts > 0) {
-    badge = `<span class="nav-badge-alert">${cpAlerts}</span>`;
+    badge = _badgeAlerta(cpAlerts, false, `${cpAlerts} conta(s) a pagar vencida(s)`);
   } else if (link.href === '#/recursos' && recAlerts > 0) {
-    badge = `<span class="nav-badge-alert">${recAlerts}</span>`;
+    badge = _badgeAlerta(recAlerts, false, `${recAlerts} recurso(s) precisando de atenção`);
   } else if (link.href === '#/documentos' && link.docAlerts > 0) {
-    // Cor diferente: vermelho se há vencidos, amarelo se só vencendo
+    // Âmbar quando há só documentos vencendo; vermelho quando há vencidos.
     const det = link.docAlertDetail || { vencidos: 0, vencendo: 0 };
-    const cor = det.vencidos > 0 ? 'var(--color-danger)' : '#F59E0B';
+    const soVencendo = !(det.vencidos > 0);
     const titulo = det.vencidos > 0
       ? `${det.vencidos} colaborador${det.vencidos !== 1 ? 'es' : ''} com docs vencidos${det.vencendo ? ` (+${det.vencendo} vencendo)` : ''}`
       : `${det.vencendo} colaborador${det.vencendo !== 1 ? 'es' : ''} com docs vencendo nos próximos 30 dias`;
-    badge = `<span class="nav-badge-alert" style="background:${cor};" title="${titulo}">${link.docAlerts}</span>`;
+    badge = _badgeAlerta(link.docAlerts, soVencendo, titulo);
   }
 
   return `
@@ -916,7 +922,7 @@ function renderSidebar(opts) {
         <button class="nav-group-header" id="${g.btnId}" data-group="${g.key}" data-tooltip="${g.label}">
           <span class="nav-icon">${g.icon}</span>
           <span class="nav-group-label">${g.label}</span>
-          ${!open && g.alertCount > 0 ? `<span class="nav-badge-alert">${g.alertCount}</span>` : ''}
+          ${!open && g.alertCount > 0 ? `<span class="nav-badge-alert" title="${g.alertCount} alerta(s) neste grupo">${g.alertCount > 9 ? '9+' : g.alertCount}</span>` : ''}
           <span class="nav-group-arrow ${open ? 'open' : ''}">›</span>
         </button>
         <ul class="nav-group-children ${open ? 'open' : ''}">

@@ -358,16 +358,22 @@ body .page-subtitle                { font-size: 16.5px; }
 
 .nav-badge-alert {
   margin-left: auto;
-  background: var(--color-danger);
-  color: #fff;
-  border-radius: 99px;
-  font-size: 15px;
+  background: rgba(220, 38, 38, 0.16);
+  color: #F87171;
+  border-radius: 6px;
+  font-size: 12px;
   font-weight: 700;
   padding: 1px 6px;
-  min-width: 18px;
+  min-width: 20px;
   text-align: center;
-  line-height: 1.4;
+  line-height: 1.5;
 }
+.nav-badge-alert.is-vencendo {
+  background: rgba(245, 158, 11, 0.18);
+  color: #FBBF24;
+}
+[data-theme="light"] .nav-badge-alert { color: #DC2626; }
+[data-theme="light"] .nav-badge-alert.is-vencendo { color: #B45309; }
 
 .nav-group-children {
   list-style: none;
@@ -748,7 +754,7 @@ body                              { font-size: calc(15.5px * var(--fs-mult)); }
 .nav-link-soon                    { font-size: calc(15px * var(--fs-mult)); }
 .nav-icon                         { font-size: calc(16px * var(--fs-mult)); }
 .nav-badge-soon                   { font-size: calc(15px * var(--fs-mult)); }
-.nav-badge-alert                  { font-size: calc(15px * var(--fs-mult)); }
+.nav-badge-alert                  { font-size: calc(12px * var(--fs-mult)); }
 .theme-toggle-btn                 { font-size: calc(15px * var(--fs-mult)); }
 .sidebar-logo-sub                 { font-size: calc(15px * var(--fs-mult)); }
 
@@ -803,11 +809,27 @@ body.sb-collapsed .nav-links {
 body.sb-collapsed .nav-label,
 body.sb-collapsed .nav-group-label,
 body.sb-collapsed .nav-group-arrow,
-body.sb-collapsed .nav-badge-alert,
 body.sb-collapsed .sidebar-version,
 body.sb-collapsed .zoom-control,
 body.sb-collapsed .sidebar-logo-sub,
 body.sb-collapsed .theme-toggle-btn > span:not(.theme-toggle-icon) { display: none; }
+
+/* Sidebar recolhida: o badge de alerta vira um ponto no canto do ícone */
+body.sb-collapsed .nav-link,
+body.sb-collapsed .nav-group-header { position: relative; }
+body.sb-collapsed .nav-badge-alert {
+  position: absolute;
+  top: 5px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  min-width: 0;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 0;
+  background: #EF4444;
+}
+body.sb-collapsed .nav-badge-alert.is-vencendo { background: #F59E0B; }
 
 /* Centralizar e compactar itens */
 body.sb-collapsed .nav-item a {

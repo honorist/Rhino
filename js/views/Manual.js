@@ -186,6 +186,11 @@ flowchart TD
       { k: 'estoque',    icon: '📦', label: 'Almoxarifado / Estoque' },
       { k: 'compras',    icon: '🛒', label: 'Solicitações de Compra' },
       { k: 'manutencao', icon: '🔧', label: 'Manutenção' },
+      { k: 'frota',      icon: '🚚', label: 'Frota' },
+      { k: 'conciliacao',icon: '🔁', label: 'Conciliação Bancária' },
+      { k: 'previsao',   icon: '📈', label: 'Previsão de Caixa' },
+      { k: 'aichat',     icon: '🤖', label: 'Assistente IA' },
+      { k: 'cobranca',   icon: '💳', label: 'Cobrança do app' },
       { k: 'aportes',    icon: '⬆️', label: 'Aportes / Investimentos' },
       { k: 'base',       icon: '🏢', label: 'BASE' },
       { k: 'usuarios',   icon: '🛡️', label: 'Usuários e Permissões' },
@@ -937,6 +942,60 @@ gantt
         </table>
 
         <div class="man-tip"><strong>Monitoramento:</strong> a tela mostra há quantos dias o equipamento está fora e destaca em vermelho os que passaram da previsão de retorno.</div>
+      `,
+
+      frota: `
+        <h1 class="man-h1">🚚 Frota</h1>
+        <p class="man-p">Cadastro e acompanhamento dos veículos da empresa.</p>
+        <h2 class="man-h2">O que dá pra fazer</h2>
+        <ul class="man-ul">
+          <li><strong>+ Novo Veículo</strong> — cadastra placa, modelo e dados do veículo.</li>
+          <li>Atualizar a <strong>quilometragem</strong> e a <strong>localização</strong> atual do veículo.</li>
+          <li><strong>+ Adicionar plano</strong> — planos de manutenção preventiva (por km ou período).</li>
+          <li><strong>+ Registrar manutenção</strong> — histórico de manutenções já feitas no veículo.</li>
+        </ul>
+      `,
+
+      conciliacao: `
+        <h1 class="man-h1">🔁 Conciliação Bancária</h1>
+        <p class="man-p">Importe o extrato do banco e cruze os lançamentos com as contas a pagar do sistema, conferindo o que já foi pago.</p>
+        <h2 class="man-h2">Como usar</h2>
+        <ol class="man-ol">
+          <li>Exporte o extrato do seu banco em <strong>OFX</strong> ou <strong>CSV</strong>.</li>
+          <li>Importe o arquivo na tela de Conciliação.</li>
+          <li>O sistema sugere as correspondências entre os lançamentos do extrato e as contas a pagar.</li>
+          <li>Confirme os pares para reconciliar.</li>
+        </ol>
+        <div class="man-tip">Ajuda a encontrar diferenças entre o que o sistema registra e o que o banco mostra.</div>
+      `,
+
+      previsao: `
+        <h1 class="man-h1">📈 Previsão de Caixa</h1>
+        <p class="man-p">Projeta o saldo de caixa para os próximos <strong>30, 60, 90 ou 180 dias</strong>.</p>
+        <h2 class="man-h2">O que entra na projeção</h2>
+        <ul class="man-ul">
+          <li><strong>Entradas</strong> — NFs emitidas a receber.</li>
+          <li><strong>Saídas</strong> — contas a pagar.</li>
+          <li><strong>Recorrências</strong> — lançamentos que se repetem.</li>
+        </ul>
+        <p class="man-p">Mostra um gráfico da evolução do saldo e <strong>alerta quando o caixa fica negativo</strong> dentro do período escolhido.</p>
+      `,
+
+      aichat: `
+        <h1 class="man-h1">🤖 Assistente IA</h1>
+        <p class="man-p">Faça perguntas sobre os dados do sistema em <strong>linguagem natural</strong> — contratos, caixa, contas — e receba a resposta sem precisar montar relatório.</p>
+        <h2 class="man-h2">Exemplos de perguntas</h2>
+        <ul class="man-ul">
+          <li>"Qual o saldo de caixa hoje?"</li>
+          <li>"Quais contas vencem essa semana?"</li>
+          <li>"Quanto foi faturado no último mês?"</li>
+        </ul>
+      `,
+
+      cobranca: `
+        <h1 class="man-h1">💳 Cobrança do app</h1>
+        <p class="man-p">Tela administrativa com o <strong>valor mensal do próprio Rhino</strong> (a assinatura do sistema). Apenas administradores enxergam esta tela.</p>
+        <p class="man-p">Não tem relação com cobrança de clientes — isso é feito pelo faturamento (NFs).</p>
       `,
 
       personalizar: `
