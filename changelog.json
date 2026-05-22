@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.2.68",
+      "date": "2026-05-22",
+      "summary": "Melhorias internas — modularização do roteamento (contas a pagar, folha, NF)",
+      "changes": [
+        "Continuação do fortalecimento interno, sem mudança visível no uso. As rotas financeiras de contas a pagar, folha de pagamento, notas fiscais e cobrança mensal foram modularizadas, completando o bloco financeiro. Nada muda nas telas; é organização de código com testes de regressão."
+      ]
+    },
+    {
       "version": "1.2.67",
       "date": "2026-05-22",
       "summary": "Melhorias internas — modularização do roteamento (rotas financeiras)",
