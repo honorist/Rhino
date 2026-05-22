@@ -19,6 +19,7 @@ COPY assets ./assets
 COPY db ./db
 COPY lib ./lib
 COPY routes ./routes
+COPY handlers ./handlers
 COPY scripts ./scripts
 
 RUN mkdir -p /app/data/backups /app/data/rdo-fotos
