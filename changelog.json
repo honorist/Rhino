@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.2.73",
+      "date": "2026-05-22",
+      "summary": "Melhorias internas — roteamento do servidor 100% modularizado",
+      "changes": [
+        "Conclusão da modularização do roteamento, sem mudança visível no uso. Todas as rotas da API saíram do arquivo monolítico para módulos por domínio; o roteador central caiu de ~640 para 23 linhas. É uma base bem mais segura e organizada para evoluir o sistema — protegida por testes de regressão de rotas. Nada muda nas telas."
+      ]
+    },
+    {
       "version": "1.2.72",
       "date": "2026-05-22",
       "summary": "Melhorias internas — modularização do roteamento (contratos)",
