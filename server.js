@@ -4792,6 +4792,13 @@ registerComercial(apiRouter, {
   handleGetClientes, handlePostCliente, handlePutCliente, handleDeleteCliente,
   handleGetFornecedores, handlePostFornecedor, handlePutFornecedor, handleDeleteFornecedor,
   handleGetClausulas, handlePostClausula, handlePutClausula, handleDeleteClausula,
+  handleGetPropostas, handlePostProposta, handleGetProposta, handlePutProposta, handleDeleteProposta,
+  handleEnviarProposta, handleAceitarProposta, handleRejeitarProposta, handleDuplicarProposta,
+  handlePostPropostaCusto, handlePutPropostaCusto, handleDeletePropostaCusto,
+  handleUploadPropostaAnexo, handleGetPropostaAnexo, handlePutPropostaAnexo, handleDeletePropostaAnexo,
+  handleGetPropostaDocx, handleGetPropostaPdf, handleGetPropostaPreview,
+  handleGetApresentacao, handlePutApresentacao,
+  handleGetCaseLogos, handleGetCaseLogoImage, handlePutCaseLogo, handleDeleteCaseLogo,
 });
 
 function routeRequest(pathname, method, body, res, parsedUrl, req) {
@@ -4974,88 +4981,6 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname === '/api/backup/email' && method === 'POST') {
     _runEmailBackup().catch(e => console.error('[backup/email]', e.message));
     return sendJson(res, { ok: true, message: `Backup iniciado — será enviado para ${BACKUP_EMAIL}` });
-  }
-
-  // ============ Propostas Comerciais ============
-  if (pathname === '/api/propostas' && method === 'GET')  return handleGetPropostas(res);
-  if (pathname === '/api/propostas' && method === 'POST') return handlePostProposta(body, res);
-  if (pathname.match(/^\/api\/propostas\/[^/]+$/) && method === 'GET') {
-    return handleGetProposta(pathname.split('/')[3], res);
-  }
-  if (pathname.match(/^\/api\/propostas\/[^/]+$/) && method === 'PUT') {
-    return handlePutProposta(pathname.split('/')[3], body, res);
-  }
-  if (pathname.match(/^\/api\/propostas\/[^/]+$/) && method === 'PATCH') {
-    return handlePutProposta(pathname.split('/')[3], body, res); // reusa PUT
-  }
-  if (pathname.match(/^\/api\/propostas\/[^/]+$/) && method === 'DELETE') {
-    return handleDeleteProposta(pathname.split('/')[3], res);
-  }
-  if (pathname.match(/^\/api\/propostas\/[^/]+\/enviar$/) && method === 'POST') {
-    return handleEnviarProposta(pathname.split('/')[3], res);
-  }
-  if (pathname.match(/^\/api\/propostas\/[^/]+\/aceitar$/) && method === 'POST') {
-    return handleAceitarProposta(pathname.split('/')[3], res);
-  }
-  if (pathname.match(/^\/api\/propostas\/[^/]+\/rejeitar$/) && method === 'POST') {
-    return handleRejeitarProposta(pathname.split('/')[3], body, res);
-  }
-  if (pathname.match(/^\/api\/propostas\/[^/]+\/duplicar$/) && method === 'POST') {
-    return handleDuplicarProposta(pathname.split('/')[3], res);
-  }
-  // Custos internos por proposta
-  if (pathname.match(/^\/api\/propostas\/[^/]+\/custos$/) && method === 'POST') {
-    return handlePostPropostaCusto(pathname.split('/')[3], body, res);
-  }
-  if (pathname.match(/^\/api\/propostas\/[^/]+\/custos\/[^/]+$/) && method === 'PUT') {
-    const p = pathname.split('/');
-    return handlePutPropostaCusto(p[3], p[5], body, res);
-  }
-  if (pathname.match(/^\/api\/propostas\/[^/]+\/custos\/[^/]+$/) && method === 'DELETE') {
-    const p = pathname.split('/');
-    return handleDeletePropostaCusto(p[3], p[5], res);
-  }
-  // Anexos de proposta (PDF + imagens — multipart upload)
-  if (pathname.match(/^\/api\/propostas\/[^/]+\/anexos$/) && method === 'POST') {
-    return handleUploadPropostaAnexo(pathname.split('/')[3], req, res);
-  }
-  if (pathname.match(/^\/api\/propostas\/[^/]+\/anexos\/[^/]+$/) && method === 'GET') {
-    const p = pathname.split('/');
-    return handleGetPropostaAnexo(p[3], p[5], res);
-  }
-  if (pathname.match(/^\/api\/propostas\/[^/]+\/anexos\/[^/]+$/) && method === 'PUT') {
-    const p = pathname.split('/');
-    return handlePutPropostaAnexo(p[3], p[5], body, res);
-  }
-  if (pathname.match(/^\/api\/propostas\/[^/]+\/anexos\/[^/]+$/) && method === 'DELETE') {
-    const p = pathname.split('/');
-    return handleDeletePropostaAnexo(p[3], p[5], res);
-  }
-  // DOCX / PDF / Preview HTML
-  if (pathname.match(/^\/api\/propostas\/[^/]+\/docx$/) && method === 'GET') {
-    return handleGetPropostaDocx(pathname.split('/')[3], res);
-  }
-  if (pathname.match(/^\/api\/propostas\/[^/]+\/pdf$/) && method === 'GET') {
-    return handleGetPropostaPdf(pathname.split('/')[3], res);
-  }
-  if (pathname.match(/^\/api\/propostas\/[^/]+\/preview$/) && method === 'GET') {
-    return handleGetPropostaPreview(pathname.split('/')[3], res);
-  }
-
-  // ============ Apresentação Global (configuração) ============
-  if (pathname === '/api/app-settings/proposta_apresentacao' && method === 'GET')  return handleGetApresentacao(res);
-  if (pathname === '/api/app-settings/proposta_apresentacao' && method === 'PUT')  return handlePutApresentacao(body, res);
-
-  // ============ Case Logos ============
-  if (pathname === '/api/case-logos' && method === 'GET')  return handleGetCaseLogos(res);
-  if (pathname.match(/^\/api\/case-logos\/[^/]+\/image$/) && method === 'GET') {
-    return handleGetCaseLogoImage(pathname.split('/')[3], res);
-  }
-  if (pathname.match(/^\/api\/case-logos\/[^/]+$/) && method === 'PUT') {
-    return handlePutCaseLogo(pathname.split('/')[3], body, res);
-  }
-  if (pathname.match(/^\/api\/case-logos\/[^/]+$/) && method === 'DELETE') {
-    return handleDeleteCaseLogo(pathname.split('/')[3], res);
   }
 
   // Recursos routes

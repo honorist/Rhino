@@ -312,26 +312,32 @@ test('routes/financeiro.js — sub-recurso aninhado folha/:id/itens/:itemId', ()
   assert.deepEqual(args, ['F1', 'I2', 'RES']);
 });
 
-// ─── routes/comercial.js (clientes, fornecedores, cláusulas) ─────────────────
+// ─── routes/comercial.js (clientes, fornecedores, cláusulas, propostas, ──────
+//     apresentação, case-logos) ─────────────────────────────────────────────
 
-test('routes/comercial.js — registra as 12 rotas de clientes/fornecedores/cláusulas', () => {
+test('routes/comercial.js — registra exatamente as 38 rotas comerciais', () => {
   const router = createRouter();
   require('../routes/comercial')(router, {});
   const rotas = router.list().map(r => `${r.method} ${r.pattern}`).sort();
   assert.deepEqual(rotas, [
-    'DELETE /api/clausulas/:id',
-    'DELETE /api/clientes/:id',
-    'DELETE /api/fornecedores/:id',
-    'GET /api/clausulas',
-    'GET /api/clientes',
-    'GET /api/fornecedores',
-    'POST /api/clausulas',
-    'POST /api/clientes',
-    'POST /api/fornecedores',
-    'PUT /api/clausulas/:id',
-    'PUT /api/clientes/:id',
-    'PUT /api/fornecedores/:id',
-  ]);
+    'DELETE /api/case-logos/:id', 'DELETE /api/clausulas/:id', 'DELETE /api/clientes/:id',
+    'DELETE /api/fornecedores/:id', 'DELETE /api/propostas/:id',
+    'DELETE /api/propostas/:id/anexos/:anexoId', 'DELETE /api/propostas/:id/custos/:custoId',
+    'GET /api/app-settings/proposta_apresentacao', 'GET /api/case-logos',
+    'GET /api/case-logos/:id/image', 'GET /api/clausulas', 'GET /api/clientes',
+    'GET /api/fornecedores', 'GET /api/propostas', 'GET /api/propostas/:id',
+    'GET /api/propostas/:id/anexos/:anexoId', 'GET /api/propostas/:id/docx',
+    'GET /api/propostas/:id/pdf', 'GET /api/propostas/:id/preview',
+    'PATCH /api/propostas/:id',
+    'POST /api/clausulas', 'POST /api/clientes', 'POST /api/fornecedores', 'POST /api/propostas',
+    'POST /api/propostas/:id/aceitar', 'POST /api/propostas/:id/anexos',
+    'POST /api/propostas/:id/custos', 'POST /api/propostas/:id/duplicar',
+    'POST /api/propostas/:id/enviar', 'POST /api/propostas/:id/rejeitar',
+    'PUT /api/app-settings/proposta_apresentacao', 'PUT /api/case-logos/:id',
+    'PUT /api/clausulas/:id', 'PUT /api/clientes/:id', 'PUT /api/fornecedores/:id',
+    'PUT /api/propostas/:id', 'PUT /api/propostas/:id/anexos/:anexoId',
+    'PUT /api/propostas/:id/custos/:custoId',
+  ].sort());
 });
 
 test('routes/comercial.js — cláusulas GET recebe (res, query); rotas :param ok', () => {
@@ -350,4 +356,50 @@ test('routes/comercial.js — cláusulas GET recebe (res, query); rotas :param o
 
   router.dispatch({ method: 'DELETE', pathname: '/api/fornecedores/F1', res: 'RES' });
   assert.deepEqual(c.delForn, ['F1', 'RES']);
+});
+
+test('routes/comercial.js — proposta PATCH reusa o handler de PUT', () => {
+  const calls = [];
+  const router = createRouter();
+  require('../routes/comercial')(router, {
+    handlePutProposta: (id, body, res) => { calls.push([id, body, res]); },
+  });
+  router.dispatch({ method: 'PUT',   pathname: '/api/propostas/P1', body: 'B',  res: 'R' });
+  router.dispatch({ method: 'PATCH', pathname: '/api/propostas/P1', body: 'B2', res: 'R2' });
+  assert.deepEqual(calls, [['P1', 'B', 'R'], ['P1', 'B2', 'R2']]);
+});
+
+test('routes/comercial.js — proposta: sub-recursos aninhados e upload multipart', () => {
+  const c = {};
+  const router = createRouter();
+  require('../routes/comercial')(router, {
+    handlePutPropostaCusto:    (id, cid, body, res) => { c.putCusto = [id, cid, body, res]; },
+    handleDeletePropostaAnexo: (id, aid, res)       => { c.delAnexo = [id, aid, res]; },
+    handleUploadPropostaAnexo: (id, req, res)       => { c.upAnexo  = [id, req, res]; },
+    handleGetPropostaPreview:  (id, res)            => { c.preview  = [id, res]; },
+  });
+  router.dispatch({ method: 'PUT', pathname: '/api/propostas/P1/custos/C2', body: 'B', res: 'R' });
+  assert.deepEqual(c.putCusto, ['P1', 'C2', 'B', 'R']);
+
+  router.dispatch({ method: 'DELETE', pathname: '/api/propostas/P1/anexos/A3', res: 'R' });
+  assert.deepEqual(c.delAnexo, ['P1', 'A3', 'R']);
+
+  router.dispatch({ method: 'POST', pathname: '/api/propostas/P1/anexos', req: 'REQ', res: 'R' });
+  assert.deepEqual(c.upAnexo, ['P1', 'REQ', 'R']); // multipart recebe req cru
+
+  router.dispatch({ method: 'GET', pathname: '/api/propostas/P9/preview', res: 'R' });
+  assert.deepEqual(c.preview, ['P9', 'R']);
+});
+
+test('routes/comercial.js — proposta/:id não engole as sub-rotas (docx etc.)', () => {
+  let getProp = null, getDocx = null;
+  const router = createRouter();
+  require('../routes/comercial')(router, {
+    handleGetProposta:     (id) => { getProp = id; },
+    handleGetPropostaDocx: (id) => { getDocx = id; },
+  });
+  router.dispatch({ method: 'GET', pathname: '/api/propostas/P1', res: 'R' });
+  router.dispatch({ method: 'GET', pathname: '/api/propostas/P1/docx', res: 'R' });
+  assert.equal(getProp, 'P1');
+  assert.equal(getDocx, 'P1');
 });
