@@ -654,53 +654,6 @@ button, .btn, [role="button"], a.nav-link, .nav-item a, input[type="checkbox"], 
   .bulk-bar { bottom: 88px; }
 }
 
-/* Notification bell ------------------------------ */
-.rh-bell {
-  position: relative;
-}
-.rh-bell__count {
-  position: absolute;
-  top: 4px;
-  right: 6px;
-  min-width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  background: var(--color-danger);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 5px;
-}
-.rh-bell-panel {
-  position: fixed;
-  bottom: 70px;
-  left: 12px;
-  width: 320px;
-  max-height: 60vh;
-  overflow-y: auto;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-lg);
-  z-index: 8500;
-  padding: 8px 0;
-}
-.rh-bell-item {
-  display: flex;
-  gap: 10px;
-  padding: 10px 14px;
-  text-decoration: none;
-  color: var(--color-text);
-  border-bottom: 1px solid var(--color-border);
-  font-size: 14px;
-}
-.rh-bell-item:last-child { border-bottom: 0; }
-.rh-bell-item:hover { background: var(--sidebar-active-bg); }
-.rh-bell-empty { padding: 24px; text-align: center; color: var(--color-text-muted); }
-
 /* Density ---------------------------------------- */
 [data-density="compact"] {
   --sp-xs: 3px; --sp-sm: 6px; --sp-md: 12px; --sp-lg: 16px; --sp-xl: 22px;

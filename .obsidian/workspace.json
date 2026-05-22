@@ -1,0 +1,199 @@
+{
+  "main": {
+    "id": "ccce99641675a839",
+    "type": "split",
+    "children": [
+      {
+        "id": "4e4f41be644c0ccf",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "7ee334e8a2f7f49b",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "test-results/api-Aditivos-Marcos-e-Ocor-8ebf6-vo-criar-→-editar-→-deletar-chromium-retry1/error-context.md",
+                "mode": "preview",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "error-context"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "856668904be6b7a1",
+    "type": "split",
+    "children": [
+      {
+        "id": "7c93b84fd309d608",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "47630838d3e080f2",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "7e5dee8fdbce53ae",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "99b53766fc6c1c20",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "0c623b34190693cf",
+    "type": "split",
+    "children": [
+      {
+        "id": "911acdd538d15a35",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "0e488434620502ee",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "test-results/api-Aditivos-Marcos-e-Ocor-8ebf6-vo-criar-→-editar-→-deletar-chromium-retry1/error-context.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for error-context"
+            }
+          },
+          {
+            "id": "9e414e71d6b11bc0",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "test-results/api-Aditivos-Marcos-e-Ocor-8ebf6-vo-criar-→-editar-→-deletar-chromium-retry1/error-context.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from error-context"
+            }
+          },
+          {
+            "id": "4dcf59190d130cd5",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "1df7a642f6a25ed1",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "1648f1fcc30e39c0",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "test-results/api-Aditivos-Marcos-e-Ocor-8ebf6-vo-criar-→-editar-→-deletar-chromium-retry1/error-context.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of error-context"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "7ee334e8a2f7f49b",
+  "lastOpenFiles": [
+    "js/power.js.tmp.5832.ba71fe530773",
+    "assets/proposta-bg.jpg",
+    "assets/logo-rhino.jpg",
+    "assets/logo.png",
+    "assets/icon-maskable.svg",
+    "assets/icon.svg",
+    "assets/favicon.svg",
+    "test-results/api-Clientes-CRUD-cria-edita-deleta-cliente-chromium-retry2/error-context.md",
+    "test-results/api-Aditivos-Marcos-e-Ocor-8ebf6-vo-criar-→-editar-→-deletar-chromium/error-context.md",
+    "functions/node_modules/@types/tough-cookie/README.md"
+  ]
+}

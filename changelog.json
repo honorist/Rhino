@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.2.57",
+      "date": "2026-05-22",
+      "summary": "Removido o sino de notificações do rodapé do menu",
+      "changes": [
+        "O sino de notificações (🔔 com contador) que ficava no canto inferior esquerdo do menu foi removido. Os alertas agora aparecem direto nos itens do menu lateral (badges 'pill suave'), tornando o sino redundante."
+      ]
+    },
+    {
       "version": "1.2.56",
       "date": "2026-05-22",
       "summary": "Alertas da barra lateral redesenhados + Manual completo",
