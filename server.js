@@ -4772,10 +4772,20 @@ registerPlatform(apiRouter, {
   handlePushSubscribe, handlePushUnsubscribe,
 });
 registerFinanceiro(apiRouter, {
+  withIdempotency,
   handleGetCaixa, handlePostCaixa, handlePutCaixa, handleDeleteCaixa,
   handleGetBase, handlePostBase, handlePutBase, handleDeleteBase, handleAllocateBase,
   handleGetSocios, handlePostSocio, handlePutSocio, handleDeleteSocio,
   handleGetInvestimentos, handlePostInvestimento, handleDeleteInvestimento,
+  handleGetTiposBase, handlePostTipoBase, handlePutTipoBase, handleDeleteTipoBase,
+  handleGetContasPagar, handlePostContaPagar, handlePutContaPagar, handleDeleteContaPagar,
+  handlePagarConta, handleEstornarConta, handleProcessarRecorrencias,
+  handleGetFolha, handleGerarFolha, handleLimparFolha, handlePagarFolhaParcela,
+  handleEstornarFolhaParcela, handleAddFolhaItem, handleRemoveFolhaItem, handleUpdateFolhaItem,
+  handleGetNotasFiscais, handlePostNotaFiscal, handleEmitirNotaFiscal, handleCancelarEmissao,
+  handlePutNotaFiscal, handleDeleteNotaFiscal,
+  handleCobrancaHistorico, handleCobrancaProjecaoAtual, handleCobrancaMensal,
+  handleImportarOfx,
 });
 
 function routeRequest(pathname, method, body, res, parsedUrl, req) {
@@ -5072,89 +5082,6 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
     return handleDeleteFornecedor(pathname.split('/')[3], res);
   }
 
-  // Tipos BASE routes
-  if (pathname === '/api/tipos-base' && method === 'GET') {
-    return handleGetTiposBase(res);
-  }
-  if (pathname === '/api/tipos-base' && method === 'POST') {
-    return handlePostTipoBase(body, res);
-  }
-  if (pathname.match(/^\/api\/tipos-base\/[^/]+$/) && method === 'PUT') {
-    const id = pathname.split('/')[3];
-    return handlePutTipoBase(id, body, res);
-  }
-  if (pathname.match(/^\/api\/tipos-base\/[^/]+$/) && method === 'DELETE') {
-    const id = pathname.split('/')[3];
-    return handleDeleteTipoBase(id, res);
-  }
-
-  // Contas a Pagar routes
-  if (pathname === '/api/contas-pagar' && method === 'GET') return handleGetContasPagar(res);
-  if (pathname === '/api/contas-pagar' && method === 'POST') return withIdempotency(req, res, pathname, body, () => handlePostContaPagar(body, res));
-  if (pathname.match(/^\/api\/contas-pagar\/[^/]+$/) && method === 'PUT') {
-    return handlePutContaPagar(pathname.split('/')[3], body, res);
-  }
-  if (pathname.match(/^\/api\/contas-pagar\/[^/]+$/) && method === 'DELETE') {
-    return handleDeleteContaPagar(pathname.split('/')[3], res);
-  }
-  if (pathname.match(/^\/api\/contas-pagar\/[^/]+\/pagar$/) && method === 'POST') {
-    return withIdempotency(req, res, pathname, body, () => handlePagarConta(pathname.split('/')[3], body, res));
-  }
-  if (pathname.match(/^\/api\/contas-pagar\/[^/]+\/estornar$/) && method === 'POST') {
-    return handleEstornarConta(pathname.split('/')[3], res);
-  }
-
-  // Folha de Pagamento routes
-  if (pathname === '/api/folha-pagamento' && method === 'GET') {
-    return handleGetFolha(parsedUrl.query, res);
-  }
-  if (pathname === '/api/folha-pagamento/gerar' && method === 'POST') {
-    return withIdempotency(req, res, pathname, body, () => handleGerarFolha(body, res));
-  }
-  if (pathname === '/api/folha-pagamento/limpar' && method === 'POST') {
-    return handleLimparFolha(body, res);
-  }
-  if (pathname.match(/^\/api\/folha-pagamento\/[^/]+\/pagar$/) && method === 'POST') {
-    return withIdempotency(req, res, pathname, body, () => handlePagarFolhaParcela(pathname.split('/')[3], body, res));
-  }
-  if (pathname.match(/^\/api\/folha-pagamento\/[^/]+\/estornar$/) && method === 'POST') {
-    return handleEstornarFolhaParcela(pathname.split('/')[3], body, res);
-  }
-  if (pathname.match(/^\/api\/folha-pagamento\/[^/]+\/itens$/) && method === 'POST') {
-    return handleAddFolhaItem(pathname.split('/')[3], body, res);
-  }
-  if (pathname.match(/^\/api\/folha-pagamento\/[^/]+\/itens\/[^/]+$/) && method === 'DELETE') {
-    const p = pathname.split('/');
-    return handleRemoveFolhaItem(p[3], p[5], res);
-  }
-  if (pathname.match(/^\/api\/folha-pagamento\/[^/]+\/itens\/[^/]+$/) && method === 'PUT') {
-    const p = pathname.split('/');
-    return handleUpdateFolhaItem(p[3], p[5], body, res);
-  }
-
-  // Notas Fiscais routes
-  if (pathname === '/api/notas-fiscais' && method === 'GET') {
-    return handleGetNotasFiscais(res);
-  }
-  if (pathname === '/api/notas-fiscais' && method === 'POST') {
-    return handlePostNotaFiscal(body, res);
-  }
-  if (pathname.match(/^\/api\/notas-fiscais\/[^/]+\/emitir$/) && method === 'POST') {
-    const id = pathname.split('/')[3];
-    return handleEmitirNotaFiscal(id, body, res);
-  }
-  if (pathname.match(/^\/api\/notas-fiscais\/[^/]+\/cancelar-emissao$/) && method === 'POST') {
-    const id = pathname.split('/')[3];
-    return handleCancelarEmissao(id, res);
-  }
-  if (pathname.match(/^\/api\/notas-fiscais\/[^/]+$/) && method === 'PUT') {
-    const id = pathname.split('/')[3];
-    return handlePutNotaFiscal(id, body, res);
-  }
-  if (pathname.match(/^\/api\/notas-fiscais\/[^/]+$/) && method === 'DELETE') {
-    const id = pathname.split('/')[3];
-    return handleDeleteNotaFiscal(id, res);
-  }
 
   // Recursos routes
   if (pathname === '/api/recursos' && method === 'GET')  return handleGetRecursos(res);
@@ -5184,13 +5111,6 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
     return handleValidarDocumento(pathname.split('/')[3], pathname.split('/')[5], res);
   }
 
-  // ── Cobrança Mensal (admin only) ──
-  if (pathname === '/api/cobranca-mensal/historico' && method === 'GET')      return handleCobrancaHistorico(req, res);
-  if (pathname === '/api/cobranca-mensal/projecao-atual' && method === 'GET') return handleCobrancaProjecaoAtual(req, res);
-  if (pathname.match(/^\/api\/cobranca-mensal\/\d{4}\/\d{1,2}$/) && method === 'GET') {
-    const parts = pathname.split('/');
-    return handleCobrancaMensal(req, parseInt(parts[3]), parseInt(parts[4]), res);
-  }
   // ── Estoque ──
   if (pathname === '/api/estoque/itens' && method === 'GET')  return handleListItensEstoque(res);
   if (pathname === '/api/estoque/itens' && method === 'POST') return handlePostItemEstoque(body, res);
@@ -5258,15 +5178,9 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   // ── F6: Anomaly detection ──
   if (pathname === '/api/anomalias' && method === 'GET') return handleGetAnomalias(res);
 
-  // ── F7: Recurring payments ──
-  if (pathname === '/api/contas-pagar/processar-recorrencias' && method === 'POST') return handleProcessarRecorrencias(res);
-
   // ── F13: LGPD ──
   if (pathname === '/api/lgpd/export' && method === 'GET') return handleLgpdExport(req, res);
   if (pathname === '/api/lgpd/delete-account' && method === 'POST') return handleLgpdDelete(req, res);
-
-  // ── F5: OFX Import ──
-  if (pathname === '/api/caixa/importar-ofx' && method === 'POST') return handleImportarOfx(req, res);
 
   // Static files
   if (pathname === '/' || pathname === '') {

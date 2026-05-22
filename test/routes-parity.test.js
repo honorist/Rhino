@@ -219,30 +219,35 @@ test('routes/platform.js — rotas inline (stream/online) usam o bus', () => {
   assert.deepEqual(onlinePayload, { online: ['user1'] });
 });
 
-// ─── routes/financeiro.js (2.4a — caixa, base, sócios, investimentos) ────────
+// ─── routes/financeiro.js (caixa, base, sócios, investimentos, contas a ──────
+//     pagar, folha, notas fiscais, cobrança) ────────────────────────────────
 
-test('routes/financeiro.js — registra as 16 rotas de caixa/base/sócios/investimentos', () => {
+test('routes/financeiro.js — registra exatamente as 45 rotas financeiras', () => {
   const router = createRouter();
   require('../routes/financeiro')(router, {});
   const rotas = router.list().map(r => `${r.method} ${r.pattern}`).sort();
-  assert.deepEqual(rotas, [
-    'DELETE /api/base/:id',
-    'DELETE /api/caixa/:id',
-    'DELETE /api/investimentos/:id',
-    'DELETE /api/socios/:id',
-    'GET /api/base',
-    'GET /api/caixa',
-    'GET /api/investimentos',
-    'GET /api/socios',
-    'POST /api/base',
-    'POST /api/base/:id/allocate',
-    'POST /api/caixa',
-    'POST /api/investimentos',
-    'POST /api/socios',
-    'PUT /api/base/:id',
-    'PUT /api/caixa/:id',
-    'PUT /api/socios/:id',
-  ]);
+  const esperado = [
+    // caixa / base / sócios / investimentos
+    'DELETE /api/base/:id', 'DELETE /api/caixa/:id', 'DELETE /api/investimentos/:id', 'DELETE /api/socios/:id',
+    'GET /api/base', 'GET /api/caixa', 'GET /api/investimentos', 'GET /api/socios',
+    'POST /api/base', 'POST /api/base/:id/allocate', 'POST /api/caixa', 'POST /api/investimentos', 'POST /api/socios',
+    'PUT /api/base/:id', 'PUT /api/caixa/:id', 'PUT /api/socios/:id',
+    // tipos-base / contas-pagar / folha / notas-fiscais / cobrança / ofx
+    'DELETE /api/contas-pagar/:id', 'DELETE /api/folha-pagamento/:id/itens/:itemId',
+    'DELETE /api/notas-fiscais/:id', 'DELETE /api/tipos-base/:id',
+    'GET /api/contas-pagar', 'GET /api/cobranca-mensal/historico', 'GET /api/cobranca-mensal/projecao-atual',
+    'GET /api/folha-pagamento', 'GET /api/notas-fiscais', 'GET /api/tipos-base',
+    'GET ' + /^\/api\/cobranca-mensal\/(\d{4})\/(\d{1,2})$/.toString(),
+    'POST /api/caixa/importar-ofx', 'POST /api/contas-pagar', 'POST /api/contas-pagar/:id/estornar',
+    'POST /api/contas-pagar/:id/pagar', 'POST /api/contas-pagar/processar-recorrencias',
+    'POST /api/folha-pagamento/:id/estornar', 'POST /api/folha-pagamento/:id/itens',
+    'POST /api/folha-pagamento/:id/pagar', 'POST /api/folha-pagamento/gerar', 'POST /api/folha-pagamento/limpar',
+    'POST /api/notas-fiscais', 'POST /api/notas-fiscais/:id/cancelar-emissao', 'POST /api/notas-fiscais/:id/emitir',
+    'POST /api/tipos-base',
+    'PUT /api/contas-pagar/:id', 'PUT /api/folha-pagamento/:id/itens/:itemId',
+    'PUT /api/notas-fiscais/:id', 'PUT /api/tipos-base/:id',
+  ].sort();
+  assert.deepEqual(rotas, esperado);
 });
 
 test('routes/financeiro.js — rotas com :param despacham com (id, ...) na ordem certa', () => {
@@ -271,4 +276,38 @@ test('routes/financeiro.js — rotas com :param despacham com (id, ...) na ordem
 
   router.dispatch({ ...base, method: 'DELETE', pathname: '/api/investimentos/I4' });
   assert.deepEqual(c.delInv, ['I4', 'RES']);
+});
+
+test('routes/financeiro.js — withIdempotency embrulha o POST de contas-pagar', () => {
+  const calls = [];
+  const router = createRouter();
+  require('../routes/financeiro')(router, {
+    withIdempotency: (req, res, pathname, body, fn) => { calls.push(['wrap', req, res, pathname, body]); return fn(); },
+    handlePostContaPagar: (body, res) => { calls.push(['handler', body, res]); },
+  });
+  router.dispatch({ method: 'POST', pathname: '/api/contas-pagar', req: 'REQ', res: 'RES', body: 'BODY' });
+  assert.deepEqual(calls[0], ['wrap', 'REQ', 'RES', '/api/contas-pagar', 'BODY']);
+  assert.deepEqual(calls[1], ['handler', 'BODY', 'RES']);
+});
+
+test('routes/financeiro.js — cobrança-mensal/:ano/:mes só casa ano/mês e converte p/ inteiro', () => {
+  let args = null;
+  const router = createRouter();
+  require('../routes/financeiro')(router, {
+    handleCobrancaMensal: (req, ano, mes, res) => { args = [req, ano, mes, res]; },
+  });
+  assert.equal(router.dispatch({ method: 'GET', pathname: '/api/cobranca-mensal/2026/5', req: 'REQ', res: 'RES' }), true);
+  assert.deepEqual(args, ['REQ', 2026, 5, 'RES']);
+  // fora do formato \d{4}/\d{1,2} não casa
+  assert.equal(router.dispatch({ method: 'GET', pathname: '/api/cobranca-mensal/abc/xyz', req: 'R', res: 'S' }), false);
+});
+
+test('routes/financeiro.js — sub-recurso aninhado folha/:id/itens/:itemId', () => {
+  let args = null;
+  const router = createRouter();
+  require('../routes/financeiro')(router, {
+    handleRemoveFolhaItem: (id, itemId, res) => { args = [id, itemId, res]; },
+  });
+  router.dispatch({ method: 'DELETE', pathname: '/api/folha-pagamento/F1/itens/I2', res: 'RES' });
+  assert.deepEqual(args, ['F1', 'I2', 'RES']);
 });
