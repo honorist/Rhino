@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.2.58",
+      "date": "2026-05-22",
+      "summary": "Cobrança movida para dentro de Configurações",
+      "changes": [
+        "A opção 'Cobrança' saiu do menu lateral e passou a ficar dentro da tela de Configurações, no menu da esquerda, logo abaixo de 'Auditoria'."
+      ]
+    },
+    {
       "version": "1.2.57",
       "date": "2026-05-22",
       "summary": "Removido o sino de notificações do rodapé do menu",

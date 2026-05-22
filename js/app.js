@@ -116,7 +116,7 @@ const routes = {
   '#/previsao':     { view: window.Previsao,        label: 'Previsão',        icon: _ic('trending-up'),  group: 'financeiro' },
   '#/ai-chat':      { view: window.AiChat,         label: 'Assistente IA',   icon: _ic('message-square'), group: 'financeiro' },
   '#/configuracao': { view: window.Configuracao,   label: 'Configuração',    icon: _ic('settings') },
-  '#/cobranca':     { view: window.CobrancaMensal, label: 'Cobrança',        icon: _ic('credit-card') },
+  '#/cobranca':     { view: window.CobrancaMensal, label: null,              icon: null },  // acessível via Configuração
   '#/usuarios':     { view: window.Usuarios,       label: null,              icon: null },  // acessível via Configuração
   '#/auditoria':    { view: window.Auditoria,      label: null,              icon: null },  // acessível via Configuração
   '#/manual':       { view: window.Manual,         label: null,              icon: null }

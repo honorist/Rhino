@@ -49,6 +49,10 @@ window.Configuracao = {
             <a href="#/auditoria" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;text-decoration:none;color:var(--color-text);">
               <span style="display:inline-flex;align-items:center;color:var(--rh-ink-500);">${window.rhIcon ? window.rhIcon('eye', 16) : ''}</span><span>Auditoria</span>
             </a>` : ''}
+            ${(!window.perfil || window.perfil.podeAcessar('#/cobranca')) ? `
+            <a href="#/cobranca" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;text-decoration:none;color:var(--color-text);">
+              <span style="display:inline-flex;align-items:center;color:var(--rh-ink-500);">${window.rhIcon ? window.rhIcon('receipt', 16) : ''}</span><span>Cobrança</span>
+            </a>` : ''}
           </nav>
 
           <!-- Conteúdo da seção -->
