@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.2.65",
+      "date": "2026-05-22",
+      "summary": "Melhorias internas — testes automatizados e organização do código",
+      "changes": [
+        "Rodada de fortalecimento interno, sem nenhuma mudança visível no uso. Regras críticas de negócio ganharam testes automatizados — cálculo de dias úteis/prazos, recorrência de contas a pagar e o fluxo das 5 etapas da solicitação de compra. O roteamento do servidor começou a ser modularizado (autenticação e portal do cliente). Nada muda nas telas; é base para evoluir o sistema com mais segurança contra regressões."
+      ]
+    },
+    {
       "version": "1.2.64",
       "date": "2026-05-22",
       "summary": "RDO: corrige travada ao abrir e o clima bugado no resumo do WhatsApp",
