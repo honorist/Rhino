@@ -47,6 +47,7 @@ const registerPlatform = require('./routes/platform');
 const registerFinanceiro = require('./routes/financeiro');
 const registerComercial = require('./routes/comercial');
 const registerOperacao = require('./routes/operacao');
+const registerContracts = require('./routes/contracts');
 const { validateBody, schemas, ValidationError } = require('./lib/validate');
 
 // Web Push — inicializa só se VAPID keys estiverem presentes
@@ -4824,6 +4825,18 @@ registerOperacao(apiRouter, {
   handleListDashLayouts, handlePostDashLayout, handlePutDashLayout, handleDeleteDashLayout,
   handleGetDocTemplates, handlePostDocTemplate, handlePutDocTemplate, handleDeleteDocTemplate,
 });
+registerContracts(apiRouter, {
+  handleGetRdosGlobal, handleGetContracts, handlePostContract, handlePutContract, handleDeleteContract,
+  handlePostSaida, handlePostBudgetItem, handlePutBudgetItem, handleDeleteBudgetItem,
+  handleListAtividades, handlePostAtividade, handlePutAtividade, handleDeleteAtividade, handleGetCurvaS,
+  handlePostMembroOrganograma, handlePutMembroOrganograma, handleDeleteMembroOrganograma,
+  handlePostRdo, handlePutRdo, handleDeleteRdo, handlePostRdoFoto, handleDeleteRdoFoto,
+  handleListRdoAssinaturas, handleGetRdoAssinatura, handleDeleteRdoAssinatura,
+  handlePostAditivo, handlePutAditivo, handleDeleteAditivo,
+  handlePostMarco, handlePutMarco, handleDeleteMarco,
+  handlePostOcorrencia, handlePutOcorrencia, handleDeleteOcorrencia,
+  handlePutSaida, handleDeleteSaida,
+});
 
 function routeRequest(pathname, method, body, res, parsedUrl, req) {
   // Router modular — se o domínio já foi migrado, casa aqui e encerra.
@@ -4841,158 +4854,6 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
     return;
   }
 
-  // ============ RDOs (visão global) ============
-  if (pathname === '/api/rdos' && method === 'GET') return handleGetRdosGlobal(res);
-
-  // API routes
-  if (pathname === '/api/contracts' && method === 'GET') {
-    return handleGetContracts(res, parsedUrl.query);
-  }
-  if (pathname === '/api/contracts' && method === 'POST') {
-    return handlePostContract(body, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+$/) && method === 'PUT') {
-    const id = pathname.split('/')[3];
-    return handlePutContract(id, body, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+$/) && method === 'DELETE') {
-    const id = pathname.split('/')[3];
-    return handleDeleteContract(id, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+$/) && method === 'PATCH') {
-    const id = pathname.split('/')[3];
-    return handlePutContract(id, body, res); // reusa PUT — já aceita campos parciais
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/saidas$/) && method === 'POST') {
-    const contractId = pathname.split('/')[3];
-    return handlePostSaida(contractId, body, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/budget$/) && method === 'POST') {
-    const contractId = pathname.split('/')[3];
-    return handlePostBudgetItem(contractId, body, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/budget\/[^/]+$/) && method === 'PUT') {
-    const parts = pathname.split('/');
-    return handlePutBudgetItem(parts[3], parts[5], body, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/budget\/[^/]+$/) && method === 'DELETE') {
-    const parts = pathname.split('/');
-    return handleDeleteBudgetItem(parts[3], parts[5], res);
-  }
-  // Atividades / Cronograma
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/atividades$/) && method === 'GET') {
-    return handleListAtividades(pathname.split('/')[3], res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/atividades$/) && method === 'POST') {
-    return handlePostAtividade(pathname.split('/')[3], body, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/atividades\/[^/]+$/) && method === 'PUT') {
-    const parts = pathname.split('/');
-    return handlePutAtividade(parts[3], parts[5], body, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/atividades\/[^/]+$/) && method === 'DELETE') {
-    const parts = pathname.split('/');
-    return handleDeleteAtividade(parts[3], parts[5], res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/curva-s$/) && method === 'GET') {
-    return handleGetCurvaS(pathname.split('/')[3], res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/organograma$/) && method === 'POST') {
-    const contractId = pathname.split('/')[3];
-    return handlePostMembroOrganograma(contractId, body, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/organograma\/[^/]+$/) && method === 'PUT') {
-    const parts = pathname.split('/');
-    return handlePutMembroOrganograma(parts[3], parts[5], body, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/organograma\/[^/]+$/) && method === 'DELETE') {
-    const parts = pathname.split('/');
-    return handleDeleteMembroOrganograma(parts[3], parts[5], body, res, parsedUrl.query);
-  }
-
-  // ── RDO ──
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/rdos$/) && method === 'POST') {
-    const contractId = pathname.split('/')[3];
-    return handlePostRdo(contractId, body, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/rdos\/[^/]+$/) && method === 'PUT') {
-    const parts = pathname.split('/');
-    return handlePutRdo(parts[3], parts[5], body, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/rdos\/[^/]+$/) && method === 'DELETE') {
-    const parts = pathname.split('/');
-    return handleDeleteRdo(parts[3], parts[5], res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/fotos$/) && method === 'POST') {
-    // multipart — não é tratado no body JSON parser acima, chamamos handler que consome req diretamente
-    const parts = pathname.split('/');
-    return handlePostRdoFoto(parts[3], parts[5], req, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/fotos\/[^/]+$/) && method === 'DELETE') {
-    const parts = pathname.split('/');
-    return handleDeleteRdoFoto(parts[3], parts[5], parts[7], res);
-  }
-  // Assinaturas do RDO
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/assinaturas$/) && method === 'GET') {
-    const parts = pathname.split('/');
-    return handleListRdoAssinaturas(parts[5], res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/assinaturas\/[^/]+$/) && method === 'GET') {
-    const parts = pathname.split('/');
-    return handleGetRdoAssinatura(parts[5], parts[7], res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/assinaturas\/[^/]+$/) && method === 'DELETE') {
-    const parts = pathname.split('/');
-    return handleDeleteRdoAssinatura(parts[5], parts[7], res);
-  }
-
-  // ── Aditivos ──
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/aditivos$/) && method === 'POST') {
-    return handlePostAditivo(pathname.split('/')[3], body, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/aditivos\/[^/]+$/) && method === 'PUT') {
-    const p = pathname.split('/');
-    return handlePutAditivo(p[3], p[5], body, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/aditivos\/[^/]+$/) && method === 'DELETE') {
-    const p = pathname.split('/');
-    return handleDeleteAditivo(p[3], p[5], res);
-  }
-
-  // ── Marcos ──
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/marcos$/) && method === 'POST') {
-    return handlePostMarco(pathname.split('/')[3], body, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/marcos\/[^/]+$/) && method === 'PUT') {
-    const p = pathname.split('/');
-    return handlePutMarco(p[3], p[5], body, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/marcos\/[^/]+$/) && method === 'DELETE') {
-    const p = pathname.split('/');
-    return handleDeleteMarco(p[3], p[5], res);
-  }
-
-  // ── Ocorrências ──
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/ocorrencias$/) && method === 'POST') {
-    return handlePostOcorrencia(pathname.split('/')[3], body, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/ocorrencias\/[^/]+$/) && method === 'PUT') {
-    const p = pathname.split('/');
-    return handlePutOcorrencia(p[3], p[5], body, res);
-  }
-  if (pathname.match(/^\/api\/contracts\/[^/]+\/ocorrencias\/[^/]+$/) && method === 'DELETE') {
-    const p = pathname.split('/');
-    return handleDeleteOcorrencia(p[3], p[5], res);
-  }
-
-  if (pathname.match(/^\/api\/saidas\/[^/]+$/) && method === 'PUT') {
-    const id = pathname.split('/')[3];
-    return handlePutSaida(id, body, res);
-  }
-  if (pathname.match(/^\/api\/saidas\/[^/]+$/) && method === 'DELETE') {
-    const id = pathname.split('/')[3];
-    return handleDeleteSaida(id, res);
-  }
   if (pathname === '/api/dashboard') {
     return handleDashboard(res, parsedUrl.query);
   }

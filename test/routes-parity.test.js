@@ -470,3 +470,60 @@ test('routes/operacao.js — req injetado, sub-recursos aninhados e :param', () 
   router.dispatch({ method: 'DELETE', pathname: '/api/recursos/R1/folgas/F2', res: 'R' });
   assert.deepEqual(c.delFolga, ['R1', 'F2', 'R']);
 });
+
+// ─── routes/contracts.js (contratos, saídas, RDO, aditivos, marcos…) ─────────
+
+test('routes/contracts.js — registra exatamente as 37 rotas de contratos', () => {
+  const router = createRouter();
+  require('../routes/contracts')(router, {});
+  const rotas = router.list().map(r => `${r.method} ${r.pattern}`).sort();
+  assert.deepEqual(rotas, [
+    'DELETE /api/contracts/:id', 'DELETE /api/contracts/:id/aditivos/:aditivoId',
+    'DELETE /api/contracts/:id/atividades/:atvId', 'DELETE /api/contracts/:id/budget/:budgetId',
+    'DELETE /api/contracts/:id/marcos/:marcoId', 'DELETE /api/contracts/:id/ocorrencias/:ocorrId',
+    'DELETE /api/contracts/:id/organograma/:membroId', 'DELETE /api/contracts/:id/rdos/:rdoId',
+    'DELETE /api/contracts/:id/rdos/:rdoId/assinaturas/:assId',
+    'DELETE /api/contracts/:id/rdos/:rdoId/fotos/:fotoId', 'DELETE /api/saidas/:id',
+    'GET /api/contracts', 'GET /api/contracts/:id/atividades', 'GET /api/contracts/:id/curva-s',
+    'GET /api/contracts/:id/rdos/:rdoId/assinaturas',
+    'GET /api/contracts/:id/rdos/:rdoId/assinaturas/:assId', 'GET /api/rdos',
+    'PATCH /api/contracts/:id',
+    'POST /api/contracts', 'POST /api/contracts/:id/aditivos', 'POST /api/contracts/:id/atividades',
+    'POST /api/contracts/:id/budget', 'POST /api/contracts/:id/marcos',
+    'POST /api/contracts/:id/ocorrencias', 'POST /api/contracts/:id/organograma',
+    'POST /api/contracts/:id/rdos', 'POST /api/contracts/:id/rdos/:rdoId/fotos',
+    'POST /api/contracts/:id/saidas',
+    'PUT /api/contracts/:id', 'PUT /api/contracts/:id/aditivos/:aditivoId',
+    'PUT /api/contracts/:id/atividades/:atvId', 'PUT /api/contracts/:id/budget/:budgetId',
+    'PUT /api/contracts/:id/marcos/:marcoId', 'PUT /api/contracts/:id/ocorrencias/:ocorrId',
+    'PUT /api/contracts/:id/organograma/:membroId', 'PUT /api/contracts/:id/rdos/:rdoId',
+    'PUT /api/saidas/:id',
+  ].sort());
+});
+
+test('routes/contracts.js — organograma DELETE (5 args), assinaturas, fotos, saídas', () => {
+  const c = {};
+  const router = createRouter();
+  require('../routes/contracts')(router, {
+    handleDeleteMembroOrganograma: (cid, mid, body, res, query) => { c.delOrg = [cid, mid, body, res, query]; },
+    handleListRdoAssinaturas:      (rdoId, res)        => { c.listAss = [rdoId, res]; },
+    handleGetRdoAssinatura:        (rdoId, assId, res) => { c.getAss = [rdoId, assId, res]; },
+    handlePostRdoFoto:             (cid, rid, req, res) => { c.postFoto = [cid, rid, req, res]; },
+    handlePutSaida:                (id, body, res)     => { c.putSaida = [id, body, res]; },
+  });
+  router.dispatch({ method: 'DELETE', pathname: '/api/contracts/C1/organograma/M2',
+    body: 'B', res: 'R', parsedUrl: { query: 'Q' } });
+  assert.deepEqual(c.delOrg, ['C1', 'M2', 'B', 'R', 'Q']); // 5 args, inclui query
+
+  router.dispatch({ method: 'GET', pathname: '/api/contracts/C1/rdos/RD2/assinaturas', res: 'R' });
+  assert.deepEqual(c.listAss, ['RD2', 'R']); // recebe rdoId (params[1]), não o contractId
+
+  router.dispatch({ method: 'GET', pathname: '/api/contracts/C1/rdos/RD2/assinaturas/AS3', res: 'R' });
+  assert.deepEqual(c.getAss, ['RD2', 'AS3', 'R']);
+
+  router.dispatch({ method: 'POST', pathname: '/api/contracts/C1/rdos/RD2/fotos', req: 'REQ', res: 'R' });
+  assert.deepEqual(c.postFoto, ['C1', 'RD2', 'REQ', 'R']); // multipart recebe req cru
+
+  router.dispatch({ method: 'PUT', pathname: '/api/saidas/S9', body: 'B', res: 'R' });
+  assert.deepEqual(c.putSaida, ['S9', 'B', 'R']);
+});
