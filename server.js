@@ -118,11 +118,7 @@ async function captureAuditBefore(req, pathname) {
   }
 }
 
-function generateId(prefix) {
-  const timestamp = Date.now().toString(36);
-  const random = crypto.randomBytes(4).toString('hex');
-  return `${prefix}_${timestamp}${random}`;
-}
+const { generateId } = require('./lib/id'); // Fase A — extraído para lib/id.js
 
 // Lê uma coleção do Postgres e retorna o envelope `{ [arrayKey]: rows }`.
 // Nota: `filename` é vestigial (legado da época JSON); mantido para evitar
