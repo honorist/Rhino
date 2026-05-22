@@ -46,6 +46,7 @@ const registerPortal = require('./routes/portal');
 const registerPlatform = require('./routes/platform');
 const registerFinanceiro = require('./routes/financeiro');
 const registerComercial = require('./routes/comercial');
+const registerOperacao = require('./routes/operacao');
 const { validateBody, schemas, ValidationError } = require('./lib/validate');
 
 // Web Push — inicializa só se VAPID keys estiverem presentes
@@ -4800,6 +4801,29 @@ registerComercial(apiRouter, {
   handleGetApresentacao, handlePutApresentacao,
   handleGetCaseLogos, handleGetCaseLogoImage, handlePutCaseLogo, handleDeleteCaseLogo,
 });
+registerOperacao(apiRouter, {
+  handleGetRecursos, handlePostRecurso, handlePutRecurso, handleDeleteRecurso,
+  handleAddFolga, handleDeleteFolga, handleComprarPassagem,
+  handleGetDocumentosStatus, handleAddDocumento, handlePutDocumento, handleDeleteDocumento,
+  handlePostRecursoDocArquivo, handleGetRecursoDocArquivo, handleDeleteRecursoDocArquivo,
+  handleValidarDocumento,
+  handleListItensEstoque, handlePostItemEstoque, handlePutItemEstoque, handleDeleteItemEstoque,
+  handleListAlmoxarifados, handlePostAlmoxarifado, handlePutAlmoxarifado, handleDeleteAlmoxarifado,
+  handleListMovimentacoes, handlePostMovimentacao, handleDeleteMovimentacao,
+  handleGetSaldoEstoque, handleGetVisaoGeral,
+  handleListSolicitacoesCompra, handlePostSolicitacaoCompra, handlePutSolicitacaoCompra,
+  handleDeleteSolicitacaoCompra, handleAvaliarSolicitacao, handleCancelarSolicitacao,
+  handleAprovarSolicitacao, handleRejeitarSolicitacao, handleComprarSolicitacao, handleReceberSolicitacao,
+  handleListManutencoes, handlePostManutencao, handlePutManutencao, handleDeleteManutencao,
+  handleRetornoManutencao, handleCancelarManutencao, handleAvaliarManutencao,
+  handleAprovarManutencao, handleRejeitarManutencao,
+  handleListVeiculos, handlePostVeiculo, handlePutVeiculo, handleDeleteVeiculo,
+  handlePutVeiculoKm, handlePutVeiculoLocalizacao,
+  handlePostVeiculoPlano, handlePutVeiculoPlano, handleDeleteVeiculoPlano,
+  handlePostVeiculoManutencao, handlePutVeiculoManutencao, handleDeleteVeiculoManutencao,
+  handleListDashLayouts, handlePostDashLayout, handlePutDashLayout, handleDeleteDashLayout,
+  handleGetDocTemplates, handlePostDocTemplate, handlePutDocTemplate, handleDeleteDocTemplate,
+});
 
 function routeRequest(pathname, method, body, res, parsedUrl, req) {
   // Router modular — se o domínio já foi migrado, casa aqui e encerra.
@@ -4982,98 +5006,6 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
     _runEmailBackup().catch(e => console.error('[backup/email]', e.message));
     return sendJson(res, { ok: true, message: `Backup iniciado — será enviado para ${BACKUP_EMAIL}` });
   }
-
-  // Recursos routes
-  if (pathname === '/api/recursos' && method === 'GET')  return handleGetRecursos(res);
-  if (pathname === '/api/recursos' && method === 'POST') return handlePostRecurso(body, res);
-  if (pathname.match(/^\/api\/recursos\/[^/]+$/) && method === 'PUT')    return handlePutRecurso(pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/recursos\/[^/]+$/) && method === 'DELETE') return handleDeleteRecurso(pathname.split('/')[3], res);
-  if (pathname.match(/^\/api\/recursos\/[^/]+\/folgas$/) && method === 'POST') return handleAddFolga(pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/recursos\/[^/]+\/folgas\/[^/]+$/) && method === 'DELETE') return handleDeleteFolga(pathname.split('/')[3], pathname.split('/')[5], res);
-  if (pathname.match(/^\/api\/recursos\/[^/]+\/folgas\/[^/]+\/passagem$/) && method === 'POST') return handleComprarPassagem(pathname.split('/')[3], pathname.split('/')[5], body, res);
-
-  // Documentos routes
-  if (pathname === '/api/documentos/status' && method === 'GET') return handleGetDocumentosStatus(res);
-  if (pathname.match(/^\/api\/recursos\/[^/]+\/documentos$/) && method === 'POST') return handleAddDocumento(pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/recursos\/[^/]+\/documentos\/[^/]+$/) && method === 'PUT') return handlePutDocumento(pathname.split('/')[3], pathname.split('/')[5], body, res);
-  if (pathname.match(/^\/api\/recursos\/[^/]+\/documentos\/[^/]+$/) && method === 'DELETE') return handleDeleteDocumento(pathname.split('/')[3], pathname.split('/')[5], res);
-  // Arquivos anexados a documentos (BYTEA no PG)
-  if (pathname.match(/^\/api\/recursos\/[^/]+\/documentos\/[^/]+\/arquivo$/) && method === 'POST') {
-    return handlePostRecursoDocArquivo(pathname.split('/')[3], pathname.split('/')[5], req, res);
-  }
-  if (pathname.match(/^\/api\/recursos\/[^/]+\/documentos\/[^/]+\/arquivo$/) && method === 'GET') {
-    return handleGetRecursoDocArquivo(pathname.split('/')[3], pathname.split('/')[5], res);
-  }
-  if (pathname.match(/^\/api\/recursos\/[^/]+\/documentos\/[^/]+\/arquivo$/) && method === 'DELETE') {
-    return handleDeleteRecursoDocArquivo(pathname.split('/')[3], pathname.split('/')[5], res);
-  }
-  if (pathname.match(/^\/api\/recursos\/[^/]+\/documentos\/[^/]+\/validar$/) && method === 'POST') {
-    return handleValidarDocumento(pathname.split('/')[3], pathname.split('/')[5], res);
-  }
-
-  // ── Estoque ──
-  if (pathname === '/api/estoque/itens' && method === 'GET')  return handleListItensEstoque(res);
-  if (pathname === '/api/estoque/itens' && method === 'POST') return handlePostItemEstoque(body, res);
-  if (pathname.match(/^\/api\/estoque\/itens\/[^/]+$/) && method === 'PUT')    return handlePutItemEstoque(pathname.split('/')[4], body, res);
-  if (pathname.match(/^\/api\/estoque\/itens\/[^/]+$/) && method === 'DELETE') return handleDeleteItemEstoque(pathname.split('/')[4], res);
-  if (pathname === '/api/estoque/almoxarifados' && method === 'GET')  return handleListAlmoxarifados(res);
-  if (pathname === '/api/estoque/almoxarifados' && method === 'POST') return handlePostAlmoxarifado(body, res);
-  if (pathname.match(/^\/api\/estoque\/almoxarifados\/[^/]+$/) && method === 'PUT')    return handlePutAlmoxarifado(pathname.split('/')[4], body, res);
-  if (pathname.match(/^\/api\/estoque\/almoxarifados\/[^/]+$/) && method === 'DELETE') return handleDeleteAlmoxarifado(pathname.split('/')[4], res);
-  if (pathname === '/api/estoque/movimentacoes' && method === 'GET')  return handleListMovimentacoes(parsedUrl.query, res);
-  if (pathname === '/api/estoque/movimentacoes' && method === 'POST') return handlePostMovimentacao(body, res);
-  if (pathname.match(/^\/api\/estoque\/movimentacoes\/[^/]+$/) && method === 'DELETE') return handleDeleteMovimentacao(pathname.split('/')[4], res);
-  if (pathname === '/api/estoque/saldo' && method === 'GET') return handleGetSaldoEstoque(parsedUrl.query, res);
-  if (pathname === '/api/estoque/visao-geral' && method === 'GET') return handleGetVisaoGeral(res);
-
-  // ── Solicitações de Compra ──
-  if (pathname === '/api/solicitacoes-compra' && method === 'GET')  return handleListSolicitacoesCompra(parsedUrl.query, res);
-  if (pathname === '/api/solicitacoes-compra' && method === 'POST') return handlePostSolicitacaoCompra(req, body, res);
-  if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+$/) && method === 'PUT')    return handlePutSolicitacaoCompra(pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+$/) && method === 'DELETE') return handleDeleteSolicitacaoCompra(pathname.split('/')[3], res);
-  if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/avaliar$/) && method === 'POST')  return handleAvaliarSolicitacao(req, pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/cancelar$/) && method === 'POST') return handleCancelarSolicitacao(req, pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/aprovar$/) && method === 'POST')  return handleAprovarSolicitacao(req, pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/rejeitar$/) && method === 'POST') return handleRejeitarSolicitacao(req, pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/comprar$/) && method === 'POST')  return handleComprarSolicitacao(req, pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/solicitacoes-compra\/[^/]+\/receber$/) && method === 'POST')  return handleReceberSolicitacao(req, pathname.split('/')[3], body, res);
-
-  // ── Manutenção de Equipamentos ──
-  if (pathname === '/api/manutencoes' && method === 'GET')  return handleListManutencoes(parsedUrl.query, res);
-  if (pathname === '/api/manutencoes' && method === 'POST') return handlePostManutencao(req, body, res);
-  if (pathname.match(/^\/api\/manutencoes\/[^/]+$/) && method === 'PUT')    return handlePutManutencao(pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/manutencoes\/[^/]+$/) && method === 'DELETE') return handleDeleteManutencao(pathname.split('/')[3], res);
-  if (pathname.match(/^\/api\/manutencoes\/[^/]+\/retorno$/) && method === 'POST')  return handleRetornoManutencao(req, pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/manutencoes\/[^/]+\/cancelar$/) && method === 'POST') return handleCancelarManutencao(req, pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/manutencoes\/[^/]+\/avaliar$/)  && method === 'POST') return handleAvaliarManutencao(req, pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/manutencoes\/[^/]+\/aprovar$/)  && method === 'POST') return handleAprovarManutencao(req, pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/manutencoes\/[^/]+\/rejeitar$/) && method === 'POST') return handleRejeitarManutencao(req, pathname.split('/')[3], body, res);
-
-  // ── Frota / Veículos ──
-  if (pathname === '/api/veiculos' && method === 'GET')  return handleListVeiculos(res);
-  if (pathname === '/api/veiculos' && method === 'POST') return handlePostVeiculo(body, res);
-  if (pathname.match(/^\/api\/veiculos\/[^/]+$/) && method === 'PUT')    return handlePutVeiculo(pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/veiculos\/[^/]+$/) && method === 'DELETE') return handleDeleteVeiculo(pathname.split('/')[3], res);
-  if (pathname.match(/^\/api\/veiculos\/[^/]+\/km$/) && method === 'PUT')           return handlePutVeiculoKm(pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/veiculos\/[^/]+\/localizacao$/) && method === 'PUT')  return handlePutVeiculoLocalizacao(pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/veiculos\/[^/]+\/planos$/) && method === 'POST')                 return handlePostVeiculoPlano(pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/veiculos\/[^/]+\/planos\/[^/]+$/) && method === 'PUT')           return handlePutVeiculoPlano(pathname.split('/')[3], pathname.split('/')[5], body, res);
-  if (pathname.match(/^\/api\/veiculos\/[^/]+\/planos\/[^/]+$/) && method === 'DELETE')        return handleDeleteVeiculoPlano(pathname.split('/')[3], pathname.split('/')[5], res);
-  if (pathname.match(/^\/api\/veiculos\/[^/]+\/manutencoes$/) && method === 'POST')            return handlePostVeiculoManutencao(req, pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/veiculos\/[^/]+\/manutencoes\/[^/]+$/) && method === 'PUT')      return handlePutVeiculoManutencao(pathname.split('/')[3], pathname.split('/')[5], body, res);
-  if (pathname.match(/^\/api\/veiculos\/[^/]+\/manutencoes\/[^/]+$/) && method === 'DELETE')   return handleDeleteVeiculoManutencao(pathname.split('/')[3], pathname.split('/')[5], res);
-
-  // Dashboard layouts (por usuário)
-  if (pathname === '/api/dashboard/layouts' && method === 'GET')  return handleListDashLayouts(req, res);
-  if (pathname === '/api/dashboard/layouts' && method === 'POST') return handlePostDashLayout(req, body, res);
-  if (pathname.match(/^\/api\/dashboard\/layouts\/[^/]+$/) && method === 'PUT')    return handlePutDashLayout(req, pathname.split('/')[4], body, res);
-  if (pathname.match(/^\/api\/dashboard\/layouts\/[^/]+$/) && method === 'DELETE') return handleDeleteDashLayout(req, pathname.split('/')[4], res);
-
-  // Doc Templates routes
-  if (pathname === '/api/doc-templates' && method === 'GET') return handleGetDocTemplates(res);
-  if (pathname === '/api/doc-templates' && method === 'POST') return handlePostDocTemplate(body, res);
-  if (pathname.match(/^\/api\/doc-templates\/[^/]+$/) && method === 'PUT') return handlePutDocTemplate(pathname.split('/')[3], body, res);
-  if (pathname.match(/^\/api\/doc-templates\/[^/]+$/) && method === 'DELETE') return handleDeleteDocTemplate(pathname.split('/')[3], res);
 
   // ── F6: Anomaly detection ──
   if (pathname === '/api/anomalias' && method === 'GET') return handleGetAnomalias(res);

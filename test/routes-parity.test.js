@@ -403,3 +403,70 @@ test('routes/comercial.js — proposta/:id não engole as sub-rotas (docx etc.)'
   assert.equal(getProp, 'P1');
   assert.equal(getDocx, 'P1');
 });
+
+// ─── routes/operacao.js (recursos, documentos, estoque, solicitações, ────────
+//     manutenções, frota, dashboard-layouts, doc-templates) ──────────────────
+
+test('routes/operacao.js — registra exatamente as 67 rotas de operação', () => {
+  const router = createRouter();
+  require('../routes/operacao')(router, {});
+  const rotas = router.list().map(r => `${r.method} ${r.pattern}`).sort();
+  assert.deepEqual(rotas, [
+    'DELETE /api/dashboard/layouts/:id', 'DELETE /api/doc-templates/:id',
+    'DELETE /api/estoque/almoxarifados/:id', 'DELETE /api/estoque/itens/:id',
+    'DELETE /api/estoque/movimentacoes/:id', 'DELETE /api/manutencoes/:id',
+    'DELETE /api/recursos/:id', 'DELETE /api/recursos/:id/documentos/:docId',
+    'DELETE /api/recursos/:id/documentos/:docId/arquivo', 'DELETE /api/recursos/:id/folgas/:folgaId',
+    'DELETE /api/solicitacoes-compra/:id', 'DELETE /api/veiculos/:id',
+    'DELETE /api/veiculos/:id/manutencoes/:manutId', 'DELETE /api/veiculos/:id/planos/:planoId',
+    'GET /api/dashboard/layouts', 'GET /api/doc-templates', 'GET /api/documentos/status',
+    'GET /api/estoque/almoxarifados', 'GET /api/estoque/itens', 'GET /api/estoque/movimentacoes',
+    'GET /api/estoque/saldo', 'GET /api/estoque/visao-geral', 'GET /api/manutencoes',
+    'GET /api/recursos', 'GET /api/recursos/:id/documentos/:docId/arquivo',
+    'GET /api/solicitacoes-compra', 'GET /api/veiculos',
+    'POST /api/dashboard/layouts', 'POST /api/doc-templates', 'POST /api/estoque/almoxarifados',
+    'POST /api/estoque/itens', 'POST /api/estoque/movimentacoes', 'POST /api/manutencoes',
+    'POST /api/manutencoes/:id/aprovar', 'POST /api/manutencoes/:id/avaliar',
+    'POST /api/manutencoes/:id/cancelar', 'POST /api/manutencoes/:id/rejeitar',
+    'POST /api/manutencoes/:id/retorno', 'POST /api/recursos',
+    'POST /api/recursos/:id/documentos', 'POST /api/recursos/:id/documentos/:docId/arquivo',
+    'POST /api/recursos/:id/documentos/:docId/validar', 'POST /api/recursos/:id/folgas',
+    'POST /api/recursos/:id/folgas/:folgaId/passagem', 'POST /api/solicitacoes-compra',
+    'POST /api/solicitacoes-compra/:id/aprovar', 'POST /api/solicitacoes-compra/:id/avaliar',
+    'POST /api/solicitacoes-compra/:id/cancelar', 'POST /api/solicitacoes-compra/:id/comprar',
+    'POST /api/solicitacoes-compra/:id/receber', 'POST /api/solicitacoes-compra/:id/rejeitar',
+    'POST /api/veiculos', 'POST /api/veiculos/:id/manutencoes', 'POST /api/veiculos/:id/planos',
+    'PUT /api/dashboard/layouts/:id', 'PUT /api/doc-templates/:id',
+    'PUT /api/estoque/almoxarifados/:id', 'PUT /api/estoque/itens/:id',
+    'PUT /api/manutencoes/:id', 'PUT /api/recursos/:id',
+    'PUT /api/recursos/:id/documentos/:docId', 'PUT /api/solicitacoes-compra/:id',
+    'PUT /api/veiculos/:id', 'PUT /api/veiculos/:id/km', 'PUT /api/veiculos/:id/localizacao',
+    'PUT /api/veiculos/:id/manutencoes/:manutId', 'PUT /api/veiculos/:id/planos/:planoId',
+  ].sort());
+});
+
+test('routes/operacao.js — req injetado, sub-recursos aninhados e :param', () => {
+  const c = {};
+  const router = createRouter();
+  require('../routes/operacao')(router, {
+    handlePostManutencao:     (req, body, res)         => { c.postManut = [req, body, res]; },
+    handleAvaliarSolicitacao: (req, id, body, res)     => { c.avalSol = [req, id, body, res]; },
+    handlePutItemEstoque:     (id, body, res)          => { c.putItem = [id, body, res]; },
+    handlePutVeiculoPlano:    (id, planoId, body, res) => { c.putPlano = [id, planoId, body, res]; },
+    handleDeleteFolga:        (id, folgaId, res)       => { c.delFolga = [id, folgaId, res]; },
+  });
+  router.dispatch({ method: 'POST', pathname: '/api/manutencoes', req: 'REQ', body: 'B', res: 'R' });
+  assert.deepEqual(c.postManut, ['REQ', 'B', 'R']); // req cru no 1º arg
+
+  router.dispatch({ method: 'POST', pathname: '/api/solicitacoes-compra/S1/avaliar', req: 'REQ', body: 'B', res: 'R' });
+  assert.deepEqual(c.avalSol, ['REQ', 'S1', 'B', 'R']);
+
+  router.dispatch({ method: 'PUT', pathname: '/api/estoque/itens/IT9', body: 'B', res: 'R' });
+  assert.deepEqual(c.putItem, ['IT9', 'B', 'R']);
+
+  router.dispatch({ method: 'PUT', pathname: '/api/veiculos/V1/planos/P2', body: 'B', res: 'R' });
+  assert.deepEqual(c.putPlano, ['V1', 'P2', 'B', 'R']);
+
+  router.dispatch({ method: 'DELETE', pathname: '/api/recursos/R1/folgas/F2', res: 'R' });
+  assert.deepEqual(c.delFolga, ['R1', 'F2', 'R']);
+});
