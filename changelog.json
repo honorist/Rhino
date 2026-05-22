@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.2.66",
+      "date": "2026-05-22",
+      "summary": "Melhorias internas — modularização do roteamento (continuação)",
+      "changes": [
+        "Continuação do fortalecimento interno, sem nenhuma mudança visível no uso. Mais um bloco do roteamento do servidor foi modularizado (rotas de sistema: usuários, auditoria, saúde, métricas, notificações, busca, níveis de acesso). Nada muda nas telas; é apenas organização do código para evoluir com mais segurança."
+      ]
+    },
+    {
       "version": "1.2.65",
       "date": "2026-05-22",
       "summary": "Melhorias internas — testes automatizados e organização do código",
