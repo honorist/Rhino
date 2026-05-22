@@ -182,7 +182,10 @@ flowchart TD
       { k: 'contas-pg',  icon: '💸', label: 'Contas a Pagar' },
       { k: 'caixa',      icon: '💰', label: 'Caixa' },
       { k: 'recursos',   icon: '👥', label: 'Recursos e Folgas' },
+      { k: 'folha',      icon: '💵', label: 'Folha de Pagamento' },
       { k: 'estoque',    icon: '📦', label: 'Almoxarifado / Estoque' },
+      { k: 'compras',    icon: '🛒', label: 'Solicitações de Compra' },
+      { k: 'manutencao', icon: '🔧', label: 'Manutenção' },
       { k: 'aportes',    icon: '⬆️', label: 'Aportes / Investimentos' },
       { k: 'base',       icon: '🏢', label: 'BASE' },
       { k: 'usuarios',   icon: '🛡️', label: 'Usuários e Permissões' },
@@ -660,6 +663,25 @@ gantt
         <p class="man-p">A passagem fica vinculada à folga via <code>caixaEntryId</code> ou <code>contaPagarId</code> para rastreio futuro.</p>
       `,
 
+      folha: `
+        <h1 class="man-h1">💵 Folha de Pagamento</h1>
+        <p class="man-p">Controle mensal do pagamento dos colaboradores: salário, vale (adiantamento) e lançamentos de descontos e proventos.</p>
+
+        <h2 class="man-h2">Como funciona</h2>
+        <ol class="man-ol">
+          <li>A cada mês, clique em <strong>"Gerar folha"</strong> — o sistema cria uma linha por colaborador ativo.</li>
+          <li><strong>Vale</strong>: adiantamento de 40% para quem é marcado como "Elegível a vale" no cadastro do Recurso; vence no dia 20.</li>
+          <li><strong>Saldo</strong>: os 60% restantes, com vencimento no <strong>5º dia útil</strong> do mês seguinte.</li>
+          <li>Cada colaborador tem o link <strong>"Lançamentos"</strong> para registrar descontos (INSS, faltas, atrasos…) e proventos (hora extra, vale-alimentação…).</li>
+          <li>O líquido é recalculado automaticamente e gera lançamentos em <strong>Contas a Pagar</strong>.</li>
+        </ol>
+
+        <h2 class="man-h2">Itens prontos</h2>
+        <p class="man-p">O modal de Lançamentos traz itens com cálculo automático a partir do salário: INSS (tabela progressiva 2026), contribuição sindical, hora extra 50/60/70/100%, faltas, atrasos, D.S.R., vale-alimentação e participação nos lucros — todos editáveis.</p>
+
+        <div class="man-tip"><strong>Integração:</strong> pagar ou estornar uma parcela na Folha sincroniza automaticamente com Contas a Pagar e Caixa — sem risco de pagar em dobro.</div>
+      `,
+
       aportes: `
         <h1 class="man-h1">⬆️ Aportes / Investimentos</h1>
         <p class="man-p">Aportes capitalizam contratos ou a BASE da empresa. Podem vir de sócios ou do caixa da própria empresa.</p>
@@ -701,27 +723,31 @@ gantt
       `,
 
       usuarios: `
-        <h1 class="man-h1">🛡️ Usuários e Permissões</h1>
-        <p class="man-p">Hierarquia: <strong>Usuário</strong> tem <strong>Nível de acesso</strong>. Cada nível tem uma lista de abas permitidas.</p>
+        <h1 class="man-h1">🛡️ Usuários e Níveis de Acesso</h1>
+        <p class="man-p">Cada <strong>usuário</strong> recebe um <strong>nível de acesso</strong> (perfil), que define quais telas ele vê e o que pode editar.</p>
 
-        <h2 class="man-h2">Configurar permissões</h2>
+        <h2 class="man-h2">Matriz de Níveis de Acesso</h2>
+        <p class="man-p">Em <strong>Configuração → Níveis de Acesso</strong> a configuração é uma matriz: cada <strong>linha</strong> é uma tela do sistema e cada <strong>coluna</strong> é um perfil.</p>
+        <ul class="man-ul">
+          <li><strong>Ver</strong> — a tela aparece no menu lateral daquele perfil.</li>
+          <li><strong>Ed.</strong> — o perfil pode criar, editar e excluir naquela tela (validado também no servidor).</li>
+          <li><strong>Linhas recuadas</strong> são sub-permissões: as abas internas do Contrato e as etapas dos fluxos de Solicitação de Compra e Manutenção (avaliar, aprovar, receber). Têm um único interruptor, na coluna Ver.</li>
+          <li>Marque o que quiser e clique em <strong>Salvar alterações</strong> — grava todos os perfis alterados de uma vez.</li>
+        </ul>
+
+        <h2 class="man-h2">Criar e atribuir usuários</h2>
         <ol class="man-ol">
-          <li>Configuração → Níveis de Acesso</li>
-          <li>Marque/desmarque as abas em cada grupo (Principal, RH, Financeiro, Sistema)</li>
-          <li>Bonus: dentro do grupo "Abas dentro do Contrato" você pode liberar individualmente Visão Geral, Financeiro, Equipe, RDO, Pendências</li>
-          <li>Salve cada nível separadamente</li>
+          <li>Configuração → "Usuários e Logins" (ou o item "Usuários" no menu).</li>
+          <li>"+ Novo Usuário": email, senha (≥ 6 caracteres), nome e nível de acesso.</li>
+          <li>O usuário entra no perfil atribuído.</li>
         </ol>
 
-        <h2 class="man-h2">Criar usuários</h2>
-        <ol class="man-ol">
-          <li>Acesse "Usuários" no sidebar (ou pelo atalho na Configuração)</li>
-          <li>Clique "+ Novo Usuário"</li>
-          <li>Email + senha (≥ 6 caracteres) + nome + nível</li>
-          <li>O usuário entrará automaticamente no nível atribuído (não pode trocar)</li>
-        </ol>
+        <div class="man-tip">
+          <strong>Mudou uma permissão?</strong> Ela passa a valer no próximo carregamento da página do usuário — não precisa recriar o usuário nem fazer login de novo.
+        </div>
 
         <div class="man-warn">
-          <strong>Admin master:</strong> usuário <strong>sem nível</strong> tem acesso universal. Crie pelo menos um sempre. Por padrão o sistema cria <code>admin@rhino.local</code> no primeiro boot (env <code>ADMIN_EMAIL/ADMIN_PASSWORD</code>).
+          <strong>Administrador:</strong> um usuário <strong>sem perfil</strong> (super admin) tem acesso total. Mantenha sempre pelo menos um. No primeiro boot o sistema cria o admin a partir das variáveis <code>ADMIN_EMAIL/ADMIN_PASSWORD</code>.
         </div>
       `,
 
@@ -863,6 +889,54 @@ gantt
         <div class="man-warn">
           <strong>Quando usar 🟠 Corrigir saldo (em "Mais opções"):</strong> só pra correções de inventário (contagem física, perda, quebra). Para movimentações normais (compra/envio/uso), use sempre os botões coloridos — preserva o histórico contábil.
         </div>
+      `,
+
+      compras: `
+        <h1 class="man-h1">🛒 Solicitações de Compra</h1>
+        <p class="man-p">Fluxo de pedido de materiais e equipamentos — da solicitação até o recebimento, com avaliação da equipe de compras e aprovação gerencial.</p>
+
+        <h2 class="man-h2">As etapas</h2>
+        <ol class="man-ol">
+          <li><strong>Solicitar</strong> — qualquer pessoa cria a solicitação: itens (descrição, quantidade), destino (Sede ou obra) e justificativa. Cada item pode ser <strong>🛒 Compra</strong> ou <strong>🔑 Aluguel</strong>.</li>
+          <li><strong>Avaliar</strong> — a equipe de compras lança cotações por item, escolhe a vencedora e define o fornecedor.</li>
+          <li><strong>Aprovar</strong> — a gerência aprova ou rejeita o valor total.</li>
+          <li><strong>Receber</strong> — confirma o recebimento; a entrada no estoque e a conta a pagar são geradas.</li>
+        </ol>
+
+        <h2 class="man-h2">Quem faz cada etapa</h2>
+        <table class="man-table">
+          <tr><th>Etapa</th><th>Quem</th></tr>
+          <tr><td>Solicitar</td><td>Qualquer usuário</td></tr>
+          <tr><td>Avaliar e cotar</td><td>Equipe de compras (sub-permissão "Avaliar")</td></tr>
+          <tr><td>Aprovar / rejeitar</td><td>Gerência (sub-permissão "Aprovar")</td></tr>
+          <tr><td>Registrar recebimento</td><td>Sub-permissão "Receber"</td></tr>
+        </table>
+
+        <div class="man-tip"><strong>Permissões:</strong> as etapas são liberadas em Configuração → Níveis de Acesso, nas linhas recuadas abaixo de "Solicitações de Compra".</div>
+      `,
+
+      manutencao: `
+        <h1 class="man-h1">🔧 Manutenção de Equipamentos</h1>
+        <p class="man-p">Controla equipamentos enviados para reparo — máquina de solda, ferramentas e outros — com fluxo de aprovação parecido com o de Solicitação de Compra.</p>
+
+        <h2 class="man-h2">As etapas</h2>
+        <ol class="man-ol">
+          <li><strong>Solicitar</strong> — qualquer pessoa registra o equipamento e o problema/defeito.</li>
+          <li><strong>Avaliar</strong> — a equipe de compras define a oficina, o prazo (previsão de retorno) e o custo estimado.</li>
+          <li><strong>Aprovar</strong> — a gerência aprova ou rejeita.</li>
+          <li><strong>Registrar retorno</strong> — quando o equipamento volta, registra-se a data de retorno e o custo final.</li>
+        </ol>
+
+        <h2 class="man-h2">Status</h2>
+        <table class="man-table">
+          <tr><th>Status</th><th>Significa</th></tr>
+          <tr><td>📋 A avaliar</td><td>Solicitada; aguarda a equipe de compras</td></tr>
+          <tr><td>🟡 Aguardando aprovação</td><td>Avaliada; aguarda a gerência</td></tr>
+          <tr><td>🔧 Em manutenção</td><td>Aprovada; equipamento no reparo</td></tr>
+          <tr><td>✅ Retornado</td><td>Equipamento de volta</td></tr>
+        </table>
+
+        <div class="man-tip"><strong>Monitoramento:</strong> a tela mostra há quantos dias o equipamento está fora e destaca em vermelho os que passaram da previsão de retorno.</div>
       `,
 
       personalizar: `
