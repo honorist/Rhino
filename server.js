@@ -45,6 +45,7 @@ const registerAuth = require('./routes/auth');
 const registerPortal = require('./routes/portal');
 const registerPlatform = require('./routes/platform');
 const registerFinanceiro = require('./routes/financeiro');
+const registerComercial = require('./routes/comercial');
 const { validateBody, schemas, ValidationError } = require('./lib/validate');
 
 // Web Push — inicializa só se VAPID keys estiverem presentes
@@ -4787,6 +4788,11 @@ registerFinanceiro(apiRouter, {
   handleCobrancaHistorico, handleCobrancaProjecaoAtual, handleCobrancaMensal,
   handleImportarOfx,
 });
+registerComercial(apiRouter, {
+  handleGetClientes, handlePostCliente, handlePutCliente, handleDeleteCliente,
+  handleGetFornecedores, handlePostFornecedor, handlePutFornecedor, handleDeleteFornecedor,
+  handleGetClausulas, handlePostClausula, handlePutClausula, handleDeleteClausula,
+});
 
 function routeRequest(pathname, method, body, res, parsedUrl, req) {
   // Router modular — se o domínio já foi migrado, casa aqui e encerra.
@@ -4970,16 +4976,6 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
     return sendJson(res, { ok: true, message: `Backup iniciado — será enviado para ${BACKUP_EMAIL}` });
   }
 
-  // Clientes routes
-  if (pathname === '/api/clientes' && method === 'GET')  return handleGetClientes(res);
-  if (pathname === '/api/clientes' && method === 'POST') return handlePostCliente(body, res);
-  if (pathname.match(/^\/api\/clientes\/[^/]+$/) && method === 'PUT') {
-    return handlePutCliente(pathname.split('/')[3], body, res);
-  }
-  if (pathname.match(/^\/api\/clientes\/[^/]+$/) && method === 'DELETE') {
-    return handleDeleteCliente(pathname.split('/')[3], res);
-  }
-
   // ============ Propostas Comerciais ============
   if (pathname === '/api/propostas' && method === 'GET')  return handleGetPropostas(res);
   if (pathname === '/api/propostas' && method === 'POST') return handlePostProposta(body, res);
@@ -5046,16 +5042,6 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
     return handleGetPropostaPreview(pathname.split('/')[3], res);
   }
 
-  // ============ Cláusulas (biblioteca) ============
-  if (pathname === '/api/clausulas' && method === 'GET')  return handleGetClausulas(res, parsedUrl.query);
-  if (pathname === '/api/clausulas' && method === 'POST') return handlePostClausula(body, res);
-  if (pathname.match(/^\/api\/clausulas\/[^/]+$/) && method === 'PUT') {
-    return handlePutClausula(pathname.split('/')[3], body, res);
-  }
-  if (pathname.match(/^\/api\/clausulas\/[^/]+$/) && method === 'DELETE') {
-    return handleDeleteClausula(pathname.split('/')[3], res);
-  }
-
   // ============ Apresentação Global (configuração) ============
   if (pathname === '/api/app-settings/proposta_apresentacao' && method === 'GET')  return handleGetApresentacao(res);
   if (pathname === '/api/app-settings/proposta_apresentacao' && method === 'PUT')  return handlePutApresentacao(body, res);
@@ -5071,17 +5057,6 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   if (pathname.match(/^\/api\/case-logos\/[^/]+$/) && method === 'DELETE') {
     return handleDeleteCaseLogo(pathname.split('/')[3], res);
   }
-
-  // Fornecedores routes
-  if (pathname === '/api/fornecedores' && method === 'GET')  return handleGetFornecedores(res);
-  if (pathname === '/api/fornecedores' && method === 'POST') return handlePostFornecedor(body, res);
-  if (pathname.match(/^\/api\/fornecedores\/[^/]+$/) && method === 'PUT') {
-    return handlePutFornecedor(pathname.split('/')[3], body, res);
-  }
-  if (pathname.match(/^\/api\/fornecedores\/[^/]+$/) && method === 'DELETE') {
-    return handleDeleteFornecedor(pathname.split('/')[3], res);
-  }
-
 
   // Recursos routes
   if (pathname === '/api/recursos' && method === 'GET')  return handleGetRecursos(res);

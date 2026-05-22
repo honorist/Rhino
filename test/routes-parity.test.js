@@ -311,3 +311,43 @@ test('routes/financeiro.js — sub-recurso aninhado folha/:id/itens/:itemId', ()
   router.dispatch({ method: 'DELETE', pathname: '/api/folha-pagamento/F1/itens/I2', res: 'RES' });
   assert.deepEqual(args, ['F1', 'I2', 'RES']);
 });
+
+// ─── routes/comercial.js (clientes, fornecedores, cláusulas) ─────────────────
+
+test('routes/comercial.js — registra as 12 rotas de clientes/fornecedores/cláusulas', () => {
+  const router = createRouter();
+  require('../routes/comercial')(router, {});
+  const rotas = router.list().map(r => `${r.method} ${r.pattern}`).sort();
+  assert.deepEqual(rotas, [
+    'DELETE /api/clausulas/:id',
+    'DELETE /api/clientes/:id',
+    'DELETE /api/fornecedores/:id',
+    'GET /api/clausulas',
+    'GET /api/clientes',
+    'GET /api/fornecedores',
+    'POST /api/clausulas',
+    'POST /api/clientes',
+    'POST /api/fornecedores',
+    'PUT /api/clausulas/:id',
+    'PUT /api/clientes/:id',
+    'PUT /api/fornecedores/:id',
+  ]);
+});
+
+test('routes/comercial.js — cláusulas GET recebe (res, query); rotas :param ok', () => {
+  const c = {};
+  const router = createRouter();
+  require('../routes/comercial')(router, {
+    handleGetClausulas:     (res, query)    => { c.getClaus = [res, query]; },
+    handlePutCliente:       (id, body, res) => { c.putCli = [id, body, res]; },
+    handleDeleteFornecedor: (id, res)       => { c.delForn = [id, res]; },
+  });
+  router.dispatch({ method: 'GET', pathname: '/api/clausulas', res: 'RES', parsedUrl: { query: 'Q' } });
+  assert.deepEqual(c.getClaus, ['RES', 'Q']); // res antes de query
+
+  router.dispatch({ method: 'PUT', pathname: '/api/clientes/CL1', body: 'BODY', res: 'RES' });
+  assert.deepEqual(c.putCli, ['CL1', 'BODY', 'RES']);
+
+  router.dispatch({ method: 'DELETE', pathname: '/api/fornecedores/F1', res: 'RES' });
+  assert.deepEqual(c.delForn, ['F1', 'RES']);
+});
