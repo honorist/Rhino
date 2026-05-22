@@ -42,6 +42,7 @@ const recorrencia = require('./lib/recorrencia');
 const { sendJson, sendError } = require('./lib/http-respond');
 const { createRouter } = require('./lib/router');
 const registerAuth = require('./routes/auth');
+const registerPortal = require('./routes/portal');
 const { validateBody, schemas, ValidationError } = require('./lib/validate');
 
 // Web Push — inicializa só se VAPID keys estiverem presentes
@@ -4755,6 +4756,11 @@ registerAuth(apiRouter, {
   handleLogin, handleLogout, handleMe,
   handleForgotPassword, handleResetPassword, handleAcceptTerms,
 });
+registerPortal(apiRouter, {
+  handlePortalLogin, applyPortalAuth, handlePortalLogout,
+  handlePortalDashboard, handlePortalListPropostas,
+  handlePortalPropostaPdf, handlePortalPropostaDocx,
+});
 
 function routeRequest(pathname, method, body, res, parsedUrl, req) {
   // Router modular — se o domínio já foi migrado, casa aqui e encerra.
@@ -4762,18 +4768,11 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
 
   // ============ Rotas legadas (migração por domínio em andamento) ============
 
-  // ============ Portal do Cliente ============
-  if (pathname === '/api/portal/login' && method === 'POST') return handlePortalLogin(req, body, res);
+  // ============ Portal do Cliente — rotas em routes/portal.js ============
+  // Catch-all: /api/portal/* desconhecido → 404 do portal (após portal-auth).
   if (pathname.startsWith('/api/portal/')) {
     (async () => {
       if (await applyPortalAuth(req, res)) return;
-      if (pathname === '/api/portal/logout' && method === 'POST') return handlePortalLogout(req, res);
-      if (pathname === '/api/portal/dashboard' && method === 'GET') return handlePortalDashboard(req, res);
-      if (pathname === '/api/portal/propostas' && method === 'GET') return handlePortalListPropostas(req, res);
-      const mPdf = pathname.match(/^\/api\/portal\/propostas\/([^/]+)\/pdf$/);
-      if (mPdf && method === 'GET') return handlePortalPropostaPdf(req, mPdf[1], res);
-      const mDoc = pathname.match(/^\/api\/portal\/propostas\/([^/]+)\/docx$/);
-      if (mDoc && method === 'GET') return handlePortalPropostaDocx(req, mDoc[1], res);
       sendError(res, 404, 'Rota do portal não encontrada');
     })();
     return;
