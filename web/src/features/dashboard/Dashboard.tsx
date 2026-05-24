@@ -21,21 +21,42 @@ import {
   calcAReceberPagar,
   calcAportes,
   calcColaboradores,
+  calcCoberturaMeses,
   calcFaturadoMes,
+  calcFluxoMensal,
+  calcNfsSituacao,
+  calcPipeline,
   calcProspeccao,
+  calcScoreSaude,
   calcSparklines,
   primeiroNome,
   saudacao,
 } from './dashboardCalc';
+import EntradasPrevistasTable from './EntradasPrevistasTable';
+import FluxoCaixaChart from './FluxoCaixaChart';
+import NfsStatusCard from './NfsStatusCard';
+import PipelineCard from './PipelineCard';
 import { useRdosDashboard } from './queries';
+import RdosCard from './RdosCard';
+import ScoreCard from './ScoreCard';
 
-interface PontoSaldo {
+interface EntradaPrev {
+  nfId: string;
+  numero: string;
+  contractId: string;
+  contractName?: string;
+  contractClient?: string;
+  prazoRecebimento: number;
+  valor: number;
+}
+interface ProjecaoFuturaDia {
   data: string;
-  saldo: number;
+  entradas: EntradaPrev[];
 }
 interface DashboardData {
   caixaBalance?: number;
-  saldoProjetado?: PontoSaldo[];
+  projecaoFutura?: ProjecaoFuturaDia[];
+  totalContractValue?: number;
 }
 
 const VERDE = 'var(--color-success)';
@@ -43,16 +64,10 @@ const VERMELHO = '#E53E3E';
 const AMARELO = '#D97706';
 const NEUTRO = 'var(--color-text)';
 
-// ─── Sparkline SVG inline ──────────────────────────────────────────
 type Tone = 'pos' | 'neg' | 'warn' | 'neutral';
 
-function Sparkline({
-  values,
-  tone = 'neutral',
-}: {
-  values: number[];
-  tone?: Tone;
-}) {
+// ─── Sparkline SVG inline ──────────────────────────────────────────
+function Sparkline({ values, tone = 'neutral' }: { values: number[]; tone?: Tone }) {
   if (!values || values.length < 2) return null;
   const w = 80;
   const h = 26;
@@ -69,28 +84,10 @@ function Sparkline({
     })
     .join(' ');
   const color =
-    tone === 'pos'
-      ? '#16A34A'
-      : tone === 'neg'
-        ? '#DC2626'
-        : tone === 'warn'
-          ? '#D97706'
-          : '#64748B';
+    tone === 'pos' ? '#16A34A' : tone === 'neg' ? '#DC2626' : tone === 'warn' ? '#D97706' : '#64748B';
   return (
-    <svg
-      viewBox={`0 0 ${w} ${h}`}
-      preserveAspectRatio="none"
-      style={{ width: w, height: h }}
-      aria-hidden="true"
-    >
-      <polyline
-        points={points}
-        fill="none"
-        stroke={color}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: w, height: h }} aria-hidden="true">
+      <polyline points={points} fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -99,89 +96,32 @@ function Sparkline({
 interface KpiCardProps {
   label: string;
   value: string;
-  /** Texto secundário (subtítulo). */
   meta?: string;
-  /** Cor do valor principal. */
   tone?: Tone;
-  /** Link de navegação. */
   href?: string;
-  /** Sparkline opcional. */
   spark?: number[];
-  /** Tooltip ao passar mouse. */
   title?: string;
 }
 
 function KpiCard({ label, value, meta, tone, href, spark, title }: KpiCardProps) {
   const valueColor =
-    tone === 'pos'
-      ? VERDE
-      : tone === 'neg'
-        ? VERMELHO
-        : tone === 'warn'
-          ? AMARELO
-          : NEUTRO;
-
+    tone === 'pos' ? VERDE : tone === 'neg' ? VERMELHO : tone === 'warn' ? AMARELO : NEUTRO;
   const content = (
-    <Card
-      style={{
-        padding: 'var(--sp-md)',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 4,
-      }}
-      title={title}
-    >
-      <div
-        className="text-muted"
-        style={{
-          fontSize: 11,
-          textTransform: 'uppercase',
-          letterSpacing: '.04em',
-          fontWeight: 600,
-        }}
-      >
+    <Card style={{ padding: 'var(--sp-md)', height: '100%', display: 'flex', flexDirection: 'column', gap: 4 }} title={title}>
+      <div className="text-muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', fontWeight: 600 }}>
         {label}
       </div>
-      <div
-        style={{
-          fontSize: 22,
-          fontWeight: 800,
-          color: valueColor,
-          lineHeight: 1.1,
-        }}
-      >
-        {value}
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginTop: 'auto',
-        }}
-      >
-        <span
-          className="text-muted"
-          style={{
-            fontSize: 12,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
+      <div style={{ fontSize: 22, fontWeight: 800, color: valueColor, lineHeight: 1.1 }}>{value}</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+        <span className="text-muted" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {meta ?? ''}
         </span>
         {spark && <Sparkline values={spark} tone={tone} />}
       </div>
     </Card>
   );
-
   return href ? (
-    <Link
-      to={href}
-      style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
-    >
+    <Link to={href} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
       {content}
     </Link>
   ) : (
@@ -238,14 +178,7 @@ export default function Dashboard() {
       notasFiscais: nfsQuery.data ?? [],
       contasPagar: cpQuery.data ?? [],
     });
-  }, [
-    carregado,
-    contractsQuery.data,
-    caixaQuery.data,
-    saidasQuery.data,
-    nfsQuery.data,
-    cpQuery.data,
-  ]);
+  }, [carregado, contractsQuery.data, caixaQuery.data, saidasQuery.data, nfsQuery.data, cpQuery.data]);
 
   if (!carregado || !indicadores) {
     return <Spinner label="Carregando dashboard..." />;
@@ -268,28 +201,43 @@ export default function Dashboard() {
     (cpQuery.data ?? []) as unknown as Record<string, unknown>[],
   );
   const sparks = calcSparklines(caixa as unknown as Record<string, unknown>[]);
+  const pipeline = calcPipeline(
+    (nfsQuery.data ?? []) as unknown as Record<string, unknown>[],
+    (saidasQuery.data ?? []) as unknown as Record<string, unknown>[],
+  );
+  const nfsSituacao = calcNfsSituacao((nfsQuery.data ?? []) as unknown as Record<string, unknown>[]);
+  const fluxoMensal = calcFluxoMensal(caixa as unknown as Record<string, unknown>[]);
+  const coberturaMeses = calcCoberturaMeses(saldo, caixa as unknown as Record<string, unknown>[]);
+
+  // Taxa de despesa = total saídas ÷ total contratado × 100
+  const totalSaidas = (saidasQuery.data ?? []).reduce(
+    (s, sd) => s + (Number((sd as { value?: unknown }).value) || 0),
+    0,
+  );
+  const totalContratado = dash.totalContractValue ?? indicadores.totalContratado;
+  const taxaDespesa = totalContratado > 0 ? (totalSaidas / totalContratado) * 100 : 0;
+  const scoreSaude = calcScoreSaude(taxaDespesa, indicadores.margemMedia, saldo);
 
   const rdoStats = rdosQuery.data?.stats;
   const rdosAtrasados = (rdoStats?.aderenciaDiaria ?? []).reduce(
-    (s: number, d) => s + Math.max(0, (d.esperados || 0) - (d.feitos || 0)),
+    (s: number, d: { esperados?: number; feitos?: number }) =>
+      s + Math.max(0, (d.esperados || 0) - (d.feitos || 0)),
     0,
   );
 
-  // ─── Header: saudação personalizada ───
+  // ─── Header: saudação ───
   const horaH = new Date().getHours();
   const user = meQuery.data?.user;
   const nome = primeiroNome(user?.name ?? user?.email ?? null);
   const subParts: string[] = [];
   subParts.push(saldo >= 0 ? 'Caixa positivo' : 'Caixa negativo');
-  const bmsAguard =
-    nfsQuery.data?.filter((n) => !(n as { emitida?: unknown }).emitida).length ?? 0;
+  const bmsAguard = nfsQuery.data?.filter((n) => !(n as { emitida?: unknown }).emitida).length ?? 0;
   if (bmsAguard > 0) subParts.push(`${bmsAguard} BM${bmsAguard !== 1 ? 's' : ''} aguardando emissão`);
   if (rdosAtrasados > 0)
     subParts.push(`${rdosAtrasados} RDO${rdosAtrasados !== 1 ? 's' : ''} atrasado${rdosAtrasados !== 1 ? 's' : ''}`);
 
   const margem = indicadores.margemMedia;
-  const margemTone: Tone =
-    margem > 20 ? 'pos' : margem > 0 ? 'warn' : 'neg';
+  const margemTone: Tone = margem > 20 ? 'pos' : margem > 0 ? 'warn' : 'neg';
 
   return (
     <>
@@ -302,106 +250,64 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Grid de 9 KPIs */}
+      {/* HERO: Score + KPIs lado a lado */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: 'var(--sp-md)',
-          marginBottom: 'var(--sp-lg)',
+          gridTemplateColumns: 'minmax(320px, 1fr) minmax(0, 2fr)',
+          gap: 'var(--sp-lg)',
+          marginBottom: 'var(--sp-xl)',
         }}
       >
-        <KpiCard
-          label="Saldo em caixa"
-          value={formatBRLk(saldo)}
-          tone={saldo >= 0 ? 'pos' : 'neg'}
-          meta={saldo >= 0 ? 'caixa positivo' : 'caixa negativo'}
-          spark={sparks.saldo}
-          href="/caixa"
-          title={`${formatBRL(saldo)} — saldo histórico (todas as entradas menos saídas)`}
+        <ScoreCard
+          score={scoreSaude}
+          margemPct={margem}
+          taxaPct={taxaDespesa}
+          coberturaMeses={coberturaMeses}
+          contratosAtivos={indicadores.contratosAtivos}
         />
-        <KpiCard
-          label="A receber (NFs)"
-          value={formatBRLk(arp.totalAReceber)}
-          meta={`${arp.nfsEmitidas} emitidas · ${arp.nfsPendentes} pendentes`}
-          spark={sparks.entradasAcum}
-          tone="pos"
-          href="/notas-fiscais"
-          title={`${formatBRL(arp.totalAReceber)} — NFs emitidas sem recebimento.`}
-        />
-        <KpiCard
-          label="A pagar (30d)"
-          value={formatBRLk(arp.totalAPagar30d)}
-          tone={arp.totalAPagar30d > 0 ? 'warn' : 'neutral'}
-          meta={`${arp.cp30dCount} lançamento${arp.cp30dCount !== 1 ? 's' : ''}`}
-          spark={sparks.saidasAcum}
-          href="/contas-pagar"
-          title={`${formatBRL(arp.totalAPagar30d)} — contas pendentes ≤ 30 dias.`}
-        />
-        <KpiCard
-          label="Faturado (mês)"
-          value={formatBRLk(faturado.faturadoMes)}
-          tone={faturado.deltaPct >= 0 ? 'pos' : 'neg'}
-          meta={
-            faturado.faturadoMesAnt > 0
-              ? `${faturado.deltaPct >= 0 ? '+' : ''}${faturado.deltaPct.toFixed(1)}% vs mês ant.`
-              : 'sem comparativo'
-          }
-          spark={sparks.entradaDia}
-          href="/caixa"
-          title={`${formatBRL(faturado.faturadoMes)} — entradas do mês corrente.`}
-        />
-        <KpiCard
-          label="Margem média"
-          value={`${margem.toFixed(1)}%`}
-          tone={margemTone}
-          meta={`${indicadores.contratosAtivos} contrato${indicadores.contratosAtivos !== 1 ? 's' : ''} ativo${indicadores.contratosAtivos !== 1 ? 's' : ''}`}
-          href="/contratos"
-          title="Média das margens dos contratos ativos: (valor − saídas) ÷ valor × 100"
-        />
-        <KpiCard
-          label="Prospecção"
-          value={String(prospeccao.prospeccaoTotal)}
-          tone={prospeccao.prospeccaoTotal > 0 ? 'warn' : 'neutral'}
-          meta={`${prospeccao.rascunho} rascunho · ${prospeccao.enviada} enviada${prospeccao.aceita > 0 ? ' · ' + prospeccao.aceita + ' aceita' : ''}`}
-          href="/proposta"
-          title={`${prospeccao.prospeccaoTotal} proposta(s) em prospecção${prospeccao.valorPotencial > 0 ? ` · valor potencial ${formatBRL(prospeccao.valorPotencial)}` : ''}.`}
-        />
-        <KpiCard
-          label="Aportes acumulados"
-          value={formatBRLk(aportesTotal)}
-          meta="sócios + empresa"
-          tone="pos"
-          href="/socios"
-          title={`${formatBRL(aportesTotal)} — capital próprio histórico.`}
-        />
-        <KpiCard
-          label="Colaboradores"
-          value={String(colab.ativos)}
-          tone={colab.ativos > 0 ? 'pos' : 'neutral'}
-          meta={
-            colab.candidatos > 0
-              ? `+ ${colab.candidatos} candidato${colab.candidatos !== 1 ? 's' : ''}`
-              : 'ativos'
-          }
-          href="/recursos"
-          title={`${colab.ativos} funcionário(s) ativo(s).${colab.candidatos > 0 ? ` ${colab.candidatos} candidato(s) no pipeline.` : ''}`}
-        />
-        {rdoStats && (
-          <KpiCard
-            label={`Aderência RDO ${rdoStats.diasUteisAvaliados}d`}
-            value={`${rdoStats.aderencia7d}%`}
-            tone={rdoStats.aderencia7d >= 80 ? 'pos' : rdoStats.aderencia7d >= 50 ? 'warn' : 'neg'}
-            meta={
-              rdosAtrasados > 0
-                ? `${rdosAtrasados} RDO${rdosAtrasados !== 1 ? 's' : ''} atrasado${rdosAtrasados !== 1 ? 's' : ''}`
-                : 'tudo em dia'
-            }
-            spark={(rdoStats.aderenciaDiaria ?? []).map((d: { pct: number }) => d.pct)}
-            href="/rdos"
-            title={`Aderência = RDOs lançados ÷ (obras × ${rdoStats.diasUteisAvaliados} dias úteis avaliados) × 100. Verde ≥80%, amarelo 50-79%, vermelho <50%.`}
-          />
-        )}
+
+        {/* Grid de 9 KPIs */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: 'var(--sp-md)',
+          }}
+        >
+          <KpiCard label="Saldo em caixa" value={formatBRLk(saldo)} tone={saldo >= 0 ? 'pos' : 'neg'} meta={saldo >= 0 ? 'caixa positivo' : 'caixa negativo'} spark={sparks.saldo} href="/caixa" title={`${formatBRL(saldo)} — saldo histórico`} />
+          <KpiCard label="A receber (NFs)" value={formatBRLk(arp.totalAReceber)} meta={`${arp.nfsEmitidas} emitidas · ${arp.nfsPendentes} pendentes`} spark={sparks.entradasAcum} tone="pos" href="/notas-fiscais" title={`${formatBRL(arp.totalAReceber)}`} />
+          <KpiCard label="A pagar (30d)" value={formatBRLk(arp.totalAPagar30d)} tone={arp.totalAPagar30d > 0 ? 'warn' : 'neutral'} meta={`${arp.cp30dCount} lançamento${arp.cp30dCount !== 1 ? 's' : ''}`} spark={sparks.saidasAcum} href="/contas-pagar" title={`${formatBRL(arp.totalAPagar30d)}`} />
+          <KpiCard label="Faturado (mês)" value={formatBRLk(faturado.faturadoMes)} tone={faturado.deltaPct >= 0 ? 'pos' : 'neg'} meta={faturado.faturadoMesAnt > 0 ? `${faturado.deltaPct >= 0 ? '+' : ''}${faturado.deltaPct.toFixed(1)}% vs mês ant.` : 'sem comparativo'} spark={sparks.entradaDia} href="/caixa" title={`${formatBRL(faturado.faturadoMes)}`} />
+          <KpiCard label="Margem média" value={`${margem.toFixed(1)}%`} tone={margemTone} meta={`${indicadores.contratosAtivos} contrato${indicadores.contratosAtivos !== 1 ? 's' : ''} ativo${indicadores.contratosAtivos !== 1 ? 's' : ''}`} href="/contratos" />
+          <KpiCard label="Prospecção" value={String(prospeccao.prospeccaoTotal)} tone={prospeccao.prospeccaoTotal > 0 ? 'warn' : 'neutral'} meta={`${prospeccao.rascunho} rascunho · ${prospeccao.enviada} enviada${prospeccao.aceita > 0 ? ' · ' + prospeccao.aceita + ' aceita' : ''}`} href="/proposta" />
+          <KpiCard label="Aportes acumulados" value={formatBRLk(aportesTotal)} meta="sócios + empresa" tone="pos" href="/socios" />
+          <KpiCard label="Colaboradores" value={String(colab.ativos)} tone={colab.ativos > 0 ? 'pos' : 'neutral'} meta={colab.candidatos > 0 ? `+ ${colab.candidatos} candidato${colab.candidatos !== 1 ? 's' : ''}` : 'ativos'} href="/recursos" />
+          {rdoStats && (
+            <KpiCard
+              label={`Aderência RDO ${rdoStats.diasUteisAvaliados}d`}
+              value={`${rdoStats.aderencia7d}%`}
+              tone={rdoStats.aderencia7d >= 80 ? 'pos' : rdoStats.aderencia7d >= 50 ? 'warn' : 'neg'}
+              meta={rdosAtrasados > 0 ? `${rdosAtrasados} RDO${rdosAtrasados !== 1 ? 's' : ''} atrasado${rdosAtrasados !== 1 ? 's' : ''}` : 'tudo em dia'}
+              spark={(rdoStats.aderenciaDiaria ?? []).map((d: { pct: number }) => d.pct)}
+              href="/rdos"
+            />
+          )}
+        </div>
+      </div>
+
+      {/* 2 colunas: ESQ Pipeline · DIR Card RDOs */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)',
+          gap: 'var(--sp-lg)',
+          marginBottom: 'var(--sp-xl)',
+          alignItems: 'start',
+        }}
+      >
+        <PipelineCard pipeline={pipeline} />
+        {rdoStats && <RdosCard stats={rdoStats} />}
       </div>
 
       {/* Alertas */}
@@ -417,55 +323,50 @@ export default function Dashboard() {
                 display: 'flex',
                 gap: 'var(--sp-sm)',
                 padding: '8px 0',
-                borderBottom:
-                  i < indicadores.riscos.length - 1
-                    ? '1px solid var(--color-border)'
-                    : undefined,
+                borderBottom: i < indicadores.riscos.length - 1 ? '1px solid var(--color-border)' : undefined,
                 fontSize: 14,
               }}
             >
-              <span
-                style={{
-                  fontWeight: 700,
-                  color: r.sev === 'Alta' ? VERMELHO : r.sev === 'Média' ? AMARELO : 'var(--color-text-muted)',
-                  minWidth: 60,
-                }}
-              >
+              <span style={{ fontWeight: 700, color: r.sev === 'Alta' ? VERMELHO : r.sev === 'Média' ? AMARELO : 'var(--color-text-muted)', minWidth: 60 }}>
                 {r.sev}
               </span>
               <span style={{ flex: 1 }}>{r.desc}</span>
-              {r.impacto > 0 && (
-                <strong style={{ color: VERMELHO }}>{formatBRL(r.impacto)}</strong>
-              )}
+              {r.impacto > 0 && <strong style={{ color: VERMELHO }}>{formatBRL(r.impacto)}</strong>}
             </div>
           ))}
         </Card>
       )}
 
+      {/* Gráfico Fluxo de Caixa */}
+      <Card style={{ padding: 'var(--sp-lg)', marginBottom: 'var(--sp-lg)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--sp-md)' }}>
+          <h3 style={{ margin: 0, fontSize: 16 }}>Fluxo de Caixa — últimos 6 meses</h3>
+          <div style={{ display: 'flex', gap: 16, fontSize: 12, color: '#64748B' }}>
+            <span><span style={{ display: 'inline-block', width: 12, height: 3, background: '#F0B429', verticalAlign: 'middle', marginRight: 4 }} /> Realizado</span>
+            <span><span style={{ display: 'inline-block', width: 12, height: 3, background: '#60A5FA', verticalAlign: 'middle', marginRight: 4, borderTop: '2px dashed #60A5FA' }} /> Projetado</span>
+          </div>
+        </div>
+        <FluxoCaixaChart meses={fluxoMensal} saldoInicial={saldo} height={280} />
+      </Card>
+
+      {/* NFs Situação */}
+      <div style={{ marginBottom: 'var(--sp-lg)' }}>
+        <NfsStatusCard situacao={nfsSituacao} emitidas={arp.nfsEmitidas} />
+      </div>
+
+      {/* Tabela Entradas Previstas */}
+      {dash.projecaoFutura && dash.projecaoFutura.length > 0 && (
+        <div style={{ marginBottom: 'var(--sp-lg)' }}>
+          <EntradasPrevistasTable projecaoFutura={dash.projecaoFutura} />
+        </div>
+      )}
+
       {/* Atalhos */}
       <Card style={{ padding: 'var(--sp-lg)' }}>
         <h3 style={{ margin: '0 0 var(--sp-md)', fontSize: 15 }}>Atalhos</h3>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-            gap: 'var(--sp-sm)',
-          }}
-        >
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 'var(--sp-sm)' }}>
           {ATALHOS.map((a) => (
-            <Link
-              key={a.to}
-              to={a.to}
-              style={{
-                padding: '10px 12px',
-                background: 'var(--color-surface-2)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 6,
-                textDecoration: 'none',
-                color: 'var(--color-text)',
-                fontSize: 14,
-              }}
-            >
+            <Link key={a.to} to={a.to} style={{ padding: '10px 12px', background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 6, textDecoration: 'none', color: 'var(--color-text)', fontSize: 14 }}>
               {a.label}
             </Link>
           ))}

@@ -266,6 +266,44 @@ export function calcScoreSaude(
   return { score, label };
 }
 
+// ─── Fluxo mensal (entradas vs saídas dos últimos N meses) ───
+export interface MesFluxo {
+  label: string; // "Abr/26"
+  entradas: number;
+  saidas: number;
+}
+
+const MESES_ABR = [
+  'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+  'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez',
+];
+
+export function calcFluxoMensal(
+  caixa: readonly Reg[],
+  nMeses = 6,
+  hoje: Date = new Date(),
+): MesFluxo[] {
+  const out: MesFluxo[] = [];
+  for (let i = nMeses - 1; i >= 0; i--) {
+    const dt = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+    const proxMes = new Date(hoje.getFullYear(), hoje.getMonth() - i + 1, 1);
+    const ini = dt.toISOString().split('T')[0];
+    const fim = proxMes.toISOString().split('T')[0];
+    const entradas = caixa
+      .filter((e) => e.type === 'entrada' && String(e.date) >= ini && String(e.date) < fim)
+      .reduce((s, e) => s + n(e.value), 0);
+    const saidas = caixa
+      .filter((e) => e.type === 'saida' && String(e.date) >= ini && String(e.date) < fim)
+      .reduce((s, e) => s + n(e.value), 0);
+    out.push({
+      label: `${MESES_ABR[dt.getMonth()]}/${String(dt.getFullYear()).slice(-2)}`,
+      entradas,
+      saidas,
+    });
+  }
+  return out;
+}
+
 // ─── NFs Situação ───
 export interface NfsSituacao {
   vencidas: number;
