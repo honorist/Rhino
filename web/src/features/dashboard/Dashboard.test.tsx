@@ -9,29 +9,41 @@ function jsonResponse(data: unknown): Promise<Response> {
   return Promise.resolve(new Response(JSON.stringify(data), { status: 200 }));
 }
 
+/**
+ * Stub das APIs consumidas pelo Dashboard. Cada rota responde com um envelope
+ * vazio compatível para que o componente renderize sem erro.
+ */
 function stubApi() {
   vi.stubGlobal(
     'fetch',
     vi.fn((input: unknown) => {
       const url = String(input);
+      if (url.includes('/api/auth/me')) {
+        return jsonResponse({
+          user: {
+            id: 'u1',
+            email: 'honorio@x.com',
+            name: 'Honorio',
+            acceptedTermsAt: '2025-01-01',
+          },
+        });
+      }
       if (url.includes('/api/dashboard')) {
         return jsonResponse({
           caixaBalance: 1000,
-          saldoProjetado: [
-            { data: '2026-07-01', saldo: 900 },
-            { data: '2026-08-01', saldo: 800 },
-          ],
-          contasPagarStatus: { totalPendente: 100, pendentes: 1 },
+          saldoProjetado: [],
         });
       }
-      if (url.includes('/api/contracts'))
-        return jsonResponse({ contracts: [], saidas: [] });
+      if (url.includes('/api/contracts')) return jsonResponse({ contracts: [], saidas: [] });
       if (url.includes('/api/caixa')) return jsonResponse({ entries: [] });
-      if (url.includes('/api/notas-fiscais'))
-        return jsonResponse({ notas_fiscais: [] });
-      if (url.includes('/api/contas-pagar'))
-        return jsonResponse({ contas: [] });
-      return Promise.resolve(new Response('not found', { status: 404 }));
+      if (url.includes('/api/notas-fiscais')) return jsonResponse({ notas_fiscais: [] });
+      if (url.includes('/api/contas-pagar')) return jsonResponse({ contas: [] });
+      if (url.includes('/api/socios')) return jsonResponse({ socios: [] });
+      if (url.includes('/api/investimentos')) return jsonResponse({ investimentos: [] });
+      if (url.includes('/api/recursos')) return jsonResponse({ recursos: [] });
+      if (url.includes('/api/propostas')) return jsonResponse({ propostas: [] });
+      if (url.includes('/api/rdos')) return jsonResponse({ rdos: [], stats: null });
+      return Promise.resolve(new Response('{}', { status: 200 }));
     }),
   );
 }
@@ -55,13 +67,22 @@ afterEach(() => {
 });
 
 describe('Dashboard (view migrada)', () => {
-  it('carrega os KPIs e os atalhos', async () => {
+  it('carrega saudação personalizada e os 9 KPIs + atalhos', async () => {
     stubApi();
     renderView();
+    // Saudação dinâmica usa o primeiro nome do user mocado.
     expect(
-      await screen.findByRole('heading', { name: /Dashboard/ }),
+      await screen.findByRole('heading', { name: /Honorio/i }),
     ).toBeInTheDocument();
+    // KPIs principais (textos esperados):
     expect(screen.getByText('Saldo em caixa')).toBeInTheDocument();
+    expect(screen.getByText('A receber (NFs)')).toBeInTheDocument();
+    expect(screen.getByText('A pagar (30d)')).toBeInTheDocument();
+    expect(screen.getByText('Faturado (mês)')).toBeInTheDocument();
+    expect(screen.getByText('Margem média')).toBeInTheDocument();
+    expect(screen.getByText('Prospecção')).toBeInTheDocument();
+    expect(screen.getByText('Aportes acumulados')).toBeInTheDocument();
+    expect(screen.getByText('Colaboradores')).toBeInTheDocument();
     expect(screen.getByText('Atalhos')).toBeInTheDocument();
   });
 });

@@ -86,7 +86,7 @@ describe('App — shell e roteamento', () => {
     stubApi();
     renderAt('/dashboard');
     expect(
-      await screen.findByRole('heading', { name: /Dashboard/ }),
+      await screen.findByRole('heading', { name: /(Bom dia|Boa tarde|Boa noite)/i }),
     ).toBeInTheDocument();
   });
 
@@ -94,7 +94,7 @@ describe('App — shell e roteamento', () => {
     stubApi();
     renderAt('/');
     expect(
-      await screen.findByRole('heading', { name: /Dashboard/ }),
+      await screen.findByRole('heading', { name: /(Bom dia|Boa tarde|Boa noite)/i }),
     ).toBeInTheDocument();
   });
 
