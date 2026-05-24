@@ -1,8 +1,24 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import type { NavGroup, RouteDef } from '../../routes/config';
 import { GROUP_ROUTES, NAV_GROUPS, ROUTES } from '../../routes/config';
+import { podeAcessar, usePerfilStore } from '../../features/auth/perfilStore';
+
+/**
+ * Filtra rotas conforme o perfil ativo. Espelha o `perfil.podeAcessar()` do
+ * legacy. Sem perfil ativo (admin sem nível), libera tudo.
+ *
+ * Mapeia path-based (React) → hash-based (legacy) para conferir contra a
+ * lista de abas do nível de acesso, que está armazenada no formato `#/x`.
+ */
+function useRotasPermitidas(): RouteDef[] {
+  const perfil = usePerfilStore((s) => s.current);
+  return useMemo(
+    () => ROUTES.filter((r) => podeAcessar(perfil, '#' + r.path)),
+    [perfil],
+  );
+}
 
 const APP_VERSION = '2.0.0-react';
 
@@ -52,12 +68,13 @@ function NavItem({ route, onNavigate }: { route: RouteDef; onNavigate: () => voi
 // ─── Grupo colapsável ───
 function NavGroupSection({
   group,
+  items,
   onNavigate,
 }: {
   group: NavGroup;
+  items: RouteDef[];
   onNavigate: () => void;
 }) {
-  const items = GROUP_ROUTES[group.id];
   const { pathname } = useLocation();
   const hasActiveChild = items.some((route) => route.path === pathname);
   const [open, setOpen] = useState(() => readGroupOpen(group.id) || hasActiveChild);
@@ -97,10 +114,21 @@ function NavGroupSection({
 
 /** Menu lateral — itens de topo, grupos colapsáveis e Configuração. */
 export default function Sidebar({ onNavigate }: SidebarProps) {
-  const topLevel = ROUTES.filter(
+  const permitidas = useRotasPermitidas();
+
+  const topLevel = permitidas.filter(
     (route) => route.label && !route.group && route.path !== '/configuracao',
   );
-  const configRoute = ROUTES.find((route) => route.path === '/configuracao');
+  const configRoute = permitidas.find((route) => route.path === '/configuracao');
+
+  // Para cada grupo, mostra só as rotas do grupo que o perfil pode acessar.
+  // Grupo com zero filhos visíveis é omitido da sidebar.
+  const visibleGroups = NAV_GROUPS.map((group) => ({
+    group,
+    items: GROUP_ROUTES[group.id].filter((r) =>
+      permitidas.some((p) => p.path === r.path),
+    ),
+  })).filter((g) => g.items.length > 0);
 
   return (
     <nav id="sidebar" aria-label="Menu principal">
@@ -114,8 +142,13 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
         {topLevel.map((route) => (
           <NavItem key={route.path} route={route} onNavigate={onNavigate} />
         ))}
-        {NAV_GROUPS.map((group) => (
-          <NavGroupSection key={group.id} group={group} onNavigate={onNavigate} />
+        {visibleGroups.map(({ group, items }) => (
+          <NavGroupSection
+            key={group.id}
+            group={group}
+            items={items}
+            onNavigate={onNavigate}
+          />
         ))}
         {configRoute && <NavItem route={configRoute} onNavigate={onNavigate} />}
       </ul>

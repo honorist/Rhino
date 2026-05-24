@@ -21,7 +21,9 @@ const FAKE_NIVEL: NivelAcesso = {
   label: 'Gerente',
   icon: '👔',
   cor: '#7C3AED',
-  abas: [],
+  // Inclui as rotas que os testes do Sidebar verificam (Dashboard, Propostas,
+  // Contratos, Configuração). O filtro de Sidebar agora respeita `abas`.
+  abas: ['#/dashboard', '#/proposta', '#/contratos', '#/configuracao'],
 };
 
 function jsonResponse(data: unknown, status = 200): Promise<Response> {
