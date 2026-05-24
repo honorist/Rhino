@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import Card from '../../components/ui/Card';
@@ -23,7 +23,6 @@ import {
   calcColaboradores,
   calcCoberturaMeses,
   calcFaturadoMes,
-  calcFluxoMensal,
   calcNfsSituacao,
   calcPipeline,
   calcProspeccao,
@@ -53,11 +52,25 @@ interface ProjecaoFuturaDia {
   data: string;
   entradas: EntradaPrev[];
 }
+interface PontoHistorico {
+  data: string;
+  saldo: number;
+  label?: string;
+}
+interface PontoProjetado {
+  data: string;
+  saldo: number;
+}
 interface DashboardData {
   caixaBalance?: number;
   projecaoFutura?: ProjecaoFuturaDia[];
+  historicoCaixa?: PontoHistorico[];
+  saldoProjetado?: PontoProjetado[];
   totalContractValue?: number;
 }
+
+const PROJ_DAYS_OPTIONS = [30, 60, 90] as const;
+type ProjDays = (typeof PROJ_DAYS_OPTIONS)[number];
 
 const VERDE = 'var(--color-success)';
 const VERMELHO = '#E53E3E';
@@ -129,23 +142,13 @@ function KpiCard({ label, value, meta, tone, href, spark, title }: KpiCardProps)
   );
 }
 
-// ─── Atalhos ───────────────────────────────────────────────────────
-const ATALHOS: { to: string; label: string }[] = [
-  { to: '/contratos', label: '📋 Contratos' },
-  { to: '/proposta', label: '📄 Propostas' },
-  { to: '/rdos', label: '📝 RDOs' },
-  { to: '/caixa', label: '💰 Caixa' },
-  { to: '/contas-pagar', label: '💸 Contas a Pagar' },
-  { to: '/notas-fiscais', label: '✅ NFs' },
-  { to: '/relatorios', label: '📑 Relatório' },
-];
-
 /** Dashboard — visão consolidada (porte de js/views/Dashboard.js). */
 export default function Dashboard() {
   const meQuery = useCurrentUser();
+  const [projDays, setProjDays] = useState<ProjDays>(30);
   const dashQuery = useQuery({
-    queryKey: ['dashboard-home'],
-    queryFn: () => api.get<DashboardData>('/api/dashboard?projDays=30'),
+    queryKey: ['dashboard-home', projDays],
+    queryFn: () => api.get<DashboardData>(`/api/dashboard?projDays=${projDays}`),
   });
 
   const contractsQuery = useContracts();
@@ -206,8 +209,9 @@ export default function Dashboard() {
     (saidasQuery.data ?? []) as unknown as Record<string, unknown>[],
   );
   const nfsSituacao = calcNfsSituacao((nfsQuery.data ?? []) as unknown as Record<string, unknown>[]);
-  const fluxoMensal = calcFluxoMensal(caixa as unknown as Record<string, unknown>[]);
   const coberturaMeses = calcCoberturaMeses(saldo, caixa as unknown as Record<string, unknown>[]);
+  const historicoCaixa = dash.historicoCaixa ?? [];
+  const saldoProjetado = dash.saldoProjetado ?? [];
 
   // Taxa de despesa = total saídas ÷ total contratado × 100
   const totalSaidas = (saidasQuery.data ?? []).reduce(
@@ -337,16 +341,64 @@ export default function Dashboard() {
         </Card>
       )}
 
-      {/* Gráfico Fluxo de Caixa */}
+      {/* Gráfico Fluxo de Caixa — passado real + projeção 30/60/90 dias */}
       <Card style={{ padding: 'var(--sp-lg)', marginBottom: 'var(--sp-lg)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 'var(--sp-md)' }}>
-          <h3 style={{ margin: 0, fontSize: 16 }}>Fluxo de Caixa — últimos 6 meses</h3>
-          <div style={{ display: 'flex', gap: 16, fontSize: 12, color: '#64748B' }}>
-            <span><span style={{ display: 'inline-block', width: 12, height: 3, background: '#F0B429', verticalAlign: 'middle', marginRight: 4 }} /> Realizado</span>
-            <span><span style={{ display: 'inline-block', width: 12, height: 3, background: '#60A5FA', verticalAlign: 'middle', marginRight: 4, borderTop: '2px dashed #60A5FA' }} /> Projetado</span>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 'var(--sp-md)',
+            flexWrap: 'wrap',
+            gap: 12,
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: 16 }}>
+            Fluxo de Caixa — 30 dias passados + {projDays} dias projetados
+          </h3>
+          <div
+            style={{
+              display: 'inline-flex',
+              border: '1px solid var(--color-border)',
+              borderRadius: 6,
+              overflow: 'hidden',
+            }}
+            role="group"
+            aria-label="Dias de projeção"
+          >
+            {PROJ_DAYS_OPTIONS.map((d, i) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setProjDays(d)}
+                style={{
+                  padding: '6px 14px',
+                  border: 0,
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  background: projDays === d ? '#60A5FA' : 'transparent',
+                  color: projDays === d ? '#fff' : 'var(--color-text-muted)',
+                  borderRight: i < PROJ_DAYS_OPTIONS.length - 1 ? '1px solid var(--color-border)' : 0,
+                }}
+              >
+                {d}d
+              </button>
+            ))}
           </div>
         </div>
-        <FluxoCaixaChart meses={fluxoMensal} saldoInicial={saldo} height={280} />
+        {historicoCaixa.length === 0 ? (
+          <p className="text-muted" style={{ textAlign: 'center', padding: 'var(--sp-xl) 0' }}>
+            Sem dados de caixa para exibir.
+          </p>
+        ) : (
+          <FluxoCaixaChart
+            historico={historicoCaixa}
+            projecao={saldoProjetado}
+            saldoAtual={saldo}
+            height={300}
+          />
+        )}
       </Card>
 
       {/* NFs Situação */}
@@ -360,18 +412,6 @@ export default function Dashboard() {
           <EntradasPrevistasTable projecaoFutura={dash.projecaoFutura} />
         </div>
       )}
-
-      {/* Atalhos */}
-      <Card style={{ padding: 'var(--sp-lg)' }}>
-        <h3 style={{ margin: '0 0 var(--sp-md)', fontSize: 15 }}>Atalhos</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 'var(--sp-sm)' }}>
-          {ATALHOS.map((a) => (
-            <Link key={a.to} to={a.to} style={{ padding: '10px 12px', background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: 6, textDecoration: 'none', color: 'var(--color-text)', fontSize: 14 }}>
-              {a.label}
-            </Link>
-          ))}
-        </div>
-      </Card>
     </>
   );
 }

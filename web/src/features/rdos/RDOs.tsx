@@ -7,6 +7,7 @@ import Spinner from '../../components/ui/Spinner';
 import { Input, Select } from '../../components/ui/controls';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { downloadCsv } from '../../lib/downloadCsv';
+import RdoDetailModal from '../contracts/RdoDetailModal';
 import { useContracts } from '../contracts/queries';
 import { useRdos } from './queries';
 import type { Rdo, RdoStats } from './types';
@@ -199,11 +200,15 @@ function PickerContratoModal({ onClose }: { onClose: () => void }) {
 export default function RDOs() {
   const navigate = useNavigate();
   const rdosQuery = useRdos();
+  // Para abrir o RdoDetailModal precisamos do contrato + RDO completos
+  // (a lista global tem só sumário). Carregamos os contracts no mount.
+  const contractsQuery = useContracts();
 
   const [filterContract, setFilterContract] = useState('');
   const [filterMes, setFilterMes] = useState('');
   const [page, setPage] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [detailRdoId, setDetailRdoId] = useState<{ rdoId: string; contractId: string } | null>(null);
 
   const rdos = useMemo(() => rdosQuery.data?.rdos ?? [], [rdosQuery.data]);
   const stats = rdosQuery.data?.stats;
@@ -549,7 +554,9 @@ export default function RDOs() {
         columns={columns}
         rows={slice}
         rowKey={(r) => r.id}
-        onRowClick={(r) => navigate(`/contratos/${r.contractId}`)}
+        onRowClick={(r) =>
+          setDetailRdoId({ rdoId: r.id, contractId: r.contractId })
+        }
         emptyMessage="Nenhum RDO"
       />
 
@@ -589,6 +596,33 @@ export default function RDOs() {
       )}
 
       {pickerOpen && <PickerContratoModal onClose={() => setPickerOpen(false)} />}
+
+      {/* Modal de detalhe do RDO ao clicar numa linha */}
+      {detailRdoId &&
+        (() => {
+          const contract = (contractsQuery.data ?? []).find(
+            (c) => c.id === detailRdoId.contractId,
+          );
+          const rdo = contract
+            ? ((contract.rdos as Array<{ id?: string }> | undefined) ?? []).find(
+                (r) => r?.id === detailRdoId.rdoId,
+              )
+            : null;
+          if (!contract || !rdo) {
+            // Fallback: ainda carregando ou contrato/RDO sumiu — navega para
+            // o contrato pra não deixar o usuário travado.
+            navigate(`/contratos/${detailRdoId.contractId}`);
+            setDetailRdoId(null);
+            return null;
+          }
+          return (
+            <RdoDetailModal
+              rdo={rdo as Parameters<typeof RdoDetailModal>[0]['rdo']}
+              contract={contract}
+              onClose={() => setDetailRdoId(null)}
+            />
+          );
+        })()}
     </>
   );
 }

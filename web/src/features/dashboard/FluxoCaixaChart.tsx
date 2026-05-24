@@ -2,26 +2,35 @@ import { useEffect, useRef } from 'react';
 
 type ChartInstance = { destroy: () => void };
 
+export interface PontoHistorico {
+  data: string;
+  saldo: number;
+  label?: string;
+}
+export interface PontoProjetado {
+  data: string;
+  saldo: number;
+}
+
 interface FluxoCaixaChartProps {
-  /** Pontos passados (entrada/saída por mês). */
-  meses: { label: string; entradas: number; saidas: number }[];
-  /** Pontos projetados (linha tracejada). */
-  projecao?: { label: string; saldo: number }[];
-  /** Saldo inicial pra projeção começar. */
-  saldoInicial: number;
+  /** Histórico real (vem de /api/dashboard.historicoCaixa). */
+  historico: PontoHistorico[];
+  /** Projeção futura (vem de /api/dashboard.saldoProjetado). */
+  projecao: PontoProjetado[];
+  /** Saldo atual (último ponto antes da projeção). */
+  saldoAtual: number;
   height?: number;
 }
 
 /**
- * Gráfico de Fluxo de Caixa — entradas vs saídas (passado) + projeção
- * (futuro tracejado). Porte de renderChart() em js/views/Dashboard.js.
- * Chart.js é carregado por import dinâmico (code-split — só baixa quando
- * o Dashboard monta).
+ * Gráfico de Fluxo de Caixa — passado real + projeção futura tracejada.
+ * Porte fiel de renderChart() em js/views/Dashboard.js.
+ * Chart.js carregado via dynamic import (code-split).
  */
 export default function FluxoCaixaChart({
-  meses,
-  projecao = [],
-  saldoInicial,
+  historico,
+  projecao,
+  saldoAtual,
   height = 300,
 }: FluxoCaixaChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -36,32 +45,44 @@ export default function FluxoCaixaChart({
       const ctx = canvasRef.current?.getContext('2d');
       if (!ctx) return;
 
-      // Saldo acumulado mês a mês (linha sólida — passado)
-      let acumulado = 0;
-      const saldoPassado = meses.map((m) => {
-        acumulado += (m.entradas || 0) - (m.saidas || 0);
-        return acumulado;
-      });
+      // Helpers de label/format
+      const fmtDataCurta = (s: string) =>
+        new Date(s + 'T12:00:00').toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+        });
+      const fmtBRL = (v: number) =>
+        new Intl.NumberFormat('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        }).format(v);
+      const fmtBRLk = (v: number) =>
+        new Intl.NumberFormat('pt-BR', {
+          notation: 'compact',
+          style: 'currency',
+          currency: 'BRL',
+          maximumFractionDigits: 1,
+        }).format(v);
 
-      // Projeção (linha tracejada — futuro)
-      const labels = [
-        ...meses.map((m) => m.label),
-        ...projecao.map((p) => p.label),
+      const labelsPassado = historico.map((d) => d.label || fmtDataCurta(d.data));
+      const saldosPassado = historico.map((d) => d.saldo);
+      const labelsFuturo = ['Hoje', ...projecao.map((d) => fmtDataCurta(d.data))];
+
+      const totalPassado = labelsPassado.length;
+      const labels = [...labelsPassado, ...labelsFuturo.slice(1)];
+
+      // Padding: passado preenchido até totalPassado-1, depois null
+      const dataPassado: (number | null)[] = [
+        ...saldosPassado,
+        ...new Array(Math.max(0, labelsFuturo.length - 1)).fill(null),
       ];
-      const saldoProjeto: (number | null)[] = [
-        ...meses.map(() => null),
-        // Conecta com último valor passado se houver
-        saldoPassado.length > 0 ? saldoPassado[saldoPassado.length - 1] : saldoInicial,
-        ...projecao.slice(1).map((p) => p.saldo),
+      // Projeção: null até totalPassado-1, depois saldoAtual + projecao
+      const dataFuturo: (number | null)[] = [
+        ...new Array(totalPassado - 1).fill(null),
+        saldoAtual,
+        ...projecao.slice(1).map((d) => d.saldo),
       ];
 
-      // Padding pra alinhar arrays
-      const saldoPassadoPadded: (number | null)[] = [
-        ...saldoPassado,
-        ...projecao.map(() => null),
-      ];
-
-      // Destrói gráfico anterior se houver (re-render)
       chartRef.current?.destroy();
       chartRef.current = new Chart(ctx, {
         type: 'line',
@@ -69,48 +90,51 @@ export default function FluxoCaixaChart({
           labels,
           datasets: [
             {
-              label: 'Realizado',
-              data: saldoPassadoPadded,
+              label: 'Saldo realizado',
+              data: dataPassado,
               borderColor: '#F0B429',
-              backgroundColor: 'rgba(240,180,41,.1)',
+              backgroundColor: 'rgba(240,180,41,.08)',
               borderWidth: 2,
-              tension: 0.3,
-              fill: false,
-              pointRadius: 3,
+              pointRadius: 2,
               pointHoverRadius: 5,
+              pointBackgroundColor: '#F0B429',
+              tension: 0.4,
+              fill: true,
+              spanGaps: false,
             },
-            ...(projecao.length > 0
-              ? [
-                  {
-                    label: 'Projetado (NFs)',
-                    data: saldoProjeto,
-                    borderColor: '#60A5FA',
-                    backgroundColor: 'rgba(96,165,250,.1)',
-                    borderWidth: 2,
-                    borderDash: [6, 4],
-                    tension: 0.3,
-                    fill: false,
-                    pointRadius: 3,
-                    pointHoverRadius: 5,
-                  },
-                ]
-              : []),
+            {
+              label: 'Projeção (NFs)',
+              data: dataFuturo,
+              borderColor: '#60A5FA',
+              backgroundColor: 'rgba(96,165,250,.04)',
+              borderWidth: 2,
+              borderDash: [6, 4],
+              pointRadius: 3,
+              pointHoverRadius: 6,
+              pointBackgroundColor: '#60A5FA',
+              pointStyle: 'rectRot',
+              tension: 0.3,
+              fill: true,
+              spanGaps: false,
+            },
           ],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
           plugins: {
-            legend: { display: false },
+            legend: {
+              display: true,
+              position: 'top',
+              labels: { usePointStyle: true, padding: 16 },
+            },
             tooltip: {
               callbacks: {
                 label: (ctx) => {
                   const v = ctx.parsed.y;
                   if (v == null) return '';
-                  return `${ctx.dataset.label}: ${new Intl.NumberFormat('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                  }).format(v)}`;
+                  return ` ${ctx.dataset.label}: ${fmtBRL(v)}`;
                 },
               },
             },
@@ -118,12 +142,15 @@ export default function FluxoCaixaChart({
           scales: {
             y: {
               ticks: {
-                callback: (v) =>
-                  new Intl.NumberFormat('pt-BR', {
-                    notation: 'compact',
-                    style: 'currency',
-                    currency: 'BRL',
-                  }).format(Number(v) || 0),
+                callback: (v) => fmtBRLk(Number(v) || 0),
+              },
+            },
+            x: {
+              ticks: {
+                maxRotation: 45,
+                minRotation: 0,
+                autoSkip: true,
+                maxTicksLimit: 12,
               },
             },
           },
@@ -136,7 +163,7 @@ export default function FluxoCaixaChart({
       chartRef.current?.destroy();
       chartRef.current = null;
     };
-  }, [meses, projecao, saldoInicial]);
+  }, [historico, projecao, saldoAtual]);
 
   return (
     <div style={{ position: 'relative', height, width: '100%' }}>

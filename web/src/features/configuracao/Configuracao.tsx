@@ -1,6 +1,29 @@
-import { useState } from 'react';
+import { useState, type ComponentType } from 'react';
 import { Link } from 'react-router-dom';
 import Card from '../../components/ui/Card';
+import ArquivosSection from './sections/ArquivosSection';
+import AtualizacoesSection from './sections/AtualizacoesSection';
+import BackupSection from './sections/BackupSection';
+import DocTemplatesSection from './sections/DocTemplatesSection';
+import FeatureFlagsSection from './sections/FeatureFlagsSection';
+import LgpdSection from './sections/LgpdSection';
+import NiveisAcessoSection from './sections/NiveisAcessoSection';
+import PushSection from './sections/PushSection';
+import TiposCustoSection from './sections/TiposCustoSection';
+import TourSection from './sections/TourSection';
+
+const SECAO_COMPONENTS: Record<string, ComponentType> = {
+  tipos_custo: TiposCustoSection,
+  niveis_acesso: NiveisAcessoSection,
+  doc_templates: DocTemplatesSection,
+  arquivos: ArquivosSection,
+  backup: BackupSection,
+  feature_flags: FeatureFlagsSection,
+  notificacoes: PushSection,
+  lgpd: LgpdSection,
+  tour: TourSection,
+  atualizacoes: AtualizacoesSection,
+};
 
 interface Secao {
   k: string;
@@ -170,32 +193,38 @@ export default function Configuracao() {
           </div>
         </Card>
 
-        <Card style={{ padding: 'var(--sp-xl)' }}>
-          <h2 style={{ margin: '0 0 8px', fontSize: 20 }}>
-            {ativa.icon} {ativa.label}
-          </h2>
-          <p
-            className="text-muted"
-            style={{ margin: '0 0 var(--sp-lg)', fontSize: 14 }}
-          >
-            {ativa.descricao}
-          </p>
-          <div
-            style={{
-              background: 'rgba(245,158,11,.08)',
-              border: '1px solid #fcd34d',
-              borderRadius: 8,
-              padding: 'var(--sp-lg)',
-              fontSize: 14,
-              lineHeight: 1.6,
-            }}
-          >
-            <strong>🚧 Seção em migração.</strong>{' '}
-            A interface de "{ativa.label}" está sendo portada para React.
-            Enquanto isso, use a versão anterior do sistema para alterar essas
-            configurações — os dados são compartilhados.
-          </div>
-        </Card>
+        <div>
+          {(() => {
+            const Componente = SECAO_COMPONENTS[ativa.k];
+            return Componente ? (
+              <Componente />
+            ) : (
+              <Card style={{ padding: 'var(--sp-xl)' }}>
+                <h2 style={{ margin: '0 0 8px', fontSize: 20 }}>
+                  {ativa.icon} {ativa.label}
+                </h2>
+                <p
+                  className="text-muted"
+                  style={{ margin: '0 0 var(--sp-lg)', fontSize: 14 }}
+                >
+                  {ativa.descricao}
+                </p>
+                <div
+                  style={{
+                    background: 'rgba(245,158,11,.08)',
+                    border: '1px solid #fcd34d',
+                    borderRadius: 8,
+                    padding: 'var(--sp-lg)',
+                    fontSize: 14,
+                  }}
+                >
+                  <strong>🚧 Em construção.</strong> Esta seção ainda não foi
+                  portada para React.
+                </div>
+              </Card>
+            );
+          })()}
+        </div>
       </div>
     </>
   );

@@ -83,6 +83,5 @@ describe('Dashboard (view migrada)', () => {
     expect(screen.getByText('Prospecção')).toBeInTheDocument();
     expect(screen.getByText('Aportes acumulados')).toBeInTheDocument();
     expect(screen.getByText('Colaboradores')).toBeInTheDocument();
-    expect(screen.getByText('Atalhos')).toBeInTheDocument();
   });
 });

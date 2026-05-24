@@ -48,13 +48,32 @@ export default defineConfig({
       workbox: {
         // Precache só o shell — não inflar o cache com chunks pesados (mermaid,
         // jsPDF, leaflet) que entram via runtime.
-        globPatterns: ['**/*.{js,css,html,svg,ico,woff2}'],
+        globPatterns: ['**/*.{js,css,svg,ico,woff2}'],
         // O arquivo gerado pelo bundle pode passar de 2MB com sourcemaps;
         // garantimos margem.
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
+        // NetworkFirst pra navegação — garante que o usuário SEMPRE pega o
+        // index.html novo após um deploy, sem precisar limpar cache manualmente.
+        // Cache só serve como fallback offline.
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
+        // CRÍTICO p/ deploys: SW novo ativa IMEDIATAMENTE em vez de esperar
+        // todas as abas fecharem; e assume controle de páginas já abertas.
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
+          {
+            // index.html — NetworkFirst com timeout curto. Em qualquer
+            // navegação, tentamos buscar a versão nova primeiro; só usamos
+            // cache se a rede falhar (offline).
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'pages',
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 50, maxAgeSeconds: 24 * 60 * 60 },
+            },
+          },
           {
             // /api/* — workbox encurta para GET no padrão NetworkFirst.
             urlPattern: /\/api\/.*/i,
