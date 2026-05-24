@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { ChevronRight, LogOut } from 'lucide-react';
 import type { NavGroup, RouteDef } from '../../routes/config';
@@ -29,27 +29,6 @@ interface SidebarProps {
   onNavigate: () => void;
 }
 
-// ─── Persistência do estado aberto/fechado dos grupos ───
-function groupStorageKey(id: string): string {
-  return `rhino-group-${id}`;
-}
-
-function readGroupOpen(id: string): boolean {
-  try {
-    return JSON.parse(localStorage.getItem(groupStorageKey(id)) ?? 'false') === true;
-  } catch {
-    return false;
-  }
-}
-
-function writeGroupOpen(id: string, open: boolean): void {
-  try {
-    localStorage.setItem(groupStorageKey(id), JSON.stringify(open));
-  } catch {
-    /* localStorage indisponível — ignora silenciosamente */
-  }
-}
-
 // ─── Item de navegação (link) ───
 function NavItem({ route, onNavigate }: { route: RouteDef; onNavigate: () => void }) {
   const Icon = route.icon;
@@ -68,24 +47,23 @@ function NavItem({ route, onNavigate }: { route: RouteDef; onNavigate: () => voi
 }
 
 // ─── Grupo colapsável ───
+// Comportamento accordion EXCLUSIVO (porte do legacy): abrir um grupo fecha
+// os outros. Controlado pelo pai Sidebar via prop `open` + callback `onToggle`.
 function NavGroupSection({
   group,
   items,
   onNavigate,
+  open,
+  onToggle,
 }: {
   group: NavGroup;
   items: RouteDef[];
   onNavigate: () => void;
+  open: boolean;
+  onToggle: () => void;
 }) {
   const { pathname } = useLocation();
   const hasActiveChild = items.some((route) => route.path === pathname);
-  const [open, setOpen] = useState(() => readGroupOpen(group.id) || hasActiveChild);
-
-  const toggle = () => {
-    const next = !open;
-    setOpen(next);
-    writeGroupOpen(group.id, next);
-  };
 
   const GroupIcon = group.icon;
 
@@ -94,7 +72,7 @@ function NavGroupSection({
       <button
         type="button"
         className={hasActiveChild ? 'nav-group-header active' : 'nav-group-header'}
-        onClick={toggle}
+        onClick={onToggle}
         aria-expanded={open}
       >
         <span className="nav-icon">
@@ -114,9 +92,30 @@ function NavGroupSection({
   );
 }
 
+// Chave única que persiste o grupo aberto (accordion exclusivo).
+const ACCORDION_KEY = 'rhino-sb-open-group';
+
+function readOpenGroup(): string | null {
+  try {
+    return localStorage.getItem(ACCORDION_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeOpenGroup(id: string | null): void {
+  try {
+    if (id) localStorage.setItem(ACCORDION_KEY, id);
+    else localStorage.removeItem(ACCORDION_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Menu lateral — itens de topo, grupos colapsáveis e Configuração. */
 export default function Sidebar({ onNavigate }: SidebarProps) {
   const permitidas = useRotasPermitidas();
+  const { pathname } = useLocation();
 
   const topLevel = permitidas.filter(
     (route) => route.label && !route.group && route.path !== '/configuracao',
@@ -125,6 +124,31 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
 
   // Para cada grupo, mostra só as rotas do grupo que o perfil pode acessar.
   // Grupo com zero filhos visíveis é omitido da sidebar.
+  // Grupo aberto: o do salvado em localStorage, OU o grupo que tem rota ativa
+  // (prioriza rota ativa pra abrir automaticamente quando navega pra dentro).
+  const activeGroupId = (NAV_GROUPS.find((g) =>
+    GROUP_ROUTES[g.id].some((r) => r.path === pathname),
+  )?.id ?? null) as string | null;
+  const [openGroupId, setOpenGroupId] = useState<string | null>(
+    () => activeGroupId ?? readOpenGroup(),
+  );
+
+  // Mantém aberto o grupo da rota ativa quando navega pra dentro dele.
+  useEffect(() => {
+    if (activeGroupId && activeGroupId !== openGroupId) {
+      setOpenGroupId(activeGroupId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeGroupId]);
+
+  function toggleGroup(id: string) {
+    setOpenGroupId((prev) => {
+      const next = prev === id ? null : id;
+      writeOpenGroup(next);
+      return next;
+    });
+  }
+
   const visibleGroups = NAV_GROUPS.map((group) => ({
     group,
     items: GROUP_ROUTES[group.id].filter((r) =>
@@ -150,6 +174,8 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
             group={group}
             items={items}
             onNavigate={onNavigate}
+            open={openGroupId === group.id}
+            onToggle={() => toggleGroup(group.id)}
           />
         ))}
         {configRoute && <NavItem route={configRoute} onNavigate={onNavigate} />}

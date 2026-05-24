@@ -41,7 +41,10 @@ import Relatorio from './features/relatorio/Relatorio';
 import Manual from './features/manual/Manual';
 import Configuracao from './features/configuracao/Configuracao';
 import Dashboard from './features/dashboard/Dashboard';
-import Dashboard2 from './features/dashboard-v2/Dashboard2';
+import DashboardCivora from './features/dashboard-protos/civora/DashboardCivora';
+import DashboardProcore from './features/dashboard-protos/procore/DashboardProcore';
+import DashboardGlass from './features/dashboard-protos/glass/DashboardGlass';
+import DashboardBest from './features/dashboard-protos/best/DashboardBest';
 
 /**
  * Views já migradas para React (Fase 3). Rotas ausentes deste mapa ainda
@@ -84,7 +87,10 @@ const MIGRATED_PAGES: Partial<Record<string, ComponentType>> = {
   '/manual': Manual,
   '/configuracao': Configuracao,
   '/dashboard': Dashboard,
-  '/dashboard-v2': Dashboard2,
+  '/dashboard-a': DashboardCivora,
+  '/dashboard-b': DashboardProcore,
+  '/dashboard-c': DashboardGlass,
+  '/dashboard-d': DashboardBest,
 };
 
 /** Tabela de rotas da aplicação. */

@@ -1,0 +1,262 @@
+/* Estilos compartilhados pelos 4 protótipos de Dashboard. */
+
+/* ─── A) Civora — gradientes sutis, animado ──────────────────────── */
+.proto-civora {
+  --civora-blue: #6366F1;
+  --civora-purple: #8B5CF6;
+  --civora-pink: #EC4899;
+  --civora-green: #10B981;
+  --civora-amber: #F59E0B;
+}
+.proto-civora .kpi {
+  position: relative;
+  padding: 20px;
+  border-radius: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  transition: transform .2s, box-shadow .2s;
+}
+.proto-civora .kpi:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .08);
+}
+.proto-civora .kpi::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-from), var(--accent-to));
+}
+.proto-civora .kpi-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  font-size: 22px;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, var(--accent-from), var(--accent-to));
+  color: #fff;
+}
+.proto-civora .kpi-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.proto-civora .kpi-value {
+  font-size: 28px;
+  font-weight: 800;
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.proto-civora .kpi-delta {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ─── B) Procore — denso, enterprise ─────────────────────────────── */
+.proto-procore {
+  --pc-bg: #F8FAFC;
+  --pc-border: #E2E8F0;
+}
+.proto-procore .strip {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1px;
+  background: var(--pc-border);
+  border: 1px solid var(--pc-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.proto-procore .strip-cell {
+  background: var(--color-surface);
+  padding: 14px 16px;
+}
+.proto-procore .strip-label {
+  font-size: 11px;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-weight: 600;
+}
+.proto-procore .strip-value {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin-top: 4px;
+}
+.proto-procore .strip-diff {
+  font-size: 12px;
+  margin-top: 2px;
+}
+.proto-procore table.risk {
+  width: 100%;
+  font-size: 13px;
+  border-collapse: collapse;
+}
+.proto-procore table.risk th, .proto-procore table.risk td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--pc-border);
+}
+.proto-procore .risk-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.proto-procore .risk-low { background: #DCFCE7; color: #166534; }
+.proto-procore .risk-med { background: #FEF3C7; color: #92400E; }
+.proto-procore .risk-high { background: #FEE2E2; color: #991B1B; }
+
+/* ─── C) Glass — dark glassmorphism ──────────────────────────────── */
+.proto-glass {
+  background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 50%, #312E81 100%);
+  min-height: calc(100vh - 80px);
+  padding: 24px;
+  border-radius: 16px;
+  margin: -16px;
+  color: #F1F5F9;
+}
+.proto-glass h1, .proto-glass h2, .proto-glass h3 {
+  color: #F1F5F9 !important;
+}
+.proto-glass .glass-card {
+  background: rgba(255, 255, 255, .06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 16px;
+  padding: 18px;
+  position: relative;
+  overflow: hidden;
+}
+.proto-glass .glass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(255,255,255,.4), rgba(255,255,255,.05));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: .5;
+}
+.proto-glass .glass-label {
+  font-size: 11px;
+  color: #CBD5E1;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-weight: 600;
+}
+.proto-glass .glass-value {
+  font-size: 32px;
+  font-weight: 800;
+  margin-top: 4px;
+  background: linear-gradient(135deg, #60A5FA, #A78BFA);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.proto-glass .glass-chip-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.proto-glass .glass-chip {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.16);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+/* ─── D) Best Practices — whitespace + hierarquia ─────────────────── */
+.proto-best {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.proto-best .section-title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #94A3B8;
+  font-weight: 700;
+  margin: 32px 0 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+.proto-best .hero-kpi {
+  padding: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+}
+.proto-best .hero-label {
+  font-size: 13px;
+  color: #64748B;
+  font-weight: 500;
+}
+.proto-best .hero-value {
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  margin: 8px 0;
+  font-variant-numeric: tabular-nums;
+}
+.proto-best .hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: #475569;
+}
+.proto-best .secondary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.proto-best .secondary-tile {
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+.proto-best .secondary-label {
+  font-size: 12px;
+  color: #64748B;
+  font-weight: 500;
+}
+.proto-best .secondary-value {
+  font-size: 26px;
+  font-weight: 700;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Compartilhado: header de cada protótipo */
+.proto-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: linear-gradient(90deg, #6366F1, #8B5CF6);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
