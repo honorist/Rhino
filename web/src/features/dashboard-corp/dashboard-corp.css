@@ -1,0 +1,167 @@
+/**
+ * Estilos do Dashboard Corp — porte do tema "Corporate" do ngx-admin.
+ * Paleta e medidas extraídas do tema oficial.
+ */
+
+.dashboard-corp {
+  --corp-bg: #F7F9FC;
+  --corp-card: #FFFFFF;
+  --corp-border: #E4E9F2;
+  --corp-text: #222B45;
+  --corp-text-sub: #8F9BB3;
+  --corp-radius: 6px;
+  --corp-shadow: 0 1px 3px rgba(0, 0, 0, .06), 0 2px 8px rgba(0, 0, 0, .04);
+  background: var(--corp-bg);
+  margin: -16px;
+  padding: 24px;
+  min-height: calc(100vh - 80px);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Open Sans', sans-serif;
+}
+
+.dashboard-corp .corp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.dashboard-corp .corp-banner {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #fff;
+  background: linear-gradient(90deg, #3366FF, #00D68F);
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+.dashboard-corp .corp-greeting {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--corp-text);
+  margin: 12px 0 4px;
+  letter-spacing: -0.02em;
+}
+.dashboard-corp .corp-greeting-sub {
+  font-size: 14px;
+  color: var(--corp-text-sub);
+  text-transform: capitalize;
+}
+.dashboard-corp .corp-mask-notice {
+  align-self: center;
+  background: #FFF4E5;
+  border: 1px solid #FFAA00;
+  color: #B97700;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Linhas / grid */
+.dashboard-corp .corp-row {
+  display: grid;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.dashboard-corp .corp-stats-row {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+/* Card base */
+.dashboard-corp .corp-card {
+  background: var(--corp-card);
+  border-radius: var(--corp-radius);
+  box-shadow: var(--corp-shadow);
+  border: 1px solid var(--corp-border);
+  overflow: hidden;
+  transition: box-shadow .15s ease;
+}
+.dashboard-corp a .corp-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .08), 0 2px 16px rgba(0, 0, 0, .06);
+}
+.dashboard-corp .corp-card-header {
+  padding: 18px 20px 12px;
+  border-bottom: 1px solid var(--corp-border);
+}
+.dashboard-corp .corp-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--corp-text);
+}
+.dashboard-corp .corp-card-subtitle {
+  font-size: 12px;
+  color: var(--corp-text-sub);
+  margin-top: 2px;
+}
+.dashboard-corp .corp-card-body {
+  padding: 20px;
+}
+
+/* Stat tile */
+.dashboard-corp .corp-stat {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+}
+.dashboard-corp .corp-stat-icon {
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 24px;
+}
+.dashboard-corp .corp-stat-label {
+  font-size: 12px;
+  color: var(--corp-text-sub);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+.dashboard-corp .corp-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--corp-text);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.dashboard-corp .corp-stat-delta {
+  font-size: 12px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.dashboard-corp .corp-mini-stat {
+  background: #F7F9FC;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.dashboard-corp .corp-mini-label {
+  display: block;
+  font-size: 11px;
+  color: var(--corp-text-sub);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+.dashboard-corp .corp-mini-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--corp-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Responsive: empilha em telas < 900px */
+@media (max-width: 900px) {
+  .dashboard-corp .corp-row {
+    grid-template-columns: 1fr !important;
+  }
+}
