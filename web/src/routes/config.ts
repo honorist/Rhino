@@ -60,7 +60,6 @@ export const NAV_GROUPS: NavGroup[] = [
 export const ROUTES: RouteDef[] = [
   // ── Topo (sem grupo) ──
   { path: '/dashboard', title: 'Dashboard', label: 'Dashboard', icon: Home },
-  { path: '/dashboard-corp', title: 'Dashboard Corp (teste)', label: '🆕 Dashboard Corp', icon: TrendingUp },
   { path: '/proposta', title: 'Propostas', label: 'Propostas', icon: FileText },
   { path: '/contratos', title: 'Contratos', label: 'Contratos', icon: Briefcase },
   { path: '/configuracao', title: 'Configuração', label: 'Configuração', icon: Settings },
