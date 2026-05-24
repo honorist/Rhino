@@ -2,6 +2,12 @@ import type { ComponentType } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Shell from './components/layout/Shell';
 import AuthGate from './features/auth/AuthGate';
+import { installMoneyMaskSubscription } from './lib/moneyMask';
+
+// CRÍTICO: garante que formatBRL/formatBRLk respeitam a permissão
+// `special:nao-ver-valores` do perfil ativo. DEVE rodar antes de qualquer
+// render que mostre valores monetários.
+installMoneyMaskSubscription();
 import Placeholder from './pages/Placeholder';
 import NotFound from './pages/NotFound';
 import { ROUTES } from './routes/config';
@@ -41,10 +47,6 @@ import Relatorio from './features/relatorio/Relatorio';
 import Manual from './features/manual/Manual';
 import Configuracao from './features/configuracao/Configuracao';
 import Dashboard from './features/dashboard/Dashboard';
-import DashboardCivora from './features/dashboard-protos/civora/DashboardCivora';
-import DashboardProcore from './features/dashboard-protos/procore/DashboardProcore';
-import DashboardGlass from './features/dashboard-protos/glass/DashboardGlass';
-import DashboardBest from './features/dashboard-protos/best/DashboardBest';
 
 /**
  * Views já migradas para React (Fase 3). Rotas ausentes deste mapa ainda
@@ -87,10 +89,6 @@ const MIGRATED_PAGES: Partial<Record<string, ComponentType>> = {
   '/manual': Manual,
   '/configuracao': Configuracao,
   '/dashboard': Dashboard,
-  '/dashboard-a': DashboardCivora,
-  '/dashboard-b': DashboardProcore,
-  '/dashboard-c': DashboardGlass,
-  '/dashboard-d': DashboardBest,
 };
 
 /** Tabela de rotas da aplicação. */

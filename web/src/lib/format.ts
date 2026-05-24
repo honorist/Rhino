@@ -1,7 +1,13 @@
 /**
  * Formatação e parsing de moeda (BRL) — porte dos helpers do store.js.
- * Funções puras: a máscara por perfil de permissão é aplicada na camada de
- * UI (hook), não aqui.
+ *
+ * Mascaramento por perfil — `formatBRL`/`formatBRLk` checam um flag global
+ * (`_maskMoney`) que é mantido em sincronia com o perfil ativo via subscribe
+ * ao perfilStore (ver `installMoneyMaskSubscription()` chamado em App.tsx).
+ *
+ * Quando o perfil contém a permissão `special:nao-ver-valores`, todo render
+ * via essas funções retorna `R$ ●●●●`. Isso garante que QUALQUER chamada
+ * a formatBRL no app respeite o nível, sem precisar refatorar 80+ call sites.
  */
 
 const brlFormatter = new Intl.NumberFormat('pt-BR', {
@@ -11,13 +17,29 @@ const brlFormatter = new Intl.NumberFormat('pt-BR', {
   maximumFractionDigits: 2,
 });
 
-/** 1234.56 → "R$ 1.234,56" */
+// ─── Mascaramento global por perfil ────────────────────────────────────
+const MASK = 'R$ ●●●●';
+let _maskMoney = false;
+
+/** Liga/desliga o mascaramento global. Chamado pelo subscribe ao perfilStore. */
+export function setMaskMoney(on: boolean): void {
+  _maskMoney = on;
+}
+
+/** Para testes — confere se está mascarando. */
+export function isMaskingMoney(): boolean {
+  return _maskMoney;
+}
+
+/** 1234.56 → "R$ 1.234,56" (ou "R$ ●●●●" se perfil não pode ver valores) */
 export function formatBRL(value: number): string {
+  if (_maskMoney) return MASK;
   return brlFormatter.format(Number.isFinite(value) ? value : 0);
 }
 
 /** Abreviado para KPIs: 1234567 → "R$ 1,23M" · 12345 → "R$ 12k" */
 export function formatBRLk(value: number): string {
+  if (_maskMoney) return MASK;
   const v = Number(value) || 0;
   const sign = v < 0 ? '−' : '';
   const abs = Math.abs(v);

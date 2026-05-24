@@ -51,18 +51,25 @@ export default function FluxoCaixaChart({
           day: '2-digit',
           month: '2-digit',
         });
+      // Honra a permissão `special:nao-ver-valores` — quando ativa, eixo e
+      // tooltip do gráfico ficam mascarados.
+      const { isMaskingMoney } = await import('../../lib/format');
       const fmtBRL = (v: number) =>
-        new Intl.NumberFormat('pt-BR', {
-          style: 'currency',
-          currency: 'BRL',
-        }).format(v);
+        isMaskingMoney()
+          ? 'R$ ●●●●'
+          : new Intl.NumberFormat('pt-BR', {
+              style: 'currency',
+              currency: 'BRL',
+            }).format(v);
       const fmtBRLk = (v: number) =>
-        new Intl.NumberFormat('pt-BR', {
-          notation: 'compact',
-          style: 'currency',
-          currency: 'BRL',
-          maximumFractionDigits: 1,
-        }).format(v);
+        isMaskingMoney()
+          ? 'R$ ●●●●'
+          : new Intl.NumberFormat('pt-BR', {
+              notation: 'compact',
+              style: 'currency',
+              currency: 'BRL',
+              maximumFractionDigits: 1,
+            }).format(v);
 
       const labelsPassado = historico.map((d) => d.label || fmtDataCurta(d.data));
       const saldosPassado = historico.map((d) => d.saldo);
