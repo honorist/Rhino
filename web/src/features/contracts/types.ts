@@ -65,7 +65,15 @@ export interface RdoMaoObra {
   empresa?: string;
   qtd?: number;
   quantidade?: number;
+  /**
+   * Total de horas (compat — mantém retrocompatibilidade com dados antigos).
+   * Em novos lançamentos é derivado de horasNormais + horasExtras.
+   */
   horas?: number;
+  /** US-03: horas normais (default 9). */
+  horasNormais?: number;
+  /** US-03: horas extras (default 0). */
+  horasExtras?: number;
 }
 
 /** Equipamento registrado num RDO. */

@@ -3561,8 +3561,16 @@ function validarRdo(body, rdos, rdoIdAtual) {
   return null;
 }
 
-function proxNumeroRdo(rdos) {
-  return rdos.reduce((max, r) => Math.max(max, r.numero || 0), 0) + 1;
+/**
+ * Próximo número de RDO de um contrato.
+ * US-02: respeita `rdoSeed` (gravado em contract.metadata) — útil pra obras
+ * já em andamento que adotam o sistema com numeração contínua de fora.
+ * Fórmula: max(maior_já_lançado, seed - 1) + 1
+ */
+function proxNumeroRdo(rdos, seed) {
+  const maior = rdos.reduce((max, r) => Math.max(max, Number(r.numero) || 0), 0);
+  const seedNum = Math.max(0, Number(seed) || 0);
+  return Math.max(maior, seedNum - 1) + 1;
 }
 
 async function handlePostRdo(contractId, body, res) {
@@ -3573,10 +3581,20 @@ async function handlePostRdo(contractId, body, res) {
     const erro = validarRdo(body, contract.rdos || [], null);
     if (erro) return sendError(res, 400, erro);
 
+    // US-02: lê rdoSeed do metadata (JSON) do contrato
+    let rdoSeed = 0;
+    try {
+      const meta =
+        typeof contract.metadata === 'string'
+          ? JSON.parse(contract.metadata)
+          : contract.metadata || {};
+      rdoSeed = Number(meta.rdoSeed) || 0;
+    } catch { /* metadata inválido — ignora */ }
+
     const rdo = {
       id: generateId('rdo'),
       contractId,
-      numero: String(proxNumeroRdo(contract.rdos || [])),
+      numero: String(proxNumeroRdo(contract.rdos || [], rdoSeed)),
       data: body.data,
       diaSemana: body.diaSemana || '',
       osNumero: body.osNumero || '',

@@ -5,6 +5,8 @@ import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatDateBR } from '../../lib/formatDate';
 import type { Contract, Rdo, RdoMaoObra } from './types';
 import { exportRdoPdf } from './exportRdoPdf';
+import { rdoWhatsappText } from './rdoWhatsapp';
+import RdoWhatsappModal from './RdoWhatsappModal';
 
 const n = (v: unknown): number => Number(v) || 0;
 
@@ -135,6 +137,7 @@ export default function RdoDetailModal({
 }: RdoDetailModalProps) {
   const toast = useToast();
   const [exportando, setExportando] = useState(false);
+  const [whatsOpen, setWhatsOpen] = useState(false);
 
   async function handlePdf() {
     setExportando(true);
@@ -168,11 +171,19 @@ export default function RdoDetailModal({
     <Modal
       open
       title={`RDO #${rdo.numero ?? ''} — ${formatDateBR(rdo.data)}`}
+      size="lg"
       onClose={onClose}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
             Fechar
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => setWhatsOpen(true)}
+            title="Enviar resumo via WhatsApp"
+          >
+            💬 WhatsApp
           </Button>
           <Button onClick={handlePdf} disabled={exportando}>
             {exportando ? 'Gerando…' : '📄 Exportar PDF'}
@@ -180,6 +191,12 @@ export default function RdoDetailModal({
         </>
       }
     >
+      {whatsOpen && (
+        <RdoWhatsappModal
+          texto={rdoWhatsappText(rdo, contract)}
+          onClose={() => setWhatsOpen(false)}
+        />
+      )}
       <p className="text-muted" style={{ marginTop: 0, fontSize: 13 }}>
         {contract.name}
       </p>

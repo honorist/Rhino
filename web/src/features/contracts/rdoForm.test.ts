@@ -33,10 +33,10 @@ describe('calcPrazo', () => {
 });
 
 describe('rdoTotais', () => {
-  it('soma pessoas e homens-hora', () => {
+  it('soma pessoas e homens-hora (US-03: normais + extras)', () => {
     const form = {
-      moi: [{ cargo: 'Eng', qtd: 2, horas: 8 }],
-      mod: [{ cargo: 'Pedreiro', qtd: 3, horas: 9 }],
+      moi: [{ cargo: 'Eng', qtd: 2, horasNormais: 8, horasExtras: 0 }],
+      mod: [{ cargo: 'Pedreiro', qtd: 3, horasNormais: 9, horasExtras: 2 }],
       terc: [],
       equipamentos: [{ nome: 'Betoneira', qtd: 1, horas: 5 }],
     } as unknown as RdoFormData;
@@ -44,7 +44,10 @@ describe('rdoTotais', () => {
     expect(t.moi).toBe(2);
     expect(t.mod).toBe(3);
     expect(t.eqp).toBe(1);
-    expect(t.homensHora).toBe(43); // 2·8 + 3·9
+    // normais = 2*8 + 3*9 = 43; extras = 3*2 = 6
+    expect(t.horasNormais).toBe(43);
+    expect(t.horasExtras).toBe(6);
+    expect(t.homensHora).toBe(49);
     expect(t.equipamentoHora).toBe(5);
   });
 });

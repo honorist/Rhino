@@ -135,18 +135,22 @@ export function calcPrazo(
   };
 }
 
-/** Item de mão de obra do formulário. */
+/** Item de mão de obra do formulário (US-03: normais + extras separados). */
 export interface MoForm {
   cargo: string;
   qtd: number;
-  horas: number;
+  /** Horas normais (default 9). Em RDOs antigos, esse era o valor de `horas`. */
+  horasNormais: number;
+  /** Horas extras (default 0). */
+  horasExtras: number;
 }
 /** Item de terceirizado do formulário. */
 export interface TercForm {
   empresa: string;
   cargo: string;
   qtd: number;
-  horas: number;
+  horasNormais: number;
+  horasExtras: number;
 }
 /** Item de equipamento do formulário. */
 export interface EqpForm {
@@ -197,7 +201,12 @@ export interface RdoTotais {
   mod: number;
   terc: number;
   eqp: number;
+  /** Total de homens-hora (normais + extras). */
   homensHora: number;
+  /** US-03: total só de horas normais. */
+  horasNormais: number;
+  /** US-03: total só de horas extras. */
+  horasExtras: number;
   equipamentoHora: number;
 }
 
@@ -205,6 +214,18 @@ export interface RdoTotais {
 export function rdoTotais(d: RdoFormData): RdoTotais {
   const somaQtd = (arr: { qtd: number }[]) =>
     arr.reduce((s, x) => s + (Number(x.qtd) || 0), 0);
+  const somaHHpor = (
+    arr: { qtd: number; horasNormais?: number; horasExtras?: number }[],
+    pick: 'horasNormais' | 'horasExtras',
+  ) =>
+    arr.reduce(
+      (s, x) => s + (Number(x.qtd) || 0) * (Number(x[pick]) || 0),
+      0,
+    );
+  const moPessoas: typeof d.moi[number][] = [...d.moi, ...d.mod, ...d.terc];
+  const horasNormais = somaHHpor(moPessoas, 'horasNormais');
+  const horasExtras = somaHHpor(moPessoas, 'horasExtras');
+  // equipamentos ainda usam o campo `horas` (escopo da US-03 é só efetivo).
   const somaHH = (arr: { qtd: number; horas: number }[]) =>
     arr.reduce((s, x) => s + (Number(x.qtd) || 0) * (Number(x.horas) || 0), 0);
   return {
@@ -212,7 +233,9 @@ export function rdoTotais(d: RdoFormData): RdoTotais {
     mod: somaQtd(d.mod),
     terc: somaQtd(d.terc),
     eqp: somaQtd(d.equipamentos),
-    homensHora: somaHH(d.moi) + somaHH(d.mod) + somaHH(d.terc),
+    homensHora: horasNormais + horasExtras,
+    horasNormais,
+    horasExtras,
     equipamentoHora: somaHH(d.equipamentos),
   };
 }

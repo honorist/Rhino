@@ -35,7 +35,22 @@ const TABS = [
   { k: 'fiscalizacao', l: 'Fiscalização' },
 ] as const;
 
-const PERIODOS = ['7:00 às 15:00', '7:00 às 17:00', '23:00 às 7:00', 'Outro'];
+const PERIODOS = ['7:00 às 15:00', '7:00 às 17:00', '23:00 às 7:00', 'Outro', 'Manual'];
+
+/** Quando periodoTrabalho começa com este prefixo, é uma jornada manual
+ *  (gravada no formato "HH:MM às HH:MM"). */
+const PERIODO_MANUAL_FLAG = 'Manual';
+
+function isPeriodoManual(p: string): boolean {
+  if (p === PERIODO_MANUAL_FLAG) return true;
+  // Já gravado como "HH:MM às HH:MM"
+  return /^\d{1,2}:\d{2}\s+às\s+\d{1,2}:\d{2}$/.test(p) && !PERIODOS.includes(p);
+}
+
+function parseHorasManual(p: string): { inicio: string; fim: string } {
+  const m = p.match(/^(\d{1,2}:\d{2})\s+às\s+(\d{1,2}:\d{2})$/);
+  return m ? { inicio: m[1], fim: m[2] } : { inicio: '07:00', fim: '17:00' };
+}
 const ACIDENTES = [
   { v: 'nao_houve', l: 'Não Houve' },
   { v: 'sem_afastamento', l: 'Sem Afastamento' },
@@ -114,21 +129,25 @@ function initialForm(contract: Contract, rdo: Rdo | null): RdoFormData {
       noiteAnt: periodoTempo(t, 'noiteAnt'),
       precipitacao: n(t.precipitacao),
     },
+    // US-03: backfill — horasNormais herda 'horas' antigo (default 9); extras = 0
     moi: (rdo.moi ?? []).map((m) => ({
       cargo: m.cargo ?? '',
       qtd: n(m.qtd ?? m.quantidade),
-      horas: n(m.horas) || 9,
+      horasNormais: n(m.horasNormais ?? m.horas) || 9,
+      horasExtras: n(m.horasExtras) || 0,
     })),
     mod: (rdo.mod ?? []).map((m) => ({
       cargo: m.cargo ?? '',
       qtd: n(m.qtd ?? m.quantidade),
-      horas: n(m.horas) || 9,
+      horasNormais: n(m.horasNormais ?? m.horas) || 9,
+      horasExtras: n(m.horasExtras) || 0,
     })),
     terc: (rdo.terc ?? []).map((m) => ({
       empresa: m.empresa ?? '',
       cargo: m.cargo ?? '',
       qtd: n(m.qtd ?? m.quantidade),
-      horas: n(m.horas) || 9,
+      horasNormais: n(m.horasNormais ?? m.horas) || 9,
+      horasExtras: n(m.horasExtras) || 0,
     })),
     equipamentos: (rdo.equipamentos ?? []).map((e) => ({
       nome: e.nome ?? '',
@@ -188,7 +207,12 @@ export default function RdoFormModal({
 
   // ── Listas dinâmicas ──
   function addMo(cat: 'moi' | 'mod') {
-    patch({ [cat]: [...form[cat], { cargo: '', qtd: 1, horas: 9 }] });
+    patch({
+      [cat]: [
+        ...form[cat],
+        { cargo: '', qtd: 1, horasNormais: 9, horasExtras: 0 },
+      ],
+    });
   }
   function updMo(cat: 'moi' | 'mod', i: number, p: Partial<MoForm>) {
     patch({ [cat]: form[cat].map((x, j) => (j === i ? { ...x, ...p } : x)) });
@@ -228,6 +252,7 @@ export default function RdoFormModal({
     <Modal
       open
       title={isEdit ? `Editar RDO #${rdo?.numero ?? ''}` : 'Novo RDO'}
+      size="xl"
       onClose={onClose}
       footer={
         <>
@@ -235,7 +260,7 @@ export default function RdoFormModal({
             Cancelar
           </Button>
           <Button onClick={submit} disabled={pending}>
-            {pending ? 'Salvando…' : isEdit ? 'Salvar' : 'Criar RDO'}
+            {pending ? 'Salvando…' : isEdit ? 'Salvar Alterações' : 'Criar RDO'}
           </Button>
         </>
       }
@@ -320,6 +345,91 @@ function InfoBox({ label, valor }: { label: string; valor: string }) {
   );
 }
 
+/** US-01: período "Manual" com hora início + fim. Grava como
+ *  "HH:MM às HH:MM" no campo periodoTrabalho (zero migração de banco). */
+function PeriodoTrabalho({ form, patch }: { form: RdoFormData; patch: PatchFn }) {
+  const manual = isPeriodoManual(form.periodoTrabalho);
+  const { inicio, fim } = parseHorasManual(form.periodoTrabalho);
+  const erro =
+    manual && inicio && fim && inicio !== fim && inicio >= fim
+      ? 'Hora de término deve ser maior que a de início'
+      : null;
+
+  function changeOption(v: string) {
+    if (v === PERIODO_MANUAL_FLAG) {
+      // Inicia com 07:00 às 17:00 (defaults razoáveis)
+      patch({ periodoTrabalho: '07:00 às 17:00' });
+    } else {
+      patch({ periodoTrabalho: v });
+    }
+  }
+
+  function changeHora(qual: 'inicio' | 'fim', valor: string) {
+    const novo = qual === 'inicio' ? `${valor} às ${fim}` : `${inicio} às ${valor}`;
+    patch({ periodoTrabalho: novo });
+  }
+
+  // Valor mostrado no Select: a opção fixa se for uma das pré-definidas;
+  // 'Manual' se for um horário customizado.
+  const selectValue = PERIODOS.includes(form.periodoTrabalho)
+    ? form.periodoTrabalho
+    : PERIODO_MANUAL_FLAG;
+
+  return (
+    <>
+      <FormField label="Período de Trabalho" htmlFor="rdo-per">
+        <Select
+          id="rdo-per"
+          value={selectValue}
+          onChange={(e) => changeOption(e.target.value)}
+        >
+          {PERIODOS.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </Select>
+      </FormField>
+      {manual && (
+        <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 140 }}>
+            <FormField label="Hora início" htmlFor="rdo-hora-ini">
+              <Input
+                id="rdo-hora-ini"
+                type="time"
+                value={inicio}
+                onChange={(e) => changeHora('inicio', e.target.value)}
+              />
+            </FormField>
+          </div>
+          <div style={{ flex: 1, minWidth: 140 }}>
+            <FormField label="Hora término" htmlFor="rdo-hora-fim">
+              <Input
+                id="rdo-hora-fim"
+                type="time"
+                value={fim}
+                onChange={(e) => changeHora('fim', e.target.value)}
+              />
+            </FormField>
+          </div>
+        </div>
+      )}
+      {erro && (
+        <div
+          style={{
+            color: 'var(--color-danger)',
+            fontSize: 13,
+            marginTop: -8,
+            marginBottom: 8,
+          }}
+        >
+          ⚠️ {erro}
+        </div>
+      )}
+    </>
+  );
+}
+
 function CabecalhoTab({
   form,
   patch,
@@ -358,19 +468,7 @@ function CabecalhoTab({
           </FormField>
         </div>
       </div>
-      <FormField label="Período de Trabalho" htmlFor="rdo-per">
-        <Select
-          id="rdo-per"
-          value={form.periodoTrabalho}
-          onChange={(e) => patch({ periodoTrabalho: e.target.value })}
-        >
-          {PERIODOS.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </Select>
-      </FormField>
+      <PeriodoTrabalho form={form} patch={patch} />
       <label
         style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
       >
@@ -520,7 +618,10 @@ function MoTab({
   ];
   function addTerc() {
     patch({
-      terc: [...form.terc, { empresa: '', cargo: '', qtd: 1, horas: 9 }],
+      terc: [
+        ...form.terc,
+        { empresa: '', cargo: '', qtd: 1, horasNormais: 9, horasExtras: 0 },
+      ],
     });
   }
   function updTerc(i: number, p: Partial<TercForm>) {
@@ -563,8 +664,9 @@ function MoTab({
               <thead>
                 <tr>
                   <th>Cargo</th>
-                  <th style={{ width: 90 }}>Qtd</th>
-                  <th style={{ width: 90 }}>Horas</th>
+                  <th style={{ width: 80 }}>Qtd</th>
+                  <th style={{ width: 100 }} title="Horas normais por pessoa (default 9)">H. Normais</th>
+                  <th style={{ width: 100 }} title="Horas extras por pessoa">H. Extras</th>
                   <th style={{ width: 36 }} />
                 </tr>
               </thead>
@@ -593,9 +695,25 @@ function MoTab({
                       <Input
                         type="number"
                         step="0.5"
-                        value={String(m.horas)}
+                        min="0"
+                        value={String(m.horasNormais)}
                         onChange={(e) =>
-                          updMo(sec.k, i, { horas: Number(e.target.value) || 0 })
+                          updMo(sec.k, i, {
+                            horasNormais: Number(e.target.value) || 0,
+                          })
+                        }
+                      />
+                    </td>
+                    <td>
+                      <Input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        value={String(m.horasExtras)}
+                        onChange={(e) =>
+                          updMo(sec.k, i, {
+                            horasExtras: Number(e.target.value) || 0,
+                          })
                         }
                       />
                     </td>
@@ -639,8 +757,9 @@ function MoTab({
             <tr>
               <th>Empresa</th>
               <th>Cargo</th>
-              <th style={{ width: 80 }}>Qtd</th>
-              <th style={{ width: 80 }}>Horas</th>
+              <th style={{ width: 70 }}>Qtd</th>
+              <th style={{ width: 90 }}>H. Normais</th>
+              <th style={{ width: 90 }}>H. Extras</th>
               <th style={{ width: 36 }} />
             </tr>
           </thead>
@@ -672,9 +791,21 @@ function MoTab({
                   <Input
                     type="number"
                     step="0.5"
-                    value={String(t.horas)}
+                    min="0"
+                    value={String(t.horasNormais)}
                     onChange={(e) =>
-                      updTerc(i, { horas: Number(e.target.value) || 0 })
+                      updTerc(i, { horasNormais: Number(e.target.value) || 0 })
+                    }
+                  />
+                </td>
+                <td>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    value={String(t.horasExtras)}
+                    onChange={(e) =>
+                      updTerc(i, { horasExtras: Number(e.target.value) || 0 })
                     }
                   />
                 </td>

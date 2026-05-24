@@ -81,6 +81,11 @@ export default function ContratoModal({
   );
   const [notes, setNotes] = useState(contract?.notes ?? '');
 
+  // US-02: seed da numeração de RDO. Só editável se ainda não há RDOs.
+  const meta = (contract?.metadata as Record<string, unknown> | undefined) ?? {};
+  const [rdoSeed, setRdoSeed] = useState(String((meta.rdoSeed as number) ?? ''));
+  const temRdos = Array.isArray(contract?.rdos) && contract!.rdos!.length > 0;
+
   const pending = criar.isPending || editar.isPending;
 
   function selecionarCliente(id: string) {
@@ -134,6 +139,13 @@ export default function ContratoModal({
       tendencyDate,
       retencaoPercent: Number(retencaoPercent) || 0,
       notes: notes.trim(),
+      // US-02: mescla rdoSeed no metadata existente sem perder outros campos.
+      metadata: {
+        ...meta,
+        ...(rdoSeed && Number(rdoSeed) > 0
+          ? { rdoSeed: Number(rdoSeed) }
+          : { rdoSeed: undefined }),
+      },
     };
     const handlers = {
       onSuccess: () => {
@@ -328,6 +340,26 @@ export default function ContratoModal({
           step="0.01"
           value={retencaoPercent}
           onChange={(e) => setRetencaoPercent(e.target.value)}
+        />
+      </FormField>
+      <FormField
+        label="Nº inicial do RDO"
+        htmlFor="ct-rdo-seed"
+        helper={
+          temRdos
+            ? '🔒 Já há RDOs lançados neste contrato — a sequência foi fixada e não pode ser alterada.'
+            : 'Use só na 1ª emissão de uma obra já em andamento. Deixe vazio para começar do 1. Ex.: 18 → próximo RDO será #18, e a sequência continua a partir dele.'
+        }
+      >
+        <Input
+          id="ct-rdo-seed"
+          type="number"
+          min={1}
+          step={1}
+          value={rdoSeed}
+          onChange={(e) => setRdoSeed(e.target.value)}
+          disabled={temRdos}
+          placeholder="1"
         />
       </FormField>
       <FormField label="Notas / Observações" htmlFor="ct-notes">

@@ -5,6 +5,7 @@
  * SIMPLIFICAÇÕES vs. vanilla: sem logo em imagem (usa texto "RHINO") e sem as
  * páginas de fotos (exigiriam carregar imagens externas via canvas/CORS).
  */
+import { CONTRATANTE_NOME } from '../../lib/empresa';
 import type { Contract, Rdo } from './types';
 import { rdoTotais, type RdoFormData } from './rdoForm';
 
@@ -439,21 +440,33 @@ export async function exportRdoPdf(rdo: Rdo, contract: Contract): Promise<void> 
   }
 
   // ── Assinaturas ──
-  if (y + 24 > pageH - margin) {
+  // US-04: o bloco "CONTRATANTE" é fixo como "Rhino Construções e Montagens".
+  // Hardcoded por decisão do cliente — padronização da contratante no doc.
+  if (y + 26 > pageH - margin) {
     doc.addPage();
     y = margin;
   }
   doc.setTextColor(0);
   const assinW = contentW / 3;
-  ['CONTRATADA', 'CONTRATANTE', 'FISCALIZAÇÃO'].forEach((papel, i) => {
+  const blocos: Array<{ papel: string; nome?: string }> = [
+    { papel: 'CONTRATADA' },
+    { papel: 'CONTRATANTE', nome: CONTRATANTE_NOME },
+    { papel: 'FISCALIZAÇÃO' },
+  ];
+  blocos.forEach(({ papel, nome }, i) => {
     const ax = margin + i * assinW;
-    doc.rect(ax, y, assinW, 18);
+    doc.rect(ax, y, assinW, 20);
     doc.setDrawColor(150);
     doc.line(ax + 5, y + 12, ax + assinW - 5, y + 12);
     doc.setDrawColor(0);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7);
     doc.text(papel, ax + assinW / 2, y + 16, { align: 'center' });
+    if (nome) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.text(nome, ax + assinW / 2, y + 19, { align: 'center' });
+    }
   });
 
   doc.save(`RDO-${rdo.numero ?? ''}-${rdo.data ?? ''}.pdf`);
