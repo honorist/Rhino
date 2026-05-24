@@ -1,0 +1,7 @@
+/* Ordem espelha o index.html antigo: main → components → theme-v2 → polish.
+   layout.css contém apenas as adições da migração React. */
+@import './main.css';
+@import './components.css';
+@import './theme-v2.css';
+@import './polish.css';
+@import './layout.css';

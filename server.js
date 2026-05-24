@@ -3942,6 +3942,16 @@ async function handleDeleteOcorrencia(contractId, id, res) {
 
 // ============ Static file serving ============
 const STATIC_ROOT = path.resolve(__dirname);
+// Modo cutover: quando SERVE_REACT=1, o frontend vem de Rino/web/dist/ (bundle
+// React+Vite) com SPA fallback. Caso o build não exista, cai no modo legacy
+// (raiz do projeto) silenciosamente. Permite habilitar em staging por env sem
+// quebrar dev. Ver Rino/web/docs/PHASE5_PLAYWRIGHT_AUDIT.md.
+const REACT_DIST_ROOT = path.resolve(__dirname, 'web', 'dist');
+const SERVE_REACT =
+  process.env.SERVE_REACT === '1' && fs.existsSync(path.join(REACT_DIST_ROOT, 'index.html'));
+if (SERVE_REACT) {
+  console.log('[server] SERVE_REACT=1 — servindo bundle React de', REACT_DIST_ROOT);
+}
 // In-memory cache para evitar fs.readFileSync síncrono em cada request.
 // APP_VERSION é constante no processo, então o conteúdo injetado não muda.
 const _staticCache = new Map();
@@ -4063,7 +4073,47 @@ function _serveHtmlWithBootstrap(pathname, res) {
   res.end(html);
 }
 
+function _serveReactDist(pathname, res) {
+  // Tenta o arquivo real dentro de web/dist; se não existir e não for /api/,
+  // devolve index.html (SPA path-based — /dashboard, /contratos/:id, etc.)
+  const isAsset = /\.[a-z0-9]+$/i.test(pathname);
+  const reqPath = pathname === '/' || pathname === '' ? '/index.html' : pathname;
+  const candidate = path.resolve(REACT_DIST_ROOT, '.' + reqPath);
+  // Path traversal guard
+  if (!candidate.startsWith(REACT_DIST_ROOT + path.sep) && candidate !== REACT_DIST_ROOT) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('Forbidden');
+    return;
+  }
+  const filepath = fs.existsSync(candidate)
+    ? candidate
+    : isAsset
+      ? null // asset com hash ausente: 404 puro
+      : path.join(REACT_DIST_ROOT, 'index.html');
+  if (!filepath || !fs.existsSync(filepath)) {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('404 Not Found');
+    return;
+  }
+  const ext = path.extname(filepath).toLowerCase();
+  const contentType = _contentTypeMap[ext] || 'application/octet-stream';
+  // index.html nunca cacheia; bundle (hash no nome) cacheia agressivo.
+  const cacheControl =
+    ext === '.html'
+      ? 'no-store, no-cache, must-revalidate, max-age=0'
+      : 'public, max-age=31536000, immutable';
+  const headers = { 'Content-Type': contentType, 'Cache-Control': cacheControl };
+  // CSP simples para o bundle React — sem nonce inline (Vite gera scripts externos).
+  if (ext === '.html') {
+    headers['Content-Security-Policy'] = buildCsp("script-src 'self' https://cdn.jsdelivr.net");
+  }
+  res.writeHead(200, headers);
+  res.end(fs.readFileSync(filepath));
+}
+
 function serveStaticFile(pathname, res) {
+  // Modo cutover: tudo que não é /api/* vem do bundle React.
+  if (SERVE_REACT) return _serveReactDist(pathname, res);
   // HTML nunca usa cache em memória — cada response tem nonce CSP único.
   if (pathname === '/' || pathname.endsWith('.html')) {
     return _serveHtmlWithBootstrap(pathname, res);
@@ -4722,6 +4772,9 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
     return serveStaticFile('/index.html', res);
   }
 
+  // No modo cutover, rotas SPA do React (ex.: /dashboard, /contratos/:id) caem
+  // direto na serveStaticFile, que devolve o index.html quando o arquivo não
+  // existe. Sem o modo cutover, a allowlist em serveStaticFile devolve 404.
   serveStaticFile(pathname, res);
 }
 

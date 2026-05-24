@@ -1,3 +1,18 @@
+# ── Stage 1: build do bundle React (Vite) ──────────────────────────────
+# Roda independente do runtime para não inflar a imagem final com node_modules
+# de dev. Quando SERVE_REACT=1 o server.js serve este dist/.
+FROM node:20-alpine AS web-builder
+
+WORKDIR /web
+
+COPY web/package*.json ./
+RUN npm ci
+
+COPY web/ ./
+# `npm run build` faz tsc -b && vite build → dist/
+RUN npm run build && ls -la dist/
+
+# ── Stage 2: runtime do server.js ─────────────────────────────────────
 FROM node:20-alpine
 
 WORKDIR /app
@@ -21,6 +36,10 @@ COPY lib ./lib
 COPY routes ./routes
 COPY handlers ./handlers
 COPY scripts ./scripts
+
+# Bundle React (servido quando SERVE_REACT=1). Sem esta COPY o flag cai no
+# fallback legacy silenciosamente (fs.existsSync em server.js).
+COPY --from=web-builder /web/dist ./web/dist
 
 RUN mkdir -p /app/data/backups /app/data/rdo-fotos
 

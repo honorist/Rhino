@@ -1,0 +1,152 @@
+/* Organograma da obra — árvore CSS clássica (conectores via ::before/::after).
+   Porte do <style> embutido em contrato/organograma.js. */
+
+.org-tree {
+  padding: 32px 16px;
+  overflow: auto;
+  min-height: 120px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.org-tree ul.org-root,
+.org-tree ul.org-ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  position: relative;
+  white-space: nowrap;
+}
+.org-tree ul.org-ul {
+  padding-top: 24px;
+}
+
+.org-tree li.org-li {
+  display: inline-block;
+  vertical-align: top;
+  text-align: center;
+  list-style: none;
+  padding: 24px 12px 0 12px;
+  position: relative;
+  white-space: normal;
+}
+
+/* Conector em "T": metades direita/esquerda do horizontal + vertical. */
+.org-tree li.org-li::before,
+.org-tree li.org-li::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 50%;
+  border-top: 2px solid #55588b;
+  width: 50%;
+  height: 24px;
+}
+.org-tree li.org-li::after {
+  right: auto;
+  left: 50%;
+  border-left: 2px solid #55588b;
+}
+
+.org-tree li.org-li:only-child::after,
+.org-tree li.org-li:only-child::before {
+  display: none;
+}
+.org-tree li.org-li:first-child::before {
+  border: 0 none;
+}
+.org-tree li.org-li:last-child::after {
+  border: 0 none;
+}
+.org-tree li.org-li:last-child::before {
+  border-right: 2px solid #55588b;
+  border-radius: 0 6px 0 0;
+}
+.org-tree li.org-li:first-child::after {
+  border-radius: 6px 0 0 0;
+}
+
+/* Queda vertical do pai para os filhos. */
+.org-tree ul.org-ul::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  border-left: 2px solid #55588b;
+  width: 0;
+  height: 24px;
+}
+
+/* Raiz: sem linhas vindo de cima. */
+.org-tree ul.org-root > li.org-li::before,
+.org-tree ul.org-root > li.org-li::after {
+  display: none;
+}
+.org-tree ul.org-root > li.org-li {
+  padding-top: 0;
+}
+
+/* Card do nó. */
+.org-node {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 16px 10px;
+  min-width: 190px;
+  max-width: 240px;
+  text-align: center;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid var(--color-border);
+  border-top: 3px solid #9ca3af;
+  box-shadow: 0 1px 3px rgba(17, 24, 39, 0.06);
+}
+.org-node.node-encarregado {
+  border-top-color: #55588b;
+  min-width: 210px;
+}
+.org-node.node-lider_area {
+  border-top-color: #6d9480;
+}
+
+.org-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #fff;
+  font-size: 14px;
+}
+
+.org-node-nome {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-text);
+}
+.org-cargo {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.org-area {
+  font-size: 11px;
+  color: #6d9480;
+  font-weight: 600;
+}
+.org-nivel-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+.org-node-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}

@@ -1,0 +1,755 @@
+/* ─────────────────────────────────────────────
+   RHINO · Theme v2 — Operate
+   Sobrepõe tokens antigos sem quebrar compat.
+   Light + Dark mode, hierarquia tipográfica,
+   foco acessível, motion respeitando preferências.
+───────────────────────────────────────────── */
+/* Fontes carregadas via <link> em index.html para evitar waterfall de @import */
+
+:root,
+[data-theme="light"] {
+  /* Brand — slate-purple Akaunting (mantém identidade) */
+  --rh-brand-50:  #EEF0F8;
+  --rh-brand-100: #DCDFEC;
+  --rh-brand-300: #A2A6C2;
+  --rh-brand-500: #55588B;
+  --rh-brand-700: #3E4068;
+  --rh-brand-900: #1E1F33;
+
+  /* Accent — laranja construção (CTAs primários, foco, alertas operacionais) */
+  --rh-accent-300: #F8B98C;
+  --rh-accent-500: #E76F2C;
+  --rh-accent-700: #B85420;
+
+  /* Neutros — escala completa para hierarquia */
+  --rh-ink-900: #0F172A;
+  --rh-ink-700: #334155;
+  --rh-ink-500: #64748B;
+  --rh-ink-300: #CBD5E1;
+  --rh-ink-200: #E2E8F0;
+  --rh-ink-100: #F1F5F9;
+  --rh-paper:   #FFFFFF;
+  --rh-bg:      #F8FAFC;
+
+  /* Semânticos com pares acessíveis (contraste ≥ 4.5:1) */
+  --rh-pos-bg:  #DCFCE7; --rh-pos-text:  #14532D; --rh-pos-strong:  #16A34A;
+  --rh-warn-bg: #FEF3C7; --rh-warn-text: #78350F; --rh-warn-strong: #D97706;
+  --rh-neg-bg:  #FEE2E2; --rh-neg-text:  #7F1D1D; --rh-neg-strong:  #DC2626;
+  --rh-info-bg: #DBEAFE; --rh-info-text: #1E3A8A; --rh-info-strong: #2563EB;
+
+  /* Tipografia — escala clara */
+  --rh-font-display: 'Inter Tight', 'Nunito', system-ui, sans-serif;
+  --rh-font-body:    'Inter', 'Nunito', system-ui, sans-serif;
+
+  --rh-fs-display-xl: 36px;
+  --rh-fs-display-l:  28px;
+  --rh-fs-h1:         22px;
+  --rh-fs-h2:         18px;
+  --rh-fs-h3:         16px;
+  --rh-fs-body:       14px;
+  --rh-fs-sm:         13px;
+  --rh-fs-xs:         11px;
+
+  /* Spacing & radii */
+  --rh-r-sm: 6px;
+  --rh-r-md: 10px;
+  --rh-r-lg: 14px;
+
+  --rh-shadow-sm: 0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06);
+  --rh-shadow-md: 0 4px 12px rgba(15,23,42,.06), 0 2px 4px rgba(15,23,42,.04);
+  --rh-shadow-lg: 0 16px 40px rgba(15,23,42,.10), 0 4px 12px rgba(15,23,42,.04);
+
+  /* Backward compat — atualiza variáveis antigas para nova paleta */
+  --color-text-muted: var(--rh-ink-500);  /* corrige bug do "muted = preto" */
+}
+
+[data-theme="dark"] {
+  --rh-bg:      #0F1115;
+  --rh-paper:   #1A1D24;
+  --rh-ink-900: #F1F5F9;
+  --rh-ink-700: #CBD5E1;
+  --rh-ink-500: #94A3B8;
+  --rh-ink-300: #475569;
+  --rh-ink-200: #334155;
+  --rh-ink-100: #1E293B;
+
+  --rh-brand-500: #8589C2;
+  --rh-brand-700: #A2A6C2;
+  --rh-accent-500: #FB923C;
+
+  --rh-pos-bg:  rgba(34,197,94,.15);  --rh-pos-text:  #4ADE80;
+  --rh-warn-bg: rgba(251,191,36,.15); --rh-warn-text: #FCD34D;
+  --rh-neg-bg:  rgba(248,113,113,.15);--rh-neg-text:  #F87171;
+  --rh-info-bg: rgba(96,165,250,.15); --rh-info-text: #60A5FA;
+
+  --rh-shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+  --rh-shadow-md: 0 4px 12px rgba(0,0,0,.4);
+  --rh-shadow-lg: 0 16px 40px rgba(0,0,0,.5);
+
+  /* Backward compat — sobrepõe tokens antigos no dark */
+  --color-bg:         var(--rh-bg);
+  --color-surface:    var(--rh-paper);
+  --color-surface-2:  var(--rh-ink-100);
+  --color-border:     var(--rh-ink-200);
+  --color-text:       var(--rh-ink-900);
+  --color-text-muted: var(--rh-ink-500);
+}
+
+/* ─── Foco acessível (WCAG 2.2 — Focus Appearance) ─── */
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid var(--rh-accent-500);
+  outline-offset: 2px;
+  border-radius: var(--rh-r-sm);
+}
+
+/* Botões e inputs com foco mais visível */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--rh-accent-500);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(231,111,44,.15);
+}
+
+/* ─── Reduced motion (acessibilidade) ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── Utilitários novos ─── */
+.rh-display { font-family: var(--rh-font-display); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.rh-tabular { font-variant-numeric: tabular-nums; }
+.rh-muted   { color: var(--rh-ink-500); }
+.rh-h1      { font-family: var(--rh-font-display); font-size: var(--rh-fs-h1); font-weight: 800; line-height: 1.2; letter-spacing: -0.02em; }
+.rh-h2      { font-family: var(--rh-font-display); font-size: var(--rh-fs-h2); font-weight: 700; line-height: 1.3; }
+.rh-h3      { font-size: var(--rh-fs-h3); font-weight: 600; line-height: 1.4; }
+
+/* ─── Status pills (substitui badges com emojis) ─── */
+.rh-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: var(--rh-fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.rh-pill-pos  { background: var(--rh-pos-bg);  color: var(--rh-pos-text); }
+.rh-pill-warn { background: var(--rh-warn-bg); color: var(--rh-warn-text); }
+.rh-pill-neg  { background: var(--rh-neg-bg);  color: var(--rh-neg-text); }
+.rh-pill-info { background: var(--rh-info-bg); color: var(--rh-info-text); }
+.rh-pill-neutral { background: var(--rh-ink-100); color: var(--rh-ink-700); }
+.rh-pill-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ─── Sparkline (mini gráfico inline SVG) ─── */
+.rh-spark {
+  width: 80px;
+  height: 26px;
+  flex-shrink: 0;
+  display: block;
+}
+.rh-spark-pos { stroke: var(--rh-pos-strong); }
+.rh-spark-neg { stroke: var(--rh-neg-strong); }
+.rh-spark-warn { stroke: var(--rh-warn-strong); }
+.rh-spark-neutral { stroke: var(--rh-brand-500); }
+
+/* ─── Score / Gauge ─── */
+.rh-gauge {
+  width: 92px; height: 92px;
+  position: relative;
+  flex-shrink: 0;
+}
+.rh-gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.rh-gauge-bg { stroke: var(--rh-ink-200); fill: none; }
+.rh-gauge-fg {
+  fill: none;
+  stroke: var(--rh-accent-500);
+  stroke-linecap: round;
+  transition: stroke-dashoffset .6s ease;
+}
+.rh-gauge-num {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  font-family: var(--rh-font-display);
+  font-weight: 800;
+  color: var(--rh-ink-900);
+}
+.rh-gauge-num-val { font-size: 22px; line-height: 1; }
+.rh-gauge-num-max { font-size: 10px; color: var(--rh-ink-500); margin-top: 2px; }
+
+/* ─── Score Card hero ─── */
+.rh-score-card {
+  background: var(--rh-paper);
+  border: 1px solid var(--rh-ink-200);
+  border-radius: var(--rh-r-md);
+  padding: 18px;
+  box-shadow: var(--rh-shadow-sm);
+}
+.rh-score-bars {
+  margin-top: var(--sp-md);
+  padding-top: var(--sp-md);
+  border-top: 1px solid var(--rh-ink-200);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rh-score-bar { display: flex; flex-direction: column; gap: 4px; }
+.rh-score-bar-h { display: flex; justify-content: space-between; font-size: 13px; }
+.rh-score-bar-h b { font-variant-numeric: tabular-nums; color: var(--rh-ink-900); }
+.rh-score-bar-track { height: 4px; background: var(--rh-ink-200); border-radius: 99px; overflow: hidden; }
+.rh-score-bar-fill { height: 100%; background: var(--rh-ink-700); border-radius: 99px; transition: width .4s ease; }
+.rh-score-bar-fill.is-accent { background: var(--rh-accent-500); }
+
+/* ─── KPI Card v2 ─── */
+.rh-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  background: var(--rh-paper);
+  border: 1px solid var(--rh-ink-200);
+  border-radius: var(--rh-r-md);
+  box-shadow: var(--rh-shadow-sm);
+  transition: border-color .15s, box-shadow .15s;
+  min-height: 110px;
+}
+.rh-kpi:hover { border-color: var(--rh-ink-300); box-shadow: var(--rh-shadow-md); }
+.rh-kpi-label {
+  font-size: var(--rh-fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: var(--rh-ink-500);
+}
+.rh-kpi-value {
+  font-family: var(--rh-font-display);
+  font-size: var(--rh-fs-display-l);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--rh-ink-900);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.rh-kpi-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--rh-fs-sm);
+  color: var(--rh-ink-500);
+}
+.rh-kpi-delta-pos { color: var(--rh-pos-strong); font-weight: 700; }
+.rh-kpi-delta-neg { color: var(--rh-neg-strong); font-weight: 700; }
+
+/* ─── Pipeline stages ─── */
+.rh-pipeline {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.rh-pipeline-stage {
+  padding: 10px 12px;
+  background: var(--rh-paper);
+  border: 1px solid var(--rh-ink-200);
+  border-radius: var(--rh-r-md);
+  border-left: 3px solid var(--rh-ink-300);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rh-pipeline-stage.is-active {
+  border-color: var(--rh-warn-strong);
+  background: var(--rh-warn-bg);
+}
+.rh-pipeline-stage-label {
+  font-size: var(--rh-fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: var(--rh-ink-500);
+}
+.rh-pipeline-stage.is-active .rh-pipeline-stage-label {
+  color: var(--rh-warn-text);
+}
+.rh-pipeline-stage-count {
+  font-family: var(--rh-font-display);
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--rh-ink-900);
+  font-variant-numeric: tabular-nums;
+}
+.rh-pipeline-stage-value {
+  font-size: var(--rh-fs-xs);
+  color: var(--rh-ink-500);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Banner de alerta ─── */
+.rh-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: var(--rh-r-md);
+  background: var(--rh-warn-bg);
+  border-left: 4px solid var(--rh-warn-strong);
+  margin-bottom: 20px;
+}
+.rh-banner-icon {
+  width: 24px; height: 24px;
+  flex-shrink: 0;
+  color: var(--rh-warn-strong);
+}
+.rh-banner-text {
+  flex: 1;
+  font-size: var(--rh-fs-body);
+  color: var(--rh-warn-text);
+  line-height: 1.5;
+}
+.rh-banner-text strong { color: var(--rh-warn-text); font-weight: 700; }
+.rh-banner-action {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  background: var(--rh-paper);
+  border: 1px solid var(--rh-warn-strong);
+  border-radius: var(--rh-r-sm);
+  color: var(--rh-warn-text);
+  font-size: var(--rh-fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .15s;
+}
+.rh-banner-action:hover { background: var(--rh-warn-bg); }
+.rh-banner-neg  { background: var(--rh-neg-bg);  border-left-color: var(--rh-neg-strong); }
+.rh-banner-neg .rh-banner-icon, .rh-banner-neg .rh-banner-text, .rh-banner-neg .rh-banner-action { color: var(--rh-neg-text); border-color: var(--rh-neg-strong); }
+.rh-banner-info { background: var(--rh-info-bg); border-left-color: var(--rh-info-strong); }
+.rh-banner-info .rh-banner-icon, .rh-banner-info .rh-banner-text, .rh-banner-info .rh-banner-action { color: var(--rh-info-text); border-color: var(--rh-info-strong); }
+
+/* ─── Skeleton loader ─── */
+@keyframes rh-skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.rh-skeleton {
+  display: block;
+  background: linear-gradient(90deg, var(--rh-ink-100) 0%, var(--rh-ink-200) 50%, var(--rh-ink-100) 100%);
+  background-size: 200% 100%;
+  border-radius: var(--rh-r-sm);
+  animation: rh-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+/* ─── Theme toggle button ─── */
+.rh-theme-toggle {
+  position: fixed;
+  bottom: 16px; right: 16px;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--rh-paper);
+  border: 1px solid var(--rh-ink-200);
+  box-shadow: var(--rh-shadow-md);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  z-index: 9999;
+  color: var(--rh-ink-700);
+  transition: transform .15s, box-shadow .15s;
+}
+.rh-theme-toggle:hover { transform: translateY(-2px); box-shadow: var(--rh-shadow-lg); }
+
+/* ─── Responsive: pipeline em grid 2x2 no mobile ─── */
+@media (max-width: 768px) {
+  .rh-pipeline { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .rh-pipeline { grid-template-columns: 1fr; }
+}
+
+/* ─── Utilitários para reduzir inline styles ─── */
+.rh-row     { display: flex; align-items: center; gap: 8px; }
+.rh-row-sm  { display: flex; align-items: center; gap: 6px; }
+.rh-row-lg  { display: flex; align-items: center; gap: 16px; }
+.rh-col     { display: flex; flex-direction: column; gap: 8px; }
+.rh-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rh-end     { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.rh-wrap    { flex-wrap: wrap; }
+
+.rh-grid-2  { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.rh-grid-3  { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.rh-grid-4  { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media (max-width: 768px) {
+  .rh-grid-3, .rh-grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .rh-grid-2, .rh-grid-3, .rh-grid-4 { grid-template-columns: 1fr; }
+}
+
+.rh-text-right  { text-align: right; }
+.rh-text-center { text-align: center; }
+
+.rh-label   { font-size: var(--rh-fs-xs); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; color: var(--rh-ink-500); }
+.rh-meta    { font-size: var(--rh-fs-sm); color: var(--rh-ink-500); }
+.rh-meta-xs { font-size: var(--rh-fs-xs); color: var(--rh-ink-500); }
+.rh-strong  { font-weight: 700; color: var(--rh-ink-900); }
+.rh-money   { font-variant-numeric: tabular-nums; font-weight: 700; }
+
+.rh-tone-pos  { color: var(--rh-pos-strong); }
+.rh-tone-warn { color: var(--rh-warn-strong); }
+.rh-tone-neg  { color: var(--rh-neg-strong); }
+
+.rh-link {
+  color: var(--rh-brand-500);
+  text-decoration: none;
+  font-size: var(--rh-fs-sm);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color .15s;
+}
+.rh-link:hover { color: var(--rh-brand-700); text-decoration: underline; }
+
+.rh-divider { border-bottom: 1px solid var(--rh-ink-200); padding-bottom: 12px; margin-bottom: 12px; }
+
+/* Visually hidden (a11y) */
+.rh-sr-only {
+  position: absolute !important;
+  width: 1px !important; height: 1px !important;
+  padding: 0 !important; margin: -1px !important;
+  overflow: hidden !important; clip: rect(0,0,0,0) !important;
+  white-space: nowrap !important; border: 0 !important;
+}
+
+/* ─── Touch targets mínimos (WCAG 2.2 AA — Target Size) ─── */
+.btn, .ctd-tab, button.icon-btn, a.icon-btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+.btn-sm { min-height: 36px; }  /* exceção para botões dentro de listas densas */
+
+/* ─── KPI / Valores: previne overflow em telas estreitas ─── */
+.rh-kpi-value, .stat-value, .rh-pipeline-stage-count {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+}
+.rh-kpi { min-width: 0; }
+.rh-kpi-value {
+  font-size: clamp(20px, 4vw, 28px);
+  line-height: 1.05;
+}
+.rh-pipeline-stage-count { font-size: clamp(16px, 3vw, 22px); }
+
+/* ─── Responsividade — Tablet (≤1024px) ─── */
+@media (max-width: 1024px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .rh-grid-3, .rh-grid-4 { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ─── Responsividade — Mobile (≤768px) ─── */
+@media (max-width: 768px) {
+  /* Sidebar fora da tela com toggle */
+  body.rh-mobile #shell { grid-template-columns: 1fr; }
+  body.rh-mobile #sidebar {
+    position: fixed !important;
+    top: 0; left: 0; bottom: 0;
+    width: 280px !important;
+    height: 100vh !important;
+    max-height: none !important;
+    z-index: 9000;
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    box-shadow: 4px 0 24px rgba(0,0,0,.18);
+    overflow-y: auto;
+  }
+  body.rh-mobile.rh-sidebar-open #sidebar { transform: translateX(0); }
+  body.rh-mobile.rh-sidebar-open::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.45);
+    z-index: 8500;
+  }
+  /* Botão hamburger flutuante */
+  .rh-mobile-burger {
+    position: fixed; top: 8px; left: 8px; z-index: 9100;
+    width: 44px; height: 44px;
+    background: var(--rh-paper);
+    border: 1px solid var(--rh-ink-200);
+    border-radius: var(--rh-r-sm);
+    box-shadow: var(--rh-shadow-sm);
+    display: none;
+    align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--rh-ink-900);
+  }
+  body.rh-mobile .rh-mobile-burger { display: inline-flex; }
+
+  #app { padding: 12px !important; padding-top: 60px !important; }
+
+  /* Stat grids viram coluna única */
+  .stat-grid, .rh-grid-2, .rh-grid-3, .rh-grid-4 { grid-template-columns: 1fr !important; }
+
+  /* Headers compactam */
+  .page-title, .rh-h1 { font-size: 20px !important; }
+  .page-subtitle { font-size: 13px !important; }
+  .page-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+
+  /* Cards: padding menor */
+  .card { padding: var(--sp-md); border-radius: var(--rh-r-sm); }
+
+  /* KPI valores ainda menores no mobile */
+  .rh-kpi-value { font-size: clamp(18px, 6vw, 24px); }
+  .stat-value { font-size: clamp(20px, 6vw, 26px); }
+
+  /* Tabelas: scroll horizontal explicito */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 540px; font-size: 13px; }
+
+  /* Tabs do contrato com scroll */
+  .ctd-tabs { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+
+  /* Pipeline mobile: stages em coluna */
+  .rh-pipeline { grid-template-columns: 1fr !important; }
+  .rh-pipeline-stage-count { font-size: 22px !important; }
+
+  /* Modal: tela cheia em mobile */
+  .modal {
+    width: calc(100% - 16px) !important;
+    max-width: none !important;
+    margin: 8px;
+    max-height: calc(100vh - 16px) !important;
+  }
+
+  /* Theme toggle não fica em cima do conteúdo */
+  .rh-theme-toggle { bottom: 12px; right: 12px; }
+
+  /* Ações de tabela em coluna */
+  .actions-cell { flex-direction: column; align-items: flex-start; gap: 4px; }
+}
+
+/* ─── Mobile pequeno (≤480px) ─── */
+@media (max-width: 480px) {
+  :root { --sp-xl: 16px; --sp-2xl: 24px; }
+  .rh-h1 { font-size: 18px !important; }
+  .rh-h2 { font-size: 16px !important; }
+  body { font-size: 14px; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   MOBILE PACKAGE — melhorias específicas pra navegação no celular
+   (aplicado em ≤768px para complementar as regras acima)
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* iOS evita zoom automático em inputs se font-size >= 16px */
+  body.rh-mobile input,
+  body.rh-mobile select,
+  body.rh-mobile textarea,
+  body.rh-mobile .form-control {
+    font-size: 16px !important;
+  }
+
+  /* Touch targets: garante mínimo de 40-44px em controles importantes */
+  body.rh-mobile .btn,
+  body.rh-mobile .nav-link,
+  body.rh-mobile .nav-group-header,
+  body.rh-mobile .form-control,
+  body.rh-mobile button:not(.btn-sm):not(.modal-close):not(.btn-link-rdo-ass-del):not(.zoom-btn) {
+    min-height: 40px;
+  }
+  body.rh-mobile .btn-sm {
+    min-height: 32px;
+    padding: 6px 10px;
+  }
+
+  /* Sidebar drawer: largura adapta a telas muito estreitas */
+  body.rh-mobile #sidebar {
+    width: min(280px, 85vw) !important;
+  }
+  /* Logo da sidebar ocupa menos espaço em telas pequenas */
+  body.rh-mobile .sidebar-logo-img {
+    max-height: 36px !important;
+  }
+
+  /* Botão hamburger: melhor visibilidade */
+  body.rh-mobile .rh-mobile-burger {
+    background: var(--color-primary, #1d6b3f) !important;
+    color: #fff !important;
+    border-color: var(--color-primary-dark, #134d2c) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  }
+
+  /* page-header: botões da direita ficam full-width abaixo do título */
+  body.rh-mobile .page-header > div:last-child:not(:only-child),
+  body.rh-mobile .page-header .btn-group {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  body.rh-mobile .page-header .btn-group > .btn,
+  body.rh-mobile .page-header .btn-group > a.btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: center;
+    justify-content: center;
+  }
+
+  /* Cards: padding interno menor pra ganhar espaço */
+  body.rh-mobile .card {
+    padding: 12px !important;
+  }
+  body.rh-mobile .card-header {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* KPI grids: fonte ainda menor pra caber em telas estreitas */
+  body.rh-mobile .stat-value,
+  body.rh-mobile .rh-display { font-size: 18px !important; }
+  body.rh-mobile .rh-kpi-value { font-size: 16px !important; }
+
+  /* Tabelas: scroll mais óbvio (sombra nas bordas) */
+  body.rh-mobile .table-wrap,
+  body.rh-mobile .card > div[style*="overflow-x"] {
+    background:
+      linear-gradient(to right, var(--color-surface) 30%, rgba(0,0,0,0)) 0 0/40px 100% no-repeat,
+      linear-gradient(to left,  var(--color-surface) 30%, rgba(0,0,0,0)) 100% 0/40px 100% no-repeat,
+      linear-gradient(to right, rgba(0,0,0,.15), rgba(0,0,0,0)) 0 0/16px 100% no-repeat,
+      linear-gradient(to left,  rgba(0,0,0,.15), rgba(0,0,0,0)) 100% 0/16px 100% no-repeat;
+    background-attachment: local, local, scroll, scroll;
+  }
+
+  /* Tabs do contrato: tabs com largura mínima e mais respiração */
+  body.rh-mobile .ctd-tab {
+    padding: 9px 14px !important;
+    font-size: 14px !important;
+    flex: 0 0 auto;
+  }
+
+  /* Modais: padding menor + content mais espaço */
+  body.rh-mobile .modal {
+    width: calc(100% - 8px) !important;
+    margin: 4px !important;
+    max-height: calc(100vh - 8px) !important;
+    border-radius: 10px !important;
+  }
+  body.rh-mobile .modal-header {
+    padding: 12px 14px !important;
+  }
+  body.rh-mobile .modal-content {
+    padding: 14px !important;
+  }
+  body.rh-mobile .modal-footer {
+    padding: 10px 14px !important;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  body.rh-mobile .modal-footer > .btn {
+    flex: 1 1 calc(50% - 3px);
+    min-width: 0;
+  }
+  body.rh-mobile .modal-footer > .btn:only-child {
+    flex: 1 1 100%;
+  }
+
+  /* Form-row dentro de modais já vira coluna única em components.css */
+  /* Inputs de date: fica largo com width 100% */
+  body.rh-mobile input[type="date"] {
+    width: 100%;
+  }
+
+  /* Estoque: matriz horizontal com botões de ação empilhados */
+  body.rh-mobile .btn-acao-est {
+    flex: 1 1 calc(50% - 4px);
+    min-height: 36px;
+    font-size: 12px !important;
+    padding: 6px 8px !important;
+    margin: 2px 1px !important;
+  }
+
+  /* Comparativo de contratos: tabela larga vira card empilhado em mobile.
+     Como a tabela usa muitas colunas, deixa scroll horizontal mais óbvio */
+  body.rh-mobile [data-view="comparativo"] table {
+    font-size: 12px !important;
+  }
+
+  /* Dashboard customização: botão Personalizar no header não estoura */
+  body.rh-mobile #btnCustomizarDash {
+    width: 100%;
+    margin-top: 6px;
+  }
+
+  /* Mermaid (manual): não corta lateralmente em telas pequenas */
+  body.rh-mobile pre.mermaid {
+    padding: 10px !important;
+  }
+
+  /* Footer da sidebar: botões compactos */
+  body.rh-mobile .theme-toggle-btn {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  /* Tabela de saldo do estoque: header de coluna fica mais compacto */
+  body.rh-mobile .table th {
+    font-size: 11px !important;
+    padding: 8px 6px !important;
+  }
+  body.rh-mobile .table td {
+    padding: 8px 6px !important;
+  }
+
+  /* Remove sticky horizontal em mobile pra não atrapalhar scroll */
+  body.rh-mobile .table th[style*="sticky"],
+  body.rh-mobile .table td[style*="sticky"] {
+    position: static !important;
+  }
+
+  /* Filtros bar: empilha em uma coluna */
+  body.rh-mobile .filters-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  body.rh-mobile .filter-group {
+    width: 100%;
+  }
+}
+
+/* ─── Mobile muito pequeno (≤380px — iPhone SE 1ª geração e similares) ─── */
+@media (max-width: 380px) {
+  body.rh-mobile .page-title { font-size: 18px !important; }
+  body.rh-mobile .modal-title { font-size: 16px !important; }
+  body.rh-mobile .stat-value { font-size: 16px !important; }
+  body.rh-mobile #app { padding: 8px !important; padding-top: 56px !important; }
+  body.rh-mobile .card { padding: 10px !important; }
+  body.rh-mobile .ctd-tab {
+    padding: 8px 10px !important;
+    font-size: 13px !important;
+  }
+  /* Botões de ação do Estoque empilham vertical em telas muito estreitas */
+  body.rh-mobile .btn-acao-est {
+    flex: 1 1 100% !important;
+  }
+}
