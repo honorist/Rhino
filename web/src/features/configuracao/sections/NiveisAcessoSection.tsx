@@ -1,8 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { Fragment, useState, type CSSProperties } from 'react';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
-import Modal from '../../../components/ui/Modal';
 import Spinner from '../../../components/ui/Spinner';
 import { useToast } from '../../../components/ui/toast/ToastContext';
 import { api } from '../../../lib/api';
@@ -11,305 +10,412 @@ import { useNiveisAcesso } from '../../auth/queries';
 import type { NivelAcesso } from '../../auth/types';
 
 /**
- * Catálogo de rotas e flags — espelha js/views/Configuracao.js linhas 191-237.
- * Inclui rotas (#/x), sub-abas (contrato-tab:y) e flags especiais.
+ * Definição completa de abas e sub-permissões — espelha
+ * js/views/Configuracao.js (linhas 191-237). Mantenha sincronizado com as
+ * rotas reais de App.tsx + niveis_acesso.json.
  */
-interface Aba {
+interface AbaDef {
   route: string;
   label: string;
+  icon: string;
   grupo: string;
-  isFlag?: boolean;
-  isEditable?: boolean; // permite edit:#/x
+  /** Sub-itens (flags binárias indentadas embaixo). */
+  children?: AbaDef[];
 }
 
-const TODAS_ABAS: Aba[] = [
-  // Principal
-  { route: '#/dashboard', label: 'Dashboard', grupo: 'Principal', isEditable: true },
-  { route: '#/proposta', label: 'Propostas', grupo: 'Principal', isEditable: true },
-  { route: '#/clausulas', label: 'Cláusulas', grupo: 'Principal', isEditable: true },
-  { route: '#/contratos', label: 'Contratos', grupo: 'Principal', isEditable: true },
-  { route: 'contrato-tab:visao', label: '  ↳ Aba Visão Geral', grupo: 'Principal', isFlag: true },
-  { route: 'contrato-tab:financeiro', label: '  ↳ Aba Financeiro', grupo: 'Principal', isFlag: true },
-  { route: 'contrato-tab:equipe', label: '  ↳ Aba Equipe', grupo: 'Principal', isFlag: true },
-  { route: 'contrato-tab:rdo', label: '  ↳ Aba RDO', grupo: 'Principal', isFlag: true },
-  { route: 'contrato-tab:pendencias', label: '  ↳ Aba Pendências', grupo: 'Principal', isFlag: true },
-  // Obras
-  { route: '#/rdos', label: 'RDOs', grupo: 'Obras', isEditable: true },
-  { route: '#/obras', label: 'Mapa de Obras', grupo: 'Obras', isEditable: true },
-  { route: '#/solicitacoes-compra', label: 'Solicitações de Compra', grupo: 'Obras', isEditable: true },
-  { route: 'solicitacoes-compra:avaliar', label: '  ↳ Etapa Avaliar', grupo: 'Obras', isFlag: true },
-  { route: 'solicitacoes-compra:aprovar', label: '  ↳ Etapa Aprovar', grupo: 'Obras', isFlag: true },
-  { route: 'solicitacoes-compra:receber', label: '  ↳ Etapa Receber', grupo: 'Obras', isFlag: true },
-  { route: '#/estoque', label: 'Almoxarifado', grupo: 'Obras', isEditable: true },
-  { route: '#/frota', label: 'Frota', grupo: 'Obras', isEditable: true },
-  { route: '#/manutencao', label: 'Manutenção', grupo: 'Obras', isEditable: true },
-  { route: 'manutencao:avaliar', label: '  ↳ Etapa Avaliar', grupo: 'Obras', isFlag: true },
-  { route: 'manutencao:aprovar', label: '  ↳ Etapa Aprovar', grupo: 'Obras', isFlag: true },
-  // RH
-  { route: '#/clientes', label: 'Clientes', grupo: 'RH', isEditable: true },
-  { route: '#/fornecedores', label: 'Fornecedores', grupo: 'RH', isEditable: true },
-  { route: '#/recursos', label: 'Recursos', grupo: 'RH', isEditable: true },
-  { route: '#/folha-pagamento', label: 'Folha de Pagamento', grupo: 'RH', isEditable: true },
-  { route: '#/documentos', label: 'Documentação', grupo: 'RH', isEditable: true },
-  // Financeiro
-  { route: '#/base', label: 'BASE', grupo: 'Financeiro', isEditable: true },
-  { route: '#/caixa', label: 'Caixa', grupo: 'Financeiro', isEditable: true },
-  { route: '#/contas-pagar', label: 'Contas a Pagar', grupo: 'Financeiro', isEditable: true },
-  { route: '#/notas-fiscais', label: 'Notas Fiscais', grupo: 'Financeiro', isEditable: true },
-  { route: '#/conciliacao', label: 'Conciliação', grupo: 'Financeiro', isEditable: true },
-  { route: '#/cobranca', label: 'Cobrança', grupo: 'Financeiro', isEditable: true },
-  { route: '#/socios', label: 'Sócios', grupo: 'Financeiro', isEditable: true },
-  { route: '#/investimentos', label: 'Aportes', grupo: 'Financeiro', isEditable: true },
-  { route: '#/previsao', label: 'Previsão', grupo: 'Financeiro', isEditable: true },
-  { route: '#/ai-chat', label: 'Assistente IA', grupo: 'Financeiro' },
-  // Sistema
-  { route: '#/configuracao', label: 'Configuração', grupo: 'Sistema', isEditable: true },
-  { route: '#/usuarios', label: 'Usuários', grupo: 'Sistema', isEditable: true },
-  { route: '#/auditoria', label: 'Auditoria', grupo: 'Sistema' },
-  // Restrições
+const TODAS_ABAS: AbaDef[] = [
+  // ── Principal ──
+  { route: '#/dashboard', label: 'Dashboard', icon: '🏠', grupo: 'Principal' },
+  { route: '#/proposta', label: 'Propostas', icon: '📄', grupo: 'Principal' },
+  { route: '#/clausulas', label: 'Biblioteca de Cláusulas', icon: '📖', grupo: 'Principal' },
+  {
+    route: '#/contratos',
+    label: 'Contratos',
+    icon: '💼',
+    grupo: 'Principal',
+    children: [
+      { route: 'contrato-tab:visao', label: 'Aba Visão Geral', icon: '👁', grupo: 'Principal' },
+      { route: 'contrato-tab:financeiro', label: 'Aba Financeiro', icon: '$', grupo: 'Principal' },
+      { route: 'contrato-tab:equipe', label: 'Aba Equipe', icon: '👥', grupo: 'Principal' },
+      { route: 'contrato-tab:rdo', label: 'Aba RDO', icon: '📋', grupo: 'Principal' },
+      { route: 'contrato-tab:pendencias', label: 'Aba Pendências', icon: '⚠', grupo: 'Principal' },
+    ],
+  },
+  // ── Obras ──
+  { route: '#/rdos', label: 'RDOs (todos)', icon: '📋', grupo: 'Obras' },
+  { route: '#/obras', label: 'Mapa de Obras', icon: '📍', grupo: 'Obras' },
+  {
+    route: '#/solicitacoes-compra',
+    label: 'Solicitações de Compra',
+    icon: '🛒',
+    grupo: 'Obras',
+    children: [
+      { route: 'solicitacoes-compra:avaliar', label: 'Etapa — Avaliar e cotar', icon: '$', grupo: 'Obras' },
+      { route: 'solicitacoes-compra:aprovar', label: 'Etapa — Aprovar ou rejeitar', icon: '✓', grupo: 'Obras' },
+      { route: 'solicitacoes-compra:receber', label: 'Etapa — Registrar recebimento', icon: '📦', grupo: 'Obras' },
+    ],
+  },
+  { route: '#/estoque', label: 'Almoxarifado', icon: '📦', grupo: 'Obras' },
+  { route: '#/frota', label: 'Frota', icon: '🚚', grupo: 'Obras' },
+  {
+    route: '#/manutencao',
+    label: 'Manutenção',
+    icon: '🔧',
+    grupo: 'Obras',
+    children: [
+      { route: 'manutencao:avaliar', label: 'Etapa — Avaliar oficina/prazo', icon: '$', grupo: 'Obras' },
+      { route: 'manutencao:aprovar', label: 'Etapa — Aprovar ou rejeitar', icon: '✓', grupo: 'Obras' },
+    ],
+  },
+  // ── RH ──
+  { route: '#/clientes', label: 'Clientes', icon: '👥', grupo: 'RH' },
+  { route: '#/fornecedores', label: 'Fornecedores', icon: '🚚', grupo: 'RH' },
+  { route: '#/recursos', label: 'Recursos', icon: '👤', grupo: 'RH' },
+  { route: '#/recrutamento', label: 'Recrutamento', icon: '👤', grupo: 'RH' },
+  { route: '#/folha-pagamento', label: 'Folha de Pagamento', icon: '$', grupo: 'RH' },
+  { route: '#/documentos', label: 'Documentação', icon: '📄', grupo: 'RH' },
+  // ── Financeiro ──
+  { route: '#/base', label: 'BASE', icon: '🗄', grupo: 'Financeiro' },
+  { route: '#/caixa', label: 'Caixa', icon: '👛', grupo: 'Financeiro' },
+  { route: '#/contas-pagar', label: 'Contas a Pagar', icon: '➖', grupo: 'Financeiro' },
+  { route: '#/notas-fiscais', label: 'Contas a Receber', icon: '🧾', grupo: 'Financeiro' },
+  { route: '#/conciliacao', label: 'Conciliação', icon: '✓', grupo: 'Financeiro' },
+  { route: '#/cobranca', label: 'Cobrança', icon: '🧾', grupo: 'Financeiro' },
+  { route: '#/socios', label: 'Sócios', icon: '👥', grupo: 'Financeiro' },
+  { route: '#/investimentos', label: 'Aportes', icon: '➕', grupo: 'Financeiro' },
+  { route: '#/previsao', label: 'Previsão', icon: '📈', grupo: 'Financeiro' },
+  { route: '#/ai-chat', label: 'Assistente IA', icon: '✨', grupo: 'Financeiro' },
+  // ── Sistema ──
+  { route: '#/configuracao', label: 'Configuração', icon: '⚙', grupo: 'Sistema' },
+  { route: '#/usuarios', label: 'Usuários', icon: '👤', grupo: 'Sistema' },
+  { route: '#/auditoria', label: 'Auditoria', icon: '👁', grupo: 'Sistema' },
+  // ── Restrições especiais (flag) ──
   {
     route: 'special:nao-ver-valores',
     label: 'Ocultar valores monetários (R$)',
-    grupo: 'Restrições',
-    isFlag: true,
+    icon: '🙈',
+    grupo: 'Restrições especiais',
   },
 ];
 
-const GRUPOS = ['Principal', 'Obras', 'RH', 'Financeiro', 'Sistema', 'Restrições'];
+const GRUPOS = ['Principal', 'Obras', 'RH', 'Financeiro', 'Sistema', 'Restrições especiais'];
+
+function isFlag(route: string): boolean {
+  return (
+    route.startsWith('special:') ||
+    route.startsWith('contrato-tab:') ||
+    route.startsWith('solicitacoes-compra:') ||
+    route.startsWith('manutencao:')
+  );
+}
 
 /**
- * Seção "Níveis de Acesso" — porte de renderNiveisAcesso() em
- * js/views/Configuracao.js. Lista de perfis e editor de matriz Ver/Editar.
+ * Seção "Níveis de Acesso" — MATRIZ visual (linhas = abas, colunas = perfis
+ * com Ver+Editar cada). Porte fiel de renderNiveisAcesso() de
+ * js/views/Configuracao.js. Salvamento em batch.
  */
 export default function NiveisAcessoSection() {
   const niveisQuery = useNiveisAcesso();
-  const [editing, setEditing] = useState<NivelAcesso | null>(null);
+  const [edits, setEdits] = useState<Map<string, Set<string>>>(new Map());
 
   if (niveisQuery.isLoading) return <Spinner label="Carregando perfis…" />;
+  const niveisRaw = niveisQuery.data?.niveis ?? [];
+  // Gerente sempre na ponta direita.
+  const niveis = [...niveisRaw].sort(
+    (a, b) => (a.id === 'gerente' ? 1 : 0) - (b.id === 'gerente' ? 1 : 0),
+  );
 
-  const niveis = niveisQuery.data?.niveis ?? [];
+  const getAbasEdit = (nivelId: string): Set<string> =>
+    edits.get(nivelId) ?? new Set(niveis.find((n) => n.id === nivelId)?.abas ?? []);
+
+  function toggle(nivelId: string, route: string) {
+    setEdits((prev) => {
+      const next = new Map(prev);
+      const atual = new Set(
+        prev.get(nivelId) ?? niveis.find((n) => n.id === nivelId)?.abas ?? [],
+      );
+      if (atual.has(route)) {
+        atual.delete(route);
+        if (!route.startsWith('edit:')) atual.delete('edit:' + route);
+      } else {
+        atual.add(route);
+      }
+      next.set(nivelId, atual);
+      return next;
+    });
+  }
+
+  const hasChanges = edits.size > 0;
+  const headerProps =
+    hasChanges && niveis.length > 0
+      ? { hasChanges: true as const, edits, niveis, onSaved: () => setEdits(new Map()), onReset: () => setEdits(new Map()) }
+      : {};
 
   return (
     <>
-      <div className="page-header" style={{ marginBottom: 'var(--sp-lg)' }}>
-        <div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>
-            🔐 Níveis de Acesso
-          </h2>
-          <p className="page-subtitle">
-            Perfis que controlam quais telas cada usuário pode ver e editar
-          </p>
-        </div>
-      </div>
+      <Header {...headerProps} />
 
       {niveis.length === 0 ? (
         <Card style={{ padding: 'var(--sp-lg)' }}>
           <p className="text-muted">Nenhum perfil cadastrado.</p>
         </Card>
       ) : (
-        <Card style={{ padding: 0 }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <th style={th()}>Perfil</th>
-                  <th style={th()}>Cor</th>
-                  <th style={th()}>Abas liberadas</th>
-                  <th style={th()}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {niveis.map((n) => (
-                  <tr key={n.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                    <td style={td()}>
-                      <span style={{ fontSize: 20 }}>{n.icon}</span>{' '}
-                      <strong>{n.label}</strong>
-                    </td>
-                    <td style={td()}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          width: 16,
-                          height: 16,
-                          borderRadius: 4,
-                          background: n.cor,
-                        }}
-                      />
-                    </td>
-                    <td style={td()}>
-                      <span className="text-muted">
-                        {(n.abas ?? []).length} aba(s) /{' '}
-                        {(n.abas ?? []).filter((a) => a.startsWith('edit:')).length} edição(ões)
-                      </span>
-                    </td>
-                    <td style={td()}>
-                      <a
-                        className="action-link"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => setEditing(n)}
-                      >
-                        Editar permissões
-                      </a>
-                    </td>
-                  </tr>
+        <Card style={{ padding: 0, overflowX: 'auto' }}>
+          <table
+            style={{
+              borderCollapse: 'collapse',
+              width: '100%',
+              fontSize: 13,
+            }}
+          >
+            <thead>
+              <tr>
+                <th style={{ ...th(), background: 'var(--color-surface)', textAlign: 'left' }}>
+                  Tela / Permissão
+                </th>
+                {niveis.map((n, i) => (
+                  <th
+                    key={n.id}
+                    colSpan={2}
+                    style={{
+                      ...th(),
+                      background: 'var(--color-surface)',
+                      borderLeft: i > 0 ? '2px solid var(--color-border)' : undefined,
+                      borderBottom: `3px solid ${n.cor}`,
+                    }}
+                  >
+                    <span style={{ fontSize: 16, marginRight: 4 }}>{n.icon}</span>
+                    <span style={{ color: n.cor }}>{n.label}</span>
+                  </th>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </tr>
+              <tr>
+                <th style={{ ...th(), background: 'var(--color-surface)' }} />
+                {niveis.map((n, i) => (
+                  <Fragment key={n.id}>
+                    <th
+                      style={{
+                        ...subTh(),
+                        borderLeft: i > 0 ? '2px solid var(--color-border)' : undefined,
+                      }}
+                    >
+                      Ver
+                    </th>
+                    <th style={subTh()}>Ed.</th>
+                  </Fragment>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {GRUPOS.map((grupo) => {
+                const abasGrupo = TODAS_ABAS.filter((a) => a.grupo === grupo);
+                if (abasGrupo.length === 0) return null;
+                return (
+                  <Fragment key={grupo}>
+                    <tr>
+                      <td
+                        colSpan={1 + niveis.length * 2}
+                        style={{
+                          background: 'var(--color-bg)',
+                          fontSize: 10,
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '.06em',
+                          color: '#64748B',
+                          padding: '8px 10px',
+                        }}
+                      >
+                        {grupo}
+                      </td>
+                    </tr>
+                    {abasGrupo.flatMap((aba) => [
+                      <MatrixRow
+                        key={aba.route}
+                        aba={aba}
+                        niveis={niveis}
+                        getAbas={getAbasEdit}
+                        onToggle={toggle}
+                        indented={false}
+                      />,
+                      ...(aba.children ?? []).map((child) => (
+                        <MatrixRow
+                          key={child.route}
+                          aba={child}
+                          niveis={niveis}
+                          getAbas={getAbasEdit}
+                          onToggle={toggle}
+                          indented
+                        />
+                      )),
+                    ])}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
         </Card>
-      )}
-
-      {editing && (
-        <PermissionsEditorModal
-          nivel={editing}
-          onClose={() => setEditing(null)}
-        />
       )}
     </>
   );
 }
 
-function PermissionsEditorModal({
-  nivel,
-  onClose,
-}: {
-  nivel: NivelAcesso;
-  onClose: () => void;
-}) {
+interface HeaderProps {
+  hasChanges?: boolean;
+  edits?: Map<string, Set<string>>;
+  niveis?: NivelAcesso[];
+  onSaved?: () => void;
+  onReset?: () => void;
+}
+
+function Header({ hasChanges, edits, niveis, onSaved, onReset }: HeaderProps) {
   const toast = useToast();
   const qc = useQueryClient();
-  const [abas, setAbas] = useState<Set<string>>(new Set(nivel.abas ?? []));
-
   const salvar = useMutation({
-    mutationFn: (input: { abas: string[] }) =>
-      api.put<{ ok: boolean }>(`/api/niveis-acesso/${nivel.id}`, input),
+    mutationFn: async () => {
+      if (!edits || !niveis) return;
+      const calls = Array.from(edits.entries()).map(([nivelId, set]) =>
+        api.put(`/api/niveis-acesso/${nivelId}`, { abas: Array.from(set) }),
+      );
+      await Promise.all(calls);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.niveisAcesso });
-      toast.show(`Permissões de ${nivel.label} atualizadas`, 'success');
-      onClose();
+      toast.show('Permissões atualizadas em todos os perfis editados.', 'success');
+      onSaved?.();
     },
-    onError: (e) => toast.show(e.message, 'danger'),
+    onError: (e) => toast.show((e as Error).message, 'danger'),
   });
 
-  function toggle(route: string) {
-    setAbas((prev) => {
-      const next = new Set(prev);
-      if (next.has(route)) next.delete(route);
-      else next.add(route);
-      return next;
-    });
-  }
-
   return (
-    <Modal
-      open
-      title={`Permissões — ${nivel.label}`}
-      onClose={onClose}
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose} disabled={salvar.isPending}>
-            Cancelar
-          </Button>
-          <Button
-            onClick={() => salvar.mutate({ abas: Array.from(abas) })}
-            disabled={salvar.isPending}
-          >
-            {salvar.isPending ? 'Salvando…' : 'Salvar permissões'}
-          </Button>
-        </>
-      }
+    <div
+      className="page-header"
+      style={{ marginBottom: 'var(--sp-lg)', alignItems: 'flex-start' }}
     >
-      <p className="text-muted" style={{ fontSize: 13, marginBottom: 'var(--sp-md)' }}>
-        Marque <strong>Ver</strong> para liberar a tela no menu;{' '}
-        <strong>Editar</strong> habilita criar/atualizar/excluir nessa tela.
-      </p>
-
-      {GRUPOS.map((g) => {
-        const itens = TODAS_ABAS.filter((a) => a.grupo === g);
-        if (itens.length === 0) return null;
-        return (
-          <fieldset
-            key={g}
-            style={{
-              border: '1px solid var(--color-border)',
-              borderRadius: 6,
-              padding: 'var(--sp-md)',
-              marginBottom: 'var(--sp-md)',
-            }}
-          >
-            <legend
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '.04em',
-                color: '#64748B',
-                padding: '0 6px',
-              }}
-            >
-              {g}
-            </legend>
-            <table style={{ width: '100%', fontSize: 13 }}>
-              <tbody>
-                {itens.map((aba) => {
-                  const liberada = abas.has(aba.route);
-                  const editable = aba.isEditable && !aba.isFlag;
-                  const editRoute = 'edit:' + aba.route;
-                  const liberadaEdit = abas.has(editRoute);
-                  return (
-                    <tr key={aba.route}>
-                      <td style={{ padding: '4px 0', whiteSpace: 'pre-wrap' }}>
-                        {aba.label}
-                      </td>
-                      <td style={{ padding: '4px 0', width: 80, textAlign: 'center' }}>
-                        <label
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={liberada}
-                            onChange={() => toggle(aba.route)}
-                          />
-                          Ver
-                        </label>
-                      </td>
-                      <td style={{ padding: '4px 0', width: 80, textAlign: 'center' }}>
-                        {editable && (
-                          <label
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12 }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={liberadaEdit}
-                              onChange={() => toggle(editRoute)}
-                              disabled={!liberada}
-                            />
-                            Editar
-                          </label>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </fieldset>
-        );
-      })}
-    </Modal>
+      <div>
+        <h2 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>
+          🔐 Níveis de Acesso
+        </h2>
+        <p className="page-subtitle">
+          Matriz de telas (linhas) × perfis (colunas). Marque <strong>Ver</strong>{' '}
+          para liberar a tela no menu; <strong>Editar</strong> habilita
+          criar/atualizar/excluir.
+        </p>
+      </div>
+      {hasChanges && (
+        <div style={{ display: 'flex', gap: 'var(--sp-sm)' }}>
+          <Button variant="secondary" onClick={onReset} disabled={salvar.isPending}>
+            Descartar
+          </Button>
+          <Button onClick={() => salvar.mutate()} disabled={salvar.isPending}>
+            {salvar.isPending ? 'Salvando…' : 'Salvar alterações'}
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
 
-const th = (): React.CSSProperties => ({
-  padding: '10px 12px',
-  textAlign: 'left',
+function MatrixRow({
+  aba,
+  niveis,
+  getAbas,
+  onToggle,
+  indented,
+}: {
+  aba: AbaDef;
+  niveis: NivelAcesso[];
+  getAbas: (nivelId: string) => Set<string>;
+  onToggle: (nivelId: string, route: string) => void;
+  indented: boolean;
+}) {
+  const flag = isFlag(aba.route);
+  return (
+    <tr
+      style={{
+        borderBottom: '1px solid var(--color-border)',
+      }}
+    >
+      <td
+        style={{
+          padding: '6px 10px',
+          paddingLeft: indented ? 30 : 10,
+          color: indented ? 'var(--color-text-muted)' : 'var(--color-text)',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <span style={{ marginRight: 6 }}>{aba.icon}</span>
+        {aba.label}
+      </td>
+      {niveis.map((n, i) => {
+        const abasEd = getAbas(n.id);
+        const verChecked = abasEd.has(aba.route);
+        const editChecked = abasEd.has('edit:' + aba.route);
+        return (
+          <Fragment key={n.id}>
+            <td
+              style={{
+                textAlign: 'center',
+                padding: '4px 8px',
+                borderLeft: i > 0 ? '2px solid var(--color-border)' : undefined,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={verChecked}
+                onChange={() => onToggle(n.id, aba.route)}
+                style={{ width: 14, height: 14, accentColor: n.cor }}
+                title={flag ? 'Sub-permissão — marcado = liberado' : `Ver ${aba.label}`}
+              />
+            </td>
+            <td style={{ textAlign: 'center', padding: '4px 8px' }}>
+              {flag ? (
+                <span style={{ color: 'var(--color-text-muted)' }} title="Não se aplica">
+                  —
+                </span>
+              ) : (
+                <input
+                  type="checkbox"
+                  checked={editChecked}
+                  disabled={!verChecked}
+                  onChange={() => onToggle(n.id, 'edit:' + aba.route)}
+                  style={{
+                    width: 14,
+                    height: 14,
+                    accentColor: n.cor,
+                    opacity: verChecked ? 1 : 0.35,
+                  }}
+                  title={`Editar ${aba.label}`}
+                />
+              )}
+            </td>
+          </Fragment>
+        );
+      })}
+    </tr>
+  );
+}
+
+const th = (): CSSProperties => ({
+  padding: '8px 10px',
   fontSize: 12,
-  fontWeight: 600,
+  fontWeight: 700,
   textTransform: 'uppercase',
   letterSpacing: '.04em',
   color: '#64748B',
+  textAlign: 'center',
+  position: 'sticky',
+  top: 0,
+  zIndex: 2,
 });
-const td = (): React.CSSProperties => ({
-  padding: '10px 12px',
-  verticalAlign: 'middle',
+
+const subTh = (): CSSProperties => ({
+  padding: '4px 8px',
+  width: 46,
+  fontSize: 10,
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '.04em',
+  color: '#64748B',
+  background: 'var(--color-surface)',
+  textAlign: 'center',
 });

@@ -36,12 +36,21 @@ export default function AtualizacoesSection() {
     (import.meta.env.VITE_APP_VERSION as string | undefined) ?? '';
   const { data, isLoading, error } = useQuery({
     queryKey: ['changelog'],
-    queryFn: () =>
-      // changelog.json fica na raiz (não em /api). Fetch direto, sem auth.
-      fetch('/changelog.json', { cache: 'no-cache' }).then((r) => {
+    queryFn: async () => {
+      // No modo SERVE_REACT, /changelog.json não existe em web/dist —
+      // o backend serve via /api/changelog. Fallback para /changelog.json
+      // caso o endpoint ainda não tenha sido deployado.
+      const tentar = async (url: string) => {
+        const r = await fetch(url, { cache: 'no-cache' });
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json() as Promise<ChangelogData>;
-      }),
+      };
+      try {
+        return await tentar('/api/changelog');
+      } catch {
+        return await tentar('/changelog.json');
+      }
+    },
     staleTime: 5 * 60_000,
   });
 

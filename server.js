@@ -1073,6 +1073,29 @@ async function handleBackupDownload(res) {
   }
 }
 
+/**
+ * Serve changelog.json da raiz. Necessário no modo SERVE_REACT — o arquivo
+ * fica fora de web/dist/, então /changelog.json daria 404.
+ */
+function handleChangelog(res) {
+  try {
+    const fp = path.resolve(__dirname, 'changelog.json');
+    if (!fs.existsSync(fp)) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end('{"entries":[]}');
+      return;
+    }
+    const body = fs.readFileSync(fp);
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+    });
+    res.end(body);
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
 async function handleHealth(res) {
   const result = {
     app: 'ok',
@@ -4701,7 +4724,7 @@ registerPortal(apiRouter, {
 registerPlatform(apiRouter, {
   bus, sendJson,
   handleGetAudit, handleGetUsers, handlePostUser, handlePutUser, handleDeleteUser,
-  handleAiUsageStats, handleHealth, handleMetrics, handleGetAdminArquivos,
+  handleAiUsageStats, handleHealth, handleChangelog, handleMetrics, handleGetAdminArquivos,
   handleAiChat, handleAiClassify, handleGetFeatureFlags, handlePutFeatureFlag,
   handleGlobalSearch, handleGetNiveisAcesso, handlePutNivelAcesso,
   handlePushSubscribe, handlePushUnsubscribe,

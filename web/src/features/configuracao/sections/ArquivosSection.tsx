@@ -3,16 +3,22 @@ import Card from '../../../components/ui/Card';
 import Spinner from '../../../components/ui/Spinner';
 import { api } from '../../../lib/api';
 
+/** Arquivos vêm de /api/admin/arquivos — colunas reais do recurso_doc_arquivos. */
 interface ArquivoInfo {
-  name: string;
-  size: number;
-  modified?: string;
-  url?: string;
+  id: string;
+  recursoId?: string;
+  recursoNome?: string;
+  docId?: string;
+  filename?: string;
+  filenameOriginal?: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  createdAt?: string;
+  tipoDoc?: string;
 }
 interface ArquivosResponse {
-  arquivos?: ArquivoInfo[];
-  files?: ArquivoInfo[];
-  totalSize?: number;
+  arquivos: ArquivoInfo[];
+  total?: number;
 }
 
 function humanSize(bytes: number): string {
@@ -29,11 +35,11 @@ function humanSize(bytes: number): string {
 export default function ArquivosSection() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['arquivos-sistema'],
-    queryFn: () => api.get<ArquivosResponse>('/api/arquivos'),
+    queryFn: () => api.get<ArquivosResponse>('/api/admin/arquivos'),
   });
 
-  const arquivos = data?.arquivos ?? data?.files ?? [];
-  const totalSize = data?.totalSize ?? arquivos.reduce((s, a) => s + (a.size || 0), 0);
+  const arquivos = data?.arquivos ?? [];
+  const totalSize = data?.total ?? arquivos.reduce((s, a) => s + (a.sizeBytes || 0), 0);
 
   return (
     <>
@@ -78,35 +84,33 @@ export default function ArquivosSection() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                    <th style={th()}>Colaborador</th>
+                    <th style={th()}>Tipo de documento</th>
                     <th style={th()}>Arquivo</th>
                     <th style={th()}>Tamanho</th>
-                    <th style={th()}>Modificado</th>
+                    <th style={th()}>Subido em</th>
                   </tr>
                 </thead>
                 <tbody>
                   {arquivos.map((a) => (
                     <tr
-                      key={a.name}
+                      key={a.id}
                       style={{ borderBottom: '1px solid var(--color-border)' }}
                     >
+                      <td style={td()}>{a.recursoNome ?? '—'}</td>
+                      <td style={td()}>{a.tipoDoc ?? '—'}</td>
                       <td style={td()}>
-                        {a.url ? (
-                          <a
-                            href={a.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{ color: 'var(--color-primary)' }}
-                          >
-                            {a.name}
-                          </a>
-                        ) : (
-                          a.name
+                        {a.filenameOriginal ?? a.filename ?? '—'}
+                        {a.mimeType && (
+                          <div className="text-muted" style={{ fontSize: 12 }}>
+                            {a.mimeType}
+                          </div>
                         )}
                       </td>
-                      <td style={td()}>{humanSize(a.size || 0)}</td>
+                      <td style={td()}>{humanSize(a.sizeBytes || 0)}</td>
                       <td style={td()}>
-                        {a.modified
-                          ? new Date(a.modified).toLocaleDateString('pt-BR')
+                        {a.createdAt
+                          ? new Date(a.createdAt).toLocaleDateString('pt-BR')
                           : '—'}
                       </td>
                     </tr>

@@ -76,6 +76,9 @@ export function podeAcessar(nivel: NivelAcesso | null, route: string): boolean {
     '#/proposta',
     '#/clausulas',
     '#/apresentacao',
+    // Recrutamento: aberto a todos os perfis logados (US-05 — qualquer
+    // encarregado pode abrir solicitação). RH ainda controla o resto via UI.
+    '#/recrutamento',
   ];
   if (universais.includes(base)) return true;
   return a.includes(base);

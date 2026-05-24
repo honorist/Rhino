@@ -24,6 +24,7 @@ module.exports = function registerPlatform(router, deps) {
   // ── Saúde / métricas / uso de IA ──
   router.get('/api/ai-usage/stats', (ctx) => deps.handleAiUsageStats(ctx.res));
   router.get('/api/health',         (ctx) => deps.handleHealth(ctx.res));
+  router.get('/api/changelog',      (ctx) => deps.handleChangelog(ctx.res));
   router.get('/api/metrics',        (ctx) => deps.handleMetrics(ctx.res, ctx.req));
 
   // ── Admin ──
