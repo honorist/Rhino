@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
@@ -26,6 +26,59 @@ import {
 } from './MovimentacaoModais';
 
 type Aba = 'geral' | 'historico';
+
+/** Chip de saldo por almoxarifado — usado na linha expansível. */
+function SaldoChip({
+  icon,
+  nome,
+  qtd,
+  unidade,
+  destaque,
+}: {
+  icon: string;
+  nome: string;
+  qtd: number;
+  unidade?: string;
+  destaque?: boolean;
+}) {
+  const zero = qtd <= 0;
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'baseline',
+        gap: 6,
+        padding: '6px 10px',
+        borderRadius: 8,
+        background: zero
+          ? 'rgba(148,163,184,.10)'
+          : destaque
+            ? 'rgba(59,130,246,.10)'
+            : 'rgba(16,185,129,.10)',
+        border: `1px solid ${
+          zero
+            ? 'rgba(148,163,184,.25)'
+            : destaque
+              ? 'rgba(59,130,246,.35)'
+              : 'rgba(16,185,129,.35)'
+        }`,
+        fontSize: 13,
+        color: zero ? '#94A3B8' : 'var(--color-text)',
+      }}
+    >
+      <span style={{ fontSize: 14 }}>{icon}</span>
+      <span style={{ fontWeight: 500 }}>{nome}</span>
+      <strong style={{ fontVariantNumeric: 'tabular-nums' }}>
+        {qtd.toFixed(2)}
+      </strong>
+      {unidade && (
+        <span className="text-muted" style={{ fontSize: 11 }}>
+          {unidade}
+        </span>
+      )}
+    </div>
+  );
+}
 
 type ModalState =
   | { type: 'novoItem' }
@@ -97,6 +150,16 @@ export default function Estoque() {
   const [busca, setBusca] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [modal, setModal] = useState<ModalState>(null);
+  // Linhas expandidas. Persistido em sessão pra não perder ao trocar de aba.
+  const [expandidos, setExpandidos] = useState<Set<string>>(() => new Set());
+  function toggleExpand(id: string) {
+    setExpandidos((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   const almoxs = useMemo(
     () => visaoQuery.data?.almoxarifados ?? [],
@@ -256,24 +319,18 @@ export default function Estoque() {
                 <table>
                   <thead>
                     <tr>
+                      <th style={{ width: 36 }}></th>
                       <th>Item</th>
-                      <th>Categoria</th>
-                      <th style={{ textAlign: 'center' }}>🏠 Central</th>
-                      {obras.map((o) => (
-                        <th key={o.id} style={{ textAlign: 'center' }}>
-                          🏗️ {o.contractName || o.nome}
-                        </th>
-                      ))}
-                      <th style={{ textAlign: 'center' }}>Σ Total</th>
-                      <th style={{ textAlign: 'right' }}>Custo médio</th>
-                      <th style={{ textAlign: 'center' }}>Ações</th>
+                      <th style={{ width: 110, textAlign: 'center' }}>Σ Total</th>
+                      <th style={{ width: 90, textAlign: 'center' }}>Status</th>
+                      <th style={{ width: 320, textAlign: 'center' }}>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filtrados.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={5 + obras.length + 2}
+                          colSpan={5}
                           className="text-center text-muted"
                           style={{ padding: 'var(--sp-md)' }}
                         >
@@ -287,77 +344,182 @@ export default function Estoque() {
                         const saldoCentral = central
                           ? saldoEm(item, central.id)
                           : 0;
+                        const aberto = expandidos.has(item.id);
                         return (
-                          <tr key={item.id}>
-                            <td>
-                              <strong>{item.descricao}</strong>
-                              <div className="text-muted" style={{ fontSize: 12 }}>
-                                {item.codigo ? `cod. ${item.codigo} · ` : ''}
-                                {item.unidade}
-                              </div>
-                              {abaixo && (
-                                <div
-                                  style={{ fontSize: 11, color: 'var(--color-danger)' }}
-                                >
-                                  ⚠ abaixo do mínimo (
-                                  {Number(item.estoqueMinimo) || 0})
-                                </div>
-                              )}
-                            </td>
-                            <td>
-                              <span className="badge" style={{ fontSize: 11 }}>
-                                {item.categoria || '—'}
-                              </span>
-                            </td>
-                            <td style={{ textAlign: 'center', fontWeight: 700 }}>
-                              {saldoCentral.toFixed(2)}
-                            </td>
-                            {obras.map((o) => (
-                              <td key={o.id} style={{ textAlign: 'center' }}>
-                                {saldoEm(item, o.id).toFixed(2)}
-                              </td>
-                            ))}
-                            <td
-                              style={{ textAlign: 'center', fontWeight: 700 }}
+                          <Fragment key={item.id}>
+                            <tr
+                              onClick={() => toggleExpand(item.id)}
+                              style={{
+                                cursor: 'pointer',
+                                background: aberto
+                                  ? 'rgba(59,130,246,.04)'
+                                  : undefined,
+                              }}
                             >
-                              {total.toFixed(2)}
-                            </td>
-                            <td style={{ textAlign: 'right' }}>
-                              {formatBRL(Number(item.custoMedio) || 0)}
-                            </td>
-                            <td style={{ whiteSpace: 'nowrap' }}>
-                              <Button
-                                size="sm"
-                                variant="success"
-                                onClick={() =>
-                                  setModal({ type: 'comprei', item })
+                              <td
+                                aria-label={aberto ? 'Recolher' : 'Expandir'}
+                                style={{
+                                  textAlign: 'center',
+                                  color: '#64748B',
+                                  fontSize: 12,
+                                }}
+                              >
+                                {aberto ? '▾' : '▸'}
+                              </td>
+                              <td>
+                                <strong>{item.descricao}</strong>
+                                <div
+                                  className="text-muted"
+                                  style={{ fontSize: 12 }}
+                                >
+                                  {item.codigo ? `cod. ${item.codigo} · ` : ''}
+                                  {item.unidade}
+                                  {item.categoria && ` · ${item.categoria}`}
+                                  {' · '}
+                                  custo {formatBRL(Number(item.custoMedio) || 0)}
+                                </div>
+                                {abaixo && (
+                                  <div
+                                    style={{
+                                      fontSize: 11,
+                                      color: 'var(--color-danger)',
+                                    }}
+                                  >
+                                    ⚠ abaixo do mínimo (
+                                    {Number(item.estoqueMinimo) || 0})
+                                  </div>
+                                )}
+                              </td>
+                              <td
+                                style={{
+                                  textAlign: 'center',
+                                  fontWeight: 800,
+                                  fontVariantNumeric: 'tabular-nums',
+                                  fontSize: 16,
+                                }}
+                              >
+                                {total.toFixed(2)}
+                                <div
+                                  className="text-muted"
+                                  style={{ fontSize: 11, fontWeight: 400 }}
+                                >
+                                  {item.unidade}
+                                </div>
+                              </td>
+                              <td
+                                style={{ textAlign: 'center' }}
+                                title={
+                                  abaixo
+                                    ? 'Abaixo do mínimo'
+                                    : 'Estoque saudável'
                                 }
                               >
-                                🟢 Comprei
-                              </Button>{' '}
-                              <Button
-                                size="sm"
-                                onClick={() => setModal({ type: 'enviar', item })}
-                                disabled={saldoCentral <= 0}
+                                <span
+                                  style={{
+                                    fontSize: 18,
+                                    color: abaixo
+                                      ? 'var(--color-danger)'
+                                      : 'var(--color-success)',
+                                  }}
+                                >
+                                  {abaixo ? '⚠' : '✓'}
+                                </span>
+                              </td>
+                              <td
+                                style={{ whiteSpace: 'nowrap', textAlign: 'center' }}
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                🔵 Enviar
-                              </Button>{' '}
-                              <Button
-                                size="sm"
-                                variant="danger"
-                                onClick={() => setModal({ type: 'usei', item })}
+                                <Button
+                                  size="sm"
+                                  variant="success"
+                                  onClick={() =>
+                                    setModal({ type: 'comprei', item })
+                                  }
+                                >
+                                  🟢 Comprei
+                                </Button>{' '}
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    setModal({ type: 'enviar', item })
+                                  }
+                                  disabled={saldoCentral <= 0}
+                                >
+                                  🔵 Enviar
+                                </Button>{' '}
+                                <Button
+                                  size="sm"
+                                  variant="danger"
+                                  onClick={() => setModal({ type: 'usei', item })}
+                                >
+                                  🔴 Usei
+                                </Button>{' '}
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() => setModal({ type: 'mais', item })}
+                                >
+                                  ⋯
+                                </Button>
+                              </td>
+                            </tr>
+                            {aberto && (
+                              <tr
+                                style={{
+                                  background: 'rgba(59,130,246,.04)',
+                                }}
                               >
-                                🔴 Usei
-                              </Button>{' '}
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => setModal({ type: 'mais', item })}
-                              >
-                                ⋯
-                              </Button>
-                            </td>
-                          </tr>
+                                <td></td>
+                                <td colSpan={4} style={{ padding: '8px 12px 14px' }}>
+                                  <div
+                                    className="text-muted"
+                                    style={{
+                                      fontSize: 11,
+                                      textTransform: 'uppercase',
+                                      letterSpacing: '.05em',
+                                      marginBottom: 6,
+                                    }}
+                                  >
+                                    Saldo por local
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      flexWrap: 'wrap',
+                                      gap: 8,
+                                    }}
+                                  >
+                                    {central && (
+                                      <SaldoChip
+                                        icon="🏠"
+                                        nome="Central"
+                                        qtd={saldoCentral}
+                                        unidade={item.unidade}
+                                        destaque
+                                      />
+                                    )}
+                                    {obras.map((o) => (
+                                      <SaldoChip
+                                        key={o.id}
+                                        icon="🏗️"
+                                        nome={o.contractName || o.nome}
+                                        qtd={saldoEm(item, o.id)}
+                                        unidade={item.unidade}
+                                      />
+                                    ))}
+                                    {!central && obras.length === 0 && (
+                                      <span
+                                        className="text-muted"
+                                        style={{ fontSize: 13 }}
+                                      >
+                                        Nenhum almoxarifado cadastrado.
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
                         );
                       })
                     )}

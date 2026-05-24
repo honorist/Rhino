@@ -41,6 +41,7 @@ import Relatorio from './features/relatorio/Relatorio';
 import Manual from './features/manual/Manual';
 import Configuracao from './features/configuracao/Configuracao';
 import Dashboard from './features/dashboard/Dashboard';
+import Dashboard2 from './features/dashboard-v2/Dashboard2';
 
 /**
  * Views já migradas para React (Fase 3). Rotas ausentes deste mapa ainda
@@ -83,6 +84,7 @@ const MIGRATED_PAGES: Partial<Record<string, ComponentType>> = {
   '/manual': Manual,
   '/configuracao': Configuracao,
   '/dashboard': Dashboard,
+  '/dashboard-v2': Dashboard2,
 };
 
 /** Tabela de rotas da aplicação. */

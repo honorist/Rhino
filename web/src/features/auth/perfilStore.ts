@@ -79,6 +79,8 @@ export function podeAcessar(nivel: NivelAcesso | null, route: string): boolean {
     // Recrutamento: aberto a todos os perfis logados (US-05 — qualquer
     // encarregado pode abrir solicitação). RH ainda controla o resto via UI.
     '#/recrutamento',
+    // Dashboard v2 (beta) — protótipo aberto a todos durante avaliação
+    '#/dashboard-v2',
   ];
   if (universais.includes(base)) return true;
   return a.includes(base);
