@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, LogOut } from 'lucide-react';
 import type { NavGroup, RouteDef } from '../../routes/config';
 import { GROUP_ROUTES, NAV_GROUPS, ROUTES } from '../../routes/config';
 import { podeAcessar, usePerfilStore } from '../../features/auth/perfilStore';
+import { useCurrentUser, useLogout } from '../../features/auth/queries';
+import NotificacoesBell from '../../features/recrutamento/NotificacoesBell';
 
 /**
  * Filtra rotas conforme o perfil ativo. Espelha o `perfil.podeAcessar()` do
@@ -153,9 +155,99 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
         {configRoute && <NavItem route={configRoute} onNavigate={onNavigate} />}
       </ul>
 
-      <div className="sidebar-footer">
-        <div className="sidebar-version">Rhino v{APP_VERSION}</div>
-      </div>
+      <SidebarFooter />
     </nav>
+  );
+}
+
+/**
+ * Rodapé da sidebar — porte de js/app.js (linhas ~1016-1038).
+ * Mostra: sininho de notificações + botão sair + perfil ativo + versão.
+ */
+function SidebarFooter() {
+  const meQuery = useCurrentUser();
+  const user = meQuery.data?.user;
+  const perfil = usePerfilStore((s) => s.current);
+  const clearPerfil = usePerfilStore((s) => s.clear);
+  const logout = useLogout();
+
+  async function handleLogout() {
+    if (!window.confirm('Deseja sair?')) return;
+    try {
+      await logout.mutateAsync();
+    } catch {
+      /* ignore */
+    } finally {
+      clearPerfil();
+      location.reload();
+    }
+  }
+
+  // Só mostra "trocar perfil" se o user NÃO tem nivelAcessoId fixo.
+  const podeTrocarPerfil = !!perfil && !user?.nivelAcessoId;
+
+  return (
+    <div className="sidebar-footer">
+      {user && <NotificacoesBell />}
+      {user && (
+        <button
+          id="btn-logout"
+          type="button"
+          className="theme-toggle-btn"
+          onClick={handleLogout}
+          disabled={logout.isPending}
+          title={`Sair (${user.email})`}
+          aria-label="Sair"
+          style={{ marginBottom: 4 }}
+        >
+          <span className="theme-toggle-icon">
+            <LogOut size={16} />
+          </span>
+          <span style={{ fontWeight: 600 }}>{user.name || user.email}</span>
+          <span
+            style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--color-text-muted)' }}
+          >
+            sair
+          </span>
+        </button>
+      )}
+      {perfil &&
+        (podeTrocarPerfil ? (
+          <button
+            id="btn-trocar-perfil"
+            type="button"
+            className="theme-toggle-btn"
+            onClick={() => clearPerfil()}
+            title="Trocar perfil"
+            style={{ marginBottom: 4 }}
+          >
+            <span className="theme-toggle-icon" style={{ fontSize: 18 }}>
+              {perfil.icon}
+            </span>
+            <span style={{ color: perfil.cor, fontWeight: 600 }}>{perfil.label}</span>
+            <span
+              style={{
+                marginLeft: 'auto',
+                fontSize: 13,
+                color: 'var(--color-text-muted)',
+              }}
+            >
+              trocar
+            </span>
+          </button>
+        ) : (
+          <div
+            className="theme-toggle-btn"
+            title="Seu nível de acesso"
+            style={{ marginBottom: 4, cursor: 'default' }}
+          >
+            <span className="theme-toggle-icon" style={{ fontSize: 18 }}>
+              {perfil.icon}
+            </span>
+            <span style={{ color: perfil.cor, fontWeight: 600 }}>{perfil.label}</span>
+          </div>
+        ))}
+      <div className="sidebar-version">Rhino v{APP_VERSION}</div>
+    </div>
   );
 }
