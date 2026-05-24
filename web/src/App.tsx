@@ -29,6 +29,7 @@ import Documentos from './features/documentos/Documentos';
 import SolicitacoesCompra from './features/solicitacoes/SolicitacoesCompra';
 import Estoque from './features/estoque/Estoque';
 import Recursos from './features/recursos/Recursos';
+import Recrutamento from './features/recrutamento/Recrutamento';
 import Contratos from './features/contracts/Contratos';
 import ContratoDetail from './features/contracts/ContratoDetail';
 import AiChat from './features/aichat/AiChat';
@@ -70,6 +71,7 @@ const MIGRATED_PAGES: Partial<Record<string, ComponentType>> = {
   '/solicitacoes-compra': SolicitacoesCompra,
   '/estoque': Estoque,
   '/recursos': Recursos,
+  '/recrutamento': Recrutamento,
   '/contratos': Contratos,
   '/contratos/:id': ContratoDetail,
   '/ai-chat': AiChat,

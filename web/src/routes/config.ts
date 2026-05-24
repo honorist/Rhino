@@ -75,6 +75,7 @@ export const ROUTES: RouteDef[] = [
   // ── Grupo: Recursos Humanos ──
   { path: '/clientes', title: 'Clientes', label: 'Clientes', icon: Users, group: 'rh' },
   { path: '/recursos', title: 'Recursos', label: 'Recursos', icon: UserPlus, group: 'rh' },
+  { path: '/recrutamento', title: 'Recrutamento', label: 'Recrutamento', icon: UserPlus, group: 'rh' },
   { path: '/folha-pagamento', title: 'Folha de Pagamento', label: 'Folha de Pagamento', icon: CreditCard, group: 'rh' },
   { path: '/documentos', title: 'Documentação', label: 'Documentação', icon: FileText, group: 'rh' },
   { path: '/fornecedores', title: 'Fornecedores', label: 'Fornecedores', icon: Truck, group: 'rh' },

@@ -48,6 +48,7 @@ const registerFinanceiro = require('./routes/financeiro');
 const registerComercial = require('./routes/comercial');
 const registerOperacao = require('./routes/operacao');
 const registerContracts = require('./routes/contracts');
+const registerRecrutamento = require('./routes/recrutamento');
 const { validateBody, schemas, ValidationError } = require('./lib/validate');
 
 // Web Push — inicializa só se VAPID keys estiverem presentes
@@ -4690,6 +4691,8 @@ async function withIdempotency(req, res, pathname, body, runHandler) {
 // ── Router modular (Fase 2) — domínios migrados saem da cadeia de if abaixo ──
 const apiRouter = createRouter();
 registerAuth(apiRouter);
+// Recrutamento (US-05 a US-09) — handlers próprios, sem injeção de deps.
+registerRecrutamento(apiRouter);
 registerPortal(apiRouter, {
   handlePortalLogin, applyPortalAuth, handlePortalLogout,
   handlePortalDashboard, handlePortalListPropostas,

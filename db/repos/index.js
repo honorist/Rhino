@@ -44,4 +44,10 @@ module.exports = {
   clausulas:            require('./clausulas'),
   appSettings:          require('./app_settings'),
   caseLogos:            require('./case_logos'),
+
+  // Recrutamento (US-05 a US-09)
+  solicitacoesContratacao: require('./solicitacoes_contratacao'),
+  vagas:                require('./vagas'),
+  candidatos:           require('./candidatos'),
+  notificacoes:         require('./notificacoes'),
 };
