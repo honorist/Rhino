@@ -1,6 +1,19 @@
 {
   "entries": [
     {
+      "version": "1.3.5",
+      "date": "2026-05-25",
+      "summary": "Fase 7: Combobox em 12 features adicionais + fix id prop Combobox",
+      "changes": [
+        "fix: Combobox — id prop não era repassada ao Button trigger (TS2322).",
+        "Combobox: RecursoModal (obra/contrato), ManutencaoModals (origem), MovimentacaoModais (entrada-para-obra).",
+        "Combobox: NotasFiscais (contrato), Investimentos (sócio + contrato), RDOs (contrato modal + filtro).",
+        "Combobox: Caixa (filtro + vincular contrato em 2 modais), GerarDocumentoModal (templates).",
+        "Combobox: ObrigacoesTab (cláusulas biblioteca), Frota.tsx (filtroContrato), VeiculoModal (alocado em).",
+        "Combobox: NovaSolicitacaoModal Recrutamento (obra/contrato)."
+      ]
+    },
+    {
       "version": "1.3.4",
       "date": "2026-05-25",
       "summary": "Fase 7: Combobox em mais features + showColumnToggle em todas as DataTables",
