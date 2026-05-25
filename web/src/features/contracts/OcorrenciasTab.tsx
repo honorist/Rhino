@@ -4,7 +4,7 @@ import Card from '../../components/ui/Card';
 import { Badge } from '../../components/ui/badge';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
-import { Input, Select, Textarea } from '../../components/ui/controls';
+import { Select, Textarea } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatDateBR, todayISO } from '../../lib/formatDate';
