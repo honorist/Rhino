@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import Button from '../../components/ui/Button';
+import { Badge } from '../../components/ui/badge';
 import Card from '../../components/ui/Card';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import Spinner from '../../components/ui/Spinner';
@@ -24,23 +25,19 @@ const BADGE_CFG: Record<ProximaManut['status'], { bg: string; cor: string; label
 function ManutBadge({ prox }: { prox: ProximaManut | null }) {
   if (!prox) {
     return (
-      <span
-        className="badge"
-        style={{ background: '#F3F4F6', color: '#6B7280', fontSize: 12 }}
-      >
+      <Badge style={{ background: '#F3F4F6', color: '#6B7280', fontSize: 12 }}>
         sem plano
-      </span>
+      </Badge>
     );
   }
   const cfg = BADGE_CFG[prox.status];
   return (
-    <span
-      className="badge"
+    <Badge
       title={prox.label}
       style={{ background: cfg.bg, color: cfg.cor, fontSize: 12, fontWeight: 700 }}
     >
       {cfg.label}
-    </span>
+    </Badge>
   );
 }
 

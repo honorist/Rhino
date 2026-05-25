@@ -381,20 +381,19 @@ export default function RDOs() {
             <div style={{ fontWeight: 700, fontSize: 15 }}>
               ⚠ Obras sem RDO no último dia útil ({fmtData(stats.ultimoDiaUtil)}):
             </div>
-            <button
-              type="button"
-              className="btn"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={exportarSemRdo}
               style={{
                 background: 'rgba(255,255,255,0.2)',
                 color: '#fff',
                 border: '1px solid rgba(255,255,255,0.4)',
                 fontSize: 13,
-                padding: '4px 12px',
               }}
             >
               ⬇ Exportar CSV
-            </button>
+            </Button>
           </div>
           <ul style={{ margin: 0, paddingLeft: 22, lineHeight: 1.7 }}>
             {stats.obrasSemRdoOntem.map((o) => (
@@ -443,20 +442,19 @@ export default function RDOs() {
             <div style={{ fontWeight: 700, fontSize: 15 }}>
               📋 Obras com mais de 2 dias úteis sem RDO:
             </div>
-            <button
-              type="button"
-              className="btn"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={exportarAtrasadas}
               style={{
                 background: 'rgba(0,0,0,0.15)',
                 color: '#1f1300',
                 border: '1px solid rgba(0,0,0,0.3)',
                 fontSize: 13,
-                padding: '4px 12px',
               }}
             >
               ⬇ Exportar CSV
-            </button>
+            </Button>
           </div>
           <ul style={{ margin: 0, paddingLeft: 22, lineHeight: 1.7 }}>
             {stats.obrasAtrasadas.map((o) => (

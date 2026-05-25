@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
+import { Badge } from '../../components/ui/badge';
 import Modal from '../../components/ui/Modal';
 import Spinner from '../../components/ui/Spinner';
 import DataTable, { type Column } from '../../components/ui/DataTable';
@@ -39,9 +40,9 @@ function StatusBadge({ doc }: { doc: Documento }) {
           ? 'Vigente'
           : 'Pendente';
   return (
-    <span className="badge" style={{ background: cfg.bg, color: cfg.cor }}>
+    <Badge style={{ background: cfg.bg, color: cfg.cor }}>
       {label}
-    </span>
+    </Badge>
   );
 }
 
@@ -55,14 +56,13 @@ function ValidacaoBadge({ doc }: { doc: Documento }) {
   const cfg = VALIDACAO_CFG[v?.status ?? 'nao_validado'] ?? VALIDACAO_CFG.nao_validado;
   const score = v?.score != null ? ` ${v.score}%` : '';
   return (
-    <span
-      className="badge"
+    <Badge
       title={v?.resumo ?? ''}
       style={{ background: cfg.bg, color: cfg.cor, fontWeight: 700 }}
     >
       {cfg.label}
       {score}
-    </span>
+    </Badge>
   );
 }
 

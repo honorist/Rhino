@@ -318,14 +318,15 @@ export default function DocumentoFormModal({
                 {formatBytes(doc.arquivo.sizeBytes)}
               </div>
             </div>
-            <a
-              href={`/api/recursos/${recursoId}/documentos/${doc.id}/arquivo`}
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn-sm btn-secondary"
-            >
-              ⬇️ Baixar
-            </a>
+            <Button variant="secondary" size="sm" asChild>
+              <a
+                href={`/api/recursos/${recursoId}/documentos/${doc.id}/arquivo`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                ⬇️ Baixar
+              </a>
+            </Button>
             <Button
               size="sm"
               variant="danger"

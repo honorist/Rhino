@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.2.89",
+      "date": "2026-05-25",
+      "summary": "Fase 6 — CSS legado erradicado em rdos/frota/documentos",
+      "changes": [
+        "RDOs.tsx: dois <button className='btn'> → <Button variant='ghost' size='sm'>.",
+        "Frota.tsx: dois <span className='badge'> → <Badge> com inline style.",
+        "DocumentosModal.tsx: dois <span className='badge'> → <Badge>.",
+        "FichaColaboradorModal.tsx: <span className='badge'> → <Badge>.",
+        "DocumentoFormModal.tsx: <a className='btn btn-sm btn-secondary'> → <Button asChild variant='secondary' size='sm'>."
+      ]
+    },
+    {
       "version": "1.2.88",
       "date": "2026-05-25",
       "summary": "Fase 6 — badge.tsx shadcn + CSS legado erradicado em clausulas/base/fornecedores",

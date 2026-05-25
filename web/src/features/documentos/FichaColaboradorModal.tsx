@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/Button';
+import { Badge } from '../../components/ui/badge';
 import Modal from '../../components/ui/Modal';
 import Spinner from '../../components/ui/Spinner';
 import { formatBRL } from '../../lib/format';
@@ -122,12 +123,9 @@ export default function FichaColaboradorModal({
       ) : (
         <>
           {badge && (
-            <span
-              className="badge"
-              style={{ background: badge.bg, color: badge.cor }}
-            >
+            <Badge style={{ background: badge.bg, color: badge.cor }}>
               {badge.texto}
-            </span>
+            </Badge>
           )}
 
           <Secao titulo="Dados Pessoais" />
