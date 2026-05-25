@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
 import { Input, Select, Textarea } from '../../../components/ui/controls';
 import { useClausulas } from '../../resources';
 import type { Clausula } from '../../../types/domain';
@@ -166,7 +167,7 @@ export default function ObrigacoesTab({ proposta, onChange }: EditorTabProps) {
   const ativas = (clausulasQuery.data ?? []).filter((c) => c.ativa !== false);
 
   return (
-    <div className="card" style={{ padding: 24 }}>
+    <Card style={{ padding: 24 }}>
       <div
         style={{
           display: 'flex',
@@ -208,6 +209,6 @@ export default function ObrigacoesTab({ proposta, onChange }: EditorTabProps) {
         )}
         onCommit={(itens) => onChange({ obrigacoesContratante: itens })}
       />
-    </div>
+    </Card>
   );
 }

@@ -1,5 +1,7 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { Input } from '../../../components/ui/controls';
+import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
 import { useToast } from '../../../components/ui/toast/ToastContext';
 import type { Proposta } from '../../../types/domain';
 import { useAtualizarAnexo, useDeletarAnexo } from '../queries';
@@ -118,7 +120,7 @@ export default function AnexosTab({ proposta, onLocalUpdate }: EditorTabProps) {
   }
 
   return (
-    <div className="card" style={{ padding: 24 }}>
+    <Card style={{ padding: 24 }}>
       {uploading && (
         <div
           style={{
@@ -167,17 +169,19 @@ export default function AnexosTab({ proposta, onLocalUpdate }: EditorTabProps) {
               Objetivo e Escopo.
             </p>
           </div>
-          <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
-            + Imagem
-            <input
-              ref={imgInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleImgChange}
-              style={{ display: 'none' }}
-            />
-          </label>
+          <Button variant="secondary" asChild>
+            <label>
+              + Imagem
+              <input
+                ref={imgInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImgChange}
+                style={{ display: 'none' }}
+              />
+            </label>
+          </Button>
         </div>
         {imagens.length === 0 ? (
           <div style={vazioStyle}>
@@ -193,9 +197,8 @@ export default function AnexosTab({ proposta, onLocalUpdate }: EditorTabProps) {
             }}
           >
             {imagens.map((a) => (
-              <div
+              <Card
                 key={a.id}
-                className="card"
                 style={{
                   padding: 8,
                   display: 'flex',
@@ -250,7 +253,7 @@ export default function AnexosTab({ proposta, onLocalUpdate }: EditorTabProps) {
                     ×
                   </button>
                 </div>
-              </div>
+              </Card>
             ))}
           </div>
         )}
@@ -277,17 +280,19 @@ export default function AnexosTab({ proposta, onLocalUpdate }: EditorTabProps) {
               referência ao final da proposta.
             </p>
           </div>
-          <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
-            + PDF
-            <input
-              ref={pdfInputRef}
-              type="file"
-              accept="application/pdf"
-              multiple
-              onChange={handlePdfChange}
-              style={{ display: 'none' }}
-            />
-          </label>
+          <Button variant="secondary" asChild>
+            <label>
+              + PDF
+              <input
+                ref={pdfInputRef}
+                type="file"
+                accept="application/pdf"
+                multiple
+                onChange={handlePdfChange}
+                style={{ display: 'none' }}
+              />
+            </label>
+          </Button>
         </div>
         {pdfs.length === 0 ? (
           <div style={vazioStyle}>Nenhum PDF anexado.</div>
@@ -345,7 +350,7 @@ export default function AnexosTab({ proposta, onLocalUpdate }: EditorTabProps) {
           </div>
         )}
       </section>
-    </div>
+    </Card>
   );
 }
 

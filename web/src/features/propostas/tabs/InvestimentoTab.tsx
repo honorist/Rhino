@@ -1,4 +1,5 @@
 import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
 import { Input, Textarea } from '../../../components/ui/controls';
 import { formatBRL } from '../../../lib/format';
 import {
@@ -75,7 +76,7 @@ export default function InvestimentoTab({ proposta, onChange }: EditorTabProps) 
   const showMat = tipo === 'material' || tipo === 'ambos';
 
   return (
-    <div className="card" style={{ padding: 24 }}>
+    <Card style={{ padding: 24 }}>
       <div
         style={{
           display: 'flex',
@@ -381,7 +382,7 @@ export default function InvestimentoTab({ proposta, onChange }: EditorTabProps) 
           negociado.
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 

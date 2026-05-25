@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.2.96",
+      "date": "2026-05-25",
+      "summary": "Fase 6 — CSS legado erradicado em propostas + solicitacoes",
+      "changes": [
+        "PropostaDetail.tsx: badge→<Badge>, card→<Card>.",
+        "Propostas.tsx: 2 Link btn-secondary→<Button asChild>, 3 card→<Card>, 2 badge→<Badge>.",
+        "tabs/AnexosTab.tsx: 2 card→<Card>, 2 label btn-secondary→<Button asChild><label>.",
+        "tabs/CronogramaTab/CustoInternoTab/DadosGeraisTab/EscopoTab/InvestimentoTab/ObrigacoesTab/PreviewTab.tsx: card→<Card> (prop-dados-card preservado).",
+        "DetalheSolicitacaoModal.tsx + SolicitacoesCompra.tsx: badge→<Badge>."
+      ]
+    },
+    {
       "version": "1.2.95",
       "date": "2026-05-25",
       "summary": "Fase 6 — CSS legado erradicado em contracts + fix Obras.tsx import",

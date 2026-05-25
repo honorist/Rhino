@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Input, Select, Textarea } from '../../../components/ui/controls';
+import Card from '../../../components/ui/Card';
 import { useClientes } from '../../clientes/queries';
 import type { Cliente } from '../../clientes/types';
 import type { EditorTabProps } from '../types';
@@ -58,7 +59,7 @@ export default function DadosGeraisTab({ proposta, onChange }: EditorTabProps) {
   }
 
   return (
-    <div className="card prop-dados-card">
+    <Card className="prop-dados-card">
       <h3 className="prop-section-title">Identificação do Cliente</h3>
       <div className="prop-grid prop-grid-2">
         <Field label="Cliente cadastrado" full>
@@ -227,6 +228,6 @@ export default function DadosGeraisTab({ proposta, onChange }: EditorTabProps) {
           />
         </Field>
       </div>
-    </div>
+    </Card>
   );
 }

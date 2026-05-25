@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
 import type { EditorTabProps } from '../types';
 
 /**
@@ -13,7 +14,7 @@ export default function PreviewTab({ proposta }: EditorTabProps) {
   }`;
 
   return (
-    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+    <Card style={{ padding: 0, overflow: 'hidden' }}>
       <div
         style={{
           padding: '14px 20px',
@@ -68,6 +69,6 @@ export default function PreviewTab({ proposta }: EditorTabProps) {
           }}
         />
       </div>
-    </div>
+    </Card>
   );
 }

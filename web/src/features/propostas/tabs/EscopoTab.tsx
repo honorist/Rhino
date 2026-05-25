@@ -1,4 +1,5 @@
 import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
 import { Textarea } from '../../../components/ui/controls';
 import { localUid, type EditorTabProps, type EscopoItem } from '../types';
 
@@ -40,7 +41,7 @@ export default function EscopoTab({ proposta, onChange }: EditorTabProps) {
   const inclusos = itens.filter((i) => i.incluso !== false).length;
 
   return (
-    <div className="card" style={{ padding: 24 }}>
+    <Card style={{ padding: 24 }}>
       <div
         style={{
           display: 'flex',
@@ -228,6 +229,6 @@ export default function EscopoTab({ proposta, onChange }: EditorTabProps) {
           })
         )}
       </div>
-    </div>
+    </Card>
   );
 }

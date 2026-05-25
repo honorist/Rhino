@@ -1,4 +1,5 @@
 import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
 import { Input, Textarea } from '../../../components/ui/controls';
 import { localUid, type EditorTabProps, type FaseCronograma } from '../types';
 
@@ -72,7 +73,7 @@ export default function CronogramaTab({ proposta, onChange }: EditorTabProps) {
   const totalDias = diasEntre(dataMin, dataMax);
 
   return (
-    <div className="card" style={{ padding: 24 }}>
+    <Card style={{ padding: 24 }}>
       <div
         style={{
           display: 'flex',
@@ -307,6 +308,6 @@ export default function CronogramaTab({ proposta, onChange }: EditorTabProps) {
           placeholder="Ex: Prazo total de execução: 45 dias úteis a partir da emissão da Ordem de Serviço."
         />
       </div>
-    </div>
+    </Card>
   );
 }

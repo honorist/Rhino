@@ -1,4 +1,5 @@
 import Button from '../../../components/ui/Button';
+import Card from '../../../components/ui/Card';
 import { Input, Select } from '../../../components/ui/controls';
 import { useToast } from '../../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../../lib/format';
@@ -112,7 +113,7 @@ export default function CustoInternoTab({
   }
 
   return (
-    <div className="card" style={{ padding: 24 }}>
+    <Card style={{ padding: 24 }}>
       <div
         style={{
           background: '#fef3c7',
@@ -140,7 +141,7 @@ export default function CustoInternoTab({
           marginBottom: 24,
         }}
       >
-        <div className="card" style={{ padding: 16, background: '#f8fafc' }}>
+        <Card style={{ padding: 16, background: '#f8fafc' }}>
           <div style={{ fontSize: 12, color: '#64748b' }}>
             VALOR DA PROPOSTA
           </div>
@@ -154,8 +155,8 @@ export default function CustoInternoTab({
           >
             {formatBRL(valorTotal)}
           </div>
-        </div>
-        <div className="card" style={{ padding: 16, background: '#f8fafc' }}>
+        </Card>
+        <Card style={{ padding: 16, background: '#f8fafc' }}>
           <div style={{ fontSize: 12, color: '#64748b' }}>CUSTO TOTAL</div>
           <div
             style={{
@@ -167,9 +168,8 @@ export default function CustoInternoTab({
           >
             {formatBRL(totalCusto)}
           </div>
-        </div>
-        <div
-          className="card"
+        </Card>
+        <Card
           style={{
             padding: 16,
             background: margem >= 0 ? '#f0fdf4' : '#fef2f2',
@@ -191,7 +191,7 @@ export default function CustoInternoTab({
           >
             {margemPct.toFixed(2)}%
           </div>
-        </div>
+        </Card>
       </div>
 
       {Object.keys(porCategoria).length > 0 && (
@@ -373,6 +373,6 @@ export default function CustoInternoTab({
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   );
 }

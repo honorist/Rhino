@@ -6,7 +6,9 @@ import {
   type ComponentType,
 } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../components/ui/toast/ToastContext';
@@ -287,8 +289,7 @@ function PropostaEditorView({ id }: { id: string }) {
             <h1 className="page-title" style={{ margin: 0 }}>
               {numeroCompleto(proposta)}
             </h1>
-            <span
-              className="badge"
+            <Badge
               style={{
                 background: cor.bg,
                 color: cor.fg,
@@ -298,7 +299,7 @@ function PropostaEditorView({ id }: { id: string }) {
               }}
             >
               {STATUS_LABELS[status] ?? status}
-            </span>
+            </Badge>
             <SaveIndicator state={saveState} />
           </div>
           <p className="page-subtitle" style={{ marginTop: 4 }}>
@@ -354,7 +355,7 @@ function PropostaEditorView({ id }: { id: string }) {
         </div>
       </div>
 
-      <div className="card" style={{ padding: 0, marginBottom: 16 }}>
+      <Card style={{ padding: 0, marginBottom: 16 }}>
         <Tabs value={currentTab} onValueChange={setCurrentTab}>
           <TabsList className="h-auto w-full justify-start rounded-none border-b border-border bg-transparent p-0 px-2 overflow-x-auto gap-0">
             {TABS.map((tab) => (
@@ -368,7 +369,7 @@ function PropostaEditorView({ id }: { id: string }) {
             ))}
           </TabsList>
         </Tabs>
-      </div>
+      </Card>
 
       <div className="tab-content">
         <ActiveTab

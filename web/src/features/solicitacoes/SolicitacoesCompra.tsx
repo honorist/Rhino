@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import DataTable, { type Column } from '../../components/ui/DataTable';
@@ -219,12 +220,9 @@ export default function SolicitacoesCompra() {
       cell: (s) => {
         const cfg = etapaCfg(s.status);
         return (
-          <span
-            className="badge"
-            style={{ background: cfg.bg, color: cfg.color, fontWeight: 700 }}
-          >
+          <Badge style={{ background: cfg.bg, color: cfg.color, fontWeight: 700 }}>
             {cfg.label}
-          </span>
+          </Badge>
         );
       },
     },

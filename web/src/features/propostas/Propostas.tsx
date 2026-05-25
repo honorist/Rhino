@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select } from '../../components/ui/controls';
@@ -112,12 +114,12 @@ export default function Propostas() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <Link className="btn btn-secondary btn-lg" to="/apresentacao">
-            🏢 Apresentação
-          </Link>
-          <Link className="btn btn-secondary btn-lg" to="/clausulas">
-            📖 Cláusulas
-          </Link>
+          <Button variant="secondary" size="lg" asChild>
+            <Link to="/apresentacao">🏢 Apresentação</Link>
+          </Button>
+          <Button variant="secondary" size="lg" asChild>
+            <Link to="/clausulas">📖 Cláusulas</Link>
+          </Button>
           <Button size="lg" onClick={() => setNovaAberta(true)}>
             + Nova Proposta
           </Button>
@@ -149,8 +151,7 @@ export default function Propostas() {
         })}
       </div>
 
-      <div
-        className="card"
+      <Card
         style={{ padding: 'var(--sp-md)', marginBottom: 'var(--sp-lg)' }}
       >
         <Input
@@ -158,16 +159,16 @@ export default function Propostas() {
           value={busca}
           onChange={(event) => setBusca(event.target.value)}
         />
-      </div>
+      </Card>
 
       {propostasQuery.isLoading ? (
         <Spinner label="Carregando propostas..." />
       ) : propostasQuery.isError ? (
-        <div className="card" style={{ padding: 24 }}>
+        <Card style={{ padding: 24 }}>
           <p className="text-danger">Erro ao carregar propostas.</p>
-        </div>
+        </Card>
       ) : (
-        <div className="card">
+        <Card>
           <div className="table-wrap">
             <table>
               <thead>
@@ -213,23 +214,21 @@ export default function Propostas() {
                         <td>{p.titulo || '—'}</td>
                         <td>{p.clienteEmpresa || p.clienteNome || '—'}</td>
                         <td>
-                          <span
-                            className="badge"
+                          <Badge
                             style={{
                               background: 'rgba(31,73,125,.12)',
                               color: '#1F497D',
                             }}
                           >
                             {TIPO_LABELS[p.tipo ?? ''] ?? p.tipo ?? '—'}
-                          </span>
+                          </Badge>
                         </td>
                         <td>
                           <strong>{formatBRL(num(p.valorTotal))}</strong>
                         </td>
                         <td>{formatDate(p.dataEmissao)}</td>
                         <td>
-                          <span
-                            className="badge"
+                          <Badge
                             style={{
                               background: cor.bg,
                               color: cor.fg,
@@ -237,7 +236,7 @@ export default function Propostas() {
                             }}
                           >
                             {STATUS_LABELS[p.status ?? 'rascunho'] ?? p.status}
-                          </span>
+                          </Badge>
                         </td>
                         <td>
                           {p.contratoId ? (
@@ -286,7 +285,7 @@ export default function Propostas() {
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
 
       {novaAberta && <NovaPropostaModal onClose={() => setNovaAberta(false)} />}

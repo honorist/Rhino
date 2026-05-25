@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import { formatBRL } from '../../lib/format';
@@ -262,12 +263,9 @@ export default function DetalheSolicitacaoModal({
       }
     >
       <div style={{ marginBottom: 'var(--sp-md)' }}>
-        <span
-          className="badge"
-          style={{ background: cfg.bg, color: cfg.color, fontWeight: 700 }}
-        >
+        <Badge style={{ background: cfg.bg, color: cfg.color, fontWeight: 700 }}>
           {cfg.label}
-        </span>
+        </Badge>
       </div>
       <div
         style={{
