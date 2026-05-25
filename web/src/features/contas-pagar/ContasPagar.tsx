@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/Button';
+import { Badge } from '../../components/ui/badge';
+import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
@@ -220,11 +222,11 @@ export default function ContasPagar() {
       {contasQuery.isLoading ? (
         <Spinner label="Carregando contas..." />
       ) : contasQuery.isError ? (
-        <div className="card" style={{ padding: 24 }}>
+        <Card style={{ padding: 24 }}>
           <p className="text-danger">
             Erro ao carregar contas a pagar. Tente novamente.
           </p>
-        </div>
+        </Card>
       ) : (
         <>
           <div
@@ -298,10 +300,12 @@ export default function ContasPagar() {
           </div>
 
           {proximasTimeline.length > 0 && (
-            <div className="card" style={{ marginBottom: 'var(--sp-xl)' }}>
-              <div className="card-header">
-                <h3 className="card-title">Próximos Vencimentos</h3>
-              </div>
+            <Card style={{ marginBottom: 'var(--sp-xl)', padding: 'var(--sp-lg)' }}>
+              <h3
+                className="text-[15px] font-semibold tracking-tight mb-4"
+              >
+                Próximos Vencimentos
+              </h3>
               <div>
                 {proximasTimeline.map((c, idx) => (
                   <TimelineItem
@@ -312,11 +316,10 @@ export default function ContasPagar() {
                   />
                 ))}
               </div>
-            </div>
+            </Card>
           )}
 
-          <div
-            className="card"
+          <Card
             style={{
               padding: 'var(--sp-md)',
               marginBottom: 'var(--sp-lg)',
@@ -334,9 +337,9 @@ export default function ContasPagar() {
                 {f.label}
               </Button>
             ))}
-          </div>
+          </Card>
 
-          <div className="card">
+          <Card>
             <div className="table-wrap">
               <table>
                 <thead>
@@ -386,7 +389,7 @@ export default function ContasPagar() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Card>
         </>
       )}
 
@@ -637,7 +640,7 @@ function ContaRow({
       <td>
         {conta.status === 'pago' ? (
           <>
-            <span className="badge badge-entrada">Pago</span>
+            <Badge variant="success">Pago</Badge>
             {conta.dataPagamento && (
               <div
                 style={{
@@ -652,19 +655,17 @@ function ContaRow({
             )}
           </>
         ) : vencida ? (
-          <span
-            className="badge"
+          <Badge
             style={{ background: 'rgba(229,62,62,.15)', color: 'var(--color-danger)' }}
           >
             Vencida
-          </span>
+          </Badge>
         ) : (
-          <span
-            className="badge"
+          <Badge
             style={{ background: 'rgba(214,158,46,.12)', color: 'var(--color-warning)' }}
           >
             Pendente
-          </span>
+          </Badge>
         )}
       </td>
       <td>
@@ -1172,8 +1173,7 @@ function DetailModal({
       }
     >
       <div style={{ marginBottom: 'var(--sp-md)' }}>
-        <span
-          className="badge"
+        <Badge
           style={{
             background:
               conta.status === 'pago'
@@ -1190,7 +1190,7 @@ function DetailModal({
           }}
         >
           {conta.status === 'pago' ? 'Pago' : vencida ? 'Vencida' : 'Pendente'}
-        </span>
+        </Badge>
         <span
           style={{
             fontSize: 22,
