@@ -6,31 +6,32 @@ import type {
 import { cn } from '../../lib/cn';
 
 /**
- * Controles base — preservam a classe legada `.form-control` (para que CSS
- * antigo continue funcionando) e somam estilos Tailwind para garantir
- * altura, padding, foco e estado disabled consistentes mesmo quando o
- * CSS legado não está aplicado (Storybook, telas novas).
+ * Controles base — APENAS Tailwind. A classe legada `.form-control` tem
+ * `!important` em border/background/color (components.css linhas 232-239),
+ * o que sobrescreveria qualquer estilo Tailwind. Por isso o componente
+ * novo não usa `.form-control` — quem precisa do visual legado continua
+ * usando `<input className="form-control">` direto.
  */
 const BASE_INPUT_CLASS =
-  'form-control flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ' +
+  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ' +
   'text-foreground placeholder:text-muted-foreground transition-colors ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ' +
   'disabled:cursor-not-allowed disabled:opacity-50 ' +
   'file:border-0 file:bg-transparent file:text-sm file:font-medium';
 
 const BASE_TEXTAREA_CLASS =
-  'form-control flex min-h-[90px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ' +
+  'flex min-h-[90px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ' +
   'text-foreground placeholder:text-muted-foreground transition-colors resize-y ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ' +
   'disabled:cursor-not-allowed disabled:opacity-50';
 
 const BASE_SELECT_CLASS =
-  'form-control flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ' +
+  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ' +
   'text-foreground transition-colors ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ' +
   'disabled:cursor-not-allowed disabled:opacity-50';
 
-/** <input> com base Tailwind + classe legada `.form-control`. */
+/** <input> Tailwind puro. */
 export function Input({
   className,
   ...rest
@@ -38,7 +39,7 @@ export function Input({
   return <input className={cn(BASE_INPUT_CLASS, className)} {...rest} />;
 }
 
-/** <select> com base Tailwind + classe legada `.form-control`. */
+/** <select> Tailwind puro. */
 export function Select({
   className,
   children,
@@ -51,7 +52,7 @@ export function Select({
   );
 }
 
-/** <textarea> com base Tailwind + classe legada `.form-control`. */
+/** <textarea> Tailwind puro. */
 export function Textarea({
   className,
   ...rest

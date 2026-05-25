@@ -17,12 +17,10 @@ interface FormFieldProps {
 }
 
 /**
- * Grupo rótulo + controle + erro/ajuda. Radix Label garante a associação
- * label↔input mesmo quando o consumer esquece o `id`.
- *
- * Mantém a classe `form-group` para compat com CSS legado que possa
- * referenciá-la (margin-bottom no components.css). O `space-y-2` dá gap
- * consistente entre label, input e helper independente do CSS antigo.
+ * Grupo rótulo + controle + erro/ajuda. Tailwind puro — não usa mais as
+ * classes legadas `form-group` (margin-bottom) e `form-label` (font-size 15)
+ * porque ambas atrapalhavam o gap controlado pelo `space-y-*` no parent
+ * (Modal, Form).
  */
 export default function FormField({
   label,
@@ -34,9 +32,9 @@ export default function FormField({
   className,
 }: FormFieldProps) {
   return (
-    <div className={cn('form-group space-y-2', className)}>
+    <div className={cn('space-y-2', className)}>
       <RadixLabel.Root
-        className="form-label block text-[13px] font-medium text-foreground"
+        className="block text-[13px] font-medium text-foreground leading-tight"
         htmlFor={htmlFor}
       >
         {label}
@@ -48,11 +46,11 @@ export default function FormField({
       </RadixLabel.Root>
       {children}
       {error ? (
-        <p className="form-error text-[13px] font-medium text-destructive" role="alert">
+        <p className="text-[13px] font-medium text-destructive" role="alert">
           {error}
         </p>
       ) : helper ? (
-        <p className="form-helper text-[13px] text-muted-foreground">{helper}</p>
+        <p className="text-[13px] text-muted-foreground">{helper}</p>
       ) : null}
     </div>
   );

@@ -1,10 +1,3 @@
-/* Tailwind v4 entrypoint vem PRIMEIRO — declara tokens (@theme) e utilitários.
-   CSS legado (main/components/theme-v2/polish/layout) sobrescreve onde houver
-   conflito durante a migração. Componentes shadcn-style novos consomem
-   var(--color-*) do @theme; componentes legados continuam puxando dos
-   arquivos antigos sem alteração. */
-@import './tailwind.css';
-
 /* Ordem espelha o index.html antigo: main → components → theme-v2 → polish.
    layout.css contém apenas as adições da migração React. */
 @import './main.css';
@@ -12,3 +5,9 @@
 @import './theme-v2.css';
 @import './polish.css';
 @import './layout.css';
+
+/* Tailwind v4 entrypoint POR ÚLTIMO — garante que utilitários (`p-5`,
+   `mb-6`, `bg-card`) vençam o CSS legado (.card, .form-control, etc.) em
+   caso de empate de especificidade. Sem isso o componente novo `<Card>`
+   herdava `padding: var(--sp-lg)` do `.card` legado mesmo com `p-5`. */
+@import './tailwind.css';
