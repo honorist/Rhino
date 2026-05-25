@@ -40,13 +40,13 @@ const VALUE_TONE: Record<KpiTone, string> = {
 function Sparkline({ values, tone }: { values: readonly number[]; tone: KpiTone }) {
   if (values.length < 2) {
     return (
-      <div className="h-[26px] w-[80px] flex items-center text-[10px] text-muted-foreground">
+      <div className="h-[28px] w-[90px] flex items-center justify-end text-[10px] text-muted-foreground italic">
         sem histórico
       </div>
     );
   }
-  const w = 80;
-  const h = 26;
+  const w = 90;
+  const h = 28;
   const p = 2;
   const min = Math.min(...values);
   const max = Math.max(...values);
@@ -88,7 +88,6 @@ function Sparkline({ values, tone }: { values: readonly number[]; tone: KpiTone 
 
 function DeltaBadge({ delta }: { delta: KpiDelta }) {
   const { pct, periodLabel = 'vs anterior', inverted = false } = delta;
-  // Tolerância de 0.05% — variações abaixo disso são consideradas estáveis.
   const isStable = Math.abs(pct) < 0.05;
   const isUp = pct > 0;
   const isGood = isStable ? null : inverted ? !isUp : isUp;
@@ -103,23 +102,21 @@ function DeltaBadge({ delta }: { delta: KpiDelta }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[11px] font-semibold tabular-nums',
+        'inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold tabular-nums whitespace-nowrap',
         colorClass,
       )}
       title={`${pct.toFixed(1)}% ${periodLabel}`}
     >
       <Icon size={12} aria-hidden="true" />
       {isStable ? '0%' : `${isUp ? '+' : ''}${pct.toFixed(1)}%`}
-      <span className="ml-0.5 hidden lg:inline opacity-75">{periodLabel}</span>
     </span>
   );
 }
 
 /**
- * Cartão de KPI padronizado. Itens obrigatórios para padronização:
- *  - `href` (drill-down universal — DASH-4)
- *  - `spark` (sparkline universal — DASH-3)
- *  - `delta` é opcional mas FORTEMENTE recomendado (DASH-2)
+ * Cartão de KPI padronizado. Padding generoso (p-5 = 20px), tipografia em
+ * 3 níveis claros (label uppercase / value 28px bold / meta 12px muted) e
+ * sparkline à direita do meta com altura proporcional.
  */
 export default function KpiCard({
   label,
@@ -133,21 +130,26 @@ export default function KpiCard({
 }: KpiCardProps) {
   return (
     <Link to={href} className="block h-full text-inherit no-underline">
-      <Card className="flex h-full flex-col gap-1 p-4 transition-shadow hover:shadow-md focus-within:ring-2 focus-within:ring-ring">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <Card className="flex h-full flex-col gap-3 p-5 transition-all hover:shadow-md hover:-translate-y-0.5 focus-within:ring-2 focus-within:ring-ring">
+        <div className="flex items-start justify-between gap-3">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground leading-tight">
             {label}
           </span>
           {delta && <DeltaBadge delta={delta} />}
         </div>
         <div
-          className={cn('text-[22px] font-extrabold leading-tight', VALUE_TONE[tone])}
+          className={cn(
+            'text-[26px] font-extrabold leading-[1.1] tracking-tight',
+            VALUE_TONE[tone],
+          )}
           title={title}
         >
           {value}
         </div>
-        <div className="mt-auto flex items-center justify-between gap-2">
-          <span className="truncate text-xs text-muted-foreground">{meta ?? ''}</span>
+        <div className="mt-auto flex items-end justify-between gap-3 pt-2">
+          <span className="truncate text-[12px] text-muted-foreground leading-snug">
+            {meta ?? ''}
+          </span>
           <Sparkline values={spark} tone={tone} />
         </div>
       </Card>

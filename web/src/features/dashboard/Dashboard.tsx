@@ -225,12 +225,12 @@ export default function Dashboard() {
 
   return (
     <>
-      <div className="page-header">
+      <div className="page-header mb-6">
         <div>
           <h1 className="page-title">
             {saudacao(horaH)}, {nome}
           </h1>
-          <p className="page-subtitle">{subParts.join(' · ')}</p>
+          <p className="page-subtitle mt-1">{subParts.join(' · ')}</p>
         </div>
       </div>
 
@@ -239,7 +239,7 @@ export default function Dashboard() {
        * peça grande; KPIs distribuídos no restante com tamanhos variados
        * por importância (saldo > demais).
        */}
-      <BentoGrid className="mb-6">
+      <BentoGrid className="mb-8">
         <BentoItem span="6x2">
           <PipelineCard pipeline={pipeline} />
         </BentoItem>
@@ -382,21 +382,21 @@ export default function Dashboard() {
 
       {/* Card auxiliar de RDOs com mais detalhe — mantido fora do bento. */}
       {rdoStats && (
-        <div className="mb-6">
+        <div className="mb-8">
           <RdosCard stats={rdoStats} />
         </div>
       )}
 
       {/* Alertas */}
       {indicadores.riscos.length > 0 && (
-        <Card className="mb-4 p-6">
-          <h3 className="mb-3 text-[15px] font-semibold">
+        <Card className="mb-6 p-7">
+          <h3 className="mb-4 text-[15px] font-semibold">
             ⚠️ Alertas ({indicadores.riscos.length})
           </h3>
           {indicadores.riscos.map((r, i) => (
             <div
               key={i}
-              className={`flex gap-2 py-2 text-sm ${
+              className={`flex items-start gap-3 py-3 text-sm ${
                 i < indicadores.riscos.length - 1 ? 'border-b border-border' : ''
               }`}
             >
@@ -421,26 +421,31 @@ export default function Dashboard() {
       )}
 
       {/* Gráfico Fluxo de Caixa — passado real + projeção 30/60/90 dias */}
-      <Card className="mb-4 p-6">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="m-0 text-base font-semibold">
-            Fluxo de Caixa — 30 dias passados + {projDays} dias projetados
-          </h3>
+      <Card className="mb-6 p-7">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h3 className="m-0 text-[17px] font-semibold leading-tight">
+              Fluxo de Caixa
+            </h3>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              30 dias passados + {projDays} dias projetados
+            </p>
+          </div>
           <div
-            className="inline-flex overflow-hidden rounded-md border border-border"
+            className="inline-flex overflow-hidden rounded-lg border border-border bg-secondary/40 p-0.5"
             role="group"
             aria-label="Dias de projeção"
           >
-            {PROJ_DAYS_OPTIONS.map((d, i) => (
+            {PROJ_DAYS_OPTIONS.map((d) => (
               <button
                 key={d}
                 type="button"
                 onClick={() => setProjDays(d)}
-                className={`cursor-pointer border-0 px-3.5 py-1.5 text-[13px] font-semibold ${
+                className={`cursor-pointer rounded-md border-0 px-4 py-2 text-[13px] font-semibold transition-colors ${
                   projDays === d
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-transparent text-muted-foreground'
-                } ${i < PROJ_DAYS_OPTIONS.length - 1 ? 'border-r border-border' : ''}`}
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'bg-transparent text-muted-foreground hover:text-foreground'
+                }`}
               >
                 {d}d
               </button>
@@ -448,27 +453,29 @@ export default function Dashboard() {
           </div>
         </div>
         {historicoCaixa.length === 0 ? (
-          <p className="py-8 text-center text-muted-foreground">
+          <p className="py-12 text-center text-muted-foreground">
             Sem dados de caixa para exibir.
           </p>
         ) : (
-          <FluxoCaixaChart
-            historico={historicoCaixa}
-            projecao={saldoProjetado}
-            saldoAtual={saldo}
-            height={300}
-          />
+          <div className="pt-2">
+            <FluxoCaixaChart
+              historico={historicoCaixa}
+              projecao={saldoProjetado}
+              saldoAtual={saldo}
+              height={340}
+            />
+          </div>
         )}
       </Card>
 
       {/* NFs Situação */}
-      <div className="mb-4">
+      <div className="mb-6">
         <NfsStatusCard situacao={nfsSituacao} emitidas={arp.nfsEmitidas} />
       </div>
 
       {/* Tabela Entradas Previstas */}
       {dash.projecaoFutura && dash.projecaoFutura.length > 0 && (
-        <div className="mb-4">
+        <div className="mb-6">
           <EntradasPrevistasTable projecaoFutura={dash.projecaoFutura} />
         </div>
       )}

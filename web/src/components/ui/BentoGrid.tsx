@@ -5,6 +5,9 @@ import { cn } from '../../lib/cn';
  * Bento grid container — grade de 12 colunas com auto-rows responsivo.
  * Cada filho declara seu tamanho via prop `span` no <BentoItem>.
  * Em mobile, todos os items ocupam a largura total automaticamente.
+ *
+ * `gap-6` (24px) dá respiro entre cards sem perder densidade. `auto-rows`
+ * mínimo de 140px garante que cards 1x1 não fiquem espremidos verticalmente.
  */
 export function BentoGrid({
   className,
@@ -14,7 +17,7 @@ export function BentoGrid({
   return (
     <div
       className={cn(
-        'grid grid-cols-1 sm:grid-cols-6 lg:grid-cols-12 gap-4 auto-rows-[minmax(120px,_auto)]',
+        'grid grid-cols-1 sm:grid-cols-6 lg:grid-cols-12 gap-5 lg:gap-6 auto-rows-[minmax(140px,_auto)]',
         className,
       )}
       {...rest}
