@@ -1,6 +1,8 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
@@ -140,11 +142,11 @@ export default function NotasFiscais() {
       {notasQuery.isLoading ? (
         <Spinner label="Carregando notas fiscais..." />
       ) : notasQuery.isError ? (
-        <div className="card" style={{ padding: 24 }}>
+        <Card style={{ padding: 24 }}>
           <p className="text-danger">
             Erro ao carregar notas fiscais. Tente novamente.
           </p>
-        </div>
+        </Card>
       ) : (
         <>
           <div
@@ -197,10 +199,8 @@ export default function NotasFiscais() {
           </div>
 
           {proximasTimeline.length > 0 && (
-            <div className="card" style={{ marginBottom: 'var(--sp-xl)' }}>
-              <div className="card-header">
-                <h3 className="card-title">Próximos Vencimentos</h3>
-              </div>
+            <Card style={{ marginBottom: 'var(--sp-xl)' }}>
+              <h3 className="text-[15px] font-semibold tracking-tight px-5 pt-5 pb-4">Próximos Vencimentos</h3>
               <div>
                 {proximasTimeline.map((nf, idx) => (
                   <TimelineItem
@@ -211,7 +211,7 @@ export default function NotasFiscais() {
                   />
                 ))}
               </div>
-            </div>
+            </Card>
           )}
 
           <div
@@ -450,11 +450,11 @@ function ListaTab({
 
   if (notas.length === 0) {
     return (
-      <div className="card">
+      <Card>
         <p className="text-muted" style={{ padding: 'var(--sp-lg)' }}>
           Nenhuma nota fiscal registrada
         </p>
-      </div>
+      </Card>
     );
   }
 
@@ -464,7 +464,7 @@ function ListaTab({
   });
 
   return (
-    <div className="card">
+    <Card>
       <div className="table-wrap">
         <table>
           <thead>
@@ -542,15 +542,9 @@ function ListaTab({
                   <td>
                     {nf.emitida ? (
                       <>
-                        <span
-                          className="badge"
-                          style={{
-                            background: 'rgba(56,161,105,.15)',
-                            color: '#38A169',
-                          }}
-                        >
+                        <Badge style={{ background: 'rgba(56,161,105,.15)', color: '#38A169' }}>
                           ✓ EMITIDA
-                        </span>
+                        </Badge>
                         <div
                           style={{
                             fontSize: 13,
@@ -563,13 +557,13 @@ function ListaTab({
                       </>
                     ) : (
                       <>
-                        <span className={`badge badge-${st.classe}`}>
+                        <Badge variant={st.status === 'vencida' ? 'destructive' : st.status === 'proximo_vencer' ? 'warning' : 'success'}>
                           {st.status === 'vencida'
                             ? '🔴 Vencida'
                             : st.status === 'proximo_vencer'
                               ? '⚠️ Próxima'
                               : '🟢 No prazo'}
-                        </span>
+                        </Badge>
                         <div
                           style={{
                             fontSize: 13,
@@ -634,7 +628,7 @@ function ListaTab({
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -687,9 +681,8 @@ function SemanalTab({ notas, contractById }: SemanalTabProps) {
             : 'var(--color-border)';
 
         return (
-          <div
+          <Card
             key={idx}
-            className="card"
             style={{ borderLeft: `4px solid ${cor}` }}
           >
             <div
@@ -756,9 +749,9 @@ function SemanalTab({ notas, contractById }: SemanalTabProps) {
                           </td>
                           <td>{formatDate(nf.dataLimite)}</td>
                           <td>
-                            <span className={`badge badge-${st.classe}`}>
+                            <Badge variant={st.status === 'vencida' ? 'destructive' : st.status === 'proximo_vencer' ? 'warning' : 'success'}>
                               {icon} {st.dias >= 0 ? `${st.dias}d` : 'Vencida'}
-                            </span>
+                            </Badge>
                           </td>
                         </tr>
                       );
@@ -777,7 +770,7 @@ function SemanalTab({ notas, contractById }: SemanalTabProps) {
                 Nenhuma nota fiscal nesta semana
               </p>
             )}
-          </div>
+          </Card>
         );
       })}
     </div>
@@ -836,7 +829,7 @@ function MensalTab({ notas, currentMonth, onChangeMonth }: MensalTabProps) {
           Próximo →
         </Button>
       </div>
-      <div className="card">
+      <Card>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
@@ -929,7 +922,7 @@ function MensalTab({ notas, currentMonth, onChangeMonth }: MensalTabProps) {
             ))}
           </tbody>
         </table>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -1380,17 +1373,12 @@ function DetailModal({ nf, contrato, onClose, onEmitir }: DetailModalProps) {
       }
     >
       <div style={{ marginBottom: 'var(--sp-md)' }}>
-        <span
-          className="badge"
-          style={{
-            background: nf.emitida
-              ? 'rgba(56,161,105,.15)'
-              : 'rgba(214,158,46,.12)',
-            color: nf.emitida ? 'var(--color-success)' : 'var(--color-warning)',
-          }}
-        >
+        <Badge style={{
+          background: nf.emitida ? 'rgba(56,161,105,.15)' : 'rgba(214,158,46,.12)',
+          color: nf.emitida ? 'var(--color-success)' : 'var(--color-warning)',
+        }}>
           {nf.emitida ? '✓ Emitida' : 'Pendente'}
-        </span>
+        </Badge>
         <span
           style={{
             fontSize: 22,

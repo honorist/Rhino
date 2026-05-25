@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.92",
+      "date": "2026-05-25",
+      "summary": "Fase 6 — CSS legado erradicado em caixa + notas-fiscais + dashboard",
+      "changes": [
+        "Caixa.tsx: 5 card→<Card> (error, resumo-mês, lançamentos, futuros, filtros), card-header/title→Tailwind, 3 badge spans→<Badge>, btn btn-sm→<Button variant='secondary' size='sm'>, stat-card mantido como className.",
+        "NotasFiscais.tsx: 5 card→<Card> (error, timeline, lista, semanal×5, mensal), card-header/title→Tailwind, 4 badge spans→<Badge variant='destructive'|'warning'|'success'|style>.",
+        "RdosCard.tsx: btn btn-secondary btn-sm→<Button variant='secondary' size='sm' asChild>."
+      ]
+    },
+    {
       "version": "1.2.91",
       "date": "2026-05-25",
       "summary": "Fase 6 — CSS legado erradicado em investimentos + auth",

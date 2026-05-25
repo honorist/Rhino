@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import type { RdoStats, ObraSemRdo, ObraAtrasada } from '../rdos/types';
 
@@ -210,13 +211,9 @@ export default function RdosCard({ stats }: RdosCardProps) {
                       <div style={{ fontSize: 11, color: '#64748B' }}>{sub}</div>
                     </div>
                   </div>
-                  <Link
-                    to={`/contratos/${o.contractId}`}
-                    className="btn btn-secondary btn-sm"
-                    style={{ whiteSpace: 'nowrap', textDecoration: 'none' }}
-                  >
-                    Cobrar
-                  </Link>
+                  <Button variant="secondary" size="sm" asChild style={{ whiteSpace: 'nowrap' }}>
+                    <Link to={`/contratos/${o.contractId}`}>Cobrar</Link>
+                  </Button>
                 </div>
               );
             })}

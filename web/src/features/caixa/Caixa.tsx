@@ -1,7 +1,9 @@
 import { useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import PageHeader from '../../components/layout/PageHeader';
+import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select } from '../../components/ui/controls';
@@ -390,9 +392,9 @@ export default function Caixa() {
       {caixaQuery.isLoading ? (
         <Spinner label="Carregando caixa..." />
       ) : caixaQuery.isError ? (
-        <div className="card" style={{ padding: 24 }}>
+        <Card style={{ padding: 24 }}>
           <p className="text-danger">Erro ao carregar caixa. Tente novamente.</p>
-        </div>
+        </Card>
       ) : (
         <>
           <div className="stat-grid">
@@ -456,10 +458,8 @@ export default function Caixa() {
           />
 
           {!filters.mes && mesesAgrupados.length > 1 && (
-            <div className="card mb-2xl">
-              <div className="card-header">
-                <h3 className="card-title">Resumo por Mês</h3>
-              </div>
+            <Card style={{ marginBottom: 48 }}>
+              <h3 className="text-[15px] font-semibold tracking-tight px-5 pt-5 pb-4">Resumo por Mês</h3>
               <div className="table-wrap">
                 <table>
                   <thead>
@@ -522,16 +522,14 @@ export default function Caixa() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </Card>
           )}
 
-          <div className="card">
-            <div className="card-header">
-              <h3 className="card-title">
+          <Card>
+              <h3 className="text-[15px] font-semibold tracking-tight px-5 pt-5 pb-4">
                 Lançamentos{' '}
                 {filters.mes ? `· ${formatarMes(filters.mes)}` : ''}
               </h3>
-            </div>
             <div className="table-wrap">
               <table>
                 <thead>
@@ -602,7 +600,7 @@ export default function Caixa() {
                 )}
               </table>
             </div>
-          </div>
+          </Card>
         </>
       )}
 
@@ -666,15 +664,15 @@ function KpiCard({
   tracejado?: boolean;
 }) {
   return (
-    <div
-      className="card stat-card"
+    <Card
+      className="stat-card"
       style={tracejado ? { border: '1px dashed var(--color-border)' } : undefined}
     >
       <div className="stat-value" style={{ color: cor }}>
         {valor}
       </div>
       <div className="stat-label">{label}</div>
-    </div>
+    </Card>
   );
 }
 
@@ -711,15 +709,14 @@ function FuturosCard({
   ).length;
 
   return (
-    <div
-      className="card"
+    <Card
       style={{
         marginBottom: 'var(--sp-lg)',
         border: '1px dashed var(--color-border)',
       }}
     >
-      <div className="card-header" style={{ background: 'transparent' }}>
-        <h3 className="card-title" style={{ color: 'var(--color-text-muted)' }}>
+      <div className="flex justify-between items-center px-5 pt-5 pb-4" style={{ background: 'transparent' }}>
+        <h3 className="text-[15px] font-semibold tracking-tight" style={{ color: 'var(--color-text-muted)' }}>
           ⏳ Lançamentos Futuros
         </h3>
         <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
@@ -817,8 +814,7 @@ function FuturosCard({
                   )}
                 </td>
                 <td>
-                  <span
-                    className="badge"
+                  <Badge
                     style={{
                       background:
                         item.tipo === 'entrada'
@@ -836,21 +832,22 @@ function FuturosCard({
                     }}
                   >
                     {item.tipo}
-                  </span>
+                  </Badge>
                 </td>
                 <td style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
                   {item.origem}
                   {item.virtual && (
-                    <button
+                    <Button
                       type="button"
-                      className="btn btn-sm btn-secondary"
+                      variant="secondary"
+                      size="sm"
                       style={{ marginLeft: 8, fontSize: 11, padding: '3px 8px' }}
                       onClick={() =>
                         item.virtual && onMaterializarIndividual(item.virtual)
                       }
                     >
                       ajustar e materializar
-                    </button>
+                    </Button>
                   )}
                 </td>
                 <td
@@ -871,7 +868,7 @@ function FuturosCard({
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -900,8 +897,7 @@ function FiltrosCard({
     Boolean(filters.contractId);
 
   return (
-    <div
-      className="card"
+    <Card
       style={{ marginBottom: 'var(--sp-lg)', padding: 'var(--sp-md)' }}
     >
       <div
@@ -1020,7 +1016,7 @@ function FiltrosCard({
           {totalPassado !== 1 ? 's' : ''}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -1082,7 +1078,7 @@ function LancamentoRow({
         <strong>{entry.description}</strong>
       </td>
       <td>
-        <span className={`badge badge-${entry.type}`}>{entry.type}</span>
+        <Badge variant={entry.type === 'entrada' ? 'success' : 'destructive'}>{entry.type}</Badge>
       </td>
       <td>
         {contrato ? (
@@ -1491,9 +1487,9 @@ function DetailModal({
       }
     >
       <div style={{ marginBottom: 'var(--sp-md)' }}>
-        <span className={`badge badge-${entry.type}`} style={{ marginRight: 6 }}>
+        <Badge variant={entry.type === 'entrada' ? 'success' : 'destructive'} style={{ marginRight: 6 }}>
           {entry.type}
-        </span>
+        </Badge>
         <span
           style={{
             fontSize: 22,
@@ -1621,8 +1617,7 @@ function OfxModal({ result, onClose }: OfxModalProps) {
                   {formatBRL(Math.abs(num(t.valor)))}
                 </td>
                 <td>
-                  <span
-                    className="badge"
+                  <Badge
                     style={{
                       background:
                         t.status === 'conciliado' ? '#D1FAE5' : '#FEF3C7',
@@ -1630,7 +1625,7 @@ function OfxModal({ result, onClose }: OfxModalProps) {
                     }}
                   >
                     {t.status === 'conciliado' ? '✅ Conciliado' : '🆕 Novo'}
-                  </span>
+                  </Badge>
                 </td>
                 <td style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
                   {t.match ? t.match.description : '—'}
