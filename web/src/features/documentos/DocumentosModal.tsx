@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
 import { Badge } from '../../components/ui/badge';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from '../../components/ui/dialog';
 import Spinner from '../../components/ui/Spinner';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import { useToast } from '../../components/ui/toast/ToastContext';
@@ -143,16 +145,12 @@ export default function DocumentosModal({
   ];
 
   return (
-    <Modal
-      open
-      title={`Documentos — ${recurso?.nome ?? ''}`}
-      onClose={onClose}
-      footer={
-        <Button variant="secondary" onClick={onClose}>
-          Fechar
-        </Button>
-      }
-    >
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{`Documentos — ${recurso?.nome ?? ''}`}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
       {!recurso ? (
         <Spinner label="Carregando..." />
       ) : (
@@ -201,6 +199,13 @@ export default function DocumentosModal({
           onClose={() => setSub(null)}
         />
       )}
-    </Modal>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

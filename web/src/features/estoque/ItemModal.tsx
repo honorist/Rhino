@@ -1,6 +1,12 @@
 import { useId, useState } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Textarea } from '../../components/ui/controls';
 import { useToast } from '../../components/ui/toast/ToastContext';
@@ -98,31 +104,12 @@ export default function ItemModal({ item, almoxs, onClose }: ItemModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? '✏️ Editar item' : '+ Novo item'}
-      onClose={onClose}
-      footer={
-        <>
-          {isEdit && (
-            <Button
-              variant="danger"
-              onClick={handleInativar}
-              disabled={inativar.isPending}
-              style={{ marginRight: 'auto' }}
-            >
-              Inativar item
-            </Button>
-          )}
-          <Button variant="secondary" onClick={onClose} disabled={pending}>
-            Cancelar
-          </Button>
-          <Button onClick={submit} disabled={pending}>
-            {pending ? 'Salvando…' : isEdit ? 'Salvar' : 'Criar item'}
-          </Button>
-        </>
-      }
-    >
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? '✏️ Editar item' : '+ Novo item'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
       {item && (
         <div
           style={{
@@ -265,6 +252,26 @@ export default function ItemModal({ item, almoxs, onClose }: ItemModalProps) {
           placeholder="Observações sobre o item"
         />
       </FormField>
-    </Modal>
+        </div>
+        <DialogFooter>
+          {isEdit && (
+            <Button
+              variant="danger"
+              onClick={handleInativar}
+              disabled={inativar.isPending}
+              style={{ marginRight: 'auto' }}
+            >
+              Inativar item
+            </Button>
+          )}
+          <Button variant="secondary" onClick={onClose} disabled={pending}>
+            Cancelar
+          </Button>
+          <Button onClick={submit} disabled={pending}>
+            {pending ? 'Salvando…' : isEdit ? 'Salvar' : 'Criar item'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

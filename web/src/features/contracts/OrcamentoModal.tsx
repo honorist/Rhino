@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
 import { useToast } from '../../components/ui/toast/ToastContext';
@@ -71,67 +77,70 @@ export default function OrcamentoModal({
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar Item do Orçamento' : 'Novo Item do Orçamento'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>
+            {isEdit ? 'Editar Item do Orçamento' : 'Novo Item do Orçamento'}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <FormField label="Descrição *" htmlFor="orc-desc">
+            <Input
+              id="orc-desc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Ex: Equipe de campo, aço, diárias..."
+            />
+          </FormField>
+          <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <FormField label="Categoria *" htmlFor="orc-tipo">
+                <Select
+                  id="orc-tipo"
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                >
+                  {TIPOS.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <FormField label="Valor Orçado (BRL) *" htmlFor="orc-valor">
+                <Input
+                  id="orc-valor"
+                  type="number"
+                  step="0.01"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  placeholder="0,00"
+                />
+              </FormField>
+            </div>
+          </div>
+          <FormField label="Observações" htmlFor="orc-notes">
+            <Textarea
+              id="orc-notes"
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Detalhes adicionais..."
+            />
+          </FormField>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={pending}>
             Cancelar
           </Button>
           <Button onClick={submit} disabled={pending}>
             {pending ? 'Salvando…' : isEdit ? 'Atualizar' : 'Adicionar'}
           </Button>
-        </>
-      }
-    >
-      <FormField label="Descrição *" htmlFor="orc-desc">
-        <Input
-          id="orc-desc"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Ex: Equipe de campo, aço, diárias..."
-        />
-      </FormField>
-      <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 160 }}>
-          <FormField label="Categoria *" htmlFor="orc-tipo">
-            <Select
-              id="orc-tipo"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-            >
-              {TIPOS.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 140 }}>
-          <FormField label="Valor Orçado (BRL) *" htmlFor="orc-valor">
-            <Input
-              id="orc-valor"
-              type="number"
-              step="0.01"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder="0,00"
-            />
-          </FormField>
-        </div>
-      </div>
-      <FormField label="Observações" htmlFor="orc-notes">
-        <Textarea
-          id="orc-notes"
-          rows={2}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Detalhes adicionais..."
-        />
-      </FormField>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

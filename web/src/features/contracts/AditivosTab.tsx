@@ -2,7 +2,13 @@ import { useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { Badge } from '../../components/ui/badge';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
@@ -72,98 +78,99 @@ function AditivoModal({
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar Aditivo' : 'Novo Aditivo'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar Aditivo' : 'Novo Aditivo'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 130 }}>
+              <FormField label="Número" htmlFor="ad-num">
+                <Input
+                  id="ad-num"
+                  value={numero}
+                  onChange={(e) => setNumero(e.target.value)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 130 }}>
+              <FormField label="Tipo" htmlFor="ad-tipo">
+                <Select
+                  id="ad-tipo"
+                  value={tipo}
+                  onChange={(e) =>
+                    setTipo(e.target.value as 'valor' | 'prazo' | 'escopo')
+                  }
+                >
+                  <option value="valor">Valor</option>
+                  <option value="prazo">Prazo</option>
+                  <option value="escopo">Escopo</option>
+                </Select>
+              </FormField>
+            </div>
+          </div>
+          <FormField label="Descrição *" htmlFor="ad-desc">
+            <Textarea
+              id="ad-desc"
+              rows={2}
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+            />
+          </FormField>
+          <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 110 }}>
+              <FormField label="Valor Δ (R$)" htmlFor="ad-valor">
+                <Input
+                  id="ad-valor"
+                  type="number"
+                  step="0.01"
+                  value={valorDelta}
+                  onChange={(e) => setValorDelta(e.target.value)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 110 }}>
+              <FormField label="Prazo Δ (dias)" htmlFor="ad-dias">
+                <Input
+                  id="ad-dias"
+                  type="number"
+                  value={diasDelta}
+                  onChange={(e) => setDiasDelta(e.target.value)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 130 }}>
+              <FormField label="Data" htmlFor="ad-data">
+                <DatePicker
+                  id="ad-data"
+                  value={data}
+                  onChange={(val) => setData(val)}
+                />
+              </FormField>
+            </div>
+          </div>
+          <label
+            style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+          >
+            <input
+              type="checkbox"
+              checked={aprovado}
+              onChange={(e) => setAprovado(e.target.checked)}
+            />
+            Aprovado
+          </label>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={pending}>
             Cancelar
           </Button>
           <Button onClick={submit} disabled={pending}>
             {pending ? 'Salvando…' : isEdit ? 'Atualizar' : 'Criar'}
           </Button>
-        </>
-      }
-    >
-      <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 130 }}>
-          <FormField label="Número" htmlFor="ad-num">
-            <Input
-              id="ad-num"
-              value={numero}
-              onChange={(e) => setNumero(e.target.value)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 130 }}>
-          <FormField label="Tipo" htmlFor="ad-tipo">
-            <Select
-              id="ad-tipo"
-              value={tipo}
-              onChange={(e) =>
-                setTipo(e.target.value as 'valor' | 'prazo' | 'escopo')
-              }
-            >
-              <option value="valor">Valor</option>
-              <option value="prazo">Prazo</option>
-              <option value="escopo">Escopo</option>
-            </Select>
-          </FormField>
-        </div>
-      </div>
-      <FormField label="Descrição *" htmlFor="ad-desc">
-        <Textarea
-          id="ad-desc"
-          rows={2}
-          value={descricao}
-          onChange={(e) => setDescricao(e.target.value)}
-        />
-      </FormField>
-      <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 110 }}>
-          <FormField label="Valor Δ (R$)" htmlFor="ad-valor">
-            <Input
-              id="ad-valor"
-              type="number"
-              step="0.01"
-              value={valorDelta}
-              onChange={(e) => setValorDelta(e.target.value)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 110 }}>
-          <FormField label="Prazo Δ (dias)" htmlFor="ad-dias">
-            <Input
-              id="ad-dias"
-              type="number"
-              value={diasDelta}
-              onChange={(e) => setDiasDelta(e.target.value)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 130 }}>
-          <FormField label="Data" htmlFor="ad-data">
-            <DatePicker
-              id="ad-data"
-              value={data}
-              onChange={(val) => setData(val)}
-            />
-          </FormField>
-        </div>
-      </div>
-      <label
-        style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-      >
-        <input
-          type="checkbox"
-          checked={aprovado}
-          onChange={(e) => setAprovado(e.target.checked)}
-        />
-        Aprovado
-      </label>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

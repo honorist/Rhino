@@ -4,7 +4,9 @@ import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import DataTable, { type Column } from '../../components/ui/DataTable';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Select } from '../../components/ui/controls';
 import Spinner from '../../components/ui/Spinner';
@@ -215,21 +217,12 @@ function UserFormModal({ user, niveis, onClose }: UserFormModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar Usuário' : 'Novo Usuário'}
-      onClose={onClose}
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose} disabled={saving}>
-            Cancelar
-          </Button>
-          <Button type="submit" form="form-user" disabled={saving}>
-            {saving ? 'Salvando...' : isEdit ? 'Atualizar' : 'Criar'}
-          </Button>
-        </>
-      }
-    >
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar Usuário' : 'Novo Usuário'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
       <form id="form-user" onSubmit={handleSubmit}>
         <FormField label="Email *" htmlFor="user-email">
           <Input
@@ -314,6 +307,16 @@ function UserFormModal({ user, niveis, onClose }: UserFormModalProps) {
           </div>
         )}
       </form>
-    </Modal>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="form-user" disabled={saving}>
+            {saving ? 'Salvando...' : isEdit ? 'Atualizar' : 'Criar'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

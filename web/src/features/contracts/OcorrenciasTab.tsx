@@ -2,7 +2,13 @@ import { useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { Badge } from '../../components/ui/badge';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Select, Textarea } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
@@ -83,84 +89,85 @@ function OcorrenciaModal({
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar Ocorrência' : 'Nova Ocorrência'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar Ocorrência' : 'Nova Ocorrência'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 130 }}>
+              <FormField label="Data" htmlFor="oc-data">
+                <DatePicker
+                  id="oc-data"
+                  value={data}
+                  onChange={(val) => setData(val)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 120 }}>
+              <FormField label="Tipo" htmlFor="oc-tipo">
+                <Select
+                  id="oc-tipo"
+                  value={tipo}
+                  onChange={(e) => setTipo(e.target.value)}
+                >
+                  {Object.entries(TIPO_LABEL).map(([v, l]) => (
+                    <option key={v} value={v}>
+                      {l}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 120 }}>
+              <FormField label="Severidade" htmlFor="oc-sev">
+                <Select
+                  id="oc-sev"
+                  value={severidade}
+                  onChange={(e) =>
+                    setSeveridade(
+                      e.target.value as 'baixa' | 'media' | 'alta' | 'critica',
+                    )
+                  }
+                >
+                  <option value="baixa">Baixa</option>
+                  <option value="media">Média</option>
+                  <option value="alta">Alta</option>
+                  <option value="critica">Crítica</option>
+                </Select>
+              </FormField>
+            </div>
+          </div>
+          <FormField label="Descrição *" htmlFor="oc-desc">
+            <Textarea
+              id="oc-desc"
+              rows={3}
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+            />
+          </FormField>
+          <label
+            style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+          >
+            <input
+              type="checkbox"
+              checked={encerrada}
+              onChange={(e) => setEncerrada(e.target.checked)}
+            />
+            Encerrada
+          </label>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={pending}>
             Cancelar
           </Button>
           <Button onClick={submit} disabled={pending}>
             {pending ? 'Salvando…' : isEdit ? 'Atualizar' : 'Registrar'}
           </Button>
-        </>
-      }
-    >
-      <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 130 }}>
-          <FormField label="Data" htmlFor="oc-data">
-            <DatePicker
-              id="oc-data"
-              value={data}
-              onChange={(val) => setData(val)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 120 }}>
-          <FormField label="Tipo" htmlFor="oc-tipo">
-            <Select
-              id="oc-tipo"
-              value={tipo}
-              onChange={(e) => setTipo(e.target.value)}
-            >
-              {Object.entries(TIPO_LABEL).map(([v, l]) => (
-                <option key={v} value={v}>
-                  {l}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 120 }}>
-          <FormField label="Severidade" htmlFor="oc-sev">
-            <Select
-              id="oc-sev"
-              value={severidade}
-              onChange={(e) =>
-                setSeveridade(
-                  e.target.value as 'baixa' | 'media' | 'alta' | 'critica',
-                )
-              }
-            >
-              <option value="baixa">Baixa</option>
-              <option value="media">Média</option>
-              <option value="alta">Alta</option>
-              <option value="critica">Crítica</option>
-            </Select>
-          </FormField>
-        </div>
-      </div>
-      <FormField label="Descrição *" htmlFor="oc-desc">
-        <Textarea
-          id="oc-desc"
-          rows={3}
-          value={descricao}
-          onChange={(e) => setDescricao(e.target.value)}
-        />
-      </FormField>
-      <label
-        style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-      >
-        <input
-          type="checkbox"
-          checked={encerrada}
-          onChange={(e) => setEncerrada(e.target.checked)}
-        />
-        Encerrada
-      </label>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

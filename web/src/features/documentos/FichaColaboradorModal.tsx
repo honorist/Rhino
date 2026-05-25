@@ -2,7 +2,9 @@ import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/Button';
 import { Badge } from '../../components/ui/badge';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from '../../components/ui/dialog';
 import Spinner from '../../components/ui/Spinner';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR } from '../../lib/formatDate';
@@ -105,19 +107,12 @@ export default function FichaColaboradorModal({
     : null;
 
   return (
-    <Modal
-      open
-      title={r?.nome ?? 'Colaborador'}
-      onClose={onClose}
-      footer={
-        <>
-          <Button variant="secondary" onClick={onVerDocumentos}>
-            Ver Documentos
-          </Button>
-          <Button onClick={() => navigate('/recursos')}>Editar Cadastro</Button>
-        </>
-      }
-    >
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{r?.nome ?? 'Colaborador'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
       {!r ? (
         <Spinner label="Carregando..." />
       ) : (
@@ -182,6 +177,14 @@ export default function FichaColaboradorModal({
           )}
         </>
       )}
-    </Modal>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onVerDocumentos}>
+            Ver Documentos
+          </Button>
+          <Button onClick={() => navigate('/recursos')}>Editar Cadastro</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

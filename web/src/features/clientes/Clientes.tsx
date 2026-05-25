@@ -4,7 +4,9 @@ import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import DataTable, { type Column } from '../../components/ui/DataTable';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Textarea } from '../../components/ui/controls';
 import Spinner from '../../components/ui/Spinner';
@@ -241,22 +243,13 @@ function ClienteFormModal({ cliente, onClose }: ClienteFormModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar Cliente' : 'Novo Cliente'}
-      onClose={onClose}
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose} disabled={saving}>
-            Cancelar
-          </Button>
-          <Button type="submit" form="form-cliente" disabled={saving}>
-            {saving ? 'Salvando...' : isEdit ? 'Atualizar' : 'Criar'}
-          </Button>
-        </>
-      }
-    >
-      <form id="form-cliente" onSubmit={handleSubmit}>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar Cliente' : 'Novo Cliente'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <form id="form-cliente" onSubmit={handleSubmit}>
         <div className="form-row">
           <FormField label="Nome *" htmlFor="cli-nome">
             <Input
@@ -394,7 +387,17 @@ function ClienteFormModal({ cliente, onClose }: ClienteFormModalProps) {
             </label>
           )}
         </div>
-      </form>
-    </Modal>
+          </form>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="form-cliente" disabled={saving}>
+            {saving ? 'Salvando...' : isEdit ? 'Atualizar' : 'Criar'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

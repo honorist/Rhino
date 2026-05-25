@@ -3,7 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input } from '../../components/ui/controls';
 import { Combobox } from '../../components/ui/combobox';
@@ -348,21 +350,12 @@ function NovaPropostaModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Modal
-      open
-      title="Nova Proposta Comercial"
-      onClose={onClose}
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose} disabled={criar.isPending}>
-            Cancelar
-          </Button>
-          <Button type="submit" form="form-nova-proposta" disabled={criar.isPending}>
-            {criar.isPending ? 'Criando...' : 'Criar Proposta'}
-          </Button>
-        </>
-      }
-    >
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>Nova Proposta Comercial</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
       <form id="form-nova-proposta" onSubmit={handleSubmit}>
         <FormField
           label="Cliente *"
@@ -438,6 +431,16 @@ function NovaPropostaModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
       </form>
-    </Modal>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose} disabled={criar.isPending}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="form-nova-proposta" disabled={criar.isPending}>
+            {criar.isPending ? 'Criando...' : 'Criar Proposta'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

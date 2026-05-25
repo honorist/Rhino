@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
@@ -166,208 +172,209 @@ export default function ContratoModal({
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar Contrato' : 'Novo Contrato'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar Contrato' : 'Novo Contrato'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <Row>
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <FormField label="Número do Contrato" htmlFor="ct-num">
+                <Input
+                  id="ct-num"
+                  value={contractNumber}
+                  onChange={(e) => setContractNumber(e.target.value)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <FormField label="Status *" htmlFor="ct-status">
+                <Select
+                  id="ct-status"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as ContractStatus)}
+                >
+                  {STATUS_OPCOES.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            </div>
+          </Row>
+          <FormField label="Nome do Contrato *" htmlFor="ct-name">
+            <Input
+              id="ct-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </FormField>
+
+          <h3 className="text-[15px] font-semibold tracking-tight" style={{ marginTop: 'var(--sp-lg)' }}>
+            Dados do Cliente
+          </h3>
+          <FormField label="Cliente *" htmlFor="ct-cliente">
+            {clientes.length > 0 && !usarManual ? (
+              <Select
+                id="ct-cliente"
+                value={clienteId ?? ''}
+                onChange={(e) => selecionarCliente(e.target.value)}
+              >
+                <option value="">— Selecionar cliente —</option>
+                {clientes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {clienteLabel(c)}
+                  </option>
+                ))}
+                <option value="__outro__">✏️ Digitar manualmente...</option>
+              </Select>
+            ) : (
+              <Input
+                id="ct-cliente"
+                value={clienteManual}
+                onChange={(e) => setClienteManual(e.target.value)}
+                placeholder="Nome do cliente ou empresa"
+              />
+            )}
+          </FormField>
+          <Row>
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <FormField label="CPF/CNPJ" htmlFor="ct-doc">
+                <Input
+                  id="ct-doc"
+                  value={clientDocument}
+                  onChange={(e) => setClientDocument(e.target.value)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <FormField label="Email" htmlFor="ct-email">
+                <Input
+                  id="ct-email"
+                  type="email"
+                  value={clientEmail}
+                  onChange={(e) => setClientEmail(e.target.value)}
+                />
+              </FormField>
+            </div>
+          </Row>
+          <FormField label="Telefone" htmlFor="ct-tel">
+            <Input
+              id="ct-tel"
+              value={clientPhone}
+              onChange={(e) => setClientPhone(e.target.value)}
+              placeholder="(00) 00000-0000"
+            />
+          </FormField>
+          <FormField label="Endereço / Local da Obra">
+            <AddressAutocomplete
+              value={endereco}
+              onChange={setEndereco}
+              onSelect={(sel) => {
+                setEndereco(sel.endereco);
+                setLat(sel.lat);
+                setLng(sel.lng);
+              }}
+            />
+          </FormField>
+
+          <h3 className="text-[15px] font-semibold tracking-tight" style={{ marginTop: 'var(--sp-lg)' }}>
+            Dados do Contrato
+          </h3>
+          <FormField label="Valor Total (BRL) *" htmlFor="ct-valor">
+            <Input
+              id="ct-valor"
+              type="number"
+              step="0.01"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder="0,00"
+            />
+          </FormField>
+          <Row>
+            <div style={{ flex: 1, minWidth: 130 }}>
+              <FormField label="Data Início" htmlFor="ct-ini">
+                <DatePicker
+                  id="ct-ini"
+                  value={startDate}
+                  onChange={(val) => setStartDate(val)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 130 }}>
+              <FormField label="Data Fim" htmlFor="ct-fim">
+                <DatePicker
+                  id="ct-fim"
+                  value={endDate}
+                  onChange={(val) => setEndDate(val)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 130 }}>
+              <FormField
+                label="Data de Tendência"
+                htmlFor="ct-tend"
+                helper="Previsão atualizada do fim da obra."
+              >
+                <DatePicker
+                  id="ct-tend"
+                  value={tendencyDate}
+                  onChange={(val) => setTendencyDate(val)}
+                />
+              </FormField>
+            </div>
+          </Row>
+          <FormField label="Retenção (%)" htmlFor="ct-ret">
+            <Input
+              id="ct-ret"
+              type="number"
+              min={0}
+              max={100}
+              step="0.01"
+              value={retencaoPercent}
+              onChange={(e) => setRetencaoPercent(e.target.value)}
+            />
+          </FormField>
+          <FormField
+            label="Nº inicial do RDO"
+            htmlFor="ct-rdo-seed"
+            helper={
+              temRdos
+                ? '🔒 Já há RDOs lançados neste contrato — a sequência foi fixada e não pode ser alterada.'
+                : 'Use só na 1ª emissão de uma obra já em andamento. Deixe vazio para começar do 1. Ex.: 18 → próximo RDO será #18, e a sequência continua a partir dele.'
+            }
+          >
+            <Input
+              id="ct-rdo-seed"
+              type="number"
+              min={1}
+              step={1}
+              value={rdoSeed}
+              onChange={(e) => setRdoSeed(e.target.value)}
+              disabled={temRdos}
+              placeholder="1"
+            />
+          </FormField>
+          <FormField label="Notas / Observações" htmlFor="ct-notes">
+            <Textarea
+              id="ct-notes"
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </FormField>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={pending}>
             Cancelar
           </Button>
           <Button onClick={submit} disabled={pending}>
             {pending ? 'Salvando…' : isEdit ? 'Atualizar' : 'Criar'}
           </Button>
-        </>
-      }
-    >
-      <Row>
-        <div style={{ flex: 1, minWidth: 160 }}>
-          <FormField label="Número do Contrato" htmlFor="ct-num">
-            <Input
-              id="ct-num"
-              value={contractNumber}
-              onChange={(e) => setContractNumber(e.target.value)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 160 }}>
-          <FormField label="Status *" htmlFor="ct-status">
-            <Select
-              id="ct-status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value as ContractStatus)}
-            >
-              {STATUS_OPCOES.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-        </div>
-      </Row>
-      <FormField label="Nome do Contrato *" htmlFor="ct-name">
-        <Input
-          id="ct-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-      </FormField>
-
-      <h3 className="text-[15px] font-semibold tracking-tight" style={{ marginTop: 'var(--sp-lg)' }}>
-        Dados do Cliente
-      </h3>
-      <FormField label="Cliente *" htmlFor="ct-cliente">
-        {clientes.length > 0 && !usarManual ? (
-          <Select
-            id="ct-cliente"
-            value={clienteId ?? ''}
-            onChange={(e) => selecionarCliente(e.target.value)}
-          >
-            <option value="">— Selecionar cliente —</option>
-            {clientes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {clienteLabel(c)}
-              </option>
-            ))}
-            <option value="__outro__">✏️ Digitar manualmente...</option>
-          </Select>
-        ) : (
-          <Input
-            id="ct-cliente"
-            value={clienteManual}
-            onChange={(e) => setClienteManual(e.target.value)}
-            placeholder="Nome do cliente ou empresa"
-          />
-        )}
-      </FormField>
-      <Row>
-        <div style={{ flex: 1, minWidth: 150 }}>
-          <FormField label="CPF/CNPJ" htmlFor="ct-doc">
-            <Input
-              id="ct-doc"
-              value={clientDocument}
-              onChange={(e) => setClientDocument(e.target.value)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 160 }}>
-          <FormField label="Email" htmlFor="ct-email">
-            <Input
-              id="ct-email"
-              type="email"
-              value={clientEmail}
-              onChange={(e) => setClientEmail(e.target.value)}
-            />
-          </FormField>
-        </div>
-      </Row>
-      <FormField label="Telefone" htmlFor="ct-tel">
-        <Input
-          id="ct-tel"
-          value={clientPhone}
-          onChange={(e) => setClientPhone(e.target.value)}
-          placeholder="(00) 00000-0000"
-        />
-      </FormField>
-      <FormField label="Endereço / Local da Obra">
-        <AddressAutocomplete
-          value={endereco}
-          onChange={setEndereco}
-          onSelect={(sel) => {
-            setEndereco(sel.endereco);
-            setLat(sel.lat);
-            setLng(sel.lng);
-          }}
-        />
-      </FormField>
-
-      <h3 className="text-[15px] font-semibold tracking-tight" style={{ marginTop: 'var(--sp-lg)' }}>
-        Dados do Contrato
-      </h3>
-      <FormField label="Valor Total (BRL) *" htmlFor="ct-valor">
-        <Input
-          id="ct-valor"
-          type="number"
-          step="0.01"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder="0,00"
-        />
-      </FormField>
-      <Row>
-        <div style={{ flex: 1, minWidth: 130 }}>
-          <FormField label="Data Início" htmlFor="ct-ini">
-            <DatePicker
-              id="ct-ini"
-              value={startDate}
-              onChange={(val) => setStartDate(val)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 130 }}>
-          <FormField label="Data Fim" htmlFor="ct-fim">
-            <DatePicker
-              id="ct-fim"
-              value={endDate}
-              onChange={(val) => setEndDate(val)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 130 }}>
-          <FormField
-            label="Data de Tendência"
-            htmlFor="ct-tend"
-            helper="Previsão atualizada do fim da obra."
-          >
-            <DatePicker
-              id="ct-tend"
-              value={tendencyDate}
-              onChange={(val) => setTendencyDate(val)}
-            />
-          </FormField>
-        </div>
-      </Row>
-      <FormField label="Retenção (%)" htmlFor="ct-ret">
-        <Input
-          id="ct-ret"
-          type="number"
-          min={0}
-          max={100}
-          step="0.01"
-          value={retencaoPercent}
-          onChange={(e) => setRetencaoPercent(e.target.value)}
-        />
-      </FormField>
-      <FormField
-        label="Nº inicial do RDO"
-        htmlFor="ct-rdo-seed"
-        helper={
-          temRdos
-            ? '🔒 Já há RDOs lançados neste contrato — a sequência foi fixada e não pode ser alterada.'
-            : 'Use só na 1ª emissão de uma obra já em andamento. Deixe vazio para começar do 1. Ex.: 18 → próximo RDO será #18, e a sequência continua a partir dele.'
-        }
-      >
-        <Input
-          id="ct-rdo-seed"
-          type="number"
-          min={1}
-          step={1}
-          value={rdoSeed}
-          onChange={(e) => setRdoSeed(e.target.value)}
-          disabled={temRdos}
-          placeholder="1"
-        />
-      </FormField>
-      <FormField label="Notas / Observações" htmlFor="ct-notes">
-        <Textarea
-          id="ct-notes"
-          rows={3}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
-      </FormField>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

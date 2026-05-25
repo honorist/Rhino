@@ -3,7 +3,9 @@ import { useState } from 'react';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import FormField from '../../../components/ui/FormField';
-import Modal from '../../../components/ui/Modal';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from '../../../components/ui/dialog';
 import Spinner from '../../../components/ui/Spinner';
 import { Input, Textarea } from '../../../components/ui/controls';
 import { useToast } from '../../../components/ui/toast/ToastContext';
@@ -157,31 +159,12 @@ function TemplateModal({
   });
 
   return (
-    <Modal
-      open
-      title={isEdit ? `Editar: ${template?.nome}` : 'Novo Template'}
-      onClose={onClose}
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button
-            onClick={() =>
-              salvar.mutate({
-                nome: label,
-                label,
-                validadeMeses: Number(validade) || 12,
-                checklist: checklist.split('\n').map((s) => s.trim()).filter(Boolean),
-              })
-            }
-            disabled={salvar.isPending}
-          >
-            {salvar.isPending ? 'Salvando…' : isEdit ? 'Atualizar' : 'Criar'}
-          </Button>
-        </>
-      }
-    >
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? `Editar: ${template?.nome}` : 'Novo Template'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
       <FormField label="Nome *" htmlFor="tpl-label">
         <Input id="tpl-label" value={label} onChange={(e) => setLabel(e.target.value)} required />
       </FormField>
@@ -211,7 +194,28 @@ function TemplateModal({
           placeholder="Identificação do colaborador legível&#10;Carimbo e assinatura do médico&#10;Data de emissão visível"
         />
       </FormField>
-    </Modal>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={() =>
+              salvar.mutate({
+                nome: label,
+                label,
+                validadeMeses: Number(validade) || 12,
+                checklist: checklist.split('
+').map((s) => s.trim()).filter(Boolean),
+              })
+            }
+            disabled={salvar.isPending}
+          >
+            {salvar.isPending ? 'Salvando…' : isEdit ? 'Atualizar' : 'Criar'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

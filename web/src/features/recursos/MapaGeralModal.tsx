@@ -1,5 +1,11 @@
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import MapView, { type MapMarker } from '../../components/ui/MapView';
 import { escapeHtml } from '../../lib/escapeHtml';
 import { useContracts } from '../contracts/queries';
@@ -52,16 +58,12 @@ export default function MapaGeralModal({ onClose }: MapaGeralModalProps) {
   ];
 
   return (
-    <Modal
-      open
-      title="Mapa Geral — Funcionários e Obras"
-      onClose={onClose}
-      footer={
-        <Button variant="secondary" onClick={onClose}>
-          Fechar
-        </Button>
-      }
-    >
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>Mapa Geral — Funcionários e Obras</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
       <p
         style={{
           margin: '0 0 var(--sp-md)',
@@ -80,6 +82,13 @@ export default function MapaGeralModal({ onClose }: MapaGeralModalProps) {
       ) : (
         <MapView markers={markers} height={460} />
       )}
-    </Modal>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -2,7 +2,9 @@ import { useMemo, useState } from 'react';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import FormField from '../../../components/ui/FormField';
-import Modal from '../../../components/ui/Modal';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from '../../../components/ui/dialog';
 import Spinner from '../../../components/ui/Spinner';
 import { Input } from '../../../components/ui/controls';
 import { useToast } from '../../../components/ui/toast/ToastContext';
@@ -276,76 +278,77 @@ function TipoModal({
   const saving = criar.isPending || atualizar.isPending;
 
   return (
-    <Modal
-      open
-      title={isEdit ? `Editar Tipo: ${tipo?.label}` : 'Novo Tipo de Custo'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? `Editar Tipo: ${tipo?.label}` : 'Novo Tipo de Custo'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <form id="form-tipo" onSubmit={handleSubmit}>
+            <FormField label="Nome *" htmlFor="tipo-label">
+              <Input
+                id="tipo-label"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder="Ex.: Combustível"
+                required
+              />
+            </FormField>
+
+            <FormField
+              label="Chave *"
+              htmlFor="tipo-key"
+              helper={
+                sistema
+                  ? '🔒 Tipo do sistema — a chave não pode ser alterada'
+                  : 'Identificador interno (use snake_case sem espaços, ex.: combustivel)'
+              }
+            >
+              <Input
+                id="tipo-key"
+                value={key}
+                onChange={(e) => setKey(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
+                placeholder="combustivel"
+                disabled={sistema}
+                required
+              />
+            </FormField>
+
+            <FormField
+              label="Ícone (emoji)"
+              htmlFor="tipo-icon"
+              helper="Use um emoji curto, ex.: ⛽ 🏠 🚚"
+            >
+              <Input
+                id="tipo-icon"
+                value={icon}
+                onChange={(e) => setIcon(e.target.value)}
+                placeholder="⛽"
+                maxLength={4}
+              />
+            </FormField>
+
+            <FormField label="Cor" htmlFor="tipo-cor">
+              <input
+                type="color"
+                id="tipo-cor"
+                value={cor}
+                onChange={(e) => setCor(e.target.value)}
+                style={{ width: 80, height: 40, border: '1px solid var(--color-border)', borderRadius: 6 }}
+              />
+            </FormField>
+          </form>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
           <Button type="submit" form="form-tipo" disabled={saving}>
             {saving ? 'Salvando…' : isEdit ? 'Atualizar' : 'Criar'}
           </Button>
-        </>
-      }
-    >
-      <form id="form-tipo" onSubmit={handleSubmit}>
-        <FormField label="Nome *" htmlFor="tipo-label">
-          <Input
-            id="tipo-label"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="Ex.: Combustível"
-            required
-          />
-        </FormField>
-
-        <FormField
-          label="Chave *"
-          htmlFor="tipo-key"
-          helper={
-            sistema
-              ? '🔒 Tipo do sistema — a chave não pode ser alterada'
-              : 'Identificador interno (use snake_case sem espaços, ex.: combustivel)'
-          }
-        >
-          <Input
-            id="tipo-key"
-            value={key}
-            onChange={(e) => setKey(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
-            placeholder="combustivel"
-            disabled={sistema}
-            required
-          />
-        </FormField>
-
-        <FormField
-          label="Ícone (emoji)"
-          htmlFor="tipo-icon"
-          helper="Use um emoji curto, ex.: ⛽ 🏠 🚚"
-        >
-          <Input
-            id="tipo-icon"
-            value={icon}
-            onChange={(e) => setIcon(e.target.value)}
-            placeholder="⛽"
-            maxLength={4}
-          />
-        </FormField>
-
-        <FormField label="Cor" htmlFor="tipo-cor">
-          <input
-            type="color"
-            id="tipo-cor"
-            value={cor}
-            onChange={(e) => setCor(e.target.value)}
-            style={{ width: 80, height: 40, border: '1px solid var(--color-border)', borderRadius: 6 }}
-          />
-        </FormField>
-      </form>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
 import { useToast } from '../../components/ui/toast/ToastContext';
@@ -115,21 +121,12 @@ export default function CriarSolicitacaoModal({
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar Solicitação' : 'Nova Solicitação de Compra'}
-      onClose={onClose}
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose} disabled={pending}>
-            Cancelar
-          </Button>
-          <Button onClick={submit} disabled={pending}>
-            {pending ? 'Enviando…' : isEdit ? 'Salvar' : 'Enviar para compras'}
-          </Button>
-        </>
-      }
-    >
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar Solicitação' : 'Nova Solicitação de Compra'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
       <p style={{ margin: '0 0 var(--sp-md)', fontSize: 13, color: 'var(--color-text-muted)' }}>
         Informe o que precisa, a quantidade e onde será usado. A equipe de
         compras precifica e o gerente aprova.
@@ -253,6 +250,16 @@ export default function CriarSolicitacaoModal({
           </tbody>
         </table>
       </div>
-    </Modal>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose} disabled={pending}>
+            Cancelar
+          </Button>
+          <Button onClick={submit} disabled={pending}>
+            {pending ? 'Enviando…' : isEdit ? 'Salvar' : 'Enviar para compras'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

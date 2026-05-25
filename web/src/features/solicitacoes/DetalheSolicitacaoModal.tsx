@@ -1,7 +1,13 @@
 import type { ReactNode } from 'react';
 import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import { formatBRL } from '../../lib/format';
 import { useContracts } from '../contracts/queries';
 import type { SolicitacaoCompra } from '../../types/domain';
@@ -252,16 +258,12 @@ export default function DetalheSolicitacaoModal({
   const cfg = etapaCfg(s.status);
 
   return (
-    <Modal
-      open
-      title={`Solicitação #${s.numero ?? s.id.slice(-6)}`}
-      onClose={onClose}
-      footer={
-        <Button variant="secondary" onClick={onClose}>
-          Fechar
-        </Button>
-      }
-    >
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{`Solicitação #${s.numero ?? s.id.slice(-6)}`}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
       <div style={{ marginBottom: 'var(--sp-md)' }}>
         <Badge style={{ background: cfg.bg, color: cfg.color, fontWeight: 700 }}>
           {cfg.label}
@@ -377,6 +379,13 @@ export default function DetalheSolicitacaoModal({
           })}
         </div>
       </div>
-    </Modal>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

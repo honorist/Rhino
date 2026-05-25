@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Select } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
@@ -78,80 +84,81 @@ export default function SaidaModal({
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar Saída' : 'Nova Saída'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar Saída' : 'Nova Saída'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <FormField label="Descrição *" htmlFor="sd-desc">
+            <Input
+              id="sd-desc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </FormField>
+          <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <FormField label="Tipo *" htmlFor="sd-tipo">
+                <Select
+                  id="sd-tipo"
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                >
+                  {TIPOS.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 130 }}>
+              <FormField label="Valor (BRL) *" htmlFor="sd-valor">
+                <Input
+                  id="sd-valor"
+                  type="number"
+                  step="0.01"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  placeholder="0,00"
+                />
+              </FormField>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <FormField label="Data" htmlFor="sd-data">
+                <DatePicker
+                  id="sd-data"
+                  value={date}
+                  onChange={(val) => setDate(val)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <FormField label="Prazo recebimento (dias)" htmlFor="sd-prazo">
+                <Input
+                  id="sd-prazo"
+                  type="number"
+                  min={0}
+                  max={365}
+                  value={prazoRecebimento}
+                  onChange={(e) => setPrazoRecebimento(e.target.value)}
+                />
+              </FormField>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={pending}>
             Cancelar
           </Button>
           <Button onClick={submit} disabled={pending}>
             {pending ? 'Salvando…' : isEdit ? 'Atualizar' : 'Criar'}
           </Button>
-        </>
-      }
-    >
-      <FormField label="Descrição *" htmlFor="sd-desc">
-        <Input
-          id="sd-desc"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-      </FormField>
-      <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 160 }}>
-          <FormField label="Tipo *" htmlFor="sd-tipo">
-            <Select
-              id="sd-tipo"
-              value={type}
-              onChange={(e) => setType(e.target.value)}
-            >
-              {TIPOS.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 130 }}>
-          <FormField label="Valor (BRL) *" htmlFor="sd-valor">
-            <Input
-              id="sd-valor"
-              type="number"
-              step="0.01"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder="0,00"
-            />
-          </FormField>
-        </div>
-      </div>
-      <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 140 }}>
-          <FormField label="Data" htmlFor="sd-data">
-            <DatePicker
-              id="sd-data"
-              value={date}
-              onChange={(val) => setDate(val)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 140 }}>
-          <FormField label="Prazo recebimento (dias)" htmlFor="sd-prazo">
-            <Input
-              id="sd-prazo"
-              type="number"
-              min={0}
-              max={365}
-              value={prazoRecebimento}
-              onChange={(e) => setPrazoRecebimento(e.target.value)}
-            />
-          </FormField>
-        </div>
-      </div>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

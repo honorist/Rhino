@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Textarea } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
@@ -57,58 +63,59 @@ function MarcoModal({
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar Marco' : 'Novo Marco'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar Marco' : 'Novo Marco'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <FormField label="Título *" htmlFor="mc-titulo">
+            <Input
+              id="mc-titulo"
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+            />
+          </FormField>
+          <FormField label="Descrição" htmlFor="mc-desc">
+            <Textarea
+              id="mc-desc"
+              rows={2}
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+            />
+          </FormField>
+          <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <FormField label="Prazo" htmlFor="mc-prazo">
+                <DatePicker
+                  id="mc-prazo"
+                  value={prazo}
+                  onChange={(val) => setPrazo(val)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 100 }}>
+              <FormField label="Ordem" htmlFor="mc-ordem">
+                <Input
+                  id="mc-ordem"
+                  type="number"
+                  value={ordem}
+                  onChange={(e) => setOrdem(e.target.value)}
+                />
+              </FormField>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={pending}>
             Cancelar
           </Button>
           <Button onClick={submit} disabled={pending}>
             {pending ? 'Salvando…' : isEdit ? 'Atualizar' : 'Criar'}
           </Button>
-        </>
-      }
-    >
-      <FormField label="Título *" htmlFor="mc-titulo">
-        <Input
-          id="mc-titulo"
-          value={titulo}
-          onChange={(e) => setTitulo(e.target.value)}
-        />
-      </FormField>
-      <FormField label="Descrição" htmlFor="mc-desc">
-        <Textarea
-          id="mc-desc"
-          rows={2}
-          value={descricao}
-          onChange={(e) => setDescricao(e.target.value)}
-        />
-      </FormField>
-      <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 140 }}>
-          <FormField label="Prazo" htmlFor="mc-prazo">
-            <DatePicker
-              id="mc-prazo"
-              value={prazo}
-              onChange={(val) => setPrazo(val)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 100 }}>
-          <FormField label="Ordem" htmlFor="mc-ordem">
-            <Input
-              id="mc-ordem"
-              type="number"
-              value={ordem}
-              onChange={(e) => setOrdem(e.target.value)}
-            />
-          </FormField>
-        </div>
-      </div>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -1,6 +1,12 @@
 import { useEffect, useRef } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import { useToast } from '../../components/ui/toast/ToastContext';
 
 interface RdoWhatsappModalProps {
@@ -41,47 +47,48 @@ export default function RdoWhatsappModal({ texto, onClose }: RdoWhatsappModalPro
   }
 
   return (
-    <Modal
-      open
-      title="💬 Resumo do RDO"
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>💬 Resumo do RDO</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <p
+            style={{
+              fontSize: 13,
+              color: 'var(--color-text-muted)',
+              margin: '0 0 8px',
+            }}
+          >
+            Copie o texto e cole no grupo da obra no WhatsApp.
+          </p>
+          <textarea
+            ref={taRef}
+            readOnly
+            value={texto}
+            style={{
+              width: '100%',
+              height: 280,
+              fontFamily: 'inherit',
+              fontSize: 14,
+              lineHeight: 1.55,
+              padding: 10,
+              border: '1px solid var(--color-border)',
+              borderRadius: 8,
+              resize: 'vertical',
+              background: 'var(--color-bg)',
+              color: 'var(--color-text)',
+              boxSizing: 'border-box',
+            }}
+          />
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
             Fechar
           </Button>
           <Button onClick={handleCopiar}>📋 Copiar texto</Button>
-        </>
-      }
-    >
-      <p
-        style={{
-          fontSize: 13,
-          color: 'var(--color-text-muted)',
-          margin: '0 0 8px',
-        }}
-      >
-        Copie o texto e cole no grupo da obra no WhatsApp.
-      </p>
-      <textarea
-        ref={taRef}
-        readOnly
-        value={texto}
-        style={{
-          width: '100%',
-          height: 280,
-          fontFamily: 'inherit',
-          fontSize: 14,
-          lineHeight: 1.55,
-          padding: 10,
-          border: '1px solid var(--color-border)',
-          borderRadius: 8,
-          resize: 'vertical',
-          background: 'var(--color-bg)',
-          color: 'var(--color-text)',
-          boxSizing: 'border-box',
-        }}
-      />
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

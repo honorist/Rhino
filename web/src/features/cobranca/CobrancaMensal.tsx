@@ -4,7 +4,9 @@ import Spinner from '../../components/ui/Spinner';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import DataTable, { type Column } from '../../components/ui/DataTable';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from '../../components/ui/dialog';
 import { formatBRL } from '../../lib/format';
 import { useAiUsage, useCobrancaHistorico, useCobrancaProjecao } from './queries';
 import type { AiUsageStats, CobrancaMes } from './types';
@@ -461,16 +463,12 @@ function DetalheModal({
 }) {
   const det = mes.detalhes ?? [];
   return (
-    <Modal
-      open
-      title={`Detalhe · ${mesNome(mes.mes)}/${mes.ano}`}
-      onClose={onClose}
-      footer={
-        <Button variant="secondary" onClick={onClose}>
-          Fechar
-        </Button>
-      }
-    >
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{`Detalhe · ${mesNome(mes.mes)}/${mes.ano}`}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
       <div
         style={{
           fontSize: 13,
@@ -548,6 +546,13 @@ function DetalheModal({
           </tbody>
         </table>
       )}
-    </Modal>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

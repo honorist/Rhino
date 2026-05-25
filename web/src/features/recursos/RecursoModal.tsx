@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
@@ -161,21 +167,12 @@ export default function RecursoModal({ recurso, onClose }: RecursoModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar Cadastro' : 'Novo Cadastro'}
-      onClose={onClose}
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose} disabled={pending}>
-            Cancelar
-          </Button>
-          <Button onClick={submit} disabled={pending}>
-            {pending ? 'Salvando…' : isEdit ? 'Atualizar' : 'Criar'}
-          </Button>
-        </>
-      }
-    >
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar Cadastro' : 'Novo Cadastro'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
       <h3
         style={{
           fontSize: 15,
@@ -483,6 +480,16 @@ export default function RecursoModal({ recurso, onClose }: RecursoModalProps) {
           onChange={(e) => setNotas(e.target.value)}
         />
       </FormField>
-    </Modal>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose} disabled={pending}>
+            Cancelar
+          </Button>
+          <Button onClick={submit} disabled={pending}>
+            {pending ? 'Salvando…' : isEdit ? 'Atualizar' : 'Criar'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Textarea } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
@@ -74,99 +80,102 @@ export default function AtividadeModal({
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar etapa do cronograma' : 'Nova etapa do cronograma'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>
+            {isEdit ? 'Editar etapa do cronograma' : 'Nova etapa do cronograma'}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <FormField label="Nome da etapa *" htmlFor="at-nome">
+            <Input
+              id="at-nome"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Ex: Engenharia, Aquisições, Montagem..."
+            />
+          </FormField>
+          <Row>
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <FormField label="Início planejado" htmlFor="at-ini">
+                <DatePicker
+                  id="at-ini"
+                  value={dataInicioPlan ?? ''}
+                  onChange={(val) => setDataInicioPlan(val)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <FormField label="Fim planejado" htmlFor="at-fim">
+                <DatePicker
+                  id="at-fim"
+                  value={dataFimPlan ?? ''}
+                  onChange={(val) => setDataFimPlan(val)}
+                />
+              </FormField>
+            </div>
+          </Row>
+          <Row>
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <FormField
+                label="Peso (%)"
+                htmlFor="at-peso"
+                helper="A soma das etapas deve dar 100%."
+              >
+                <Input
+                  id="at-peso"
+                  type="number"
+                  step="0.1"
+                  min={0}
+                  max={100}
+                  value={pesoPct}
+                  onChange={(e) => setPesoPct(e.target.value)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <FormField label="% Realizado (0-100)" htmlFor="at-exec">
+                <Input
+                  id="at-exec"
+                  type="number"
+                  step="1"
+                  min={0}
+                  max={100}
+                  value={execPct}
+                  onChange={(e) => setExecPct(e.target.value)}
+                />
+              </FormField>
+            </div>
+          </Row>
+          <FormField label="Custo planejado (BRL)" htmlFor="at-custo">
+            <Input
+              id="at-custo"
+              type="number"
+              step="0.01"
+              min={0}
+              value={custoPlan}
+              onChange={(e) => setCustoPlan(e.target.value)}
+            />
+          </FormField>
+          <FormField label="Notas" htmlFor="at-notas">
+            <Textarea
+              id="at-notas"
+              rows={2}
+              value={notas}
+              onChange={(e) => setNotas(e.target.value)}
+            />
+          </FormField>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={pending}>
             Cancelar
           </Button>
           <Button onClick={submit} disabled={pending}>
             {pending ? 'Salvando…' : isEdit ? 'Salvar' : 'Criar'}
           </Button>
-        </>
-      }
-    >
-      <FormField label="Nome da etapa *" htmlFor="at-nome">
-        <Input
-          id="at-nome"
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-          placeholder="Ex: Engenharia, Aquisições, Montagem..."
-        />
-      </FormField>
-      <Row>
-        <div style={{ flex: 1, minWidth: 150 }}>
-          <FormField label="Início planejado" htmlFor="at-ini">
-            <DatePicker
-              id="at-ini"
-              value={dataInicioPlan ?? ''}
-              onChange={(val) => setDataInicioPlan(val)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 150 }}>
-          <FormField label="Fim planejado" htmlFor="at-fim">
-            <DatePicker
-              id="at-fim"
-              value={dataFimPlan ?? ''}
-              onChange={(val) => setDataFimPlan(val)}
-            />
-          </FormField>
-        </div>
-      </Row>
-      <Row>
-        <div style={{ flex: 1, minWidth: 140 }}>
-          <FormField
-            label="Peso (%)"
-            htmlFor="at-peso"
-            helper="A soma das etapas deve dar 100%."
-          >
-            <Input
-              id="at-peso"
-              type="number"
-              step="0.1"
-              min={0}
-              max={100}
-              value={pesoPct}
-              onChange={(e) => setPesoPct(e.target.value)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 140 }}>
-          <FormField label="% Realizado (0-100)" htmlFor="at-exec">
-            <Input
-              id="at-exec"
-              type="number"
-              step="1"
-              min={0}
-              max={100}
-              value={execPct}
-              onChange={(e) => setExecPct(e.target.value)}
-            />
-          </FormField>
-        </div>
-      </Row>
-      <FormField label="Custo planejado (BRL)" htmlFor="at-custo">
-        <Input
-          id="at-custo"
-          type="number"
-          step="0.01"
-          min={0}
-          value={custoPlan}
-          onChange={(e) => setCustoPlan(e.target.value)}
-        />
-      </FormField>
-      <FormField label="Notas" htmlFor="at-notas">
-        <Textarea
-          id="at-notas"
-          rows={2}
-          value={notas}
-          onChange={(e) => setNotas(e.target.value)}
-        />
-      </FormField>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
@@ -174,25 +176,12 @@ export default function DocumentoFormModal({
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar Documento' : 'Adicionar Documento'}
-      onClose={onClose}
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose} disabled={enviando}>
-            Cancelar
-          </Button>
-          <Button onClick={submit} disabled={enviando}>
-            {enviando
-              ? 'Salvando…'
-              : isEdit
-                ? 'Salvar Alterações'
-                : 'Adicionar Documento'}
-          </Button>
-        </>
-      }
-    >
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar Documento' : 'Adicionar Documento'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
       <FormField label="Tipo de Documento *" htmlFor="doc-tipo">
         <Select
           id="doc-tipo"
@@ -342,6 +331,20 @@ export default function DocumentoFormModal({
           onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
         />
       </FormField>
-    </Modal>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose} disabled={enviando}>
+            Cancelar
+          </Button>
+          <Button onClick={submit} disabled={enviando}>
+            {enviando
+              ? 'Salvando…'
+              : isEdit
+                ? 'Salvar Alterações'
+                : 'Adicionar Documento'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

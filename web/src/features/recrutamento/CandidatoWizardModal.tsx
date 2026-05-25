@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
 import FormField from '../../components/ui/FormField';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import { Input, Select } from '../../components/ui/controls';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import {
@@ -66,17 +72,12 @@ export default function CandidatoWizardModal({ candidato, solicitacaoId, onClose
   );
 
   return (
-    <Modal
-      open
-      title={`Candidato: ${candidato.nome}`}
-      size="lg"
-      onClose={onClose}
-      footer={
-        <Button variant="secondary" onClick={onClose}>
-          Fechar
-        </Button>
-      }
-    >
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[920px]">
+        <DialogHeader>
+          <DialogTitle>{`Candidato: ${candidato.nome}`}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 'var(--sp-md)' }}>
         <span
           style={{
@@ -204,7 +205,14 @@ export default function CandidatoWizardModal({ candidato, solicitacaoId, onClose
           loading={aprovar.isPending}
         />
       )}
-    </Modal>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

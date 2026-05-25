@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input } from '../../components/ui/controls';
 import { Combobox } from '../../components/ui/combobox';
@@ -93,89 +99,90 @@ export default function MembroModal({
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar Membro' : 'Adicionar Membro ao Organograma'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar Membro' : 'Adicionar Membro ao Organograma'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <FormField label="Recurso (Funcionário) *" htmlFor="mo-recurso">
+            <Combobox
+              id="mo-recurso"
+              options={disponiveis.map((r) => ({
+                value: r.id,
+                label: r.nome + (r.profissao ? ` — ${r.profissao}` : ''),
+              }))}
+              value={recursoId}
+              disabled={isEdit}
+              onChange={setRecursoId}
+              placeholder="— Selecione —"
+              searchPlaceholder="Pesquisar recurso..."
+              emptyText="Nenhum recurso disponível."
+            />
+          </FormField>
+
+          <FormField label="Nível (deduzido da profissão)">
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: 6,
+                background: 'var(--color-surface-2)',
+                borderLeft: `3px solid ${NIVEL_COR[nivel]}`,
+                fontWeight: 600,
+                color: NIVEL_COR[nivel],
+              }}
+            >
+              {recursoId ? NIVEL_LABEL[nivel] : '— (selecione um recurso)'}
+            </div>
+          </FormField>
+
+          {nivel === 'lider_area' && (
+            <FormField label="Área *" htmlFor="mo-area">
+              <Input
+                id="mo-area"
+                value={area ?? ''}
+                onChange={(e) => setArea(e.target.value)}
+                placeholder="Ex: Mecânica, Elétrica, Andaimes"
+              />
+            </FormField>
+          )}
+
+          {nivel !== 'encarregado' && (
+            <FormField
+              label={nivel === 'profissional' ? 'Supervisor Direto *' : 'Supervisor'}
+              htmlFor="mo-sup"
+            >
+              <Combobox
+                id="mo-sup"
+                options={[
+                  ...(nivel === 'lider_area' && encarregado
+                    ? [{ value: encarregado.id, label: `${nomeRecurso(encarregado.recursoId)} (Encarregado)` }]
+                    : []),
+                  ...(nivel === 'profissional'
+                    ? lideres.map((l) => ({
+                        value: l.id,
+                        label: nomeRecurso(l.recursoId) + (l.area ? ` — ${l.area}` : ''),
+                      }))
+                    : []),
+                ]}
+                value={supervisorId ?? ''}
+                onChange={setSupervisorId}
+                placeholder="— Selecione —"
+                searchPlaceholder="Pesquisar supervisor..."
+                emptyText="Nenhum supervisor disponível."
+              />
+            </FormField>
+          )}
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={pending}>
             Cancelar
           </Button>
           <Button onClick={submit} disabled={pending}>
             {pending ? 'Salvando…' : isEdit ? 'Salvar' : 'Adicionar'}
           </Button>
-        </>
-      }
-    >
-      <FormField label="Recurso (Funcionário) *" htmlFor="mo-recurso">
-        <Combobox
-          id="mo-recurso"
-          options={disponiveis.map((r) => ({
-            value: r.id,
-            label: r.nome + (r.profissao ? ` — ${r.profissao}` : ''),
-          }))}
-          value={recursoId}
-          disabled={isEdit}
-          onChange={setRecursoId}
-          placeholder="— Selecione —"
-          searchPlaceholder="Pesquisar recurso..."
-          emptyText="Nenhum recurso disponível."
-        />
-      </FormField>
-
-      <FormField label="Nível (deduzido da profissão)">
-        <div
-          style={{
-            padding: '10px 14px',
-            borderRadius: 6,
-            background: 'var(--color-surface-2)',
-            borderLeft: `3px solid ${NIVEL_COR[nivel]}`,
-            fontWeight: 600,
-            color: NIVEL_COR[nivel],
-          }}
-        >
-          {recursoId ? NIVEL_LABEL[nivel] : '— (selecione um recurso)'}
-        </div>
-      </FormField>
-
-      {nivel === 'lider_area' && (
-        <FormField label="Área *" htmlFor="mo-area">
-          <Input
-            id="mo-area"
-            value={area ?? ''}
-            onChange={(e) => setArea(e.target.value)}
-            placeholder="Ex: Mecânica, Elétrica, Andaimes"
-          />
-        </FormField>
-      )}
-
-      {nivel !== 'encarregado' && (
-        <FormField
-          label={nivel === 'profissional' ? 'Supervisor Direto *' : 'Supervisor'}
-          htmlFor="mo-sup"
-        >
-          <Combobox
-            id="mo-sup"
-            options={[
-              ...(nivel === 'lider_area' && encarregado
-                ? [{ value: encarregado.id, label: `${nomeRecurso(encarregado.recursoId)} (Encarregado)` }]
-                : []),
-              ...(nivel === 'profissional'
-                ? lideres.map((l) => ({
-                    value: l.id,
-                    label: nomeRecurso(l.recursoId) + (l.area ? ` — ${l.area}` : ''),
-                  }))
-                : []),
-            ]}
-            value={supervisorId ?? ''}
-            onChange={setSupervisorId}
-            placeholder="— Selecione —"
-            searchPlaceholder="Pesquisar supervisor..."
-            emptyText="Nenhum supervisor disponível."
-          />
-        </FormField>
-      )}
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,7 +1,13 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
 import FormField from '../../components/ui/FormField';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import { Input, Textarea } from '../../components/ui/controls';
 import { Combobox } from '../../components/ui/combobox';
 import { useToast } from '../../components/ui/toast/ToastContext';
@@ -58,22 +64,12 @@ export default function NovaSolicitacaoModal({ onClose }: { onClose: () => void 
   }
 
   return (
-    <Modal
-      open
-      title="Nova solicitação de contratação"
-      size="lg"
-      onClose={onClose}
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose} disabled={criar.isPending}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSubmit} disabled={criar.isPending}>
-            {criar.isPending ? 'Enviando…' : 'Criar solicitação'}
-          </Button>
-        </>
-      }
-    >
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[920px]">
+        <DialogHeader>
+          <DialogTitle>Nova solicitação de contratação</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
       <FormField label="Obra / Contrato (opcional)" htmlFor="sol-contrato">
         <Combobox
           id="sol-contrato"
@@ -171,6 +167,16 @@ export default function NovaSolicitacaoModal({ onClose }: { onClose: () => void 
           />
         </FormField>
       </div>
-    </Modal>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose} disabled={criar.isPending}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSubmit} disabled={criar.isPending}>
+            {criar.isPending ? 'Enviando…' : 'Criar solicitação'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
