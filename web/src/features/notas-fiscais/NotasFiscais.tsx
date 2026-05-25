@@ -5,7 +5,8 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
-import { Input, Select, Textarea } from '../../components/ui/controls';
+import { Input, Textarea } from '../../components/ui/controls';
+import { Combobox } from '../../components/ui/combobox';
 import { DatePicker } from '../../components/ui/date-picker';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../components/ui/toast/ToastContext';
@@ -1059,19 +1060,15 @@ function NFModal({ nf, contratos, onClose }: NFModalProps) {
         </div>
 
         <FormField label="Contrato *" htmlFor="nf-contrato">
-          <Select
+          <Combobox
             id="nf-contrato"
+            options={contratos.map((c) => ({ value: c.id, label: contractName(c) ?? '' }))}
             value={contractId}
-            onChange={(event) => setContractId(event.target.value)}
-            required
-          >
-            <option value="">Selecionar...</option>
-            {contratos.map((c) => (
-              <option key={c.id} value={c.id}>
-                {contractName(c)}
-              </option>
-            ))}
-          </Select>
+            onChange={setContractId}
+            placeholder="Selecionar..."
+            searchPlaceholder="Pesquisar contrato..."
+            emptyText="Nenhum contrato encontrado."
+          />
         </FormField>
 
         <FormField label="Cliente" htmlFor="nf-cliente">

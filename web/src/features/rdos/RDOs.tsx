@@ -4,7 +4,8 @@ import Button from '../../components/ui/Button';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import Modal from '../../components/ui/Modal';
 import Spinner from '../../components/ui/Spinner';
-import { Input, Select } from '../../components/ui/controls';
+import { Input } from '../../components/ui/controls';
+import { Combobox } from '../../components/ui/combobox';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { downloadCsv } from '../../lib/downloadCsv';
 import RdoDetailModal from '../contracts/RdoDetailModal';
@@ -177,19 +178,17 @@ function PickerContratoModal({ onClose }: { onClose: () => void }) {
       ) : (
         <div className="form-group" style={{ margin: 0 }}>
           <label className="form-label">Contrato *</label>
-          <Select
+          <Combobox
+            options={ativos.map((c) => ({
+              value: c.id,
+              label: c.client ? `${c.name} — ${c.client}` : c.name,
+            }))}
             value={contractId}
-            onChange={(e) => setContractId(e.target.value)}
-            required
-          >
-            <option value="">— selecione —</option>
-            {ativos.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-                {c.client ? ` — ${c.client}` : ''}
-              </option>
-            ))}
-          </Select>
+            onChange={setContractId}
+            placeholder="— selecione —"
+            searchPlaceholder="Pesquisar contrato..."
+            emptyText="Nenhum contrato encontrado."
+          />
         </div>
       )}
     </Modal>
@@ -500,21 +499,23 @@ export default function RDOs() {
       >
         <div className="form-group" style={{ margin: 0, minWidth: 240 }}>
           <label className="form-label">Contrato</label>
-          <Select
+          <Combobox
+            options={[
+              { value: '', label: '— Todos —' },
+              ...contratos.map((c) => ({
+                value: c.id,
+                label: c.client ? `${c.name} (${c.client})` : c.name,
+              })),
+            ]}
             value={filterContract}
-            onChange={(e) => {
-              setFilterContract(e.target.value);
+            onChange={(val) => {
+              setFilterContract(val);
               setPage(0);
             }}
-          >
-            <option value="">— Todos —</option>
-            {contratos.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-                {c.client ? ` (${c.client})` : ''}
-              </option>
-            ))}
-          </Select>
+            placeholder="— Todos —"
+            searchPlaceholder="Pesquisar contrato..."
+            emptyText="Nenhum contrato encontrado."
+          />
         </div>
         <div className="form-group" style={{ margin: 0 }}>
           <label className="form-label">Mês</label>

@@ -7,6 +7,7 @@ import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
+import { Combobox } from '../../components/ui/combobox';
 import { DatePicker } from '../../components/ui/date-picker';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../components/ui/toast/ToastContext';
@@ -646,18 +647,15 @@ function NovoAporteModal({
 
         {origem === 'socio' && (
           <FormField label="Sócio *" htmlFor="aporte-socio">
-            <Select
+            <Combobox
               id="aporte-socio"
+              options={socios.map((s) => ({ value: s.id, label: s.name }))}
               value={socioId}
-              onChange={(event) => setSocioId(event.target.value)}
-            >
-              <option value="">Selecionar...</option>
-              {socios.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </Select>
+              onChange={setSocioId}
+              placeholder="Selecionar..."
+              searchPlaceholder="Pesquisar sócio..."
+              emptyText="Nenhum sócio encontrado."
+            />
           </FormField>
         )}
 
@@ -700,19 +698,18 @@ function NovoAporteModal({
 
         {destino === 'contrato' && (
           <FormField label="Contrato *" htmlFor="aporte-contrato">
-            <Select
+            <Combobox
               id="aporte-contrato"
+              options={contratos.map((c) => ({
+                value: c.id,
+                label: `${String(c.name ?? 'Contrato')} — ${String(c.client ?? '')}`,
+              }))}
               value={contractId}
-              onChange={(event) => setContractId(event.target.value)}
-            >
-              <option value="">Selecionar contrato...</option>
-              {contratos.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {String(c.name ?? 'Contrato')} —{' '}
-                  {String(c.client ?? '')}
-                </option>
-              ))}
-            </Select>
+              onChange={setContractId}
+              placeholder="Selecionar contrato..."
+              searchPlaceholder="Pesquisar contrato..."
+              emptyText="Nenhum contrato encontrado."
+            />
           </FormField>
         )}
 
