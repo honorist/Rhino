@@ -1,28 +1,37 @@
-import type { ReactNode } from 'react';
-import { cn } from '../../lib/cn';
+import * as React from 'react';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '@/lib/cn';
 
-interface BadgeProps {
-  children: ReactNode;
-  /** Sufixo de classe — gera `badge-<variant>` (ex.: "ativo", "material"). */
-  variant?: string;
-  className?: string;
-}
+const badgeVariants = cva(
+  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors',
+  {
+    variants: {
+      variant: {
+        default: 'border-transparent bg-primary text-primary-foreground',
+        secondary: 'border-transparent bg-secondary text-secondary-foreground',
+        destructive: 'border-transparent bg-destructive text-destructive-foreground',
+        outline: 'text-foreground',
+        success: 'border-transparent bg-success text-success-foreground',
+        warning: 'border-transparent bg-warning text-warning-foreground',
+      },
+    },
+    defaultVariants: { variant: 'secondary' },
+  },
+);
 
-/**
- * Etiqueta de status. Preserva a API antiga: `variant` é uma string livre
- * que vira sufixo de classe (`badge-<variant>`) — controlado pelo CSS
- * legado em components.css. Estilos base agora vêm do Tailwind.
- */
-export default function Badge({ children, variant, className }: BadgeProps) {
+export interface BadgeProps
+  extends React.HTMLAttributes<HTMLSpanElement>,
+    VariantProps<typeof badgeVariants> {}
+
+function Badge({ className, variant, ...props }: BadgeProps) {
   return (
     <span
-      className={cn(
-        'inline-flex items-center rounded-full border border-border bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground',
-        variant && `badge badge-${variant}`,
-        className,
-      )}
-    >
-      {children}
-    </span>
+      data-slot="badge"
+      className={cn(badgeVariants({ variant }), className)}
+      {...props}
+    />
   );
 }
+
+export { Badge, badgeVariants };
+export default Badge;

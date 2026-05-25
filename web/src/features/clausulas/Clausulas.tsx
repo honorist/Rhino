@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../../components/ui/Button';
+import { Badge } from '../../components/ui/badge';
+import Card from '../../components/ui/Card';
 import {
   Dialog,
   DialogContent,
@@ -130,9 +132,9 @@ export default function Clausulas() {
           >
             ☰ Tabela
           </Button>
-          <Link className="btn btn-secondary btn-lg" to="/proposta">
-            ← Voltar para Propostas
-          </Link>
+          <Button variant="secondary" size="lg" asChild>
+            <Link to="/proposta">← Voltar para Propostas</Link>
+          </Button>
           <Button size="lg" onClick={() => setModal({ clausula: null })}>
             + Nova Cláusula
           </Button>
@@ -162,8 +164,7 @@ export default function Clausulas() {
         ))}
       </div>
 
-      <div
-        className="card"
+      <Card
         style={{ padding: 'var(--sp-md)', marginBottom: 'var(--sp-lg)' }}
       >
         <Input
@@ -171,17 +172,16 @@ export default function Clausulas() {
           value={busca}
           onChange={(event) => setBusca(event.target.value)}
         />
-      </div>
+      </Card>
 
       {clausulasQuery.isLoading ? (
         <Spinner label="Carregando cláusulas..." />
       ) : clausulasQuery.isError ? (
-        <div className="card" style={{ padding: 24 }}>
+        <Card style={{ padding: 24 }}>
           <p className="text-danger">Erro ao carregar cláusulas.</p>
-        </div>
+        </Card>
       ) : clausulas.length === 0 ? (
-        <div
-          className="card"
+        <Card
           style={{
             padding: 'var(--sp-xl)',
             textAlign: 'center',
@@ -189,7 +189,7 @@ export default function Clausulas() {
           }}
         >
           Nenhuma cláusula encontrada.
-        </div>
+        </Card>
       ) : viewMode === 'tabela' ? (
         <ClausulasTabela
           clausulas={clausulas}
@@ -238,8 +238,7 @@ interface CardProps {
 function ClausulaCard({ clausula, onEditar, onToggle, onExcluir }: CardProps) {
   const tags = clausula.tags ?? [];
   return (
-    <div
-      className="card"
+    <Card
       style={{
         padding: 16,
         display: 'flex',
@@ -258,12 +257,9 @@ function ClausulaCard({ clausula, onEditar, onToggle, onExcluir }: CardProps) {
       >
         <strong style={{ fontSize: 15 }}>{clausula.titulo}</strong>
         {!clausula.ativa && (
-          <span
-            className="badge"
-            style={{ background: '#fee', color: '#900', fontSize: 11 }}
-          >
+          <Badge style={{ background: '#fee', color: '#900', fontSize: 11 }}>
             inativa
-          </span>
+          </Badge>
         )}
       </div>
       <div style={{ fontSize: 12, color: '#1F497D', fontWeight: 600 }}>
@@ -284,13 +280,12 @@ function ClausulaCard({ clausula, onEditar, onToggle, onExcluir }: CardProps) {
       {tags.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
           {tags.map((t) => (
-            <span
+            <Badge
               key={t}
-              className="badge"
               style={{ background: '#f1f5f9', color: '#475569', fontSize: 10 }}
             >
               {t}
-            </span>
+            </Badge>
           ))}
         </div>
       )}
@@ -322,7 +317,7 @@ function ClausulaCard({ clausula, onEditar, onToggle, onExcluir }: CardProps) {
           Excluir
         </a>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -340,7 +335,7 @@ function ClausulasTabela({
   onExcluir,
 }: TabelaProps) {
   return (
-    <div className="card" style={{ padding: 0 }}>
+    <Card style={{ padding: 0 }}>
       <div className="table-wrap">
         <table>
           <thead>
@@ -394,9 +389,8 @@ function ClausulasTabela({
                       </span>
                     ) : (
                       tags.slice(0, 3).map((t) => (
-                        <span
+                        <Badge
                           key={t}
-                          className="badge"
                           style={{
                             background: '#f1f5f9',
                             color: '#475569',
@@ -405,7 +399,7 @@ function ClausulasTabela({
                           }}
                         >
                           {t}
-                        </span>
+                        </Badge>
                       ))
                     )}
                   </td>
@@ -420,8 +414,7 @@ function ClausulasTabela({
                   </td>
                   <td style={{ textAlign: 'center' }}>
                     {c.ativa ? (
-                      <span
-                        className="badge"
+                      <Badge
                         style={{
                           background: 'rgba(16,185,129,.15)',
                           color: '#10b981',
@@ -429,14 +422,13 @@ function ClausulasTabela({
                         }}
                       >
                         ativa
-                      </span>
+                      </Badge>
                     ) : (
-                      <span
-                        className="badge"
+                      <Badge
                         style={{ background: '#fee', color: '#900', fontSize: 11 }}
                       >
                         inativa
-                      </span>
+                      </Badge>
                     )}
                   </td>
                   <td>
@@ -470,7 +462,7 @@ function ClausulasTabela({
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   );
 }
 

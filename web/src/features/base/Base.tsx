@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/Button';
-import Badge from '../../components/ui/Badge';
+import { Badge } from '../../components/ui/badge';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
@@ -123,7 +123,12 @@ export default function Base() {
       cell: (item) => {
         const tipo = tipoOf(tiposByKey[item.type] ? item.type : 'outros');
         return (
-          <Badge variant={tipo.key}>
+          <Badge
+            style={{
+              background: tipo.cor ? `${tipo.cor}22` : undefined,
+              color: tipo.cor,
+            }}
+          >
             {tipo.icon} {tipo.label}
           </Badge>
         );

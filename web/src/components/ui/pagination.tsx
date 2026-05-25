@@ -67,7 +67,7 @@ function PaginationPrevious({
     <PaginationLink
       data-slot="pagination-previous"
       aria-label="Página anterior"
-      size="default"
+      size="md"
       className={cn('gap-1 px-2.5 sm:pl-2.5', className)}
       {...props}
     >
@@ -85,7 +85,7 @@ function PaginationNext({
     <PaginationLink
       data-slot="pagination-next"
       aria-label="Próxima página"
-      size="default"
+      size="md"
       className={cn('gap-1 px-2.5 sm:pr-2.5', className)}
       {...props}
     >

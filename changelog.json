@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.2.88",
+      "date": "2026-05-25",
+      "summary": "Fase 6 — badge.tsx shadcn + CSS legado erradicado em clausulas/base/fornecedores",
+      "changes": [
+        "badge.tsx: reescrito no padrão shadcn/ui (CVA, named export Badge + badgeVariants, default export mantido para retrocompat).",
+        "pagination.tsx: fix size='default' → size='md' (ButtonSize não incluía 'default').",
+        "Clausulas.tsx: <div className='card'> → <Card>, <span className='badge'> → <Badge>, <Link className='btn btn-secondary btn-lg'> → <Button asChild>.",
+        "Base.tsx: <Badge variant={tipo.key}> → <Badge style={{ background: cor+'22', color: cor }}>; import atualizado para named export.",
+        "Fornecedores.tsx: import atualizado para named export."
+      ]
+    },
+    {
       "version": "1.2.87",
       "date": "2026-05-25",
       "summary": "Fase 4b — SidebarFooter migrado para DropdownMenu shadcn",
