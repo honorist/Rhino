@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.4.4",
+      "date": "2026-05-25",
+      "summary": "Fase 7: 3 seções de configuração migradas para DataTable v2",
+      "changes": [
+        "BackupSection: tabela de backups → DataTable com sort em Arquivo/Tamanho/Criado; remove th()/td() helpers.",
+        "ArquivosSection: tabela de arquivos → DataTable com search global (colaborador, tipo, nome); sort em Tamanho e Data.",
+        "TiposCustoSection: tabela de tipos de custo → DataTable com sort em Nome/Uso; ações Editar/Excluir por linha; handleDelete em useCallback.",
+        "DataTable: campo id? adicionado à Column<T> (já incluído em 1.4.2, confirmado estável)."
+      ]
+    },
+    {
       "version": "1.4.3",
       "date": "2026-05-25",
       "summary": "Fase 7: Contratos migrado para DataTable v2 com bulk actions",

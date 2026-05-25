@@ -4,6 +4,7 @@ import Card from '../../../components/ui/Card';
 import Spinner from '../../../components/ui/Spinner';
 import { toast } from 'sonner';
 import { api } from '../../../lib/api';
+import DataTable, { type Column } from '../../../components/ui/DataTable';
 
 interface BackupInfo {
   filename: string;
@@ -62,63 +63,56 @@ export default function BackupSection() {
         </Button>
       </div>
 
-      <Card style={{ padding: 'var(--sp-lg)' }}>
-        {isLoading && <Spinner label="Carregando backups…" />}
-        {!isLoading && backups.length === 0 && (
-          <p className="text-muted">Nenhum backup gerado ainda.</p>
-        )}
-        {backups.length > 0 && (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                <th style={th()}>Arquivo</th>
-                <th style={th()}>Tamanho</th>
-                <th style={th()}>Criado em</th>
-                <th style={th()}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {backups.map((b) => (
-                <tr
-                  key={b.filename}
-                  style={{ borderBottom: '1px solid var(--color-border)' }}
-                >
-                  <td style={td()}>
-                    <strong>{b.filename}</strong>
-                  </td>
-                  <td style={td()}>{humanSize(b.size)}</td>
-                  <td style={td()}>
-                    {new Date(b.created).toLocaleString('pt-BR')}
-                  </td>
-                  <td style={td()}>
-                    <a
-                      href={b.url ?? `/api/backup/download/${encodeURIComponent(b.filename)}`}
-                      className="action-link"
-                      download
-                    >
-                      ⬇️ Baixar
-                    </a>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
+      {isLoading ? (
+        <Card style={{ padding: 'var(--sp-lg)' }}>
+          <Spinner label="Carregando backups…" />
+        </Card>
+      ) : (
+        <DataTable
+          rows={backups}
+          columns={BACKUP_COLUMNS}
+          rowKey={(b) => b.filename}
+          emptyMessage="Nenhum backup gerado ainda."
+        />
+      )}
     </>
   );
 }
 
-const th = (): React.CSSProperties => ({
-  padding: '10px 12px',
-  textAlign: 'left',
-  fontSize: 12,
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '.04em',
-  color: '#64748B',
-});
-const td = (): React.CSSProperties => ({
-  padding: '10px 12px',
-  verticalAlign: 'middle',
-});
+const BACKUP_COLUMNS: Column<BackupInfo>[] = [
+  {
+    id: 'arquivo',
+    header: 'Arquivo',
+    sortable: true,
+    sortAccessor: (b) => b.filename,
+    cell: (b) => <strong>{b.filename}</strong>,
+  },
+  {
+    id: 'tamanho',
+    header: 'Tamanho',
+    sortable: true,
+    sortAccessor: (b) => b.size,
+    cell: (b) => humanSize(b.size),
+  },
+  {
+    id: 'criado',
+    header: 'Criado em',
+    sortable: true,
+    sortAccessor: (b) => b.created,
+    cell: (b) => new Date(b.created).toLocaleString('pt-BR'),
+  },
+  {
+    id: 'acoes',
+    header: '',
+    hideable: false,
+    cell: (b) => (
+      <a
+        href={b.url ?? `/api/backup/download/${encodeURIComponent(b.filename)}`}
+        className="action-link"
+        download
+      >
+        ⬇️ Baixar
+      </a>
+    ),
+  },
+];

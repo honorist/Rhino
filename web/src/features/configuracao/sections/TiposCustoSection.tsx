@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import FormField from '../../../components/ui/FormField';
@@ -17,6 +17,7 @@ import {
   useUpdateTipoBase,
 } from '../../resources';
 import type { TipoBase } from '../../../types/domain';
+import DataTable, { type Column } from '../../../components/ui/DataTable';
 
 interface TipoComUso extends TipoBase {
   sistema?: boolean;
@@ -54,15 +55,15 @@ export default function TiposCustoSection() {
     [tiposQuery.data, usoMap],
   );
 
-  async function handleDelete(t: TipoComUso) {
+  const handleDelete = useCallback(async (t: TipoComUso) => {
     if (t.sistema) {
       toast.error('Tipos do sistema não podem ser excluídos.');
       return;
     }
     if (t.uso > 0) {
       toast.error(
-        `Não dá pra excluir: existem ${t.uso} item(ns) em BASE usando este tipo.`
-);
+        `Não dá pra excluir: existem ${t.uso} item(ns) em BASE usando este tipo.`,
+      );
       return;
     }
     if (!window.confirm(`Excluir o tipo "${t.label}"?`)) return;
@@ -70,7 +71,73 @@ export default function TiposCustoSection() {
       onSuccess: () => toast.success('Tipo removido'),
       onError: (e) => toast.error(e.message),
     });
-  }
+  }, [remover]);
+
+  const tipoColumns = useMemo((): Column<TipoComUso>[] => [
+    {
+      id: 'icone',
+      header: 'Ícone',
+      cell: (t) => (
+        <span style={{ fontSize: 22, background: t.cor ?? '#e5e7eb', padding: '4px 8px', borderRadius: 6 }}>
+          {t.icon ?? '·'}
+        </span>
+      ),
+    },
+    {
+      id: 'nome',
+      header: 'Nome',
+      sortable: true,
+      sortAccessor: (t) => t.label,
+      cell: (t) => <strong>{t.label}</strong>,
+    },
+    {
+      id: 'chave',
+      header: 'Chave',
+      cell: (t) => (
+        <span style={{ fontFamily: 'monospace', fontSize: 13, color: 'var(--color-text-muted)' }}>
+          {t.key}
+        </span>
+      ),
+    },
+    {
+      id: 'tipo',
+      header: 'Tipo',
+      cell: (t) =>
+        t.sistema ? (
+          <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: 'rgba(96,165,250,.12)', color: '#1e3a8a' }}>
+            sistema
+          </span>
+        ) : (
+          <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: 'rgba(22,163,74,.12)', color: '#166534' }}>
+            custom
+          </span>
+        ),
+    },
+    {
+      id: 'uso',
+      header: 'Uso',
+      sortable: true,
+      sortAccessor: (t) => t.uso,
+      cell: (t) => t.uso > 0 ? <strong>{t.uso}</strong> : <span className="text-muted">—</span>,
+    },
+    {
+      id: 'acoes',
+      header: '',
+      hideable: false,
+      cell: (t) => (
+        <div className="actions-cell">
+          <a className="action-link" style={{ cursor: 'pointer' }} onClick={() => setModal({ tipo: t })}>
+            Editar
+          </a>
+          {!t.sistema && (
+            <a className="action-link danger" style={{ cursor: 'pointer' }} onClick={() => handleDelete(t)}>
+              Excluir
+            </a>
+          )}
+        </div>
+      ),
+    },
+  ] as Column<TipoComUso>[], [handleDelete, setModal]);
 
   if (tiposQuery.isLoading) return <Spinner label="Carregando tipos…" />;
 
@@ -105,127 +172,12 @@ export default function TiposCustoSection() {
         </div>
       </Card>
 
-      <Card style={{ padding: 0 }}>
-        <div
-          style={{
-            padding: 'var(--sp-md) var(--sp-lg)',
-            borderBottom: '1px solid var(--color-border)',
-            display: 'flex',
-            justifyContent: 'space-between',
-          }}
-        >
-          <h3 style={{ margin: 0, fontSize: 15 }}>Tipos Cadastrados</h3>
-          <span className="text-muted" style={{ fontSize: 14 }}>
-            {tipos.length} tipo{tipos.length !== 1 ? 's' : ''}
-          </span>
-        </div>
-        <div style={{ overflowX: 'auto' }}>
-          <table
-            style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}
-          >
-            <thead>
-              <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                <th style={th()}>Ícone</th>
-                <th style={th()}>Nome</th>
-                <th style={th()}>Chave</th>
-                <th style={th()}>Tipo</th>
-                <th style={th()}>Uso</th>
-                <th style={th()}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {tipos.map((t) => (
-                <tr
-                  key={t.id}
-                  style={{ borderBottom: '1px solid var(--color-border)' }}
-                >
-                  <td style={td()}>
-                    <span
-                      style={{
-                        fontSize: 22,
-                        background: t.cor ?? '#e5e7eb',
-                        padding: '4px 8px',
-                        borderRadius: 6,
-                      }}
-                    >
-                      {t.icon ?? '·'}
-                    </span>
-                  </td>
-                  <td style={td()}>
-                    <strong>{t.label}</strong>
-                  </td>
-                  <td
-                    style={{
-                      ...td(),
-                      fontFamily: 'monospace',
-                      fontSize: 13,
-                      color: 'var(--color-text-muted)',
-                    }}
-                  >
-                    {t.key}
-                  </td>
-                  <td style={td()}>
-                    {t.sistema ? (
-                      <span
-                        style={{
-                          padding: '2px 8px',
-                          borderRadius: 4,
-                          fontSize: 11,
-                          fontWeight: 600,
-                          background: 'rgba(96,165,250,.12)',
-                          color: '#1e3a8a',
-                        }}
-                      >
-                        sistema
-                      </span>
-                    ) : (
-                      <span
-                        style={{
-                          padding: '2px 8px',
-                          borderRadius: 4,
-                          fontSize: 11,
-                          fontWeight: 600,
-                          background: 'rgba(22,163,74,.12)',
-                          color: '#166534',
-                        }}
-                      >
-                        custom
-                      </span>
-                    )}
-                  </td>
-                  <td style={td()}>
-                    {t.uso > 0 ? (
-                      <strong>{t.uso}</strong>
-                    ) : (
-                      <span className="text-muted">—</span>
-                    )}
-                  </td>
-                  <td style={td()}>
-                    <div className="actions-cell">
-                      <a
-                        className="action-link"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => setModal({ tipo: t })}
-                      >
-                        Editar
-                      </a>
-                      {!t.sistema && (
-                        <a
-                          className="action-link danger"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => handleDelete(t)}
-                        >
-                          Excluir
-                        </a>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <DataTable
+        rows={tipos}
+        columns={tipoColumns}
+        rowKey={(t) => t.id}
+        emptyMessage="Nenhum tipo de custo cadastrado."
+      />
 
       {modal && (
         <TipoModal
@@ -350,16 +302,3 @@ function TipoModal({
   );
 }
 
-const th = (): React.CSSProperties => ({
-  padding: '10px 12px',
-  textAlign: 'left',
-  fontSize: 12,
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '.04em',
-  color: '#64748B',
-});
-const td = (): React.CSSProperties => ({
-  padding: '10px 12px',
-  verticalAlign: 'middle',
-});

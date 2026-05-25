@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import Card from '../../../components/ui/Card';
 import Spinner from '../../../components/ui/Spinner';
 import { api } from '../../../lib/api';
+import DataTable, { type Column } from '../../../components/ui/DataTable';
 
 /** Arquivos vêm de /api/admin/arquivos — colunas reais do recurso_doc_arquivos. */
 interface ArquivoInfo {
@@ -54,87 +55,91 @@ export default function ArquivosSection() {
         </div>
       </div>
 
-      <Card style={{ padding: 'var(--sp-lg)' }}>
-        {isLoading && <Spinner label="Carregando arquivos…" />}
-        {error != null && !isLoading && (
+      {isLoading ? (
+        <Card style={{ padding: 'var(--sp-lg)' }}>
+          <Spinner label="Carregando arquivos…" />
+        </Card>
+      ) : error != null ? (
+        <Card style={{ padding: 'var(--sp-lg)' }}>
           <p style={{ color: 'var(--color-danger)' }}>
             Não foi possível carregar a lista de arquivos.
           </p>
-        )}
-        {!isLoading && arquivos.length === 0 && !error && (
-          <p className="text-muted">Nenhum arquivo armazenado.</p>
-        )}
-        {arquivos.length > 0 && (
-          <>
-            <div
-              style={{
-                marginBottom: 'var(--sp-md)',
-                padding: 'var(--sp-sm) var(--sp-md)',
-                background: 'rgba(49,130,206,.05)',
-                borderLeft: '3px solid #3182CE',
-                borderRadius: 6,
-                fontSize: 14,
-              }}
-            >
-              <strong>{arquivos.length}</strong> arquivo
-              {arquivos.length !== 1 ? 's' : ''} · <strong>{humanSize(totalSize)}</strong>{' '}
-              em uso
-            </div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                    <th style={th()}>Colaborador</th>
-                    <th style={th()}>Tipo de documento</th>
-                    <th style={th()}>Arquivo</th>
-                    <th style={th()}>Tamanho</th>
-                    <th style={th()}>Subido em</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {arquivos.map((a) => (
-                    <tr
-                      key={a.id}
-                      style={{ borderBottom: '1px solid var(--color-border)' }}
-                    >
-                      <td style={td()}>{a.recursoNome ?? '—'}</td>
-                      <td style={td()}>{a.tipoDoc ?? '—'}</td>
-                      <td style={td()}>
-                        {a.filenameOriginal ?? a.filename ?? '—'}
-                        {a.mimeType && (
-                          <div className="text-muted" style={{ fontSize: 12 }}>
-                            {a.mimeType}
-                          </div>
-                        )}
-                      </td>
-                      <td style={td()}>{humanSize(a.sizeBytes || 0)}</td>
-                      <td style={td()}>
-                        {a.createdAt
-                          ? new Date(a.createdAt).toLocaleDateString('pt-BR')
-                          : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </Card>
+        </Card>
+      ) : (
+        <>
+          {arquivos.length > 0 && (
+            <Card style={{ padding: 'var(--sp-md)', marginBottom: 'var(--sp-md)' }}>
+              <div
+                style={{
+                  padding: 'var(--sp-sm) var(--sp-md)',
+                  background: 'rgba(49,130,206,.05)',
+                  borderLeft: '3px solid #3182CE',
+                  borderRadius: 6,
+                  fontSize: 14,
+                }}
+              >
+                <strong>{arquivos.length}</strong> arquivo
+                {arquivos.length !== 1 ? 's' : ''} · <strong>{humanSize(totalSize)}</strong>{' '}
+                em uso
+              </div>
+            </Card>
+          )}
+          <DataTable
+            rows={arquivos}
+            columns={ARQUIVO_COLUMNS}
+            rowKey={(a) => a.id}
+            emptyMessage="Nenhum arquivo armazenado."
+            searchPlaceholder="Buscar por colaborador, tipo ou arquivo..."
+            globalFilterFn={(a, q) =>
+              [a.recursoNome, a.tipoDoc, a.filenameOriginal, a.filename].some(
+                (v) => String(v ?? '').toLowerCase().includes(q),
+              )
+            }
+          />
+        </>
+      )}
     </>
   );
 }
 
-const th = (): React.CSSProperties => ({
-  padding: '10px 12px',
-  textAlign: 'left',
-  fontSize: 12,
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '.04em',
-  color: '#64748B',
-});
-const td = (): React.CSSProperties => ({
-  padding: '10px 12px',
-  verticalAlign: 'middle',
-});
+const ARQUIVO_COLUMNS: Column<ArquivoInfo>[] = [
+  {
+    id: 'colaborador',
+    header: 'Colaborador',
+    sortable: true,
+    sortAccessor: (a) => a.recursoNome ?? '',
+    cell: (a) => a.recursoNome ?? '—',
+  },
+  {
+    id: 'tipo',
+    header: 'Tipo de documento',
+    cell: (a) => a.tipoDoc ?? '—',
+  },
+  {
+    id: 'arquivo',
+    header: 'Arquivo',
+    cell: (a) => (
+      <>
+        {a.filenameOriginal ?? a.filename ?? '—'}
+        {a.mimeType && (
+          <div className="text-muted" style={{ fontSize: 12 }}>{a.mimeType}</div>
+        )}
+      </>
+    ),
+  },
+  {
+    id: 'tamanho',
+    header: 'Tamanho',
+    sortable: true,
+    sortAccessor: (a) => a.sizeBytes ?? 0,
+    cell: (a) => humanSize(a.sizeBytes || 0),
+  },
+  {
+    id: 'subido',
+    header: 'Subido em',
+    sortable: true,
+    sortAccessor: (a) => a.createdAt ?? '',
+    cell: (a) =>
+      a.createdAt ? new Date(a.createdAt).toLocaleDateString('pt-BR') : '—',
+  },
+];
