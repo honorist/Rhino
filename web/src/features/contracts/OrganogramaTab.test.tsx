@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import ToastProvider from '../../components/ui/toast/ToastProvider';
 import OrganogramaTab from './OrganogramaTab';
 import type { Contract } from './types';
 
@@ -48,7 +47,7 @@ function renderTab() {
     return (
       <MemoryRouter>
         <QueryClientProvider client={client}>
-          <ToastProvider>{children}</ToastProvider>
+          {children}
         </QueryClientProvider>
       </MemoryRouter>
     );

@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import ToastProvider from '../../components/ui/toast/ToastProvider';
 import Obras from './Obras';
 
 // O MapView usa Leaflet (API imperativa, depende de layout real) — mockado
@@ -57,7 +56,7 @@ function renderObras() {
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={client}>
-        <ToastProvider>{children}</ToastProvider>
+        {children}
       </QueryClientProvider>
     );
   }

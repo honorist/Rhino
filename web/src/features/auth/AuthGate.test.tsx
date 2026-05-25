@@ -2,7 +2,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import ToastProvider from '../../components/ui/toast/ToastProvider';
 import AuthGate from './AuthGate';
 import { usePerfilStore } from './perfilStore';
 import type { NivelAcesso } from './types';
@@ -36,11 +35,9 @@ function renderGate() {
   return render(
     <MemoryRouter initialEntries={['/dashboard']}>
       <QueryClientProvider client={qc}>
-        <ToastProvider>
           <AuthGate>
             <div>conteudo-protegido</div>
           </AuthGate>
-        </ToastProvider>
       </QueryClientProvider>
     </MemoryRouter>,
   );

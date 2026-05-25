@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import ToastProvider from '../../components/ui/toast/ToastProvider';
 import AditivosTab from './AditivosTab';
 import type { Contract } from './types';
 
@@ -31,7 +30,7 @@ function renderTab() {
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={client}>
-        <ToastProvider>{children}</ToastProvider>
+        {children}
       </QueryClientProvider>
     );
   }

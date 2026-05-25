@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import ToastProvider from '../../components/ui/toast/ToastProvider';
 import Fornecedores from './Fornecedores';
 
 function jsonResponse(data: unknown): Promise<Response> {
@@ -39,7 +38,7 @@ function renderFornecedores() {
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={client}>
-        <ToastProvider>{children}</ToastProvider>
+        {children}
       </QueryClientProvider>
     );
   }

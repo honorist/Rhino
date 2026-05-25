@@ -2,7 +2,6 @@ import { afterEach, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import ToastProvider from './components/ui/toast/ToastProvider';
 import App from './App';
 import { usePerfilStore } from './features/auth/perfilStore';
 import type { NivelAcesso } from './features/auth/types';
@@ -60,9 +59,7 @@ function renderAt(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <QueryClientProvider client={client}>
-        <ToastProvider>
           <App />
-        </ToastProvider>
       </QueryClientProvider>
     </MemoryRouter>,
   );

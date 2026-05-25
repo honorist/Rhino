@@ -2,7 +2,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import ToastProvider from '../../components/ui/toast/ToastProvider';
 import Login from './Login';
 
 function jsonResponse(data: unknown, status = 200): Response {
@@ -16,9 +15,7 @@ function setup(fetchImpl: typeof fetch) {
   const utils = render(
     <MemoryRouter>
       <QueryClientProvider client={qc}>
-        <ToastProvider>
           <Login onPortalClick={onPortal} />
-        </ToastProvider>
       </QueryClientProvider>
     </MemoryRouter>,
   );

@@ -3,7 +3,6 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import ToastProvider from '../../components/ui/toast/ToastProvider';
 import Recrutamento from './Recrutamento';
 
 function jsonResponse(data: unknown, status = 200): Promise<Response> {
@@ -30,7 +29,7 @@ function renderRecrutamento() {
     return (
       <MemoryRouter>
         <QueryClientProvider client={qc}>
-          <ToastProvider>{children}</ToastProvider>
+          {children}
         </QueryClientProvider>
       </MemoryRouter>
     );

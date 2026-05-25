@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import ToastProvider from '../../components/ui/toast/ToastProvider';
 import LgpdModal from './LgpdModal';
 
 const reloadSpy = vi.fn();
@@ -22,9 +21,7 @@ function setup(fetchImpl: typeof fetch) {
   });
   return render(
     <QueryClientProvider client={qc}>
-      <ToastProvider>
         <LgpdModal />
-      </ToastProvider>
     </QueryClientProvider>,
   );
 }
