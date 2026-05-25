@@ -5,7 +5,8 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
-import { Input, Select } from '../../components/ui/controls';
+import { Input } from '../../components/ui/controls';
+import { Combobox } from '../../components/ui/combobox';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
@@ -368,19 +369,15 @@ function NovaPropostaModal({ onClose }: { onClose: () => void }) {
           htmlFor="np-cliente"
           helper="Os dados do cliente serão preenchidos automaticamente."
         >
-          <Select
-            id="np-cliente"
+          <Combobox
+            options={clientes.map((c) => ({ value: c.id, label: clienteLabel(c) }))}
             value={clienteId}
-            onChange={(event) => setClienteId(event.target.value)}
-            required
-          >
-            <option value="">— Selecione um cliente —</option>
-            {clientes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {clienteLabel(c)}
-              </option>
-            ))}
-          </Select>
+            onChange={setClienteId}
+            placeholder="— Selecione um cliente —"
+            searchPlaceholder="Pesquisar cliente..."
+            emptyText="Nenhum cliente encontrado."
+            disabled={clientesQuery.isLoading}
+          />
         </FormField>
 
         <FormField label="Título da Proposta *" htmlFor="np-titulo">

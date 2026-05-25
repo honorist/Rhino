@@ -225,27 +225,26 @@ tbody tr:last-child td {
   margin-bottom: 6px;
 }
 
-/* ═══ Inputs/Selects — contraste absoluto, fundo claro e texto escuro sempre ═══ */
+/* ═══ Inputs/Selects legados ═══ */
 .form-control,
 input.form-control,
 select.form-control,
 textarea.form-control {
   width: 100%;
   padding: 10px 13px;
-  border: 1px solid #D1D5DB !important;
+  border: 1px solid #D1D5DB;
   border-radius: var(--border-radius);
   font-size: 15px;
-  background: #FFFFFF !important;
-  color: #1F2937 !important;
+  background: #FFFFFF;
+  color: #1F2937;
   font-family: 'Nunito', sans-serif;
   transition: border-color 0.15s, box-shadow 0.15s;
-  -webkit-text-fill-color: #1F2937 !important;
 }
 .form-control:hover,
-.modal .form-control:hover { border-color: #9CA3AF !important; }
-.form-control::placeholder { color: #9CA3AF !important; opacity: 1; -webkit-text-fill-color: #9CA3AF !important; }
+.modal .form-control:hover { border-color: #9CA3AF; }
+.form-control::placeholder { color: #9CA3AF; opacity: 1; }
 .form-control option,
-select.form-control option { background: #FFFFFF !important; color: #1F2937 !important; }
+select.form-control option { background: #FFFFFF; color: #1F2937; }
 
 .form-control:focus {
   outline: none;
