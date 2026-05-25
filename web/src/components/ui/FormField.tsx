@@ -17,10 +17,13 @@ interface FormFieldProps {
 }
 
 /**
- * Grupo rótulo + controle + erro/ajuda. Tailwind puro — não usa mais as
- * classes legadas `form-group` (margin-bottom) e `form-label` (font-size 15)
- * porque ambas atrapalhavam o gap controlado pelo `space-y-*` no parent
- * (Modal, Form).
+ * Grupo rótulo + controle + erro/ajuda no padrão shadcn/ui:
+ *   - `space-y-2` (8px) entre label e controle
+ *   - label `text-sm font-medium leading-none`
+ *   - helper/erro `text-xs` (12px) abaixo do controle
+ *
+ * Não usa as classes legadas `.form-group` / `.form-label` — ambas teriam
+ * `margin-bottom` próprio brigando com o `space-y-*` do Modal/Form parent.
  */
 export default function FormField({
   label,
@@ -34,23 +37,26 @@ export default function FormField({
   return (
     <div className={cn('space-y-2', className)}>
       <RadixLabel.Root
-        className="block text-[13px] font-medium text-foreground leading-tight"
+        className="block text-sm font-medium text-foreground leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
         htmlFor={htmlFor}
       >
         {label}
         {required && (
-          <span className="ml-1 text-destructive" aria-hidden="true">
+          <span className="ml-0.5 text-destructive" aria-hidden="true">
             *
           </span>
         )}
       </RadixLabel.Root>
       {children}
       {error ? (
-        <p className="text-[13px] font-medium text-destructive" role="alert">
+        <p
+          className="text-xs font-medium text-destructive leading-snug"
+          role="alert"
+        >
           {error}
         </p>
       ) : helper ? (
-        <p className="text-[13px] text-muted-foreground">{helper}</p>
+        <p className="text-xs text-muted-foreground leading-snug">{helper}</p>
       ) : null}
     </div>
   );

@@ -1,6 +1,64 @@
 {
   "entries": [
     {
+      "version": "1.2.81",
+      "date": "2026-05-25",
+      "summary": "UI polida — modais e Dashboard no padrão shadcn/ui",
+      "changes": [
+        "Modais de criar/editar com espaçamento padrão shadcn (header/body/footer em 24px), título com hierarquia clara e overlay com leve desfoque.",
+        "Cards do Dashboard com padding generoso, KPI principal em 30px, sparklines maiores e badge de variação % vs período anterior em todos os números.",
+        "Pipeline horizontal de medições com hover e barras maiores; cada estágio leva direto à lista filtrada.",
+        "Gráfico de fluxo de caixa com 340px de altura, controles 30/60/90 em estilo segmented control e header com descrição.",
+        "Inputs com altura fixa de 40px, foco visível e estado disabled padronizados.",
+        "Correção: utilitários Tailwind agora vencem CSS legado em casos críticos (padding de Card, espaçamento de FormField, etc.)."
+      ]
+    },
+    {
+      "version": "1.2.80",
+      "date": "2026-05-25",
+      "summary": "Refresh de UI — modais, Dashboard, design system shadcn/ui",
+      "changes": [
+        "Modais de criar/editar com espaçamento maior, header destacado, footer com separação visual e foco visível nos campos.",
+        "Dashboard reorganizado em layout bento com cards de KPI mais respirados, comparativo automático vs período anterior em cada métrica, sparklines e drill-down clicável.",
+        "Pipeline de medições virou um funil horizontal com barras proporcionais — cada estágio leva à lista filtrada.",
+        "Gráfico de fluxo de caixa ganhou área maior e botões de período em estilo segmented control.",
+        "Tema dark e modo alto contraste aplicam-se também a tabelas, gráficos e mapas.",
+        "Bug fix: alertas LGPD agora travam o foco no diálogo (acessibilidade)."
+      ]
+    },
+    {
+      "version": "1.2.79",
+      "date": "2026-05-25",
+      "summary": "Internal — Tailwind v4 + shadcn/ui (sem mudança visual ainda)",
+      "changes": [
+        "Setup do design system: Tailwind v4 com tokens em @theme, shadcn/ui parcial (Button/Modal/Form/Card/Badge/Spinner reescritos com Radix UI), helper cn() para concatenação de classes. Nada muda na interface até as telas serem migradas."
+      ]
+    },
+    {
+      "version": "1.2.78",
+      "date": "2026-05-25",
+      "summary": "Internal — React Hook Form + Zod + TanStack Table/Virtual",
+      "changes": [
+        "Infraestrutura para formulários tipados (RHF + Zod), tabelas com sort/filter (TanStack Table) e listas grandes virtualizadas. Migração das features acontece gradativamente."
+      ]
+    },
+    {
+      "version": "1.2.77",
+      "date": "2026-05-25",
+      "summary": "Internal — code splitting + error boundaries + bundle analyzer",
+      "changes": [
+        "Cada feature carrega sob demanda (React.lazy), erros isolados por tela (não derruba o resto do app), bundle analyzer no build e Lighthouse CI no GitHub Actions."
+      ]
+    },
+    {
+      "version": "1.2.76",
+      "date": "2026-05-25",
+      "summary": "Internal — React Compiler + Query DevTools + persistência de cache",
+      "changes": [
+        "Memoização automática (React Compiler 19), DevTools de cache em dev e persistência em localStorage com versionamento — melhora a sensação de velocidade offline e em redes lentas (latência Railway)."
+      ]
+    },
+    {
       "version": "1.2.75",
       "date": "2026-05-22",
       "summary": "Melhorias internas — utilitário de IDs em módulo próprio",

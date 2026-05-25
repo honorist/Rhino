@@ -40,13 +40,13 @@ const VALUE_TONE: Record<KpiTone, string> = {
 function Sparkline({ values, tone }: { values: readonly number[]; tone: KpiTone }) {
   if (values.length < 2) {
     return (
-      <div className="h-[28px] w-[90px] flex items-center justify-end text-[10px] text-muted-foreground italic">
+      <div className="h-[32px] w-[96px] flex items-center justify-end text-[10px] text-muted-foreground italic">
         sem histórico
       </div>
     );
   }
-  const w = 90;
-  const h = 28;
+  const w = 96;
+  const h = 32;
   const p = 2;
   const min = Math.min(...values);
   const max = Math.max(...values);
@@ -102,21 +102,24 @@ function DeltaBadge({ delta }: { delta: KpiDelta }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold tabular-nums whitespace-nowrap',
+        'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold tabular-nums whitespace-nowrap',
         colorClass,
       )}
       title={`${pct.toFixed(1)}% ${periodLabel}`}
     >
-      <Icon size={12} aria-hidden="true" />
+      <Icon size={11} aria-hidden="true" />
       {isStable ? '0%' : `${isUp ? '+' : ''}${pct.toFixed(1)}%`}
     </span>
   );
 }
 
 /**
- * Cartão de KPI padronizado. Padding generoso (p-5 = 20px), tipografia em
- * 3 níveis claros (label uppercase / value 28px bold / meta 12px muted) e
- * sparkline à direita do meta com altura proporcional.
+ * Cartão de KPI no padrão shadcn/ui dashboard:
+ *   - label: `text-xs` (12px) `uppercase` `tracking-wider` `muted`
+ *   - value: `text-3xl` (30px) `font-bold` `tracking-tight`
+ *   - meta:  `text-sm` (14px) `muted`
+ *   - padding `p-6` (24px) — vence `.card` legado via `!`
+ *   - hover: leve elevação + sombra média
  */
 export default function KpiCard({
   label,
@@ -129,25 +132,38 @@ export default function KpiCard({
   title,
 }: KpiCardProps) {
   return (
-    <Link to={href} className="block h-full text-inherit no-underline">
-      <Card className="flex h-full flex-col gap-3 p-5 transition-all hover:shadow-md hover:-translate-y-0.5 focus-within:ring-2 focus-within:ring-ring">
-        <div className="flex items-start justify-between gap-3">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground leading-tight">
+    <Link to={href} className="block h-full text-inherit no-underline group">
+      <Card
+        className={cn(
+          'flex h-full flex-col !p-6 transition-all',
+          'group-hover:shadow-md group-hover:-translate-y-0.5',
+          'group-focus-visible:ring-2 group-focus-visible:ring-ring',
+        )}
+      >
+        {/* Header: label uppercase + delta badge à direita */}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground leading-none">
             {label}
           </span>
           {delta && <DeltaBadge delta={delta} />}
         </div>
+
+        {/* Value: 30px bold, hierarquia clara como número principal */}
         <div
           className={cn(
-            'text-[26px] font-extrabold leading-[1.1] tracking-tight',
+            'text-3xl font-bold leading-none tracking-tight tabular-nums',
             VALUE_TONE[tone],
           )}
           title={title}
         >
           {value}
         </div>
-        <div className="mt-auto flex items-end justify-between gap-3 pt-2">
-          <span className="truncate text-[12px] text-muted-foreground leading-snug">
+
+        {/* Footer: meta à esquerda + sparkline à direita, alinhados pela
+            baseline. `mt-auto` empurra para o fim do card (importante em
+            spans 2x2/3x2 onde o card tem altura extra). */}
+        <div className="mt-auto flex items-end justify-between gap-3 pt-4">
+          <span className="truncate text-sm text-muted-foreground leading-snug">
             {meta ?? ''}
           </span>
           <Sparkline values={spark} tone={tone} />

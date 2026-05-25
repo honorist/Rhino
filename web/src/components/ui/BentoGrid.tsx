@@ -6,8 +6,10 @@ import { cn } from '../../lib/cn';
  * Cada filho declara seu tamanho via prop `span` no <BentoItem>.
  * Em mobile, todos os items ocupam a largura total automaticamente.
  *
- * `gap-6` (24px) dá respiro entre cards sem perder densidade. `auto-rows`
- * mínimo de 140px garante que cards 1x1 não fiquem espremidos verticalmente.
+ * `gap-6` (24px) em todos os breakpoints — padrão shadcn dashboard, dá
+ * respiro forte sem perder densidade. `auto-rows` mínimo de 160px garante
+ * que cards 1x1 não fiquem espremidos verticalmente e tenham espaço para
+ * label + valor + meta + sparkline.
  */
 export function BentoGrid({
   className,
@@ -17,7 +19,7 @@ export function BentoGrid({
   return (
     <div
       className={cn(
-        'grid grid-cols-1 sm:grid-cols-6 lg:grid-cols-12 gap-5 lg:gap-6 auto-rows-[minmax(140px,_auto)]',
+        'grid grid-cols-1 sm:grid-cols-6 lg:grid-cols-12 !gap-6 auto-rows-[minmax(160px,_auto)]',
         className,
       )}
       {...rest}

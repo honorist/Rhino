@@ -19,8 +19,13 @@ interface Stage {
 
 /**
  * Pipeline de medições — funil HORIZONTAL com barras proporcionais ao volume
- * (count). Substitui o grid antigo de 4 cards uniformes. Cada estágio é
- * clicável → drill-down direto na lista filtrada. Cores reforçam o estado.
+ * (count). Cada estágio é clicável → drill-down direto na lista filtrada.
+ * Cores reforçam o estado (muted → warning → primary → success).
+ *
+ * Padrão shadcn/ui card de dashboard:
+ *   - Header: titulo `text-base font-semibold` + subtítulo `text-sm muted`
+ *   - Stages: gap vertical `space-y-5` para acomodar label + barra confortável
+ *   - Footer (link): ação secundária ghost à direita
  */
 export default function PipelineCard({ pipeline }: PipelineCardProps) {
   const hoje = new Date();
@@ -30,7 +35,7 @@ export default function PipelineCard({ pipeline }: PipelineCardProps) {
       count: pipeline.rascunho.count,
       valor: pipeline.rascunho.valor,
       href: '/contratos?stage=rascunho',
-      color: 'bg-muted',
+      color: 'bg-muted-foreground/30',
       tip: 'Saídas (BMs) cadastradas mas ainda sem NF vinculada.',
     },
     {
@@ -63,25 +68,27 @@ export default function PipelineCard({ pipeline }: PipelineCardProps) {
   const totalValor = stages.reduce((s, x) => s + x.valor, 0);
 
   return (
-    <Card className="h-full p-6">
-      <div className="mb-5 flex items-baseline justify-between gap-3">
-        <div>
-          <h3 className="m-0 text-[15px] font-semibold leading-tight">
+    <Card className="h-full flex flex-col !p-6">
+      {/* Header: title + subtítulo + ação secundária */}
+      <div className="flex items-start justify-between gap-3 mb-6">
+        <div className="space-y-1">
+          <h3 className="m-0 text-base font-semibold leading-none tracking-tight">
             Pipeline de medições
           </h3>
-          <p className="mt-0.5 text-[12px] text-muted-foreground">
+          <p className="text-sm text-muted-foreground capitalize">
             {hoje.toLocaleDateString('pt-BR', { month: 'long' })}
           </p>
         </div>
         <Link
           to="/contratos"
-          className="shrink-0 text-xs font-semibold text-primary no-underline hover:underline"
+          className="shrink-0 text-xs font-semibold text-primary no-underline hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md px-1"
         >
           Ver tudo →
         </Link>
       </div>
 
-      <div role="list" aria-label="Funil do pipeline" className="space-y-3.5">
+      {/* Funil: 4 estágios com barras proporcionais e gap generoso */}
+      <div role="list" aria-label="Funil do pipeline" className="space-y-5 flex-1">
         {stages.map((s) => {
           const widthPct = (s.count / maxCount) * 100;
           const valorPct = totalValor > 0 ? (s.valor / totalValor) * 100 : 0;
@@ -91,14 +98,16 @@ export default function PipelineCard({ pipeline }: PipelineCardProps) {
               to={s.href}
               role="listitem"
               title={s.tip}
-              className="block rounded-md p-1 -m-1 no-underline text-inherit transition-colors hover:bg-secondary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="block rounded-md p-2 -mx-2 no-underline text-inherit transition-colors hover:bg-secondary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <div className="flex items-baseline justify-between mb-2 gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.06em]">
+                <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
                   {s.label}
                 </span>
                 <span className="text-xs text-muted-foreground tabular-nums">
-                  <strong className="text-foreground">{s.count}</strong>
+                  <strong className="text-foreground font-semibold">
+                    {s.count}
+                  </strong>
                   <span className="mx-1.5 text-border">·</span>
                   {formatBRL(s.valor)}
                   {totalValor > 0 && (
@@ -109,7 +118,7 @@ export default function PipelineCard({ pipeline }: PipelineCardProps) {
                 </span>
               </div>
               <div
-                className="h-2.5 w-full rounded-full bg-muted/40 overflow-hidden"
+                className="h-2.5 w-full rounded-full bg-muted overflow-hidden"
                 role="progressbar"
                 aria-valuenow={s.count}
                 aria-valuemin={0}
