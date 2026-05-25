@@ -1,18 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import Button from './Button';
-import Badge from './Badge';
+import { Badge } from './badge';
 import EmptyState from './EmptyState';
 import Spinner from './Spinner';
 import DataTable, { type Column } from './DataTable';
 
 describe('Button', () => {
-  it('aplica a classe da variante', () => {
+  it('renderiza com variante danger', () => {
     render(<Button variant="danger">Excluir</Button>);
-    expect(screen.getByRole('button', { name: 'Excluir' })).toHaveClass(
-      'btn',
-      'btn-danger',
-    );
+    const btn = screen.getByRole('button', { name: 'Excluir' });
+    expect(btn).toBeInTheDocument();
+    expect(btn.className).toContain('bg-destructive');
   });
 
   it('usa type="button" por padrão', () => {
@@ -29,14 +28,14 @@ describe('Button', () => {
 });
 
 describe('Badge', () => {
-  it('gera a classe badge-<variant>', () => {
-    render(<Badge variant="ativo">Ativo</Badge>);
-    expect(screen.getByText('Ativo')).toHaveClass('badge', 'badge-ativo');
+  it('renderiza com data-slot badge', () => {
+    render(<Badge variant="success">Ativo</Badge>);
+    expect(screen.getByText('Ativo')).toHaveAttribute('data-slot', 'badge');
   });
 
-  it('usa só .badge sem variante', () => {
-    render(<Badge>Neutro</Badge>);
-    expect(screen.getByText('Neutro')).toHaveClass('badge');
+  it('usa variante secondary por padrão', () => {
+    const { container } = render(<Badge>Neutro</Badge>);
+    expect(container.firstChild).toHaveAttribute('data-slot', 'badge');
   });
 });
 
