@@ -169,6 +169,7 @@ export default function Socios() {
           rows={socios}
           rowKey={(socio) => socio.id}
           emptyMessage="Nenhum sócio registrado"
+          showColumnToggle
         />
       )}
 

@@ -378,6 +378,7 @@ export default function SolicitacoesCompra() {
         rows={lista}
         rowKey={(s) => s.id}
         emptyMessage="Nenhuma solicitação encontrada"
+        showColumnToggle
       />
 
       {modal?.type === 'criar' && (

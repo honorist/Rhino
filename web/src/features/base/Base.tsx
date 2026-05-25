@@ -365,6 +365,7 @@ export default function Base() {
           rows={itensFiltrados}
           rowKey={(item) => item.id}
           emptyMessage="Nenhum item neste período/filtro"
+          showColumnToggle
         />
       )}
 

@@ -152,6 +152,7 @@ export default function Usuarios() {
           rows={usersQuery.data ?? []}
           rowKey={(user) => user.id}
           emptyMessage="Nenhum usuário ainda"
+          showColumnToggle
         />
       )}
 

@@ -206,6 +206,7 @@ export default function Fornecedores() {
               ? 'Nenhum fornecedor encontrado para os filtros'
               : 'Nenhum fornecedor cadastrado'
           }
+          showColumnToggle
         />
       )}
 

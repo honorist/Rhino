@@ -148,6 +148,7 @@ export default function Clientes() {
               ? 'Nenhum cliente encontrado para a busca'
               : 'Nenhum cliente cadastrado'
           }
+          showColumnToggle
         />
       )}
 
