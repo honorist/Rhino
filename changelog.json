@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.2.86",
+      "date": "2026-05-25",
+      "summary": "Fase 4a — 11 primitivos interação média + Propostas Tabs shadcn",
+      "changes": [
+        "Adicionados 11 componentes: tabs, dropdown-menu, popover, scroll-area, sheet, hover-card, context-menu, pagination, breadcrumb, collapsible, accordion.",
+        "tailwind.css: keyframes accordion-down/up + --animate-accordion-* no @theme.",
+        "PropostaDetail.tsx: tabs customizadas (.tab-btn inline styles) substituídas por <Tabs><TabsList><TabsTrigger> shadcn; padrão lazy-render de ActiveTab preservado.",
+        "Nota: command.tsx adiado para Fase 7 (requer cmdk, não instalado)."
+      ]
+    },
+    {
       "version": "1.2.85",
       "date": "2026-05-25",
       "summary": "Fase 3 — Form shadcn + Clausulas piloto + fix imports Fase 1",

@@ -7,6 +7,7 @@ import {
 } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Button from '../../components/ui/Button';
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import type { PropostaStatus } from '../../types/domain';
@@ -354,39 +355,19 @@ function PropostaEditorView({ id }: { id: string }) {
       </div>
 
       <div className="card" style={{ padding: 0, marginBottom: 16 }}>
-        <div
-          className="tabs-nav"
-          style={{
-            display: 'flex',
-            borderBottom: '1px solid #e2e8f0',
-            overflowX: 'auto',
-            padding: '0 8px',
-          }}
-        >
-          {TABS.map((tab) => {
-            const active = currentTab === tab.id;
-            return (
-              <button
+        <Tabs value={currentTab} onValueChange={setCurrentTab}>
+          <TabsList className="h-auto w-full justify-start rounded-none border-b border-border bg-transparent p-0 px-2 overflow-x-auto gap-0">
+            {TABS.map((tab) => (
+              <TabsTrigger
                 key={tab.id}
-                type="button"
-                className={`tab-btn${active ? ' is-active' : ''}`}
-                onClick={() => setCurrentTab(tab.id)}
-                style={{
-                  padding: '14px 18px',
-                  border: 'none',
-                  background: 'none',
-                  cursor: 'pointer',
-                  fontWeight: active ? 600 : 400,
-                  color: active ? '#1F497D' : '#64748b',
-                  borderBottom: `3px solid ${active ? '#1F497D' : 'transparent'}`,
-                  whiteSpace: 'nowrap',
-                }}
+                value={tab.id}
+                className="rounded-none border-b-[3px] border-transparent bg-transparent px-[18px] py-[14px] text-sm font-normal text-muted-foreground whitespace-nowrap data-[state=active]:border-primary data-[state=active]:font-semibold data-[state=active]:text-primary data-[state=active]:shadow-none"
               >
                 {tab.icon} {tab.label}
-              </button>
-            );
-          })}
-        </div>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
       </div>
 
       <div className="tab-content">
