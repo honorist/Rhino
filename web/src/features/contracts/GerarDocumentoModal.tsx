@@ -2,7 +2,8 @@ import { useState } from 'react';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
-import { Select, Textarea } from '../../components/ui/controls';
+import { Textarea } from '../../components/ui/controls';
+import { Combobox } from '../../components/ui/combobox';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR } from '../../lib/formatDate';
@@ -113,18 +114,15 @@ export default function GerarDocumentoModal({
       ) : (
         <>
           <FormField label="Template" htmlFor="gd-tpl">
-            <Select
+            <Combobox
               id="gd-tpl"
+              options={templates.map((t) => ({ value: t.id, label: String(t.nome ?? '') }))}
               value={templateId}
-              onChange={(e) => selecionar(e.target.value)}
-            >
-              <option value="">— Selecione —</option>
-              {templates.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {String(t.nome ?? '')}
-                </option>
-              ))}
-            </Select>
+              onChange={selecionar}
+              placeholder="— Selecione —"
+              searchPlaceholder="Pesquisar template..."
+              emptyText="Nenhum template encontrado."
+            />
           </FormField>
           <FormField
             label="Pré-visualização (variáveis já substituídas)"

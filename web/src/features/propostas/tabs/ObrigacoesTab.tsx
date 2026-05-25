@@ -2,7 +2,8 @@ import { useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
-import { Input, Select, Textarea } from '../../../components/ui/controls';
+import { Input, Textarea } from '../../../components/ui/controls';
+import { Combobox } from '../../../components/ui/combobox';
 import { useClausulas } from '../../resources';
 import type { Clausula } from '../../../types/domain';
 import { localUid, type EditorTabProps, type ObrigacaoItem } from '../types';
@@ -54,18 +55,15 @@ function LadoObrigacoes({ titulo, itens, biblioteca, onCommit }: LadoProps) {
       <div
         style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}
       >
-        <Select
+        <Combobox
+          options={biblioteca.map((c) => ({ value: c.id, label: c.titulo }))}
           value={selecao}
-          onChange={(e) => setSelecao(e.target.value)}
-          style={{ flex: 1, minWidth: 240 }}
-        >
-          <option value="">— Inserir cláusula da biblioteca —</option>
-          {biblioteca.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.titulo}
-            </option>
-          ))}
-        </Select>
+          onChange={setSelecao}
+          placeholder="— Inserir cláusula da biblioteca —"
+          searchPlaceholder="Pesquisar cláusula..."
+          emptyText="Nenhuma cláusula encontrada."
+          className="flex-1"
+        />
         <Button variant="secondary" onClick={inserirClausula} disabled={!selecao}>
           Adicionar
         </Button>
