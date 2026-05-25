@@ -7,6 +7,7 @@ import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select } from '../../components/ui/controls';
+import { Combobox } from '../../components/ui/combobox';
 import { DatePicker } from '../../components/ui/date-picker';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../components/ui/toast/ToastContext';
@@ -934,20 +935,18 @@ function FiltrosCard({
         </div>
         <div style={{ flex: 1, minWidth: 160 }}>
           <FormField label="Projeto/Contrato" htmlFor="cx-contrato">
-            <Select
+            <Combobox
               id="cx-contrato"
+              options={[
+                { value: '', label: 'Todos os contratos' },
+                ...contratos.map((c) => ({ value: c.id, label: String(c.name ?? '') })),
+              ]}
               value={filters.contractId}
-              onChange={(event) =>
-                onChange({ ...filters, contractId: event.target.value })
-              }
-            >
-              <option value="">Todos os contratos</option>
-              {contratos.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {String(c.name ?? '')}
-                </option>
-              ))}
-            </Select>
+              onChange={(val) => onChange({ ...filters, contractId: val })}
+              placeholder="Todos os contratos"
+              searchPlaceholder="Pesquisar contrato..."
+              emptyText="Nenhum contrato encontrado."
+            />
           </FormField>
         </div>
         <div style={{ flex: '0 0 140px' }}>
@@ -1285,18 +1284,18 @@ function EntryModal({ entry, contratos, onClose }: EntryModalProps) {
           </FormField>
         </div>
         <FormField label="Vincular a Contrato" htmlFor="cx-contr">
-          <Select
+          <Combobox
             id="cx-contr"
+            options={[
+              { value: '', label: 'Nenhum' },
+              ...contratos.map((c) => ({ value: c.id, label: String(c.name ?? '') })),
+            ]}
             value={contractId}
-            onChange={(event) => setContractId(event.target.value)}
-          >
-            <option value="">Nenhum</option>
-            {contratos.map((c) => (
-              <option key={c.id} value={c.id}>
-                {String(c.name ?? '')}
-              </option>
-            ))}
-          </Select>
+            onChange={setContractId}
+            placeholder="Nenhum"
+            searchPlaceholder="Pesquisar contrato..."
+            emptyText="Nenhum contrato encontrado."
+          />
         </FormField>
       </form>
     </Modal>
@@ -1412,18 +1411,18 @@ function MaterializeModal({ prefill, contratos, onClose }: MaterializeModalProps
           />
         </FormField>
         <FormField label="Vincular a Contrato (opcional)" htmlFor="mat-contr">
-          <Select
+          <Combobox
             id="mat-contr"
+            options={[
+              { value: '', label: 'Nenhum' },
+              ...contratos.map((c) => ({ value: c.id, label: String(c.name ?? '') })),
+            ]}
             value={contractId}
-            onChange={(event) => setContractId(event.target.value)}
-          >
-            <option value="">Nenhum</option>
-            {contratos.map((c) => (
-              <option key={c.id} value={c.id}>
-                {String(c.name ?? '')}
-              </option>
-            ))}
-          </Select>
+            onChange={setContractId}
+            placeholder="Nenhum"
+            searchPlaceholder="Pesquisar contrato..."
+            emptyText="Nenhum contrato encontrado."
+          />
         </FormField>
       </form>
     </Modal>
