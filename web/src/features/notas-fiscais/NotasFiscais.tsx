@@ -1,7 +1,8 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
+import DataTable, { type Column, type FacetedFilter } from '../../components/ui/DataTable';
 import Card from '../../components/ui/Card';
 import {
   Dialog,
@@ -430,22 +431,15 @@ function ListaTab({
   const cancelarEmissao = useCancelarEmissao();
   const deleteNF = useDeleteNotaFiscal();
 
-  function handleCancelar(id: string) {
-    if (
-      !window.confirm(
-        'Desfazer a emissão? Isso vai remover a entrada agendada no caixa.',
-      )
-    ) {
-      return;
-    }
+  const handleCancelar = useCallback((id: string) => {
+    if (!window.confirm('Desfazer a emissão? Isso vai remover a entrada agendada no caixa.')) return;
     cancelarEmissao.mutate(id, {
-      onSuccess: () =>
-        toast.success('Emissão desfeita. Entrada removida do caixa.'),
+      onSuccess: () => toast.success('Emissão desfeita. Entrada removida do caixa.'),
       onError: (error) => toast.error(error.message),
     });
-  }
+  }, [cancelarEmissao]);
 
-  function handleExcluir(nf: NotaFiscal) {
+  const handleExcluir = useCallback((nf: NotaFiscal) => {
     const msg = nf.emitida
       ? 'Esta NF está emitida. Excluir também vai remover a entrada no caixa. Continuar?'
       : 'Excluir esta nota fiscal?';
@@ -454,7 +448,136 @@ function ListaTab({
       onSuccess: () => toast.success('Nota fiscal removida'),
       onError: (error) => toast.error(error.message),
     });
-  }
+  }, [deleteNF]);
+
+  const nfColumns = useMemo(
+    (): Column<NotaFiscal>[] => [
+      {
+        header: 'NF',
+        sortable: true,
+        sortAccessor: (nf) => nf.numero,
+        cell: (nf) => <strong className={nf.emitida ? 'opacity-75' : ''}>{nf.numero}</strong>,
+      },
+      {
+        header: 'Contrato/Cliente',
+        cell: (nf) => {
+          const c = contractById(nf.contractId);
+          return (
+            <div>
+              <div>{contractName(c) || '—'}</div>
+              <div className="text-sm text-muted-foreground">{contractClient(c) || '—'}</div>
+            </div>
+          );
+        },
+      },
+      {
+        header: 'Valor',
+        align: 'right',
+        sortable: true,
+        sortAccessor: (nf) => nf.valor,
+        cell: (nf) => <span className="font-bold">{formatBRL(num(nf.valor))}</span>,
+      },
+      {
+        header: 'Data Limite',
+        sortable: true,
+        sortAccessor: (nf) => nf.dataLimite,
+        cell: (nf) => formatDate(nf.dataLimite),
+      },
+      {
+        header: 'Recebimento',
+        cell: (nf) => {
+          const dtRec = dataRecebimento(nf);
+          const prazo = prazoOf(nf);
+          const diasRec = dtRec
+            ? Math.floor((dtRec.getTime() - Date.now()) / 86_400_000)
+            : null;
+          return (
+            <div>
+              <div className={`text-sm font-semibold ${nf.emitida ? 'text-blue-600' : 'text-muted-foreground'}`}>
+                {dtRec ? dtRec.toLocaleDateString('pt-BR') : '—'}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {prazo}d após emissão
+                {nf.emitida && diasRec !== null && diasRec >= 0
+                  ? ` · em ${diasRec}d`
+                  : nf.emitida && diasRec !== null && diasRec < 0
+                    ? ' · recebido'
+                    : ''}
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        header: 'Situação',
+        cell: (nf) => {
+          if (nf.emitida) {
+            return (
+              <div>
+                <Badge style={{ background: 'rgba(56,161,105,.15)', color: '#38A169' }}>✓ EMITIDA</Badge>
+                <div className="text-sm text-muted-foreground mt-0.5">em {formatDate(nf.dataEmissaoReal)}</div>
+              </div>
+            );
+          }
+          const st = getNotaFiscalStatus(nf.dataLimite);
+          return (
+            <div>
+              <Badge variant={st.status === 'vencida' ? 'destructive' : st.status === 'proximo_vencer' ? 'warning' : 'success'}>
+                {st.status === 'vencida' ? '🔴 Vencida' : st.status === 'proximo_vencer' ? '⚠️ Próxima' : '🟢 No prazo'}
+              </Badge>
+              <div className="text-sm text-muted-foreground mt-0.5">
+                {st.status === 'vencida'
+                  ? `${Math.abs(diasAteMeioDia(nf.dataLimite))}d atrás`
+                  : `em ${st.dias}d`}
+              </div>
+            </div>
+          );
+        },
+      },
+      {
+        header: 'Ações',
+        cell: (nf) => (
+          <div className="flex flex-wrap gap-2">
+            {!nf.emitida ? (
+              <button type="button" className="action-link text-green-600 font-semibold"
+                onClick={(e) => { e.stopPropagation(); onEmitir(nf.id); }}>
+                ✓ Marcar Emitida
+              </button>
+            ) : (
+              <button type="button" className="action-link"
+                onClick={(e) => { e.stopPropagation(); handleCancelar(nf.id); }}>
+                ↶ Desfazer
+              </button>
+            )}
+            <button type="button" className="action-link"
+              onClick={(e) => { e.stopPropagation(); onEditar(nf); }}>
+              Editar
+            </button>
+            <button type="button" className="action-link danger"
+              onClick={(e) => { e.stopPropagation(); handleExcluir(nf); }}>
+              Excluir
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [contractById, onEmitir, onEditar, handleCancelar, handleExcluir],
+  );
+
+  const nfFilters = useMemo(
+    (): FacetedFilter<NotaFiscal>[] => [
+      {
+        id: 'situacao',
+        label: 'Situação',
+        accessor: (nf) => (nf.emitida ? 'emitida' : 'pendente'),
+        options: [
+          { label: 'Pendente', value: 'pendente' },
+          { label: 'Emitida', value: 'emitida' },
+        ],
+      },
+    ],
+    [],
+  );
 
   if (notas.length === 0) {
     return (
@@ -466,176 +589,25 @@ function ListaTab({
     );
   }
 
-  const sorted = notas.slice().sort((a, b) => {
-    if (Boolean(a.emitida) !== Boolean(b.emitida)) return a.emitida ? 1 : -1;
-    return new Date(a.dataLimite).getTime() - new Date(b.dataLimite).getTime();
-  });
-
   return (
-    <Card>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>NF</th>
-              <th>Contrato/Cliente</th>
-              <th style={{ textAlign: 'right' }}>Valor</th>
-              <th>Data Limite</th>
-              <th>Recebimento</th>
-              <th>Situação</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((nf) => {
-              const contrato = contractById(nf.contractId);
-              const st = getNotaFiscalStatus(nf.dataLimite);
-              const prazo = prazoOf(nf);
-              const dtRec = dataRecebimento(nf);
-              const diasRec = dtRec
-                ? Math.floor((dtRec.getTime() - Date.now()) / 86_400_000)
-                : null;
-
-              function stop(handler: () => void) {
-                return (event: { stopPropagation: () => void }) => {
-                  event.stopPropagation();
-                  handler();
-                };
-              }
-
-              return (
-                <tr
-                  key={nf.id}
-                  style={{ cursor: 'pointer', opacity: nf.emitida ? 0.75 : 1 }}
-                  onClick={() => onDetalhe(nf.id)}
-                >
-                  <td>
-                    <strong>{nf.numero}</strong>
-                  </td>
-                  <td>
-                    {contractName(contrato) || '—'}
-                    <div
-                      style={{ fontSize: 13, color: 'var(--color-text-muted)' }}
-                    >
-                      {contractClient(contrato) || '—'}
-                    </div>
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: 700 }}>
-                    {formatBRL(num(nf.valor))}
-                  </td>
-                  <td>{formatDate(nf.dataLimite)}</td>
-                  <td>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: nf.emitida
-                          ? 'var(--color-info)'
-                          : 'var(--color-text-muted)',
-                      }}
-                    >
-                      {dtRec ? dtRec.toLocaleDateString('pt-BR') : '—'}
-                    </div>
-                    <div
-                      style={{ fontSize: 13, color: 'var(--color-text-muted)' }}
-                    >
-                      {prazo}d após emissão
-                      {nf.emitida && diasRec !== null && diasRec >= 0
-                        ? ` · em ${diasRec}d`
-                        : nf.emitida && diasRec !== null && diasRec < 0
-                          ? ' · recebido'
-                          : ''}
-                    </div>
-                  </td>
-                  <td>
-                    {nf.emitida ? (
-                      <>
-                        <Badge style={{ background: 'rgba(56,161,105,.15)', color: '#38A169' }}>
-                          ✓ EMITIDA
-                        </Badge>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            color: 'var(--color-text-muted)',
-                            marginTop: 2,
-                          }}
-                        >
-                          em {formatDate(nf.dataEmissaoReal)}
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <Badge variant={st.status === 'vencida' ? 'destructive' : st.status === 'proximo_vencer' ? 'warning' : 'success'}>
-                          {st.status === 'vencida'
-                            ? '🔴 Vencida'
-                            : st.status === 'proximo_vencer'
-                              ? '⚠️ Próxima'
-                              : '🟢 No prazo'}
-                        </Badge>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            color: 'var(--color-text-muted)',
-                            marginTop: 2,
-                          }}
-                        >
-                          {st.status === 'vencida'
-                            ? `${Math.abs(diasAteMeioDia(nf.dataLimite))}d atrás`
-                            : `em ${st.dias}d`}
-                        </div>
-                      </>
-                    )}
-                  </td>
-                  <td>
-                    <div
-                      style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}
-                    >
-                      {!nf.emitida ? (
-                        <a
-                          className="action-link"
-                          style={{
-                            cursor: 'pointer',
-                            color: 'var(--color-success)',
-                            fontWeight: 600,
-                          }}
-                          onClick={stop(() => onEmitir(nf.id))}
-                        >
-                          ✓ Marcar Emitida
-                        </a>
-                      ) : (
-                        <a
-                          className="action-link"
-                          style={{
-                            cursor: 'pointer',
-                            color: 'var(--color-warning)',
-                          }}
-                          onClick={stop(() => handleCancelar(nf.id))}
-                        >
-                          ↶ Desfazer Emissão
-                        </a>
-                      )}
-                      <a
-                        className="action-link"
-                        style={{ cursor: 'pointer' }}
-                        onClick={stop(() => onEditar(nf))}
-                      >
-                        Editar
-                      </a>
-                      <a
-                        className="action-link danger"
-                        style={{ cursor: 'pointer' }}
-                        onClick={stop(() => handleExcluir(nf))}
-                      >
-                        Excluir
-                      </a>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+    <Card className="p-4">
+      <DataTable
+        rows={notas}
+        columns={nfColumns}
+        rowKey={(nf) => nf.id}
+        onRowClick={(nf) => onDetalhe(nf.id)}
+        emptyMessage="Nenhuma nota fiscal encontrada"
+        searchPlaceholder="Buscar por NF, contrato ou cliente…"
+        globalFilterFn={(nf, q) => {
+          const c = contractById(nf.contractId);
+          return (
+            nf.numero.toLowerCase().includes(q) ||
+            contractName(c).toLowerCase().includes(q) ||
+            contractClient(c).toLowerCase().includes(q)
+          );
+        }}
+        filters={nfFilters}
+      />
     </Card>
   );
 }

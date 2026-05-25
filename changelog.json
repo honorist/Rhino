@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.4.1",
+      "date": "2026-05-25",
+      "summary": "Fase 7: NotasFiscais migrada para DataTable v2 (search + filtro situação)",
+      "changes": [
+        "NotasFiscais/ListaTab: raw <table> substituída por DataTable v2.",
+        "Busca global por NF, contrato e cliente; filtro facetado por situação (emitida/pendente).",
+        "handleCancelar/handleExcluir convertidos para useCallback para estabilidade do useMemo de colunas.",
+        "stopPropagation inline nos botões de ação para não disparar onRowClick."
+      ]
+    },
+    {
       "version": "1.4.0",
       "date": "2026-05-25",
       "summary": "Fase 7: DataTable v2 — global search + filtros facetados; piloto em Cláusulas",
