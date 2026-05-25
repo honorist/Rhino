@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../../components/ui/Button';
+import DataTable, { type Column, type FacetedFilter } from '../../components/ui/DataTable';
 import { Badge } from '../../components/ui/badge';
 import Card from '../../components/ui/Card';
 import {
@@ -327,140 +328,125 @@ interface TabelaProps {
   onExcluir: (c: Clausula) => void;
 }
 
+const CLAUSULA_COLUMNS = (
+  onEditar: (c: Clausula) => void,
+  onToggle: (c: Clausula) => void,
+  onExcluir: (c: Clausula) => void,
+): Column<Clausula>[] => [
+  {
+    header: 'Título',
+    cell: (c) => <strong className={c.ativa ? '' : 'opacity-55'}>{c.titulo}</strong>,
+    sortable: true,
+    sortAccessor: (c) => c.titulo,
+  },
+  {
+    header: 'Categoria',
+    cell: (c) => (
+      <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">
+        {categoriaLabel(c.categoria)}
+      </span>
+    ),
+    sortable: true,
+    sortAccessor: (c) => c.categoria,
+  },
+  {
+    header: 'Texto',
+    cell: (c) => (
+      <span className="text-sm text-muted-foreground opacity-55 block max-w-[380px] truncate">
+        {c.texto.length > 120 ? `${c.texto.slice(0, 120)}…` : c.texto}
+      </span>
+    ),
+  },
+  {
+    header: 'Tags',
+    cell: (c) => {
+      const tags = c.tags ?? [];
+      return tags.length === 0 ? (
+        <span className="text-xs text-muted-foreground">—</span>
+      ) : (
+        <div className="flex flex-wrap gap-1">
+          {tags.slice(0, 3).map((t) => (
+            <Badge key={t} variant="secondary" className="text-[10px]">
+              {t}
+            </Badge>
+          ))}
+        </div>
+      );
+    },
+  },
+  {
+    header: 'Uso',
+    align: 'center',
+    sortable: true,
+    sortAccessor: (c) => c.usoCount ?? 0,
+    cell: (c) => (
+      <span className={`font-semibold ${(c.usoCount ?? 0) > 0 ? 'text-blue-700' : 'text-muted-foreground'}`}>
+        {c.usoCount ?? 0}
+      </span>
+    ),
+  },
+  {
+    header: 'Status',
+    align: 'center',
+    cell: (c) =>
+      c.ativa ? (
+        <Badge variant="success" className="text-[11px]">ativa</Badge>
+      ) : (
+        <Badge variant="destructive" className="text-[11px] opacity-70">inativa</Badge>
+      ),
+  },
+  {
+    header: 'Ações',
+    cell: (c) => (
+      <div className="flex gap-3">
+        <button type="button" className="action-link" onClick={() => onEditar(c)}>Editar</button>
+        <button type="button" className="action-link" onClick={() => onToggle(c)}>
+          {c.ativa ? 'Desativar' : 'Ativar'}
+        </button>
+        <button type="button" className="action-link danger" onClick={() => onExcluir(c)}>Excluir</button>
+      </div>
+    ),
+  },
+];
+
+const CLAUSULA_FILTERS: FacetedFilter<Clausula>[] = [
+  {
+    id: 'status',
+    label: 'Status',
+    accessor: (c) => c.ativa,
+    options: [
+      { label: 'Ativa', value: true },
+      { label: 'Inativa', value: false },
+    ],
+  },
+  {
+    id: 'categoria',
+    label: 'Categoria',
+    accessor: (c) => c.categoria,
+    options: CATEGORIAS_FORM.map((cat) => ({ label: cat.label, value: cat.value })),
+  },
+];
+
 function ClausulasTabela({
   clausulas,
   onEditar,
   onToggle,
   onExcluir,
 }: TabelaProps) {
+  const columns = CLAUSULA_COLUMNS(onEditar, onToggle, onExcluir);
   return (
-    <Card style={{ padding: 0 }}>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Título</th>
-              <th>Categoria</th>
-              <th>Texto</th>
-              <th>Tags</th>
-              <th style={{ textAlign: 'center' }}>Uso</th>
-              <th style={{ textAlign: 'center' }}>Status</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {clausulas.map((c) => {
-              const tags = c.tags ?? [];
-              return (
-                <tr key={c.id} style={{ opacity: c.ativa ? 1 : 0.55 }}>
-                  <td>
-                    <strong>{c.titulo}</strong>
-                  </td>
-                  <td>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        color: '#1F497D',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {categoriaLabel(c.categoria)}
-                    </span>
-                  </td>
-                  <td
-                    style={{
-                      fontSize: 13,
-                      color: 'var(--color-text-muted)',
-                      maxWidth: 380,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {c.texto.length > 120
-                      ? `${c.texto.slice(0, 120)}…`
-                      : c.texto}
-                  </td>
-                  <td>
-                    {tags.length === 0 ? (
-                      <span className="text-muted" style={{ fontSize: 11 }}>
-                        —
-                      </span>
-                    ) : (
-                      tags.slice(0, 3).map((t) => (
-                        <Badge
-                          key={t}
-                          style={{
-                            background: '#f1f5f9',
-                            color: '#475569',
-                            fontSize: 10,
-                            marginRight: 3,
-                          }}
-                        >
-                          {t}
-                        </Badge>
-                      ))
-                    )}
-                  </td>
-                  <td
-                    style={{
-                      textAlign: 'center',
-                      fontWeight: 600,
-                      color: (c.usoCount ?? 0) > 0 ? '#1F497D' : '#94a3b8',
-                    }}
-                  >
-                    {c.usoCount ?? 0}
-                  </td>
-                  <td style={{ textAlign: 'center' }}>
-                    {c.ativa ? (
-                      <Badge
-                        style={{
-                          background: 'rgba(16,185,129,.15)',
-                          color: '#10b981',
-                          fontSize: 11,
-                        }}
-                      >
-                        ativa
-                      </Badge>
-                    ) : (
-                      <Badge
-                        style={{ background: '#fee', color: '#900', fontSize: 11 }}
-                      >
-                        inativa
-                      </Badge>
-                    )}
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <a
-                        className="action-link"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => onEditar(c)}
-                      >
-                        Editar
-                      </a>
-                      <a
-                        className="action-link"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => onToggle(c)}
-                      >
-                        {c.ativa ? 'Desativar' : 'Ativar'}
-                      </a>
-                      <a
-                        className="action-link danger"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => onExcluir(c)}
-                      >
-                        Excluir
-                      </a>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+    <Card className="p-4">
+      <DataTable
+        rows={clausulas}
+        columns={columns}
+        rowKey={(c) => c.id}
+        emptyMessage="Nenhuma cláusula encontrada"
+        searchPlaceholder="Buscar por título ou texto…"
+        globalFilterFn={(c, q) =>
+          c.titulo.toLowerCase().includes(q) || c.texto.toLowerCase().includes(q)
+        }
+        filters={CLAUSULA_FILTERS}
+      />
     </Card>
   );
 }

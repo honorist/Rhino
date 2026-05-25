@@ -8,7 +8,7 @@ import {
   type SortingState,
   type VisibilityState,
 } from '@tanstack/react-table';
-import { ArrowDown, ArrowUp, ArrowUpDown, SlidersHorizontal } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, Search, SlidersHorizontal, X } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import {
   DropdownMenu,
@@ -40,6 +40,14 @@ export interface Column<T> {
   hideable?: boolean;
 }
 
+/** Filtro facetado — filtra por valores discretos de uma coluna (ex.: status). */
+export interface FacetedFilter<T> {
+  id: string;
+  label: string;
+  options: { label: string; value: unknown }[];
+  accessor: (row: T) => unknown;
+}
+
 /** Ação em lote — recebe os IDs das linhas selecionadas. */
 export interface BulkAction<T> {
   label: string;
@@ -66,6 +74,21 @@ interface DataTableProps<T> {
   bulkActions?: BulkAction<T>[];
   /** Exibe botão de toggle de colunas no canto superior direito. */
   showColumnToggle?: boolean;
+  /**
+   * Placeholder do campo de busca global. Quando presente, exibe um input de
+   * pesquisa que filtra linhas usando `globalFilterFn`.
+   */
+  searchPlaceholder?: string;
+  /**
+   * Função que determina se a linha passa pelo filtro de busca global.
+   * Recebe a linha original e o texto digitado em minúsculas.
+   */
+  globalFilterFn?: (row: T, search: string) => boolean;
+  /**
+   * Filtros facetados — checkboxes por valores discretos de uma coluna
+   * (ex.: status = ativo/inativo). Aparecem na barra de ferramentas.
+   */
+  filters?: FacetedFilter<T>[];
   className?: string;
 }
 
@@ -93,11 +116,48 @@ export default function DataTable<T>({
   selectable = false,
   bulkActions,
   showColumnToggle = false,
+  searchPlaceholder,
+  globalFilterFn,
+  filters,
   className,
 }: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [search, setSearch] = useState('');
+  const [activeFilters, setActiveFilters] = useState<Record<string, Set<unknown>>>({});
+
+  const filteredRows = useMemo(() => {
+    let result = rows;
+    const q = search.trim().toLowerCase();
+    if (q && globalFilterFn) {
+      result = result.filter((row) => globalFilterFn(row, q));
+    }
+    for (const [filterId, values] of Object.entries(activeFilters)) {
+      if (values.size === 0) continue;
+      const f = filters?.find((x) => x.id === filterId);
+      if (!f) continue;
+      result = result.filter((row) => values.has(f.accessor(row)));
+    }
+    return result;
+  }, [rows, search, activeFilters, globalFilterFn, filters]);
+
+  const toggleFacet = (filterId: string, value: unknown) => {
+    setActiveFilters((prev) => {
+      const next = { ...prev };
+      const set = new Set(next[filterId] ?? []);
+      if (set.has(value)) set.delete(value);
+      else set.add(value);
+      next[filterId] = set;
+      return next;
+    });
+  };
+
+  const clearFacet = (filterId: string) => {
+    setActiveFilters((prev) => ({ ...prev, [filterId]: new Set() }));
+  };
+
+  const hasActiveFilters = Object.values(activeFilters).some((s) => s.size > 0);
 
   const tableColumns = useMemo<ColumnDef<T>[]>(
     () =>
@@ -114,7 +174,7 @@ export default function DataTable<T>({
   );
 
   const table = useReactTable({
-    data: rows,
+    data: filteredRows,
     columns: tableColumns,
     state: { sorting, columnVisibility },
     onSortingChange: setSorting,
@@ -164,34 +224,114 @@ export default function DataTable<T>({
 
   return (
     <div className={cn('table-wrap', className)}>
-      {showColumnToggle && hideableColumns.length > 0 && (
-        <div className="flex justify-end mb-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm hover:bg-muted/50 transition-colors"
-              >
-                <SlidersHorizontal size={13} />
-                Colunas
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
-                Mostrar colunas
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {hideableColumns.map((col) => (
-                <DropdownMenuCheckboxItem
-                  key={col.id}
-                  checked={col.getIsVisible()}
-                  onCheckedChange={(val) => col.toggleVisibility(val)}
-                >
-                  {col.columnDef.header as string}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+      {/* Toolbar: search + faceted filters + column toggle */}
+      {(searchPlaceholder || (filters && filters.length > 0) || (showColumnToggle && hideableColumns.length > 0)) && (
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          {searchPlaceholder && globalFilterFn && (
+            <div className="relative flex-1 min-w-[160px] max-w-xs">
+              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={searchPlaceholder}
+                className="h-8 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </div>
+          )}
+          {filters?.map((f) => {
+            const active = activeFilters[f.id] ?? new Set();
+            return (
+              <DropdownMenu key={f.id}>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors',
+                      active.size > 0
+                        ? 'border-primary bg-primary/5 text-primary'
+                        : 'border-border bg-background hover:bg-muted/50',
+                    )}
+                  >
+                    {f.label}
+                    {active.size > 0 && (
+                      <span className="rounded-full bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 leading-none">
+                        {active.size}
+                      </span>
+                    )}
+                    <ChevronDown size={12} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-44">
+                  <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                    {f.label}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {f.options.map((opt) => (
+                    <DropdownMenuCheckboxItem
+                      key={String(opt.value)}
+                      checked={active.has(opt.value)}
+                      onCheckedChange={() => toggleFacet(f.id, opt.value)}
+                    >
+                      {opt.label}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                  {active.size > 0 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => clearFacet(f.id)}
+                      >
+                        <X size={11} /> Limpar filtro
+                      </button>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            );
+          })}
+          {hasActiveFilters && (
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setActiveFilters({})}
+            >
+              <X size={11} /> Limpar tudo
+            </button>
+          )}
+          {/* Push column toggle to the right */}
+          {showColumnToggle && hideableColumns.length > 0 && (
+            <div className="ml-auto">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm hover:bg-muted/50 transition-colors"
+                  >
+                    <SlidersHorizontal size={13} />
+                    Colunas
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                    Mostrar colunas
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {hideableColumns.map((col) => (
+                    <DropdownMenuCheckboxItem
+                      key={col.id}
+                      checked={col.getIsVisible()}
+                      onCheckedChange={(val) => col.toggleVisibility(val)}
+                    >
+                      {col.columnDef.header as string}
+                    </DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </div>
       )}
       {selectable && selectedRows.length > 0 && bulkActions && bulkActions.length > 0 && (
