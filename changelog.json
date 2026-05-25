@@ -1,6 +1,19 @@
 {
   "entries": [
     {
+      "version": "1.4.2",
+      "date": "2026-05-25",
+      "summary": "Fase 7: Propostas migrada para DataTable v2",
+      "changes": [
+        "Propostas: raw <table> de 9 colunas substituída por DataTable v2.",
+        "Colunas sortáveis: Número (sortAccessor p.numero), Valor (p.valorTotal), Emissão (p.dataEmissao).",
+        "handleDuplicar e handleExcluir convertidos para useCallback para estabilidade do useMemo de colunas.",
+        "Contrato e Ações usam stopPropagation para não disparar onRowClick (navigate para /proposta/:id).",
+        "Column<T> interface: campo id?: string adicionado ao DataTable para identificação opcional de colunas.",
+        "showColumnToggle ativo: toggle de visibilidade de colunas disponível."
+      ]
+    },
+    {
       "version": "1.4.1",
       "date": "2026-05-25",
       "summary": "Fase 7: NotasFiscais migrada para DataTable v2 (search + filtro situação)",

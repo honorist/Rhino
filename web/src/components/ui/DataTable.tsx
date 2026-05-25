@@ -24,6 +24,8 @@ import {
  * Internamente é convertida para ColumnDef do TanStack Table.
  */
 export interface Column<T> {
+  /** Identificador opcional da coluna (informativo). */
+  id?: string;
   /** Texto do cabeçalho da coluna. */
   header: string;
   /** Render da célula a partir da linha. */

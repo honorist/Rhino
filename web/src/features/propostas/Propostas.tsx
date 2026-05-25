@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, useCallback, useMemo, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
@@ -19,6 +19,7 @@ import { usePropostas } from '../resources';
 import type { Proposta } from '../../types/domain';
 import { useCriarProposta, useDeletarProposta, useDuplicarProposta } from './queries';
 import { STATUS_COLORS, STATUS_LABELS, numeroCompleto } from './shared';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 
 const num = (v: unknown): number => Number(v) || 0;
 
@@ -71,7 +72,7 @@ export default function Propostas() {
     return matchStatus && matchBusca;
   });
 
-  function handleDuplicar(p: Proposta) {
+  const handleDuplicar = useCallback((p: Proposta) => {
     if (
       !window.confirm(
         'Criar nova revisão dessa proposta? A revisão atual ficará arquivada para histórico.',
@@ -86,9 +87,9 @@ export default function Propostas() {
       },
       onError: (error) => toast.error(`Erro: ${error.message}`),
     });
-  }
+  }, [duplicar, navigate]);
 
-  function handleExcluir(p: Proposta) {
+  const handleExcluir = useCallback((p: Proposta) => {
     if (
       !window.confirm(
         `Excluir ${numeroCompleto(p)}? O contrato em prospecção vinculado NÃO ` +
@@ -101,7 +102,91 @@ export default function Propostas() {
       onSuccess: () => toast.success('Proposta excluída'),
       onError: (error) => toast.error(`Erro: ${error.message}`),
     });
-  }
+  }, [deletar]);
+
+  const propostaColumns = useMemo((): Column<Proposta>[] => [
+    {
+      id: 'numero',
+      header: 'Número',
+      sortable: true,
+      sortAccessor: (p) => p.numero ?? '',
+      cell: (p) => <strong>{numeroCompleto(p)}</strong>,
+    },
+    {
+      id: 'titulo',
+      header: 'Título',
+      cell: (p) => p.titulo || '—',
+    },
+    {
+      id: 'cliente',
+      header: 'Cliente',
+      cell: (p) => p.clienteEmpresa || p.clienteNome || '—',
+    },
+    {
+      id: 'tipo',
+      header: 'Tipo',
+      cell: (p) => (
+        <Badge style={{ background: 'rgba(31,73,125,.12)', color: '#1F497D' }}>
+          {TIPO_LABELS[p.tipo ?? ''] ?? p.tipo ?? '—'}
+        </Badge>
+      ),
+    },
+    {
+      id: 'valor',
+      header: 'Valor',
+      sortable: true,
+      sortAccessor: (p) => num(p.valorTotal),
+      align: 'right',
+      cell: (p) => <strong>{formatBRL(num(p.valorTotal))}</strong>,
+    },
+    {
+      id: 'emissao',
+      header: 'Emissão',
+      sortable: true,
+      sortAccessor: (p) => p.dataEmissao ?? '',
+      cell: (p) => formatDate(p.dataEmissao),
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      cell: (p) => {
+        const cor = STATUS_COLORS[p.status ?? 'rascunho'] ?? STATUS_COLORS.rascunho;
+        return (
+          <Badge style={{ background: cor.bg, color: cor.fg, border: `1px solid ${cor.border}` }}>
+            {STATUS_LABELS[p.status ?? 'rascunho'] ?? p.status}
+          </Badge>
+        );
+      },
+    },
+    {
+      id: 'contrato',
+      header: 'Contrato',
+      cell: (p) =>
+        p.contratoId ? (
+          <Link
+            className="action-link"
+            to={`/contratos/${p.contratoId}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            🔗 Ver
+          </Link>
+        ) : (
+          <span className="text-muted">—</span>
+        ),
+    },
+    {
+      id: 'acoes',
+      header: 'Ações',
+      hideable: false,
+      cell: (p) => (
+        <div style={{ display: 'flex', gap: 8 }} onClick={(e) => e.stopPropagation()}>
+          <Link className="action-link" to={`/proposta/${p.id}`}>Editar</Link>
+          <a className="action-link" style={{ cursor: 'pointer' }} onClick={() => handleDuplicar(p)}>Rev.+1</a>
+          <a className="action-link danger" style={{ cursor: 'pointer' }} onClick={() => handleExcluir(p)}>Excluir</a>
+        </div>
+      ),
+    },
+  ] as Column<Proposta>[], [handleDuplicar, handleExcluir]);
 
   return (
     <>
@@ -171,124 +256,18 @@ export default function Propostas() {
           <p className="text-danger">Erro ao carregar propostas.</p>
         </Card>
       ) : (
-        <Card>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Número</th>
-                  <th>Título</th>
-                  <th>Cliente</th>
-                  <th>Tipo</th>
-                  <th>Valor</th>
-                  <th>Emissão</th>
-                  <th>Status</th>
-                  <th>Contrato</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {propostas.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={9}
-                      className="text-center text-muted"
-                      style={{ padding: 'var(--sp-xl)' }}
-                    >
-                      {termo || filtro !== 'todos'
-                        ? 'Nenhuma proposta encontrada com esses filtros'
-                        : 'Nenhuma proposta cadastrada.'}
-                    </td>
-                  </tr>
-                ) : (
-                  propostas.map((p) => {
-                    const cor =
-                      STATUS_COLORS[p.status ?? 'rascunho'] ??
-                      STATUS_COLORS.rascunho;
-                    return (
-                      <tr
-                        key={p.id}
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => navigate(`/proposta/${p.id}`)}
-                      >
-                        <td>
-                          <strong>{numeroCompleto(p)}</strong>
-                        </td>
-                        <td>{p.titulo || '—'}</td>
-                        <td>{p.clienteEmpresa || p.clienteNome || '—'}</td>
-                        <td>
-                          <Badge
-                            style={{
-                              background: 'rgba(31,73,125,.12)',
-                              color: '#1F497D',
-                            }}
-                          >
-                            {TIPO_LABELS[p.tipo ?? ''] ?? p.tipo ?? '—'}
-                          </Badge>
-                        </td>
-                        <td>
-                          <strong>{formatBRL(num(p.valorTotal))}</strong>
-                        </td>
-                        <td>{formatDate(p.dataEmissao)}</td>
-                        <td>
-                          <Badge
-                            style={{
-                              background: cor.bg,
-                              color: cor.fg,
-                              border: `1px solid ${cor.border}`,
-                            }}
-                          >
-                            {STATUS_LABELS[p.status ?? 'rascunho'] ?? p.status}
-                          </Badge>
-                        </td>
-                        <td>
-                          {p.contratoId ? (
-                            <Link
-                              className="action-link"
-                              to={`/contratos/${p.contratoId}`}
-                              onClick={(event) => event.stopPropagation()}
-                            >
-                              🔗 Ver
-                            </Link>
-                          ) : (
-                            <span className="text-muted">—</span>
-                          )}
-                        </td>
-                        <td>
-                          <div
-                            style={{ display: 'flex', gap: 8 }}
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            <Link
-                              className="action-link"
-                              to={`/proposta/${p.id}`}
-                            >
-                              Editar
-                            </Link>
-                            <a
-                              className="action-link"
-                              style={{ cursor: 'pointer' }}
-                              onClick={() => handleDuplicar(p)}
-                            >
-                              Rev.+1
-                            </a>
-                            <a
-                              className="action-link danger"
-                              style={{ cursor: 'pointer' }}
-                              onClick={() => handleExcluir(p)}
-                            >
-                              Excluir
-                            </a>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <DataTable
+          rows={propostas}
+          columns={propostaColumns}
+          rowKey={(p) => String(p.id)}
+          onRowClick={(p) => navigate(`/proposta/${p.id}`)}
+          emptyMessage={
+            termo || filtro !== 'todos'
+              ? 'Nenhuma proposta encontrada com esses filtros'
+              : 'Nenhuma proposta cadastrada.'
+          }
+          showColumnToggle
+        />
       )}
 
       {novaAberta && <NovaPropostaModal onClose={() => setNovaAberta(false)} />}
