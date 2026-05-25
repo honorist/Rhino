@@ -205,8 +205,7 @@ function TemplateModal({
                 nome: label,
                 label,
                 validadeMeses: Number(validade) || 12,
-                checklist: checklist.split('
-').map((s) => s.trim()).filter(Boolean),
+                checklist: checklist.split('\n').map((s) => s.trim()).filter(Boolean),
               })
             }
             disabled={salvar.isPending}
