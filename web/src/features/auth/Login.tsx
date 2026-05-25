@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import Button from '../../components/ui/Button';
+import { Input } from '../../components/ui/input';
 import { useForgotPassword, useLogin } from './queries';
 
 /**
@@ -75,9 +77,8 @@ function LoginForm({
         <label className="form-label" htmlFor="login-email">
           Email
         </label>
-        <input
+        <Input
           id="login-email"
-          className="form-control"
           name="email"
           type="email"
           autoComplete="username"
@@ -91,9 +92,8 @@ function LoginForm({
           Senha
         </label>
         <div style={{ position: 'relative' }}>
-          <input
+          <Input
             id="loginPwd"
-            className="form-control"
             name="password"
             type={showPwd ? 'text' : 'password'}
             autoComplete="current-password"
@@ -132,14 +132,13 @@ function LoginForm({
           {error}
         </div>
       )}
-      <button
-        className="btn btn-primary"
+      <Button
         type="submit"
         style={{ width: '100%' }}
         disabled={login.isPending}
       >
         {login.isPending ? 'Entrando…' : 'Entrar'}
-      </button>
+      </Button>
       <div style={{ textAlign: 'center', marginTop: 'var(--sp-md)' }}>
         <a
           href="#"
@@ -218,9 +217,8 @@ function ForgotForm({ onBack }: { onBack: () => void }) {
         <label className="form-label" htmlFor="forgot-email">
           Email
         </label>
-        <input
+        <Input
           id="forgot-email"
-          className="form-control"
           name="email"
           type="email"
           autoComplete="username"
@@ -245,14 +243,13 @@ function ForgotForm({ onBack }: { onBack: () => void }) {
           {msg.text}
         </div>
       )}
-      <button
-        className="btn btn-primary"
+      <Button
         type="submit"
         style={{ width: '100%' }}
         disabled={forgot.isPending}
       >
         {forgot.isPending ? 'Enviando…' : 'Enviar link'}
-      </button>
+      </Button>
       <div style={{ textAlign: 'center', marginTop: 'var(--sp-md)' }}>
         <a
           href="#"

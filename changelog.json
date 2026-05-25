@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.91",
+      "date": "2026-05-25",
+      "summary": "Fase 6 — CSS legado erradicado em investimentos + auth",
+      "changes": [
+        "Investimentos.tsx: 4 card→<Card>, card-header/title→Tailwind, 6 badge spans→<Badge>, stat-card mantido como className extra.",
+        "Login.tsx: 3 form-control→<Input>, 2 btn btn-primary→<Button>.",
+        "LgpdModal.tsx: 2 btn→<Button variant='secondary'/'primary'>."
+      ]
+    },
+    {
       "version": "1.2.90",
       "date": "2026-05-25",
       "summary": "Fase 6 — CSS legado erradicado em contas-pagar",

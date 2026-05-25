@@ -1,4 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog';
+import Button from '../../components/ui/Button';
 import { useAcceptTerms, useLogout } from './queries';
 
 /**
@@ -100,24 +101,21 @@ export default function LgpdModal() {
             </p>
           </div>
           <div className="flex justify-end gap-4 border-t border-border p-6">
-            <button
+            <Button
               id="btnRejeitar"
-              type="button"
-              className="btn btn-secondary"
+              variant="secondary"
               onClick={handleReject}
               disabled={logout.isPending}
             >
               Não aceito (sair)
-            </button>
-            <button
+            </Button>
+            <Button
               id="btnAceitarTermos"
-              type="button"
-              className="btn btn-primary"
               onClick={handleAccept}
               disabled={accept.isPending}
             >
               {accept.isPending ? 'Salvando…' : 'Aceito'}
-            </button>
+            </Button>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

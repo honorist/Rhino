@@ -2,6 +2,8 @@ import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/Button';
+import { Badge } from '../../components/ui/badge';
+import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
@@ -140,11 +142,11 @@ export default function Investimentos() {
       {investimentosQuery.isLoading ? (
         <Spinner label="Carregando aportes..." />
       ) : investimentosQuery.isError ? (
-        <div className="card" style={{ padding: 24 }}>
+        <Card style={{ padding: 24 }}>
           <p className="text-danger">
             Erro ao carregar investimentos. Tente novamente.
           </p>
-        </div>
+        </Card>
       ) : (
         <>
           <div className="grid-3 mb-2xl">
@@ -206,9 +208,9 @@ export default function Investimentos() {
             ))}
           </div>
 
-          <div className="card">
-            <div className="card-header">
-              <h3 className="card-title">Histórico de Aportes</h3>
+          <Card>
+            <div className="flex justify-between items-center mb-4 px-5 pt-5">
+              <h3 className="text-[15px] font-semibold tracking-tight">Histórico de Aportes</h3>
               <span
                 style={{ fontSize: 13, color: 'var(--color-text-muted)' }}
               >
@@ -322,7 +324,7 @@ export default function Investimentos() {
                 </table>
               </div>
             )}
-          </div>
+          </Card>
         </>
       )}
 
@@ -363,39 +365,33 @@ function KpiCard({
   cor?: string;
 }) {
   return (
-    <div className="card stat-card" style={{ borderLeft: `4px solid ${borda}` }}>
+    <Card className="stat-card" style={{ borderLeft: `4px solid ${borda}` }}>
       <div className="stat-value" style={{ color: cor }}>
         {valor}
       </div>
       <div className="stat-label">{label}</div>
-    </div>
+    </Card>
   );
 }
 
 function OrigemBadge({ origem }: { origem: AporteOrigem }) {
   return origem === 'caixa_empresa' ? (
-    <span
-      className="badge"
-      style={{ background: 'rgba(214,158,46,.15)', color: '#D69E2E' }}
-    >
+    <Badge style={{ background: 'rgba(214,158,46,.15)', color: '#D69E2E' }}>
       💰 Caixa
-    </span>
+    </Badge>
   ) : (
-    <span
-      className="badge"
-      style={{ background: 'rgba(49,130,206,.15)', color: '#3182CE' }}
-    >
+    <Badge style={{ background: 'rgba(49,130,206,.15)', color: '#3182CE' }}>
       👥 Sócio
-    </span>
+    </Badge>
   );
 }
 
 function TipoBadge({ tipo }: { tipo: TipoBase }) {
   const cor = tipo.cor ?? '#718096';
   return (
-    <span className="badge" style={{ background: `${cor}22`, color: cor }}>
+    <Badge style={{ background: `${cor}22`, color: cor }}>
       {tipo.icon} {tipo.label}
-    </span>
+    </Badge>
   );
 }
 
@@ -410,12 +406,9 @@ function DestinoBadge({
 }) {
   if (destino === 'base') {
     return (
-      <span
-        className="badge"
-        style={{ background: 'rgba(49,130,206,.15)', color: '#3182CE' }}
-      >
+      <Badge style={{ background: 'rgba(49,130,206,.15)', color: '#3182CE' }}>
         ⚙️ BASE
-      </span>
+      </Badge>
     );
   }
   if (contrato) {
@@ -425,8 +418,7 @@ function DestinoBadge({
         style={{ textDecoration: 'none' }}
         onClick={(event) => event.stopPropagation()}
       >
-        <span
-          className="badge"
+        <Badge
           style={{
             background: 'rgba(46,125,82,.15)',
             color: '#2E7D52',
@@ -434,17 +426,14 @@ function DestinoBadge({
           }}
         >
           📋 {contractName(contrato)}
-        </span>
+        </Badge>
       </Link>
     );
   }
   return (
-    <span
-      className="badge"
-      style={{ background: 'rgba(113,128,150,.15)', color: '#718096' }}
-    >
+    <Badge style={{ background: 'rgba(113,128,150,.15)', color: '#718096' }}>
       📋 {contractId ? 'Contrato removido' : 'Contrato'}
-    </span>
+    </Badge>
   );
 }
 
@@ -461,9 +450,9 @@ function ResumoPorSocio({
   totalSocios,
 }: ResumoPorSocioProps) {
   return (
-    <div className="card mb-2xl">
-      <div className="card-header">
-        <h3 className="card-title">Aportes por Sócio</h3>
+    <Card style={{ marginBottom: 48 }}>
+      <div className="flex justify-between items-center mb-4 px-5 pt-5">
+        <h3 className="text-[15px] font-semibold tracking-tight">Aportes por Sócio</h3>
         <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
           Comparando com participação societária
         </span>
@@ -532,7 +521,7 @@ function ResumoPorSocio({
           </tbody>
         </table>
       </div>
-    </div>
+    </Card>
   );
 }
 
