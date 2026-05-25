@@ -78,58 +78,24 @@ body {
   font-family: 'Nunito', system-ui, -apple-system, sans-serif;
   background: var(--color-bg);
   color: var(--color-text);
-  font-size: 17px;
-  line-height: 1.6;
+  font-size: 16px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ═══ Texto segue a cor do tema — adapta a light e dark ═══ */
+/* ═══ Texto — classes legadas pontuais (NÃO usar seletor de substring) ═══ */
+/* [class*="text-muted"] foi removido: capturava text-muted-foreground do shadcn */
+/* Os seletores [style*="color:..."] foram removidos: anulavam cores inline legítimas */
 .text-muted,
 .page-subtitle,
 .form-helper,
 .card-title,
 .stat-label,
-thead th,
 .filter-label,
 .sidebar-version,
-.text-secondary,
-[class*="text-muted"] {
-  color: var(--color-text) !important;
-  -webkit-text-fill-color: var(--color-text) !important;
-}
-
-/* Captura TODAS as cores cinzas claras usadas em style inline — adapta ao tema */
-[style*="color:#6B7280"],
-[style*="color: #6B7280"],
-[style*="color:#9CA3AF"],
-[style*="color: #9CA3AF"],
-[style*="color:#D1D5DB"],
-[style*="color: #D1D5DB"],
-[style*="color:#4B5563"],
-[style*="color: #4B5563"],
-[style*="color:#9B8F82"],
-[style*="color: #9B8F82"],
-[style*="color:#999"],
-[style*="color: #999"],
-[style*="color:#aaa"],
-[style*="color: #aaa"],
-[style*="color:#ccc"],
-[style*="color: #ccc"],
-[style*="color:rgba(75"],
-[style*="color: rgba(75"],
-[style*="color:var(--color-text-muted)"],
-[style*="color: var(--color-text-muted)"],
-[style*="color:var(--text-muted)"],
-[style*="color: var(--text-muted)"] {
-  color: var(--color-text) !important;
-  -webkit-text-fill-color: var(--color-text) !important;
-}
-
-/* ═══ Piso absoluto de legibilidade — 16px em qualquer elemento ═══ */
-body, p, span, div, button, a, label, input, select, textarea,
-td, th, li, strong, em {
-  font-size: 16px;
+.text-secondary {
+  color: var(--color-text-muted);
 }
 /* Headings e destaques acima do piso */
 body h1, body .page-title         { font-size: 30px; font-weight: 800; }

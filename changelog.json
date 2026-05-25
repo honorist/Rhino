@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.2.98",
+      "date": "2026-05-25",
+      "summary": "Fix crítico: remover seletores agressivos de main.css que bloqueavam visual shadcn",
+      "changes": [
+        "Removido [class*=\"text-muted\"] !important — capturava text-muted-foreground do shadcn e forçava preto.",
+        "Removidos [style*=\"color:#6B7280\"] etc. !important — anulavam todas as cores inline cinzas.",
+        "Corrigido body { font-size: 17px → 16px; line-height: 1.6 → 1.5 } para alinhar com shadcn.",
+        "Seletores legados (.text-muted, .card-title etc.) agora usam color sem !important."
+      ]
+    },
+    {
       "version": "1.2.97",
       "date": "2026-05-25",
       "summary": "Fase 6 CONCLUÍDA — CSS legado zerado em pages/NotFound + Placeholder",
