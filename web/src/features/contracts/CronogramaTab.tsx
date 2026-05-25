@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Spinner from '../../components/ui/Spinner';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR } from '../../lib/formatDate';
 import type { ContratoTabProps } from './ContratoDetail';
@@ -54,7 +54,6 @@ function ResumoCard({
 
 /** Aba Cronograma do contrato — etapas físico-financeiras + Gantt. */
 export default function CronogramaTab({ contract }: ContratoTabProps) {
-  const toast = useToast();
   const atividadesQuery = useAtividades(contract.id);
   const deletar = useDeleteAtividade(contract.id);
   const [modal, setModal] = useState<{ atividade: Atividade | null } | null>(
@@ -68,8 +67,8 @@ export default function CronogramaTab({ contract }: ContratoTabProps) {
   function handleExcluir(a: Atividade) {
     if (!window.confirm(`Excluir a etapa "${a.nome}"?`)) return;
     deletar.mutate(a.id, {
-      onSuccess: () => toast.show('Etapa excluída', 'success'),
-      onError: (e) => toast.show(e.message, 'danger'),
+      onSuccess: () => toast.success('Etapa excluída'),
+      onError: (e) => toast.error(e.message),
     });
   }
 

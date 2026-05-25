@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 
 import { Combobox } from '../../components/ui/combobox';
 import Spinner from '../../components/ui/Spinner';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import type { Cliente } from '../clientes/types';
 import { useClientes } from '../clientes/queries';
@@ -43,7 +43,6 @@ function formatDate(d?: string): string {
 
 /** Lista de Propostas Comerciais — migração de js/views/Propostas.js. */
 export default function Propostas() {
-  const toast = useToast();
   const navigate = useNavigate();
   const propostasQuery = usePropostas();
   const duplicar = useDuplicarProposta();
@@ -82,10 +81,10 @@ export default function Propostas() {
     }
     duplicar.mutate(p.id, {
       onSuccess: (r) => {
-        toast.show('Nova revisão criada', 'success');
+        toast.success('Nova revisão criada');
         if (r.proposta) navigate(`/proposta/${r.proposta.id}`);
       },
-      onError: (error) => toast.show(`Erro: ${error.message}`, 'danger'),
+      onError: (error) => toast.error(`Erro: ${error.message}`),
     });
   }
 
@@ -99,8 +98,8 @@ export default function Propostas() {
       return;
     }
     deletar.mutate(p.id, {
-      onSuccess: () => toast.show('Proposta excluída', 'success'),
-      onError: (error) => toast.show(`Erro: ${error.message}`, 'danger'),
+      onSuccess: () => toast.success('Proposta excluída'),
+      onError: (error) => toast.error(`Erro: ${error.message}`),
     });
   }
 
@@ -304,7 +303,6 @@ const TIPOS: { value: string; titulo: string; desc: string }[] = [
 ];
 
 function NovaPropostaModal({ onClose }: { onClose: () => void }) {
-  const toast = useToast();
   const navigate = useNavigate();
   const clientesQuery = useClientes();
   const criar = useCriarProposta();
@@ -326,11 +324,11 @@ function NovaPropostaModal({ onClose }: { onClose: () => void }) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!titulo.trim()) {
-      toast.show('Título é obrigatório', 'danger');
+      toast.error('Título é obrigatório');
       return;
     }
     if (!clienteId) {
-      toast.show('Selecione um cliente', 'danger');
+      toast.error('Selecione um cliente');
       return;
     }
     criar.mutate(
@@ -342,10 +340,10 @@ function NovaPropostaModal({ onClose }: { onClose: () => void }) {
       },
       {
         onSuccess: (r) => {
-          toast.show('Proposta criada — contrato em prospecção gerado', 'success');
+          toast.success('Proposta criada — contrato em prospecção gerado');
           if (r.proposta) navigate(`/proposta/${r.proposta.id}`);
         },
-        onError: (error) => toast.show(`Erro: ${error.message}`, 'danger'),
+        onError: (error) => toast.error(`Erro: ${error.message}`),
       },
     );
   }

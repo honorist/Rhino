@@ -10,7 +10,7 @@ import {
 import FormField from '../../components/ui/FormField';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import type { Almoxarifado, EstoqueItem } from './types';
 import { saldoTotal } from './saldo';
@@ -33,7 +33,6 @@ interface ItemModalProps {
 
 /** Modal de criação/edição de item de estoque. */
 export default function ItemModal({ item, almoxs, onClose }: ItemModalProps) {
-  const toast = useToast();
   const criar = useCriarItem();
   const editar = useEditarItem();
   const inativar = useInativarItem();
@@ -56,15 +55,15 @@ export default function ItemModal({ item, almoxs, onClose }: ItemModalProps) {
 
   function submit() {
     if (!descricao.trim()) {
-      toast.show('Descrição obrigatória', 'danger');
+      toast.error('Descrição obrigatória');
       return;
     }
     if (!unidade.trim()) {
-      toast.show('Unidade obrigatória', 'danger');
+      toast.error('Unidade obrigatória');
       return;
     }
     if (!categoria.trim()) {
-      toast.show('Categoria obrigatória', 'danger');
+      toast.error('Categoria obrigatória');
       return;
     }
     const input = {
@@ -77,10 +76,10 @@ export default function ItemModal({ item, almoxs, onClose }: ItemModalProps) {
     };
     const handlers = {
       onSuccess: () => {
-        toast.show(isEdit ? 'Item atualizado' : 'Item criado', 'success');
+        toast.success(isEdit ? 'Item atualizado' : 'Item criado');
         onClose();
       },
-      onError: (e: Error) => toast.show(e.message, 'danger'),
+      onError: (e: Error) => toast.error(e.message),
     };
     if (item) editar.mutate({ id: item.id, input }, handlers);
     else criar.mutate(input, handlers);
@@ -97,10 +96,10 @@ export default function ItemModal({ item, almoxs, onClose }: ItemModalProps) {
     }
     inativar.mutate(item.id, {
       onSuccess: () => {
-        toast.show('Item inativado', 'success');
+        toast.success('Item inativado');
         onClose();
       },
-      onError: (e) => toast.show(e.message, 'danger'),
+      onError: (e) => toast.error(e.message),
     });
   }
 

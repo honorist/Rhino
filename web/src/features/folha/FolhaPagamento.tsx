@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/native-select';
 import { DatePicker } from '../../components/ui/date-picker';
 import Spinner from '../../components/ui/Spinner';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import type { Contract } from '../contracts/types';
 import { useContracts } from '../contracts/queries';
@@ -76,7 +76,6 @@ function StatusBadge({ pago }: { pago: boolean }) {
 
 /** Tela de Folha de Pagamento — migração de js/views/FolhaPagamento.js. */
 export default function FolhaPagamento() {
-  const toast = useToast();
   const [competencia, setCompetencia] = useState(currentCompetencia);
 
   const folhaQuery = useFolha(competencia);
@@ -122,12 +121,11 @@ export default function FolhaPagamento() {
   function handleGerar() {
     gerarFolha.mutate(competencia, {
       onSuccess: (r) =>
-        toast.show(
-          `Folha de ${competencia} gerada — ${r.criadas} novo(s) registro(s)`,
-          'success',
-        ),
+        toast.success(
+          `Folha de ${competencia} gerada — ${r.criadas} novo(s) registro(s)`
+),
       onError: (error) =>
-        toast.show(`Erro ao gerar folha: ${error.message}`, 'danger'),
+        toast.error(`Erro ao gerar folha: ${error.message}`),
     });
   }
 
@@ -142,13 +140,12 @@ export default function FolhaPagamento() {
     }
     limparFolha.mutate(competencia, {
       onSuccess: (r) =>
-        toast.show(
+        toast.success(
           `${r.removidas} registro(s) removido(s)` +
-            (r.mantidas ? ` · ${r.mantidas} mantido(s) (já pago)` : ''),
-          'success',
-        ),
+            (r.mantidas ? ` · ${r.mantidas} mantido(s) (já pago)` : '')
+),
       onError: (error) =>
-        toast.show(`Erro ao limpar: ${error.message}`, 'danger'),
+        toast.error(`Erro ao limpar: ${error.message}`),
     });
   }
 
@@ -163,9 +160,9 @@ export default function FolhaPagamento() {
     estornarParcela.mutate(
       { id: row.id, parcela },
       {
-        onSuccess: () => toast.show('Pagamento estornado', 'success'),
+        onSuccess: () => toast.success('Pagamento estornado'),
         onError: (error) =>
-          toast.show(`Erro ao estornar: ${error.message}`, 'danger'),
+          toast.error(`Erro ao estornar: ${error.message}`),
       },
     );
   }
@@ -392,7 +389,6 @@ interface PagarModalProps {
 
 /** Modal de confirmação de pagamento de uma parcela. */
 function PagarModal({ row, parcela, onClose }: PagarModalProps) {
-  const toast = useToast();
   const pagarParcela = usePagarParcela();
 
   const label = parcela === 'vale' ? 'Vale' : 'Saldo';
@@ -411,11 +407,11 @@ function PagarModal({ row, parcela, onClose }: PagarModalProps) {
       },
       {
         onSuccess: () => {
-          toast.show(`${label} pago`, 'success');
+          toast.success(`${label} pago`);
           onClose();
         },
         onError: (error) =>
-          toast.show(`Erro ao pagar: ${error.message}`, 'danger'),
+          toast.error(`Erro ao pagar: ${error.message}`),
       },
     );
   }
@@ -478,7 +474,6 @@ interface AcertosModalProps {
  * viva da query da folha, então reflete add/editar/remover sem props extras.
  */
 function AcertosModal({ competencia, folhaId, onClose }: AcertosModalProps) {
-  const toast = useToast();
   const folhaQuery = useFolha(competencia);
   const addItem = useAddFolhaItem();
   const removeItem = useRemoveFolhaItem();
@@ -558,31 +553,30 @@ function AcertosModal({ competencia, folhaId, onClose }: AcertosModalProps) {
 
   function handleAdd() {
     if (!preset) {
-      toast.show('Escolha um item da lista', 'danger');
+      toast.error('Escolha um item da lista');
       return;
     }
     const valorNum = round2(Number.parseFloat(valor) || 0);
     if (valorNum <= 0) {
-      toast.show('Informe um valor maior que zero', 'danger');
+      toast.error('Informe um valor maior que zero');
       return;
     }
     const desc = presetDescricao(preset, Number.parseFloat(qtd) || 0, descricao);
     if (preset.calc === 'outro' && !desc) {
-      toast.show('Informe a descrição do lançamento', 'danger');
+      toast.error('Informe a descrição do lançamento');
       return;
     }
     addItem.mutate(
       { folhaId, tipo: preset.tipo, descricao: desc, valor: valorNum },
       {
         onSuccess: () => {
-          toast.show(
-            preset.tipo === 'provento' ? 'Provento lançado' : 'Desconto lançado',
-            'success',
-          );
+          toast.success(
+            preset.tipo === 'provento' ? 'Provento lançado' : 'Desconto lançado'
+);
           resetForm();
         },
         onError: (error) =>
-          toast.show(`Erro ao lançar: ${error.message}`, 'danger'),
+          toast.error(`Erro ao lançar: ${error.message}`),
       },
     );
   }
@@ -592,9 +586,9 @@ function AcertosModal({ competencia, folhaId, onClose }: AcertosModalProps) {
     removeItem.mutate(
       { folhaId, itemId },
       {
-        onSuccess: () => toast.show('Lançamento removido', 'success'),
+        onSuccess: () => toast.success('Lançamento removido'),
         onError: (error) =>
-          toast.show(`Erro ao remover: ${error.message}`, 'danger'),
+          toast.error(`Erro ao remover: ${error.message}`),
       },
     );
   }
@@ -607,18 +601,18 @@ function AcertosModal({ competencia, folhaId, onClose }: AcertosModalProps) {
   function handleEditSave(itemId: string) {
     const valorNum = round2(Number.parseFloat(editValor) || 0);
     if (valorNum <= 0) {
-      toast.show('Informe um valor maior que zero', 'danger');
+      toast.error('Informe um valor maior que zero');
       return;
     }
     updateItem.mutate(
       { folhaId, itemId, valor: valorNum },
       {
         onSuccess: () => {
-          toast.show('Lançamento atualizado', 'success');
+          toast.success('Lançamento atualizado');
           setEditId(null);
         },
         onError: (error) =>
-          toast.show(`Erro ao atualizar: ${error.message}`, 'danger'),
+          toast.error(`Erro ao atualizar: ${error.message}`),
       },
     );
   }

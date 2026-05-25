@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
 
 import { DatePicker } from '../../components/ui/date-picker';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import type { Documento } from '../../types/domain';
 import { useRecursos } from '../resources';
 import { TIPOS_DOC } from './constants';
@@ -58,7 +58,6 @@ export default function DocumentoFormModal({
   doc,
   onClose,
 }: DocumentoFormModalProps) {
-  const toast = useToast();
   const recursosQuery = useRecursos();
   const templatesQuery = useDocTemplates();
   const addMut = useAddDocumento();
@@ -109,11 +108,11 @@ export default function DocumentoFormModal({
 
   async function submit() {
     if (!tipo) {
-      toast.show('Selecione o tipo de documento', 'danger');
+      toast.error('Selecione o tipo de documento');
       return;
     }
     if (arquivo && arquivo.size > MAX_BYTES) {
-      toast.show('Arquivo excede 10 MB', 'danger');
+      toast.error('Arquivo excede 10 MB');
       return;
     }
     const templateId = tipo.startsWith('tpl:') ? tipo.slice(4) : undefined;
@@ -148,13 +147,12 @@ export default function DocumentoFormModal({
         );
         if (!up.ok) throw new Error((await up.text()) || `HTTP ${up.status}`);
       }
-      toast.show(isEdit ? 'Documento atualizado!' : 'Documento adicionado!', 'success');
+      toast.success(isEdit ? 'Documento atualizado!' : 'Documento adicionado!');
       onClose();
     } catch (e) {
-      toast.show(
-        `Erro ao salvar documento: ${e instanceof Error ? e.message : ''}`,
-        'danger',
-      );
+      toast.error(
+        `Erro ao salvar documento: ${e instanceof Error ? e.message : ''}`
+);
     } finally {
       setEnviando(false);
     }
@@ -172,8 +170,8 @@ export default function DocumentoFormModal({
     removerArquivo.mutate(
       { recursoId, docId: doc.id },
       {
-        onSuccess: () => toast.show('Arquivo removido', 'success'),
-        onError: (e) => toast.show(e.message, 'danger'),
+        onSuccess: () => toast.success('Arquivo removido'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }

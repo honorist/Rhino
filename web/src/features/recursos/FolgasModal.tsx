@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
 import { DatePicker } from '../../components/ui/date-picker';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR, todayISO } from '../../lib/formatDate';
 import { useContracts } from '../contracts/queries';
@@ -39,7 +39,6 @@ function NovaFolgaModal({
   recurso: Recurso;
   onClose: () => void;
 }) {
-  const toast = useToast();
   const addFolga = useAddFolga();
   const prox = calcProximaFolga(recurso);
   const cicloFolga = recurso.alocacaoAtual?.cicloFolga ?? 7;
@@ -59,17 +58,17 @@ function NovaFolgaModal({
 
   function submit() {
     if (!dataInicio) {
-      toast.show('Data de início obrigatória', 'danger');
+      toast.error('Data de início obrigatória');
       return;
     }
     addFolga.mutate(
       { recursoId: recurso.id, input: { dataInicio, dataFim, observacoes } },
       {
         onSuccess: () => {
-          toast.show('Folga registrada', 'success');
+          toast.success('Folga registrada');
           onClose();
         },
-        onError: (e) => toast.show(e.message, 'danger'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }
@@ -136,7 +135,6 @@ function ComprarPassagemModal({
   tipo: 'ida' | 'volta';
   onClose: () => void;
 }) {
-  const toast = useToast();
   const comprar = useComprarPassagem();
   const contractsQuery = useContracts();
   const contratos = (contractsQuery.data ?? []).filter(
@@ -162,7 +160,7 @@ function ComprarPassagemModal({
   function submit() {
     const v = Number(valor) || 0;
     if (v <= 0) {
-      toast.show('Informe o valor da passagem', 'danger');
+      toast.error('Informe o valor da passagem');
       return;
     }
     comprar.mutate(
@@ -187,10 +185,10 @@ function ComprarPassagemModal({
       },
       {
         onSuccess: () => {
-          toast.show('Passagem registrada e lançada no financeiro', 'success');
+          toast.success('Passagem registrada e lançada no financeiro');
           onClose();
         },
-        onError: (e) => toast.show(e.message, 'danger'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }
@@ -408,7 +406,6 @@ type SubModal =
 
 /** Modal de folgas de um colaborador. */
 export default function FolgasModal({ recursoId, onClose }: FolgasModalProps) {
-  const toast = useToast();
   const recursosQuery = useRecursos();
   const deleteFolga = useDeleteFolga();
   const [sub, setSub] = useState<SubModal>(null);
@@ -425,8 +422,8 @@ export default function FolgasModal({ recursoId, onClose }: FolgasModalProps) {
     deleteFolga.mutate(
       { recursoId, folgaId: folga.id },
       {
-        onSuccess: () => toast.show('Folga excluída', 'success'),
-        onError: (e) => toast.show(e.message, 'danger'),
+        onSuccess: () => toast.success('Folga excluída'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }

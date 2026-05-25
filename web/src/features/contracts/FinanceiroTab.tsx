@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { Badge } from '../../components/ui/badge';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR } from '../../lib/formatDate';
 import { useBase, useCaixa, useNotasFiscais, useTiposBase } from '../resources';
@@ -52,7 +52,6 @@ type ModalState =
 
 /** Aba Financeiro do contrato — Curva S, orçamento e saídas. */
 export default function FinanceiroTab({ contract }: ContratoTabProps) {
-  const toast = useToast();
   const saidasQuery = useSaidas();
   const nfsQuery = useNotasFiscais();
   const caixaQuery = useCaixa();
@@ -125,8 +124,8 @@ export default function FinanceiroTab({ contract }: ContratoTabProps) {
   function handleDeleteSaida(id: string) {
     if (!window.confirm('Excluir esta saída?')) return;
     deletarSaida.mutate(id, {
-      onSuccess: () => toast.show('Saída excluída', 'success'),
-      onError: (e) => toast.show(e.message, 'danger'),
+      onSuccess: () => toast.success('Saída excluída'),
+      onError: (e) => toast.error(e.message),
     });
   }
 
@@ -139,13 +138,13 @@ export default function FinanceiroTab({ contract }: ContratoTabProps) {
       notasFiscais: (nfsQuery.data ?? []) as unknown as Array<Record<string, unknown>>,
     });
     if (!input) {
-      toast.show('Saída não encontrada para gerar BM', 'danger');
+      toast.error('Saída não encontrada para gerar BM');
       return;
     }
     try {
       await exportBmPdf(input);
     } catch (e) {
-      toast.show(`Erro ao gerar BM: ${(e as Error).message}`, 'danger');
+      toast.error(`Erro ao gerar BM: ${(e as Error).message}`);
     }
   }
   function handleDeleteItem(budgetId: string) {
@@ -153,8 +152,8 @@ export default function FinanceiroTab({ contract }: ContratoTabProps) {
     deletarItem.mutate(
       { contractId: contract.id, budgetId },
       {
-        onSuccess: () => toast.show('Item removido', 'success'),
-        onError: (e) => toast.show(e.message, 'danger'),
+        onSuccess: () => toast.success('Item removido'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }

@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
 
 import { DatePicker } from '../../components/ui/date-picker';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatDateBR, todayISO } from '../../lib/formatDate';
 import type { ContratoTabProps } from './ContratoDetail';
 import type { Ocorrencia } from './types';
@@ -47,7 +47,6 @@ function OcorrenciaModal({
   ocorrencia: Ocorrencia | null;
   onClose: () => void;
 }) {
-  const toast = useToast();
   const criar = useCreateOcorrencia();
   const editar = useUpdateOcorrencia();
   const isEdit = Boolean(ocorrencia);
@@ -63,7 +62,7 @@ function OcorrenciaModal({
 
   function submit() {
     if (!descricao.trim()) {
-      toast.show('Descrição obrigatória', 'danger');
+      toast.error('Descrição obrigatória');
       return;
     }
     const input = {
@@ -75,13 +74,12 @@ function OcorrenciaModal({
     };
     const handlers = {
       onSuccess: () => {
-        toast.show(
-          isEdit ? 'Ocorrência atualizada' : 'Ocorrência registrada',
-          'success',
-        );
+        toast.success(
+          isEdit ? 'Ocorrência atualizada' : 'Ocorrência registrada'
+);
         onClose();
       },
-      onError: (e: Error) => toast.show(e.message, 'danger'),
+      onError: (e: Error) => toast.error(e.message),
     };
     if (ocorrencia) {
       editar.mutate({ contractId, itemId: ocorrencia.id, input }, handlers);
@@ -175,7 +173,6 @@ function OcorrenciaModal({
 
 /** Aba Ocorrências do contrato. */
 export default function OcorrenciasTab({ contract }: ContratoTabProps) {
-  const toast = useToast();
   const excluir = useDeleteOcorrencia();
   const [modal, setModal] = useState<{ ocorrencia: Ocorrencia | null } | null>(
     null,
@@ -189,8 +186,8 @@ export default function OcorrenciasTab({ contract }: ContratoTabProps) {
     excluir.mutate(
       { contractId: contract.id, itemId: o.id },
       {
-        onSuccess: () => toast.show('Ocorrência excluída', 'success'),
-        onError: (e) => toast.show(e.message, 'danger'),
+        onSuccess: () => toast.success('Ocorrência excluída'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }

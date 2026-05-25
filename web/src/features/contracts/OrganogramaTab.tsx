@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { Badge } from '../../components/ui/badge';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { useRecursos } from '../resources';
 import type { ContratoTabProps } from './ContratoDetail';
 import type { OrgMembro } from './types';
@@ -15,7 +15,6 @@ type Vista = 'hierarquia' | 'lista';
 
 /** Aba Equipe do contrato — organograma da obra. */
 export default function OrganogramaTab({ contract }: ContratoTabProps) {
-  const toast = useToast();
   const recursosQuery = useRecursos();
   const deletar = useDeleteMembroOrg();
   const [vista, setVista] = useState<Vista>('hierarquia');
@@ -60,8 +59,8 @@ export default function OrganogramaTab({ contract }: ContratoTabProps) {
     deletar.mutate(
       { contractId: contract.id, membroId: m.id },
       {
-        onSuccess: () => toast.show('Membro removido', 'success'),
-        onError: (e) => toast.show(e.message, 'danger'),
+        onSuccess: () => toast.success('Membro removido'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }

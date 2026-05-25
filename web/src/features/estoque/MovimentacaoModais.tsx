@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/native-select';
 import { DatePicker } from '../../components/ui/date-picker';
 import { Combobox } from '../../components/ui/combobox';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import { todayISO } from '../../lib/formatDate';
 import { useContracts } from '../contracts/queries';
@@ -66,7 +66,6 @@ interface MovModalProps {
 // ── 🟢 Comprei / Recebi ───────────────────────────────────────────────────
 
 export function ComprarModal({ item, almoxs, onClose }: MovModalProps) {
-  const toast = useToast();
   const criar = useCriarMovimentacao();
   const fornecedoresQuery = useFornecedores();
   const central = almoxCentral(almoxs);
@@ -82,7 +81,7 @@ export function ComprarModal({ item, almoxs, onClose }: MovModalProps) {
   function submit() {
     const qtd = Number(quantidade) || 0;
     if (qtd <= 0) {
-      toast.show('Quantidade obrigatória', 'danger');
+      toast.error('Quantidade obrigatória');
       return;
     }
     const documento =
@@ -101,10 +100,10 @@ export function ComprarModal({ item, almoxs, onClose }: MovModalProps) {
     };
     criar.mutate(input, {
       onSuccess: () => {
-        toast.show(`Entrada registrada no Central`, 'success');
+        toast.success(`Entrada registrada no Central`);
         onClose();
       },
-      onError: (e) => toast.show(e.message, 'danger'),
+      onError: (e) => toast.error(e.message),
     });
   }
 
@@ -210,7 +209,6 @@ export function ComprarModal({ item, almoxs, onClose }: MovModalProps) {
 // ── 🔵 Enviar para obra ───────────────────────────────────────────────────
 
 export function EnviarObraModal({ item, almoxs, onClose }: MovModalProps) {
-  const toast = useToast();
   const criar = useCriarMovimentacao();
   const contractsQuery = useContracts();
   const central = almoxCentral(almoxs);
@@ -227,15 +225,15 @@ export function EnviarObraModal({ item, almoxs, onClose }: MovModalProps) {
   function submit() {
     const qtd = Number(quantidade) || 0;
     if (qtd <= 0) {
-      toast.show('Quantidade obrigatória', 'danger');
+      toast.error('Quantidade obrigatória');
       return;
     }
     if (qtd > saldoCentral) {
-      toast.show(`Saldo insuficiente (máx ${saldoCentral.toFixed(2)})`, 'danger');
+      toast.error(`Saldo insuficiente (máx ${saldoCentral.toFixed(2)})`);
       return;
     }
     if (!contractId) {
-      toast.show('Escolha a obra', 'danger');
+      toast.error('Escolha a obra');
       return;
     }
     criar.mutate(
@@ -251,10 +249,10 @@ export function EnviarObraModal({ item, almoxs, onClose }: MovModalProps) {
       },
       {
         onSuccess: () => {
-          toast.show('Material enviado para a obra', 'success');
+          toast.success('Material enviado para a obra');
           onClose();
         },
-        onError: (e) => toast.show(e.message, 'danger'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }
@@ -338,7 +336,6 @@ interface ObraSaldo {
 }
 
 export function UseiObraModal({ item, almoxs, onClose }: MovModalProps) {
-  const toast = useToast();
   const criar = useCriarMovimentacao();
 
   const obras: ObraSaldo[] = almoxsObras(almoxs)
@@ -362,18 +359,17 @@ export function UseiObraModal({ item, almoxs, onClose }: MovModalProps) {
   function submit() {
     const qtd = Number(quantidade) || 0;
     if (qtd <= 0) {
-      toast.show('Quantidade obrigatória', 'danger');
+      toast.error('Quantidade obrigatória');
       return;
     }
     if (!obra) {
-      toast.show('Escolha a obra', 'danger');
+      toast.error('Escolha a obra');
       return;
     }
     if (qtd > obra.saldo) {
-      toast.show(
-        `Saldo insuficiente nessa obra (máx ${obra.saldo.toFixed(2)})`,
-        'danger',
-      );
+      toast.error(
+        `Saldo insuficiente nessa obra (máx ${obra.saldo.toFixed(2)})`
+);
       return;
     }
     criar.mutate(
@@ -389,10 +385,10 @@ export function UseiObraModal({ item, almoxs, onClose }: MovModalProps) {
       },
       {
         onSuccess: () => {
-          toast.show('Consumo registrado na obra', 'success');
+          toast.success('Consumo registrado na obra');
           onClose();
         },
-        onError: (e) => toast.show(e.message, 'danger'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }
@@ -472,7 +468,6 @@ export function UseiObraModal({ item, almoxs, onClose }: MovModalProps) {
 // ── 🟡 Voltou da obra ─────────────────────────────────────────────────────
 
 export function VoltouObraModal({ item, almoxs, onClose }: MovModalProps) {
-  const toast = useToast();
   const criar = useCriarMovimentacao();
   const central = almoxCentral(almoxs);
 
@@ -493,15 +488,15 @@ export function VoltouObraModal({ item, almoxs, onClose }: MovModalProps) {
   function submit() {
     const qtd = Number(quantidade) || 0;
     if (qtd <= 0) {
-      toast.show('Quantidade obrigatória', 'danger');
+      toast.error('Quantidade obrigatória');
       return;
     }
     if (!obra) {
-      toast.show('Escolha a obra', 'danger');
+      toast.error('Escolha a obra');
       return;
     }
     if (qtd > obra.saldo) {
-      toast.show(`Saldo insuficiente (máx ${obra.saldo.toFixed(2)})`, 'danger');
+      toast.error(`Saldo insuficiente (máx ${obra.saldo.toFixed(2)})`);
       return;
     }
     criar.mutate(
@@ -517,10 +512,10 @@ export function VoltouObraModal({ item, almoxs, onClose }: MovModalProps) {
       },
       {
         onSuccess: () => {
-          toast.show('Retorno registrado no Central', 'success');
+          toast.success('Retorno registrado no Central');
           onClose();
         },
-        onError: (e) => toast.show(e.message, 'danger'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }
@@ -596,7 +591,6 @@ export function VoltouObraModal({ item, almoxs, onClose }: MovModalProps) {
 // ── 🟠 Ajuste de saldo ────────────────────────────────────────────────────
 
 export function AjusteModal({ item, almoxs, onClose }: MovModalProps) {
-  const toast = useToast();
   const criar = useCriarMovimentacao();
 
   const [almoxId, setAlmoxId] = useState(almoxs[0]?.id ?? '');
@@ -608,11 +602,11 @@ export function AjusteModal({ item, almoxs, onClose }: MovModalProps) {
   function submit() {
     const qtd = Number(quantidade) || 0;
     if (qtd <= 0) {
-      toast.show('Quantidade obrigatória', 'danger');
+      toast.error('Quantidade obrigatória');
       return;
     }
     if (!motivo.trim()) {
-      toast.show('Motivo obrigatório', 'danger');
+      toast.error('Motivo obrigatório');
       return;
     }
     criar.mutate(
@@ -628,10 +622,10 @@ export function AjusteModal({ item, almoxs, onClose }: MovModalProps) {
       },
       {
         onSuccess: () => {
-          toast.show('Ajuste aplicado', 'success');
+          toast.success('Ajuste aplicado');
           onClose();
         },
-        onError: (e) => toast.show(e.message, 'danger'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }

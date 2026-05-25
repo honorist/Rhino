@@ -10,7 +10,7 @@ import {
 } from '../../components/ui/dialog';
 import { Input } from '@/components/ui/input';
 
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { queryKeys } from '../../lib/queryKeys';
 import type { Rdo, RdoFoto } from './types';
 
@@ -26,7 +26,6 @@ export default function RdoFotosModal({
   rdo,
   onClose,
 }: RdoFotosModalProps) {
-  const toast = useToast();
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
   const [fotos, setFotos] = useState<RdoFoto[]>(rdo.fotos ?? []);
@@ -47,9 +46,9 @@ export default function RdoFotosModal({
       setFotos((prev) => [...prev, ...(data.fotos ?? [])]);
       setLegenda('');
       void qc.invalidateQueries({ queryKey: queryKeys.contracts });
-      toast.show('Fotos enviadas', 'success');
+      toast.success('Fotos enviadas');
     } catch (e) {
-      toast.show(e instanceof Error ? e.message : 'Erro no upload', 'danger');
+      toast.error(e instanceof Error ? e.message : 'Erro no upload');
     } finally {
       setEnviando(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -63,9 +62,9 @@ export default function RdoFotosModal({
       if (!res.ok) throw new Error(await res.text());
       setFotos((prev) => prev.filter((f) => f.id !== fotoId));
       void qc.invalidateQueries({ queryKey: queryKeys.contracts });
-      toast.show('Foto removida', 'success');
+      toast.success('Foto removida');
     } catch (e) {
-      toast.show(e instanceof Error ? e.message : 'Erro ao remover', 'danger');
+      toast.error(e instanceof Error ? e.message : 'Erro ao remover');
     }
   }
 

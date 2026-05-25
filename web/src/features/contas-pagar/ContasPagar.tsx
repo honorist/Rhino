@@ -18,7 +18,7 @@ import { Select } from '@/components/ui/native-select';
 import { DatePicker } from '../../components/ui/date-picker';
 import { Combobox } from '../../components/ui/combobox';
 import Spinner from '../../components/ui/Spinner';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import type { ContaPagar, Fornecedor } from '../../types/domain';
 import type { Contract } from '../contracts/types';
@@ -98,7 +98,6 @@ function diasAte(dataVencimento?: string): number | null {
 
 /** Tela de Contas a Pagar — migração de js/views/ContasPagar.js. */
 export default function ContasPagar() {
-  const toast = useToast();
   const contasQuery = useContasPagar();
   const fornecedoresQuery = useFornecedores();
   const contractsQuery = useContracts();
@@ -189,8 +188,8 @@ export default function ContasPagar() {
       return;
     }
     estornarConta.mutate(id, {
-      onSuccess: () => toast.show('Pagamento estornado', 'success'),
-      onError: (error) => toast.show(error.message, 'danger'),
+      onSuccess: () => toast.success('Pagamento estornado'),
+      onError: (error) => toast.error(error.message),
     });
   }
 
@@ -203,8 +202,8 @@ export default function ContasPagar() {
       return;
     }
     deleteConta.mutate(id, {
-      onSuccess: () => toast.show('Conta removida', 'success'),
-      onError: (error) => toast.show(error.message, 'danger'),
+      onSuccess: () => toast.success('Conta removida'),
+      onError: (error) => toast.error(error.message),
     });
   }
 
@@ -726,7 +725,6 @@ interface ContaModalProps {
 
 /** Modal de criação/edição de conta a pagar. */
 function ContaModal({ conta, fornecedores, contratos, onClose }: ContaModalProps) {
-  const toast = useToast();
   const createConta = useCreateContaPagar();
   const updateConta = useUpdateContaPagar();
   const classify = useClassifyExpense();
@@ -754,7 +752,7 @@ function ContaModal({ conta, fornecedores, contratos, onClose }: ContaModalProps
 
   function handleClassify() {
     if (!descricao.trim()) {
-      toast.show('Preencha a descrição primeiro', 'danger');
+      toast.error('Preencha a descrição primeiro');
       return;
     }
     const fornecedorNome =
@@ -772,10 +770,10 @@ function ContaModal({ conta, fornecedores, contratos, onClose }: ContaModalProps
           const conf = data.confidence
             ? ` (${Math.round(data.confidence * 100)}% confiança)`
             : '';
-          toast.show(`IA sugeriu: ${data.category ?? '—'}${conf}`, 'success');
+          toast.success(`IA sugeriu: ${data.category ?? '—'}${conf}`);
         },
         onError: (error) =>
-          toast.show(`IA não disponível: ${error.message}`, 'danger'),
+          toast.error(`IA não disponível: ${error.message}`),
       },
     );
   }
@@ -783,16 +781,16 @@ function ContaModal({ conta, fornecedores, contratos, onClose }: ContaModalProps
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!descricao.trim()) {
-      toast.show('Descrição é obrigatória', 'danger');
+      toast.error('Descrição é obrigatória');
       return;
     }
     if (!dataVencimento) {
-      toast.show('Data de vencimento é obrigatória', 'danger');
+      toast.error('Data de vencimento é obrigatória');
       return;
     }
     const valorNum = Number.parseFloat(valor) || 0;
     if (valorNum <= 0) {
-      toast.show('Valor inválido', 'danger');
+      toast.error('Valor inválido');
       return;
     }
 
@@ -811,10 +809,10 @@ function ContaModal({ conta, fornecedores, contratos, onClose }: ContaModalProps
     };
 
     const onSuccess = () => {
-      toast.show(isEdit ? 'Conta atualizada' : 'Conta criada', 'success');
+      toast.success(isEdit ? 'Conta atualizada' : 'Conta criada');
       onClose();
     };
-    const onError = (error: Error) => toast.show(error.message, 'danger');
+    const onError = (error: Error) => toast.error(error.message);
 
     if (isEdit && conta) {
       updateConta.mutate({ id: conta.id, input }, { onSuccess, onError });
@@ -1005,7 +1003,6 @@ interface PagarModalProps {
 
 /** Modal de registro de pagamento de uma conta. */
 function PagarModal({ conta, onClose }: PagarModalProps) {
-  const toast = useToast();
   const pagarConta = usePagarConta();
 
   const [formaPagamento, setFormaPagamento] = useState('PIX');
@@ -1014,7 +1011,7 @@ function PagarModal({ conta, onClose }: PagarModalProps) {
 
   function handleConfirmar() {
     if (!dataPagamento) {
-      toast.show('Informe a data do pagamento', 'danger');
+      toast.error('Informe a data do pagamento');
       return;
     }
     pagarConta.mutate(
@@ -1026,10 +1023,10 @@ function PagarModal({ conta, onClose }: PagarModalProps) {
       },
       {
         onSuccess: () => {
-          toast.show('Pagamento registrado — saída lançada no Caixa', 'success');
+          toast.success('Pagamento registrado — saída lançada no Caixa');
           onClose();
         },
-        onError: (error) => toast.show(error.message, 'danger'),
+        onError: (error) => toast.error(error.message),
       },
     );
   }

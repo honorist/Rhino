@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
 
 import { DatePicker } from '../../components/ui/date-picker';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR } from '../../lib/formatDate';
 import type { ContratoTabProps } from './ContratoDetail';
@@ -38,7 +38,6 @@ function AditivoModal({
   aditivo: Aditivo | null;
   onClose: () => void;
 }) {
-  const toast = useToast();
   const criar = useCreateAditivo();
   const editar = useUpdateAditivo();
   const isEdit = Boolean(aditivo);
@@ -54,7 +53,7 @@ function AditivoModal({
 
   function submit() {
     if (!descricao.trim()) {
-      toast.show('Descrição obrigatória', 'danger');
+      toast.error('Descrição obrigatória');
       return;
     }
     const input = {
@@ -68,10 +67,10 @@ function AditivoModal({
     };
     const handlers = {
       onSuccess: () => {
-        toast.show(isEdit ? 'Aditivo atualizado' : 'Aditivo criado', 'success');
+        toast.success(isEdit ? 'Aditivo atualizado' : 'Aditivo criado');
         onClose();
       },
-      onError: (e: Error) => toast.show(e.message, 'danger'),
+      onError: (e: Error) => toast.error(e.message),
     };
     if (aditivo) {
       editar.mutate({ contractId, itemId: aditivo.id, input }, handlers);
@@ -179,7 +178,6 @@ function AditivoModal({
 
 /** Aba Aditivos do contrato. */
 export default function AditivosTab({ contract }: ContratoTabProps) {
-  const toast = useToast();
   const excluir = useDeleteAditivo();
   const [modal, setModal] = useState<{ aditivo: Aditivo | null } | null>(null);
 
@@ -192,8 +190,8 @@ export default function AditivosTab({ contract }: ContratoTabProps) {
     excluir.mutate(
       { contractId: contract.id, itemId: a.id },
       {
-        onSuccess: () => toast.show('Aditivo excluído', 'success'),
-        onError: (e) => toast.show(e.message, 'danger'),
+        onSuccess: () => toast.success('Aditivo excluído'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }

@@ -11,7 +11,7 @@ import FormField from '../../components/ui/FormField';
 import { Input } from '@/components/ui/input';
 
 import { Combobox } from '../../components/ui/combobox';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import type { OrgMembro } from './types';
 import { NIVEL_COR, NIVEL_LABEL, inferirNivelOrganograma } from './organograma';
 import { useCreateMembroOrg, useUpdateMembroOrg } from './queries';
@@ -39,7 +39,6 @@ export default function MembroModal({
   recursos,
   onClose,
 }: MembroModalProps) {
-  const toast = useToast();
   const criar = useCreateMembroOrg();
   const editar = useUpdateMembroOrg();
   const isEdit = Boolean(membro);
@@ -75,7 +74,7 @@ export default function MembroModal({
 
   function submit() {
     if (!recursoId) {
-      toast.show('Selecione um recurso', 'danger');
+      toast.error('Selecione um recurso');
       return;
     }
     const input = {
@@ -87,10 +86,10 @@ export default function MembroModal({
     };
     const handlers = {
       onSuccess: () => {
-        toast.show(isEdit ? 'Membro atualizado' : 'Membro adicionado', 'success');
+        toast.success(isEdit ? 'Membro atualizado' : 'Membro adicionado');
         onClose();
       },
-      onError: (e: Error) => toast.show(e.message, 'danger'),
+      onError: (e: Error) => toast.error(e.message),
     };
     if (membro) {
       editar.mutate({ contractId, membroId: membro.id, input }, handlers);

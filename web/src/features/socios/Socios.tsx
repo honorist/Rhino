@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 import Spinner from '../../components/ui/Spinner';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import type { Socio } from '../../types/domain';
 import {
@@ -46,7 +46,6 @@ function Metric({
 
 /** Tela de Sócios e participações — migração de js/views/Socios.js. */
 export default function Socios() {
-  const toast = useToast();
   const sociosQuery = useSocios();
   const investimentosQuery = useInvestimentos();
   const removeSocio = useRemoveSocio();
@@ -75,8 +74,8 @@ export default function Socios() {
       return;
     }
     removeSocio.mutate(socio.id, {
-      onSuccess: () => toast.show('Sócio removido', 'success'),
-      onError: (error) => toast.show(error.message, 'danger'),
+      onSuccess: () => toast.success('Sócio removido'),
+      onError: (error) => toast.error(error.message),
     });
   }
 
@@ -195,7 +194,6 @@ interface SocioFormModalProps {
 
 /** Modal de criação/edição de sócio. */
 function SocioFormModal({ socio, onClose }: SocioFormModalProps) {
-  const toast = useToast();
   const createSocio = useCreateSocio();
   const updateSocio = useUpdateSocio();
   const isEdit = socio !== null;
@@ -224,10 +222,10 @@ function SocioFormModal({ socio, onClose }: SocioFormModalProps) {
     };
 
     const onSuccess = () => {
-      toast.show(isEdit ? 'Sócio atualizado' : 'Sócio criado', 'success');
+      toast.success(isEdit ? 'Sócio atualizado' : 'Sócio criado');
       onClose();
     };
-    const onError = (error: Error) => toast.show(error.message, 'danger');
+    const onError = (error: Error) => toast.error(error.message);
 
     if (isEdit && socio) {
       updateSocio.mutate({ id: socio.id, input }, { onSuccess, onError });

@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Combobox } from '../../components/ui/combobox';
 import { DatePicker } from '../../components/ui/date-picker';
 import Spinner from '../../components/ui/Spinner';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import type { CaixaEntry, NotaFiscal } from '../../types/domain';
 import type { Contract, Saida } from '../contracts/types';
@@ -427,7 +427,6 @@ function ListaTab({
   onEmitir,
   onEditar,
 }: ListaTabProps) {
-  const toast = useToast();
   const cancelarEmissao = useCancelarEmissao();
   const deleteNF = useDeleteNotaFiscal();
 
@@ -441,8 +440,8 @@ function ListaTab({
     }
     cancelarEmissao.mutate(id, {
       onSuccess: () =>
-        toast.show('Emissão desfeita. Entrada removida do caixa.', 'success'),
-      onError: (error) => toast.show(error.message, 'danger'),
+        toast.success('Emissão desfeita. Entrada removida do caixa.'),
+      onError: (error) => toast.error(error.message),
     });
   }
 
@@ -452,8 +451,8 @@ function ListaTab({
       : 'Excluir esta nota fiscal?';
     if (!window.confirm(msg)) return;
     deleteNF.mutate(nf.id, {
-      onSuccess: () => toast.show('Nota fiscal removida', 'success'),
-      onError: (error) => toast.show(error.message, 'danger'),
+      onSuccess: () => toast.success('Nota fiscal removida'),
+      onError: (error) => toast.error(error.message),
     });
   }
 
@@ -944,7 +943,6 @@ interface NFModalProps {
 
 /** Modal de criação/edição de nota fiscal. */
 function NFModal({ nf, contratos, onClose }: NFModalProps) {
-  const toast = useToast();
   const createNF = useCreateNotaFiscal();
   const updateNF = useUpdateNotaFiscal();
   const isEdit = nf !== null;
@@ -980,20 +978,20 @@ function NFModal({ nf, contratos, onClose }: NFModalProps) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!numero.trim()) {
-      toast.show('Número da NF é obrigatório', 'danger');
+      toast.error('Número da NF é obrigatório');
       return;
     }
     if (!contractId) {
-      toast.show('Selecione o contrato', 'danger');
+      toast.error('Selecione o contrato');
       return;
     }
     if (!dataLimite) {
-      toast.show('Informe a data limite', 'danger');
+      toast.error('Informe a data limite');
       return;
     }
     const valorNum = Number.parseFloat(valor) || 0;
     if (valorNum <= 0) {
-      toast.show('Valor inválido', 'danger');
+      toast.error('Valor inválido');
       return;
     }
     const prazoNum = Number.parseInt(prazoRecebimento, 10);
@@ -1011,13 +1009,12 @@ function NFModal({ nf, contratos, onClose }: NFModalProps) {
     }
 
     const onSuccess = () => {
-      toast.show(
-        isEdit ? 'Nota fiscal atualizada' : 'Nota fiscal criada',
-        'success',
-      );
+      toast.success(
+        isEdit ? 'Nota fiscal atualizada' : 'Nota fiscal criada'
+);
       onClose();
     };
-    const onError = (error: Error) => toast.show(error.message, 'danger');
+    const onError = (error: Error) => toast.error(error.message);
 
     if (isEdit && nf) {
       updateNF.mutate({ id: nf.id, input }, { onSuccess, onError });
@@ -1161,7 +1158,6 @@ interface EmitirModalProps {
 
 /** Modal de confirmação de emissão de NF. */
 function EmitirModal({ nf, contrato, onClose }: EmitirModalProps) {
-  const toast = useToast();
   const emitir = useEmitirNotaFiscal();
   const prazo = prazoOf(nf);
 
@@ -1180,17 +1176,17 @@ function EmitirModal({ nf, contrato, onClose }: EmitirModalProps) {
 
   function handleConfirmar() {
     if (!dataEmissaoReal) {
-      toast.show('Informe a data de emissão', 'danger');
+      toast.error('Informe a data de emissão');
       return;
     }
     emitir.mutate(
       { id: nf.id, dataEmissaoReal },
       {
         onSuccess: (result) => {
-          toast.show(result.mensagem ?? 'NF marcada como emitida', 'success');
+          toast.success(result.mensagem ?? 'NF marcada como emitida');
           onClose();
         },
-        onError: (error) => toast.show(error.message, 'danger'),
+        onError: (error) => toast.error(error.message),
       },
     );
   }
@@ -1314,7 +1310,6 @@ interface DetailModalProps {
 
 /** Modal de detalhe de uma nota fiscal. */
 function DetailModal({ nf, contrato, onClose, onEmitir }: DetailModalProps) {
-  const toast = useToast();
   const cancelarEmissao = useCancelarEmissao();
   const saidasQuery = useSaidas();
   const caixaQuery = useCaixa();
@@ -1345,10 +1340,10 @@ function DetailModal({ nf, contrato, onClose, onEmitir }: DetailModalProps) {
     }
     cancelarEmissao.mutate(nf.id, {
       onSuccess: () => {
-        toast.show('Emissão desfeita. Entrada removida do caixa.', 'success');
+        toast.success('Emissão desfeita. Entrada removida do caixa.');
         onClose();
       },
-      onError: (error) => toast.show(error.message, 'danger'),
+      onError: (error) => toast.error(error.message),
     });
   }
 

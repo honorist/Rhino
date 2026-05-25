@@ -10,7 +10,7 @@ import {
 import Card from '../../components/ui/Card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/native-select';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import { useContracts } from '../contracts/queries';
 import { useFornecedores } from '../resources';
@@ -42,7 +42,6 @@ export default function AvaliarModal({
   solicitacao: s,
   onClose,
 }: AvaliarModalProps) {
-  const toast = useToast();
   const avaliar = useAvaliarSolicitacao();
   const cancelar = useCancelarSolicitacao();
   const fornecedoresQuery = useFornecedores();
@@ -99,7 +98,7 @@ export default function AvaliarModal({
       arr.map((it, idx) => {
         if (idx !== i) return it;
         if (it.cotacoes.length === 1) {
-          toast.show('Item precisa de ao menos uma cotação', 'danger');
+          toast.error('Item precisa de ao menos uma cotação');
           return it;
         }
         const cotacoes = it.cotacoes.filter((_, cj) => cj !== j);
@@ -113,7 +112,7 @@ export default function AvaliarModal({
     for (const it of itens) {
       const esc = it.cotacoes[it.cotacaoEscolhidaIdx];
       if (!esc || !esc.fornecedorId || !(Number(esc.precoUnit) > 0)) {
-        toast.show(`Escolha uma cotação válida para "${it.descricao}"`, 'danger');
+        toast.error(`Escolha uma cotação válida para "${it.descricao}"`);
         return;
       }
     }
@@ -121,10 +120,10 @@ export default function AvaliarModal({
       { id: s.id, itens },
       {
         onSuccess: () => {
-          toast.show('Enviada para aprovação do gerente', 'success');
+          toast.success('Enviada para aprovação do gerente');
           onClose();
         },
-        onError: (e) => toast.show(e.message, 'danger'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }
@@ -136,10 +135,10 @@ export default function AvaliarModal({
       { id: s.id, motivo },
       {
         onSuccess: () => {
-          toast.show('Solicitação cancelada', 'success');
+          toast.success('Solicitação cancelada');
           onClose();
         },
-        onError: (e) => toast.show(e.message, 'danger'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }

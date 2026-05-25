@@ -2,7 +2,7 @@ import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/native-select';
-import { useToast } from '../../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../../lib/format';
 import type { Proposta } from '../../../types/domain';
 import {
@@ -52,7 +52,6 @@ export default function CustoInternoTab({
   proposta,
   onLocalUpdate,
 }: EditorTabProps) {
-  const toast = useToast();
   const criar = useCriarCusto();
   const atualizar = useAtualizarCusto();
   const deletar = useDeletarCusto();
@@ -70,10 +69,9 @@ export default function CustoInternoTab({
 
   const propostaId = proposta.id;
   const reportErro = (e: unknown) =>
-    toast.show(
-      `Erro: ${e instanceof Error ? e.message : 'falha na operação'}`,
-      'danger',
-    );
+    toast.error(
+      `Erro: ${e instanceof Error ? e.message : 'falha na operação'}`
+);
 
   function adicionar() {
     criar.mutate(

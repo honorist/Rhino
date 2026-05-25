@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Card from '../../../components/ui/Card';
 import Spinner from '../../../components/ui/Spinner';
-import { useToast } from '../../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { api } from '../../../lib/api';
 
 interface FeatureFlag {
@@ -20,7 +20,6 @@ interface FlagsResponse {
  */
 export default function FeatureFlagsSection() {
   const qc = useQueryClient();
-  const toast = useToast();
   const { data, isLoading, error } = useQuery({
     queryKey: ['feature-flags'],
     queryFn: () => api.get<FlagsResponse>('/api/feature-flags'),
@@ -32,9 +31,9 @@ export default function FeatureFlagsSection() {
       api.put<{ ok: boolean }>(`/api/feature-flags/${key}`, { enabled }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['feature-flags'] });
-      toast.show('Flag atualizada', 'success');
+      toast.success('Flag atualizada');
     },
-    onError: (e) => toast.show(e.message, 'danger'),
+    onError: (e) => toast.error(e.message),
   });
 
   return (

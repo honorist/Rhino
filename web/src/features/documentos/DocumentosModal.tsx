@@ -6,7 +6,7 @@ import {
 } from '../../components/ui/dialog';
 import Spinner from '../../components/ui/Spinner';
 import DataTable, { type Column } from '../../components/ui/DataTable';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatDateBR } from '../../lib/formatDate';
 import type { Documento } from '../../types/domain';
 import { useRecursos } from '../resources';
@@ -83,7 +83,6 @@ export default function DocumentosModal({
   recursoId,
   onClose,
 }: DocumentosModalProps) {
-  const toast = useToast();
   const recursosQuery = useRecursos();
   const deletar = useDeleteDocumento();
   const [sub, setSub] = useState<SubModal>(null);
@@ -96,8 +95,8 @@ export default function DocumentosModal({
     deletar.mutate(
       { recursoId, docId },
       {
-        onSuccess: () => toast.show('Documento excluído', 'success'),
-        onError: (e) => toast.show(e.message, 'danger'),
+        onSuccess: () => toast.success('Documento excluído'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }

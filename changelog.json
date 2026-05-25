@@ -1,6 +1,19 @@
 {
   "entries": [
     {
+      "version": "1.3.9",
+      "date": "2026-05-25",
+      "summary": "Pós-Fase: migração completa useToast → Sonner (70 arquivos), remove ToastProvider",
+      "changes": [
+        "codemod: 70 arquivos migrados de useToast()+toast.show() para import{toast}from'sonner' direto.",
+        "toast.show(msg,'danger') → toast.error(msg); 'success' → toast.success; 'warning' → toast.warning; sem tipo → toast(msg).",
+        "fix: Caixa.tsx — condicional toast.show(msg, fail>0?'danger':'success') reescrito como if/else toast.error/toast.success.",
+        "main.tsx: remove <ToastProvider> wrapper — Sonner <Toaster/> já presente desde Fase 1.",
+        "delete: web/src/components/ui/toast/ToastProvider.tsx, ToastContext.ts, toast.test.tsx.",
+        "delete: _codemod_toast.cjs (script temporário de migração)."
+      ]
+    },
+    {
       "version": "1.3.8",
       "date": "2026-05-25",
       "summary": "CSS cleanup: remove .form-control, .modal-*, @keyframes fadeIn/slideUp — 148 linhas mortas",

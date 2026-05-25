@@ -7,7 +7,7 @@ import FormField from '../../components/ui/FormField';
 import Spinner from '../../components/ui/Spinner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { queryKeys } from '../../lib/queryKeys';
 import {
   type ApresentacaoTextos,
@@ -21,7 +21,6 @@ import {
 
 /** Apresentação da Empresa — configuração global de propostas. */
 export default function Apresentacao() {
-  const toast = useToast();
   const qc = useQueryClient();
   const apresentacaoQuery = useApresentacao();
   const logosQuery = useCaseLogos();
@@ -51,8 +50,8 @@ export default function Apresentacao() {
 
   function handleSalvar() {
     salvar.mutate(textos, {
-      onSuccess: () => toast.show('Textos salvos', 'success'),
-      onError: (e) => toast.show(e.message, 'danger'),
+      onSuccess: () => toast.success('Textos salvos'),
+      onError: (e) => toast.error(e.message),
     });
   }
 
@@ -65,9 +64,9 @@ export default function Apresentacao() {
       const res = await fetch('/api/case-logos', { method: 'POST', body: fd });
       if (!res.ok) throw new Error(await res.text());
       void qc.invalidateQueries({ queryKey: queryKeys.caseLogos });
-      toast.show('Logo adicionada', 'success');
+      toast.success('Logo adicionada');
     } catch (e) {
-      toast.show(e instanceof Error ? e.message : 'Erro no upload', 'danger');
+      toast.error(e instanceof Error ? e.message : 'Erro no upload');
     } finally {
       setEnviando(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -77,14 +76,14 @@ export default function Apresentacao() {
   function patchLogo(id: string, patch: Partial<CaseLogo>) {
     editarLogo.mutate(
       { id, patch },
-      { onError: (e) => toast.show(e.message, 'danger') },
+      { onError: (e) => toast.error(e.message) },
     );
   }
   function handleExcluirLogo(id: string) {
     if (!window.confirm('Excluir esta logo?')) return;
     excluirLogo.mutate(id, {
-      onSuccess: () => toast.show('Logo removida', 'success'),
-      onError: (e) => toast.show(e.message, 'danger'),
+      onSuccess: () => toast.success('Logo removida'),
+      onError: (e) => toast.error(e.message),
     });
   }
 

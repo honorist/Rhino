@@ -10,7 +10,7 @@ import {
 } from '../../components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/native-select';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import {
   useAnexarDocumento,
   useAprovarCandidato,
@@ -42,7 +42,6 @@ interface Props {
  *   4. Aprovação (US-09) — só com docs completos
  */
 export default function CandidatoWizardModal({ candidato, solicitacaoId, onClose }: Props) {
-  const toast = useToast();
   const triagem = useAtualizarTriagem(solicitacaoId);
   const antecedentes = useAtualizarAntecedentes(solicitacaoId);
   const anexar = useAnexarDocumento(solicitacaoId);
@@ -146,11 +145,11 @@ export default function CandidatoWizardModal({ candidato, solicitacaoId, onClose
             triagem
               .mutateAsync({ candidatoId: candidato.id, status: novo })
               .then(() => {
-                toast.show('Triagem atualizada.', 'success');
+                toast.success('Triagem atualizada.');
                 if (novo === 'interessado') setStep(2);
                 else if (novo === 'sem_interesse') onClose();
               })
-              .catch((e) => toast.show((e as Error).message, 'danger'))
+              .catch((e) => toast.error((e as Error).message))
           }
           loading={triagem.isPending}
         />
@@ -164,11 +163,11 @@ export default function CandidatoWizardModal({ candidato, solicitacaoId, onClose
             antecedentes
               .mutateAsync({ candidatoId: candidato.id, resultado, documento })
               .then(() => {
-                toast.show('Antecedentes registrados.', 'success');
+                toast.success('Antecedentes registrados.');
                 if (resultado === 'ok') setStep(3);
                 else if (resultado === 'reprovado') onClose();
               })
-              .catch((e) => toast.show((e as Error).message, 'danger'))
+              .catch((e) => toast.error((e as Error).message))
           }
           loading={antecedentes.isPending}
         />
@@ -180,8 +179,8 @@ export default function CandidatoWizardModal({ candidato, solicitacaoId, onClose
           onAttach={(tipo, doc) =>
             anexar
               .mutateAsync({ candidatoId: candidato.id, tipo, documento: doc })
-              .then(() => toast.show(`${DOC_LABEL[tipo]} anexado.`, 'success'))
-              .catch((e) => toast.show((e as Error).message, 'danger'))
+              .then(() => toast.success(`${DOC_LABEL[tipo]} anexado.`))
+              .catch((e) => toast.error((e as Error).message))
           }
           loading={anexar.isPending}
         />
@@ -195,13 +194,12 @@ export default function CandidatoWizardModal({ candidato, solicitacaoId, onClose
             aprovar
               .mutateAsync(candidato.id)
               .then(() => {
-                toast.show(
-                  'Candidato aprovado! Adicionado em Recursos como funcionário.',
-                  'success',
-                );
+                toast.success(
+                  'Candidato aprovado! Adicionado em Recursos como funcionário.'
+);
                 onClose();
               })
-              .catch((e) => toast.show((e as Error).message, 'danger'))
+              .catch((e) => toast.error((e as Error).message))
           }
           loading={aprovar.isPending}
         />

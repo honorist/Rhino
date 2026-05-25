@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
 import { DatePicker } from '../../components/ui/date-picker';
 import { Combobox } from '../../components/ui/combobox';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR, todayISO } from '../../lib/formatDate';
 import { useFornecedores, useVeiculos } from '../resources';
@@ -48,7 +48,6 @@ function PlanoModal({
   plano: VeiculoPlano | null;
   onClose: () => void;
 }) {
-  const toast = useToast();
   const criar = useCriarPlano();
   const editar = useEditarPlano();
   const isEdit = Boolean(plano);
@@ -67,11 +66,11 @@ function PlanoModal({
 
   function submit() {
     if (!descricao.trim()) {
-      toast.show('Descrição obrigatória', 'danger');
+      toast.error('Descrição obrigatória');
       return;
     }
     if (!intervaloKm && !intervaloMeses) {
-      toast.show('Informe pelo menos KM ou meses', 'danger');
+      toast.error('Informe pelo menos KM ou meses');
       return;
     }
     const input = {
@@ -83,10 +82,10 @@ function PlanoModal({
     };
     const handlers = {
       onSuccess: () => {
-        toast.show(isEdit ? 'Plano atualizado' : 'Plano criado', 'success');
+        toast.success(isEdit ? 'Plano atualizado' : 'Plano criado');
         onClose();
       },
-      onError: (e: Error) => toast.show(e.message, 'danger'),
+      onError: (e: Error) => toast.error(e.message),
     };
     if (plano) editar.mutate({ veiculoId, planoId: plano.id, input }, handlers);
     else criar.mutate({ veiculoId, input }, handlers);
@@ -178,7 +177,6 @@ function ManutModal({
   veiculo: Veiculo;
   onClose: () => void;
 }) {
-  const toast = useToast();
   const criar = useCriarManutencaoVeiculo();
   const fornecedoresQuery = useFornecedores();
 
@@ -196,11 +194,11 @@ function ManutModal({
 
   function submit() {
     if (!data) {
-      toast.show('Informe a data', 'danger');
+      toast.error('Informe a data');
       return;
     }
     if (!descricao.trim()) {
-      toast.show('Descreva os serviços executados', 'danger');
+      toast.error('Descreva os serviços executados');
       return;
     }
     criar.mutate(
@@ -219,10 +217,10 @@ function ManutModal({
       },
       {
         onSuccess: () => {
-          toast.show('Manutenção registrada', 'success');
+          toast.success('Manutenção registrada');
           onClose();
         },
-        onError: (e) => toast.show(e.message, 'danger'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }
@@ -355,7 +353,6 @@ export default function VeiculoDetalheModal({
   veiculoId,
   onClose,
 }: VeiculoDetalheModalProps) {
-  const toast = useToast();
   const veiculosQuery = useVeiculos();
   const deletarPlano = useDeletarPlano();
   const deletarManut = useDeletarManutencaoVeiculo();
@@ -368,14 +365,14 @@ export default function VeiculoDetalheModal({
     if (!window.confirm('Excluir este plano?')) return;
     deletarPlano.mutate(
       { veiculoId, planoId },
-      { onError: (e) => toast.show(e.message, 'danger') },
+      { onError: (e) => toast.error(e.message) },
     );
   }
   function handleDeletarManut(manutId: string) {
     if (!window.confirm('Excluir esta manutenção?')) return;
     deletarManut.mutate(
       { veiculoId, manutId },
-      { onError: (e) => toast.show(e.message, 'danger') },
+      { onError: (e) => toast.error(e.message) },
     );
   }
 

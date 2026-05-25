@@ -8,7 +8,7 @@ import {
 import Spinner from '../../../components/ui/Spinner';
 import { Input } from '@/components/ui/input';
 
-import { useToast } from '../../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import {
   useBase,
   useCreateTipoBase,
@@ -32,7 +32,6 @@ export default function TiposCustoSection() {
   const tiposQuery = useTiposBase();
   const baseQuery = useBase();
   const [modal, setModal] = useState<{ tipo: TipoBase | null } | null>(null);
-  const toast = useToast();
   const remover = useRemoveTipoBase();
 
   // Contagem de uso por tipo (lê BASE)
@@ -57,20 +56,19 @@ export default function TiposCustoSection() {
 
   async function handleDelete(t: TipoComUso) {
     if (t.sistema) {
-      toast.show('Tipos do sistema não podem ser excluídos.', 'danger');
+      toast.error('Tipos do sistema não podem ser excluídos.');
       return;
     }
     if (t.uso > 0) {
-      toast.show(
-        `Não dá pra excluir: existem ${t.uso} item(ns) em BASE usando este tipo.`,
-        'danger',
-      );
+      toast.error(
+        `Não dá pra excluir: existem ${t.uso} item(ns) em BASE usando este tipo.`
+);
       return;
     }
     if (!window.confirm(`Excluir o tipo "${t.label}"?`)) return;
     remover.mutate(t.id, {
-      onSuccess: () => toast.show('Tipo removido', 'success'),
-      onError: (e) => toast.show(e.message, 'danger'),
+      onSuccess: () => toast.success('Tipo removido'),
+      onError: (e) => toast.error(e.message),
     });
   }
 
@@ -246,7 +244,6 @@ function TipoModal({
   tipo: TipoBase | null;
   onClose: () => void;
 }) {
-  const toast = useToast();
   const criar = useCreateTipoBase();
   const atualizar = useUpdateTipoBase();
   const sistema = (tipo as { sistema?: boolean } | null)?.sistema ?? false;
@@ -260,15 +257,15 @@ function TipoModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!label.trim() || !key.trim()) {
-      toast.show('Nome e chave são obrigatórios', 'danger');
+      toast.error('Nome e chave são obrigatórios');
       return;
     }
     const payload = { label: label.trim(), key: key.trim(), icon, cor };
     const onSuccess = () => {
-      toast.show(isEdit ? 'Tipo atualizado' : 'Tipo criado', 'success');
+      toast.success(isEdit ? 'Tipo atualizado' : 'Tipo criado');
       onClose();
     };
-    const onError = (e: Error) => toast.show(e.message, 'danger');
+    const onError = (e: Error) => toast.error(e.message);
     if (isEdit && tipo) {
       atualizar.mutate({ id: tipo.id, input: payload }, { onSuccess, onError });
     } else {

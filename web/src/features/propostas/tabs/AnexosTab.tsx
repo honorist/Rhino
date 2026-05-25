@@ -2,7 +2,7 @@ import { useRef, useState, type ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
-import { useToast } from '../../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import type { Proposta } from '../../../types/domain';
 import { useAtualizarAnexo, useDeletarAnexo } from '../queries';
 import type { EditorTabProps, PropostaAnexo } from '../types';
@@ -27,7 +27,6 @@ function tamanho(bytes?: number): string {
  * próprios (`/anexos`); o upload usa FormData fora do cliente `api` tipado.
  */
 export default function AnexosTab({ proposta, onLocalUpdate }: EditorTabProps) {
-  const toast = useToast();
   const deletar = useDeletarAnexo();
   const atualizar = useAtualizarAnexo();
   const imgInputRef = useRef<HTMLInputElement>(null);
@@ -69,12 +68,11 @@ export default function AnexosTab({ proposta, onLocalUpdate }: EditorTabProps) {
       if (ultimaProposta) {
         onLocalUpdate({ anexos: extrairAnexos(ultimaProposta) });
       }
-      toast.show(`${files.length} arquivo(s) enviado(s)`, 'success');
+      toast.success(`${files.length} arquivo(s) enviado(s)`);
     } catch (e) {
-      toast.show(
-        `Erro: ${e instanceof Error ? e.message : 'falha no upload'}`,
-        'danger',
-      );
+      toast.error(
+        `Erro: ${e instanceof Error ? e.message : 'falha no upload'}`
+);
     } finally {
       setUploading(false);
     }
@@ -97,7 +95,7 @@ export default function AnexosTab({ proposta, onLocalUpdate }: EditorTabProps) {
       { propostaId, anexoId },
       {
         onSuccess: (r) => onLocalUpdate({ anexos: extrairAnexos(r.proposta) }),
-        onError: (e) => toast.show(`Erro: ${e.message}`, 'danger'),
+        onError: (e) => toast.error(`Erro: ${e.message}`),
       },
     );
   }
@@ -114,7 +112,7 @@ export default function AnexosTab({ proposta, onLocalUpdate }: EditorTabProps) {
       { propostaId, anexoId, legenda },
       {
         onSuccess: (r) => onLocalUpdate({ anexos: extrairAnexos(r.proposta) }),
-        onError: (e) => toast.show(`Erro: ${e.message}`, 'danger'),
+        onError: (e) => toast.error(`Erro: ${e.message}`),
       },
     );
   }

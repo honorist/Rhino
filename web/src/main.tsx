@@ -4,7 +4,6 @@ import { BrowserRouter } from 'react-router-dom';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import App from './App';
-import ToastProvider from './components/ui/toast/ToastProvider';
 import { Toaster } from './components/ui/sonner';
 import { TooltipProvider } from './components/ui/tooltip';
 import { queryClient, persister } from './lib/queryClient';
@@ -26,13 +25,10 @@ createRoot(rootEl).render(
       }}
     >
       <TooltipProvider>
-        <ToastProvider>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
-        </ToastProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
       </TooltipProvider>
-      {/* Sonner — substitui ToastProvider progressivamente. */}
       <Toaster />
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />}
     </PersistQueryClientProvider>

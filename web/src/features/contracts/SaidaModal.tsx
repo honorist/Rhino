@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/native-select';
 
 import { DatePicker } from '../../components/ui/date-picker';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { todayISO } from '../../lib/formatDate';
 import { useCreateSaida, useUpdateSaida } from './queries';
 
@@ -44,7 +44,6 @@ export default function SaidaModal({
   saida,
   onClose,
 }: SaidaModalProps) {
-  const toast = useToast();
   const criar = useCreateSaida();
   const editar = useUpdateSaida();
   const isEdit = Boolean(saida);
@@ -59,12 +58,12 @@ export default function SaidaModal({
 
   function submit() {
     if (!description.trim()) {
-      toast.show('Descrição obrigatória', 'danger');
+      toast.error('Descrição obrigatória');
       return;
     }
     const valorNum = Number(value) || 0;
     if (valorNum <= 0) {
-      toast.show('Informe um valor válido', 'danger');
+      toast.error('Informe um valor válido');
       return;
     }
     const input = {
@@ -76,10 +75,10 @@ export default function SaidaModal({
     };
     const handlers = {
       onSuccess: () => {
-        toast.show(isEdit ? 'Saída atualizada' : 'Saída adicionada', 'success');
+        toast.success(isEdit ? 'Saída atualizada' : 'Saída adicionada');
         onClose();
       },
-      onError: (e: Error) => toast.show(e.message, 'danger'),
+      onError: (e: Error) => toast.error(e.message),
     };
     if (saida) editar.mutate({ id: saida.id, input }, handlers);
     else criar.mutate({ contractId, input }, handlers);

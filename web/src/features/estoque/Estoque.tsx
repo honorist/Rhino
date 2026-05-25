@@ -11,7 +11,7 @@ import {
 import Spinner from '../../components/ui/Spinner';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/native-select';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR } from '../../lib/formatDate';
 import type { Almoxarifado, EstoqueItem, Movimentacao } from './types';
@@ -148,7 +148,6 @@ function movTexto(m: Movimentacao, almoxs: Almoxarifado[]): string {
 
 /** Almoxarifado / Estoque — matriz item × almoxarifado. */
 export default function Estoque() {
-  const toast = useToast();
   const visaoQuery = useVisaoGeral();
   const movsQuery = useMovimentacoes();
   const reverter = useReverterMovimentacao();
@@ -211,8 +210,8 @@ export default function Estoque() {
       return;
     }
     reverter.mutate(m.id, {
-      onSuccess: () => toast.show('Movimentação revertida', 'success'),
-      onError: (e) => toast.show(e.message, 'danger'),
+      onSuccess: () => toast.success('Movimentação revertida'),
+      onError: (e) => toast.error(e.message),
     });
   }
 

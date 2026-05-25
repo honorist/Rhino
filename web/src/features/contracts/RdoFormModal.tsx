@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
 import { DatePicker } from '../../components/ui/date-picker';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { todayISO } from '../../lib/formatDate';
 import type { Contract, Rdo } from './types';
 import { useCreateRdo, useUpdateRdo } from './queries';
@@ -192,7 +192,6 @@ export default function RdoFormModal({
   rdo,
   onClose,
 }: RdoFormModalProps) {
-  const toast = useToast();
   const criar = useCreateRdo();
   const editar = useUpdateRdo();
   const isEdit = Boolean(rdo);
@@ -232,7 +231,7 @@ export default function RdoFormModal({
 
   function submit() {
     if (!form.data) {
-      toast.show('Data é obrigatória', 'danger');
+      toast.error('Data é obrigatória');
       return;
     }
     const payload = {
@@ -242,10 +241,10 @@ export default function RdoFormModal({
     };
     const handlers = {
       onSuccess: () => {
-        toast.show(isEdit ? 'RDO atualizado' : 'RDO criado', 'success');
+        toast.success(isEdit ? 'RDO atualizado' : 'RDO criado');
         onClose();
       },
-      onError: (e: Error) => toast.show(e.message, 'danger'),
+      onError: (e: Error) => toast.error(e.message),
     };
     if (rdo) {
       editar.mutate(

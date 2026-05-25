@@ -4,7 +4,7 @@ import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Spinner from '../../components/ui/Spinner';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatDateBR } from '../../lib/formatDate';
 import { useContracts, useDeleteContract } from './queries';
 import type { Contract } from './types';
@@ -65,7 +65,6 @@ function TabPlaceholder({ label }: { label: string }) {
 /** Editor de detalhe do contrato — orquestrador de abas (porte de ContratoDetail.js). */
 function ContratoDetailView({ id }: { id: string }) {
   const navigate = useNavigate();
-  const toast = useToast();
   const contractsQuery = useContracts();
   const deletar = useDeleteContract();
   const [tab, setTab] = useState('visao');
@@ -86,10 +85,10 @@ function ContratoDetailView({ id }: { id: string }) {
     if (!window.confirm(`Excluir o contrato "${contract.name}"?`)) return;
     deletar.mutate(contract.id, {
       onSuccess: () => {
-        toast.show('Contrato excluído', 'success');
+        toast.success('Contrato excluído');
         navigate('/contratos');
       },
-      onError: (e) => toast.show(e.message, 'danger'),
+      onError: (e) => toast.error(e.message),
     });
   }
 

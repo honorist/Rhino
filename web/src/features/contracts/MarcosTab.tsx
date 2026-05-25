@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 import { DatePicker } from '../../components/ui/date-picker';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatDateBR, todayISO } from '../../lib/formatDate';
 import type { ContratoTabProps } from './ContratoDetail';
 import type { Marco } from './types';
@@ -28,7 +28,6 @@ function MarcoModal({
   marco: Marco | null;
   onClose: () => void;
 }) {
-  const toast = useToast();
   const criar = useCreateMarco();
   const editar = useUpdateMarco();
   const isEdit = Boolean(marco);
@@ -41,7 +40,7 @@ function MarcoModal({
 
   function submit() {
     if (!titulo.trim()) {
-      toast.show('Título obrigatório', 'danger');
+      toast.error('Título obrigatório');
       return;
     }
     const input = {
@@ -52,10 +51,10 @@ function MarcoModal({
     };
     const handlers = {
       onSuccess: () => {
-        toast.show(isEdit ? 'Marco atualizado' : 'Marco criado', 'success');
+        toast.success(isEdit ? 'Marco atualizado' : 'Marco criado');
         onClose();
       },
-      onError: (e: Error) => toast.show(e.message, 'danger'),
+      onError: (e: Error) => toast.error(e.message),
     };
     if (marco) {
       editar.mutate({ contractId, itemId: marco.id, input }, handlers);
@@ -123,7 +122,6 @@ function MarcoModal({
 
 /** Aba Marcos do contrato — checklist com prazos. */
 export default function MarcosTab({ contract }: ContratoTabProps) {
-  const toast = useToast();
   const editar = useUpdateMarco();
   const excluir = useDeleteMarco();
   const [modal, setModal] = useState<{ marco: Marco | null } | null>(null);
@@ -136,7 +134,7 @@ export default function MarcosTab({ contract }: ContratoTabProps) {
   function toggle(m: Marco) {
     editar.mutate(
       { contractId: contract.id, itemId: m.id, input: { concluido: !m.concluido } },
-      { onError: (e) => toast.show(e.message, 'danger') },
+      { onError: (e) => toast.error(e.message) },
     );
   }
   function handleExcluir(m: Marco) {
@@ -144,8 +142,8 @@ export default function MarcosTab({ contract }: ContratoTabProps) {
     excluir.mutate(
       { contractId: contract.id, itemId: m.id },
       {
-        onSuccess: () => toast.show('Marco excluído', 'success'),
-        onError: (e) => toast.show(e.message, 'danger'),
+        onSuccess: () => toast.success('Marco excluído'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }

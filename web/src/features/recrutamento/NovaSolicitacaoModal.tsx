@@ -11,7 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Combobox } from '../../components/ui/combobox';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { useContracts } from '../contracts/queries';
 import { useCriarSolicitacao } from './queries';
 import type { VagaInput } from './types';
@@ -21,7 +21,6 @@ import type { VagaInput } from './types';
  * Cada vaga tem cargo + quantidade. RH é notificado in-app na criação.
  */
 export default function NovaSolicitacaoModal({ onClose }: { onClose: () => void }) {
-  const toast = useToast();
   const criar = useCriarSolicitacao();
   const contractsQuery = useContracts();
 
@@ -44,11 +43,11 @@ export default function NovaSolicitacaoModal({ onClose }: { onClose: () => void 
       .map((v) => ({ cargo: v.cargo.trim(), qtdTotal: Number(v.qtdTotal) || 0 }))
       .filter((v) => v.cargo);
     if (vagasValidas.length === 0) {
-      toast.show('Informe pelo menos uma vaga com cargo.', 'danger');
+      toast.error('Informe pelo menos uma vaga com cargo.');
       return;
     }
     if (vagasValidas.some((v) => v.qtdTotal <= 0)) {
-      toast.show('Quantidade de cada vaga deve ser maior que zero.', 'danger');
+      toast.error('Quantidade de cada vaga deve ser maior que zero.');
       return;
     }
     try {
@@ -57,10 +56,10 @@ export default function NovaSolicitacaoModal({ onClose }: { onClose: () => void 
         observacoes: observacoes.trim() || undefined,
         vagas: vagasValidas,
       });
-      toast.show('Solicitação criada. RH foi notificado.', 'success');
+      toast.success('Solicitação criada. RH foi notificado.');
       onClose();
     } catch (e) {
-      toast.show((e as Error).message, 'danger');
+      toast.error((e as Error).message);
     }
   }
 

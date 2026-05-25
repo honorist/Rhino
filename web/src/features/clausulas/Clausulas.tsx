@@ -21,7 +21,7 @@ import {
 } from '../../components/ui/select';
 import { Textarea } from '../../components/ui/textarea';
 import Spinner from '../../components/ui/Spinner';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import type { Clausula } from '../../types/domain';
 import {
   useClausulas,
@@ -52,7 +52,6 @@ const VIEW_STORAGE_KEY = 'clausulas-view';
 
 /** Biblioteca de Cláusulas — migração de js/views/Clausulas.js. */
 export default function Clausulas() {
-  const toast = useToast();
   const clausulasQuery = useClausulas();
   const updateClausula = useUpdateClausula();
   const removeClausula = useRemoveClausula();
@@ -89,7 +88,7 @@ export default function Clausulas() {
   function handleToggle(c: Clausula) {
     updateClausula.mutate(
       { id: c.id, input: { ativa: !c.ativa } },
-      { onError: (error) => toast.show(`Erro: ${error.message}`, 'danger') },
+      { onError: (error) => toast.error(`Erro: ${error.message}`) },
     );
   }
 
@@ -102,8 +101,8 @@ export default function Clausulas() {
       return;
     }
     removeClausula.mutate(c.id, {
-      onSuccess: () => toast.show('Cláusula excluída', 'success'),
-      onError: (error) => toast.show(`Erro: ${error.message}`, 'danger'),
+      onSuccess: () => toast.success('Cláusula excluída'),
+      onError: (error) => toast.error(`Erro: ${error.message}`),
     });
   }
 
@@ -472,7 +471,6 @@ interface ClausulaModalProps {
 }
 
 function ClausulaModal({ clausula, onClose }: ClausulaModalProps) {
-  const toast = useToast();
   const createClausula = useCreateClausula();
   const updateClausula = useUpdateClausula();
   const isEdit = clausula !== null;
@@ -489,7 +487,7 @@ function ClausulaModal({ clausula, onClose }: ClausulaModalProps) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!titulo.trim() || !texto.trim()) {
-      toast.show('Título e texto são obrigatórios', 'danger');
+      toast.error('Título e texto são obrigatórios');
       return;
     }
     const input: ClausulaInput = {
@@ -503,10 +501,10 @@ function ClausulaModal({ clausula, onClose }: ClausulaModalProps) {
     };
 
     const onSuccess = () => {
-      toast.show(isEdit ? 'Cláusula atualizada' : 'Cláusula criada', 'success');
+      toast.success(isEdit ? 'Cláusula atualizada' : 'Cláusula criada');
       onClose();
     };
-    const onError = (error: Error) => toast.show(`Erro: ${error.message}`, 'danger');
+    const onError = (error: Error) => toast.error(`Erro: ${error.message}`);
 
     if (isEdit && clausula) {
       updateClausula.mutate({ id: clausula.id, input }, { onSuccess, onError });

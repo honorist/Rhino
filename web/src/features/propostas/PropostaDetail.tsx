@@ -11,7 +11,7 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import Spinner from '../../components/ui/Spinner';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import type { PropostaStatus } from '../../types/domain';
 import { STATUS_COLORS, STATUS_LABELS, numeroCompleto } from './shared';
 import {
@@ -73,7 +73,6 @@ interface EditorApi {
 function usePropostaEditor(id: string): EditorApi {
   const query = useProposta(id);
   const { mutateAsync: autosave } = useAutosaveProposta();
-  const toast = useToast();
 
   const [proposta, setProposta] = useState<PropostaDetalhe | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
@@ -106,7 +105,7 @@ function usePropostaEditor(id: string): EditorApi {
       pendingRef.current = { ...patch, ...pendingRef.current };
       setSaveState('error');
       const message = err instanceof Error ? err.message : 'erro desconhecido';
-      toast.show(`Falha ao salvar: ${message}`, 'danger');
+      toast.error(`Falha ao salvar: ${message}`);
     }
   }, [id, autosave, toast]);
 
@@ -165,7 +164,6 @@ function SaveIndicator({ state }: { state: SaveState }) {
 
 /** Editor de uma proposta — orquestra as 8 abas + autosave. */
 function PropostaEditorView({ id }: { id: string }) {
-  const toast = useToast();
   const navigate = useNavigate();
   const editor = usePropostaEditor(id);
   const { proposta, saveState, onChange, onLocalUpdate, flushNow, setStatusLocal } =
@@ -203,9 +201,9 @@ function PropostaEditorView({ id }: { id: string }) {
       enviar.mutate(id, {
         onSuccess: () => {
           setStatusLocal('enviada');
-          toast.show('Proposta marcada como enviada', 'success');
+          toast.success('Proposta marcada como enviada');
         },
-        onError: (error) => toast.show(`Erro: ${error.message}`, 'danger'),
+        onError: (error) => toast.error(`Erro: ${error.message}`),
       });
     });
   }
@@ -222,9 +220,9 @@ function PropostaEditorView({ id }: { id: string }) {
     aceitar.mutate(id, {
       onSuccess: () => {
         setStatusLocal('aceita');
-        toast.show('Proposta aceita! Contrato ativado.', 'success');
+        toast.success('Proposta aceita! Contrato ativado.');
       },
-      onError: (error) => toast.show(`Erro: ${error.message}`, 'danger'),
+      onError: (error) => toast.error(`Erro: ${error.message}`),
     });
   }
 
@@ -236,9 +234,9 @@ function PropostaEditorView({ id }: { id: string }) {
       {
         onSuccess: () => {
           setStatusLocal('rejeitada');
-          toast.show('Proposta rejeitada', 'warning');
+          toast.warning('Proposta rejeitada');
         },
-        onError: (error) => toast.show(`Erro: ${error.message}`, 'danger'),
+        onError: (error) => toast.error(`Erro: ${error.message}`),
       },
     );
   }
@@ -256,7 +254,7 @@ function PropostaEditorView({ id }: { id: string }) {
         onSuccess: (r) => {
           if (r.proposta) navigate(`/proposta/${r.proposta.id}`);
         },
-        onError: (error) => toast.show(`Erro: ${error.message}`, 'danger'),
+        onError: (error) => toast.error(`Erro: ${error.message}`),
       });
     });
   }

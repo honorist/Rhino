@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
 import { Combobox } from '../../components/ui/combobox';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { useContracts } from '../contracts/queries';
 import { useCreateVeiculo, useUpdateVeiculo } from '../resources';
 import type { Veiculo, VeiculoStatus } from '../../types/domain';
@@ -37,7 +37,6 @@ interface VeiculoModalProps {
 
 /** Modal de criação/edição de veículo. */
 export default function VeiculoModal({ veiculo, onClose }: VeiculoModalProps) {
-  const toast = useToast();
   const criar = useCreateVeiculo();
   const editar = useUpdateVeiculo();
   const contractsQuery = useContracts();
@@ -68,14 +67,13 @@ export default function VeiculoModal({ veiculo, onClose }: VeiculoModalProps) {
   function submit() {
     const placaLimpa = normalizarPlaca(placa);
     if (!placaLimpa) {
-      toast.show('Placa obrigatória', 'danger');
+      toast.error('Placa obrigatória');
       return;
     }
     if (!placaValida(placaLimpa)) {
-      toast.show(
-        'Placa inválida — use ABC-1234 (antigo) ou ABC1D23 (Mercosul)',
-        'danger',
-      );
+      toast.error(
+        'Placa inválida — use ABC-1234 (antigo) ou ABC1D23 (Mercosul)'
+);
       return;
     }
     const input = {
@@ -94,10 +92,10 @@ export default function VeiculoModal({ veiculo, onClose }: VeiculoModalProps) {
     };
     const handlers = {
       onSuccess: () => {
-        toast.show(isEdit ? 'Veículo atualizado' : 'Veículo criado', 'success');
+        toast.success(isEdit ? 'Veículo atualizado' : 'Veículo criado');
         onClose();
       },
-      onError: (e: Error) => toast.show(e.message, 'danger'),
+      onError: (e: Error) => toast.error(e.message),
     };
     if (veiculo) editar.mutate({ id: veiculo.id, input }, handlers);
     else criar.mutate(input, handlers);

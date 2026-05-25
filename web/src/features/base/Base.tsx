@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
 import { DatePicker } from '../../components/ui/date-picker';
 import Spinner from '../../components/ui/Spinner';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import type { BaseItem, BaseRecurrence, TipoBase } from '../../types/domain';
 import type { Contract } from '../contracts/types';
@@ -76,7 +76,6 @@ function sumAllocations(item: BaseItem): number {
 
 /** Tela BASE — centro de custo mensal. Migração de js/views/Base.js. */
 export default function Base() {
-  const toast = useToast();
   const baseQuery = useBase();
   const tiposQuery = useTiposBase();
   const contractsQuery = useContracts();
@@ -118,8 +117,8 @@ export default function Base() {
   function handleDelete(item: BaseItem) {
     if (!window.confirm('Excluir este item e todas as suas alocações?')) return;
     removeBase.mutate(item.id, {
-      onSuccess: () => toast.show('Item excluído', 'success'),
-      onError: (error) => toast.show(error.message, 'danger'),
+      onSuccess: () => toast.success('Item excluído'),
+      onError: (error) => toast.error(error.message),
     });
   }
 
@@ -435,7 +434,6 @@ interface BaseItemModalProps {
 
 /** Modal de criação/edição de item da BASE. */
 function BaseItemModal({ item, tipos, onClose }: BaseItemModalProps) {
-  const toast = useToast();
   const createBase = useCreateBase();
   const updateBase = useUpdateBase();
   const isEdit = item !== null;
@@ -461,11 +459,11 @@ function BaseItemModal({ item, tipos, onClose }: BaseItemModalProps) {
     event.preventDefault();
 
     if (recAtivo && (!recInicio || !recFim)) {
-      toast.show('Informe início e fim da recorrência', 'danger');
+      toast.error('Informe início e fim da recorrência');
       return;
     }
     if (recAtivo && recFim < recInicio) {
-      toast.show('Data final deve ser posterior à inicial', 'danger');
+      toast.error('Data final deve ser posterior à inicial');
       return;
     }
 
@@ -488,10 +486,10 @@ function BaseItemModal({ item, tipos, onClose }: BaseItemModalProps) {
     };
 
     const onSuccess = () => {
-      toast.show(isEdit ? 'Item atualizado' : 'Item criado', 'success');
+      toast.success(isEdit ? 'Item atualizado' : 'Item criado');
       onClose();
     };
-    const onError = (error: Error) => toast.show(error.message, 'danger');
+    const onError = (error: Error) => toast.error(error.message);
 
     if (isEdit && item) {
       updateBase.mutate({ id: item.id, input }, { onSuccess, onError });
@@ -634,7 +632,6 @@ interface AllocateModalProps {
 
 /** Modal de alocação de item da BASE a contratos. */
 function AllocateModal({ item, contratos, onClose }: AllocateModalProps) {
-  const toast = useToast();
   const allocate = useAllocateBase();
 
   const alocado = sumAllocations(item);
@@ -648,25 +645,25 @@ function AllocateModal({ item, contratos, onClose }: AllocateModalProps) {
     event.preventDefault();
     const valor = Number.parseFloat(value) || 0;
     if (!contractId) {
-      toast.show('Selecione um contrato', 'danger');
+      toast.error('Selecione um contrato');
       return;
     }
     if (valor <= 0) {
-      toast.show('Informe um valor válido', 'danger');
+      toast.error('Informe um valor válido');
       return;
     }
     if (valor > disponivel) {
-      toast.show('Valor excede o disponível', 'danger');
+      toast.error('Valor excede o disponível');
       return;
     }
     allocate.mutate(
       { id: item.id, contractId, value: valor },
       {
         onSuccess: () => {
-          toast.show('Alocação criada', 'success');
+          toast.success('Alocação criada');
           onClose();
         },
-        onError: (error) => toast.show(error.message, 'danger'),
+        onError: (error) => toast.error(error.message),
       },
     );
   }

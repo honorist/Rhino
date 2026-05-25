@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/native-select';
 
 import Spinner from '../../components/ui/Spinner';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { useCurrentUser } from '../auth/queries';
 import {
   useCreateUser,
@@ -31,7 +31,6 @@ function formatDateTime(value?: string | null): string {
 
 /** Tela de Usuários e Acessos — migração de js/views/Usuarios.js. */
 export default function Usuarios() {
-  const toast = useToast();
   const usersQuery = useUsers();
   const niveisQuery = useNiveisAcesso();
   const currentUserQuery = useCurrentUser();
@@ -49,8 +48,8 @@ export default function Usuarios() {
   function handleDelete(user: User) {
     if (!window.confirm(`Excluir o usuário ${user.email}?`)) return;
     removeUser.mutate(user.id, {
-      onSuccess: () => toast.show('Usuário excluído', 'success'),
-      onError: (error) => toast.show(error.message, 'danger'),
+      onSuccess: () => toast.success('Usuário excluído'),
+      onError: (error) => toast.error(error.message),
     });
   }
 
@@ -180,7 +179,6 @@ interface UserFormModalProps {
 
 /** Modal de criação/edição de usuário. */
 function UserFormModal({ user, niveis, onClose }: UserFormModalProps) {
-  const toast = useToast();
   const createUser = useCreateUser();
   const updateUser = useUpdateUser();
   const isEdit = user !== null;
@@ -205,10 +203,10 @@ function UserFormModal({ user, niveis, onClose }: UserFormModalProps) {
     if (password) input.password = password;
 
     const onSuccess = () => {
-      toast.show(isEdit ? 'Usuário atualizado' : 'Usuário criado', 'success');
+      toast.success(isEdit ? 'Usuário atualizado' : 'Usuário criado');
       onClose();
     };
-    const onError = (error: Error) => toast.show(error.message, 'danger');
+    const onError = (error: Error) => toast.error(error.message);
 
     if (isEdit && user) {
       input.isActive = isActive;

@@ -10,7 +10,7 @@ import {
 import FormField from '../../components/ui/FormField';
 import { Textarea } from '@/components/ui/textarea';
 import { Combobox } from '../../components/ui/combobox';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR } from '../../lib/formatDate';
 import { useDocTemplates } from '../documentos/queries';
@@ -62,7 +62,6 @@ export default function GerarDocumentoModal({
   contract,
   onClose,
 }: GerarDocumentoModalProps) {
-  const toast = useToast();
   const templatesQuery = useDocTemplates();
   const templates = (templatesQuery.data ?? []).filter((t) => t.body);
 
@@ -80,17 +79,17 @@ export default function GerarDocumentoModal({
 
   async function handleGerar() {
     if (!conteudo.trim()) {
-      toast.show('Selecione um template', 'warning');
+      toast.warning('Selecione um template');
       return;
     }
     const tpl = templates.find((t) => t.id === templateId);
     setGerando(true);
     try {
       await gerarPdf(String(tpl?.nome ?? 'documento'), conteudo);
-      toast.show('PDF gerado', 'success');
+      toast.success('PDF gerado');
       onClose();
     } catch {
-      toast.show('Falha ao gerar o PDF', 'danger');
+      toast.error('Falha ao gerar o PDF');
     } finally {
       setGerando(false);
     }

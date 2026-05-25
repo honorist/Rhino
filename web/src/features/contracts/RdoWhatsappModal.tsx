@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 
 interface RdoWhatsappModalProps {
   /** Texto pronto pra colar no grupo da obra. */
@@ -20,7 +20,6 @@ interface RdoWhatsappModalProps {
  * (linhas ~407-450). Mostra textarea read-only + botão Copiar.
  */
 export default function RdoWhatsappModal({ texto, onClose }: RdoWhatsappModalProps) {
-  const toast = useToast();
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   // Seleciona o texto ao abrir, facilita Ctrl+A/C manual.
@@ -32,16 +31,16 @@ export default function RdoWhatsappModal({ texto, onClose }: RdoWhatsappModalPro
   async function handleCopiar() {
     try {
       await navigator.clipboard.writeText(texto);
-      toast.show('Texto copiado! Cole no grupo do WhatsApp.', 'success');
+      toast.success('Texto copiado! Cole no grupo do WhatsApp.');
     } catch {
       // Fallback: execCommand
       taRef.current?.focus();
       taRef.current?.select();
       try {
         document.execCommand('copy');
-        toast.show('Texto copiado!', 'success');
+        toast.success('Texto copiado!');
       } catch {
-        toast.show('Selecione o texto e copie com Ctrl+C.', 'info');
+        toast('Selecione o texto e copie com Ctrl+C.');
       }
     }
   }

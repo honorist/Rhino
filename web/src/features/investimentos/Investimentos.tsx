@@ -18,7 +18,7 @@ import { Select } from '@/components/ui/native-select';
 import { Combobox } from '../../components/ui/combobox';
 import { DatePicker } from '../../components/ui/date-picker';
 import Spinner from '../../components/ui/Spinner';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import type {
   AporteDestino,
@@ -75,7 +75,6 @@ function contractName(contract: Contract | undefined): string {
 
 /** Tela de Aportes dos Sócios — migração de js/views/Investimentos.js. */
 export default function Investimentos() {
-  const toast = useToast();
   const investimentosQuery = useInvestimentos();
   const sociosQuery = useSocios();
   const contractsQuery = useContracts();
@@ -128,8 +127,8 @@ export default function Investimentos() {
         : 'Excluir este aporte?';
     if (!window.confirm(msg)) return;
     removeInvestimento.mutate(ap.id, {
-      onSuccess: () => toast.show('Aporte removido', 'success'),
-      onError: (error) => toast.show(error.message, 'danger'),
+      onSuccess: () => toast.success('Aporte removido'),
+      onError: (error) => toast.error(error.message),
     });
   }
 
@@ -549,7 +548,6 @@ function NovoAporteModal({
   tipos,
   onClose,
 }: NovoAporteModalProps) {
-  const toast = useToast();
   const createInvestimento = useCreateInvestimento();
 
   const [origem, setOrigem] = useState<AporteOrigem>('socio');
@@ -570,15 +568,15 @@ function NovoAporteModal({
 
     const valor = Number.parseFloat(value) || 0;
     if (valor <= 0) {
-      toast.show('Informe um valor válido', 'danger');
+      toast.error('Informe um valor válido');
       return;
     }
     if (origem === 'socio' && !socioId) {
-      toast.show('Selecione o sócio', 'danger');
+      toast.error('Selecione o sócio');
       return;
     }
     if (destino === 'contrato' && !contractId) {
-      toast.show('Selecione o contrato de destino', 'danger');
+      toast.error('Selecione o contrato de destino');
       return;
     }
 
@@ -599,10 +597,10 @@ function NovoAporteModal({
         if (origem === 'caixa_empresa') msgs.push('saída lançada no caixa');
         if (destino === 'base') msgs.push('item criado na BASE');
         const extra = msgs.length > 0 ? ` (${msgs.join(' e ')})` : '';
-        toast.show(`Aporte registrado${extra}`, 'success');
+        toast.success(`Aporte registrado${extra}`);
         onClose();
       },
-      onError: (error) => toast.show(error.message, 'danger'),
+      onError: (error) => toast.error(error.message),
     });
   }
 

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { Badge } from '../../components/ui/badge';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatDateBR } from '../../lib/formatDate';
 import type { ContratoTabProps } from './ContratoDetail';
 import type { Rdo } from './types';
@@ -65,7 +65,6 @@ function segBadge(rdo: Rdo) {
 
 /** Aba RDO do contrato — lista de Relatórios Diários de Obra. */
 export default function RdoTab({ contract }: ContratoTabProps) {
-  const toast = useToast();
   const deletar = useDeleteRdo();
   const [modal, setModal] = useState<ModalState>(null);
 
@@ -87,8 +86,8 @@ export default function RdoTab({ contract }: ContratoTabProps) {
     deletar.mutate(
       { contractId: contract.id, rdoId: rdo.id },
       {
-        onSuccess: () => toast.show('RDO excluído', 'success'),
-        onError: (e) => toast.show(e.message, 'danger'),
+        onSuccess: () => toast.success('RDO excluído'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }
@@ -97,7 +96,7 @@ export default function RdoTab({ contract }: ContratoTabProps) {
     try {
       await exportRdoPdf(rdo, contract);
     } catch {
-      toast.show('Falha ao gerar o PDF', 'danger');
+      toast.error('Falha ao gerar o PDF');
     }
   }
 

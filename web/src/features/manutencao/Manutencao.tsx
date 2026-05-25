@@ -5,7 +5,7 @@ import Card from '../../components/ui/Card';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import Spinner from '../../components/ui/Spinner';
 import { Select } from '@/components/ui/native-select';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatDateBR, todayISO } from '../../lib/formatDate';
 import type { Contract } from '../contracts/types';
 import { useContracts } from '../contracts/queries';
@@ -135,7 +135,6 @@ interface ModalState {
 
 /** Manutenção de Equipamentos — lista + fluxo de aprovação. */
 export default function ManutencaoView() {
-  const toast = useToast();
   const manutencoesQuery = useManutencoes();
   const contractsQuery = useContracts();
   const cancelar = useCancelarManutencao();
@@ -188,8 +187,8 @@ export default function ManutencaoView() {
   function handleCancelar(m: Manutencao) {
     if (!window.confirm('Cancelar esta manutenção?')) return;
     cancelar.mutate(m.id, {
-      onSuccess: () => toast.show('Manutenção cancelada', 'success'),
-      onError: (e) => toast.show(e.message, 'danger'),
+      onSuccess: () => toast.success('Manutenção cancelada'),
+      onError: (e) => toast.error(e.message),
     });
   }
 
@@ -202,8 +201,8 @@ export default function ManutencaoView() {
       return;
     }
     excluir.mutate(m.id, {
-      onSuccess: () => toast.show('Registro excluído', 'success'),
-      onError: (e) => toast.show(e.message, 'danger'),
+      onSuccess: () => toast.success('Registro excluído'),
+      onError: (e) => toast.error(e.message),
     });
   }
 

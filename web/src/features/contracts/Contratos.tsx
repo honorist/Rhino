@@ -6,7 +6,7 @@ import Card from '../../components/ui/Card';
 import Spinner from '../../components/ui/Spinner';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/native-select';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR } from '../../lib/formatDate';
 import { downloadCsv } from '../../lib/downloadCsv';
@@ -53,7 +53,6 @@ type ModalState =
 /** Lista de Contratos — porte de js/views/Contratos.js. */
 export default function Contratos() {
   const navigate = useNavigate();
-  const toast = useToast();
   const contractsQuery = useContracts();
   const saidasQuery = useSaidas();
   const recursosQuery = useRecursos();
@@ -178,14 +177,14 @@ export default function Contratos() {
   function handleExcluir(c: Contract) {
     if (!window.confirm(`Excluir o contrato "${c.name}"?`)) return;
     deletar.mutate(c.id, {
-      onSuccess: () => toast.show('Contrato excluído', 'success'),
-      onError: (e) => toast.show(e.message, 'danger'),
+      onSuccess: () => toast.success('Contrato excluído'),
+      onError: (e) => toast.error(e.message),
     });
   }
 
   function exportarCsv(lista: Contract[]) {
     if (lista.length === 0) {
-      toast.show('Nenhum contrato para exportar', 'warning');
+      toast.warning('Nenhum contrato para exportar');
       return;
     }
     const rows: (string | number)[][] = [
@@ -204,7 +203,7 @@ export default function Contratos() {
       `contratos-${new Date().toISOString().slice(0, 10)}.csv`,
       rows,
     );
-    toast.show(`${lista.length} contratos exportados`, 'success');
+    toast.success(`${lista.length} contratos exportados`);
   }
 
   function bulkStatus() {
@@ -214,13 +213,13 @@ export default function Contratos() {
     if (!novo) return;
     const status = novo.trim().toLowerCase();
     if (!STATUS_VALIDOS.includes(status as ContractStatus)) {
-      toast.show('Status inválido', 'warning');
+      toast.warning('Status inválido');
       return;
     }
     for (const id of selecionados) {
       atualizar.mutate({ id, input: { status: status as ContractStatus } });
     }
-    toast.show(`${selecionados.size} contrato(s) atualizados`, 'success');
+    toast.success(`${selecionados.size} contrato(s) atualizados`);
     setSelecionados(new Set());
   }
 
@@ -233,7 +232,7 @@ export default function Contratos() {
       return;
     }
     for (const id of selecionados) deletar.mutate(id);
-    toast.show(`${selecionados.size} contrato(s) excluídos`, 'success');
+    toast.success(`${selecionados.size} contrato(s) excluídos`);
     setSelecionados(new Set());
   }
 

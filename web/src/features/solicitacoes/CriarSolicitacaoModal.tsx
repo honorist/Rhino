@@ -11,7 +11,7 @@ import FormField from '../../components/ui/FormField';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { useContracts } from '../contracts/queries';
 import {
   useCreateSolicitacaoCompra,
@@ -44,7 +44,6 @@ export default function CriarSolicitacaoModal({
   solicitacao,
   onClose,
 }: CriarSolicitacaoModalProps) {
-  const toast = useToast();
   const criar = useCreateSolicitacaoCompra();
   const editar = useUpdateSolicitacaoCompra();
   const contractsQuery = useContracts();
@@ -88,11 +87,11 @@ export default function CriarSolicitacaoModal({
       }))
       .filter((it) => it.descricao && it.qtd > 0);
     if (itensValidos.length === 0) {
-      toast.show('Adicione pelo menos um item válido', 'danger');
+      toast.error('Adicione pelo menos um item válido');
       return;
     }
     if (!justificativa.trim()) {
-      toast.show('Justificativa obrigatória', 'danger');
+      toast.error('Justificativa obrigatória');
       return;
     }
     const contractId = destino.startsWith('obra:')
@@ -108,15 +107,14 @@ export default function CriarSolicitacaoModal({
     };
     const handlers = {
       onSuccess: () => {
-        toast.show(
+        toast.success(
           isEdit
             ? 'Solicitação atualizada'
-            : 'Solicitação enviada para avaliação',
-          'success',
-        );
+            : 'Solicitação enviada para avaliação'
+);
         onClose();
       },
-      onError: (e: Error) => toast.show(e.message, 'danger'),
+      onError: (e: Error) => toast.error(e.message),
     };
     if (solicitacao) editar.mutate({ id: solicitacao.id, input }, handlers);
     else criar.mutate(input, handlers);

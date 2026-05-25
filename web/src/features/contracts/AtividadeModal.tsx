@@ -11,7 +11,7 @@ import FormField from '../../components/ui/FormField';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '../../components/ui/date-picker';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import type { Atividade } from './types';
 import { useCreateAtividade, useUpdateAtividade } from './queries';
 
@@ -38,7 +38,6 @@ export default function AtividadeModal({
   atividade,
   onClose,
 }: AtividadeModalProps) {
-  const toast = useToast();
   const criar = useCreateAtividade(contractId);
   const editar = useUpdateAtividade(contractId);
   const isEdit = Boolean(atividade);
@@ -57,7 +56,7 @@ export default function AtividadeModal({
 
   function submit() {
     if (!nome.trim()) {
-      toast.show('Nome da etapa é obrigatório', 'danger');
+      toast.error('Nome da etapa é obrigatório');
       return;
     }
     const input = {
@@ -71,10 +70,10 @@ export default function AtividadeModal({
     };
     const handlers = {
       onSuccess: () => {
-        toast.show(isEdit ? 'Etapa atualizada' : 'Etapa criada', 'success');
+        toast.success(isEdit ? 'Etapa atualizada' : 'Etapa criada');
         onClose();
       },
-      onError: (e: Error) => toast.show(e.message, 'danger'),
+      onError: (e: Error) => toast.error(e.message),
     };
     if (atividade) editar.mutate({ id: atividade.id, input }, handlers);
     else criar.mutate(input, handlers);

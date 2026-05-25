@@ -7,7 +7,7 @@ import Spinner from '../../components/ui/Spinner';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/native-select';
 import { Combobox } from '../../components/ui/combobox';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import type { Contract } from '../contracts/types';
 import { useContracts } from '../contracts/queries';
 import { useRemoveVeiculo, useVeiculos } from '../resources';
@@ -74,7 +74,6 @@ type ModalState =
 
 /** Frota / Veículos — pool global com plano de manutenção. */
 export default function Frota() {
-  const toast = useToast();
   const veiculosQuery = useVeiculos();
   const contractsQuery = useContracts();
   const remover = useRemoveVeiculo();
@@ -130,14 +129,14 @@ export default function Frota() {
       return;
     }
     remover.mutate(v.id, {
-      onSuccess: () => toast.show('Veículo excluído', 'success'),
-      onError: (e) => toast.show(e.message, 'danger'),
+      onSuccess: () => toast.success('Veículo excluído'),
+      onError: (e) => toast.error(e.message),
     });
   }
 
   function handleDistancias(v: Veiculo) {
     if (!v.lat || !v.lng) {
-      toast.show('Veículo sem localização cadastrada', 'danger');
+      toast.error('Veículo sem localização cadastrada');
       return;
     }
     setModal({ type: 'distancias', veiculo: v });

@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import type { DocumentoValidacao } from '../../types/domain';
 import { useDocTemplates, useValidarDocumento } from './queries';
 import { useRecursos } from '../resources';
@@ -196,7 +196,6 @@ export default function ValidacaoModal({
   docId,
   onClose,
 }: ValidacaoModalProps) {
-  const toast = useToast();
   const recursosQuery = useRecursos();
   const templatesQuery = useDocTemplates();
   const validar = useValidarDocumento();
@@ -212,8 +211,8 @@ export default function ValidacaoModal({
     validar.mutate(
       { recursoId, docId },
       {
-        onSuccess: () => toast.show('Validação concluída', 'success'),
-        onError: (e) => toast.show(e.message, 'danger'),
+        onSuccess: () => toast.success('Validação concluída'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }

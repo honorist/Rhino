@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
-import { useToast } from '../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { enqueueRequest, isApiMutation, syncQueue } from '../lib/offlineQueue';
 import { useOnline } from './useOnline';
 
@@ -14,7 +14,6 @@ import { useOnline } from './useOnline';
 export function useOfflineSync(): boolean {
   const online = useOnline();
   const qc = useQueryClient();
-  const toast = useToast();
 
   // Patch do fetch global — instala uma vez por mount, restaura ao desmontar
   useEffect(() => {
@@ -35,7 +34,7 @@ export function useOfflineSync(): boolean {
           /* corpo não-JSON é ignorado no replay */
         }
         enqueueRequest(method, url, parsed);
-        toast.show('Salvo offline — será enviado quando reconectar', 'warning');
+        toast.warning('Salvo offline — será enviado quando reconectar');
         return Promise.resolve(
           new Response(JSON.stringify({ ok: true, offline: true }), {
             status: 200,
@@ -58,7 +57,7 @@ export function useOfflineSync(): boolean {
       const { sent } = await syncQueue();
       if (cancelled) return;
       if (sent > 0) {
-        toast.show(`${sent} alteração(ões) sincronizada(s)`, 'success');
+        toast.success(`${sent} alteração(ões) sincronizada(s)`);
         // recarrega tudo — pareia com o hashchange do antigo
         qc.invalidateQueries();
       }

@@ -1,6 +1,6 @@
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
-import { useToast } from '../../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { usePush } from '../../../hooks/usePush';
 
 /**
@@ -8,7 +8,6 @@ import { usePush } from '../../../hooks/usePush';
  * js/views/Configuracao.js. Usa o hook usePush (F4-3).
  */
 export default function PushSection() {
-  const toast = useToast();
   const { state, subscribe, unsubscribe } = usePush();
 
   const statusInfo: Record<typeof state, { texto: string; cor: string }> = {
@@ -24,9 +23,9 @@ export default function PushSection() {
     try {
       const r = await fetch('/api/push/test', { method: 'POST' });
       if (!r.ok) throw new Error('HTTP ' + r.status);
-      toast.show('Notificação de teste enviada!', 'success');
+      toast.success('Notificação de teste enviada!');
     } catch (e) {
-      toast.show('Falha: ' + (e as Error).message, 'danger');
+      toast.error('Falha: ' + (e as Error).message);
     }
   }
 

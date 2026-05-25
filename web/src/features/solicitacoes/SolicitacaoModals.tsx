@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
 import { DatePicker } from '../../components/ui/date-picker';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import { todayISO } from '../../lib/formatDate';
 import { useContracts } from '../contracts/queries';
@@ -44,7 +44,6 @@ interface ModalProps {
 
 /** Modal de aprovação de uma solicitação pré-avaliada. */
 export function AprovarModal({ solicitacao: s, onClose }: ModalProps) {
-  const toast = useToast();
   const aprovar = useAprovarSolicitacao();
   const rejeitar = useRejeitarSolicitacao();
   const contractsQuery = useContracts();
@@ -68,10 +67,10 @@ export function AprovarModal({ solicitacao: s, onClose }: ModalProps) {
     }
     aprovar.mutate(s.id, {
       onSuccess: () => {
-        toast.show('Solicitação aprovada', 'success');
+        toast.success('Solicitação aprovada');
         onClose();
       },
-      onError: (e) => toast.show(e.message, 'danger'),
+      onError: (e) => toast.error(e.message),
     });
   }
 
@@ -82,10 +81,10 @@ export function AprovarModal({ solicitacao: s, onClose }: ModalProps) {
       { id: s.id, motivo },
       {
         onSuccess: () => {
-          toast.show('Solicitação rejeitada', 'success');
+          toast.success('Solicitação rejeitada');
           onClose();
         },
-        onError: (e) => toast.show(e.message, 'danger'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }
@@ -175,7 +174,6 @@ export function AprovarModal({ solicitacao: s, onClose }: ModalProps) {
 
 /** Modal de registro de compra (gera Conta a Pagar). */
 export function ComprarModal({ solicitacao: s, onClose }: ModalProps) {
-  const toast = useToast();
   const comprar = useComprarSolicitacao();
   const fornecedoresQuery = useFornecedores();
   const itens = parseItens(s.itens);
@@ -195,7 +193,7 @@ export function ComprarModal({ solicitacao: s, onClose }: ModalProps) {
 
   function submit() {
     if (!dataVencimento) {
-      toast.show('Informe o vencimento da CP', 'danger');
+      toast.error('Informe o vencimento da CP');
       return;
     }
     comprar.mutate(
@@ -205,10 +203,10 @@ export function ComprarModal({ solicitacao: s, onClose }: ModalProps) {
       },
       {
         onSuccess: () => {
-          toast.show('Compra registrada — Conta a Pagar gerada', 'success');
+          toast.success('Compra registrada — Conta a Pagar gerada');
           onClose();
         },
-        onError: (e) => toast.show(e.message, 'danger'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }
@@ -289,7 +287,6 @@ export function ComprarModal({ solicitacao: s, onClose }: ModalProps) {
 
 /** Modal de confirmação de chegada (gera entrada de estoque). */
 export function ReceberModal({ solicitacao: s, onClose }: ModalProps) {
-  const toast = useToast();
   const receber = useReceberSolicitacao();
   const itens = parseItens(s.itens);
 
@@ -299,20 +296,19 @@ export function ReceberModal({ solicitacao: s, onClose }: ModalProps) {
 
   function submit() {
     if (!dataRecebimento) {
-      toast.show('Informe a data de recebimento', 'danger');
+      toast.error('Informe a data de recebimento');
       return;
     }
     receber.mutate(
       { id: s.id, input: { dataRecebimento, nfRecebimento, obsRecebimento } },
       {
         onSuccess: () => {
-          toast.show(
-            'Recebimento confirmado — entrada de estoque gerada',
-            'success',
-          );
+          toast.success(
+            'Recebimento confirmado — entrada de estoque gerada'
+);
           onClose();
         },
-        onError: (e) => toast.show(e.message, 'danger'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }

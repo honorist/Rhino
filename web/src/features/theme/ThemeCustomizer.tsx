@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import Button from '../../components/ui/Button';
 import { PRESETS } from './presets';
 import { useTheme } from './useTheme';
@@ -14,7 +14,6 @@ export default function ThemeCustomizer() {
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const fabRef = useRef<HTMLButtonElement>(null);
-  const toast = useToast();
 
   // fechar ao clicar fora
   useEffect(() => {
@@ -96,7 +95,7 @@ export default function ThemeCustomizer() {
             onClick={() => {
               reset();
               setOpen(false);
-              toast.show('Tema padrão restaurado', 'info');
+              toast('Tema padrão restaurado');
             }}
           >
             Restaurar padrão

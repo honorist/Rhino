@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
-import { useToast } from '../../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { api } from '../../../lib/api';
 
 /**
@@ -13,18 +13,17 @@ import { api } from '../../../lib/api';
  *   dados pessoais e encerra a sessão; dados financeiros/contratos ficam).
  */
 export default function LgpdSection() {
-  const toast = useToast();
   const qc = useQueryClient();
 
   const deleteAccount = useMutation({
     mutationFn: () => api.post<{ ok: boolean }>('/api/lgpd/delete-account'),
     onSuccess: () => {
-      toast.show('Conta marcada para exclusão. Você será desconectado.', 'info');
+      toast('Conta marcada para exclusão. Você será desconectado.');
       qc.clear();
       setTimeout(() => location.reload(), 1500);
     },
     onError: (e) =>
-      toast.show(`Falha ao solicitar exclusão: ${(e as Error).message}`, 'danger'),
+      toast.error(`Falha ao solicitar exclusão: ${(e as Error).message}`),
   });
 
   async function handleDelete() {

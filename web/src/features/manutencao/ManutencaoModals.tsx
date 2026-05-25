@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '../../components/ui/date-picker';
 import { Combobox } from '../../components/ui/combobox';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR, todayISO } from '../../lib/formatDate';
 import { useContracts } from '../contracts/queries';
@@ -58,7 +58,6 @@ interface NovaModalProps {
 
 /** Modal de solicitação (ou edição) de manutenção. */
 export function NovaManutencaoModal({ manutencao, onClose }: NovaModalProps) {
-  const toast = useToast();
   const criar = useCreateManutencao();
   const editar = useUpdateManutencao();
   const contractsQuery = useContracts();
@@ -77,7 +76,7 @@ export function NovaManutencaoModal({ manutencao, onClose }: NovaModalProps) {
   function submit() {
     const eq = equipamento.trim();
     if (!eq) {
-      toast.show('Informe o equipamento', 'danger');
+      toast.error('Informe o equipamento');
       return;
     }
     const input = {
@@ -88,13 +87,12 @@ export function NovaManutencaoModal({ manutencao, onClose }: NovaModalProps) {
     };
     const handlers = {
       onSuccess: () => {
-        toast.show(
-          isEdit ? 'Solicitação atualizada' : 'Manutenção solicitada',
-          'success',
-        );
+        toast.success(
+          isEdit ? 'Solicitação atualizada' : 'Manutenção solicitada'
+);
         onClose();
       },
-      onError: (e: Error) => toast.show(e.message, 'danger'),
+      onError: (e: Error) => toast.error(e.message),
     };
     if (manutencao) editar.mutate({ id: manutencao.id, input }, handlers);
     else criar.mutate(input, handlers);
@@ -175,7 +173,6 @@ interface ModalProps {
 
 /** Modal de avaliação — define oficina, prazo e custo. */
 export function AvaliarModal({ manutencao, onClose, nomeOrigem }: ModalProps) {
-  const toast = useToast();
   const avaliar = useAvaliarManutencao();
 
   const [oficina, setOficina] = useState(manutencao.oficina ?? '');
@@ -195,7 +192,7 @@ export function AvaliarModal({ manutencao, onClose, nomeOrigem }: ModalProps) {
   function submit() {
     const of = oficina.trim();
     if (!of) {
-      toast.show('Informe a oficina / empresa', 'danger');
+      toast.error('Informe a oficina / empresa');
       return;
     }
     avaliar.mutate(
@@ -211,10 +208,10 @@ export function AvaliarModal({ manutencao, onClose, nomeOrigem }: ModalProps) {
       },
       {
         onSuccess: () => {
-          toast.show('Avaliação enviada para aprovação', 'success');
+          toast.success('Avaliação enviada para aprovação');
           onClose();
         },
-        onError: (e) => toast.show(e.message, 'danger'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }
@@ -337,7 +334,6 @@ function ResumoLinha({ rotulo, valor }: { rotulo: string; valor: string }) {
 
 /** Modal de aprovação — aprovar direto ou rejeitar com motivo. */
 export function AprovarModal({ manutencao, onClose }: ModalProps) {
-  const toast = useToast();
   const aprovar = useAprovarManutencao();
   const rejeitar = useRejeitarManutencao();
   const [motivo, setMotivo] = useState('');
@@ -346,10 +342,10 @@ export function AprovarModal({ manutencao, onClose }: ModalProps) {
   function handleAprovar() {
     aprovar.mutate(manutencao.id, {
       onSuccess: () => {
-        toast.show('Manutenção aprovada', 'success');
+        toast.success('Manutenção aprovada');
         onClose();
       },
-      onError: (e) => toast.show(e.message, 'danger'),
+      onError: (e) => toast.error(e.message),
     });
   }
 
@@ -359,10 +355,10 @@ export function AprovarModal({ manutencao, onClose }: ModalProps) {
       { id: manutencao.id, motivo: motivo.trim() },
       {
         onSuccess: () => {
-          toast.show('Manutenção rejeitada', 'success');
+          toast.success('Manutenção rejeitada');
           onClose();
         },
-        onError: (e) => toast.show(e.message, 'danger'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }
@@ -427,7 +423,6 @@ export function AprovarModal({ manutencao, onClose }: ModalProps) {
 
 /** Modal de registro do retorno do equipamento. */
 export function RetornoModal({ manutencao, onClose }: ModalProps) {
-  const toast = useToast();
   const retorno = useRetornoManutencao();
 
   const [dataRetorno, setDataRetorno] = useState(todayISO());
@@ -436,7 +431,7 @@ export function RetornoModal({ manutencao, onClose }: ModalProps) {
 
   function submit() {
     if (!dataRetorno) {
-      toast.show('Informe a data de retorno', 'danger');
+      toast.error('Informe a data de retorno');
       return;
     }
     retorno.mutate(
@@ -450,10 +445,10 @@ export function RetornoModal({ manutencao, onClose }: ModalProps) {
       },
       {
         onSuccess: () => {
-          toast.show('Retorno registrado', 'success');
+          toast.success('Retorno registrado');
           onClose();
         },
-        onError: (e) => toast.show(e.message, 'danger'),
+        onError: (e) => toast.error(e.message),
       },
     );
   }

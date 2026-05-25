@@ -11,7 +11,7 @@ import FormField from '../../components/ui/FormField';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import type { BudgetItem } from './types';
 import { useCreateBudgetItem, useUpdateBudgetItem } from './queries';
 
@@ -36,7 +36,6 @@ export default function OrcamentoModal({
   item,
   onClose,
 }: OrcamentoModalProps) {
-  const toast = useToast();
   const criar = useCreateBudgetItem();
   const editar = useUpdateBudgetItem();
   const isEdit = Boolean(item);
@@ -50,12 +49,12 @@ export default function OrcamentoModal({
 
   function submit() {
     if (!description.trim()) {
-      toast.show('Descrição obrigatória', 'danger');
+      toast.error('Descrição obrigatória');
       return;
     }
     const valorNum = Number(value) || 0;
     if (valorNum <= 0) {
-      toast.show('Informe um valor válido', 'danger');
+      toast.error('Informe um valor válido');
       return;
     }
     const input = {
@@ -66,10 +65,10 @@ export default function OrcamentoModal({
     };
     const handlers = {
       onSuccess: () => {
-        toast.show(isEdit ? 'Item atualizado' : 'Item adicionado', 'success');
+        toast.success(isEdit ? 'Item atualizado' : 'Item adicionado');
         onClose();
       },
-      onError: (e: Error) => toast.show(e.message, 'danger'),
+      onError: (e: Error) => toast.error(e.message),
     };
     if (item?.id) {
       editar.mutate({ contractId, budgetId: item.id, input }, handlers);

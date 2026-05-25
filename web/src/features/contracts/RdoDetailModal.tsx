@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatDateBR } from '../../lib/formatDate';
 import type { Contract, Rdo, RdoMaoObra } from './types';
 import { exportRdoPdf } from './exportRdoPdf';
@@ -141,7 +141,6 @@ export default function RdoDetailModal({
   contract,
   onClose,
 }: RdoDetailModalProps) {
-  const toast = useToast();
   const [exportando, setExportando] = useState(false);
   const [whatsOpen, setWhatsOpen] = useState(false);
 
@@ -150,7 +149,7 @@ export default function RdoDetailModal({
     try {
       await exportRdoPdf(rdo, contract);
     } catch {
-      toast.show('Falha ao gerar o PDF', 'danger');
+      toast.error('Falha ao gerar o PDF');
     } finally {
       setExportando(false);
     }

@@ -3,7 +3,7 @@ import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Spinner from '../../components/ui/Spinner';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import { useContasPagar, useCreateCaixa } from '../resources';
 import { usePagarConta } from '../contas-pagar/queries';
@@ -30,7 +30,6 @@ function contarDecisoes(decisions: Record<string, Decision>) {
 
 /** Tela de Conciliação Bancária — migração de js/views/Conciliacao.js. */
 export default function Conciliacao() {
-  const toast = useToast();
   const contasQuery = useContasPagar();
   const createCaixa = useCreateCaixa();
   const pagarConta = usePagarConta();
@@ -47,14 +46,13 @@ export default function Conciliacao() {
       try {
         parsed = parseExtrato(file.name, text);
       } catch (error) {
-        toast.show(
-          `Erro ao processar arquivo: ${(error as Error).message}`,
-          'danger',
-        );
+        toast.error(
+          `Erro ao processar arquivo: ${(error as Error).message}`
+);
         return;
       }
       if (parsed.length === 0) {
-        toast.show('Nenhuma transação encontrada no arquivo.', 'danger');
+        toast.error('Nenhuma transação encontrada no arquivo.');
         return;
       }
       const novasDecisoes: Record<string, Decision> = {};
@@ -67,10 +65,9 @@ export default function Conciliacao() {
       }
       setTransactions(parsed);
       setDecisions(novasDecisoes);
-      toast.show(
-        `${parsed.length} transação(ões) encontrada(s).`,
-        'success',
-      );
+      toast.success(
+        `${parsed.length} transação(ões) encontrada(s).`
+);
     });
   }
 
@@ -126,10 +123,10 @@ export default function Conciliacao() {
     setProcessando(false);
 
     if (ok > 0) {
-      toast.show(`${ok} lançamento(s) registrado(s) com sucesso.`, 'success');
+      toast.success(`${ok} lançamento(s) registrado(s) com sucesso.`);
     }
     if (erro > 0) {
-      toast.show(`${erro} lançamento(s) falharam.`, 'danger');
+      toast.error(`${erro} lançamento(s) falharam.`);
     }
     if (ok > 0) {
       const restantes = transactions.filter(

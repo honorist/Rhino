@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { Badge } from '../../components/ui/badge';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import { useBase, useContasPagar, useRecursos, useTiposBase } from '../resources';
 import { useNotasFiscais } from '../resources';
@@ -66,7 +66,6 @@ function Kpi({
 
 /** Aba Visão Geral do contrato — resumo financeiro e operacional. */
 export default function VisaoGeralTab({ contract }: ContratoTabProps) {
-  const toast = useToast();
   const [exportando, setExportando] = useState(false);
   const [detalheTipo, setDetalheTipo] = useState<string | null>(null);
   const saidasQuery = useSaidas();
@@ -157,9 +156,9 @@ export default function VisaoGeralTab({ contract }: ContratoTabProps) {
     setExportando(true);
     try {
       await exportContractPdf(contract, data, { nfsContrato, tipoLabel });
-      toast.show('PDF gerado com sucesso', 'success');
+      toast.success('PDF gerado com sucesso');
     } catch {
-      toast.show('Falha ao gerar o PDF', 'danger');
+      toast.error('Falha ao gerar o PDF');
     } finally {
       setExportando(false);
     }

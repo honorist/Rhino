@@ -10,7 +10,7 @@ import Spinner from '../../../components/ui/Spinner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
-import { useToast } from '../../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { api } from '../../../lib/api';
 import { queryKeys } from '../../../lib/queryKeys';
 import type { DocTemplate } from '../../../types/domain';
@@ -27,7 +27,6 @@ interface TemplatesResponse {
  */
 export default function DocTemplatesSection() {
   const qc = useQueryClient();
-  const toast = useToast();
   const { data, isLoading } = useQuery({
     queryKey: queryKeys.docTemplates,
     queryFn: () => api.get<TemplatesResponse>('/api/doc-templates'),
@@ -40,9 +39,9 @@ export default function DocTemplatesSection() {
     mutationFn: (id: string) => api.delete<{ ok: boolean }>(`/api/doc-templates/${id}`),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.docTemplates });
-      toast.show('Template removido', 'success');
+      toast.success('Template removido');
     },
-    onError: (e) => toast.show(e.message, 'danger'),
+    onError: (e) => toast.error(e.message),
   });
 
   if (isLoading) return <Spinner label="Carregando templates…" />;
@@ -135,7 +134,6 @@ function TemplateModal({
   onClose: () => void;
 }) {
   const qc = useQueryClient();
-  const toast = useToast();
   const isEdit = !!template;
   const [label, setLabel] = useState(template?.nome ?? '');
   const [validade, setValidade] = useState(
@@ -154,10 +152,10 @@ function TemplateModal({
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.docTemplates });
-      toast.show(isEdit ? 'Template atualizado' : 'Template criado', 'success');
+      toast.success(isEdit ? 'Template atualizado' : 'Template criado');
       onClose();
     },
-    onError: (e) => toast.show(e.message, 'danger'),
+    onError: (e) => toast.error(e.message),
   });
 
   return (

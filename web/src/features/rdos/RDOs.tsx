@@ -12,7 +12,7 @@ import {
 import Spinner from '../../components/ui/Spinner';
 import { Input } from '@/components/ui/input';
 import { Combobox } from '../../components/ui/combobox';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { downloadCsv } from '../../lib/downloadCsv';
 import RdoDetailModal from '../contracts/RdoDetailModal';
 import { useContracts } from '../contracts/queries';
@@ -131,7 +131,6 @@ function AderenciaChart({ stats }: { stats: RdoStats }) {
 /** Modal de seleção de contrato para lançar um novo RDO. */
 function PickerContratoModal({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
-  const toast = useToast();
   const contractsQuery = useContracts();
   const [contractId, setContractId] = useState('');
 
@@ -146,7 +145,7 @@ function PickerContratoModal({ onClose }: { onClose: () => void }) {
 
   function continuar() {
     if (!contractId) {
-      toast.show('Selecione um contrato.', 'danger');
+      toast.error('Selecione um contrato.');
       return;
     }
     onClose();

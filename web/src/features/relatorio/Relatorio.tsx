@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Spinner from '../../components/ui/Spinner';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import { useCaixa, useContasPagar, useNotasFiscais } from '../resources';
 import { useContracts, useSaidas } from '../contracts/queries';
@@ -49,7 +49,6 @@ function Kpi({
 
 /** Relatório Gerencial — preview de indicadores + geração do PDF executivo. */
 export default function Relatorio() {
-  const toast = useToast();
   const [gerando, setGerando] = useState(false);
   const contractsQuery = useContracts();
   const saidasQuery = useSaidas();
@@ -88,12 +87,11 @@ export default function Relatorio() {
     setGerando(true);
     try {
       await exportRelatorioPdf(dados);
-      toast.show('Relatório gerado', 'success');
+      toast.success('Relatório gerado');
     } catch (e) {
-      toast.show(
-        e instanceof Error ? e.message : 'Falha ao gerar o PDF',
-        'danger',
-      );
+      toast.error(
+        e instanceof Error ? e.message : 'Falha ao gerar o PDF'
+);
     } finally {
       setGerando(false);
     }

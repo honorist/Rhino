@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
 
 import Spinner from '../../components/ui/Spinner';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import type { Fornecedor } from '../../types/domain';
 import {
   useCreateFornecedor,
@@ -37,7 +37,6 @@ function uniqueMateriais(fornecedores: Fornecedor[]): string[] {
 
 /** Tela de Fornecedores — migração de js/views/Fornecedores.js. */
 export default function Fornecedores() {
-  const toast = useToast();
   const fornecedoresQuery = useFornecedores();
   const removeFornecedor = useRemoveFornecedor();
 
@@ -64,8 +63,8 @@ export default function Fornecedores() {
   function handleDelete(fornecedor: Fornecedor) {
     if (!window.confirm('Excluir este fornecedor?')) return;
     removeFornecedor.mutate(fornecedor.id, {
-      onSuccess: () => toast.show('Fornecedor removido', 'success'),
-      onError: (error) => toast.show(error.message, 'danger'),
+      onSuccess: () => toast.success('Fornecedor removido'),
+      onError: (error) => toast.error(error.message),
     });
   }
 
@@ -270,7 +269,6 @@ function FornecedorFormModal({
   sugestoes,
   onClose,
 }: FornecedorFormModalProps) {
-  const toast = useToast();
   const createFornecedor = useCreateFornecedor();
   const updateFornecedor = useUpdateFornecedor();
   const isEdit = fornecedor !== null;
@@ -316,13 +314,12 @@ function FornecedorFormModal({
     };
 
     const onSuccess = () => {
-      toast.show(
-        isEdit ? 'Fornecedor atualizado' : 'Fornecedor criado',
-        'success',
-      );
+      toast.success(
+        isEdit ? 'Fornecedor atualizado' : 'Fornecedor criado'
+);
       onClose();
     };
-    const onError = (error: Error) => toast.show(error.message, 'danger');
+    const onError = (error: Error) => toast.error(error.message);
 
     if (isEdit && fornecedor) {
       updateFornecedor.mutate({ id: fornecedor.id, input }, { onSuccess, onError });

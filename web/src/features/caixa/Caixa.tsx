@@ -17,7 +17,7 @@ import { Select } from '@/components/ui/native-select';
 import { Combobox } from '../../components/ui/combobox';
 import { DatePicker } from '../../components/ui/date-picker';
 import Spinner from '../../components/ui/Spinner';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import {
   expandAll,
@@ -90,7 +90,6 @@ interface FutureItem {
 
 /** Tela de Caixa — Lançamentos. Migração de js/views/Caixa.js. */
 export default function Caixa() {
-  const toast = useToast();
   const caixaQuery = useCaixa();
   const contractsQuery = useContracts();
   const contasQuery = useContasPagar();
@@ -337,19 +336,15 @@ export default function Caixa() {
       }
     }
     setVirtSelecionadas(new Set());
-    toast.show(
-      `${ok} criado${ok !== 1 ? 's' : ''}${
-        fail > 0 ? ` · ${fail} falha${fail !== 1 ? 's' : ''}` : ''
-      }`,
-      fail > 0 ? 'danger' : 'success',
-    );
+    const _msg = `${ok} criado${ok !== 1 ? 's' : ''}${fail > 0 ? ` · ${fail} falha${fail !== 1 ? 's' : ''}` : ''}`;
+    if (fail > 0) toast.error(_msg); else toast.success(_msg);
   }
 
   function handleDelete(id: string) {
     if (!window.confirm('Excluir este lançamento?')) return;
     removeCaixa.mutate(id, {
-      onSuccess: () => toast.show('Lançamento excluído', 'success'),
-      onError: (error) => toast.show(error.message, 'danger'),
+      onSuccess: () => toast.success('Lançamento excluído'),
+      onError: (error) => toast.error(error.message),
     });
   }
 
@@ -360,7 +355,7 @@ export default function Caixa() {
     void file.text().then((txt) => {
       importarOfx.mutate(txt, {
         onSuccess: (data) => setOfxResult(data),
-        onError: (error) => toast.show(`Erro: ${error.message}`, 'danger'),
+        onError: (error) => toast.error(`Erro: ${error.message}`),
       });
     });
   }
@@ -1170,7 +1165,6 @@ interface EntryModalProps {
 
 /** Modal de criação/edição de lançamento de caixa. */
 function EntryModal({ entry, contratos, onClose }: EntryModalProps) {
-  const toast = useToast();
   const createCaixa = useCreateCaixa();
   const updateCaixa = useUpdateCaixa();
   const isEdit = entry !== null;
@@ -1189,12 +1183,12 @@ function EntryModal({ entry, contratos, onClose }: EntryModalProps) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!description.trim()) {
-      toast.show('Descrição é obrigatória', 'danger');
+      toast.error('Descrição é obrigatória');
       return;
     }
     const valorNum = Number.parseFloat(value) || 0;
     if (valorNum <= 0) {
-      toast.show('Valor inválido', 'danger');
+      toast.error('Valor inválido');
       return;
     }
 
@@ -1208,13 +1202,12 @@ function EntryModal({ entry, contratos, onClose }: EntryModalProps) {
     };
 
     const onSuccess = () => {
-      toast.show(
-        isEdit ? 'Lançamento atualizado' : 'Lançamento criado',
-        'success',
-      );
+      toast(
+        isEdit ? 'Lançamento atualizado' : 'Lançamento criado'
+);
       onClose();
     };
-    const onError = (error: Error) => toast.show(error.message, 'danger');
+    const onError = (error: Error) => toast.error(error.message);
 
     if (isEdit && entry) {
       updateCaixa.mutate({ id: entry.id, input }, { onSuccess, onError });
@@ -1318,7 +1311,6 @@ interface MaterializeModalProps {
 
 /** Modal pré-preenchido para materializar uma ocorrência de recorrência. */
 function MaterializeModal({ prefill, contratos, onClose }: MaterializeModalProps) {
-  const toast = useToast();
   const createCaixa = useCreateCaixa();
 
   const [description, setDescription] = useState(prefill.description);
@@ -1331,7 +1323,7 @@ function MaterializeModal({ prefill, contratos, onClose }: MaterializeModalProps
     event.preventDefault();
     const valorNum = Number.parseFloat(value) || 0;
     if (valorNum <= 0) {
-      toast.show('Valor inválido', 'danger');
+      toast.error('Valor inválido');
       return;
     }
     const input: CaixaInput = {
@@ -1346,10 +1338,10 @@ function MaterializeModal({ prefill, contratos, onClose }: MaterializeModalProps
     };
     createCaixa.mutate(input, {
         onSuccess: () => {
-          toast.show('Lançamento criado', 'success');
+          toast.success('Lançamento criado');
           onClose();
         },
-        onError: (error) => toast.show(`Erro: ${error.message}`, 'danger'),
+        onError: (error) => toast.error(`Erro: ${error.message}`),
       },
     );
   }

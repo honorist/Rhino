@@ -3,7 +3,7 @@ import { Fragment, useState, type CSSProperties } from 'react';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import Spinner from '../../../components/ui/Spinner';
-import { useToast } from '../../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { api } from '../../../lib/api';
 import { queryKeys } from '../../../lib/queryKeys';
 import { useNiveisAcesso } from '../../auth/queries';
@@ -268,7 +268,6 @@ interface HeaderProps {
 }
 
 function Header({ hasChanges, edits, niveis, onSaved, onReset }: HeaderProps) {
-  const toast = useToast();
   const qc = useQueryClient();
   const salvar = useMutation({
     mutationFn: async () => {
@@ -280,10 +279,10 @@ function Header({ hasChanges, edits, niveis, onSaved, onReset }: HeaderProps) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.niveisAcesso });
-      toast.show('Permissões atualizadas em todos os perfis editados.', 'success');
+      toast.success('Permissões atualizadas em todos os perfis editados.');
       onSaved?.();
     },
-    onError: (e) => toast.show((e as Error).message, 'danger'),
+    onError: (e) => toast.error((e as Error).message),
   });
 
   return (

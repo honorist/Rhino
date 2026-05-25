@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 import Spinner from '../../components/ui/Spinner';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import {
   useClientes,
   useCreateCliente,
@@ -23,7 +23,6 @@ import type { Cliente, ClienteInput } from './types';
 
 /** Tela de Clientes (CRM) — migração de js/views/Clientes.js. */
 export default function Clientes() {
-  const toast = useToast();
   const clientesQuery = useClientes();
   const deleteCliente = useDeleteCliente();
 
@@ -42,8 +41,8 @@ export default function Clientes() {
   function handleDelete(cliente: Cliente) {
     if (!window.confirm('Excluir este cliente?')) return;
     deleteCliente.mutate(cliente.id, {
-      onSuccess: () => toast.show('Cliente removido', 'success'),
-      onError: (error) => toast.show(error.message, 'danger'),
+      onSuccess: () => toast.success('Cliente removido'),
+      onError: (error) => toast.error(error.message),
     });
   }
 
@@ -187,7 +186,6 @@ interface ClienteFormModalProps {
 
 /** Modal de criação/edição de cliente. */
 function ClienteFormModal({ cliente, onClose }: ClienteFormModalProps) {
-  const toast = useToast();
   const createCliente = useCreateCliente();
   const updateCliente = useUpdateCliente();
   const isEdit = cliente !== null;
@@ -232,10 +230,10 @@ function ClienteFormModal({ cliente, onClose }: ClienteFormModalProps) {
     if (form.removerPortalAcesso) input.removerPortalAcesso = true;
 
     const onSuccess = () => {
-      toast.show(isEdit ? 'Cliente atualizado' : 'Cliente criado', 'success');
+      toast.success(isEdit ? 'Cliente atualizado' : 'Cliente criado');
       onClose();
     };
-    const onError = (error: Error) => toast.show(error.message, 'danger');
+    const onError = (error: Error) => toast.error(error.message);
 
     if (isEdit && cliente) {
       updateCliente.mutate({ id: cliente.id, input }, { onSuccess, onError });

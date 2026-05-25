@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useToast } from '../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { urlBase64ToUint8Array } from '../lib/pushUtils';
 
 export type PushState = 'unsupported' | 'denied' | 'unsubscribed' | 'subscribed' | 'loading';
@@ -22,7 +22,6 @@ async function readState(): Promise<PushState> {
  */
 export function usePush() {
   const [state, setState] = useState<PushState>('loading');
-  const toast = useToast();
 
   // Refresh inicial do estado real do navegador.
   useEffect(() => {
@@ -37,12 +36,12 @@ export function usePush() {
 
   const subscribe = useCallback(async (): Promise<boolean> => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      toast.show('Seu navegador não suporta notificações push', 'warning');
+      toast.warning('Seu navegador não suporta notificações push');
       return false;
     }
     const perm = await Notification.requestPermission();
     if (perm !== 'granted') {
-      toast.show('Permissão negada pelo usuário', 'warning');
+      toast.warning('Permissão negada pelo usuário');
       setState('denied');
       return false;
     }
@@ -66,10 +65,10 @@ export function usePush() {
       });
       if (!r.ok) throw new Error('Falha ao registrar subscription no servidor');
       setState('subscribed');
-      toast.show('Notificações push ativadas!', 'success');
+      toast.success('Notificações push ativadas!');
       return true;
     } catch (e) {
-      toast.show('Erro ao ativar push: ' + ((e as Error).message || 'falha'), 'danger');
+      toast.error('Erro ao ativar push: ' + ((e as Error).message || 'falha'));
       return false;
     }
   }, [toast]);
@@ -87,10 +86,10 @@ export function usePush() {
         await sub.unsubscribe();
       }
       setState('unsubscribed');
-      toast.show('Notificações desativadas', 'info');
+      toast('Notificações desativadas');
       return true;
     } catch (e) {
-      toast.show('Erro ao desativar push: ' + (e as Error).message, 'danger');
+      toast.error('Erro ao desativar push: ' + (e as Error).message);
       return false;
     }
   }, [toast]);

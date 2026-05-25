@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
 import { DatePicker } from '../../components/ui/date-picker';
 import { Combobox } from '../../components/ui/combobox';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { useContracts } from '../contracts/queries';
 import { useCreateRecurso, useUpdateRecurso } from '../resources';
 import AddressAutocomplete from '../frota/AddressAutocomplete';
@@ -63,7 +63,6 @@ interface RecursoModalProps {
 
 /** Modal de cadastro/edição de colaborador. */
 export default function RecursoModal({ recurso, onClose }: RecursoModalProps) {
-  const toast = useToast();
   const criar = useCreateRecurso();
   const editar = useUpdateRecurso();
   const contractsQuery = useContracts();
@@ -122,7 +121,7 @@ export default function RecursoModal({ recurso, onClose }: RecursoModalProps) {
 
   function submit() {
     if (!nome.trim()) {
-      toast.show('Nome é obrigatório', 'danger');
+      toast.error('Nome é obrigatório');
       return;
     }
     const input: Partial<Recurso> = {
@@ -159,10 +158,10 @@ export default function RecursoModal({ recurso, onClose }: RecursoModalProps) {
     };
     const handlers = {
       onSuccess: () => {
-        toast.show(isEdit ? 'Cadastro atualizado' : 'Cadastro criado', 'success');
+        toast.success(isEdit ? 'Cadastro atualizado' : 'Cadastro criado');
         onClose();
       },
-      onError: (e: Error) => toast.show(e.message, 'danger'),
+      onError: (e: Error) => toast.error(e.message),
     };
     if (recurso) editar.mutate({ id: recurso.id, input }, handlers);
     else criar.mutate(input, handlers);

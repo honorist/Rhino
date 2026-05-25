@@ -5,7 +5,7 @@ import Card from '../../components/ui/Card';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import Spinner from '../../components/ui/Spinner';
 import { Select } from '@/components/ui/native-select';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import type { Contract } from '../contracts/types';
 import { useContracts } from '../contracts/queries';
@@ -103,7 +103,6 @@ type ModalState =
 
 /** Solicitações de Compra — fluxo de 5 etapas. */
 export default function SolicitacoesCompra() {
-  const toast = useToast();
   const solQuery = useSolicitacoesCompra();
   const contractsQuery = useContracts();
   const remover = useRemoveSolicitacaoCompra();
@@ -155,8 +154,8 @@ export default function SolicitacoesCompra() {
       cancelar.mutate(
         { id: s.id, motivo },
         {
-          onSuccess: () => toast.show('Solicitação cancelada', 'success'),
-          onError: (e) => toast.show(e.message, 'danger'),
+          onSuccess: () => toast.success('Solicitação cancelada'),
+          onError: (e) => toast.error(e.message),
         },
       ),
     );
@@ -168,8 +167,8 @@ export default function SolicitacoesCompra() {
         rejeitar.mutate(
           { id: s.id, motivo },
           {
-            onSuccess: () => toast.show('Solicitação rejeitada', 'success'),
-            onError: (e) => toast.show(e.message, 'danger'),
+            onSuccess: () => toast.success('Solicitação rejeitada'),
+            onError: (e) => toast.error(e.message),
           },
         ),
       true,
@@ -178,8 +177,8 @@ export default function SolicitacoesCompra() {
   function handleExcluir(s: SolicitacaoCompra) {
     if (!window.confirm('Excluir esta solicitação?')) return;
     remover.mutate(s.id, {
-      onSuccess: () => toast.show('Solicitação excluída', 'success'),
-      onError: (e) => toast.show(e.message, 'danger'),
+      onSuccess: () => toast.success('Solicitação excluída'),
+      onError: (e) => toast.error(e.message),
     });
   }
 

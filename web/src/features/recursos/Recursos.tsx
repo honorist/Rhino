@@ -6,7 +6,7 @@ import DataTable, { type Column } from '../../components/ui/DataTable';
 import Spinner from '../../components/ui/Spinner';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/native-select';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { formatDateBR } from '../../lib/formatDate';
 import type { Contract } from '../contracts/types';
 import { useContracts } from '../contracts/queries';
@@ -101,7 +101,6 @@ type ModalState =
 
 /** Recursos Humanos — cadastro de colaboradores, folgas e alocação. */
 export default function Recursos() {
-  const toast = useToast();
   const recursosQuery = useRecursos();
   const contractsQuery = useContracts();
   const remover = useRemoveRecurso();
@@ -166,8 +165,8 @@ export default function Recursos() {
   function handleExcluir(r: Recurso) {
     if (!window.confirm('Excluir este cadastro?')) return;
     remover.mutate(r.id, {
-      onSuccess: () => toast.show('Cadastro removido', 'success'),
-      onError: (e) => toast.show(e.message, 'danger'),
+      onSuccess: () => toast.success('Cadastro removido'),
+      onError: (e) => toast.error(e.message),
     });
   }
 

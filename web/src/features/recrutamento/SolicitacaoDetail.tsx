@@ -11,7 +11,7 @@ import {
 } from '../../components/ui/dialog';
 import Spinner from '../../components/ui/Spinner';
 import { Input } from '@/components/ui/input';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import CandidatoWizardModal from './CandidatoWizardModal';
 import {
   useAdicionarCandidato,
@@ -33,7 +33,6 @@ interface Props {
 
 /** Detalhe de uma solicitação — vagas + candidatos de cada uma. */
 export default function SolicitacaoDetail({ solicitacaoId, onClose }: Props) {
-  const toast = useToast();
   const { data, isLoading } = useSolicitacao(solicitacaoId);
   const cancelar = useCancelarSolicitacao();
   const [novoCand, setNovoCand] = useState<{ vagaId: string } | null>(null);
@@ -186,10 +185,10 @@ export default function SolicitacaoDetail({ solicitacaoId, onClose }: Props) {
                 cancelar
                   .mutateAsync(sol.id)
                   .then(() => {
-                    toast.show('Solicitação cancelada.', 'info');
+                    toast('Solicitação cancelada.');
                     onClose();
                   })
-                  .catch((e) => toast.show((e as Error).message, 'danger'));
+                  .catch((e) => toast.error((e as Error).message));
               }}
             >
               Cancelar solicitação
@@ -211,7 +210,6 @@ function NovoCandidatoModal({
   vagaId: string;
   onClose: () => void;
 }) {
-  const toast = useToast();
   const adicionar = useAdicionarCandidato(solicitacaoId);
   const [nome, setNome] = useState('');
   const [cpf, setCpf] = useState('');
@@ -220,7 +218,7 @@ function NovoCandidatoModal({
 
   async function handleSubmit() {
     if (!nome.trim()) {
-      toast.show('Nome é obrigatório', 'danger');
+      toast.error('Nome é obrigatório');
       return;
     }
     try {
@@ -228,10 +226,10 @@ function NovoCandidatoModal({
         vagaId,
         input: { nome: nome.trim(), cpf, telefone, email },
       });
-      toast.show('Candidato adicionado. Faça a triagem.', 'success');
+      toast.success('Candidato adicionado. Faça a triagem.');
       onClose();
     } catch (e) {
-      toast.show((e as Error).message, 'danger');
+      toast.error((e as Error).message);
     }
   }
 

@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
 
 import { DatePicker } from '../../components/ui/date-picker';
-import { useToast } from '../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import AddressAutocomplete from '../frota/AddressAutocomplete';
 import { useClientes } from '../clientes/queries';
 import type { Cliente } from '../clientes/types';
@@ -54,7 +54,6 @@ export default function ContratoModal({
   isEdit,
   onClose,
 }: ContratoModalProps) {
-  const toast = useToast();
   const criar = useCreateContract();
   const editar = useUpdateContract();
   const clientesQuery = useClientes();
@@ -124,11 +123,11 @@ export default function ContratoModal({
       client = c ? clienteLabel(c) : '';
     }
     if (!name.trim()) {
-      toast.show('Nome do contrato é obrigatório', 'danger');
+      toast.error('Nome do contrato é obrigatório');
       return;
     }
     if (!client) {
-      toast.show('Selecione ou informe o cliente', 'danger');
+      toast.error('Selecione ou informe o cliente');
       return;
     }
     const input = {
@@ -159,13 +158,12 @@ export default function ContratoModal({
     };
     const handlers = {
       onSuccess: () => {
-        toast.show(
-          isEdit ? 'Contrato atualizado' : 'Contrato criado',
-          'success',
-        );
+        toast.success(
+          isEdit ? 'Contrato atualizado' : 'Contrato criado'
+);
         onClose();
       },
-      onError: (e: Error) => toast.show(e.message, 'danger'),
+      onError: (e: Error) => toast.error(e.message),
     };
     if (isEdit && contract) {
       editar.mutate({ id: contract.id, input }, handlers);

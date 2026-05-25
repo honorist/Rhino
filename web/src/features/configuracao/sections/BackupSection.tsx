@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import Spinner from '../../../components/ui/Spinner';
-import { useToast } from '../../../components/ui/toast/ToastContext';
+import { toast } from 'sonner';
 import { api } from '../../../lib/api';
 
 interface BackupInfo {
@@ -27,7 +27,6 @@ function humanSize(bytes: number): string {
  */
 export default function BackupSection() {
   const qc = useQueryClient();
-  const toast = useToast();
   const { data, isLoading } = useQuery({
     queryKey: ['backups'],
     queryFn: () => api.get<BackupsResponse>('/api/backup/list'),
@@ -41,9 +40,9 @@ export default function BackupSection() {
     mutationFn: () => api.post<{ ok: boolean; filename?: string }>('/api/backup/create'),
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ['backups'] });
-      toast.show(`Backup criado${r.filename ? `: ${r.filename}` : ''}`, 'success');
+      toast.success(`Backup criado${r.filename ? `: ${r.filename}` : ''}`);
     },
-    onError: (e) => toast.show(`Falha: ${e.message}`, 'danger'),
+    onError: (e) => toast.error(`Falha: ${e.message}`),
   });
 
   return (
