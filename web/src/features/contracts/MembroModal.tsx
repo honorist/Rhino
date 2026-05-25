@@ -2,7 +2,8 @@ import { useState } from 'react';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
-import { Input, Select } from '../../components/ui/controls';
+import { Input } from '../../components/ui/controls';
+import { Combobox } from '../../components/ui/combobox';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import type { OrgMembro } from './types';
 import { NIVEL_COR, NIVEL_LABEL, inferirNivelOrganograma } from './organograma';
@@ -108,20 +109,19 @@ export default function MembroModal({
       }
     >
       <FormField label="Recurso (Funcionário) *" htmlFor="mo-recurso">
-        <Select
+        <Combobox
           id="mo-recurso"
+          options={disponiveis.map((r) => ({
+            value: r.id,
+            label: r.nome + (r.profissao ? ` — ${r.profissao}` : ''),
+          }))}
           value={recursoId}
           disabled={isEdit}
-          onChange={(e) => setRecursoId(e.target.value)}
-        >
-          <option value="">— Selecione —</option>
-          {disponiveis.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.nome}
-              {r.profissao ? ` — ${r.profissao}` : ''}
-            </option>
-          ))}
-        </Select>
+          onChange={setRecursoId}
+          placeholder="— Selecione —"
+          searchPlaceholder="Pesquisar recurso..."
+          emptyText="Nenhum recurso disponível."
+        />
       </FormField>
 
       <FormField label="Nível (deduzido da profissão)">
@@ -155,25 +155,25 @@ export default function MembroModal({
           label={nivel === 'profissional' ? 'Supervisor Direto *' : 'Supervisor'}
           htmlFor="mo-sup"
         >
-          <Select
+          <Combobox
             id="mo-sup"
+            options={[
+              ...(nivel === 'lider_area' && encarregado
+                ? [{ value: encarregado.id, label: `${nomeRecurso(encarregado.recursoId)} (Encarregado)` }]
+                : []),
+              ...(nivel === 'profissional'
+                ? lideres.map((l) => ({
+                    value: l.id,
+                    label: nomeRecurso(l.recursoId) + (l.area ? ` — ${l.area}` : ''),
+                  }))
+                : []),
+            ]}
             value={supervisorId ?? ''}
-            onChange={(e) => setSupervisorId(e.target.value)}
-          >
-            <option value="">— Selecione —</option>
-            {nivel === 'lider_area' && encarregado && (
-              <option value={encarregado.id}>
-                {nomeRecurso(encarregado.recursoId)} (Encarregado)
-              </option>
-            )}
-            {nivel === 'profissional' &&
-              lideres.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {nomeRecurso(l.recursoId)}
-                  {l.area ? ` — ${l.area}` : ''}
-                </option>
-              ))}
-          </Select>
+            onChange={setSupervisorId}
+            placeholder="— Selecione —"
+            searchPlaceholder="Pesquisar supervisor..."
+            emptyText="Nenhum supervisor disponível."
+          />
         </FormField>
       )}
     </Modal>
