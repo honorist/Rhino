@@ -1,6 +1,13 @@
 import type { ReactNode } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import type { DocumentoValidacao } from '../../types/domain';
 import { useDocTemplates, useValidarDocumento } from './queries';
@@ -52,7 +59,6 @@ const COR_STATUS: Record<string, string> = {
   nao_conforme: '#EF4444',
 };
 
-/** Renderiza o relatório de uma validação. */
 function Relatorio({ val }: { val: DocumentoValidacao | null | undefined }) {
   if (!val) {
     return (
@@ -185,7 +191,6 @@ interface ValidacaoModalProps {
   onClose: () => void;
 }
 
-/** Modal do relatório de validação por IA de um documento. */
 export default function ValidacaoModal({
   recursoId,
   docId,
@@ -214,43 +219,42 @@ export default function ValidacaoModal({
   }
 
   return (
-    <Modal
-      open
-      title={`Validação IA — ${doc?.tipoLabel || doc?.tipo || ''}`}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>
+            Validação IA — {doc?.tipoLabel || doc?.tipo || ''}
+          </DialogTitle>
+          <DialogDescription>
+            Template: {template?.nome || doc?.templateId || '—'}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto p-6">
+          {validar.isPending ? (
+            <p
+              style={{
+                textAlign: 'center',
+                padding: 'var(--sp-lg)',
+                color: 'var(--color-text-muted)',
+              }}
+            >
+              ⏳ Analisando documento com Claude Vision... (pode levar 5-10s)
+            </p>
+          ) : (
+            <Relatorio val={doc?.validacao} />
+          )}
+        </div>
+
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
             Fechar
           </Button>
           <Button onClick={revalidar} disabled={validar.isPending}>
             {validar.isPending ? '⏳ Validando...' : '🔄 Validar agora'}
           </Button>
-        </>
-      }
-    >
-      <p
-        style={{
-          margin: '0 0 var(--sp-md)',
-          fontSize: 13,
-          color: 'var(--color-text-muted)',
-        }}
-      >
-        Template: {template?.nome || doc?.templateId || '—'}
-      </p>
-      {validar.isPending ? (
-        <p
-          style={{
-            textAlign: 'center',
-            padding: 'var(--sp-lg)',
-            color: 'var(--color-text-muted)',
-          }}
-        >
-          ⏳ Analisando documento com Claude Vision... (pode levar 5-10s)
-        </p>
-      ) : (
-        <Relatorio val={doc?.validacao} />
-      )}
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

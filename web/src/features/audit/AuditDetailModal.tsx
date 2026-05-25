@@ -1,6 +1,13 @@
 import type { ReactNode } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import {
   actionVerb,
   entityLabel,
@@ -26,7 +33,6 @@ function Linha({ rotulo, children }: { rotulo: string; children: ReactNode }) {
   );
 }
 
-/** Grade rótulo/valor para snapshots de criação/exclusão. */
 function CamposGrid({
   entries,
   borderColor,
@@ -56,7 +62,6 @@ function CamposGrid({
   );
 }
 
-/** Seção de mudanças conforme a ação do evento. */
 function SecaoMudancas({ ev }: { ev: AuditRow }) {
   if (ev.action === 'update' && ev.beforeState && ev.body) {
     const diffs = computeDiff(ev.beforeState, ev.body);
@@ -150,7 +155,6 @@ interface AuditDetailModalProps {
   onClose: () => void;
 }
 
-/** Modal de detalhe de um evento de auditoria. */
 export default function AuditDetailModal({
   evento,
   onClose,
@@ -167,113 +171,110 @@ export default function AuditDetailModal({
   const temBody = Boolean(evento.body && Object.keys(evento.body).length > 0);
 
   return (
-    <Modal
-      open
-      title={frase}
-      onClose={onClose}
-      footer={
-        <Button variant="secondary" onClick={onClose}>
-          Fechar
-        </Button>
-      }
-    >
-      <p
-        style={{
-          margin: '0 0 var(--sp-md)',
-          fontSize: 13,
-          color: 'var(--color-text-muted)',
-        }}
-      >
-        {formatDateTime(evento.ts)} ({tempoRelativo(evento.ts)})
-      </p>
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{frase}</DialogTitle>
+          <DialogDescription>
+            {formatDateTime(evento.ts)} ({tempoRelativo(evento.ts)})
+          </DialogDescription>
+        </DialogHeader>
 
-      <div
-        style={{
-          padding: 'var(--sp-md)',
-          background: 'var(--color-surface-2)',
-          borderRadius: 8,
-          marginBottom: 'var(--sp-md)',
-        }}
-      >
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '120px 1fr',
-            gap: 10,
-            fontSize: 14,
-            lineHeight: 1.7,
-          }}
-        >
-          <Linha rotulo="Quem fez">
-            <strong>{evento.userEmail ?? '—'}</strong>
-          </Linha>
-          <Linha rotulo="O que fez">
-            <span
-              className="badge"
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div
+            style={{
+              padding: 'var(--sp-md)',
+              background: 'var(--color-surface-2)',
+              borderRadius: 8,
+            }}
+          >
+            <div
               style={{
-                background: verbo.bg,
-                color: verbo.cor,
-                fontWeight: 700,
+                display: 'grid',
+                gridTemplateColumns: '120px 1fr',
+                gap: 10,
+                fontSize: 14,
+                lineHeight: 1.7,
               }}
             >
-              {verbo.verbo}
-            </span>
-            <strong style={{ marginLeft: 6 }}>{entLabel}</strong>
-          </Linha>
-          {evento.entityId && (
-            <Linha rotulo="Identificador">
-              <span style={{ fontFamily: 'monospace', fontSize: 12 }}>
-                {evento.entityId}
-              </span>
-            </Linha>
+              <Linha rotulo="Quem fez">
+                <strong>{evento.userEmail ?? '—'}</strong>
+              </Linha>
+              <Linha rotulo="O que fez">
+                <span
+                  className="badge"
+                  style={{
+                    background: verbo.bg,
+                    color: verbo.cor,
+                    fontWeight: 700,
+                  }}
+                >
+                  {verbo.verbo}
+                </span>
+                <strong style={{ marginLeft: 6 }}>{entLabel}</strong>
+              </Linha>
+              {evento.entityId && (
+                <Linha rotulo="Identificador">
+                  <span style={{ fontFamily: 'monospace', fontSize: 12 }}>
+                    {evento.entityId}
+                  </span>
+                </Linha>
+              )}
+              <Linha rotulo="Resultado">
+                <span style={{ color: status.cor, fontWeight: 600 }}>
+                  {status.texto}
+                </span>
+              </Linha>
+              <Linha rotulo="De qual rede">
+                <span style={{ fontFamily: 'monospace', fontSize: 12 }}>
+                  {evento.ip ?? '—'}
+                </span>
+              </Linha>
+            </div>
+          </div>
+
+          <SecaoMudancas ev={evento} />
+
+          {temBody && (
+            <details>
+              <summary
+                style={{
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: 'var(--color-text-muted)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '.05em',
+                }}
+              >
+                Detalhes técnicos (JSON)
+              </summary>
+              <pre
+                style={{
+                  background: 'var(--color-bg)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 6,
+                  padding: 'var(--sp-md)',
+                  fontSize: 12,
+                  fontFamily: 'monospace',
+                  overflow: 'auto',
+                  maxHeight: 300,
+                  whiteSpace: 'pre-wrap',
+                  marginTop: 8,
+                }}
+              >
+                {JSON.stringify(evento.body, null, 2)}
+              </pre>
+            </details>
           )}
-          <Linha rotulo="Resultado">
-            <span style={{ color: status.cor, fontWeight: 600 }}>
-              {status.texto}
-            </span>
-          </Linha>
-          <Linha rotulo="De qual rede">
-            <span style={{ fontFamily: 'monospace', fontSize: 12 }}>
-              {evento.ip ?? '—'}
-            </span>
-          </Linha>
         </div>
-      </div>
 
-      <SecaoMudancas ev={evento} />
-
-      {temBody && (
-        <details style={{ marginTop: 'var(--sp-md)' }}>
-          <summary
-            style={{
-              cursor: 'pointer',
-              fontSize: 13,
-              fontWeight: 600,
-              color: 'var(--color-text-muted)',
-              textTransform: 'uppercase',
-              letterSpacing: '.05em',
-            }}
-          >
-            Detalhes técnicos (JSON)
-          </summary>
-          <pre
-            style={{
-              background: 'var(--color-bg)',
-              border: '1px solid var(--color-border)',
-              borderRadius: 6,
-              padding: 'var(--sp-md)',
-              fontSize: 12,
-              fontFamily: 'monospace',
-              overflow: 'auto',
-              maxHeight: 300,
-              whiteSpace: 'pre-wrap',
-              marginTop: 8,
-            }}
-          >
-            {JSON.stringify(evento.body, null, 2)}
-          </pre>
-        </details>
-      )}
-    </Modal>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.2.84",
+      "date": "2026-05-25",
+      "summary": "Fase 2 — Dialog composicional shadcn/ui",
+      "changes": [
+        "Adicionados dialog.tsx e alert-dialog.tsx no padrão oficial shadcn/ui (composicional, named exports).",
+        "Modal.tsx reescrito como wrapper deprecated sobre dialog.tsx — preserva API existente (open/title/onClose/footer/size/description) com console.warn em DEV.",
+        "AuditDetailModal e ValidacaoModal migrados para Dialog composicional (piloto Fase 2).",
+        "VeiculoDetalheModal mantém wrapper Modal por complexidade (sub-modais + tabs — migrar em Fase 6).",
+        "Botão de fechar (X) nativo embutido no DialogContent; sem close button manual no header."
+      ]
+    },
+    {
       "version": "1.2.83",
       "date": "2026-05-25",
       "summary": "Fase 1 shadcn — Sonner + 11 primitivos atômicos",
