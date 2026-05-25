@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Eye, EyeOff, Pencil, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
@@ -140,11 +141,11 @@ export default function Usuarios() {
       {usersQuery.isLoading ? (
         <Spinner label="Carregando usuários..." />
       ) : usersQuery.isError ? (
-        <div className="card" style={{ padding: 24 }}>
+        <Card style={{ padding: 24 }}>
           <p className="text-muted">
             Falha ao carregar usuários: {usersQuery.error.message}
           </p>
-        </div>
+        </Card>
       ) : (
         <DataTable
           columns={columns}

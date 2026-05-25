@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useToast } from '../../components/ui/toast/ToastContext';
+import Button from '../../components/ui/Button';
 import { PRESETS } from './presets';
 import { useTheme } from './useTheme';
 
@@ -88,9 +89,9 @@ export default function ThemeCustomizer() {
               onChange={(e) => setRadius(parseInt(e.target.value, 10))}
             />
           </label>
-          <button
+          <Button
             type="button"
-            className="btn btn-sm"
+            size="sm"
             style={{ marginTop: 12, width: '100%' }}
             onClick={() => {
               reset();
@@ -99,7 +100,7 @@ export default function ThemeCustomizer() {
             }}
           >
             Restaurar padrão
-          </button>
+          </Button>
         </div>
       )}
     </>

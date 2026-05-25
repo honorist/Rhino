@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import PageHeader from '../../components/layout/PageHeader';
 import Spinner from '../../components/ui/Spinner';
+import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
 import MapView, { type MapMarker } from '../../components/ui/MapView';
 import { Input, Select } from '../../components/ui/controls';
 import { formatBRL } from '../../lib/format';
@@ -96,8 +98,7 @@ export default function Obras() {
         subtitle="Localização geográfica dos contratos"
       />
 
-      <div
-        className="card"
+      <Card
         style={{ padding: 'var(--sp-md)', marginBottom: 'var(--sp-lg)' }}
       >
         <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
@@ -120,14 +121,14 @@ export default function Obras() {
             style={{ flex: 1, minWidth: 200 }}
           />
         </div>
-      </div>
+      </Card>
 
       {contractsQuery.isLoading ? (
         <Spinner label="Carregando obras..." />
       ) : contractsQuery.isError ? (
-        <div className="card" style={{ padding: 24 }}>
+        <Card style={{ padding: 24 }}>
           <p className="text-danger">Erro ao carregar obras. Tente novamente.</p>
-        </div>
+        </Card>
       ) : (
         <div
           style={{
@@ -137,17 +138,15 @@ export default function Obras() {
             alignItems: 'start',
           }}
         >
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <Card style={{ padding: 0, overflow: 'hidden' }}>
             <MapView markers={markers} height={620} />
-          </div>
+          </Card>
 
-          <div className="card" style={{ maxHeight: 640, overflowY: 'auto' }}>
-            <div className="card-header">
-              <h3 className="card-title">Obras</h3>
-              <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-                {filtradas.length} obra{filtradas.length !== 1 ? 's' : ''}
-              </span>
-            </div>
+          <Card style={{ maxHeight: 640, overflowY: 'auto' }}>
+            <h3 className="text-[15px] font-semibold tracking-tight px-5 pt-5 pb-4">Obras</h3>
+            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+              {filtradas.length} obra{filtradas.length !== 1 ? 's' : ''}
+            </span>
             {filtradas.length === 0 ? (
               <p
                 className="text-muted"
@@ -196,7 +195,7 @@ export default function Obras() {
                 </div>
               ))
             )}
-          </div>
+          </Card>
         </div>
       )}
     </>

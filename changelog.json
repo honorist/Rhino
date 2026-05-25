@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.2.94",
+      "date": "2026-05-25",
+      "summary": "Fase 6 — CSS legado erradicado em cobranca, obras, users, theme",
+      "changes": [
+        "CobrancaMensal.tsx: 7 card→<Card>, card-header/title→Tailwind.",
+        "Obras.tsx: 4 card→<Card>, card-header/title→Tailwind, btn→<Button>.",
+        "Usuarios.tsx: error card→<Card>.",
+        "ThemeCustomizer.tsx: btn btn-sm→<Button size='sm'>."
+      ]
+    },
+    {
       "version": "1.2.93",
       "date": "2026-05-25",
       "summary": "Fase 6 — CSS legado erradicado em batch: apresentacao, audit, configuracao, folha, manutencao, conciliacao, socios, clientes, fornecedores, base, recursos",

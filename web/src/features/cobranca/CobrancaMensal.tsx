@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import PageHeader from '../../components/layout/PageHeader';
 import Spinner from '../../components/ui/Spinner';
 import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import Modal from '../../components/ui/Modal';
 import { formatBRL } from '../../lib/format';
@@ -120,11 +121,11 @@ export default function CobrancaMensal() {
       {historicoQuery.isLoading ? (
         <Spinner label="Carregando cobrança..." />
       ) : historicoQuery.isError ? (
-        <div className="card" style={{ padding: 24 }}>
+        <Card style={{ padding: 24 }}>
           <p className="text-danger">
             Erro ao carregar a cobrança. Tente novamente.
           </p>
-        </div>
+        </Card>
       ) : (
         <>
           {/* KPIs: projeção, último fechado, acumulado 12m */}
@@ -136,8 +137,7 @@ export default function CobrancaMensal() {
               marginBottom: 'var(--sp-lg)',
             }}
           >
-            <div
-              className="card"
+            <Card
               style={{
                 padding: 'var(--sp-md)',
                 background:
@@ -196,9 +196,9 @@ export default function CobrancaMensal() {
               ) : (
                 <div className="text-muted">Indisponível</div>
               )}
-            </div>
+            </Card>
 
-            <div className="card" style={{ padding: 'var(--sp-md)' }}>
+            <Card style={{ padding: 'var(--sp-md)' }}>
               <div
                 style={{
                   fontSize: 13,
@@ -227,9 +227,9 @@ export default function CobrancaMensal() {
               ) : (
                 <div className="text-muted">Sem histórico ainda</div>
               )}
-            </div>
+            </Card>
 
-            <div className="card" style={{ padding: 'var(--sp-md)' }}>
+            <Card style={{ padding: 'var(--sp-md)' }}>
               <div
                 style={{
                   fontSize: 13,
@@ -248,7 +248,7 @@ export default function CobrancaMensal() {
               >
                 soma dos últimos meses
               </div>
-            </div>
+            </Card>
           </div>
 
           {aiUsage && <AiUsageCard stats={aiUsage} />}
@@ -260,18 +260,16 @@ export default function CobrancaMensal() {
               gap: 'var(--sp-md)',
             }}
           >
-            <div className="card">
-              <div className="card-header">
-                <h3 className="card-title">Histórico mensal</h3>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={exportarCSV}
-                  disabled={meses.length === 0}
-                >
-                  Exportar CSV
-                </Button>
-              </div>
+            <Card>
+              <h3 className="text-[15px] font-semibold tracking-tight px-5 pt-5 pb-4">Histórico mensal</h3>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={exportarCSV}
+                disabled={meses.length === 0}
+              >
+                Exportar CSV
+              </Button>
               <DataTable
                 columns={columns}
                 rows={meses}
@@ -279,9 +277,9 @@ export default function CobrancaMensal() {
                 onRowClick={(m) => setDetalhe(m)}
                 emptyMessage="Sem histórico ainda"
               />
-            </div>
+            </Card>
 
-            <div className="card" style={{ padding: 'var(--sp-md)' }}>
+            <Card style={{ padding: 'var(--sp-md)' }}>
               <h3 style={{ margin: '0 0 var(--sp-sm)', fontSize: 15 }}>
                 📊 Tabela de preços
               </h3>
@@ -312,7 +310,7 @@ export default function CobrancaMensal() {
                 status "ativo" por <strong>2 dias ou mais</strong> dentro do
                 mês.
               </div>
-            </div>
+            </Card>
           </div>
         </>
       )}
@@ -347,8 +345,7 @@ function AiUsageCard({ stats }: { stats: AiUsageStats }) {
   const fmtTok = (v?: number) => (Number(v) || 0).toLocaleString('pt-BR');
 
   return (
-    <div
-      className="card"
+    <Card
       style={{
         padding: 'var(--sp-md)',
         marginBottom: 'var(--sp-md)',
@@ -421,7 +418,7 @@ function AiUsageCard({ stats }: { stats: AiUsageStats }) {
       >
         Preço Haiku: $0,80/M tokens de entrada · $4,00/M tokens de saída
       </div>
-    </div>
+    </Card>
   );
 }
 
