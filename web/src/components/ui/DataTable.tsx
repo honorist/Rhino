@@ -6,9 +6,18 @@ import {
   useReactTable,
   type ColumnDef,
   type SortingState,
+  type VisibilityState,
 } from '@tanstack/react-table';
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, SlidersHorizontal } from 'lucide-react';
 import { cn } from '../../lib/cn';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './dropdown-menu';
 
 /**
  * Coluna no formato simplificado do Rhino (compat com a versão anterior).
@@ -27,6 +36,8 @@ export interface Column<T> {
   sortable?: boolean;
   /** Acessor para sort — função que retorna o valor comparável. */
   sortAccessor?: (row: T) => string | number | Date;
+  /** Se false, a coluna não aparece no menu de visibilidade. Default: true. */
+  hideable?: boolean;
 }
 
 /** Ação em lote — recebe os IDs das linhas selecionadas. */
@@ -53,6 +64,8 @@ interface DataTableProps<T> {
   selectable?: boolean;
   /** Ações em lote — render como barra acima da tabela quando há seleção. */
   bulkActions?: BulkAction<T>[];
+  /** Exibe botão de toggle de colunas no canto superior direito. */
+  showColumnToggle?: boolean;
   className?: string;
 }
 
@@ -79,10 +92,12 @@ export default function DataTable<T>({
   pageSize,
   selectable = false,
   bulkActions,
+  showColumnToggle = false,
   className,
 }: DataTableProps<T>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
   const tableColumns = useMemo<ColumnDef<T>[]>(
     () =>
@@ -91,6 +106,7 @@ export default function DataTable<T>({
         header: col.header,
         cell: ({ row }) => col.cell(row.original),
         enableSorting: !!col.sortable,
+        enableHiding: col.hideable !== false,
         accessorFn: col.sortAccessor ?? (() => null),
         meta: { align: col.align, width: col.width },
       })),
@@ -100,8 +116,9 @@ export default function DataTable<T>({
   const table = useReactTable({
     data: rows,
     columns: tableColumns,
-    state: { sorting },
+    state: { sorting, columnVisibility },
     onSortingChange: setSorting,
+    onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getRowId: (row) => rowKey(row),
@@ -143,8 +160,40 @@ export default function DataTable<T>({
     [rows, selectedIds, rowKey],
   );
 
+  const hideableColumns = table.getAllColumns().filter((col) => col.getCanHide());
+
   return (
     <div className={cn('table-wrap', className)}>
+      {showColumnToggle && hideableColumns.length > 0 && (
+        <div className="flex justify-end mb-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-sm hover:bg-muted/50 transition-colors"
+              >
+                <SlidersHorizontal size={13} />
+                Colunas
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
+                Mostrar colunas
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {hideableColumns.map((col) => (
+                <DropdownMenuCheckboxItem
+                  key={col.id}
+                  checked={col.getIsVisible()}
+                  onCheckedChange={(val) => col.toggleVisibility(val)}
+                >
+                  {col.columnDef.header as string}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
       {selectable && selectedRows.length > 0 && bulkActions && bulkActions.length > 0 && (
         <div
           className="flex items-center justify-between gap-3 rounded-md border border-primary/20 bg-primary/5 px-4 py-2 mb-2"
@@ -245,7 +294,7 @@ export default function DataTable<T>({
           {visibleRows.length === 0 ? (
             <tr>
               <td
-                colSpan={columns.length + (selectable ? 1 : 0)}
+                colSpan={table.getVisibleFlatColumns().length + (selectable ? 1 : 0)}
                 className="text-center text-muted-foreground"
                 style={{ padding: 32 }}
               >

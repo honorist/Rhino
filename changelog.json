@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.3.3",
+      "date": "2026-05-25",
+      "summary": "Fase 7: DataTable v2 — column visibility via DropdownMenu",
+      "changes": [
+        "DataTable.tsx: adicionado showColumnToggle prop — exibe DropdownMenuCheckboxItem para toggle de colunas.",
+        "DataTable.tsx: Column.hideable prop para excluir colunas do menu (default true).",
+        "DataTable.tsx: integrado VisibilityState + onColumnVisibilityChange do TanStack Table.",
+        "DataTable.tsx: colSpan da linha vazia usa getVisibleFlatColumns().length para respeitar colunas ocultas."
+      ]
+    },
+    {
       "version": "1.3.2",
       "date": "2026-05-25",
       "summary": "Fase 7 + Pós-Fase: DatePicker em todas as features + remoção do CSS toast legado",
