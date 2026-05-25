@@ -3,6 +3,7 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { todayISO } from '../../lib/formatDate';
 import type { Contract, Rdo } from './types';
@@ -444,11 +445,11 @@ function CabecalhoTab({
       <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 140 }}>
           <FormField label="Data *" htmlFor="rdo-data">
-            <Input
+            <DatePicker
               id="rdo-data"
-              type="date"
               value={form.data}
-              onChange={(e) => setData(e.target.value)}
+              onChange={setData}
+              placeholder="Selecione a data do RDO"
             />
           </FormField>
         </div>

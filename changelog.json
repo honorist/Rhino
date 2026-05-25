@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.3.0",
+      "date": "2026-05-25",
+      "summary": "Pós-Fase + Fase 7: DatePicker Calendar em RDOs, limpeza",
+      "changes": [
+        "date-picker.tsx: novo componente DatePicker (Calendar + Popover) compatível com YYYY-MM-DD.",
+        "RdoFormModal.tsx: campo 'Data' migrado de <Input type=date> para <DatePicker> — Calendar shadcn.",
+        "Modal.tsx: deprecação atualizada para v1.4.0 (wrappers legados mantidos até migração completa).",
+        "Pós-Fase: wrappers Modal/FormField/controls preservados com console.warn em DEV."
+      ]
+    },
+    {
       "version": "1.2.99",
       "date": "2026-05-25",
       "summary": "Fix espaçamento Card + Fase 7: Combobox em Propostas + Calendar/Command components",

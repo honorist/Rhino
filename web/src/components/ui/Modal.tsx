@@ -32,7 +32,7 @@ interface ModalProps {
 /**
  * @deprecated Usar Dialog composicional diretamente.
  * Ex.: <Dialog><DialogContent><DialogHeader><DialogTitle>...</DialogTitle></DialogHeader>...</DialogContent></Dialog>
- * Será removido em v1.3.0.
+ * Será removido em v1.4.0.
  */
 export default function Modal({
   open,
@@ -45,7 +45,7 @@ export default function Modal({
 }: ModalProps) {
   if (import.meta.env.DEV) {
     console.warn(
-      '[Modal] deprecated — usar <Dialog> composicional. Removido em v1.3.0.',
+      '[Modal] deprecated — usar <Dialog> composicional. Será removido em v1.4.0.',
     );
   }
 
