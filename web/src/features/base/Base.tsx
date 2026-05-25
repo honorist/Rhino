@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/layout/PageHeader';
-import Button from '../../components/ui/Button';
 import { Badge } from '../../components/ui/badge';
+import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
@@ -292,8 +293,7 @@ export default function Base() {
       </div>
 
       {/* Total do mês */}
-      <div
-        className="card"
+      <Card
         style={{
           marginBottom: 'var(--sp-lg)',
           borderLeft: '4px solid var(--color-primary)',
@@ -322,7 +322,7 @@ export default function Base() {
         <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
           {itensMes.length} lançamento{itensMes.length !== 1 ? 's' : ''}
         </div>
-      </div>
+      </Card>
 
       {/* Filtro por tipo */}
       <div
@@ -355,9 +355,9 @@ export default function Base() {
       {baseQuery.isLoading ? (
         <Spinner label="Carregando BASE..." />
       ) : baseQuery.isError ? (
-        <div className="card" style={{ padding: 24 }}>
+        <Card style={{ padding: 24 }}>
           <p className="text-danger">Erro ao carregar BASE. Tente novamente.</p>
-        </div>
+        </Card>
       ) : (
         <DataTable
           columns={columns}

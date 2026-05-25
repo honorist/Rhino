@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
@@ -123,23 +124,20 @@ export default function Clientes() {
         }
       />
 
-      <div
-        className="card"
-        style={{ padding: 'var(--sp-md)', marginBottom: 'var(--sp-lg)' }}
-      >
+      <Card style={{ padding: 'var(--sp-md)', marginBottom: 'var(--sp-lg)' }}>
         <Input
           placeholder="🔍 Buscar por nome, empresa, email ou telefone..."
           value={busca}
           onChange={(event) => setBusca(event.target.value)}
         />
-      </div>
+      </Card>
 
       {clientesQuery.isLoading ? (
         <Spinner label="Carregando clientes..." />
       ) : clientesQuery.isError ? (
-        <div className="card" style={{ padding: 24 }}>
+        <Card style={{ padding: 24 }}>
           <p className="text-danger">Erro ao carregar clientes. Tente novamente.</p>
-        </div>
+        </Card>
       ) : (
         <DataTable
           columns={columns}

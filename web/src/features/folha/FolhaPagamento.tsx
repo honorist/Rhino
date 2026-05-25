@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import PageHeader from '../../components/layout/PageHeader';
+import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select } from '../../components/ui/controls';
@@ -54,13 +56,13 @@ function somaItens(itens: FolhaItem[], tipo: FolhaItem['tipo']): number {
 
 function StatusBadge({ pago }: { pago: boolean }) {
   return pago ? (
-    <span className="badge" style={{ background: '#D1FAE5', color: '#065F46' }}>
+    <Badge style={{ background: '#D1FAE5', color: '#065F46' }}>
       Pago
-    </span>
+    </Badge>
   ) : (
-    <span className="badge" style={{ background: '#FEF3C7', color: '#92400E' }}>
+    <Badge style={{ background: '#FEF3C7', color: '#92400E' }}>
       Pendente
-    </span>
+    </Badge>
   );
 }
 
@@ -203,13 +205,13 @@ export default function FolhaPagamento() {
       {folhaQuery.isLoading ? (
         <Spinner label="Carregando folha..." />
       ) : folhaQuery.isError ? (
-        <div className="card" style={{ padding: 24 }}>
+        <Card style={{ padding: 24 }}>
           <p className="text-danger">
             Erro ao carregar a folha. Tente novamente.
           </p>
-        </div>
+        </Card>
       ) : (
-        <div className="card">
+        <Card>
           <div className="table-wrap">
             <table>
               <thead>
@@ -252,7 +254,7 @@ export default function FolhaPagamento() {
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
       )}
 
       {pagar && (

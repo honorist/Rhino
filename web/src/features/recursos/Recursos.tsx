@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import DataTable, { type Column } from '../../components/ui/DataTable';
@@ -195,9 +196,9 @@ export default function Recursos() {
       cell: (r) => {
         const b = STATUS_BADGE[r.status ?? ''];
         return b ? (
-          <span className="badge" style={{ background: b.bg, color: b.cor }}>
+          <Badge style={{ background: b.bg, color: b.cor }}>
             {b.texto}
-          </span>
+          </Badge>
         ) : (
           '—'
         );

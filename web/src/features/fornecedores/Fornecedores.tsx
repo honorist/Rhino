@@ -1,8 +1,9 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/layout/PageHeader';
-import Button from '../../components/ui/Button';
 import { Badge } from '../../components/ui/badge';
+import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
@@ -159,10 +160,7 @@ export default function Fornecedores() {
         }
       />
 
-      <div
-        className="card"
-        style={{ padding: 'var(--sp-md)', marginBottom: 'var(--sp-lg)' }}
-      >
+      <Card style={{ padding: 'var(--sp-md)', marginBottom: 'var(--sp-lg)' }}>
         <div
           style={{
             display: 'grid',
@@ -188,16 +186,16 @@ export default function Fornecedores() {
             ))}
           </Select>
         </div>
-      </div>
+      </Card>
 
       {fornecedoresQuery.isLoading ? (
         <Spinner label="Carregando fornecedores..." />
       ) : fornecedoresQuery.isError ? (
-        <div className="card" style={{ padding: 24 }}>
+        <Card style={{ padding: 24 }}>
           <p className="text-danger">
             Erro ao carregar fornecedores. Tente novamente.
           </p>
-        </div>
+        </Card>
       ) : (
         <DataTable
           columns={columns}

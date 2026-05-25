@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
@@ -133,10 +134,8 @@ export default function Socios() {
         }
       />
 
-      <div className="card" style={{ marginBottom: 'var(--sp-xl)' }}>
-        <div className="card-header">
-          <h3 className="card-title">Participação Total</h3>
-        </div>
+      <Card style={{ marginBottom: 'var(--sp-xl)' }}>
+        <h3 className="text-[15px] font-semibold tracking-tight px-5 pt-5 pb-4">Participação Total</h3>
         <div
           style={{
             display: 'grid',
@@ -156,14 +155,14 @@ export default function Socios() {
             color="var(--color-info)"
           />
         </div>
-      </div>
+      </Card>
 
       {sociosQuery.isLoading ? (
         <Spinner label="Carregando sócios..." />
       ) : sociosQuery.isError ? (
-        <div className="card" style={{ padding: 24 }}>
+        <Card style={{ padding: 24 }}>
           <p className="text-danger">Erro ao carregar sócios. Tente novamente.</p>
-        </div>
+        </Card>
       ) : (
         <DataTable
           columns={columns}

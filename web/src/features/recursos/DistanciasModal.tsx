@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import { fetchRotaOSRM, fmtMin, haversine, type RotaOSRM } from '../../lib/geo';
@@ -117,16 +118,9 @@ export default function DistanciasModal({
                       <td>
                         <strong>{obra.name}</strong>
                         {obra.atual && (
-                          <span
-                            className="badge"
-                            style={{
-                              marginLeft: 6,
-                              background: '#D1FAE5',
-                              color: '#065F46',
-                            }}
-                          >
+                          <Badge style={{ marginLeft: 6, background: '#D1FAE5', color: '#065F46' }}>
                             OBRA ATUAL
-                          </span>
+                          </Badge>
                         )}
                         <div
                           style={{ fontSize: 12, color: 'var(--color-text-muted)' }}

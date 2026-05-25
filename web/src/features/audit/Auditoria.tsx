@@ -1,4 +1,5 @@
 import { useState, type KeyboardEvent } from 'react';
+import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import EmptyState from '../../components/ui/EmptyState';
@@ -73,17 +74,9 @@ function FezOQue({ evento }: { evento: AuditRow }) {
   const entLabel = entityLabel(evento.entity);
   return (
     <>
-      <span
-        className="badge"
-        style={{
-          background: verbo.bg,
-          color: verbo.cor,
-          fontWeight: 600,
-          marginRight: 6,
-        }}
-      >
+      <Badge style={{ background: verbo.bg, color: verbo.cor, fontWeight: 600, marginRight: 6 }}>
         {verbo.verbo}
-      </span>
+      </Badge>
       <strong>{entLabel.toLowerCase()}</strong>
       {evento.entityLabel ? (
         <strong> {evento.entityLabel}</strong>

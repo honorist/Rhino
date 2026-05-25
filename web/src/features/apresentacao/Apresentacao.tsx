@@ -96,9 +96,9 @@ export default function Apresentacao() {
             Configuração padrão usada em todas as propostas geradas.
           </p>
         </div>
-        <Link to="/proposta" className="btn btn-secondary">
-          ← Voltar para Propostas
-        </Link>
+        <Button variant="secondary" asChild>
+          <Link to="/proposta">← Voltar para Propostas</Link>
+        </Button>
       </div>
 
       <Card style={{ padding: 'var(--sp-lg)', marginBottom: 'var(--sp-lg)' }}>

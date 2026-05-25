@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
@@ -230,8 +231,7 @@ function StatPill({
   cor: string;
 }) {
   return (
-    <div
-      className="card"
+    <Card
       style={{
         padding: 'var(--sp-sm) var(--sp-md)',
         display: 'flex',
@@ -243,7 +243,7 @@ function StatPill({
       <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
         {label}
       </span>
-    </div>
+    </Card>
   );
 }
 
@@ -261,10 +261,7 @@ function UploadScreen({ onFile }: { onFile: (file: File) => void }) {
         padding: 'var(--sp-lg)',
       }}
     >
-      <div
-        className="card"
-        style={{ maxWidth: 520, width: '100%', padding: 'var(--sp-xl)' }}
-      >
+      <Card style={{ maxWidth: 520, width: '100%', padding: 'var(--sp-xl)' }}>
         <div style={{ marginBottom: 'var(--sp-lg)' }}>
           <h1 className="page-title">Conciliação Bancária</h1>
           <p className="page-subtitle">
@@ -343,7 +340,7 @@ function UploadScreen({ onFile }: { onFile: (file: File) => void }) {
             }}
           />
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

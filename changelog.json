@@ -1,6 +1,20 @@
 {
   "entries": [
     {
+      "version": "1.2.93",
+      "date": "2026-05-25",
+      "summary": "Fase 6 — CSS legado erradicado em batch: apresentacao, audit, configuracao, folha, manutencao, conciliacao, socios, clientes, fornecedores, base, recursos",
+      "changes": [
+        "Apresentacao.tsx: btn btn-secondary → <Button variant='secondary' asChild>.",
+        "AuditDetailModal.tsx + Auditoria.tsx: badge→<Badge style>.",
+        "LgpdSection.tsx: btn btn-secondary em <a>→<Button asChild>.",
+        "Manutencao.tsx: badge→<Badge style>.",
+        "FolhaPagamento.tsx: 2 badge→<Badge>, 2 card→<Card>.",
+        "Base.tsx + Clientes.tsx + Fornecedores.tsx + Conciliacao.tsx + Socios.tsx: card→<Card>, card-header/title→Tailwind.",
+        "Recursos.tsx + DistanciasModal.tsx: badge→<Badge style>."
+      ]
+    },
+    {
       "version": "1.2.92",
       "date": "2026-05-25",
       "summary": "Fase 6 — CSS legado erradicado em caixa + notas-fiscais + dashboard",

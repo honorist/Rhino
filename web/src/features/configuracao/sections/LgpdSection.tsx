@@ -58,14 +58,9 @@ export default function LgpdSection() {
           Baixe um arquivo JSON com todos os seus dados pessoais armazenados no
           sistema.
         </p>
-        <a
-          href="/api/lgpd/export"
-          className="btn btn-secondary"
-          download
-          style={{ display: 'inline-block', textDecoration: 'none' }}
-        >
-          ⬇️ Exportar dados (JSON)
-        </a>
+        <Button variant="secondary" asChild>
+          <a href="/api/lgpd/export" download>⬇️ Exportar dados (JSON)</a>
+        </Button>
       </Card>
 
       <Card style={{ padding: 'var(--sp-lg)', border: '1px solid #FECACA' }}>

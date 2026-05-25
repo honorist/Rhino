@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import DataTable, { type Column } from '../../components/ui/DataTable';
@@ -96,9 +97,9 @@ function StatCard({ label, value, cor, icon }: StatCardProps) {
 function StatusBadge({ status }: { status: string }) {
   const c = statusCfg(status);
   return (
-    <span className="badge" style={{ background: c.bg, color: c.cor }}>
+    <Badge style={{ background: c.bg, color: c.cor }}>
       {c.label}
-    </span>
+    </Badge>
   );
 }
 

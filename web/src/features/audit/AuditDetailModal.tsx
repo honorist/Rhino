@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
 import {
   Dialog,
@@ -201,16 +202,9 @@ export default function AuditDetailModal({
                 <strong>{evento.userEmail ?? '—'}</strong>
               </Linha>
               <Linha rotulo="O que fez">
-                <span
-                  className="badge"
-                  style={{
-                    background: verbo.bg,
-                    color: verbo.cor,
-                    fontWeight: 700,
-                  }}
-                >
+                <Badge style={{ background: verbo.bg, color: verbo.cor, fontWeight: 700 }}>
                   {verbo.verbo}
-                </span>
+                </Badge>
                 <strong style={{ marginLeft: 6 }}>{entLabel}</strong>
               </Linha>
               {evento.entityId && (
