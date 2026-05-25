@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import { Badge } from '../../components/ui/badge';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { useRecursos } from '../resources';
 import type { ContratoTabProps } from './ContratoDetail';
@@ -141,15 +142,14 @@ export default function OrganogramaTab({ contract }: ContratoTabProps) {
                       </td>
                       <td>{profissaoDe(m.recursoId) || m.cargo || '—'}</td>
                       <td>
-                        <span
-                          className="badge"
+                        <Badge
                           style={{
                             background: `${NIVEL_COR[m.nivel]}22`,
                             color: NIVEL_COR[m.nivel],
                           }}
                         >
                           {NIVEL_LABEL[m.nivel]}
-                        </span>
+                        </Badge>
                       </td>
                       <td>{sup ? nomeDe(sup.recursoId) : '—'}</td>
                       <td>{m.area || '—'}</td>

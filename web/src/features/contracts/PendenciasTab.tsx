@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import Card from '../../components/ui/Card';
+import { Badge } from '../../components/ui/badge';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR, todayISO } from '../../lib/formatDate';
 import { useContasPagar } from '../resources';
@@ -95,15 +96,14 @@ export default function PendenciasTab({ contract }: ContratoTabProps) {
                     {formatBRL(n(c.valor))}
                   </td>
                   <td>
-                    <span
-                      className="badge"
+                    <Badge
                       style={{
                         background: vencido ? '#FEE2E2' : '#EDE9FE',
                         color: vencido ? '#991B1B' : '#5B21B6',
                       }}
                     >
                       {vencido ? '⚠ Vencida' : '⏳ Pendente'}
-                    </span>
+                    </Badge>
                   </td>
                 </tr>
               );

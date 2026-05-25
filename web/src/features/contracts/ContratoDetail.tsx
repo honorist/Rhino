@@ -1,6 +1,8 @@
 import { useState, type ComponentType } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatDateBR } from '../../lib/formatDate';
@@ -50,13 +52,13 @@ const TABS: TabDef[] = [
 
 function TabPlaceholder({ label }: { label: string }) {
   return (
-    <div className="card" style={{ padding: 'var(--sp-xl)', textAlign: 'center' }}>
+    <Card style={{ padding: 'var(--sp-xl)', textAlign: 'center' }}>
       <div style={{ fontSize: 32, marginBottom: 8 }}>🚧</div>
       <div style={{ fontWeight: 600 }}>Aba "{label}" em migração</div>
       <div className="text-muted" style={{ fontSize: 13, marginTop: 4 }}>
         Esta seção será migrada num dos próximos turnos da Onda E.
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -129,9 +131,15 @@ function ContratoDetailView({ id }: { id: string }) {
           <h1 className="page-title">{contract.name}</h1>
           <p className="page-subtitle">{contract.client}</p>
           <div style={{ marginTop: 6 }}>
-            <span className={`badge badge-${contract.status}`}>
+            <Badge
+              variant={
+                contract.status === 'ativo' ? 'success' :
+                contract.status === 'cancelado' ? 'destructive' :
+                contract.status === 'pausado' ? 'warning' : 'secondary'
+              }
+            >
               {contract.status.toUpperCase()}
-            </span>
+            </Badge>
             {(contract.startDate || contract.endDate) && (
               <span
                 className="text-muted"
@@ -157,14 +165,13 @@ function ContratoDetailView({ id }: { id: string }) {
           >
             🗑️ Excluir
           </Button>
-          <Link to="/contratos" className="btn btn-secondary">
-            ← Voltar
-          </Link>
+          <Button variant="secondary" asChild>
+            <Link to="/contratos">← Voltar</Link>
+          </Button>
         </div>
       </div>
 
-      <div
-        className="card"
+      <Card
         style={{ padding: 0, marginBottom: 16 }}
       >
         <div
@@ -198,7 +205,7 @@ function ContratoDetailView({ id }: { id: string }) {
             );
           })}
         </div>
-      </div>
+      </Card>
 
       <div className="tab-content">
         {ActiveTab ? (

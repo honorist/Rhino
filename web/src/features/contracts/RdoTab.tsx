@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import { Badge } from '../../components/ui/badge';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatDateBR } from '../../lib/formatDate';
 import type { ContratoTabProps } from './ContratoDetail';
@@ -49,22 +50,16 @@ function segBadge(rdo: Rdo) {
   const acidente = String(seg.acidente ?? 'nao_houve');
   if (acidente === 'nao_houve') {
     return (
-      <span className="badge" style={{ background: '#D1FAE5', color: '#047857' }}>
-        OK
-      </span>
+      <Badge style={{ background: '#D1FAE5', color: '#047857' }}>OK</Badge>
     );
   }
   if (acidente === 'sem_afastamento') {
     return (
-      <span className="badge" style={{ background: '#FEF3C7', color: '#B45309' }}>
-        S/ Afast.
-      </span>
+      <Badge style={{ background: '#FEF3C7', color: '#B45309' }}>S/ Afast.</Badge>
     );
   }
   return (
-    <span className="badge" style={{ background: '#FEE2E2', color: '#B91C1C' }}>
-      C/ Afast.
-    </span>
+    <Badge style={{ background: '#FEE2E2', color: '#B91C1C' }}>C/ Afast.</Badge>
   );
 }
 

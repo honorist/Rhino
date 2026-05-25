@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import { Badge } from '../../components/ui/badge';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
@@ -237,15 +238,14 @@ export default function OcorrenciasTab({ contract }: ContratoTabProps) {
                   <td style={{ whiteSpace: 'nowrap' }}>{formatDateBR(o.data)}</td>
                   <td>{TIPO_LABEL[o.tipo ?? ''] ?? o.tipo}</td>
                   <td>
-                    <span
-                      className="badge"
+                    <Badge
                       style={{
                         background: `${SEV_COR[o.severidade ?? 'media']}22`,
                         color: SEV_COR[o.severidade ?? 'media'],
                       }}
                     >
                       {(o.severidade ?? 'media').toUpperCase()}
-                    </span>
+                    </Badge>
                   </td>
                   <td>{o.descricao}</td>
                   <td>

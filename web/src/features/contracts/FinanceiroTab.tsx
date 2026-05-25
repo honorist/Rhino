@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import { Badge } from '../../components/ui/badge';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR } from '../../lib/formatDate';
@@ -366,15 +367,14 @@ export default function FinanceiroTab({ contract }: ContratoTabProps) {
                       <strong>{l.description}</strong>
                     </td>
                     <td>
-                      <span
-                        className="badge"
+                      <Badge
                         style={{
                           background: `${tipoCor(l.type)}22`,
                           color: tipoCor(l.type),
                         }}
                       >
                         {tipoLabel(l.type)}
-                      </span>
+                      </Badge>
                     </td>
                     <td style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
                       {l.origem}

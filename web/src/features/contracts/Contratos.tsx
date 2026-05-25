@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Spinner from '../../components/ui/Spinner';
@@ -466,9 +467,15 @@ export default function Contratos() {
                       </td>
                       <td style={{ textAlign: 'center' }}>{equipe}</td>
                       <td>
-                        <span className={`badge badge-${c.status}`}>
+                        <Badge
+                          variant={
+                            c.status === 'ativo' ? 'success' :
+                            c.status === 'cancelado' ? 'destructive' :
+                            c.status === 'pausado' ? 'warning' : 'secondary'
+                          }
+                        >
                           {c.status}
-                        </span>
+                        </Badge>
                       </td>
                       <td onClick={(e) => e.stopPropagation()}>
                         <div className="actions-cell">

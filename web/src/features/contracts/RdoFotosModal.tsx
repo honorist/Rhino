@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
+import { Input } from '../../components/ui/controls';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { queryKeys } from '../../lib/queryKeys';
 import type { Rdo, RdoFoto } from './types';
@@ -81,8 +82,7 @@ export default function RdoFotosModal({
           marginBottom: 'var(--sp-md)',
         }}
       >
-        <input
-          className="form-control"
+        <Input
           placeholder="Legenda (opcional)"
           value={legenda}
           onChange={(e) => setLegenda(e.target.value)}

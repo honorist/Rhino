@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import { Badge } from '../../components/ui/badge';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
@@ -246,15 +247,14 @@ export default function AditivosTab({ contract }: ContratoTabProps) {
                   <td>{n(a.diasDelta) ? `${n(a.diasDelta)}d` : '—'}</td>
                   <td>{formatDateBR(a.data)}</td>
                   <td>
-                    <span
-                      className="badge"
+                    <Badge
                       style={{
                         background: a.aprovado ? '#D1FAE5' : '#FEF3C7',
                         color: a.aprovado ? '#065F46' : '#92400E',
                       }}
                     >
                       {a.aprovado ? 'Aprovado' : 'Pendente'}
-                    </span>
+                    </Badge>
                   </td>
                   <td>
                     <div className="actions-cell">

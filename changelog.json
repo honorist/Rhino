@@ -1,6 +1,19 @@
 {
   "entries": [
     {
+      "version": "1.2.95",
+      "date": "2026-05-25",
+      "summary": "Fase 6 — CSS legado erradicado em contracts + fix Obras.tsx import",
+      "changes": [
+        "AditivosTab/FinanceiroTab/OcorrenciasTab/OrganogramaTab/PendenciasTab/RdoTab/VisaoGeralTab: badge→<Badge style>.",
+        "RdoFotosModal.tsx: form-control→<Input>.",
+        "ContratoModal.tsx: 2x card-title→Tailwind h3.",
+        "ContratoDetail.tsx: 2 card→<Card>, badge badge-${status}→<Badge variant>, btn btn-secondary Link→<Button asChild>.",
+        "Contratos.tsx: badge badge-${status}→<Badge variant>.",
+        "Obras.tsx: removido import Button unused (fix build error)."
+      ]
+    },
+    {
       "version": "1.2.94",
       "date": "2026-05-25",
       "summary": "Fase 6 — CSS legado erradicado em cobranca, obras, users, theme",

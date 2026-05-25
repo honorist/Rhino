@@ -214,7 +214,7 @@ export default function ContratoModal({
         />
       </FormField>
 
-      <h3 className="card-title" style={{ marginTop: 'var(--sp-lg)' }}>
+      <h3 className="text-[15px] font-semibold tracking-tight" style={{ marginTop: 'var(--sp-lg)' }}>
         Dados do Cliente
       </h3>
       <FormField label="Cliente *" htmlFor="ct-cliente">
@@ -282,7 +282,7 @@ export default function ContratoModal({
         />
       </FormField>
 
-      <h3 className="card-title" style={{ marginTop: 'var(--sp-lg)' }}>
+      <h3 className="text-[15px] font-semibold tracking-tight" style={{ marginTop: 'var(--sp-lg)' }}>
         Dados do Contrato
       </h3>
       <FormField label="Valor Total (BRL) *" htmlFor="ct-valor">

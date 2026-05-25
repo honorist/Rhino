@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import { Badge } from '../../components/ui/badge';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
 import { useBase, useContasPagar, useRecursos, useTiposBase } from '../resources';
@@ -412,15 +413,14 @@ export default function VisaoGeralTab({ contract }: ContratoTabProps) {
           <Card style={{ padding: 'var(--sp-md)' }}>
             <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>
               RDO de hoje{' '}
-              <span
-                className="badge"
+              <Badge
                 style={{
                   background: rdoHoje ? '#D1FAE5' : '#FEF3C7',
                   color: rdoHoje ? '#065F46' : '#92400E',
                 }}
               >
                 {rdoHoje ? 'Lançado' : 'Pendente'}
-              </span>
+              </Badge>
             </h3>
             {!rdoHoje && (
               <p className="text-muted" style={{ fontSize: 12 }}>
