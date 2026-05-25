@@ -58,7 +58,6 @@ export default function Button({
   return (
     <Comp
       className={cn(buttonVariants({ variant, size }), className)}
-      // @ts-expect-error — Slot espalha type para o filho quando asChild
       type={asChild ? undefined : type}
       {...rest}
     />
