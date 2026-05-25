@@ -1,52 +1,21 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, type ReactNode } from 'react';
+import { toast } from 'sonner';
 import { ToastContext, type ToastKind } from './ToastContext';
 
-interface ToastItem {
-  id: number;
-  message: string;
-  kind: ToastKind;
-}
-
-const TOAST_TTL_MS = 4000;
-
 /**
- * Provedor de toasts — substitui o `window.showToast` global do app antigo.
- * Renderiza a pilha de toasts (.toast-stack) ao fim da árvore.
+ * Provedor de toasts — delega para Sonner internamente.
+ * A API pública (useToast + show) permanece inalterada para os consumers.
+ * O <Toaster /> do Sonner está montado em main.tsx.
  */
-/** @deprecated Migrar para `sonner` — será removido em v1.3.0. */
 export default function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<ToastItem[]>([]);
-
-  useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.warn('[toast] ToastProvider deprecated — migrar chamadas para sonner toast(). Removido em v1.3.0.');
-    }
-  }, []);
-
   const show = useCallback((message: string, kind: ToastKind = 'info') => {
-    const id = Date.now() + Math.random();
-    setToasts((current) => [...current, { id, message, kind }]);
-    window.setTimeout(() => {
-      setToasts((current) => current.filter((toast) => toast.id !== id));
-    }, TOAST_TTL_MS);
+    if (kind === 'success') toast.success(message);
+    else if (kind === 'danger') toast.error(message);
+    else if (kind === 'warning') toast.warning(message);
+    else toast.info(message);
   }, []);
 
   const value = useMemo(() => ({ show }), [show]);
 
-  return (
-    <ToastContext.Provider value={value}>
-      {children}
-      <div className="toast-stack">
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={`toast toast--${toast.kind}`}
-            role="status"
-          >
-            {toast.message}
-          </div>
-        ))}
-      </div>
-    </ToastContext.Provider>
-  );
+  return <ToastContext.Provider value={value}>{children}</ToastContext.Provider>;
 }
