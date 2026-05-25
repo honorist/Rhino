@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import Spinner from '../../components/ui/Spinner';
 import { Input, Select, Textarea } from '../../components/ui/controls';
@@ -85,78 +91,79 @@ function PlanoModal({
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar plano' : 'Novo plano'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar plano' : 'Novo plano'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <FormField label="Descrição *" htmlFor="pl-desc">
+            <Input
+              id="pl-desc"
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              placeholder="Ex: Troca de óleo"
+            />
+          </FormField>
+          <Row>
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <FormField label="Intervalo KM" htmlFor="pl-km">
+                <Input
+                  id="pl-km"
+                  type="number"
+                  value={intervaloKm}
+                  onChange={(e) => setIntervaloKm(e.target.value)}
+                  placeholder="Ex: 10000"
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <FormField label="Intervalo (meses)" htmlFor="pl-meses">
+                <Input
+                  id="pl-meses"
+                  type="number"
+                  value={intervaloMeses}
+                  onChange={(e) => setIntervaloMeses(e.target.value)}
+                  placeholder="Ex: 6"
+                />
+              </FormField>
+            </div>
+          </Row>
+          <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+            Informe pelo menos um dos dois — o sistema alerta o que vencer primeiro.
+          </p>
+          <Row>
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <FormField label="Último KM (última execução)" htmlFor="pl-ukm">
+                <Input
+                  id="pl-ukm"
+                  type="number"
+                  value={ultimoKm}
+                  onChange={(e) => setUltimoKm(e.target.value)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <FormField label="Última data" htmlFor="pl-udata">
+                <DatePicker
+                  id="pl-udata"
+                  value={ultimaData}
+                  onChange={(val) => setUltimaData(val)}
+                />
+              </FormField>
+            </div>
+          </Row>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={pending}>
             Cancelar
           </Button>
           <Button onClick={submit} disabled={pending}>
             {pending ? 'Salvando…' : isEdit ? 'Salvar' : 'Criar'}
           </Button>
-        </>
-      }
-    >
-      <FormField label="Descrição *" htmlFor="pl-desc">
-        <Input
-          id="pl-desc"
-          value={descricao}
-          onChange={(e) => setDescricao(e.target.value)}
-          placeholder="Ex: Troca de óleo"
-        />
-      </FormField>
-      <Row>
-        <div style={{ flex: 1, minWidth: 140 }}>
-          <FormField label="Intervalo KM" htmlFor="pl-km">
-            <Input
-              id="pl-km"
-              type="number"
-              value={intervaloKm}
-              onChange={(e) => setIntervaloKm(e.target.value)}
-              placeholder="Ex: 10000"
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 140 }}>
-          <FormField label="Intervalo (meses)" htmlFor="pl-meses">
-            <Input
-              id="pl-meses"
-              type="number"
-              value={intervaloMeses}
-              onChange={(e) => setIntervaloMeses(e.target.value)}
-              placeholder="Ex: 6"
-            />
-          </FormField>
-        </div>
-      </Row>
-      <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
-        Informe pelo menos um dos dois — o sistema alerta o que vencer primeiro.
-      </p>
-      <Row>
-        <div style={{ flex: 1, minWidth: 140 }}>
-          <FormField label="Último KM (última execução)" htmlFor="pl-ukm">
-            <Input
-              id="pl-ukm"
-              type="number"
-              value={ultimoKm}
-              onChange={(e) => setUltimoKm(e.target.value)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 140 }}>
-          <FormField label="Última data" htmlFor="pl-udata">
-            <DatePicker
-              id="pl-udata"
-              value={ultimaData}
-              onChange={(val) => setUltimaData(val)}
-            />
-          </FormField>
-        </div>
-      </Row>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -219,114 +226,115 @@ function ManutModal({
   }
 
   return (
-    <Modal
-      open
-      title="Registrar manutenção"
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>Registrar manutenção</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <Row>
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <FormField label="Data *" htmlFor="mn-data">
+                <DatePicker
+                  id="mn-data"
+                  value={data}
+                  onChange={(val) => setData(val)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <FormField label="Tipo" htmlFor="mn-tipo">
+                <Select
+                  id="mn-tipo"
+                  value={tipo}
+                  onChange={(e) => setTipo(e.target.value)}
+                >
+                  <option value="preventiva">Preventiva</option>
+                  <option value="corretiva">Corretiva</option>
+                  <option value="revisao">Revisão</option>
+                </Select>
+              </FormField>
+            </div>
+          </Row>
+          <FormField label="Plano vinculado" htmlFor="mn-plano">
+            <Select
+              id="mn-plano"
+              value={planoId}
+              onChange={(e) => setPlanoId(e.target.value)}
+            >
+              <option value="">— Manutenção avulsa —</option>
+              {planos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.descricao}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+          <FormField label="Serviços executados / O que foi feito *" htmlFor="mn-desc">
+            <Textarea
+              id="mn-desc"
+              rows={5}
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              placeholder="Liste o que foi realizado (troca de óleo, filtros, freios...)."
+            />
+          </FormField>
+          <FormField label="Observações adicionais" htmlFor="mn-obs">
+            <Textarea
+              id="mn-obs"
+              rows={2}
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+              placeholder="Notas, garantia, próximos pontos de atenção..."
+            />
+          </FormField>
+          <Row>
+            <div style={{ flex: 1, minWidth: 110 }}>
+              <FormField label="KM no momento" htmlFor="mn-km">
+                <Input
+                  id="mn-km"
+                  type="number"
+                  value={km}
+                  onChange={(e) => setKm(e.target.value)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 110 }}>
+              <FormField label="Custo" htmlFor="mn-custo">
+                <Input
+                  id="mn-custo"
+                  type="number"
+                  step="0.01"
+                  value={custo}
+                  onChange={(e) => setCusto(e.target.value)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <FormField label="Fornecedor" htmlFor="mn-forn">
+                <Combobox
+                  id="mn-forn"
+                  options={fornecedores.map((f) => ({ value: f.id, label: String(f.nome ?? '') }))}
+                  value={fornecedorId}
+                  onChange={setFornecedorId}
+                  placeholder="— Selecionar —"
+                  searchPlaceholder="Pesquisar fornecedor..."
+                  emptyText="Nenhum fornecedor encontrado."
+                />
+              </FormField>
+            </div>
+          </Row>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={criar.isPending}>
             Cancelar
           </Button>
           <Button onClick={submit} disabled={criar.isPending}>
             {criar.isPending ? 'Salvando…' : 'Registrar'}
           </Button>
-        </>
-      }
-    >
-      <Row>
-        <div style={{ flex: 1, minWidth: 140 }}>
-          <FormField label="Data *" htmlFor="mn-data">
-            <DatePicker
-              id="mn-data"
-              value={data}
-              onChange={(val) => setData(val)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 140 }}>
-          <FormField label="Tipo" htmlFor="mn-tipo">
-            <Select
-              id="mn-tipo"
-              value={tipo}
-              onChange={(e) => setTipo(e.target.value)}
-            >
-              <option value="preventiva">Preventiva</option>
-              <option value="corretiva">Corretiva</option>
-              <option value="revisao">Revisão</option>
-            </Select>
-          </FormField>
-        </div>
-      </Row>
-      <FormField label="Plano vinculado" htmlFor="mn-plano">
-        <Select
-          id="mn-plano"
-          value={planoId}
-          onChange={(e) => setPlanoId(e.target.value)}
-        >
-          <option value="">— Manutenção avulsa —</option>
-          {planos.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.descricao}
-            </option>
-          ))}
-        </Select>
-      </FormField>
-      <FormField label="Serviços executados / O que foi feito *" htmlFor="mn-desc">
-        <Textarea
-          id="mn-desc"
-          rows={5}
-          value={descricao}
-          onChange={(e) => setDescricao(e.target.value)}
-          placeholder="Liste o que foi realizado (troca de óleo, filtros, freios...)."
-        />
-      </FormField>
-      <FormField label="Observações adicionais" htmlFor="mn-obs">
-        <Textarea
-          id="mn-obs"
-          rows={2}
-          value={observacoes}
-          onChange={(e) => setObservacoes(e.target.value)}
-          placeholder="Notas, garantia, próximos pontos de atenção..."
-        />
-      </FormField>
-      <Row>
-        <div style={{ flex: 1, minWidth: 110 }}>
-          <FormField label="KM no momento" htmlFor="mn-km">
-            <Input
-              id="mn-km"
-              type="number"
-              value={km}
-              onChange={(e) => setKm(e.target.value)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 110 }}>
-          <FormField label="Custo" htmlFor="mn-custo">
-            <Input
-              id="mn-custo"
-              type="number"
-              step="0.01"
-              value={custo}
-              onChange={(e) => setCusto(e.target.value)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 140 }}>
-          <FormField label="Fornecedor" htmlFor="mn-forn">
-            <Combobox
-              id="mn-forn"
-              options={fornecedores.map((f) => ({ value: f.id, label: String(f.nome ?? '') }))}
-              value={fornecedorId}
-              onChange={setFornecedorId}
-              placeholder="— Selecionar —"
-              searchPlaceholder="Pesquisar fornecedor..."
-              emptyText="Nenhum fornecedor encontrado."
-            />
-          </FormField>
-        </div>
-      </Row>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -374,82 +382,85 @@ export default function VeiculoDetalheModal({
     : 'Veículo';
 
   return (
-    <Modal
-      open
-      title={titulo}
-      onClose={onClose}
-      footer={
-        <Button variant="secondary" onClick={onClose}>
-          Fechar
-        </Button>
-      }
-    >
-      {!veiculo ? (
-        <Spinner label="Carregando veículo..." />
-      ) : (
-        <>
-          <p
-            style={{
-              margin: '0 0 var(--sp-md)',
-              fontSize: 13,
-              color: 'var(--color-text-muted)',
-            }}
-          >
-            {(veiculo.kmAtual ?? 0).toLocaleString('pt-BR')} km ·{' '}
-            {veiculo.status}
-          </p>
-
-          <div
-            style={{
-              display: 'flex',
-              gap: 4,
-              borderBottom: '1px solid var(--color-border)',
-              marginBottom: 'var(--sp-md)',
-            }}
-          >
-            {(
-              [
-                ['plano', 'Plano de Manutenção'],
-                ['historico', 'Histórico'],
-              ] as const
-            ).map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setAba(key)}
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[920px]">
+        <DialogHeader>
+          <DialogTitle>{titulo}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {!veiculo ? (
+            <Spinner label="Carregando veículo..." />
+          ) : (
+            <>
+              <p
                 style={{
-                  padding: '8px 14px',
-                  border: 'none',
-                  background: 'none',
-                  cursor: 'pointer',
-                  fontWeight: aba === key ? 600 : 400,
-                  color: aba === key ? '#1F497D' : '#64748b',
-                  borderBottom: `2px solid ${
-                    aba === key ? '#1F497D' : 'transparent'
-                  }`,
+                  margin: '0 0 var(--sp-md)',
+                  fontSize: 13,
+                  color: 'var(--color-text-muted)',
                 }}
               >
-                {label}
-              </button>
-            ))}
-          </div>
+                {(veiculo.kmAtual ?? 0).toLocaleString('pt-BR')} km ·{' '}
+                {veiculo.status}
+              </p>
 
-          {aba === 'plano' ? (
-            <PlanoTab
-              veiculo={veiculo}
-              onAdd={() => setSubModal({ tipo: 'plano', plano: null })}
-              onEdit={(p) => setSubModal({ tipo: 'plano', plano: p })}
-              onDelete={handleDeletarPlano}
-            />
-          ) : (
-            <HistoricoTab
-              veiculo={veiculo}
-              onAdd={() => setSubModal({ tipo: 'manut' })}
-              onDelete={handleDeletarManut}
-            />
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 4,
+                  borderBottom: '1px solid var(--color-border)',
+                  marginBottom: 'var(--sp-md)',
+                }}
+              >
+                {(
+                  [
+                    ['plano', 'Plano de Manutenção'],
+                    ['historico', 'Histórico'],
+                  ] as const
+                ).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setAba(key)}
+                    style={{
+                      padding: '8px 14px',
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      fontWeight: aba === key ? 600 : 400,
+                      color: aba === key ? '#1F497D' : '#64748b',
+                      borderBottom: `2px solid ${
+                        aba === key ? '#1F497D' : 'transparent'
+                      }`,
+                    }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {aba === 'plano' ? (
+                <PlanoTab
+                  veiculo={veiculo}
+                  onAdd={() => setSubModal({ tipo: 'plano', plano: null })}
+                  onEdit={(p) => setSubModal({ tipo: 'plano', plano: p })}
+                  onDelete={handleDeletarPlano}
+                />
+              ) : (
+                <HistoricoTab
+                  veiculo={veiculo}
+                  onAdd={() => setSubModal({ tipo: 'manut' })}
+                  onDelete={handleDeletarManut}
+                />
+              )}
+            </>
           )}
-        </>
-      )}
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
 
       {subModal?.tipo === 'plano' && (
         <PlanoModal
@@ -461,7 +472,7 @@ export default function VeiculoDetalheModal({
       {subModal?.tipo === 'manut' && veiculo && (
         <ManutModal veiculo={veiculo} onClose={() => setSubModal(null)} />
       )}
-    </Modal>
+    </Dialog>
   );
 }
 

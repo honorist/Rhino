@@ -2,7 +2,13 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/Button';
 import DataTable, { type Column } from '../../components/ui/DataTable';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import Spinner from '../../components/ui/Spinner';
 import { Input } from '../../components/ui/controls';
 import { Combobox } from '../../components/ui/combobox';
@@ -148,50 +154,51 @@ function PickerContratoModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Modal
-      open
-      title="+ Novo RDO"
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>+ Novo RDO</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <p
+            style={{
+              margin: '0 0 var(--sp-md)',
+              fontSize: 14,
+              color: 'var(--color-text-muted)',
+            }}
+          >
+            Escolha o contrato para o qual você quer lançar um RDO. Os dados (MOI,
+            MOD, equipamentos, atividades, etc.) são preenchidos na tela do contrato.
+          </p>
+          {contractsQuery.isLoading ? (
+            <Spinner label="Carregando contratos..." />
+          ) : ativos.length === 0 ? (
+            <p className="text-muted">Nenhum contrato ativo encontrado.</p>
+          ) : (
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label">Contrato *</label>
+              <Combobox
+                options={ativos.map((c) => ({
+                  value: c.id,
+                  label: c.client ? `${c.name} — ${c.client}` : c.name,
+                }))}
+                value={contractId}
+                onChange={setContractId}
+                placeholder="— selecione —"
+                searchPlaceholder="Pesquisar contrato..."
+                emptyText="Nenhum contrato encontrado."
+              />
+            </div>
+          )}
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
             Cancelar
           </Button>
           <Button onClick={continuar}>Continuar →</Button>
-        </>
-      }
-    >
-      <p
-        style={{
-          margin: '0 0 var(--sp-md)',
-          fontSize: 14,
-          color: 'var(--color-text-muted)',
-        }}
-      >
-        Escolha o contrato para o qual você quer lançar um RDO. Os dados (MOI,
-        MOD, equipamentos, atividades, etc.) são preenchidos na tela do contrato.
-      </p>
-      {contractsQuery.isLoading ? (
-        <Spinner label="Carregando contratos..." />
-      ) : ativos.length === 0 ? (
-        <p className="text-muted">Nenhum contrato ativo encontrado.</p>
-      ) : (
-        <div className="form-group" style={{ margin: 0 }}>
-          <label className="form-label">Contrato *</label>
-          <Combobox
-            options={ativos.map((c) => ({
-              value: c.id,
-              label: c.client ? `${c.name} — ${c.client}` : c.name,
-            }))}
-            value={contractId}
-            onChange={setContractId}
-            placeholder="— selecione —"
-            searchPlaceholder="Pesquisar contrato..."
-            emptyText="Nenhum contrato encontrado."
-          />
-        </div>
-      )}
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

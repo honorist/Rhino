@@ -1,6 +1,19 @@
 {
   "entries": [
     {
+      "version": "1.3.6",
+      "date": "2026-05-25",
+      "summary": "Pós-Fase: migração completa Modal → Dialog composicional (50 modais em 50 arquivos)",
+      "changes": [
+        "refactor: todos os consumidores do wrapper Modal deprecated migrados para Dialog composicional shadcn/ui.",
+        "Migrados: base/Base (2), caixa/Caixa (4), contas-pagar/ContasPagar (3), contracts/GerarDocumentoModal, RdoDetailModal, RdoFormModal.",
+        "Migrados: estoque/Estoque, MovimentacaoModais (5), folha/FolhaPagamento (3), frota/VeiculoDetalheModal (3).",
+        "Migrados: investimentos/Investimentos (2), manutencao/ManutencaoModals (4), notas-fiscais/NotasFiscais (3).",
+        "Migrados: rdos/RDOs, recrutamento/SolicitacaoDetail (2), recursos/FolgasModal (3), solicitacoes/SolicitacaoModals (3).",
+        "Modal.tsx agora é zero-consumer — pronto para remoção na Pós-Fase."
+      ]
+    },
+    {
       "version": "1.3.5",
       "date": "2026-05-25",
       "summary": "Fase 7: Combobox em 12 features adicionais + fix id prop Combobox",

@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatDateBR } from '../../lib/formatDate';
 import type { Contract, Rdo, RdoMaoObra } from './types';
@@ -168,29 +174,12 @@ export default function RdoDetailModal({
   const acidente = String(seg.acidente ?? 'nao_houve');
 
   return (
-    <Modal
-      open
-      title={`RDO #${rdo.numero ?? ''} — ${formatDateBR(rdo.data)}`}
-      size="lg"
-      onClose={onClose}
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>
-            Fechar
-          </Button>
-          <Button
-            variant="secondary"
-            onClick={() => setWhatsOpen(true)}
-            title="Enviar resumo via WhatsApp"
-          >
-            💬 WhatsApp
-          </Button>
-          <Button onClick={handlePdf} disabled={exportando}>
-            {exportando ? 'Gerando…' : '📄 Exportar PDF'}
-          </Button>
-        </>
-      }
-    >
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[920px]">
+        <DialogHeader>
+          <DialogTitle>{`RDO #${rdo.numero ?? ''} — ${formatDateBR(rdo.data)}`}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
       {whatsOpen && (
         <RdoWhatsappModal
           texto={rdoWhatsappText(rdo, contract)}
@@ -405,6 +394,23 @@ export default function RdoDetailModal({
           </div>
         </div>
       )}
-    </Modal>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose}>
+            Fechar
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => setWhatsOpen(true)}
+            title="Enviar resumo via WhatsApp"
+          >
+            💬 WhatsApp
+          </Button>
+          <Button onClick={handlePdf} disabled={exportando}>
+            {exportando ? 'Gerando…' : '📄 Exportar PDF'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

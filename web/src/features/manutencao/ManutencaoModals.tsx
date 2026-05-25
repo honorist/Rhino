@@ -1,6 +1,12 @@
 import { useState, type ReactNode } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Textarea } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
@@ -94,66 +100,67 @@ export function NovaManutencaoModal({ manutencao, onClose }: NovaModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar Solicitação' : 'Solicitar Manutenção'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar Solicitação' : 'Solicitar Manutenção'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <ModalSub>
+            A equipe de compras vai definir oficina, prazo e custo.
+          </ModalSub>
+          <FormField label="Equipamento *" htmlFor="man-equip">
+            <Input
+              id="man-equip"
+              value={equipamento}
+              onChange={(e) => setEquipamento(e.target.value)}
+              placeholder="Ex: Máquina de solda Bambozzi"
+              required
+            />
+          </FormField>
+          <FormField label="Problema / defeito relatado" htmlFor="man-prob">
+            <Textarea
+              id="man-prob"
+              rows={2}
+              value={problema}
+              onChange={(e) => setProblema(e.target.value)}
+              placeholder="O que está acontecendo com o equipamento?"
+            />
+          </FormField>
+          <FormField label="Origem do equipamento" htmlFor="man-origem">
+            <Combobox
+              id="man-origem"
+              options={[
+                { value: '', label: '🏢 Sede' },
+                ...contratos.map((c) => ({ value: c.id, label: `🏗️ ${String(c.name ?? '')}` })),
+              ]}
+              value={contractId ?? ''}
+              onChange={setContractId}
+              placeholder="🏢 Sede"
+              searchPlaceholder="Pesquisar obra..."
+              emptyText="Nenhuma obra encontrada."
+            />
+          </FormField>
+          <FormField label="Observações" htmlFor="man-obs">
+            <Textarea
+              id="man-obs"
+              rows={2}
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+              placeholder="Notas adicionais (opcional)"
+            />
+          </FormField>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={pending}>
             Cancelar
           </Button>
           <Button onClick={submit} disabled={pending}>
             {pending ? 'Salvando…' : isEdit ? 'Salvar' : 'Enviar solicitação'}
           </Button>
-        </>
-      }
-    >
-      <ModalSub>
-        A equipe de compras vai definir oficina, prazo e custo.
-      </ModalSub>
-      <FormField label="Equipamento *" htmlFor="man-equip">
-        <Input
-          id="man-equip"
-          value={equipamento}
-          onChange={(e) => setEquipamento(e.target.value)}
-          placeholder="Ex: Máquina de solda Bambozzi"
-          required
-        />
-      </FormField>
-      <FormField label="Problema / defeito relatado" htmlFor="man-prob">
-        <Textarea
-          id="man-prob"
-          rows={2}
-          value={problema}
-          onChange={(e) => setProblema(e.target.value)}
-          placeholder="O que está acontecendo com o equipamento?"
-        />
-      </FormField>
-      <FormField label="Origem do equipamento" htmlFor="man-origem">
-        <Combobox
-          id="man-origem"
-          options={[
-            { value: '', label: '🏢 Sede' },
-            ...contratos.map((c) => ({ value: c.id, label: `🏗️ ${String(c.name ?? '')}` })),
-          ]}
-          value={contractId ?? ''}
-          onChange={setContractId}
-          placeholder="🏢 Sede"
-          searchPlaceholder="Pesquisar obra..."
-          emptyText="Nenhuma obra encontrada."
-        />
-      </FormField>
-      <FormField label="Observações" htmlFor="man-obs">
-        <Textarea
-          id="man-obs"
-          rows={2}
-          value={observacoes}
-          onChange={(e) => setObservacoes(e.target.value)}
-          placeholder="Notas adicionais (opcional)"
-        />
-      </FormField>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -212,12 +219,85 @@ export function AvaliarModal({ manutencao, onClose, nomeOrigem }: ModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title="Avaliar Manutenção"
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>Avaliar Manutenção</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <ModalSub>
+            Defina oficina, prazo e custo para a aprovação gerencial.
+          </ModalSub>
+          <div
+            style={{
+              background: 'var(--color-bg)',
+              borderRadius: 6,
+              padding: 'var(--sp-sm) var(--sp-md)',
+              marginBottom: 'var(--sp-md)',
+              fontSize: 14,
+            }}
+          >
+            <strong>{manutencao.equipamento}</strong>
+            {manutencao.problema && (
+              <div style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>
+                {manutencao.problema}
+              </div>
+            )}
+            <div style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>
+              Origem: {nomeOrigem}
+            </div>
+          </div>
+          <FormField label="Oficina / empresa que vai reparar *" htmlFor="av-of">
+            <Input
+              id="av-of"
+              value={oficina}
+              onChange={(e) => setOficina(e.target.value)}
+              placeholder="Quem vai consertar"
+              required
+            />
+          </FormField>
+          <Row>
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <FormField label="Custo estimado (R$)" htmlFor="av-custo">
+                <Input
+                  id="av-custo"
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={custoEstimado}
+                  onChange={(e) => setCustoEstimado(e.target.value)}
+                  placeholder="0,00"
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <FormField label="Data de envio" htmlFor="av-envio">
+                <DatePicker
+                  id="av-envio"
+                  value={dataEnvio}
+                  onChange={(val) => setDataEnvio(val)}
+                />
+              </FormField>
+            </div>
+          </Row>
+          <FormField label="Previsão de retorno" htmlFor="av-prev">
+            <DatePicker
+              id="av-prev"
+              value={dataRetornoPrevista}
+              onChange={(val) => setDataRetornoPrevista(val)}
+            />
+          </FormField>
+          <FormField label="Observações da avaliação" htmlFor="av-obs">
+            <Textarea
+              id="av-obs"
+              rows={2}
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+              placeholder="Diagnóstico, garantia, prazo combinado..."
+            />
+          </FormField>
+        </div>
+        <DialogFooter>
           <Button
             variant="secondary"
             onClick={onClose}
@@ -228,81 +308,9 @@ export function AvaliarModal({ manutencao, onClose, nomeOrigem }: ModalProps) {
           <Button onClick={submit} disabled={avaliar.isPending}>
             {avaliar.isPending ? 'Salvando…' : 'Enviar para aprovação'}
           </Button>
-        </>
-      }
-    >
-      <ModalSub>
-        Defina oficina, prazo e custo para a aprovação gerencial.
-      </ModalSub>
-      <div
-        style={{
-          background: 'var(--color-bg)',
-          borderRadius: 6,
-          padding: 'var(--sp-sm) var(--sp-md)',
-          marginBottom: 'var(--sp-md)',
-          fontSize: 14,
-        }}
-      >
-        <strong>{manutencao.equipamento}</strong>
-        {manutencao.problema && (
-          <div style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>
-            {manutencao.problema}
-          </div>
-        )}
-        <div style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>
-          Origem: {nomeOrigem}
-        </div>
-      </div>
-      <FormField label="Oficina / empresa que vai reparar *" htmlFor="av-of">
-        <Input
-          id="av-of"
-          value={oficina}
-          onChange={(e) => setOficina(e.target.value)}
-          placeholder="Quem vai consertar"
-          required
-        />
-      </FormField>
-      <Row>
-        <div style={{ flex: 1, minWidth: 160 }}>
-          <FormField label="Custo estimado (R$)" htmlFor="av-custo">
-            <Input
-              id="av-custo"
-              type="number"
-              step="0.01"
-              min={0}
-              value={custoEstimado}
-              onChange={(e) => setCustoEstimado(e.target.value)}
-              placeholder="0,00"
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 160 }}>
-          <FormField label="Data de envio" htmlFor="av-envio">
-            <DatePicker
-              id="av-envio"
-              value={dataEnvio}
-              onChange={(val) => setDataEnvio(val)}
-            />
-          </FormField>
-        </div>
-      </Row>
-      <FormField label="Previsão de retorno" htmlFor="av-prev">
-        <DatePicker
-          id="av-prev"
-          value={dataRetornoPrevista}
-          onChange={(val) => setDataRetornoPrevista(val)}
-        />
-      </FormField>
-      <FormField label="Observações da avaliação" htmlFor="av-obs">
-        <Textarea
-          id="av-obs"
-          rows={2}
-          value={observacoes}
-          onChange={(e) => setObservacoes(e.target.value)}
-          placeholder="Diagnóstico, garantia, prazo combinado..."
-        />
-      </FormField>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -359,12 +367,46 @@ export function AprovarModal({ manutencao, onClose }: ModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title="Aprovar Manutenção"
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>Aprovar Manutenção</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <ModalSub>Pré-avaliada pela equipe de compras.</ModalSub>
+          <div style={{ marginBottom: 'var(--sp-md)' }}>
+            <ResumoLinha rotulo="Equipamento" valor={manutencao.equipamento} />
+            {manutencao.problema && (
+              <ResumoLinha rotulo="Problema" valor={manutencao.problema} />
+            )}
+            <ResumoLinha rotulo="Oficina" valor={manutencao.oficina || '—'} />
+            <ResumoLinha
+              rotulo="Custo estimado"
+              valor={formatBRL(Number(manutencao.custoEstimado) || 0)}
+            />
+            <ResumoLinha rotulo="Envio" valor={formatDateBR(manutencao.dataEnvio)} />
+            <ResumoLinha
+              rotulo="Previsão de retorno"
+              valor={formatDateBR(manutencao.dataRetornoPrevista)}
+            />
+            {manutencao.avaliadorNome && (
+              <ResumoLinha rotulo="Avaliado por" valor={manutencao.avaliadorNome} />
+            )}
+          </div>
+          <FormField
+            label="Motivo (preencha apenas se for rejeitar)"
+            htmlFor="ap-motivo"
+          >
+            <Textarea
+              id="ap-motivo"
+              rows={2}
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Motivo da rejeição..."
+            />
+          </FormField>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={pending}>
             Cancelar
           </Button>
@@ -374,42 +416,9 @@ export function AprovarModal({ manutencao, onClose }: ModalProps) {
           <Button onClick={handleAprovar} disabled={pending}>
             {aprovar.isPending ? 'Aprovando…' : 'Aprovar'}
           </Button>
-        </>
-      }
-    >
-      <ModalSub>Pré-avaliada pela equipe de compras.</ModalSub>
-      <div style={{ marginBottom: 'var(--sp-md)' }}>
-        <ResumoLinha rotulo="Equipamento" valor={manutencao.equipamento} />
-        {manutencao.problema && (
-          <ResumoLinha rotulo="Problema" valor={manutencao.problema} />
-        )}
-        <ResumoLinha rotulo="Oficina" valor={manutencao.oficina || '—'} />
-        <ResumoLinha
-          rotulo="Custo estimado"
-          valor={formatBRL(Number(manutencao.custoEstimado) || 0)}
-        />
-        <ResumoLinha rotulo="Envio" valor={formatDateBR(manutencao.dataEnvio)} />
-        <ResumoLinha
-          rotulo="Previsão de retorno"
-          valor={formatDateBR(manutencao.dataRetornoPrevista)}
-        />
-        {manutencao.avaliadorNome && (
-          <ResumoLinha rotulo="Avaliado por" valor={manutencao.avaliadorNome} />
-        )}
-      </div>
-      <FormField
-        label="Motivo (preencha apenas se for rejeitar)"
-        htmlFor="ap-motivo"
-      >
-        <Textarea
-          id="ap-motivo"
-          rows={2}
-          value={motivo}
-          onChange={(e) => setMotivo(e.target.value)}
-          placeholder="Motivo da rejeição..."
-        />
-      </FormField>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -449,12 +458,50 @@ export function RetornoModal({ manutencao, onClose }: ModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title="Registrar Retorno"
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>Registrar Retorno</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <ModalSub>
+            {manutencao.equipamento} · oficina: {manutencao.oficina || '—'}
+          </ModalSub>
+          <Row>
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <FormField label="Data de retorno *" htmlFor="rt-data">
+                <DatePicker
+                  id="rt-data"
+                  value={dataRetorno}
+                  onChange={(val) => setDataRetorno(val)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <FormField label="Custo final (R$)" htmlFor="rt-custo">
+                <Input
+                  id="rt-custo"
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  value={custo}
+                  onChange={(e) => setCusto(e.target.value)}
+                  placeholder="0,00"
+                />
+              </FormField>
+            </div>
+          </Row>
+          <FormField label="Observações do retorno" htmlFor="rt-obs">
+            <Textarea
+              id="rt-obs"
+              rows={3}
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+              placeholder="O que foi feito, condição do equipamento, garantia..."
+            />
+          </FormField>
+        </div>
+        <DialogFooter>
           <Button
             variant="secondary"
             onClick={onClose}
@@ -465,45 +512,8 @@ export function RetornoModal({ manutencao, onClose }: ModalProps) {
           <Button onClick={submit} disabled={retorno.isPending}>
             {retorno.isPending ? 'Salvando…' : 'Confirmar retorno'}
           </Button>
-        </>
-      }
-    >
-      <ModalSub>
-        {manutencao.equipamento} · oficina: {manutencao.oficina || '—'}
-      </ModalSub>
-      <Row>
-        <div style={{ flex: 1, minWidth: 160 }}>
-          <FormField label="Data de retorno *" htmlFor="rt-data">
-            <DatePicker
-              id="rt-data"
-              value={dataRetorno}
-              onChange={(val) => setDataRetorno(val)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 160 }}>
-          <FormField label="Custo final (R$)" htmlFor="rt-custo">
-            <Input
-              id="rt-custo"
-              type="number"
-              step="0.01"
-              min={0}
-              value={custo}
-              onChange={(e) => setCusto(e.target.value)}
-              placeholder="0,00"
-            />
-          </FormField>
-        </div>
-      </Row>
-      <FormField label="Observações do retorno" htmlFor="rt-obs">
-        <Textarea
-          id="rt-obs"
-          rows={3}
-          value={observacoes}
-          onChange={(e) => setObservacoes(e.target.value)}
-          placeholder="O que foi feito, condição do equipamento, garantia..."
-        />
-      </FormField>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

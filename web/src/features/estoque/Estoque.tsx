@@ -1,7 +1,13 @@
 import { Fragment, useMemo, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import Spinner from '../../components/ui/Spinner';
 import { Input, Select } from '../../components/ui/controls';
 import { useToast } from '../../components/ui/toast/ToastContext';
@@ -617,37 +623,40 @@ export default function Estoque() {
         />
       )}
       {modal?.type === 'mais' && (
-        <Modal
-          open
-          title="Mais opções"
-          onClose={() => setModal(null)}
-          footer={
-            <Button variant="secondary" onClick={() => setModal(null)}>
-              Fechar
-            </Button>
-          }
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <Button
-              variant="secondary"
-              onClick={() => setModal({ type: 'voltou', item: modal.item })}
-            >
-              🟡 Voltou da obra
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => setModal({ type: 'ajuste', item: modal.item })}
-            >
-              🟠 Corrigir saldo
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => setModal({ type: 'editItem', item: modal.item })}
-            >
-              ✏️ Editar item
-            </Button>
-          </div>
-        </Modal>
+        <Dialog open onOpenChange={(next) => !next && setModal(null)}>
+          <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>Mais opções</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <Button
+                  variant="secondary"
+                  onClick={() => setModal({ type: 'voltou', item: modal.item })}
+                >
+                  🟡 Voltou da obra
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setModal({ type: 'ajuste', item: modal.item })}
+                >
+                  🟠 Corrigir saldo
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setModal({ type: 'editItem', item: modal.item })}
+                >
+                  ✏️ Editar item
+                </Button>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="secondary" onClick={() => setModal(null)}>
+                Fechar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </>
   );

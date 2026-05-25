@@ -3,7 +3,13 @@ import PageHeader from '../../components/layout/PageHeader';
 import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Select } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
@@ -414,12 +420,36 @@ function PagarModal({ row, parcela, onClose }: PagarModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title={`Pagar ${label} — ${row.recursoNome}`}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{`Pagar ${label} — ${row.recursoNome}`}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <p style={{ marginBottom: 'var(--sp-md)' }}>
+            Valor: <strong>{formatBRL(valor)}</strong>
+          </p>
+          <FormField label="Data do pagamento" htmlFor="fp-data">
+            <DatePicker
+              id="fp-data"
+              value={dataPagamento}
+              onChange={(val) => setDataPagamento(val)}
+            />
+          </FormField>
+          <FormField label="Forma de pagamento" htmlFor="fp-forma">
+            <Select
+              id="fp-forma"
+              value={formaPagamento}
+              onChange={(event) => setFormaPagamento(event.target.value)}
+            >
+              <option value="">— não informar —</option>
+              <option value="PIX">PIX</option>
+              <option value="Transferência">Transferência</option>
+              <option value="Dinheiro">Dinheiro</option>
+            </Select>
+          </FormField>
+        </div>
+        <DialogFooter>
           <Button
             variant="secondary"
             onClick={onClose}
@@ -430,32 +460,9 @@ function PagarModal({ row, parcela, onClose }: PagarModalProps) {
           <Button onClick={handleConfirmar} disabled={pagarParcela.isPending}>
             {pagarParcela.isPending ? 'Pagando...' : 'Confirmar pagamento'}
           </Button>
-        </>
-      }
-    >
-      <p style={{ marginBottom: 'var(--sp-md)' }}>
-        Valor: <strong>{formatBRL(valor)}</strong>
-      </p>
-      <FormField label="Data do pagamento" htmlFor="fp-data">
-        <DatePicker
-          id="fp-data"
-          value={dataPagamento}
-          onChange={(val) => setDataPagamento(val)}
-        />
-      </FormField>
-      <FormField label="Forma de pagamento" htmlFor="fp-forma">
-        <Select
-          id="fp-forma"
-          value={formaPagamento}
-          onChange={(event) => setFormaPagamento(event.target.value)}
-        >
-          <option value="">— não informar —</option>
-          <option value="PIX">PIX</option>
-          <option value="Transferência">Transferência</option>
-          <option value="Dinheiro">Dinheiro</option>
-        </Select>
-      </FormField>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -486,9 +493,16 @@ function AcertosModal({ competencia, folhaId, onClose }: AcertosModalProps) {
   const row = (folhaQuery.data ?? []).find((f) => f.id === folhaId) ?? null;
   if (!row) {
     return (
-      <Modal open title="Lançamentos" onClose={onClose}>
-        <p className="text-muted">Registro não encontrado.</p>
-      </Modal>
+      <Dialog open onOpenChange={(next) => !next && onClose()}>
+        <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+          <DialogHeader>
+            <DialogTitle>Lançamentos</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <p className="text-muted">Registro não encontrado.</p>
+          </div>
+        </DialogContent>
+      </Dialog>
     );
   }
 
@@ -609,180 +623,183 @@ function AcertosModal({ competencia, folhaId, onClose }: AcertosModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title={`Lançamentos — ${row.recursoNome}`}
-      onClose={onClose}
-      footer={
-        <Button variant="secondary" onClick={onClose}>
-          Fechar
-        </Button>
-      }
-    >
-      {bloqueado && (
-        <p className="text-danger" style={{ marginBottom: 'var(--sp-md)' }}>
-          Saldo já pago — estorne o saldo para editar os lançamentos.
-        </p>
-      )}
-
-      <Secao titulo="Proventos" cor="#065F46">
-        <AutoLine titulo="Salário base" valor={salario} sinal="+" cor="#065F46" />
-        {proventos.map((it) => (
-          <ItemLine
-            key={it.id}
-            item={it}
-            sinal="+"
-            cor="#065F46"
-            editavel={!bloqueado}
-            emEdicao={editId === it.id}
-            editValor={editValor}
-            onEditValorChange={setEditValor}
-            onStartEdit={() => startEdit(it)}
-            onCancelEdit={() => setEditId(null)}
-            onSaveEdit={() => handleEditSave(it.id)}
-            onRemove={() => handleRemove(it.id)}
-          />
-        ))}
-      </Secao>
-
-      <Secao titulo="Descontos" cor="#991B1B">
-        {temVale && (
-          <AutoLine
-            titulo="Vale — adiantamento 40%"
-            valor={num(row.valorVale)}
-            sinal="−"
-            cor="#991B1B"
-            extra={<StatusBadge pago={row.valePago} />}
-          />
-        )}
-        {descontos.length === 0 && !temVale ? (
-          <p className="text-muted" style={{ padding: '6px 0' }}>
-            Nenhum lançamento.
-          </p>
-        ) : (
-          descontos.map((it) => (
-            <ItemLine
-              key={it.id}
-              item={it}
-              sinal="−"
-              cor="#991B1B"
-              editavel={!bloqueado}
-              emEdicao={editId === it.id}
-              editValor={editValor}
-              onEditValorChange={setEditValor}
-              onStartEdit={() => startEdit(it)}
-              onCancelEdit={() => setEditId(null)}
-              onSaveEdit={() => handleEditSave(it.id)}
-              onRemove={() => handleRemove(it.id)}
-            />
-          ))
-        )}
-      </Secao>
-
-      <div
-        style={{
-          marginTop: 'var(--sp-md)',
-          paddingTop: 'var(--sp-md)',
-          borderTop: '2px solid var(--color-border)',
-          display: 'flex',
-          justifyContent: 'space-between',
-        }}
-      >
-        <span className="text-muted">Saldo a pagar (com lançamentos)</span>
-        <strong
-          style={num(row.valorSaldo) < 0 ? { color: '#991B1B' } : undefined}
-        >
-          {formatBRL(num(row.valorSaldo))}
-        </strong>
-      </div>
-
-      {!bloqueado && (
-        <div style={{ marginTop: 'var(--sp-lg)' }}>
-          <h3 style={{ margin: '0 0 var(--sp-sm)', fontSize: 13 }}>
-            Novo lançamento
-          </h3>
-          <FormField label="Item" htmlFor="ac-preset">
-            <Select
-              id="ac-preset"
-              value={presetKey}
-              onChange={(event) => handlePresetChange(event.target.value)}
-            >
-              <option value="">— escolha um item —</option>
-              <optgroup label="Proventos">
-                {PRESETS.filter((p) => p.tipo === 'provento').map((p) => (
-                  <option key={p.key} value={p.key}>
-                    {p.label}
-                    {p.calc === 'outro' ? '…' : ''}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="Descontos">
-                {PRESETS.filter((p) => p.tipo === 'desconto').map((p) => (
-                  <option key={p.key} value={p.key}>
-                    {p.label}
-                    {p.calc === 'outro' ? '…' : ''}
-                  </option>
-                ))}
-              </optgroup>
-            </Select>
-          </FormField>
-
-          {preset?.calc === 'outro' && (
-            <FormField label="Descrição" htmlFor="ac-desc">
-              <Input
-                id="ac-desc"
-                type="text"
-                maxLength={120}
-                value={descricao}
-                onChange={(event) => setDescricao(event.target.value)}
-                placeholder="Descreva o lançamento"
-              />
-            </FormField>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{`Lançamentos — ${row.recursoNome}`}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {bloqueado && (
+            <p className="text-danger" style={{ marginBottom: 'var(--sp-md)' }}>
+              Saldo já pago — estorne o saldo para editar os lançamentos.
+            </p>
           )}
 
-          {preset &&
-            (preset.calc === 'hora' ||
-              preset.calc === 'falta' ||
-              preset.calc === 'atraso') && (
-              <FormField label={qtdLabel(preset)} htmlFor="ac-qtd">
+          <Secao titulo="Proventos" cor="#065F46">
+            <AutoLine titulo="Salário base" valor={salario} sinal="+" cor="#065F46" />
+            {proventos.map((it) => (
+              <ItemLine
+                key={it.id}
+                item={it}
+                sinal="+"
+                cor="#065F46"
+                editavel={!bloqueado}
+                emEdicao={editId === it.id}
+                editValor={editValor}
+                onEditValorChange={setEditValor}
+                onStartEdit={() => startEdit(it)}
+                onCancelEdit={() => setEditId(null)}
+                onSaveEdit={() => handleEditSave(it.id)}
+                onRemove={() => handleRemove(it.id)}
+              />
+            ))}
+          </Secao>
+
+          <Secao titulo="Descontos" cor="#991B1B">
+            {temVale && (
+              <AutoLine
+                titulo="Vale — adiantamento 40%"
+                valor={num(row.valorVale)}
+                sinal="−"
+                cor="#991B1B"
+                extra={<StatusBadge pago={row.valePago} />}
+              />
+            )}
+            {descontos.length === 0 && !temVale ? (
+              <p className="text-muted" style={{ padding: '6px 0' }}>
+                Nenhum lançamento.
+              </p>
+            ) : (
+              descontos.map((it) => (
+                <ItemLine
+                  key={it.id}
+                  item={it}
+                  sinal="−"
+                  cor="#991B1B"
+                  editavel={!bloqueado}
+                  emEdicao={editId === it.id}
+                  editValor={editValor}
+                  onEditValorChange={setEditValor}
+                  onStartEdit={() => startEdit(it)}
+                  onCancelEdit={() => setEditId(null)}
+                  onSaveEdit={() => handleEditSave(it.id)}
+                  onRemove={() => handleRemove(it.id)}
+                />
+              ))
+            )}
+          </Secao>
+
+          <div
+            style={{
+              marginTop: 'var(--sp-md)',
+              paddingTop: 'var(--sp-md)',
+              borderTop: '2px solid var(--color-border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+            }}
+          >
+            <span className="text-muted">Saldo a pagar (com lançamentos)</span>
+            <strong
+              style={num(row.valorSaldo) < 0 ? { color: '#991B1B' } : undefined}
+            >
+              {formatBRL(num(row.valorSaldo))}
+            </strong>
+          </div>
+
+          {!bloqueado && (
+            <div style={{ marginTop: 'var(--sp-lg)' }}>
+              <h3 style={{ margin: '0 0 var(--sp-sm)', fontSize: 13 }}>
+                Novo lançamento
+              </h3>
+              <FormField label="Item" htmlFor="ac-preset">
+                <Select
+                  id="ac-preset"
+                  value={presetKey}
+                  onChange={(event) => handlePresetChange(event.target.value)}
+                >
+                  <option value="">— escolha um item —</option>
+                  <optgroup label="Proventos">
+                    {PRESETS.filter((p) => p.tipo === 'provento').map((p) => (
+                      <option key={p.key} value={p.key}>
+                        {p.label}
+                        {p.calc === 'outro' ? '…' : ''}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Descontos">
+                    {PRESETS.filter((p) => p.tipo === 'desconto').map((p) => (
+                      <option key={p.key} value={p.key}>
+                        {p.label}
+                        {p.calc === 'outro' ? '…' : ''}
+                      </option>
+                    ))}
+                  </optgroup>
+                </Select>
+              </FormField>
+
+              {preset?.calc === 'outro' && (
+                <FormField label="Descrição" htmlFor="ac-desc">
+                  <Input
+                    id="ac-desc"
+                    type="text"
+                    maxLength={120}
+                    value={descricao}
+                    onChange={(event) => setDescricao(event.target.value)}
+                    placeholder="Descreva o lançamento"
+                  />
+                </FormField>
+              )}
+
+              {preset &&
+                (preset.calc === 'hora' ||
+                  preset.calc === 'falta' ||
+                  preset.calc === 'atraso') && (
+                  <FormField label={qtdLabel(preset)} htmlFor="ac-qtd">
+                    <Input
+                      id="ac-qtd"
+                      type="number"
+                      step={preset.calc === 'hora' ? '0.5' : '1'}
+                      min="0"
+                      value={qtd}
+                      onChange={(event) => handleQtdChange(event.target.value)}
+                      placeholder="0"
+                    />
+                  </FormField>
+                )}
+
+              <FormField
+                label="Valor (R$)"
+                htmlFor="ac-valor"
+                helper={preset ? hintFor(preset, salario) : undefined}
+              >
                 <Input
-                  id="ac-qtd"
+                  id="ac-valor"
                   type="number"
-                  step={preset.calc === 'hora' ? '0.5' : '1'}
+                  step="0.01"
                   min="0"
-                  value={qtd}
-                  onChange={(event) => handleQtdChange(event.target.value)}
-                  placeholder="0"
+                  value={valor}
+                  onChange={(event) => setValor(event.target.value)}
+                  placeholder="0,00"
                 />
               </FormField>
-            )}
 
-          <FormField
-            label="Valor (R$)"
-            htmlFor="ac-valor"
-            helper={preset ? hintFor(preset, salario) : undefined}
-          >
-            <Input
-              id="ac-valor"
-              type="number"
-              step="0.01"
-              min="0"
-              value={valor}
-              onChange={(event) => setValor(event.target.value)}
-              placeholder="0,00"
-            />
-          </FormField>
-
-          <Button
-            onClick={handleAdd}
-            disabled={addItem.isPending}
-            style={{ width: '100%' }}
-          >
-            {addItem.isPending ? 'Lançando...' : 'Adicionar lançamento'}
-          </Button>
+              <Button
+                onClick={handleAdd}
+                disabled={addItem.isPending}
+                style={{ width: '100%' }}
+              >
+                {addItem.isPending ? 'Lançando...' : 'Adicionar lançamento'}
+              </Button>
+            </div>
+          )}
         </div>
-      )}
-    </Modal>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

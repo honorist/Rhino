@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import Card from '../../components/ui/Card';
 import FormField from '../../components/ui/FormField';
 import { Input, Textarea, Select } from '../../components/ui/controls';
@@ -83,12 +89,71 @@ export function AprovarModal({ solicitacao: s, onClose }: ModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title="Aprovar Solicitação"
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>Aprovar Solicitação</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <p style={{ margin: '0 0 var(--sp-md)', fontSize: 13, color: 'var(--color-text-muted)' }}>
+            Pré-aprovada pela equipe de compras · Total:{' '}
+            <strong>{formatBRL(Number(s.valorTotal) || 0)}</strong>
+          </p>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 12,
+              marginBottom: 'var(--sp-md)',
+              fontSize: 14,
+            }}
+          >
+            <div>
+              <strong>Solicitante:</strong> {s.solicitanteNome || '—'}
+            </div>
+            <div>
+              <strong>Avaliado por:</strong> {s.avaliadorNome || '—'}
+            </div>
+            <div>
+              <strong>Destino:</strong> {destino}
+            </div>
+            <div>
+              <strong>Avaliado em:</strong> {fmtDataHora(s.avaliadoEm)}
+            </div>
+          </div>
+          {s.justificativa && (
+            <div
+              style={{
+                padding: 10,
+                background: 'var(--color-surface-2)',
+                borderRadius: 6,
+                marginBottom: 'var(--sp-md)',
+              }}
+            >
+              <strong>Justificativa:</strong>
+              <br />
+              {s.justificativa}
+            </div>
+          )}
+          <h3 style={{ margin: 'var(--sp-md) 0 8px', fontSize: 15 }}>
+            Itens precificados
+          </h3>
+          {itens.map((it, i) => (
+            <Card key={i} style={{ padding: 10, marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div>
+                  <strong>{it.descricao}</strong>
+                  {it.tipo === 'aluguel' && ' 🔑'}{' '}
+                  <span style={{ color: 'var(--color-text-muted)' }}>
+                    qtd {it.qtd} × {formatBRL(Number(it.precoUnit) || 0)}
+                  </span>
+                </div>
+                <strong>{formatBRL(it.qtd * (Number(it.precoUnit) || 0))}</strong>
+              </div>
+            </Card>
+          ))}
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={pending}>
             Fechar
           </Button>
@@ -98,67 +163,9 @@ export function AprovarModal({ solicitacao: s, onClose }: ModalProps) {
           <Button onClick={handleAprovar} disabled={pending}>
             ✅ Aprovar
           </Button>
-        </>
-      }
-    >
-      <p style={{ margin: '0 0 var(--sp-md)', fontSize: 13, color: 'var(--color-text-muted)' }}>
-        Pré-aprovada pela equipe de compras · Total:{' '}
-        <strong>{formatBRL(Number(s.valorTotal) || 0)}</strong>
-      </p>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 12,
-          marginBottom: 'var(--sp-md)',
-          fontSize: 14,
-        }}
-      >
-        <div>
-          <strong>Solicitante:</strong> {s.solicitanteNome || '—'}
-        </div>
-        <div>
-          <strong>Avaliado por:</strong> {s.avaliadorNome || '—'}
-        </div>
-        <div>
-          <strong>Destino:</strong> {destino}
-        </div>
-        <div>
-          <strong>Avaliado em:</strong> {fmtDataHora(s.avaliadoEm)}
-        </div>
-      </div>
-      {s.justificativa && (
-        <div
-          style={{
-            padding: 10,
-            background: 'var(--color-surface-2)',
-            borderRadius: 6,
-            marginBottom: 'var(--sp-md)',
-          }}
-        >
-          <strong>Justificativa:</strong>
-          <br />
-          {s.justificativa}
-        </div>
-      )}
-      <h3 style={{ margin: 'var(--sp-md) 0 8px', fontSize: 15 }}>
-        Itens precificados
-      </h3>
-      {itens.map((it, i) => (
-        <Card key={i} style={{ padding: 10, marginBottom: 8 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <div>
-              <strong>{it.descricao}</strong>
-              {it.tipo === 'aluguel' && ' 🔑'}{' '}
-              <span style={{ color: 'var(--color-text-muted)' }}>
-                qtd {it.qtd} × {formatBRL(Number(it.precoUnit) || 0)}
-              </span>
-            </div>
-            <strong>{formatBRL(it.qtd * (Number(it.precoUnit) || 0))}</strong>
-          </div>
-        </Card>
-      ))}
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -205,73 +212,74 @@ export function ComprarModal({ solicitacao: s, onClose }: ModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title="Registrar compra"
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>Registrar compra</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <p style={{ margin: '0 0 var(--sp-md)', fontSize: 13, color: 'var(--color-text-muted)' }}>
+            Vai gerar a Conta a Pagar de {formatBRL(Number(s.valorTotal) || 0)}.
+          </p>
+          <Row>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <FormField label="Nº do pedido junto ao fornecedor" htmlFor="cp-num">
+                <Input
+                  id="cp-num"
+                  value={numeroPedido}
+                  onChange={(e) => setNumeroPedido(e.target.value)}
+                  placeholder="Ex: OC-2026-007"
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <FormField label="Previsão de entrega" htmlFor="cp-prev">
+                <DatePicker
+                  id="cp-prev"
+                  value={dataPrevistaEntrega}
+                  onChange={(val) => setDataPrevistaEntrega(val)}
+                />
+              </FormField>
+            </div>
+          </Row>
+          <Row>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <FormField label="Fornecedor" htmlFor="cp-forn">
+                <Select
+                  id="cp-forn"
+                  value={fornecedorId}
+                  onChange={(e) => setFornecedorId(e.target.value)}
+                >
+                  <option value="">— Selecionar —</option>
+                  {(fornecedoresQuery.data ?? []).map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {String(f.nome ?? '')}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <FormField label="Vencimento da CP *" htmlFor="cp-venc">
+                <DatePicker
+                  id="cp-venc"
+                  value={dataVencimento}
+                  onChange={(val) => setDataVencimento(val)}
+                />
+              </FormField>
+            </div>
+          </Row>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={comprar.isPending}>
             Cancelar
           </Button>
           <Button onClick={submit} disabled={comprar.isPending}>
             {comprar.isPending ? 'Salvando…' : 'Registrar compra (gera CP)'}
           </Button>
-        </>
-      }
-    >
-      <p style={{ margin: '0 0 var(--sp-md)', fontSize: 13, color: 'var(--color-text-muted)' }}>
-        Vai gerar a Conta a Pagar de {formatBRL(Number(s.valorTotal) || 0)}.
-      </p>
-      <Row>
-        <div style={{ flex: 1, minWidth: 180 }}>
-          <FormField label="Nº do pedido junto ao fornecedor" htmlFor="cp-num">
-            <Input
-              id="cp-num"
-              value={numeroPedido}
-              onChange={(e) => setNumeroPedido(e.target.value)}
-              placeholder="Ex: OC-2026-007"
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 150 }}>
-          <FormField label="Previsão de entrega" htmlFor="cp-prev">
-            <DatePicker
-              id="cp-prev"
-              value={dataPrevistaEntrega}
-              onChange={(val) => setDataPrevistaEntrega(val)}
-            />
-          </FormField>
-        </div>
-      </Row>
-      <Row>
-        <div style={{ flex: 1, minWidth: 180 }}>
-          <FormField label="Fornecedor" htmlFor="cp-forn">
-            <Select
-              id="cp-forn"
-              value={fornecedorId}
-              onChange={(e) => setFornecedorId(e.target.value)}
-            >
-              <option value="">— Selecionar —</option>
-              {(fornecedoresQuery.data ?? []).map((f) => (
-                <option key={f.id} value={f.id}>
-                  {String(f.nome ?? '')}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 150 }}>
-          <FormField label="Vencimento da CP *" htmlFor="cp-venc">
-            <DatePicker
-              id="cp-venc"
-              value={dataVencimento}
-              onChange={(val) => setDataVencimento(val)}
-            />
-          </FormField>
-        </div>
-      </Row>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -308,55 +316,56 @@ export function ReceberModal({ solicitacao: s, onClose }: ModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title="Confirmar chegada do material"
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>Confirmar chegada do material</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <p style={{ margin: '0 0 var(--sp-md)', fontSize: 13, color: 'var(--color-text-muted)' }}>
+            {itens.length} {itens.length === 1 ? 'item' : 'itens'} entram no estoque
+            ao confirmar.
+          </p>
+          <Row>
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <FormField label="Data de recebimento *" htmlFor="rc-data">
+                <DatePicker
+                  id="rc-data"
+                  value={dataRecebimento}
+                  onChange={(val) => setDataRecebimento(val)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <FormField label="Nº da NF do fornecedor" htmlFor="rc-nf">
+                <Input
+                  id="rc-nf"
+                  value={nfRecebimento}
+                  onChange={(e) => setNfRecebimento(e.target.value)}
+                  placeholder="Opcional"
+                />
+              </FormField>
+            </div>
+          </Row>
+          <FormField label="Observações" htmlFor="rc-obs">
+            <Textarea
+              id="rc-obs"
+              rows={2}
+              value={obsRecebimento}
+              onChange={(e) => setObsRecebimento(e.target.value)}
+              placeholder="Ex: 1 caixa amassada, conferido por..."
+            />
+          </FormField>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={receber.isPending}>
             Cancelar
           </Button>
           <Button onClick={submit} disabled={receber.isPending}>
             {receber.isPending ? 'Salvando…' : 'Confirmar chegada'}
           </Button>
-        </>
-      }
-    >
-      <p style={{ margin: '0 0 var(--sp-md)', fontSize: 13, color: 'var(--color-text-muted)' }}>
-        {itens.length} {itens.length === 1 ? 'item' : 'itens'} entram no estoque
-        ao confirmar.
-      </p>
-      <Row>
-        <div style={{ flex: 1, minWidth: 150 }}>
-          <FormField label="Data de recebimento *" htmlFor="rc-data">
-            <DatePicker
-              id="rc-data"
-              value={dataRecebimento}
-              onChange={(val) => setDataRecebimento(val)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 150 }}>
-          <FormField label="Nº da NF do fornecedor" htmlFor="rc-nf">
-            <Input
-              id="rc-nf"
-              value={nfRecebimento}
-              onChange={(e) => setNfRecebimento(e.target.value)}
-              placeholder="Opcional"
-            />
-          </FormField>
-        </div>
-      </Row>
-      <FormField label="Observações" htmlFor="rc-obs">
-        <Textarea
-          id="rc-obs"
-          rows={2}
-          value={obsRecebimento}
-          onChange={(e) => setObsRecebimento(e.target.value)}
-          placeholder="Ex: 1 caixa amassada, conferido por..."
-        />
-      </FormField>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

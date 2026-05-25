@@ -5,7 +5,13 @@ import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import DataTable, { type Column } from '../../components/ui/DataTable';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
@@ -493,127 +499,128 @@ function BaseItemModal({ item, tipos, onClose }: BaseItemModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar Item BASE' : 'Novo Item BASE'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar Item BASE' : 'Novo Item BASE'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <form id="form-base" onSubmit={handleSubmit}>
+            <FormField label="Descrição *" htmlFor="base-desc">
+              <Input
+                id="base-desc"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                required
+              />
+            </FormField>
+
+            <div className="form-row">
+              <FormField label="Tipo *" htmlFor="base-type">
+                <Select
+                  id="base-type"
+                  value={type}
+                  onChange={(event) => setType(event.target.value)}
+                  required
+                >
+                  {tipos.map((tipo) => (
+                    <option key={tipo.key} value={tipo.key}>
+                      {tipo.icon} {tipo.label}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+              <FormField label="Valor (BRL) *" htmlFor="base-value">
+                <Input
+                  id="base-value"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={value}
+                  onChange={(event) => setValue(event.target.value)}
+                  required
+                />
+              </FormField>
+            </div>
+
+            <FormField label="Data *" htmlFor="base-date">
+              <DatePicker
+                id="base-date"
+                value={date}
+                onChange={(val) => setDate(val)}
+              />
+            </FormField>
+
+            <div
+              className="form-group"
+              style={{
+                borderTop: '1px solid var(--color-border)',
+                paddingTop: 'var(--sp-md)',
+              }}
+            >
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={recAtivo}
+                  onChange={(event) => setRecAtivo(event.target.checked)}
+                />
+                <span style={{ fontWeight: 600 }}>Item recorrente</span>
+              </label>
+            </div>
+
+            {recAtivo && (
+              <>
+                <div className="form-row">
+                  <FormField label="Início *" htmlFor="base-rec-inicio">
+                    <DatePicker
+                      id="base-rec-inicio"
+                      value={recInicio}
+                      onChange={(val) => setRecInicio(val)}
+                    />
+                  </FormField>
+                  <FormField label="Fim *" htmlFor="base-rec-fim">
+                    <DatePicker
+                      id="base-rec-fim"
+                      value={recFim}
+                      onChange={(val) => setRecFim(val)}
+                    />
+                  </FormField>
+                </div>
+                <FormField label="Frequência *" htmlFor="base-rec-freq">
+                  <Select
+                    id="base-rec-freq"
+                    value={recFreq}
+                    onChange={(event) => setRecFreq(event.target.value)}
+                  >
+                    {Object.entries(FREQ_LABEL).map(([freq, label]) => (
+                      <option key={freq} value={freq}>
+                        {label}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+              </>
+            )}
+
+            <FormField label="Observações" htmlFor="base-notes">
+              <Textarea
+                id="base-notes"
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+              />
+            </FormField>
+          </form>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
           <Button type="submit" form="form-base" disabled={saving}>
             {saving ? 'Salvando...' : isEdit ? 'Atualizar' : 'Criar'}
           </Button>
-        </>
-      }
-    >
-      <form id="form-base" onSubmit={handleSubmit}>
-        <FormField label="Descrição *" htmlFor="base-desc">
-          <Input
-            id="base-desc"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            required
-          />
-        </FormField>
-
-        <div className="form-row">
-          <FormField label="Tipo *" htmlFor="base-type">
-            <Select
-              id="base-type"
-              value={type}
-              onChange={(event) => setType(event.target.value)}
-              required
-            >
-              {tipos.map((tipo) => (
-                <option key={tipo.key} value={tipo.key}>
-                  {tipo.icon} {tipo.label}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-          <FormField label="Valor (BRL) *" htmlFor="base-value">
-            <Input
-              id="base-value"
-              type="number"
-              step="0.01"
-              min="0"
-              value={value}
-              onChange={(event) => setValue(event.target.value)}
-              required
-            />
-          </FormField>
-        </div>
-
-        <FormField label="Data *" htmlFor="base-date">
-          <DatePicker
-            id="base-date"
-            value={date}
-            onChange={(val) => setDate(val)}
-          />
-        </FormField>
-
-        <div
-          className="form-group"
-          style={{
-            borderTop: '1px solid var(--color-border)',
-            paddingTop: 'var(--sp-md)',
-          }}
-        >
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <input
-              type="checkbox"
-              checked={recAtivo}
-              onChange={(event) => setRecAtivo(event.target.checked)}
-            />
-            <span style={{ fontWeight: 600 }}>Item recorrente</span>
-          </label>
-        </div>
-
-        {recAtivo && (
-          <>
-            <div className="form-row">
-              <FormField label="Início *" htmlFor="base-rec-inicio">
-                <DatePicker
-                  id="base-rec-inicio"
-                  value={recInicio}
-                  onChange={(val) => setRecInicio(val)}
-                />
-              </FormField>
-              <FormField label="Fim *" htmlFor="base-rec-fim">
-                <DatePicker
-                  id="base-rec-fim"
-                  value={recFim}
-                  onChange={(val) => setRecFim(val)}
-                />
-              </FormField>
-            </div>
-            <FormField label="Frequência *" htmlFor="base-rec-freq">
-              <Select
-                id="base-rec-freq"
-                value={recFreq}
-                onChange={(event) => setRecFreq(event.target.value)}
-              >
-                {Object.entries(FREQ_LABEL).map(([freq, label]) => (
-                  <option key={freq} value={freq}>
-                    {label}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
-          </>
-        )}
-
-        <FormField label="Observações" htmlFor="base-notes">
-          <Textarea
-            id="base-notes"
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-          />
-        </FormField>
-      </form>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -663,12 +670,106 @@ function AllocateModal({ item, contratos, onClose }: AllocateModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title={`Alocar "${item.description}"`}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{`Alocar "${item.description}"`}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 'var(--sp-sm)',
+              marginBottom: 'var(--sp-lg)',
+              padding: 'var(--sp-md)',
+              background: 'var(--color-bg)',
+              borderRadius: 8,
+            }}
+          >
+            <Kpi label="Valor Total" value={formatBRL(item.value)} />
+            <Kpi label="Alocado" value={formatBRL(alocado)} color="var(--color-info)" />
+            <Kpi
+              label="Disponível"
+              value={formatBRL(disponivel)}
+              color="var(--color-success)"
+            />
+          </div>
+
+          {item.allocations.length > 0 && (
+            <div style={{ marginBottom: 'var(--sp-lg)' }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: 'var(--color-text-muted)',
+                  textTransform: 'uppercase',
+                  marginBottom: 6,
+                }}
+              >
+                Alocações existentes
+              </div>
+              {item.allocations.map((alloc, index) => (
+                <div
+                  key={`${alloc.contractId}-${index}`}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '6px 10px',
+                    background: 'rgba(49,130,206,.06)',
+                    borderLeft: '3px solid var(--color-info)',
+                    borderRadius: 4,
+                    marginBottom: 4,
+                    fontSize: 14,
+                  }}
+                >
+                  <strong>{contractLabel(contratos, alloc.contractId)}</strong>
+                  <span style={{ fontWeight: 700, color: 'var(--color-info)' }}>
+                    {formatBRL(alloc.value)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {disponivel > 0 && (
+            <form id="form-alocar" onSubmit={handleSubmit}>
+              <div className="form-row">
+                <FormField label="Contrato *" htmlFor="aloc-contrato">
+                  <Select
+                    id="aloc-contrato"
+                    value={contractId}
+                    onChange={(event) => setContractId(event.target.value)}
+                    required
+                  >
+                    <option value="">Selecionar...</option>
+                    {ativos.map((contract) => (
+                      <option key={contract.id} value={contract.id}>
+                        {String(contract.name ?? 'Contrato')}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+                <FormField
+                  label="Valor a Alocar *"
+                  htmlFor="aloc-valor"
+                  helper={`Máximo: ${formatBRL(disponivel)}`}
+                >
+                  <Input
+                    id="aloc-valor"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={value}
+                    onChange={(event) => setValue(event.target.value)}
+                    required
+                  />
+                </FormField>
+              </div>
+            </form>
+          )}
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
             Fechar
           </Button>
@@ -682,101 +783,8 @@ function AllocateModal({ item, contratos, onClose }: AllocateModalProps) {
               {allocate.isPending ? 'Alocando...' : '+ Adicionar Alocação'}
             </Button>
           )}
-        </>
-      }
-    >
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 'var(--sp-sm)',
-          marginBottom: 'var(--sp-lg)',
-          padding: 'var(--sp-md)',
-          background: 'var(--color-bg)',
-          borderRadius: 8,
-        }}
-      >
-        <Kpi label="Valor Total" value={formatBRL(item.value)} />
-        <Kpi label="Alocado" value={formatBRL(alocado)} color="var(--color-info)" />
-        <Kpi
-          label="Disponível"
-          value={formatBRL(disponivel)}
-          color="var(--color-success)"
-        />
-      </div>
-
-      {item.allocations.length > 0 && (
-        <div style={{ marginBottom: 'var(--sp-lg)' }}>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: 'var(--color-text-muted)',
-              textTransform: 'uppercase',
-              marginBottom: 6,
-            }}
-          >
-            Alocações existentes
-          </div>
-          {item.allocations.map((alloc, index) => (
-            <div
-              key={`${alloc.contractId}-${index}`}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '6px 10px',
-                background: 'rgba(49,130,206,.06)',
-                borderLeft: '3px solid var(--color-info)',
-                borderRadius: 4,
-                marginBottom: 4,
-                fontSize: 14,
-              }}
-            >
-              <strong>{contractLabel(contratos, alloc.contractId)}</strong>
-              <span style={{ fontWeight: 700, color: 'var(--color-info)' }}>
-                {formatBRL(alloc.value)}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {disponivel > 0 && (
-        <form id="form-alocar" onSubmit={handleSubmit}>
-          <div className="form-row">
-            <FormField label="Contrato *" htmlFor="aloc-contrato">
-              <Select
-                id="aloc-contrato"
-                value={contractId}
-                onChange={(event) => setContractId(event.target.value)}
-                required
-              >
-                <option value="">Selecionar...</option>
-                {ativos.map((contract) => (
-                  <option key={contract.id} value={contract.id}>
-                    {String(contract.name ?? 'Contrato')}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
-            <FormField
-              label="Valor a Alocar *"
-              htmlFor="aloc-valor"
-              helper={`Máximo: ${formatBRL(disponivel)}`}
-            >
-              <Input
-                id="aloc-valor"
-                type="number"
-                step="0.01"
-                min="0"
-                value={value}
-                onChange={(event) => setValue(event.target.value)}
-                required
-              />
-            </FormField>
-          </div>
-        </form>
-      )}
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

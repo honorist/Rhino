@@ -4,7 +4,13 @@ import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/Button';
 import { Badge } from '../../components/ui/badge';
 import Card from '../../components/ui/Card';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
 import { Combobox } from '../../components/ui/combobox';
@@ -599,207 +605,208 @@ function NovoAporteModal({
   }
 
   return (
-    <Modal
-      open
-      title="Novo Aporte"
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>Novo Aporte</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <form id="form-aporte" onSubmit={handleSubmit}>
+            <div className="form-group">
+              <label className="form-label">1. Origem do Aporte *</label>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 'var(--sp-md)',
+                }}
+              >
+                <RadioCard
+                  name="origem"
+                  checked={origem === 'socio'}
+                  onChange={() => setOrigem('socio')}
+                  titulo="👥 Sócio"
+                  descricao="Aporte de um sócio"
+                  activeBorder="var(--color-info)"
+                  activeBg="rgba(49,130,206,.05)"
+                />
+                <RadioCard
+                  name="origem"
+                  checked={origem === 'caixa_empresa'}
+                  onChange={() => setOrigem('caixa_empresa')}
+                  titulo="💰 Caixa da Empresa"
+                  descricao="Aquisição via caixa (gera saída)"
+                  activeBorder="var(--color-warning)"
+                  activeBg="rgba(214,158,46,.05)"
+                />
+              </div>
+            </div>
+
+            {origem === 'socio' && (
+              <FormField label="Sócio *" htmlFor="aporte-socio">
+                <Combobox
+                  id="aporte-socio"
+                  options={socios.map((s) => ({ value: s.id, label: s.name }))}
+                  value={socioId}
+                  onChange={setSocioId}
+                  placeholder="Selecionar..."
+                  searchPlaceholder="Pesquisar sócio..."
+                  emptyText="Nenhum sócio encontrado."
+                />
+              </FormField>
+            )}
+
+            <div
+              className="form-group"
+              style={{
+                marginTop: 'var(--sp-lg)',
+                paddingTop: 'var(--sp-lg)',
+                borderTop: '1px solid var(--color-border)',
+              }}
+            >
+              <label className="form-label">2. Destino do Aporte *</label>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 'var(--sp-md)',
+                }}
+              >
+                <RadioCard
+                  name="destino"
+                  checked={destino === 'contrato'}
+                  onChange={() => setDestino('contrato')}
+                  titulo="📋 Contrato"
+                  descricao="Aporte para um contrato específico"
+                  activeBorder="var(--color-primary)"
+                  activeBg="rgba(46,125,82,.05)"
+                />
+                <RadioCard
+                  name="destino"
+                  checked={destino === 'base'}
+                  onChange={() => setDestino('base')}
+                  titulo="⚙️ BASE"
+                  descricao="Custo administrativo geral"
+                  activeBorder="var(--color-info)"
+                  activeBg="rgba(49,130,206,.05)"
+                />
+              </div>
+            </div>
+
+            {destino === 'contrato' && (
+              <FormField label="Contrato *" htmlFor="aporte-contrato">
+                <Combobox
+                  id="aporte-contrato"
+                  options={contratos.map((c) => ({
+                    value: c.id,
+                    label: `${String(c.name ?? 'Contrato')} — ${String(c.client ?? '')}`,
+                  }))}
+                  value={contractId}
+                  onChange={setContractId}
+                  placeholder="Selecionar contrato..."
+                  searchPlaceholder="Pesquisar contrato..."
+                  emptyText="Nenhum contrato encontrado."
+                />
+              </FormField>
+            )}
+
+            <FormField
+              label="Tipo de Custo *"
+              htmlFor="aporte-tipo"
+              helper="Classifica a natureza do custo (ex.: Material, Veículo, Software)."
+            >
+              <Select
+                id="aporte-tipo"
+                value={baseType}
+                onChange={(event) => setBaseType(event.target.value)}
+              >
+                {tipos.map((t) => (
+                  <option key={t.key} value={t.key}>
+                    {t.icon} {t.label}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+
+            <div
+              style={{
+                marginTop: 'var(--sp-lg)',
+                paddingTop: 'var(--sp-lg)',
+                borderTop: '1px solid var(--color-border)',
+              }}
+            >
+              <div className="form-row">
+                <FormField label="Valor (BRL) *" htmlFor="aporte-value">
+                  <Input
+                    id="aporte-value"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={value}
+                    onChange={(event) => setValue(event.target.value)}
+                    required
+                  />
+                </FormField>
+                <FormField label="Data *" htmlFor="aporte-date">
+                  <DatePicker
+                    id="aporte-date"
+                    value={date}
+                    onChange={(val) => setDate(val)}
+                  />
+                </FormField>
+              </div>
+              <FormField label="Descrição" htmlFor="aporte-desc">
+                <Textarea
+                  id="aporte-desc"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder="Ex.: Compra de notebook, maquinário, capital de giro..."
+                />
+              </FormField>
+            </div>
+
+            {origem === 'caixa_empresa' && (
+              <div
+                style={{
+                  padding: 'var(--sp-md)',
+                  background: 'rgba(214,158,46,.1)',
+                  borderLeft: '4px solid var(--color-warning)',
+                  borderRadius: 6,
+                  fontSize: 13,
+                  marginTop: 'var(--sp-md)',
+                }}
+              >
+                ⚠️ Este aporte gerará uma{' '}
+                <strong>saída contábil automática</strong> no caixa da empresa.
+              </div>
+            )}
+            {destino === 'base' && (
+              <div
+                style={{
+                  padding: 'var(--sp-md)',
+                  background: 'rgba(49,130,206,.1)',
+                  borderLeft: '4px solid var(--color-info)',
+                  borderRadius: 6,
+                  fontSize: 13,
+                  marginTop: 'var(--sp-md)',
+                }}
+              >
+                ℹ️ Um item será criado na <strong>BASE</strong> para este aporte,
+                pronto para ser alocado em contratos.
+              </div>
+            )}
+          </form>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
           <Button type="submit" form="form-aporte" disabled={saving}>
             {saving ? 'Salvando...' : 'Registrar Aporte'}
           </Button>
-        </>
-      }
-    >
-      <form id="form-aporte" onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label className="form-label">1. Origem do Aporte *</label>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 'var(--sp-md)',
-            }}
-          >
-            <RadioCard
-              name="origem"
-              checked={origem === 'socio'}
-              onChange={() => setOrigem('socio')}
-              titulo="👥 Sócio"
-              descricao="Aporte de um sócio"
-              activeBorder="var(--color-info)"
-              activeBg="rgba(49,130,206,.05)"
-            />
-            <RadioCard
-              name="origem"
-              checked={origem === 'caixa_empresa'}
-              onChange={() => setOrigem('caixa_empresa')}
-              titulo="💰 Caixa da Empresa"
-              descricao="Aquisição via caixa (gera saída)"
-              activeBorder="var(--color-warning)"
-              activeBg="rgba(214,158,46,.05)"
-            />
-          </div>
-        </div>
-
-        {origem === 'socio' && (
-          <FormField label="Sócio *" htmlFor="aporte-socio">
-            <Combobox
-              id="aporte-socio"
-              options={socios.map((s) => ({ value: s.id, label: s.name }))}
-              value={socioId}
-              onChange={setSocioId}
-              placeholder="Selecionar..."
-              searchPlaceholder="Pesquisar sócio..."
-              emptyText="Nenhum sócio encontrado."
-            />
-          </FormField>
-        )}
-
-        <div
-          className="form-group"
-          style={{
-            marginTop: 'var(--sp-lg)',
-            paddingTop: 'var(--sp-lg)',
-            borderTop: '1px solid var(--color-border)',
-          }}
-        >
-          <label className="form-label">2. Destino do Aporte *</label>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: 'var(--sp-md)',
-            }}
-          >
-            <RadioCard
-              name="destino"
-              checked={destino === 'contrato'}
-              onChange={() => setDestino('contrato')}
-              titulo="📋 Contrato"
-              descricao="Aporte para um contrato específico"
-              activeBorder="var(--color-primary)"
-              activeBg="rgba(46,125,82,.05)"
-            />
-            <RadioCard
-              name="destino"
-              checked={destino === 'base'}
-              onChange={() => setDestino('base')}
-              titulo="⚙️ BASE"
-              descricao="Custo administrativo geral"
-              activeBorder="var(--color-info)"
-              activeBg="rgba(49,130,206,.05)"
-            />
-          </div>
-        </div>
-
-        {destino === 'contrato' && (
-          <FormField label="Contrato *" htmlFor="aporte-contrato">
-            <Combobox
-              id="aporte-contrato"
-              options={contratos.map((c) => ({
-                value: c.id,
-                label: `${String(c.name ?? 'Contrato')} — ${String(c.client ?? '')}`,
-              }))}
-              value={contractId}
-              onChange={setContractId}
-              placeholder="Selecionar contrato..."
-              searchPlaceholder="Pesquisar contrato..."
-              emptyText="Nenhum contrato encontrado."
-            />
-          </FormField>
-        )}
-
-        <FormField
-          label="Tipo de Custo *"
-          htmlFor="aporte-tipo"
-          helper="Classifica a natureza do custo (ex.: Material, Veículo, Software)."
-        >
-          <Select
-            id="aporte-tipo"
-            value={baseType}
-            onChange={(event) => setBaseType(event.target.value)}
-          >
-            {tipos.map((t) => (
-              <option key={t.key} value={t.key}>
-                {t.icon} {t.label}
-              </option>
-            ))}
-          </Select>
-        </FormField>
-
-        <div
-          style={{
-            marginTop: 'var(--sp-lg)',
-            paddingTop: 'var(--sp-lg)',
-            borderTop: '1px solid var(--color-border)',
-          }}
-        >
-          <div className="form-row">
-            <FormField label="Valor (BRL) *" htmlFor="aporte-value">
-              <Input
-                id="aporte-value"
-                type="number"
-                step="0.01"
-                min="0"
-                value={value}
-                onChange={(event) => setValue(event.target.value)}
-                required
-              />
-            </FormField>
-            <FormField label="Data *" htmlFor="aporte-date">
-              <DatePicker
-                id="aporte-date"
-                value={date}
-                onChange={(val) => setDate(val)}
-              />
-            </FormField>
-          </div>
-          <FormField label="Descrição" htmlFor="aporte-desc">
-            <Textarea
-              id="aporte-desc"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              placeholder="Ex.: Compra de notebook, maquinário, capital de giro..."
-            />
-          </FormField>
-        </div>
-
-        {origem === 'caixa_empresa' && (
-          <div
-            style={{
-              padding: 'var(--sp-md)',
-              background: 'rgba(214,158,46,.1)',
-              borderLeft: '4px solid var(--color-warning)',
-              borderRadius: 6,
-              fontSize: 13,
-              marginTop: 'var(--sp-md)',
-            }}
-          >
-            ⚠️ Este aporte gerará uma{' '}
-            <strong>saída contábil automática</strong> no caixa da empresa.
-          </div>
-        )}
-        {destino === 'base' && (
-          <div
-            style={{
-              padding: 'var(--sp-md)',
-              background: 'rgba(49,130,206,.1)',
-              borderLeft: '4px solid var(--color-info)',
-              borderRadius: 6,
-              fontSize: 13,
-              marginTop: 'var(--sp-md)',
-            }}
-          >
-            ℹ️ Um item será criado na <strong>BASE</strong> para este aporte,
-            pronto para ser alocado em contratos.
-          </div>
-        )}
-      </form>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -899,103 +906,104 @@ function DetalheModal({
         : aporte.destino || '—';
 
   return (
-    <Modal
-      open
-      title={aporte.description || 'Aporte'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{aporte.description || 'Aporte'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div style={{ marginBottom: 'var(--sp-md)' }}>
+            <span
+              style={{
+                fontSize: 22,
+                fontWeight: 700,
+                color: 'var(--color-info)',
+              }}
+            >
+              {formatBRL(num(aporte.value))}
+            </span>
+          </div>
+
+          <DetalheRow label="Data" value={formatDate(aporte.date)} />
+          <DetalheRow label="Origem" value={origemLabel} />
+          {socio && (
+            <DetalheRow
+              label="Sócio"
+              value={
+                <>
+                  <strong>{socio.name}</strong>
+                  {socio.participacao != null && (
+                    <span style={{ color: 'var(--color-text-muted)' }}>
+                      {' '}
+                      ({socio.participacao}%)
+                    </span>
+                  )}
+                </>
+              }
+            />
+          )}
+          <DetalheRow label="Destino" value={destinoLabel} />
+          {contrato && (
+            <DetalheRow
+              label="Contrato"
+              value={
+                <Link
+                  to={`/contratos/${contrato.id}`}
+                  style={{ color: 'var(--color-primary)' }}
+                >
+                  {contractName(contrato)}
+                </Link>
+              }
+            />
+          )}
+          {baseItem && (
+            <DetalheRow
+              label="Item BASE"
+              value={
+                <>
+                  {baseItem.description}{' '}
+                  <span
+                    style={{ color: 'var(--color-text-muted)', fontSize: 13 }}
+                  >
+                    ({baseItem.type})
+                  </span>
+                </>
+              }
+            />
+          )}
+          {aporte.baseType && !baseItem && (
+            <DetalheRow label="Tipo BASE" value={aporte.baseType} />
+          )}
+          {caixaEntry && (
+            <DetalheRow
+              label="Entrada no caixa"
+              value={`${String(caixaEntry.description ?? '')} em ${formatDate(
+                typeof caixaEntry.date === 'string' ? caixaEntry.date : undefined,
+              )}`}
+            />
+          )}
+
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--color-text-muted)',
+              marginTop: 'var(--sp-md)',
+              fontFamily: 'monospace',
+            }}
+          >
+            ID: {aporte.id}
+          </div>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
             Fechar
           </Button>
           <Button variant="danger" onClick={onDelete}>
             Excluir
           </Button>
-        </>
-      }
-    >
-      <div style={{ marginBottom: 'var(--sp-md)' }}>
-        <span
-          style={{
-            fontSize: 22,
-            fontWeight: 700,
-            color: 'var(--color-info)',
-          }}
-        >
-          {formatBRL(num(aporte.value))}
-        </span>
-      </div>
-
-      <DetalheRow label="Data" value={formatDate(aporte.date)} />
-      <DetalheRow label="Origem" value={origemLabel} />
-      {socio && (
-        <DetalheRow
-          label="Sócio"
-          value={
-            <>
-              <strong>{socio.name}</strong>
-              {socio.participacao != null && (
-                <span style={{ color: 'var(--color-text-muted)' }}>
-                  {' '}
-                  ({socio.participacao}%)
-                </span>
-              )}
-            </>
-          }
-        />
-      )}
-      <DetalheRow label="Destino" value={destinoLabel} />
-      {contrato && (
-        <DetalheRow
-          label="Contrato"
-          value={
-            <Link
-              to={`/contratos/${contrato.id}`}
-              style={{ color: 'var(--color-primary)' }}
-            >
-              {contractName(contrato)}
-            </Link>
-          }
-        />
-      )}
-      {baseItem && (
-        <DetalheRow
-          label="Item BASE"
-          value={
-            <>
-              {baseItem.description}{' '}
-              <span
-                style={{ color: 'var(--color-text-muted)', fontSize: 13 }}
-              >
-                ({baseItem.type})
-              </span>
-            </>
-          }
-        />
-      )}
-      {aporte.baseType && !baseItem && (
-        <DetalheRow label="Tipo BASE" value={aporte.baseType} />
-      )}
-      {caixaEntry && (
-        <DetalheRow
-          label="Entrada no caixa"
-          value={`${String(caixaEntry.description ?? '')} em ${formatDate(
-            typeof caixaEntry.date === 'string' ? caixaEntry.date : undefined,
-          )}`}
-        />
-      )}
-
-      <div
-        style={{
-          fontSize: 12,
-          color: 'var(--color-text-muted)',
-          marginTop: 'var(--sp-md)',
-          fontFamily: 'monospace',
-        }}
-      >
-        ID: {aporte.id}
-      </div>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

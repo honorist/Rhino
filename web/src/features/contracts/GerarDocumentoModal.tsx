@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Textarea } from '../../components/ui/controls';
 import { Combobox } from '../../components/ui/combobox';
@@ -91,54 +97,55 @@ export default function GerarDocumentoModal({
   }
 
   return (
-    <Modal
-      open
-      title="📋 Gerar Documento do Contrato"
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>📋 Gerar Documento do Contrato</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {templates.length === 0 ? (
+            <p className="text-muted">
+              Nenhum template com corpo de texto. Crie um em Configurações →
+              Templates.
+            </p>
+          ) : (
+            <>
+              <FormField label="Template" htmlFor="gd-tpl">
+                <Combobox
+                  id="gd-tpl"
+                  options={templates.map((t) => ({ value: t.id, label: String(t.nome ?? '') }))}
+                  value={templateId}
+                  onChange={selecionar}
+                  placeholder="— Selecione —"
+                  searchPlaceholder="Pesquisar template..."
+                  emptyText="Nenhum template encontrado."
+                />
+              </FormField>
+              <FormField
+                label="Pré-visualização (variáveis já substituídas)"
+                htmlFor="gd-prev"
+                helper="Variáveis: {{cliente}} {{contrato}} {{numero}} {{valor}} {{inicio}} {{fim}} {{data}} {{endereco}}"
+              >
+                <Textarea
+                  id="gd-prev"
+                  rows={12}
+                  value={conteudo}
+                  onChange={(e) => setConteudo(e.target.value)}
+                  style={{ fontFamily: 'monospace', fontSize: 13 }}
+                />
+              </FormField>
+            </>
+          )}
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={gerando}>
             Cancelar
           </Button>
           <Button onClick={handleGerar} disabled={gerando}>
             {gerando ? 'Gerando…' : '📄 Gerar PDF'}
           </Button>
-        </>
-      }
-    >
-      {templates.length === 0 ? (
-        <p className="text-muted">
-          Nenhum template com corpo de texto. Crie um em Configurações →
-          Templates.
-        </p>
-      ) : (
-        <>
-          <FormField label="Template" htmlFor="gd-tpl">
-            <Combobox
-              id="gd-tpl"
-              options={templates.map((t) => ({ value: t.id, label: String(t.nome ?? '') }))}
-              value={templateId}
-              onChange={selecionar}
-              placeholder="— Selecione —"
-              searchPlaceholder="Pesquisar template..."
-              emptyText="Nenhum template encontrado."
-            />
-          </FormField>
-          <FormField
-            label="Pré-visualização (variáveis já substituídas)"
-            htmlFor="gd-prev"
-            helper="Variáveis: {{cliente}} {{contrato}} {{numero}} {{valor}} {{inicio}} {{fim}} {{data}} {{endereco}}"
-          >
-            <Textarea
-              id="gd-prev"
-              rows={12}
-              value={conteudo}
-              onChange={(e) => setConteudo(e.target.value)}
-              style={{ fontFamily: 'monospace', fontSize: 13 }}
-            />
-          </FormField>
-        </>
-      )}
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

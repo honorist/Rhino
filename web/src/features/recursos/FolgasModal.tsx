@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import Spinner from '../../components/ui/Spinner';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
@@ -67,50 +73,51 @@ function NovaFolgaModal({
   }
 
   return (
-    <Modal
-      open
-      title={`Registrar Folga — ${recurso.nome}`}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[480px]">
+        <DialogHeader>
+          <DialogTitle>{`Registrar Folga — ${recurso.nome}`}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <Row>
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <FormField label="Início da folga *" htmlFor="nf-ini">
+                <DatePicker
+                  id="nf-ini"
+                  value={dataInicio}
+                  onChange={(val) => setDataInicio(val)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <FormField label="Fim da folga *" htmlFor="nf-fim">
+                <DatePicker
+                  id="nf-fim"
+                  value={dataFim}
+                  onChange={(val) => setDataFim(val)}
+                />
+              </FormField>
+            </div>
+          </Row>
+          <FormField label="Observações" htmlFor="nf-obs">
+            <Textarea
+              id="nf-obs"
+              rows={2}
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+            />
+          </FormField>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={addFolga.isPending}>
             Cancelar
           </Button>
           <Button onClick={submit} disabled={addFolga.isPending}>
             Registrar
           </Button>
-        </>
-      }
-    >
-      <Row>
-        <div style={{ flex: 1, minWidth: 150 }}>
-          <FormField label="Início da folga *" htmlFor="nf-ini">
-            <DatePicker
-              id="nf-ini"
-              value={dataInicio}
-              onChange={(val) => setDataInicio(val)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 150 }}>
-          <FormField label="Fim da folga *" htmlFor="nf-fim">
-            <DatePicker
-              id="nf-fim"
-              value={dataFim}
-              onChange={(val) => setDataFim(val)}
-            />
-          </FormField>
-        </div>
-      </Row>
-      <FormField label="Observações" htmlFor="nf-obs">
-        <Textarea
-          id="nf-obs"
-          rows={2}
-          value={observacoes}
-          onChange={(e) => setObservacoes(e.target.value)}
-        />
-      </FormField>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -187,146 +194,147 @@ function ComprarPassagemModal({
   }
 
   return (
-    <Modal
-      open
-      title={`Passagem de ${tipo === 'ida' ? 'Ida' : 'Volta'} — ${recurso.nome}`}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{`Passagem de ${tipo === 'ida' ? 'Ida' : 'Volta'} — ${recurso.nome}`}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <Row>
+            <div style={{ flex: 1, minWidth: 150 }}>
+              <FormField label="Companhia Aérea" htmlFor="ps-comp">
+                <Input
+                  id="ps-comp"
+                  value={companhia}
+                  onChange={(e) => setCompanhia(e.target.value)}
+                  placeholder="Ex: LATAM, GOL, Azul"
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 130 }}>
+              <FormField label="Número do Voo" htmlFor="ps-voo">
+                <Input
+                  id="ps-voo"
+                  value={numeroVoo}
+                  onChange={(e) => setNumeroVoo(e.target.value)}
+                />
+              </FormField>
+            </div>
+          </Row>
+          <Row>
+            <div style={{ flex: 1, minWidth: 120 }}>
+              <FormField label="Origem" htmlFor="ps-org">
+                <Input
+                  id="ps-org"
+                  value={origem}
+                  onChange={(e) => setOrigem(e.target.value)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 120 }}>
+              <FormField label="Destino" htmlFor="ps-dst">
+                <Input
+                  id="ps-dst"
+                  value={destino}
+                  onChange={(e) => setDestino(e.target.value)}
+                />
+              </FormField>
+            </div>
+          </Row>
+          <Row>
+            <div style={{ flex: 1, minWidth: 130 }}>
+              <FormField label="Data do Voo" htmlFor="ps-data">
+                <DatePicker
+                  id="ps-data"
+                  value={dataVoo}
+                  onChange={(val) => setDataVoo(val)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 110 }}>
+              <FormField label="Horário" htmlFor="ps-hora">
+                <Input
+                  id="ps-hora"
+                  type="time"
+                  value={horario}
+                  onChange={(e) => setHorario(e.target.value)}
+                />
+              </FormField>
+            </div>
+          </Row>
+          <Row>
+            <div style={{ flex: 1, minWidth: 130 }}>
+              <FormField label="Valor da passagem (R$) *" htmlFor="ps-valor">
+                <Input
+                  id="ps-valor"
+                  type="number"
+                  step="0.01"
+                  value={valor}
+                  onChange={(e) => setValor(e.target.value)}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1, minWidth: 130 }}>
+              <FormField label="Data da compra *" htmlFor="ps-dc">
+                <DatePicker
+                  id="ps-dc"
+                  value={dataCompra}
+                  onChange={(val) => setDataCompra(val)}
+                />
+              </FormField>
+            </div>
+          </Row>
+          <FormField label="Quem paga? *" htmlFor="ps-fin">
+            <Select
+              id="ps-fin"
+              value={financiadoPor}
+              onChange={(e) =>
+                setFinanciadoPor(e.target.value as 'caixa' | 'contrato')
+              }
+            >
+              <option value="caixa">Caixa da empresa</option>
+              <option value="contrato">Contrato específico</option>
+            </Select>
+          </FormField>
+          {financiadoPor === 'contrato' && (
+            <FormField label="Contrato pagador" htmlFor="ps-cp">
+              <Select
+                id="ps-cp"
+                value={contractIdPagador}
+                onChange={(e) => setContractIdPagador(e.target.value)}
+              >
+                <option value="">Selecione...</option>
+                {contratos.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {String(c.name ?? '')}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+          )}
+          <FormField label="Como lançar no financeiro?" htmlFor="ps-tl">
+            <Select
+              id="ps-tl"
+              value={tipoLancamento}
+              onChange={(e) =>
+                setTipoLancamento(e.target.value as 'caixa_direto' | 'conta_pagar')
+              }
+            >
+              <option value="caixa_direto">Saída direta no Caixa</option>
+              <option value="conta_pagar">Conta a Pagar (pendente)</option>
+            </Select>
+          </FormField>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={comprar.isPending}>
             Cancelar
           </Button>
           <Button onClick={submit} disabled={comprar.isPending}>
             Confirmar Compra
           </Button>
-        </>
-      }
-    >
-      <Row>
-        <div style={{ flex: 1, minWidth: 150 }}>
-          <FormField label="Companhia Aérea" htmlFor="ps-comp">
-            <Input
-              id="ps-comp"
-              value={companhia}
-              onChange={(e) => setCompanhia(e.target.value)}
-              placeholder="Ex: LATAM, GOL, Azul"
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 130 }}>
-          <FormField label="Número do Voo" htmlFor="ps-voo">
-            <Input
-              id="ps-voo"
-              value={numeroVoo}
-              onChange={(e) => setNumeroVoo(e.target.value)}
-            />
-          </FormField>
-        </div>
-      </Row>
-      <Row>
-        <div style={{ flex: 1, minWidth: 120 }}>
-          <FormField label="Origem" htmlFor="ps-org">
-            <Input
-              id="ps-org"
-              value={origem}
-              onChange={(e) => setOrigem(e.target.value)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 120 }}>
-          <FormField label="Destino" htmlFor="ps-dst">
-            <Input
-              id="ps-dst"
-              value={destino}
-              onChange={(e) => setDestino(e.target.value)}
-            />
-          </FormField>
-        </div>
-      </Row>
-      <Row>
-        <div style={{ flex: 1, minWidth: 130 }}>
-          <FormField label="Data do Voo" htmlFor="ps-data">
-            <DatePicker
-              id="ps-data"
-              value={dataVoo}
-              onChange={(val) => setDataVoo(val)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 110 }}>
-          <FormField label="Horário" htmlFor="ps-hora">
-            <Input
-              id="ps-hora"
-              type="time"
-              value={horario}
-              onChange={(e) => setHorario(e.target.value)}
-            />
-          </FormField>
-        </div>
-      </Row>
-      <Row>
-        <div style={{ flex: 1, minWidth: 130 }}>
-          <FormField label="Valor da passagem (R$) *" htmlFor="ps-valor">
-            <Input
-              id="ps-valor"
-              type="number"
-              step="0.01"
-              value={valor}
-              onChange={(e) => setValor(e.target.value)}
-            />
-          </FormField>
-        </div>
-        <div style={{ flex: 1, minWidth: 130 }}>
-          <FormField label="Data da compra *" htmlFor="ps-dc">
-            <DatePicker
-              id="ps-dc"
-              value={dataCompra}
-              onChange={(val) => setDataCompra(val)}
-            />
-          </FormField>
-        </div>
-      </Row>
-      <FormField label="Quem paga? *" htmlFor="ps-fin">
-        <Select
-          id="ps-fin"
-          value={financiadoPor}
-          onChange={(e) =>
-            setFinanciadoPor(e.target.value as 'caixa' | 'contrato')
-          }
-        >
-          <option value="caixa">Caixa da empresa</option>
-          <option value="contrato">Contrato específico</option>
-        </Select>
-      </FormField>
-      {financiadoPor === 'contrato' && (
-        <FormField label="Contrato pagador" htmlFor="ps-cp">
-          <Select
-            id="ps-cp"
-            value={contractIdPagador}
-            onChange={(e) => setContractIdPagador(e.target.value)}
-          >
-            <option value="">Selecione...</option>
-            {contratos.map((c) => (
-              <option key={c.id} value={c.id}>
-                {String(c.name ?? '')}
-              </option>
-            ))}
-          </Select>
-        </FormField>
-      )}
-      <FormField label="Como lançar no financeiro?" htmlFor="ps-tl">
-        <Select
-          id="ps-tl"
-          value={tipoLancamento}
-          onChange={(e) =>
-            setTipoLancamento(e.target.value as 'caixa_direto' | 'conta_pagar')
-          }
-        >
-          <option value="caixa_direto">Saída direta no Caixa</option>
-          <option value="conta_pagar">Conta a Pagar (pendente)</option>
-        </Select>
-      </FormField>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -422,142 +430,145 @@ export default function FolgasModal({ recursoId, onClose }: FolgasModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title={`Folgas — ${recurso?.nome ?? ''}`}
-      onClose={onClose}
-      footer={
-        <Button variant="secondary" onClick={onClose}>
-          Fechar
-        </Button>
-      }
-    >
-      {!recurso ? (
-        <Spinner label="Carregando..." />
-      ) : (
-        <>
-          {prox ? (
-            <div
-              style={{
-                background: 'var(--color-surface-2)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 8,
-                padding: 'var(--sp-md)',
-                marginBottom: 'var(--sp-lg)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: 12,
-                flexWrap: 'wrap',
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: 700 }}>
-                  {prox.diasRestantes < 0
-                    ? `Vencida há ${Math.abs(prox.diasRestantes)} dias`
-                    : prox.diasRestantes === 0
-                      ? 'Folga devida hoje'
-                      : `${prox.diasRestantes} dias para a próxima folga`}
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-                  Próxima folga: {formatDateBR(prox.dataProxima)}
-                </div>
-              </div>
-              <Button onClick={() => setSub({ tipo: 'nova' })}>
-                + Registrar Folga
-              </Button>
-            </div>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{`Folgas — ${recurso?.nome ?? ''}`}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {!recurso ? (
+            <Spinner label="Carregando..." />
           ) : (
-            <p className="text-muted" style={{ marginBottom: 'var(--sp-lg)' }}>
-              Nenhuma alocação configurada. Edite o cadastro e defina a obra.
-            </p>
-          )}
-
-          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 'var(--sp-md)' }}>
-            Histórico de Folgas
-          </h3>
-          {folgas.length === 0 ? (
-            <p
-              className="text-muted text-center"
-              style={{ padding: 'var(--sp-xl)' }}
-            >
-              Nenhuma folga registrada
-            </p>
-          ) : (
-            folgas.map((f) => (
-              <div
-                key={f.id}
-                style={{
-                  border: '1px solid var(--color-border)',
-                  borderRadius: 8,
-                  padding: 'var(--sp-md)',
-                  marginBottom: 'var(--sp-sm)',
-                }}
-              >
+            <>
+              {prox ? (
                 <div
                   style={{
+                    background: 'var(--color-surface-2)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 8,
+                    padding: 'var(--sp-md)',
+                    marginBottom: 'var(--sp-lg)',
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'flex-start',
+                    alignItems: 'center',
+                    gap: 12,
+                    flexWrap: 'wrap',
                   }}
                 >
                   <div>
-                    <strong>
-                      {formatDateBR(f.dataInicio)} →{' '}
-                      {f.dataFim ? formatDateBR(f.dataFim) : '?'}
-                    </strong>
-                    {f.observacoes && (
-                      <div
-                        style={{ fontSize: 14, color: 'var(--color-text-muted)' }}
-                      >
-                        {f.observacoes}
-                      </div>
-                    )}
+                    <div style={{ fontWeight: 700 }}>
+                      {prox.diasRestantes < 0
+                        ? `Vencida há ${Math.abs(prox.diasRestantes)} dias`
+                        : prox.diasRestantes === 0
+                          ? 'Folga devida hoje'
+                          : `${prox.diasRestantes} dias para a próxima folga`}
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+                      Próxima folga: {formatDateBR(prox.dataProxima)}
+                    </div>
                   </div>
-                  <a
-                    className="action-link danger"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => handleExcluir(f)}
-                  >
-                    Excluir
-                  </a>
+                  <Button onClick={() => setSub({ tipo: 'nova' })}>
+                    + Registrar Folga
+                  </Button>
                 </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 6,
-                    marginTop: 'var(--sp-sm)',
-                  }}
+              ) : (
+                <p className="text-muted" style={{ marginBottom: 'var(--sp-lg)' }}>
+                  Nenhuma alocação configurada. Edite o cadastro e defina a obra.
+                </p>
+              )}
+
+              <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 'var(--sp-md)' }}>
+                Histórico de Folgas
+              </h3>
+              {folgas.length === 0 ? (
+                <p
+                  className="text-muted text-center"
+                  style={{ padding: 'var(--sp-xl)' }}
                 >
-                  <PassagemLinha
-                    rotulo="Ida"
-                    passagem={f.passagemIda}
-                    onComprar={() =>
-                      setSub({
-                        tipo: 'passagem',
-                        folgaId: f.id,
-                        passagemTipo: 'ida',
-                      })
-                    }
-                  />
-                  <PassagemLinha
-                    rotulo="Volta"
-                    passagem={f.passagemVolta}
-                    onComprar={() =>
-                      setSub({
-                        tipo: 'passagem',
-                        folgaId: f.id,
-                        passagemTipo: 'volta',
-                      })
-                    }
-                  />
-                </div>
-              </div>
-            ))
+                  Nenhuma folga registrada
+                </p>
+              ) : (
+                folgas.map((f) => (
+                  <div
+                    key={f.id}
+                    style={{
+                      border: '1px solid var(--color-border)',
+                      borderRadius: 8,
+                      padding: 'var(--sp-md)',
+                      marginBottom: 'var(--sp-sm)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'flex-start',
+                      }}
+                    >
+                      <div>
+                        <strong>
+                          {formatDateBR(f.dataInicio)} →{' '}
+                          {f.dataFim ? formatDateBR(f.dataFim) : '?'}
+                        </strong>
+                        {f.observacoes && (
+                          <div
+                            style={{ fontSize: 14, color: 'var(--color-text-muted)' }}
+                          >
+                            {f.observacoes}
+                          </div>
+                        )}
+                      </div>
+                      <a
+                        className="action-link danger"
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => handleExcluir(f)}
+                      >
+                        Excluir
+                      </a>
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 6,
+                        marginTop: 'var(--sp-sm)',
+                      }}
+                    >
+                      <PassagemLinha
+                        rotulo="Ida"
+                        passagem={f.passagemIda}
+                        onComprar={() =>
+                          setSub({
+                            tipo: 'passagem',
+                            folgaId: f.id,
+                            passagemTipo: 'ida',
+                          })
+                        }
+                      />
+                      <PassagemLinha
+                        rotulo="Volta"
+                        passagem={f.passagemVolta}
+                        onComprar={() =>
+                          setSub({
+                            tipo: 'passagem',
+                            folgaId: f.id,
+                            passagemTipo: 'volta',
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+            </>
           )}
-        </>
-      )}
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
 
       {sub?.tipo === 'nova' && recurso && (
         <NovaFolgaModal recurso={recurso} onClose={() => setSub(null)} />
@@ -570,6 +581,6 @@ export default function FolgasModal({ recursoId, onClose }: FolgasModalProps) {
           onClose={() => setSub(null)}
         />
       )}
-    </Modal>
+    </Dialog>
   );
 }

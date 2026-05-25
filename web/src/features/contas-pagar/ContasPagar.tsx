@@ -4,7 +4,13 @@ import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/Button';
 import { Badge } from '../../components/ui/badge';
 import Card from '../../components/ui/Card';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
@@ -816,176 +822,177 @@ function ContaModal({ conta, fornecedores, contratos, onClose }: ContaModalProps
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar Conta' : 'Nova Conta a Pagar'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar Conta' : 'Nova Conta a Pagar'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <form id="form-conta" onSubmit={handleSubmit}>
+            <FormField
+              label="Descrição *"
+              htmlFor="cp-desc"
+              helper={
+                !isEdit
+                  ? 'Use a classificação por IA para sugerir categoria e contrato.'
+                  : undefined
+              }
+            >
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Input
+                  id="cp-desc"
+                  value={descricao}
+                  onChange={(event) => setDescricao(event.target.value)}
+                  required
+                  placeholder="Ex.: Material elétrico, Serviço de transporte..."
+                  style={{ flex: 1 }}
+                />
+                {!isEdit && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleClassify}
+                    disabled={classify.isPending}
+                  >
+                    {classify.isPending ? '⏳' : '🤖 Classificar'}
+                  </Button>
+                )}
+              </div>
+            </FormField>
+
+            <div className="form-row">
+              <FormField label="Número da NF" htmlFor="cp-nf">
+                <Input
+                  id="cp-nf"
+                  value={numeroNF}
+                  onChange={(event) => setNumeroNF(event.target.value)}
+                  placeholder="Ex.: 001234"
+                />
+              </FormField>
+              <FormField label="Categoria" htmlFor="cp-cat">
+                <Select
+                  id="cp-cat"
+                  value={category}
+                  onChange={(event) => setCategory(event.target.value)}
+                >
+                  {CATEGORIAS.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            </div>
+
+            <div className="form-row">
+              <FormField label="Fornecedor" htmlFor="cp-forn">
+                <Combobox
+                  id="cp-forn"
+                  options={fornecedores.map((f) => ({ value: f.id, label: f.nome }))}
+                  value={fornecedorId}
+                  onChange={setFornecedorId}
+                  placeholder="— Selecionar —"
+                  searchPlaceholder="Pesquisar fornecedor..."
+                  emptyText="Nenhum fornecedor encontrado."
+                />
+              </FormField>
+              <FormField label="Contrato (opcional)" htmlFor="cp-contr">
+                <Combobox
+                  id="cp-contr"
+                  options={contratos.map((c) => ({ value: c.id, label: String(c.name ?? 'Contrato') }))}
+                  value={contractId}
+                  onChange={setContractId}
+                  placeholder="— Nenhum —"
+                  searchPlaceholder="Pesquisar contrato..."
+                  emptyText="Nenhum contrato encontrado."
+                />
+              </FormField>
+            </div>
+
+            <div className="form-row">
+              <FormField label="Valor *" htmlFor="cp-valor">
+                <Input
+                  id="cp-valor"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={valor}
+                  onChange={(event) => setValor(event.target.value)}
+                  required
+                />
+              </FormField>
+              <FormField label="Data de Emissão" htmlFor="cp-emissao">
+                <DatePicker
+                  id="cp-emissao"
+                  value={dataEmissao}
+                  onChange={(val) => setDataEmissao(val)}
+                />
+              </FormField>
+            </div>
+
+            <FormField label="Data de Vencimento *" htmlFor="cp-venc">
+              <DatePicker
+                id="cp-venc"
+                value={dataVencimento}
+                onChange={(val) => setDataVencimento(val)}
+              />
+            </FormField>
+
+            <FormField label="Observações" htmlFor="cp-obs">
+              <Textarea
+                id="cp-obs"
+                value={observacoes}
+                onChange={(event) => setObservacoes(event.target.value)}
+              />
+            </FormField>
+
+            <div
+              className="form-group"
+              style={{
+                borderTop: '1px solid var(--color-border)',
+                paddingTop: 'var(--sp-sm)',
+                marginTop: 'var(--sp-sm)',
+              }}
+            >
+              <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <input
+                  type="checkbox"
+                  checked={recorrente}
+                  onChange={(event) => setRecorrente(event.target.checked)}
+                />
+                <span style={{ fontWeight: 600 }}>
+                  🔄 Conta recorrente (lançamento automático)
+                </span>
+              </label>
+            </div>
+
+            {recorrente && (
+              <FormField label="Periodicidade" htmlFor="cp-period">
+                <Select
+                  id="cp-period"
+                  value={periodicidade}
+                  onChange={(event) => setPeriodicidade(event.target.value)}
+                >
+                  {PERIODICIDADES.map((p) => (
+                    <option key={p.value} value={p.value}>
+                      {p.label}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            )}
+          </form>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
           <Button type="submit" form="form-conta" disabled={saving}>
             {saving ? 'Salvando...' : isEdit ? 'Atualizar' : 'Criar'}
           </Button>
-        </>
-      }
-    >
-      <form id="form-conta" onSubmit={handleSubmit}>
-        <FormField
-          label="Descrição *"
-          htmlFor="cp-desc"
-          helper={
-            !isEdit
-              ? 'Use a classificação por IA para sugerir categoria e contrato.'
-              : undefined
-          }
-        >
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Input
-              id="cp-desc"
-              value={descricao}
-              onChange={(event) => setDescricao(event.target.value)}
-              required
-              placeholder="Ex.: Material elétrico, Serviço de transporte..."
-              style={{ flex: 1 }}
-            />
-            {!isEdit && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleClassify}
-                disabled={classify.isPending}
-              >
-                {classify.isPending ? '⏳' : '🤖 Classificar'}
-              </Button>
-            )}
-          </div>
-        </FormField>
-
-        <div className="form-row">
-          <FormField label="Número da NF" htmlFor="cp-nf">
-            <Input
-              id="cp-nf"
-              value={numeroNF}
-              onChange={(event) => setNumeroNF(event.target.value)}
-              placeholder="Ex.: 001234"
-            />
-          </FormField>
-          <FormField label="Categoria" htmlFor="cp-cat">
-            <Select
-              id="cp-cat"
-              value={category}
-              onChange={(event) => setCategory(event.target.value)}
-            >
-              {CATEGORIAS.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-        </div>
-
-        <div className="form-row">
-          <FormField label="Fornecedor" htmlFor="cp-forn">
-            <Combobox
-              id="cp-forn"
-              options={fornecedores.map((f) => ({ value: f.id, label: f.nome }))}
-              value={fornecedorId}
-              onChange={setFornecedorId}
-              placeholder="— Selecionar —"
-              searchPlaceholder="Pesquisar fornecedor..."
-              emptyText="Nenhum fornecedor encontrado."
-            />
-          </FormField>
-          <FormField label="Contrato (opcional)" htmlFor="cp-contr">
-            <Combobox
-              id="cp-contr"
-              options={contratos.map((c) => ({ value: c.id, label: String(c.name ?? 'Contrato') }))}
-              value={contractId}
-              onChange={setContractId}
-              placeholder="— Nenhum —"
-              searchPlaceholder="Pesquisar contrato..."
-              emptyText="Nenhum contrato encontrado."
-            />
-          </FormField>
-        </div>
-
-        <div className="form-row">
-          <FormField label="Valor *" htmlFor="cp-valor">
-            <Input
-              id="cp-valor"
-              type="number"
-              step="0.01"
-              min="0"
-              value={valor}
-              onChange={(event) => setValor(event.target.value)}
-              required
-            />
-          </FormField>
-          <FormField label="Data de Emissão" htmlFor="cp-emissao">
-            <DatePicker
-              id="cp-emissao"
-              value={dataEmissao}
-              onChange={(val) => setDataEmissao(val)}
-            />
-          </FormField>
-        </div>
-
-        <FormField label="Data de Vencimento *" htmlFor="cp-venc">
-          <DatePicker
-            id="cp-venc"
-            value={dataVencimento}
-            onChange={(val) => setDataVencimento(val)}
-          />
-        </FormField>
-
-        <FormField label="Observações" htmlFor="cp-obs">
-          <Textarea
-            id="cp-obs"
-            value={observacoes}
-            onChange={(event) => setObservacoes(event.target.value)}
-          />
-        </FormField>
-
-        <div
-          className="form-group"
-          style={{
-            borderTop: '1px solid var(--color-border)',
-            paddingTop: 'var(--sp-sm)',
-            marginTop: 'var(--sp-sm)',
-          }}
-        >
-          <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <input
-              type="checkbox"
-              checked={recorrente}
-              onChange={(event) => setRecorrente(event.target.checked)}
-            />
-            <span style={{ fontWeight: 600 }}>
-              🔄 Conta recorrente (lançamento automático)
-            </span>
-          </label>
-        </div>
-
-        {recorrente && (
-          <FormField label="Periodicidade" htmlFor="cp-period">
-            <Select
-              id="cp-period"
-              value={periodicidade}
-              onChange={(event) => setPeriodicidade(event.target.value)}
-            >
-              {PERIODICIDADES.map((p) => (
-                <option key={p.value} value={p.value}>
-                  {p.label}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-        )}
-      </form>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1026,12 +1033,80 @@ function PagarModal({ conta, onClose }: PagarModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title="Registrar Pagamento"
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>Registrar Pagamento</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <p style={{ marginBottom: 'var(--sp-md)', color: 'var(--color-text-muted)' }}>
+            <strong style={{ color: 'var(--color-text)' }}>{conta.descricao}</strong>
+            {conta.numeroNF ? ` — NF ${conta.numeroNF}` : ''}
+          </p>
+
+          <div className="form-group">
+            <label className="form-label">Forma de Pagamento</label>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 8,
+              }}
+            >
+              {FORMAS_PAGAMENTO.map(({ forma, icone }) => {
+                const ativo = formaPagamento === forma;
+                return (
+                  <button
+                    key={forma}
+                    type="button"
+                    onClick={() => setFormaPagamento(forma)}
+                    style={{
+                      padding: '8px 4px',
+                      border: `1px solid ${
+                        ativo ? 'var(--color-primary)' : 'var(--color-border)'
+                      }`,
+                      borderRadius: 6,
+                      background: ativo
+                        ? 'var(--color-primary)'
+                        : 'var(--color-surface)',
+                      color: ativo ? '#fff' : 'var(--color-text-muted)',
+                      fontWeight: ativo ? 700 : 500,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {icone} {forma}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="form-row">
+            <FormField label="Data do Pagamento" htmlFor="cp-data-pag">
+              <DatePicker
+                id="cp-data-pag"
+                value={dataPagamento}
+                onChange={(val) => setDataPagamento(val)}
+              />
+            </FormField>
+            <FormField label="Valor Pago" htmlFor="cp-valor-pago">
+              <Input
+                id="cp-valor-pago"
+                type="number"
+                step="0.01"
+                min="0"
+                value={valorPago}
+                onChange={(event) => setValorPago(event.target.value)}
+              />
+            </FormField>
+          </div>
+
+          <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+            Uma saída de <strong>{formatBRL(num(conta.valor))}</strong> será criada
+            automaticamente no Caixa.
+          </p>
+        </div>
+        <DialogFooter>
           <Button
             variant="secondary"
             onClick={onClose}
@@ -1046,76 +1121,9 @@ function PagarModal({ conta, onClose }: PagarModalProps) {
           >
             {pagarConta.isPending ? 'Confirmando...' : '✓ Confirmar Pagamento'}
           </Button>
-        </>
-      }
-    >
-      <p style={{ marginBottom: 'var(--sp-md)', color: 'var(--color-text-muted)' }}>
-        <strong style={{ color: 'var(--color-text)' }}>{conta.descricao}</strong>
-        {conta.numeroNF ? ` — NF ${conta.numeroNF}` : ''}
-      </p>
-
-      <div className="form-group">
-        <label className="form-label">Forma de Pagamento</label>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 8,
-          }}
-        >
-          {FORMAS_PAGAMENTO.map(({ forma, icone }) => {
-            const ativo = formaPagamento === forma;
-            return (
-              <button
-                key={forma}
-                type="button"
-                onClick={() => setFormaPagamento(forma)}
-                style={{
-                  padding: '8px 4px',
-                  border: `1px solid ${
-                    ativo ? 'var(--color-primary)' : 'var(--color-border)'
-                  }`,
-                  borderRadius: 6,
-                  background: ativo
-                    ? 'var(--color-primary)'
-                    : 'var(--color-surface)',
-                  color: ativo ? '#fff' : 'var(--color-text-muted)',
-                  fontWeight: ativo ? 700 : 500,
-                  cursor: 'pointer',
-                }}
-              >
-                {icone} {forma}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="form-row">
-        <FormField label="Data do Pagamento" htmlFor="cp-data-pag">
-          <DatePicker
-            id="cp-data-pag"
-            value={dataPagamento}
-            onChange={(val) => setDataPagamento(val)}
-          />
-        </FormField>
-        <FormField label="Valor Pago" htmlFor="cp-valor-pago">
-          <Input
-            id="cp-valor-pago"
-            type="number"
-            step="0.01"
-            min="0"
-            value={valorPago}
-            onChange={(event) => setValorPago(event.target.value)}
-          />
-        </FormField>
-      </div>
-
-      <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-        Uma saída de <strong>{formatBRL(num(conta.valor))}</strong> será criada
-        automaticamente no Caixa.
-      </p>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1143,12 +1151,112 @@ function DetailModal({
     ?.label;
 
   return (
-    <Modal
-      open
-      title={conta.descricao || '—'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{conta.descricao || '—'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div style={{ marginBottom: 'var(--sp-md)' }}>
+            <Badge
+              style={{
+                background:
+                  conta.status === 'pago'
+                    ? 'rgba(56,161,105,.15)'
+                    : vencida
+                      ? 'rgba(229,62,62,.15)'
+                      : 'rgba(214,158,46,.12)',
+                color:
+                  conta.status === 'pago'
+                    ? 'var(--color-success)'
+                    : vencida
+                      ? 'var(--color-danger)'
+                      : 'var(--color-warning)',
+              }}
+            >
+              {conta.status === 'pago' ? 'Pago' : vencida ? 'Vencida' : 'Pendente'}
+            </Badge>
+            <span
+              style={{
+                fontSize: 22,
+                fontWeight: 700,
+                color: 'var(--color-danger)',
+                marginLeft: 12,
+              }}
+            >
+              {formatBRL(num(conta.valor))}
+            </span>
+          </div>
+
+          <DetailRow label="Fornecedor" value={fornecedor?.nome} />
+          <DetailRow label="Nº NF" value={conta.numeroNF} />
+          <DetailRow label="Data de Emissão" value={formatDate(conta.dataEmissao)} />
+          <DetailRow
+            label="Vencimento"
+            value={
+              conta.dataVencimento ? (
+                <>
+                  {formatDate(conta.dataVencimento)}{' '}
+                  {dias !== null && (
+                    <span
+                      style={{ color: 'var(--color-text-muted)', fontSize: 13 }}
+                    >
+                      (
+                      {dias < 0
+                        ? `${Math.abs(dias)} dias vencida`
+                        : dias === 0
+                          ? 'hoje'
+                          : `em ${dias} dias`}
+                      )
+                    </span>
+                  )}
+                </>
+              ) : null
+            }
+          />
+          <DetailRow label="Categoria" value={categoriaLabel} />
+          {contrato && (
+            <DetailRow
+              label="Contrato"
+              value={
+                <Link
+                  to={`/contratos/${contrato.id}`}
+                  style={{ color: 'var(--color-primary)' }}
+                >
+                  {String(contrato.name ?? 'Contrato')}
+                </Link>
+              }
+            />
+          )}
+          {conta.status === 'pago' && (
+            <>
+              <DetailRow
+                label="Data do Pagto."
+                value={formatDate(conta.dataPagamento)}
+              />
+              <DetailRow
+                label="Valor Pago"
+                value={
+                  conta.valorPago != null ? formatBRL(num(conta.valorPago)) : null
+                }
+              />
+              <DetailRow label="Forma de Pagto." value={conta.formaPagamento} />
+            </>
+          )}
+          <DetailRow label="Observações" value={conta.observacoes} />
+
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--color-text-muted)',
+              marginTop: 'var(--sp-md)',
+              fontFamily: 'monospace',
+            }}
+          >
+            ID: {conta.id}
+          </div>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
             Fechar
           </Button>
@@ -1161,108 +1269,9 @@ function DetailModal({
               Estornar
             </Button>
           )}
-        </>
-      }
-    >
-      <div style={{ marginBottom: 'var(--sp-md)' }}>
-        <Badge
-          style={{
-            background:
-              conta.status === 'pago'
-                ? 'rgba(56,161,105,.15)'
-                : vencida
-                  ? 'rgba(229,62,62,.15)'
-                  : 'rgba(214,158,46,.12)',
-            color:
-              conta.status === 'pago'
-                ? 'var(--color-success)'
-                : vencida
-                  ? 'var(--color-danger)'
-                  : 'var(--color-warning)',
-          }}
-        >
-          {conta.status === 'pago' ? 'Pago' : vencida ? 'Vencida' : 'Pendente'}
-        </Badge>
-        <span
-          style={{
-            fontSize: 22,
-            fontWeight: 700,
-            color: 'var(--color-danger)',
-            marginLeft: 12,
-          }}
-        >
-          {formatBRL(num(conta.valor))}
-        </span>
-      </div>
-
-      <DetailRow label="Fornecedor" value={fornecedor?.nome} />
-      <DetailRow label="Nº NF" value={conta.numeroNF} />
-      <DetailRow label="Data de Emissão" value={formatDate(conta.dataEmissao)} />
-      <DetailRow
-        label="Vencimento"
-        value={
-          conta.dataVencimento ? (
-            <>
-              {formatDate(conta.dataVencimento)}{' '}
-              {dias !== null && (
-                <span
-                  style={{ color: 'var(--color-text-muted)', fontSize: 13 }}
-                >
-                  (
-                  {dias < 0
-                    ? `${Math.abs(dias)} dias vencida`
-                    : dias === 0
-                      ? 'hoje'
-                      : `em ${dias} dias`}
-                  )
-                </span>
-              )}
-            </>
-          ) : null
-        }
-      />
-      <DetailRow label="Categoria" value={categoriaLabel} />
-      {contrato && (
-        <DetailRow
-          label="Contrato"
-          value={
-            <Link
-              to={`/contratos/${contrato.id}`}
-              style={{ color: 'var(--color-primary)' }}
-            >
-              {String(contrato.name ?? 'Contrato')}
-            </Link>
-          }
-        />
-      )}
-      {conta.status === 'pago' && (
-        <>
-          <DetailRow
-            label="Data do Pagto."
-            value={formatDate(conta.dataPagamento)}
-          />
-          <DetailRow
-            label="Valor Pago"
-            value={
-              conta.valorPago != null ? formatBRL(num(conta.valorPago)) : null
-            }
-          />
-          <DetailRow label="Forma de Pagto." value={conta.formaPagamento} />
-        </>
-      )}
-      <DetailRow label="Observações" value={conta.observacoes} />
-
-      <div
-        style={{
-          fontSize: 12,
-          color: 'var(--color-text-muted)',
-          marginTop: 'var(--sp-md)',
-          fontFamily: 'monospace',
-        }}
-      >
-        ID: {conta.id}
-      </div>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

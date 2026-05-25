@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
@@ -250,22 +256,12 @@ export default function RdoFormModal({
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? `Editar RDO #${rdo?.numero ?? ''}` : 'Novo RDO'}
-      size="xl"
-      onClose={onClose}
-      footer={
-        <>
-          <Button variant="secondary" onClick={onClose} disabled={pending}>
-            Cancelar
-          </Button>
-          <Button onClick={submit} disabled={pending}>
-            {pending ? 'Salvando…' : isEdit ? 'Salvar Alterações' : 'Criar RDO'}
-          </Button>
-        </>
-      }
-    >
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[1120px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? `Editar RDO #${rdo?.numero ?? ''}` : 'Novo RDO'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
       <p className="text-muted" style={{ marginTop: 0, fontSize: 13 }}>
         {contract.name}
       </p>
@@ -322,7 +318,17 @@ export default function RdoFormModal({
           />
         </FormField>
       )}
-    </Modal>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose} disabled={pending}>
+            Cancelar
+          </Button>
+          <Button onClick={submit} disabled={pending}>
+            {pending ? 'Salvando…' : isEdit ? 'Salvar Alterações' : 'Criar RDO'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

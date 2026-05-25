@@ -4,7 +4,13 @@ import PageHeader from '../../components/layout/PageHeader';
 import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Select } from '../../components/ui/controls';
 import { Combobox } from '../../components/ui/combobox';
@@ -1217,88 +1223,89 @@ function EntryModal({ entry, contratos, onClose }: EntryModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar Lançamento' : 'Novo Lançamento'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar Lançamento' : 'Novo Lançamento'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <form id="form-caixa" onSubmit={handleSubmit}>
+            <div className="form-row">
+              <FormField label="Tipo *" htmlFor="cx-type">
+                <Select
+                  id="cx-type"
+                  value={type}
+                  onChange={(event) =>
+                    setType(event.target.value as 'entrada' | 'saida')
+                  }
+                >
+                  <option value="entrada">Entrada</option>
+                  <option value="saida">Saída</option>
+                </Select>
+              </FormField>
+              <FormField label="Data *" htmlFor="cx-date">
+                <DatePicker
+                  id="cx-date"
+                  value={date}
+                  onChange={(val) => setDate(val)}
+                />
+              </FormField>
+            </div>
+            <FormField label="Descrição *" htmlFor="cx-desc">
+              <Input
+                id="cx-desc"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                required
+              />
+            </FormField>
+            <div className="form-row">
+              <FormField label="Valor (BRL) *" htmlFor="cx-value">
+                <Input
+                  id="cx-value"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={value}
+                  onChange={(event) => setValue(event.target.value)}
+                  required
+                />
+              </FormField>
+              <FormField label="Categoria" htmlFor="cx-cat">
+                <Input
+                  id="cx-cat"
+                  value={category}
+                  onChange={(event) => setCategory(event.target.value)}
+                  placeholder="Ex.: Adiantamento, Pagamento..."
+                />
+              </FormField>
+            </div>
+            <FormField label="Vincular a Contrato" htmlFor="cx-contr">
+              <Combobox
+                id="cx-contr"
+                options={[
+                  { value: '', label: 'Nenhum' },
+                  ...contratos.map((c) => ({ value: c.id, label: String(c.name ?? '') })),
+                ]}
+                value={contractId}
+                onChange={setContractId}
+                placeholder="Nenhum"
+                searchPlaceholder="Pesquisar contrato..."
+                emptyText="Nenhum contrato encontrado."
+              />
+            </FormField>
+          </form>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
           <Button type="submit" form="form-caixa" disabled={saving}>
             {saving ? 'Salvando...' : isEdit ? 'Atualizar' : 'Criar'}
           </Button>
-        </>
-      }
-    >
-      <form id="form-caixa" onSubmit={handleSubmit}>
-        <div className="form-row">
-          <FormField label="Tipo *" htmlFor="cx-type">
-            <Select
-              id="cx-type"
-              value={type}
-              onChange={(event) =>
-                setType(event.target.value as 'entrada' | 'saida')
-              }
-            >
-              <option value="entrada">Entrada</option>
-              <option value="saida">Saída</option>
-            </Select>
-          </FormField>
-          <FormField label="Data *" htmlFor="cx-date">
-            <DatePicker
-              id="cx-date"
-              value={date}
-              onChange={(val) => setDate(val)}
-            />
-          </FormField>
-        </div>
-        <FormField label="Descrição *" htmlFor="cx-desc">
-          <Input
-            id="cx-desc"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            required
-          />
-        </FormField>
-        <div className="form-row">
-          <FormField label="Valor (BRL) *" htmlFor="cx-value">
-            <Input
-              id="cx-value"
-              type="number"
-              step="0.01"
-              min="0"
-              value={value}
-              onChange={(event) => setValue(event.target.value)}
-              required
-            />
-          </FormField>
-          <FormField label="Categoria" htmlFor="cx-cat">
-            <Input
-              id="cx-cat"
-              value={category}
-              onChange={(event) => setCategory(event.target.value)}
-              placeholder="Ex.: Adiantamento, Pagamento..."
-            />
-          </FormField>
-        </div>
-        <FormField label="Vincular a Contrato" htmlFor="cx-contr">
-          <Combobox
-            id="cx-contr"
-            options={[
-              { value: '', label: 'Nenhum' },
-              ...contratos.map((c) => ({ value: c.id, label: String(c.name ?? '') })),
-            ]}
-            value={contractId}
-            onChange={setContractId}
-            placeholder="Nenhum"
-            searchPlaceholder="Pesquisar contrato..."
-            emptyText="Nenhum contrato encontrado."
-          />
-        </FormField>
-      </form>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1347,12 +1354,69 @@ function MaterializeModal({ prefill, contratos, onClose }: MaterializeModalProps
   }
 
   return (
-    <Modal
-      open
-      title="Materializar recorrência"
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>Materializar recorrência</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+            Ajuste valor/data se a saída real diferiu do previsto. O lançamento será
+            vinculado à recorrência (não duplica).
+          </p>
+          <form id="form-materializar" onSubmit={handleSubmit}>
+            <FormField label="Descrição *" htmlFor="mat-desc">
+              <Input
+                id="mat-desc"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                required
+              />
+            </FormField>
+            <div className="form-row">
+              <FormField label="Data *" htmlFor="mat-date">
+                <DatePicker
+                  id="mat-date"
+                  value={date}
+                  onChange={(val) => setDate(val)}
+                />
+              </FormField>
+              <FormField label="Valor (BRL) *" htmlFor="mat-value">
+                <Input
+                  id="mat-value"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={value}
+                  onChange={(event) => setValue(event.target.value)}
+                  required
+                />
+              </FormField>
+            </div>
+            <FormField label="Categoria" htmlFor="mat-cat">
+              <Input
+                id="mat-cat"
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+              />
+            </FormField>
+            <FormField label="Vincular a Contrato (opcional)" htmlFor="mat-contr">
+              <Combobox
+                id="mat-contr"
+                options={[
+                  { value: '', label: 'Nenhum' },
+                  ...contratos.map((c) => ({ value: c.id, label: String(c.name ?? '') })),
+                ]}
+                value={contractId}
+                onChange={setContractId}
+                placeholder="Nenhum"
+                searchPlaceholder="Pesquisar contrato..."
+                emptyText="Nenhum contrato encontrado."
+              />
+            </FormField>
+          </form>
+        </div>
+        <DialogFooter>
           <Button
             variant="secondary"
             onClick={onClose}
@@ -1367,65 +1431,9 @@ function MaterializeModal({ prefill, contratos, onClose }: MaterializeModalProps
           >
             {createCaixa.isPending ? 'Salvando...' : 'Materializar'}
           </Button>
-        </>
-      }
-    >
-      <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-        Ajuste valor/data se a saída real diferiu do previsto. O lançamento será
-        vinculado à recorrência (não duplica).
-      </p>
-      <form id="form-materializar" onSubmit={handleSubmit}>
-        <FormField label="Descrição *" htmlFor="mat-desc">
-          <Input
-            id="mat-desc"
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            required
-          />
-        </FormField>
-        <div className="form-row">
-          <FormField label="Data *" htmlFor="mat-date">
-            <DatePicker
-              id="mat-date"
-              value={date}
-              onChange={(val) => setDate(val)}
-            />
-          </FormField>
-          <FormField label="Valor (BRL) *" htmlFor="mat-value">
-            <Input
-              id="mat-value"
-              type="number"
-              step="0.01"
-              min="0"
-              value={value}
-              onChange={(event) => setValue(event.target.value)}
-              required
-            />
-          </FormField>
-        </div>
-        <FormField label="Categoria" htmlFor="mat-cat">
-          <Input
-            id="mat-cat"
-            value={category}
-            onChange={(event) => setCategory(event.target.value)}
-          />
-        </FormField>
-        <FormField label="Vincular a Contrato (opcional)" htmlFor="mat-contr">
-          <Combobox
-            id="mat-contr"
-            options={[
-              { value: '', label: 'Nenhum' },
-              ...contratos.map((c) => ({ value: c.id, label: String(c.name ?? '') })),
-            ]}
-            value={contractId}
-            onChange={setContractId}
-            placeholder="Nenhum"
-            searchPlaceholder="Pesquisar contrato..."
-            emptyText="Nenhum contrato encontrado."
-          />
-        </FormField>
-      </form>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1459,73 +1467,74 @@ function DetailModal({
     : undefined;
 
   return (
-    <Modal
-      open
-      title={entry.description || 'Lançamento'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{entry.description || 'Lançamento'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div style={{ marginBottom: 'var(--sp-md)' }}>
+            <Badge variant={entry.type === 'entrada' ? 'success' : 'destructive'} style={{ marginRight: 6 }}>
+              {entry.type}
+            </Badge>
+            <span
+              style={{
+                fontSize: 22,
+                fontWeight: 700,
+                color: isEntrada ? 'var(--color-success)' : 'var(--color-danger)',
+              }}
+            >
+              {isEntrada ? '+' : '-'}
+              {formatBRL(num(entry.value))}
+            </span>
+          </div>
+
+          <DetailRow label="Data" value={formatDate(entry.date)} />
+          <DetailRow label="Categoria" value={entry.category} />
+          <DetailRow label="Forma de Pagto." value={entry.formaPagamento} />
+          {contrato && (
+            <DetailRow
+              label="Contrato"
+              value={
+                <Link
+                  to={`/contratos/${contrato.id}`}
+                  style={{ color: 'var(--color-primary)' }}
+                >
+                  {String(contrato.name ?? '')}
+                </Link>
+              }
+            />
+          )}
+          <DetailRow label="Cliente" value={contrato ? String(contrato.client ?? '') : null} />
+          <DetailRow label="Conta a Pagar" value={cp?.descricao} />
+          {nf && (
+            <DetailRow
+              label="NF vinculada"
+              value={`NF ${nf.numero} (${formatDate(nf.dataLimite)})`}
+            />
+          )}
+          <DetailRow label="Item BASE" value={baseItem?.description} />
+          <DetailRow label="Observações" value={entry.notes} />
+
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--color-text-muted)',
+              marginTop: 'var(--sp-md)',
+              fontFamily: 'monospace',
+            }}
+          >
+            ID: {entry.id}
+          </div>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
             Fechar
           </Button>
           <Button onClick={onEdit}>Editar</Button>
-        </>
-      }
-    >
-      <div style={{ marginBottom: 'var(--sp-md)' }}>
-        <Badge variant={entry.type === 'entrada' ? 'success' : 'destructive'} style={{ marginRight: 6 }}>
-          {entry.type}
-        </Badge>
-        <span
-          style={{
-            fontSize: 22,
-            fontWeight: 700,
-            color: isEntrada ? 'var(--color-success)' : 'var(--color-danger)',
-          }}
-        >
-          {isEntrada ? '+' : '-'}
-          {formatBRL(num(entry.value))}
-        </span>
-      </div>
-
-      <DetailRow label="Data" value={formatDate(entry.date)} />
-      <DetailRow label="Categoria" value={entry.category} />
-      <DetailRow label="Forma de Pagto." value={entry.formaPagamento} />
-      {contrato && (
-        <DetailRow
-          label="Contrato"
-          value={
-            <Link
-              to={`/contratos/${contrato.id}`}
-              style={{ color: 'var(--color-primary)' }}
-            >
-              {String(contrato.name ?? '')}
-            </Link>
-          }
-        />
-      )}
-      <DetailRow label="Cliente" value={contrato ? String(contrato.client ?? '') : null} />
-      <DetailRow label="Conta a Pagar" value={cp?.descricao} />
-      {nf && (
-        <DetailRow
-          label="NF vinculada"
-          value={`NF ${nf.numero} (${formatDate(nf.dataLimite)})`}
-        />
-      )}
-      <DetailRow label="Item BASE" value={baseItem?.description} />
-      <DetailRow label="Observações" value={entry.notes} />
-
-      <div
-        style={{
-          fontSize: 12,
-          color: 'var(--color-text-muted)',
-          marginTop: 'var(--sp-md)',
-          fontFamily: 'monospace',
-        }}
-      >
-        ID: {entry.id}
-      </div>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1555,72 +1564,75 @@ interface OfxModalProps {
 function OfxModal({ result, onClose }: OfxModalProps) {
   const conciliadas = result.total - result.novos;
   return (
-    <Modal
-      open
-      title="🏦 Resultado da importação OFX"
-      onClose={onClose}
-      footer={
-        <Button variant="secondary" onClick={onClose}>
-          Fechar
-        </Button>
-      }
-    >
-      <p style={{ marginBottom: 'var(--sp-md)' }}>
-        <strong>{result.total}</strong> transações encontradas ·{' '}
-        <span style={{ color: 'var(--color-success)' }}>
-          {conciliadas} conciliadas
-        </span>{' '}
-        · <span style={{ color: '#D69E2E' }}>{result.novos} novas</span>
-      </p>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Data</th>
-              <th>Descrição</th>
-              <th>Valor</th>
-              <th>Status</th>
-              <th>Lançamento Rhino</th>
-            </tr>
-          </thead>
-          <tbody>
-            {result.transacoes.map((t, index) => (
-              <tr key={index}>
-                <td>{t.data}</td>
-                <td style={{ maxWidth: 280, wordBreak: 'break-word' }}>
-                  {t.memo || '—'}
-                </td>
-                <td
-                  style={{
-                    fontWeight: 700,
-                    color:
-                      t.tipo === 'entrada'
-                        ? 'var(--color-success)'
-                        : 'var(--color-danger)',
-                  }}
-                >
-                  {t.tipo === 'saida' ? '-' : '+'}{' '}
-                  {formatBRL(Math.abs(num(t.valor)))}
-                </td>
-                <td>
-                  <Badge
-                    style={{
-                      background:
-                        t.status === 'conciliado' ? '#D1FAE5' : '#FEF3C7',
-                      color: t.status === 'conciliado' ? '#065F46' : '#92400E',
-                    }}
-                  >
-                    {t.status === 'conciliado' ? '✅ Conciliado' : '🆕 Novo'}
-                  </Badge>
-                </td>
-                <td style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-                  {t.match ? t.match.description : '—'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Modal>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[920px]">
+        <DialogHeader>
+          <DialogTitle>🏦 Resultado da importação OFX</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <p style={{ marginBottom: 'var(--sp-md)' }}>
+            <strong>{result.total}</strong> transações encontradas ·{' '}
+            <span style={{ color: 'var(--color-success)' }}>
+              {conciliadas} conciliadas
+            </span>{' '}
+            · <span style={{ color: '#D69E2E' }}>{result.novos} novas</span>
+          </p>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Descrição</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th>Lançamento Rhino</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result.transacoes.map((t, index) => (
+                  <tr key={index}>
+                    <td>{t.data}</td>
+                    <td style={{ maxWidth: 280, wordBreak: 'break-word' }}>
+                      {t.memo || '—'}
+                    </td>
+                    <td
+                      style={{
+                        fontWeight: 700,
+                        color:
+                          t.tipo === 'entrada'
+                            ? 'var(--color-success)'
+                            : 'var(--color-danger)',
+                      }}
+                    >
+                      {t.tipo === 'saida' ? '-' : '+'}{' '}
+                      {formatBRL(Math.abs(num(t.valor)))}
+                    </td>
+                    <td>
+                      <Badge
+                        style={{
+                          background:
+                            t.status === 'conciliado' ? '#D1FAE5' : '#FEF3C7',
+                          color: t.status === 'conciliado' ? '#065F46' : '#92400E',
+                        }}
+                      >
+                        {t.status === 'conciliado' ? '✅ Conciliado' : '🆕 Novo'}
+                      </Badge>
+                    </td>
+                    <td style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+                      {t.match ? t.match.description : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

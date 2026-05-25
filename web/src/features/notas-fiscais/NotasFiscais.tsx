@@ -3,7 +3,13 @@ import { Link } from 'react-router-dom';
 import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
-import Modal from '../../components/ui/Modal';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
 import { Input, Textarea } from '../../components/ui/controls';
 import { Combobox } from '../../components/ui/combobox';
@@ -1020,128 +1026,129 @@ function NFModal({ nf, contratos, onClose }: NFModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar Nota Fiscal' : 'Nova Nota Fiscal'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? 'Editar Nota Fiscal' : 'Nova Nota Fiscal'}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <form id="form-nf" onSubmit={handleSubmit}>
+            <div className="form-row">
+              <FormField label="Número da Nota Fiscal *" htmlFor="nf-numero">
+                <Input
+                  id="nf-numero"
+                  value={numero}
+                  onChange={(event) => setNumero(event.target.value)}
+                  required
+                  placeholder="Ex.: 1234/2026"
+                />
+              </FormField>
+              <FormField label="Valor da NF (R$) *" htmlFor="nf-valor">
+                <Input
+                  id="nf-valor"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={valor}
+                  onChange={(event) => setValor(event.target.value)}
+                  required
+                />
+              </FormField>
+            </div>
+
+            <FormField label="Contrato *" htmlFor="nf-contrato">
+              <Combobox
+                id="nf-contrato"
+                options={contratos.map((c) => ({ value: c.id, label: contractName(c) ?? '' }))}
+                value={contractId}
+                onChange={setContractId}
+                placeholder="Selecionar..."
+                searchPlaceholder="Pesquisar contrato..."
+                emptyText="Nenhum contrato encontrado."
+              />
+            </FormField>
+
+            <FormField label="Cliente" htmlFor="nf-cliente">
+              <Input
+                id="nf-cliente"
+                value={cliente}
+                readOnly
+                style={{ background: 'var(--color-bg)' }}
+              />
+            </FormField>
+
+            <div className="form-row">
+              <FormField label="Data Limite para Emissão *" htmlFor="nf-limite">
+                <DatePicker
+                  id="nf-limite"
+                  value={dataLimite}
+                  onChange={(val) => setDataLimite(val)}
+                />
+              </FormField>
+              <FormField
+                label="Prazo de Recebimento (dias) *"
+                htmlFor="nf-prazo"
+                helper="Dias após a emissão até o pagamento entrar no caixa"
+              >
+                <Input
+                  id="nf-prazo"
+                  type="number"
+                  min="0"
+                  max="365"
+                  value={prazoRecebimento}
+                  onChange={(event) => setPrazoRecebimento(event.target.value)}
+                  required
+                />
+              </FormField>
+            </div>
+
+            {nf?.emitida && (
+              <FormField
+                label="Data de Emissão Real"
+                htmlFor="nf-emissao"
+                helper="NF emitida — altere para recalcular o recebimento"
+              >
+                <DatePicker
+                  id="nf-emissao"
+                  value={dataEmissaoReal}
+                  onChange={(val) => setDataEmissaoReal(val)}
+                />
+              </FormField>
+            )}
+
+            {previewRecebimento && (
+              <div
+                style={{
+                  padding: 'var(--sp-md)',
+                  background: 'rgba(46,125,82,.07)',
+                  border: '1px solid rgba(46,125,82,.2)',
+                  borderRadius: 8,
+                  fontSize: 13,
+                }}
+              >
+                💰 Recebimento previsto: <strong>{previewRecebimento}</strong>
+              </div>
+            )}
+
+            <FormField label="Observações" htmlFor="nf-obs">
+              <Textarea
+                id="nf-obs"
+                value={observacoes}
+                onChange={(event) => setObservacoes(event.target.value)}
+              />
+            </FormField>
+          </form>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
           <Button type="submit" form="form-nf" disabled={saving}>
             {saving ? 'Salvando...' : isEdit ? 'Atualizar' : 'Criar'}
           </Button>
-        </>
-      }
-    >
-      <form id="form-nf" onSubmit={handleSubmit}>
-        <div className="form-row">
-          <FormField label="Número da Nota Fiscal *" htmlFor="nf-numero">
-            <Input
-              id="nf-numero"
-              value={numero}
-              onChange={(event) => setNumero(event.target.value)}
-              required
-              placeholder="Ex.: 1234/2026"
-            />
-          </FormField>
-          <FormField label="Valor da NF (R$) *" htmlFor="nf-valor">
-            <Input
-              id="nf-valor"
-              type="number"
-              step="0.01"
-              min="0"
-              value={valor}
-              onChange={(event) => setValor(event.target.value)}
-              required
-            />
-          </FormField>
-        </div>
-
-        <FormField label="Contrato *" htmlFor="nf-contrato">
-          <Combobox
-            id="nf-contrato"
-            options={contratos.map((c) => ({ value: c.id, label: contractName(c) ?? '' }))}
-            value={contractId}
-            onChange={setContractId}
-            placeholder="Selecionar..."
-            searchPlaceholder="Pesquisar contrato..."
-            emptyText="Nenhum contrato encontrado."
-          />
-        </FormField>
-
-        <FormField label="Cliente" htmlFor="nf-cliente">
-          <Input
-            id="nf-cliente"
-            value={cliente}
-            readOnly
-            style={{ background: 'var(--color-bg)' }}
-          />
-        </FormField>
-
-        <div className="form-row">
-          <FormField label="Data Limite para Emissão *" htmlFor="nf-limite">
-            <DatePicker
-              id="nf-limite"
-              value={dataLimite}
-              onChange={(val) => setDataLimite(val)}
-            />
-          </FormField>
-          <FormField
-            label="Prazo de Recebimento (dias) *"
-            htmlFor="nf-prazo"
-            helper="Dias após a emissão até o pagamento entrar no caixa"
-          >
-            <Input
-              id="nf-prazo"
-              type="number"
-              min="0"
-              max="365"
-              value={prazoRecebimento}
-              onChange={(event) => setPrazoRecebimento(event.target.value)}
-              required
-            />
-          </FormField>
-        </div>
-
-        {nf?.emitida && (
-          <FormField
-            label="Data de Emissão Real"
-            htmlFor="nf-emissao"
-            helper="NF emitida — altere para recalcular o recebimento"
-          >
-            <DatePicker
-              id="nf-emissao"
-              value={dataEmissaoReal}
-              onChange={(val) => setDataEmissaoReal(val)}
-            />
-          </FormField>
-        )}
-
-        {previewRecebimento && (
-          <div
-            style={{
-              padding: 'var(--sp-md)',
-              background: 'rgba(46,125,82,.07)',
-              border: '1px solid rgba(46,125,82,.2)',
-              borderRadius: 8,
-              fontSize: 13,
-            }}
-          >
-            💰 Recebimento previsto: <strong>{previewRecebimento}</strong>
-          </div>
-        )}
-
-        <FormField label="Observações" htmlFor="nf-obs">
-          <Textarea
-            id="nf-obs"
-            value={observacoes}
-            onChange={(event) => setObservacoes(event.target.value)}
-          />
-        </FormField>
-      </form>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1188,12 +1195,74 @@ function EmitirModal({ nf, contrato, onClose }: EmitirModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title={`✓ Marcar NF ${nf.numero} como Emitida`}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{`✓ Marcar NF ${nf.numero} como Emitida`}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div
+            style={{
+              padding: 'var(--sp-md)',
+              background: 'var(--color-bg)',
+              borderRadius: 8,
+              marginBottom: 'var(--sp-lg)',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 'var(--sp-md)',
+              fontSize: 13,
+            }}
+          >
+            <InfoCell rotulo="Contrato" valor={contractName(contrato) || '—'} />
+            <InfoCell rotulo="Cliente" valor={contractClient(contrato) || '—'} />
+            <InfoCell
+              rotulo="Valor"
+              valor={formatBRL(num(nf.valor))}
+              cor="var(--color-success)"
+            />
+            <InfoCell rotulo="Prazo Recebimento" valor={`${prazo} dias`} />
+          </div>
+
+          <FormField
+            label="Data Real de Emissão *"
+            htmlFor="emitir-data"
+            helper="Normalmente hoje. Usada para calcular o recebimento no caixa."
+          >
+            <DatePicker
+              id="emitir-data"
+              value={dataEmissaoReal}
+              onChange={(val) => setDataEmissaoReal(val)}
+            />
+          </FormField>
+
+          <div
+            style={{
+              padding: 'var(--sp-md)',
+              background: 'rgba(46,125,82,.08)',
+              border: '1px solid rgba(46,125,82,.2)',
+              borderRadius: 8,
+              fontSize: 13,
+            }}
+          >
+            <div style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
+              💰 Entrada automática no caixa
+            </div>
+            <div style={{ color: 'var(--color-text-muted)', marginTop: 4 }}>
+              {recebimento ? (
+                <>
+                  Recebimento ({prazo}d após emissão):{' '}
+                  <strong style={{ color: 'var(--color-success)' }}>
+                    {recebimento}
+                  </strong>{' '}
+                  — {formatBRL(num(nf.valor))}
+                </>
+              ) : (
+                '—'
+              )}
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={emitir.isPending}>
             Cancelar
           </Button>
@@ -1204,70 +1273,9 @@ function EmitirModal({ nf, contrato, onClose }: EmitirModalProps) {
           >
             {emitir.isPending ? 'Confirmando...' : '✓ Confirmar Emissão'}
           </Button>
-        </>
-      }
-    >
-      <div
-        style={{
-          padding: 'var(--sp-md)',
-          background: 'var(--color-bg)',
-          borderRadius: 8,
-          marginBottom: 'var(--sp-lg)',
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 'var(--sp-md)',
-          fontSize: 13,
-        }}
-      >
-        <InfoCell rotulo="Contrato" valor={contractName(contrato) || '—'} />
-        <InfoCell rotulo="Cliente" valor={contractClient(contrato) || '—'} />
-        <InfoCell
-          rotulo="Valor"
-          valor={formatBRL(num(nf.valor))}
-          cor="var(--color-success)"
-        />
-        <InfoCell rotulo="Prazo Recebimento" valor={`${prazo} dias`} />
-      </div>
-
-      <FormField
-        label="Data Real de Emissão *"
-        htmlFor="emitir-data"
-        helper="Normalmente hoje. Usada para calcular o recebimento no caixa."
-      >
-        <DatePicker
-          id="emitir-data"
-          value={dataEmissaoReal}
-          onChange={(val) => setDataEmissaoReal(val)}
-        />
-      </FormField>
-
-      <div
-        style={{
-          padding: 'var(--sp-md)',
-          background: 'rgba(46,125,82,.08)',
-          border: '1px solid rgba(46,125,82,.2)',
-          borderRadius: 8,
-          fontSize: 13,
-        }}
-      >
-        <div style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
-          💰 Entrada automática no caixa
-        </div>
-        <div style={{ color: 'var(--color-text-muted)', marginTop: 4 }}>
-          {recebimento ? (
-            <>
-              Recebimento ({prazo}d após emissão):{' '}
-              <strong style={{ color: 'var(--color-success)' }}>
-                {recebimento}
-              </strong>{' '}
-              — {formatBRL(num(nf.valor))}
-            </>
-          ) : (
-            '—'
-          )}
-        </div>
-      </div>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1344,12 +1352,105 @@ function DetailModal({ nf, contrato, onClose, onEmitir }: DetailModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title={`NF ${nf.numero}`}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>{`NF ${nf.numero}`}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div style={{ marginBottom: 'var(--sp-md)' }}>
+            <Badge style={{
+              background: nf.emitida ? 'rgba(56,161,105,.15)' : 'rgba(214,158,46,.12)',
+              color: nf.emitida ? 'var(--color-success)' : 'var(--color-warning)',
+            }}>
+              {nf.emitida ? '✓ Emitida' : 'Pendente'}
+            </Badge>
+            <span
+              style={{
+                fontSize: 22,
+                fontWeight: 700,
+                color: 'var(--color-success)',
+                marginLeft: 12,
+              }}
+            >
+              {formatBRL(num(nf.valor))}
+            </span>
+          </div>
+
+          <DetailRow
+            label="Contrato"
+            value={
+              contrato ? (
+                <Link
+                  to={`/contratos/${contrato.id}`}
+                  style={{ color: 'var(--color-primary)' }}
+                >
+                  {contractName(contrato)}
+                </Link>
+              ) : null
+            }
+          />
+          <DetailRow label="Cliente" value={contractClient(contrato)} />
+          <DetailRow label="Data limite" value={formatDate(nf.dataLimite)} />
+          <DetailRow
+            label="Prazo de recebimento"
+            value={`${prazo} dia${prazo === 1 ? '' : 's'} após emissão`}
+          />
+          {nf.emitida && (
+            <>
+              <DetailRow label="Emitida em" value={formatDate(nf.dataEmissaoReal)} />
+              {dtRec && (
+                <DetailRow
+                  label="Recebimento previsto"
+                  value={
+                    <>
+                      {dtRec.toLocaleDateString('pt-BR')}{' '}
+                      <span
+                        style={{ color: 'var(--color-text-muted)', fontSize: 13 }}
+                      >
+                        ({diasRec !== null && diasRec >= 0
+                          ? `em ${diasRec} dias`
+                          : 'recebido'}
+                        )
+                      </span>
+                    </>
+                  }
+                />
+              )}
+              {caixaEntry && (
+                <DetailRow
+                  label="Entrada no caixa"
+                  value={`${String(caixaEntry.description ?? '')} em ${formatDate(
+                    typeof caixaEntry.date === 'string'
+                      ? caixaEntry.date
+                      : undefined,
+                  )}`}
+                />
+              )}
+            </>
+          )}
+          {saidasVinculadas.length > 0 && (
+            <DetailRow
+              label="Medições vinculadas"
+              value={`${saidasVinculadas.length} BM${
+                saidasVinculadas.length > 1 ? 's' : ''
+              } · total ${formatBRL(totalSaidas)}`}
+            />
+          )}
+          <DetailRow label="Observações" value={nf.observacoes} />
+
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--color-text-muted)',
+              marginTop: 'var(--sp-md)',
+              fontFamily: 'monospace',
+            }}
+          >
+            ID: {nf.id}
+          </div>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose}>
             Fechar
           </Button>
@@ -1362,101 +1463,9 @@ function DetailModal({ nf, contrato, onClose, onEmitir }: DetailModalProps) {
               Marcar emitida
             </Button>
           )}
-        </>
-      }
-    >
-      <div style={{ marginBottom: 'var(--sp-md)' }}>
-        <Badge style={{
-          background: nf.emitida ? 'rgba(56,161,105,.15)' : 'rgba(214,158,46,.12)',
-          color: nf.emitida ? 'var(--color-success)' : 'var(--color-warning)',
-        }}>
-          {nf.emitida ? '✓ Emitida' : 'Pendente'}
-        </Badge>
-        <span
-          style={{
-            fontSize: 22,
-            fontWeight: 700,
-            color: 'var(--color-success)',
-            marginLeft: 12,
-          }}
-        >
-          {formatBRL(num(nf.valor))}
-        </span>
-      </div>
-
-      <DetailRow
-        label="Contrato"
-        value={
-          contrato ? (
-            <Link
-              to={`/contratos/${contrato.id}`}
-              style={{ color: 'var(--color-primary)' }}
-            >
-              {contractName(contrato)}
-            </Link>
-          ) : null
-        }
-      />
-      <DetailRow label="Cliente" value={contractClient(contrato)} />
-      <DetailRow label="Data limite" value={formatDate(nf.dataLimite)} />
-      <DetailRow
-        label="Prazo de recebimento"
-        value={`${prazo} dia${prazo === 1 ? '' : 's'} após emissão`}
-      />
-      {nf.emitida && (
-        <>
-          <DetailRow label="Emitida em" value={formatDate(nf.dataEmissaoReal)} />
-          {dtRec && (
-            <DetailRow
-              label="Recebimento previsto"
-              value={
-                <>
-                  {dtRec.toLocaleDateString('pt-BR')}{' '}
-                  <span
-                    style={{ color: 'var(--color-text-muted)', fontSize: 13 }}
-                  >
-                    ({diasRec !== null && diasRec >= 0
-                      ? `em ${diasRec} dias`
-                      : 'recebido'}
-                    )
-                  </span>
-                </>
-              }
-            />
-          )}
-          {caixaEntry && (
-            <DetailRow
-              label="Entrada no caixa"
-              value={`${String(caixaEntry.description ?? '')} em ${formatDate(
-                typeof caixaEntry.date === 'string'
-                  ? caixaEntry.date
-                  : undefined,
-              )}`}
-            />
-          )}
-        </>
-      )}
-      {saidasVinculadas.length > 0 && (
-        <DetailRow
-          label="Medições vinculadas"
-          value={`${saidasVinculadas.length} BM${
-            saidasVinculadas.length > 1 ? 's' : ''
-          } · total ${formatBRL(totalSaidas)}`}
-        />
-      )}
-      <DetailRow label="Observações" value={nf.observacoes} />
-
-      <div
-        style={{
-          fontSize: 12,
-          color: 'var(--color-text-muted)',
-          marginTop: 'var(--sp-md)',
-          fontFamily: 'monospace',
-        }}
-      >
-        ID: {nf.id}
-      </div>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
