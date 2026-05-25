@@ -214,6 +214,44 @@ export interface SparkSeries {
   entradaDia: number[];
 }
 
+/**
+ * Calcula delta percentual entre dois valores. Retorna 0 quando o anterior é 0
+ * (evita divisão por zero e Infinity). Usado pelo KpiCard para o badge de
+ * comparativo automático (DASH-2).
+ */
+export function calcDelta(atual: number, anterior: number): number {
+  if (!anterior) return 0;
+  return ((atual - anterior) / Math.abs(anterior)) * 100;
+}
+
+/**
+ * Série genérica acumulativa dos últimos N dias filtrando por predicado.
+ * Útil para sparklines de KPIs que não têm pipeline pronto (aportes,
+ * prospecção, etc). Retorna array de valores acumulados por dia.
+ */
+export function calcDailyCumulative(
+  records: readonly Reg[],
+  getDate: (r: Reg) => string | undefined,
+  getValue: (r: Reg) => number,
+  days = 45,
+): number[] {
+  const today = new Date();
+  const dates: string[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  return dates.map((date) =>
+    records
+      .filter((r) => {
+        const rd = getDate(r);
+        return rd && rd <= date;
+      })
+      .reduce((s, r) => s + getValue(r), 0),
+  );
+}
+
 export function calcSparklines(caixa: readonly Reg[], days = 45): SparkSeries {
   const today = new Date();
   const dates: string[] = [];

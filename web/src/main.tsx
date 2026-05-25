@@ -1,10 +1,11 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import App from './App';
 import ToastProvider from './components/ui/toast/ToastProvider';
-import { queryClient } from './lib/queryClient';
+import { queryClient, persister } from './lib/queryClient';
 import './styles/index.css';
 
 const rootEl = document.getElementById('root');
@@ -14,12 +15,25 @@ if (!rootEl) {
 
 createRoot(rootEl).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister,
+        // Cache válido por 24h após a última sessão. Acima disso, o usuário
+        // sempre busca fresh ao reabrir o app.
+        maxAge: 24 * 60 * 60 * 1000,
+        // Identifica a versão de cache. Aumentar quando o shape das respostas
+        // de /api/* mudar de forma incompatível.
+        buster: 'v1',
+      }}
+    >
       <ToastProvider>
         <BrowserRouter>
           <App />
         </BrowserRouter>
       </ToastProvider>
-    </QueryClientProvider>
+      {/* DevTools tree-shaken em produção pelo Vite quando NODE_ENV=production. */}
+      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />}
+    </PersistQueryClientProvider>
   </StrictMode>,
 );

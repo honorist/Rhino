@@ -2,9 +2,11 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  useSuspenseQuery,
   type QueryKey,
   type UseMutationResult,
   type UseQueryResult,
+  type UseSuspenseQueryResult,
 } from '@tanstack/react-query';
 import { api } from './api';
 
@@ -25,6 +27,12 @@ export interface ResourceConfig {
 export interface ResourceHooks<T, TInput> {
   /** GET lista — desembrulha o envelope de resposta. */
   useList: () => UseQueryResult<T[]>;
+  /**
+   * GET lista versão Suspense — joga a promise para o Suspense boundary
+   * mais próximo. Use quando a feature já está dentro de <Suspense> no App.tsx
+   * (todas as rotas lazy estão). Elimina o `if (isLoading) return ...` manual.
+   */
+  useListSuspense: () => UseSuspenseQueryResult<T[]>;
   /** POST — cria e refaz o fetch da lista. */
   useCreate: () => UseMutationResult<unknown, Error, TInput>;
   /** PUT /:id — edita e refaz o fetch da lista. */
@@ -51,6 +59,14 @@ export function createResource<
 
   function useList(): UseQueryResult<T[]> {
     return useQuery({
+      queryKey: key,
+      queryFn: () => api.get<Record<string, T[]>>(path),
+      select: (data) => data[envelope] ?? [],
+    });
+  }
+
+  function useListSuspense(): UseSuspenseQueryResult<T[]> {
+    return useSuspenseQuery({
       queryKey: key,
       queryFn: () => api.get<Record<string, T[]>>(path),
       select: (data) => data[envelope] ?? [],
@@ -88,5 +104,5 @@ export function createResource<
     });
   }
 
-  return { useList, useCreate, useUpdate, useRemove };
+  return { useList, useListSuspense, useCreate, useUpdate, useRemove };
 }

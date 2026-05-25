@@ -1,8 +1,10 @@
-import type { ComponentType } from 'react';
+import { lazy, Suspense, type ComponentType } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Shell from './components/layout/Shell';
 import AuthGate from './features/auth/AuthGate';
 import { installMoneyMaskSubscription } from './lib/moneyMask';
+import Spinner from './components/ui/Spinner';
+import FeatureErrorBoundary from './components/FeatureErrorBoundary';
 
 // CRÍTICO: garante que formatBRL/formatBRLk respeitam a permissão
 // `special:nao-ver-valores` do perfil ativo. DEVE rodar antes de qualquer
@@ -11,42 +13,49 @@ installMoneyMaskSubscription();
 import Placeholder from './pages/Placeholder';
 import NotFound from './pages/NotFound';
 import { ROUTES } from './routes/config';
-import Usuarios from './features/users/Usuarios';
-import Socios from './features/socios/Socios';
-import Fornecedores from './features/fornecedores/Fornecedores';
-import Clientes from './features/clientes/Clientes';
-import Base from './features/base/Base';
-import Obras from './features/obras/Obras';
-import CobrancaMensal from './features/cobranca/CobrancaMensal';
-import Investimentos from './features/investimentos/Investimentos';
-import FolhaPagamento from './features/folha/FolhaPagamento';
-import ContasPagar from './features/contas-pagar/ContasPagar';
-import NotasFiscais from './features/notas-fiscais/NotasFiscais';
-import Caixa from './features/caixa/Caixa';
-import Conciliacao from './features/conciliacao/Conciliacao';
-import Propostas from './features/propostas/Propostas';
-import PropostaDetail from './features/propostas/PropostaDetail';
-import Clausulas from './features/clausulas/Clausulas';
-import RDOs from './features/rdos/RDOs';
-import ManutencaoView from './features/manutencao/Manutencao';
-import Auditoria from './features/audit/Auditoria';
-import Frota from './features/frota/Frota';
-import Documentos from './features/documentos/Documentos';
-import SolicitacoesCompra from './features/solicitacoes/SolicitacoesCompra';
-import Estoque from './features/estoque/Estoque';
-import Recursos from './features/recursos/Recursos';
-import Recrutamento from './features/recrutamento/Recrutamento';
-import Contratos from './features/contracts/Contratos';
-import ContratoDetail from './features/contracts/ContratoDetail';
-import AiChat from './features/aichat/AiChat';
-import Previsao from './features/previsao/Previsao';
-import Comparativo from './features/comparativo/Comparativo';
-import Apresentacao from './features/apresentacao/Apresentacao';
-import Portal from './features/portal/Portal';
-import Relatorio from './features/relatorio/Relatorio';
-import Manual from './features/manual/Manual';
-import Configuracao from './features/configuracao/Configuracao';
-import Dashboard from './features/dashboard/Dashboard';
+
+/**
+ * Todas as features são lazy-loaded para reduzir o initial bundle.
+ * Cada chunk só é baixado quando a rota é visitada. Vite gera um arquivo
+ * por feature sob `dist/assets/`, o que também melhora cache hit em
+ * deploys parciais (mudar uma feature não invalida as outras).
+ */
+const Usuarios = lazy(() => import('./features/users/Usuarios'));
+const Socios = lazy(() => import('./features/socios/Socios'));
+const Fornecedores = lazy(() => import('./features/fornecedores/Fornecedores'));
+const Clientes = lazy(() => import('./features/clientes/Clientes'));
+const Base = lazy(() => import('./features/base/Base'));
+const Obras = lazy(() => import('./features/obras/Obras'));
+const CobrancaMensal = lazy(() => import('./features/cobranca/CobrancaMensal'));
+const Investimentos = lazy(() => import('./features/investimentos/Investimentos'));
+const FolhaPagamento = lazy(() => import('./features/folha/FolhaPagamento'));
+const ContasPagar = lazy(() => import('./features/contas-pagar/ContasPagar'));
+const NotasFiscais = lazy(() => import('./features/notas-fiscais/NotasFiscais'));
+const Caixa = lazy(() => import('./features/caixa/Caixa'));
+const Conciliacao = lazy(() => import('./features/conciliacao/Conciliacao'));
+const Propostas = lazy(() => import('./features/propostas/Propostas'));
+const PropostaDetail = lazy(() => import('./features/propostas/PropostaDetail'));
+const Clausulas = lazy(() => import('./features/clausulas/Clausulas'));
+const RDOs = lazy(() => import('./features/rdos/RDOs'));
+const ManutencaoView = lazy(() => import('./features/manutencao/Manutencao'));
+const Auditoria = lazy(() => import('./features/audit/Auditoria'));
+const Frota = lazy(() => import('./features/frota/Frota'));
+const Documentos = lazy(() => import('./features/documentos/Documentos'));
+const SolicitacoesCompra = lazy(() => import('./features/solicitacoes/SolicitacoesCompra'));
+const Estoque = lazy(() => import('./features/estoque/Estoque'));
+const Recursos = lazy(() => import('./features/recursos/Recursos'));
+const Recrutamento = lazy(() => import('./features/recrutamento/Recrutamento'));
+const Contratos = lazy(() => import('./features/contracts/Contratos'));
+const ContratoDetail = lazy(() => import('./features/contracts/ContratoDetail'));
+const AiChat = lazy(() => import('./features/aichat/AiChat'));
+const Previsao = lazy(() => import('./features/previsao/Previsao'));
+const Comparativo = lazy(() => import('./features/comparativo/Comparativo'));
+const Apresentacao = lazy(() => import('./features/apresentacao/Apresentacao'));
+const Portal = lazy(() => import('./features/portal/Portal'));
+const Relatorio = lazy(() => import('./features/relatorio/Relatorio'));
+const Manual = lazy(() => import('./features/manual/Manual'));
+const Configuracao = lazy(() => import('./features/configuracao/Configuracao'));
+const Dashboard = lazy(() => import('./features/dashboard/Dashboard'));
 
 /**
  * Views já migradas para React (Fase 3). Rotas ausentes deste mapa ainda
@@ -91,12 +100,33 @@ const MIGRATED_PAGES: Partial<Record<string, ComponentType>> = {
   '/dashboard': Dashboard,
 };
 
+/**
+ * Fallback minimal durante o download do chunk lazy. Centralizado aqui para
+ * trocar facilmente quando o design system (Fase 2) entrar.
+ */
+function RouteFallback() {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem 1rem' }}>
+      <Spinner />
+    </div>
+  );
+}
+
 /** Tabela de rotas da aplicação. */
 export default function App() {
   return (
     <Routes>
       {/* Portal do cliente é público — não passa pelo AuthGate (tem login próprio). */}
-      <Route path="/portal" element={<Portal />} />
+      <Route
+        path="/portal"
+        element={
+          <FeatureErrorBoundary>
+            <Suspense fallback={<RouteFallback />}>
+              <Portal />
+            </Suspense>
+          </FeatureErrorBoundary>
+        }
+      />
       {/* Restante do app passa pelo gate: login → LGPD → perfil → Shell. */}
       <Route
         path="*"
@@ -125,7 +155,13 @@ function AuthenticatedRoutes() {
             <Route
               key={route.path}
               path={route.path}
-              element={Migrated ? <Migrated /> : <Placeholder route={route} />}
+              element={
+                <FeatureErrorBoundary>
+                  <Suspense fallback={<RouteFallback />}>
+                    {Migrated ? <Migrated /> : <Placeholder route={route} />}
+                  </Suspense>
+                </FeatureErrorBoundary>
+              }
             />
           );
         })}

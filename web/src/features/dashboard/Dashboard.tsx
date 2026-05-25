@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
 import Card from '../../components/ui/Card';
 import Spinner from '../../components/ui/Spinner';
+import { BentoGrid, BentoItem } from '../../components/ui/BentoGrid';
 import { api } from '../../lib/api';
 import { formatBRL, formatBRLk } from '../../lib/format';
 import { useCurrentUser } from '../auth/queries';
@@ -22,22 +22,23 @@ import {
   calcAportes,
   calcColaboradores,
   calcCoberturaMeses,
+  calcDailyCumulative,
+  calcDelta,
   calcFaturadoMes,
   calcNfsSituacao,
   calcPipeline,
   calcProspeccao,
-  calcScoreSaude,
   calcSparklines,
   primeiroNome,
   saudacao,
 } from './dashboardCalc';
 import EntradasPrevistasTable from './EntradasPrevistasTable';
 import FluxoCaixaChart from './FluxoCaixaChart';
+import KpiCard from './KpiCard';
 import NfsStatusCard from './NfsStatusCard';
 import PipelineCard from './PipelineCard';
 import { useRdosDashboard } from './queries';
 import RdosCard from './RdosCard';
-import ScoreCard from './ScoreCard';
 
 interface EntradaPrev {
   nfId: string;
@@ -71,76 +72,6 @@ interface DashboardData {
 
 const PROJ_DAYS_OPTIONS = [30, 60, 90] as const;
 type ProjDays = (typeof PROJ_DAYS_OPTIONS)[number];
-
-const VERDE = 'var(--color-success)';
-const VERMELHO = '#E53E3E';
-const AMARELO = '#D97706';
-const NEUTRO = 'var(--color-text)';
-
-type Tone = 'pos' | 'neg' | 'warn' | 'neutral';
-
-// ─── Sparkline SVG inline ──────────────────────────────────────────
-function Sparkline({ values, tone = 'neutral' }: { values: number[]; tone?: Tone }) {
-  if (!values || values.length < 2) return null;
-  const w = 80;
-  const h = 26;
-  const p = 2;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-  const stepX = (w - p * 2) / (values.length - 1);
-  const points = values
-    .map((v, i) => {
-      const x = p + i * stepX;
-      const y = h - p - ((v - min) / range) * (h - p * 2);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(' ');
-  const color =
-    tone === 'pos' ? '#16A34A' : tone === 'neg' ? '#DC2626' : tone === 'warn' ? '#D97706' : '#64748B';
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ width: w, height: h }} aria-hidden="true">
-      <polyline points={points} fill="none" stroke={color} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-// ─── Card KPI ──────────────────────────────────────────────────────
-interface KpiCardProps {
-  label: string;
-  value: string;
-  meta?: string;
-  tone?: Tone;
-  href?: string;
-  spark?: number[];
-  title?: string;
-}
-
-function KpiCard({ label, value, meta, tone, href, spark, title }: KpiCardProps) {
-  const valueColor =
-    tone === 'pos' ? VERDE : tone === 'neg' ? VERMELHO : tone === 'warn' ? AMARELO : NEUTRO;
-  const content = (
-    <Card style={{ padding: 'var(--sp-md)', height: '100%', display: 'flex', flexDirection: 'column', gap: 4 }} title={title}>
-      <div className="text-muted" style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.04em', fontWeight: 600 }}>
-        {label}
-      </div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: valueColor, lineHeight: 1.1 }}>{value}</div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-        <span className="text-muted" style={{ fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {meta ?? ''}
-        </span>
-        {spark && <Sparkline values={spark} tone={tone} />}
-      </div>
-    </Card>
-  );
-  return href ? (
-    <Link to={href} style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>
-      {content}
-    </Link>
-  ) : (
-    content
-  );
-}
 
 /** Dashboard — visão consolidada (porte de js/views/Dashboard.js). */
 export default function Dashboard() {
@@ -181,46 +112,67 @@ export default function Dashboard() {
       notasFiscais: nfsQuery.data ?? [],
       contasPagar: cpQuery.data ?? [],
     });
-  }, [carregado, contractsQuery.data, caixaQuery.data, saidasQuery.data, nfsQuery.data, cpQuery.data]);
+  }, [
+    carregado,
+    contractsQuery.data,
+    caixaQuery.data,
+    saidasQuery.data,
+    nfsQuery.data,
+    cpQuery.data,
+  ]);
 
   if (!carregado || !indicadores) {
     return <Spinner label="Carregando dashboard..." />;
   }
 
-  const caixa = caixaQuery.data ?? [];
+  const caixa = (caixaQuery.data ?? []) as unknown as Record<string, unknown>[];
   const dash = dashQuery.data ?? {};
   const saldo = dash.caixaBalance ?? indicadores.saldoCaixa;
 
   // ─── Indicadores derivados ───
-  const faturado = calcFaturadoMes(caixa as unknown as Record<string, unknown>[]);
+  const faturado = calcFaturadoMes(caixa);
   const aportesTotal = calcAportes(
     (sociosQuery.data ?? []) as unknown as Record<string, unknown>[],
     (investQuery.data ?? []) as unknown as Record<string, unknown>[],
   );
-  const prospeccao = calcProspeccao((propostasQuery.data ?? []) as unknown as Record<string, unknown>[]);
-  const colab = calcColaboradores((recursosQuery.data ?? []) as unknown as Record<string, unknown>[]);
+  const prospeccao = calcProspeccao(
+    (propostasQuery.data ?? []) as unknown as Record<string, unknown>[],
+  );
+  const colab = calcColaboradores(
+    (recursosQuery.data ?? []) as unknown as Record<string, unknown>[],
+  );
   const arp = calcAReceberPagar(
     (nfsQuery.data ?? []) as unknown as Record<string, unknown>[],
     (cpQuery.data ?? []) as unknown as Record<string, unknown>[],
   );
-  const sparks = calcSparklines(caixa as unknown as Record<string, unknown>[]);
+  const sparks = calcSparklines(caixa);
   const pipeline = calcPipeline(
     (nfsQuery.data ?? []) as unknown as Record<string, unknown>[],
     (saidasQuery.data ?? []) as unknown as Record<string, unknown>[],
   );
-  const nfsSituacao = calcNfsSituacao((nfsQuery.data ?? []) as unknown as Record<string, unknown>[]);
-  const coberturaMeses = calcCoberturaMeses(saldo, caixa as unknown as Record<string, unknown>[]);
+  const nfsSituacao = calcNfsSituacao(
+    (nfsQuery.data ?? []) as unknown as Record<string, unknown>[],
+  );
+  const coberturaMeses = calcCoberturaMeses(saldo, caixa);
   const historicoCaixa = dash.historicoCaixa ?? [];
   const saldoProjetado = dash.saldoProjetado ?? [];
 
-  // Taxa de despesa = total saídas ÷ total contratado × 100
-  const totalSaidas = (saidasQuery.data ?? []).reduce(
-    (s, sd) => s + (Number((sd as { value?: unknown }).value) || 0),
-    0,
+  // ─── Sparklines derivadas (DASH-3 universal) ───
+  const sparkAportes = calcDailyCumulative(
+    (sociosQuery.data ?? []) as unknown as Record<string, unknown>[],
+    (r) => String(r.dataAporte ?? r.data_aporte ?? r.createdAt ?? r.created_at ?? ''),
+    (r) => Number(r.aporteTotal ?? r.aporte_total ?? r.aporte ?? 0),
   );
-  const totalContratado = dash.totalContractValue ?? indicadores.totalContratado;
-  const taxaDespesa = totalContratado > 0 ? (totalSaidas / totalContratado) * 100 : 0;
-  const scoreSaude = calcScoreSaude(taxaDespesa, indicadores.margemMedia, saldo);
+  const sparkProspeccao = calcDailyCumulative(
+    (propostasQuery.data ?? []) as unknown as Record<string, unknown>[],
+    (r) => String(r.createdAt ?? r.created_at ?? r.dataCriacao ?? ''),
+    () => 1,
+  );
+  const sparkColab = calcDailyCumulative(
+    (recursosQuery.data ?? []) as unknown as Record<string, unknown>[],
+    (r) => String(r.dataAdmissao ?? r.data_admissao ?? r.createdAt ?? r.created_at ?? ''),
+    (r) => (r.status === 'funcionario' ? 1 : 0),
+  );
 
   const rdoStats = rdosQuery.data?.stats;
   const rdosAtrasados = (rdoStats?.aderenciaDiaria ?? []).reduce(
@@ -229,19 +181,47 @@ export default function Dashboard() {
     0,
   );
 
+  // ─── Deltas vs período anterior (DASH-2) ───
+  // Saldo: comparar com saldo de 30 dias atrás (primeiro ponto da spark de 45d)
+  const saldo30dAtras = sparks.saldo[Math.max(0, sparks.saldo.length - 30)] ?? saldo;
+  const deltaSaldo = calcDelta(saldo, saldo30dAtras);
+
+  // A receber/pagar: comparativo dia 1 vs dia 30 da spark.
+  const deltaReceber = calcDelta(
+    sparks.entradasAcum[sparks.entradasAcum.length - 1] ?? 0,
+    sparks.entradasAcum[Math.max(0, sparks.entradasAcum.length - 30)] ?? 0,
+  );
+  const deltaPagar = calcDelta(
+    sparks.saidasAcum[sparks.saidasAcum.length - 1] ?? 0,
+    sparks.saidasAcum[Math.max(0, sparks.saidasAcum.length - 30)] ?? 0,
+  );
+  const deltaAportes = calcDelta(
+    sparkAportes[sparkAportes.length - 1] ?? 0,
+    sparkAportes[Math.max(0, sparkAportes.length - 30)] ?? 0,
+  );
+  const deltaProspeccao = calcDelta(
+    sparkProspeccao[sparkProspeccao.length - 1] ?? 0,
+    sparkProspeccao[Math.max(0, sparkProspeccao.length - 30)] ?? 0,
+  );
+  const deltaColab = calcDelta(
+    sparkColab[sparkColab.length - 1] ?? 0,
+    sparkColab[Math.max(0, sparkColab.length - 30)] ?? 0,
+  );
+
+  const margem = indicadores.margemMedia;
+  const margemTone = margem > 20 ? 'pos' : margem > 0 ? 'warn' : 'neg';
+
   // ─── Header: saudação ───
   const horaH = new Date().getHours();
   const user = meQuery.data?.user;
   const nome = primeiroNome(user?.name ?? user?.email ?? null);
   const subParts: string[] = [];
   subParts.push(saldo >= 0 ? 'Caixa positivo' : 'Caixa negativo');
-  const bmsAguard = nfsQuery.data?.filter((n) => !(n as { emitida?: unknown }).emitida).length ?? 0;
+  const bmsAguard =
+    nfsQuery.data?.filter((n) => !(n as { emitida?: unknown }).emitida).length ?? 0;
   if (bmsAguard > 0) subParts.push(`${bmsAguard} BM${bmsAguard !== 1 ? 's' : ''} aguardando emissão`);
   if (rdosAtrasados > 0)
     subParts.push(`${rdosAtrasados} RDO${rdosAtrasados !== 1 ? 's' : ''} atrasado${rdosAtrasados !== 1 ? 's' : ''}`);
-
-  const margem = indicadores.margemMedia;
-  const margemTone: Tone = margem > 20 ? 'pos' : margem > 0 ? 'warn' : 'neg';
 
   return (
     <>
@@ -254,115 +234,200 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* HERO: Score + KPIs lado a lado */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(320px, 1fr) minmax(0, 2fr)',
-          gap: 'var(--sp-lg)',
-          marginBottom: 'var(--sp-xl)',
-        }}
-      >
-        <ScoreCard
-          score={scoreSaude}
-          margemPct={margem}
-          taxaPct={taxaDespesa}
-          coberturaMeses={coberturaMeses}
-          contratosAtivos={indicadores.contratosAtivos}
-        />
+      {/*
+       * Hero bento (DASH-8): Pipeline horizontal (DASH-9) à esquerda como
+       * peça grande; KPIs distribuídos no restante com tamanhos variados
+       * por importância (saldo > demais).
+       */}
+      <BentoGrid className="mb-6">
+        <BentoItem span="6x2">
+          <PipelineCard pipeline={pipeline} />
+        </BentoItem>
 
-        {/* Grid de 9 KPIs */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: 'var(--sp-md)',
-          }}
-        >
-          <KpiCard label="Saldo em caixa" value={formatBRLk(saldo)} tone={saldo >= 0 ? 'pos' : 'neg'} meta={saldo >= 0 ? 'caixa positivo' : 'caixa negativo'} spark={sparks.saldo} href="/caixa" title={`${formatBRL(saldo)} — saldo histórico`} />
-          <KpiCard label="A receber (NFs)" value={formatBRLk(arp.totalAReceber)} meta={`${arp.nfsEmitidas} emitidas · ${arp.nfsPendentes} pendentes`} spark={sparks.entradasAcum} tone="pos" href="/notas-fiscais" title={`${formatBRL(arp.totalAReceber)}`} />
-          <KpiCard label="A pagar (30d)" value={formatBRLk(arp.totalAPagar30d)} tone={arp.totalAPagar30d > 0 ? 'warn' : 'neutral'} meta={`${arp.cp30dCount} lançamento${arp.cp30dCount !== 1 ? 's' : ''}`} spark={sparks.saidasAcum} href="/contas-pagar" title={`${formatBRL(arp.totalAPagar30d)}`} />
-          <KpiCard label="Faturado (mês)" value={formatBRLk(faturado.faturadoMes)} tone={faturado.deltaPct >= 0 ? 'pos' : 'neg'} meta={faturado.faturadoMesAnt > 0 ? `${faturado.deltaPct >= 0 ? '+' : ''}${faturado.deltaPct.toFixed(1)}% vs mês ant.` : 'sem comparativo'} spark={sparks.entradaDia} href="/caixa" title={`${formatBRL(faturado.faturadoMes)}`} />
-          <KpiCard label="Margem média" value={`${margem.toFixed(1)}%`} tone={margemTone} meta={`${indicadores.contratosAtivos} contrato${indicadores.contratosAtivos !== 1 ? 's' : ''} ativo${indicadores.contratosAtivos !== 1 ? 's' : ''}`} href="/contratos" />
-          <KpiCard label="Prospecção" value={String(prospeccao.prospeccaoTotal)} tone={prospeccao.prospeccaoTotal > 0 ? 'warn' : 'neutral'} meta={`${prospeccao.rascunho} rascunho · ${prospeccao.enviada} enviada${prospeccao.aceita > 0 ? ' · ' + prospeccao.aceita + ' aceita' : ''}`} href="/proposta" />
-          <KpiCard label="Aportes acumulados" value={formatBRLk(aportesTotal)} meta="sócios + empresa" tone="pos" href="/socios" />
-          <KpiCard label="Colaboradores" value={String(colab.ativos)} tone={colab.ativos > 0 ? 'pos' : 'neutral'} meta={colab.candidatos > 0 ? `+ ${colab.candidatos} candidato${colab.candidatos !== 1 ? 's' : ''}` : 'ativos'} href="/recursos" />
-          {rdoStats && (
+        <BentoItem span="3x2">
+          <KpiCard
+            label="Saldo em caixa"
+            value={formatBRLk(saldo)}
+            tone={saldo >= 0 ? 'pos' : 'neg'}
+            meta={saldo >= 0 ? 'caixa positivo' : 'caixa negativo'}
+            spark={sparks.saldo}
+            delta={{ pct: deltaSaldo, periodLabel: 'vs 30d' }}
+            href="/caixa"
+            title={`${formatBRL(saldo)} — saldo histórico`}
+          />
+        </BentoItem>
+
+        <BentoItem span="3x1">
+          <KpiCard
+            label="A receber (NFs)"
+            value={formatBRLk(arp.totalAReceber)}
+            tone="pos"
+            meta={`${arp.nfsEmitidas} emitidas · ${arp.nfsPendentes} pendentes`}
+            spark={sparks.entradasAcum}
+            delta={{ pct: deltaReceber, periodLabel: 'vs 30d' }}
+            href="/notas-fiscais?status=emitida"
+            title={formatBRL(arp.totalAReceber)}
+          />
+        </BentoItem>
+
+        <BentoItem span="3x1">
+          <KpiCard
+            label="A pagar (30d)"
+            value={formatBRLk(arp.totalAPagar30d)}
+            tone={arp.totalAPagar30d > 0 ? 'warn' : 'neutral'}
+            meta={`${arp.cp30dCount} lançamento${arp.cp30dCount !== 1 ? 's' : ''}`}
+            spark={sparks.saidasAcum}
+            delta={{ pct: deltaPagar, periodLabel: 'vs 30d', inverted: true }}
+            href="/contas-pagar?status=pendente"
+            title={formatBRL(arp.totalAPagar30d)}
+          />
+        </BentoItem>
+
+        <BentoItem span="3x1">
+          <KpiCard
+            label="Faturado (mês)"
+            value={formatBRLk(faturado.faturadoMes)}
+            tone={faturado.deltaPct >= 0 ? 'pos' : 'neg'}
+            meta={`${formatBRL(faturado.faturadoMesAnt)} no mês ant.`}
+            spark={sparks.entradaDia}
+            delta={
+              faturado.faturadoMesAnt > 0
+                ? { pct: faturado.deltaPct, periodLabel: 'vs mês ant.' }
+                : undefined
+            }
+            href="/caixa?type=entrada"
+            title={formatBRL(faturado.faturadoMes)}
+          />
+        </BentoItem>
+
+        <BentoItem span="3x1">
+          <KpiCard
+            label="Margem média"
+            value={`${margem.toFixed(1)}%`}
+            tone={margemTone}
+            meta={`${indicadores.contratosAtivos} contrato${indicadores.contratosAtivos !== 1 ? 's' : ''} ativo${indicadores.contratosAtivos !== 1 ? 's' : ''}`}
+            spark={sparks.saldo}
+            href="/contratos"
+          />
+        </BentoItem>
+
+        <BentoItem span="3x1">
+          <KpiCard
+            label="Prospecção"
+            value={String(prospeccao.prospeccaoTotal)}
+            tone={prospeccao.prospeccaoTotal > 0 ? 'warn' : 'neutral'}
+            meta={`${prospeccao.rascunho} rascunho · ${prospeccao.enviada} enviada${prospeccao.aceita > 0 ? ` · ${prospeccao.aceita} aceita` : ''}`}
+            spark={sparkProspeccao}
+            delta={{ pct: deltaProspeccao, periodLabel: 'vs 30d' }}
+            href="/proposta"
+          />
+        </BentoItem>
+
+        <BentoItem span="3x1">
+          <KpiCard
+            label="Aportes acumulados"
+            value={formatBRLk(aportesTotal)}
+            tone="pos"
+            meta="sócios + empresa"
+            spark={sparkAportes}
+            delta={{ pct: deltaAportes, periodLabel: 'vs 30d' }}
+            href="/socios"
+          />
+        </BentoItem>
+
+        <BentoItem span="3x1">
+          <KpiCard
+            label="Colaboradores"
+            value={String(colab.ativos)}
+            tone={colab.ativos > 0 ? 'pos' : 'neutral'}
+            meta={
+              colab.candidatos > 0
+                ? `+ ${colab.candidatos} candidato${colab.candidatos !== 1 ? 's' : ''}`
+                : 'ativos'
+            }
+            spark={sparkColab}
+            delta={{ pct: deltaColab, periodLabel: 'vs 30d' }}
+            href="/recursos"
+          />
+        </BentoItem>
+
+        <BentoItem span="3x1">
+          <KpiCard
+            label="Cobertura caixa"
+            value={`${coberturaMeses.toFixed(1)} meses`}
+            tone={coberturaMeses >= 6 ? 'pos' : coberturaMeses >= 3 ? 'warn' : 'neg'}
+            meta="runway com saídas médias 90d"
+            spark={sparks.saldo}
+            href="/caixa"
+          />
+        </BentoItem>
+
+        {rdoStats && (
+          <BentoItem span="3x1">
             <KpiCard
               label={`Aderência RDO ${rdoStats.diasUteisAvaliados}d`}
               value={`${rdoStats.aderencia7d}%`}
               tone={rdoStats.aderencia7d >= 80 ? 'pos' : rdoStats.aderencia7d >= 50 ? 'warn' : 'neg'}
-              meta={rdosAtrasados > 0 ? `${rdosAtrasados} RDO${rdosAtrasados !== 1 ? 's' : ''} atrasado${rdosAtrasados !== 1 ? 's' : ''}` : 'tudo em dia'}
+              meta={
+                rdosAtrasados > 0
+                  ? `${rdosAtrasados} RDO${rdosAtrasados !== 1 ? 's' : ''} atrasado${rdosAtrasados !== 1 ? 's' : ''}`
+                  : 'tudo em dia'
+              }
               spark={(rdoStats.aderenciaDiaria ?? []).map((d: { pct: number }) => d.pct)}
               href="/rdos"
             />
-          )}
-        </div>
-      </div>
+          </BentoItem>
+        )}
+      </BentoGrid>
 
-      {/* 2 colunas: ESQ Pipeline · DIR Card RDOs */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 2fr) minmax(0, 1fr)',
-          gap: 'var(--sp-lg)',
-          marginBottom: 'var(--sp-xl)',
-          alignItems: 'start',
-        }}
-      >
-        <PipelineCard pipeline={pipeline} />
-        {rdoStats && <RdosCard stats={rdoStats} />}
-      </div>
+      {/* Card auxiliar de RDOs com mais detalhe — mantido fora do bento. */}
+      {rdoStats && (
+        <div className="mb-6">
+          <RdosCard stats={rdoStats} />
+        </div>
+      )}
 
       {/* Alertas */}
       {indicadores.riscos.length > 0 && (
-        <Card style={{ padding: 'var(--sp-lg)', marginBottom: 'var(--sp-lg)' }}>
-          <h3 style={{ margin: '0 0 var(--sp-md)', fontSize: 15 }}>
+        <Card className="mb-4 p-6">
+          <h3 className="mb-3 text-[15px] font-semibold">
             ⚠️ Alertas ({indicadores.riscos.length})
           </h3>
           {indicadores.riscos.map((r, i) => (
             <div
               key={i}
-              style={{
-                display: 'flex',
-                gap: 'var(--sp-sm)',
-                padding: '8px 0',
-                borderBottom: i < indicadores.riscos.length - 1 ? '1px solid var(--color-border)' : undefined,
-                fontSize: 14,
-              }}
+              className={`flex gap-2 py-2 text-sm ${
+                i < indicadores.riscos.length - 1 ? 'border-b border-border' : ''
+              }`}
             >
-              <span style={{ fontWeight: 700, color: r.sev === 'Alta' ? VERMELHO : r.sev === 'Média' ? AMARELO : 'var(--color-text-muted)', minWidth: 60 }}>
+              <span
+                className={`min-w-[60px] font-bold ${
+                  r.sev === 'Alta'
+                    ? 'text-destructive'
+                    : r.sev === 'Média'
+                      ? 'text-warning'
+                      : 'text-muted-foreground'
+                }`}
+              >
                 {r.sev}
               </span>
-              <span style={{ flex: 1 }}>{r.desc}</span>
-              {r.impacto > 0 && <strong style={{ color: VERMELHO }}>{formatBRL(r.impacto)}</strong>}
+              <span className="flex-1">{r.desc}</span>
+              {r.impacto > 0 && (
+                <strong className="text-destructive">{formatBRL(r.impacto)}</strong>
+              )}
             </div>
           ))}
         </Card>
       )}
 
       {/* Gráfico Fluxo de Caixa — passado real + projeção 30/60/90 dias */}
-      <Card style={{ padding: 'var(--sp-lg)', marginBottom: 'var(--sp-lg)' }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 'var(--sp-md)',
-            flexWrap: 'wrap',
-            gap: 12,
-          }}
-        >
-          <h3 style={{ margin: 0, fontSize: 16 }}>
+      <Card className="mb-4 p-6">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="m-0 text-base font-semibold">
             Fluxo de Caixa — 30 dias passados + {projDays} dias projetados
           </h3>
           <div
-            style={{
-              display: 'inline-flex',
-              border: '1px solid var(--color-border)',
-              borderRadius: 6,
-              overflow: 'hidden',
-            }}
+            className="inline-flex overflow-hidden rounded-md border border-border"
             role="group"
             aria-label="Dias de projeção"
           >
@@ -371,16 +436,11 @@ export default function Dashboard() {
                 key={d}
                 type="button"
                 onClick={() => setProjDays(d)}
-                style={{
-                  padding: '6px 14px',
-                  border: 0,
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  background: projDays === d ? '#60A5FA' : 'transparent',
-                  color: projDays === d ? '#fff' : 'var(--color-text-muted)',
-                  borderRight: i < PROJ_DAYS_OPTIONS.length - 1 ? '1px solid var(--color-border)' : 0,
-                }}
+                className={`cursor-pointer border-0 px-3.5 py-1.5 text-[13px] font-semibold ${
+                  projDays === d
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-transparent text-muted-foreground'
+                } ${i < PROJ_DAYS_OPTIONS.length - 1 ? 'border-r border-border' : ''}`}
               >
                 {d}d
               </button>
@@ -388,7 +448,7 @@ export default function Dashboard() {
           </div>
         </div>
         {historicoCaixa.length === 0 ? (
-          <p className="text-muted" style={{ textAlign: 'center', padding: 'var(--sp-xl) 0' }}>
+          <p className="py-8 text-center text-muted-foreground">
             Sem dados de caixa para exibir.
           </p>
         ) : (
@@ -402,13 +462,13 @@ export default function Dashboard() {
       </Card>
 
       {/* NFs Situação */}
-      <div style={{ marginBottom: 'var(--sp-lg)' }}>
+      <div className="mb-4">
         <NfsStatusCard situacao={nfsSituacao} emitidas={arp.nfsEmitidas} />
       </div>
 
       {/* Tabela Entradas Previstas */}
       {dash.projecaoFutura && dash.projecaoFutura.length > 0 && (
-        <div style={{ marginBottom: 'var(--sp-lg)' }}>
+        <div className="mb-4">
           <EntradasPrevistasTable projecaoFutura={dash.projecaoFutura} />
         </div>
       )}

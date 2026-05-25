@@ -1,15 +1,16 @@
-import { useEffect, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { cn } from '../../lib/cn';
 
 /** Tamanho do modal — controla max-width. */
 export type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
-const SIZE_MAX_WIDTH: Record<ModalSize, string> = {
-  sm: '420px',
-  md: '640px',
-  lg: '900px',
-  xl: '1100px',
+const SIZE_CLASS: Record<ModalSize, string> = {
+  sm: 'max-w-[420px]',
+  md: 'max-w-[640px]',
+  lg: 'max-w-[900px]',
+  xl: 'max-w-[1100px]',
 };
 
 interface ModalProps {
@@ -24,56 +25,49 @@ interface ModalProps {
 }
 
 /**
- * Diálogo modal — classes .modal-* do CSS atual, renderizado em portal.
- * Fecha com Esc ou clique no backdrop.
+ * Diálogo modal — Radix UI por baixo (focus trap, ESC, click-outside,
+ * portal e ARIA tudo nativo). API preservada da versão anterior.
  */
-export default function Modal({ open, title, onClose, children, footer, size = 'md' }: ModalProps) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  return createPortal(
-    <div
-      className="modal-overlay"
-      onClick={(event) => {
-        if (event.target === event.currentTarget) onClose();
+export default function Modal({
+  open,
+  title,
+  onClose,
+  children,
+  footer,
+  size = 'md',
+}: ModalProps) {
+  return (
+    <Dialog.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
       }}
     >
-      <div
-        className="modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        style={{
-          width: '90vw',
-          maxWidth: SIZE_MAX_WIDTH[size],
-          maxHeight: '92vh',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
-        <div className="modal-header">
-          <h2 className="modal-title">{title}</h2>
-          <button
-            type="button"
-            className="modal-close"
-            onClick={onClose}
-            aria-label="Fechar"
-          >
-            <X size={18} />
-          </button>
-        </div>
-        <div className="modal-content">{children}</div>
-        {footer ? <div className="modal-footer">{footer}</div> : null}
-      </div>
-    </div>,
-    document.body,
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <Dialog.Content
+          className={cn(
+            'fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2',
+            'w-[90vw] max-h-[92vh] flex flex-col',
+            'bg-card text-card-foreground rounded-lg shadow-lg border border-border',
+            'data-[state=open]:animate-in data-[state=closed]:animate-out',
+            'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+            SIZE_CLASS[size],
+          )}
+        >
+          <div className="flex items-center justify-between p-4 border-b border-border">
+            <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
+            <Dialog.Close
+              className="rounded-md p-1 text-muted-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="Fechar"
+            >
+              <X size={18} />
+            </Dialog.Close>
+          </div>
+          <div className="flex-1 overflow-auto p-4">{children}</div>
+          {footer ? <div className="p-4 border-t border-border">{footer}</div> : null}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

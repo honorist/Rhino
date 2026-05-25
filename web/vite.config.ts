@@ -1,15 +1,47 @@
 /// <reference types="vitest" />
+import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { visualizer } from 'rollup-plugin-visualizer';
+import { imagetools } from 'vite-imagetools';
+import tailwindcss from '@tailwindcss/vite';
 
 // Backend (server.js) roda na porta 3001 — ver server.js:20.
 // Em dev o Vite faz proxy de /api para o backend real.
 const API_TARGET = 'http://localhost:3001';
 
+// React Compiler — memoiza automaticamente componentes e hooks. Elimina a
+// necessidade de useMemo/useCallback manuais nas 40+ features. Opera como
+// plugin Babel rodando antes do plugin-react do Vite.
+const ReactCompilerConfig = {
+  target: '19' as const,
+};
+
 export default defineConfig({
   plugins: [
-    react(),
+    tailwindcss(),
+    react({
+      babel: {
+        plugins: [['babel-plugin-react-compiler', ReactCompilerConfig]],
+      },
+    }),
+    // vite-imagetools — converte assets pesados (logo-rhino.jpg 464KB,
+    // proposta-bg.jpg 464KB) em AVIF/WebP responsivo no build-time.
+    // Importar como: `import logo from '?w=400;800;1200&format=avif;webp;jpg&as=picture'`.
+    imagetools({
+      defaultDirectives: (url) => {
+        // Aplica conversão automática para imagens em src/assets/ — public/
+        // continua intacto para uso pelo PWA (manifest icons, etc).
+        if (url.searchParams.has('picture')) {
+          return new URLSearchParams({
+            format: 'avif;webp;jpg',
+            as: 'picture',
+          });
+        }
+        return new URLSearchParams();
+      },
+    }),
     // PWA substitui o sw.js manual da raiz. Estratégias espelham o antigo:
     //   - static (html/js/css/imagens) — precache via workbox
     //   - /api/* GET — NetworkFirst com fallback offline
@@ -102,7 +134,23 @@ export default defineConfig({
         enabled: false,
       },
     }),
-  ],
+    // Gera dist/stats.html com tree-map do bundle. Ativar com ANALYZE=1 npm run build
+    // (já há script `npm run analyze` em package.json). Detecta regressões como o
+    // recharts revertido em d041996.
+    process.env.ANALYZE === '1' &&
+      visualizer({
+        filename: 'dist/stats.html',
+        template: 'treemap',
+        gzipSize: true,
+        brotliSize: true,
+        open: true,
+      }),
+  ].filter(Boolean),
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
+    },
+  },
   server: {
     port: 5173,
     proxy: {

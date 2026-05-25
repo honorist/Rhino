@@ -1,36 +1,68 @@
+import { Slot } from '@radix-ui/react-slot';
+import { cva, type VariantProps } from 'class-variance-authority';
 import type { ButtonHTMLAttributes } from 'react';
+import { cn } from '../../lib/cn';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'success';
-export type ButtonSize = 'sm' | 'md' | 'lg';
+/**
+ * Variantes do botão Rhino. Nomes preservados da API antiga
+ * (primary/secondary/danger/success) para não quebrar consumers; visual
+ * agora é Tailwind + tokens shadcn. Classes legadas `.btn-*` continuam
+ * funcionando porque o CSS antigo é carregado depois do tailwind.css.
+ */
+const buttonVariants = cva(
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ' +
+    'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ' +
+    'disabled:pointer-events-none disabled:opacity-50',
+  {
+    variants: {
+      variant: {
+        primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+        danger: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+        success: 'bg-success text-success-foreground hover:bg-success/90',
+        outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+        ghost: 'hover:bg-accent hover:text-accent-foreground',
+        link: 'text-primary underline-offset-4 hover:underline',
+      },
+      size: {
+        sm: 'h-8 px-3 text-xs',
+        md: 'h-10 px-4 py-2',
+        lg: 'h-12 px-6 text-base',
+        icon: 'h-10 w-10',
+      },
+    },
+    defaultVariants: { variant: 'primary', size: 'md' },
+  },
+);
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
+export type ButtonVariant = NonNullable<VariantProps<typeof buttonVariants>['variant']>;
+export type ButtonSize = NonNullable<VariantProps<typeof buttonVariants>['size']>;
+
+interface ButtonProps
+  extends ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  /** Renderiza como o filho (útil pra <Link asChild>...). */
+  asChild?: boolean;
 }
 
-const VARIANT_CLASS: Record<ButtonVariant, string> = {
-  primary: 'btn-primary',
-  secondary: 'btn-secondary',
-  danger: 'btn-danger',
-  success: 'btn-success',
-};
-
-const SIZE_CLASS: Record<ButtonSize, string> = {
-  sm: 'btn-sm',
-  md: '',
-  lg: 'btn-lg',
-};
-
-/** Botão — reaproveita as classes .btn do CSS atual. `type` padrão: "button". */
+/** Botão — API compatível com a versão anterior. `type` padrão: "button". */
 export default function Button({
-  variant = 'primary',
-  size = 'md',
+  variant,
+  size,
   className,
   type = 'button',
+  asChild = false,
   ...rest
 }: ButtonProps) {
-  const classes = ['btn', VARIANT_CLASS[variant], SIZE_CLASS[size], className]
-    .filter(Boolean)
-    .join(' ');
-  return <button type={type} className={classes} {...rest} />;
+  const Comp = asChild ? Slot : 'button';
+  return (
+    <Comp
+      className={cn(buttonVariants({ variant, size }), className)}
+      // @ts-expect-error — Slot espalha type para o filho quando asChild
+      type={asChild ? undefined : type}
+      {...rest}
+    />
+  );
 }
+
+export { buttonVariants };
