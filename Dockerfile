@@ -6,7 +6,7 @@ FROM node:20-alpine AS web-builder
 WORKDIR /web
 
 COPY web/package*.json ./
-RUN npm ci
+RUN npm install
 
 COPY web/ ./
 # `npm run build` faz tsc -b && vite build → dist/

@@ -9,7 +9,8 @@
         "components.css: removidos !important de .form-control (border/background/color) — deixa shadcn Input funcionar corretamente em dark mode e temas.",
         "Novos componentes Fase 7: command.tsx (cmdk), calendar.tsx (react-day-picker v9), combobox.tsx (Popover+Command).",
         "web/package.json: adicionadas dependências cmdk@1.0.4, react-day-picker@9.7.0, date-fns@4.1.0.",
-        "Propostas.tsx: seletor de cliente migrado de <Select> legado para <Combobox> pesquisável."
+        "Propostas.tsx: seletor de cliente migrado de <Select> legado para <Combobox> pesquisável.",
+        "Dockerfile: web-builder stage usa npm install (suporta novos deps sem lock file sincronizado)."
       ]
     },
     {
