@@ -1,3 +1,9 @@
+/* Tailwind v4 entrypoint PRIMEIRO — o Preflight (reset CSS) precisa rodar
+   ANTES do CSS legado, senão zera margens/paddings/cores que o legado
+   definiu (botões, headings, listas, forms). Para fazer utilitários
+   vencerem o legado em casos específicos, usar prefixo `!` (ex.: `!p-5`). */
+@import './tailwind.css';
+
 /* Ordem espelha o index.html antigo: main → components → theme-v2 → polish.
    layout.css contém apenas as adições da migração React. */
 @import './main.css';
@@ -5,9 +11,3 @@
 @import './theme-v2.css';
 @import './polish.css';
 @import './layout.css';
-
-/* Tailwind v4 entrypoint POR ÚLTIMO — garante que utilitários (`p-5`,
-   `mb-6`, `bg-card`) vençam o CSS legado (.card, .form-control, etc.) em
-   caso de empate de especificidade. Sem isso o componente novo `<Card>`
-   herdava `padding: var(--sp-lg)` do `.card` legado mesmo com `p-5`. */
-@import './tailwind.css';
