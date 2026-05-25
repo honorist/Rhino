@@ -8,6 +8,7 @@ import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
+import { Combobox } from '../../components/ui/combobox';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
@@ -888,32 +889,26 @@ function ContaModal({ conta, fornecedores, contratos, onClose }: ContaModalProps
 
         <div className="form-row">
           <FormField label="Fornecedor" htmlFor="cp-forn">
-            <Select
+            <Combobox
               id="cp-forn"
+              options={fornecedores.map((f) => ({ value: f.id, label: f.nome }))}
               value={fornecedorId}
-              onChange={(event) => setFornecedorId(event.target.value)}
-            >
-              <option value="">— Selecionar —</option>
-              {fornecedores.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.nome}
-                </option>
-              ))}
-            </Select>
+              onChange={setFornecedorId}
+              placeholder="— Selecionar —"
+              searchPlaceholder="Pesquisar fornecedor..."
+              emptyText="Nenhum fornecedor encontrado."
+            />
           </FormField>
           <FormField label="Contrato (opcional)" htmlFor="cp-contr">
-            <Select
+            <Combobox
               id="cp-contr"
+              options={contratos.map((c) => ({ value: c.id, label: String(c.name ?? 'Contrato') }))}
               value={contractId}
-              onChange={(event) => setContractId(event.target.value)}
-            >
-              <option value="">— Nenhum —</option>
-              {contratos.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {String(c.name ?? 'Contrato')}
-                </option>
-              ))}
-            </Select>
+              onChange={setContractId}
+              placeholder="— Nenhum —"
+              searchPlaceholder="Pesquisar contrato..."
+              emptyText="Nenhum contrato encontrado."
+            />
           </FormField>
         </div>
 

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Input, Select, Textarea } from '../../../components/ui/controls';
 import { DatePicker } from '../../../components/ui/date-picker';
+import { Combobox } from '../../../components/ui/combobox';
 import Card from '../../../components/ui/Card';
 import { useClientes } from '../../clientes/queries';
 import type { Cliente } from '../../clientes/types';
@@ -64,19 +65,14 @@ export default function DadosGeraisTab({ proposta, onChange }: EditorTabProps) {
       <h3 className="prop-section-title">Identificação do Cliente</h3>
       <div className="prop-grid prop-grid-2">
         <Field label="Cliente cadastrado" full>
-          <Select
+          <Combobox
+            options={clientes.map((c) => ({ value: c.id, label: clienteLabel(c) }))}
             value={proposta.clienteId ?? ''}
-            onChange={(e) => handleClienteSelect(e.target.value)}
-          >
-            <option value="">
-              — Sem cliente vinculado (preenchimento manual) —
-            </option>
-            {clientes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {clienteLabel(c)}
-              </option>
-            ))}
-          </Select>
+            onChange={handleClienteSelect}
+            placeholder="— Sem cliente vinculado (preenchimento manual) —"
+            searchPlaceholder="Pesquisar cliente..."
+            emptyText="Nenhum cliente encontrado."
+          />
         </Field>
         <Field label="Empresa (Razão social)">
           <Input

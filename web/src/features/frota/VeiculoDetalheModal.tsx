@@ -5,6 +5,7 @@ import FormField from '../../components/ui/FormField';
 import Spinner from '../../components/ui/Spinner';
 import { Input, Select, Textarea } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
+import { Combobox } from '../../components/ui/combobox';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR, todayISO } from '../../lib/formatDate';
@@ -313,18 +314,15 @@ function ManutModal({
         </div>
         <div style={{ flex: 1, minWidth: 140 }}>
           <FormField label="Fornecedor" htmlFor="mn-forn">
-            <Select
+            <Combobox
               id="mn-forn"
+              options={fornecedores.map((f) => ({ value: f.id, label: String(f.nome ?? '') }))}
               value={fornecedorId}
-              onChange={(e) => setFornecedorId(e.target.value)}
-            >
-              <option value="">—</option>
-              {fornecedores.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {String(f.nome ?? '')}
-                </option>
-              ))}
-            </Select>
+              onChange={setFornecedorId}
+              placeholder="— Selecionar —"
+              searchPlaceholder="Pesquisar fornecedor..."
+              emptyText="Nenhum fornecedor encontrado."
+            />
           </FormField>
         </div>
       </Row>
