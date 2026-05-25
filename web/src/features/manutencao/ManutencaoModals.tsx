@@ -2,8 +2,9 @@ import { useState, type ReactNode } from 'react';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
-import { Input, Select, Textarea } from '../../components/ui/controls';
+import { Input, Textarea } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
+import { Combobox } from '../../components/ui/combobox';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR, todayISO } from '../../lib/formatDate';
@@ -130,18 +131,18 @@ export function NovaManutencaoModal({ manutencao, onClose }: NovaModalProps) {
         />
       </FormField>
       <FormField label="Origem do equipamento" htmlFor="man-origem">
-        <Select
+        <Combobox
           id="man-origem"
+          options={[
+            { value: '', label: '🏢 Sede' },
+            ...contratos.map((c) => ({ value: c.id, label: `🏗️ ${String(c.name ?? '')}` })),
+          ]}
           value={contractId ?? ''}
-          onChange={(e) => setContractId(e.target.value)}
-        >
-          <option value="">🏢 Sede</option>
-          {contratos.map((c) => (
-            <option key={c.id} value={c.id}>
-              🏗️ {String(c.name ?? '')}
-            </option>
-          ))}
-        </Select>
+          onChange={setContractId}
+          placeholder="🏢 Sede"
+          searchPlaceholder="Pesquisar obra..."
+          emptyText="Nenhuma obra encontrada."
+        />
       </FormField>
       <FormField label="Observações" htmlFor="man-obs">
         <Textarea
