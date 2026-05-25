@@ -40,20 +40,30 @@ const BASE_SELECT_CLASS = cn(
   'disabled:cursor-not-allowed disabled:opacity-50',
 );
 
-/** <input> Tailwind puro, h-10 padrão shadcn. */
+/**
+ * @deprecated Usar `<Input>` de `@/components/ui/input`. Removido em v1.3.0.
+ */
 export function Input({
   className,
   ...rest
 }: InputHTMLAttributes<HTMLInputElement>) {
+  if (import.meta.env.DEV) {
+    console.warn('[controls.Input] deprecated — usar <Input> de @/components/ui/input. Removido em v1.3.0.');
+  }
   return <input className={cn(BASE_INPUT_CLASS, className)} {...rest} />;
 }
 
-/** <select> Tailwind puro, h-10 padrão shadcn. */
+/**
+ * @deprecated Usar `<Select>` de `@/components/ui/select`. Removido em v1.3.0.
+ */
 export function Select({
   className,
   children,
   ...rest
 }: SelectHTMLAttributes<HTMLSelectElement>) {
+  if (import.meta.env.DEV) {
+    console.warn('[controls.Select] deprecated — usar <Select> de @/components/ui/select. Removido em v1.3.0.');
+  }
   return (
     <select className={cn(BASE_SELECT_CLASS, className)} {...rest}>
       {children}
@@ -61,10 +71,15 @@ export function Select({
   );
 }
 
-/** <textarea> Tailwind puro, min-h-[80px] padrão shadcn. */
+/**
+ * @deprecated Usar `<Textarea>` de `@/components/ui/textarea`. Removido em v1.3.0.
+ */
 export function Textarea({
   className,
   ...rest
 }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  if (import.meta.env.DEV) {
+    console.warn('[controls.Textarea] deprecated — usar <Textarea> de @/components/ui/textarea. Removido em v1.3.0.');
+  }
   return <textarea className={cn(BASE_TEXTAREA_CLASS, className)} {...rest} />;
 }

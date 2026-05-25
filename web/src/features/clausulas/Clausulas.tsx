@@ -1,9 +1,23 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../../components/ui/Button';
-import Modal from '../../components/ui/Modal';
-import FormField from '../../components/ui/FormField';
-import { Input, Select, Textarea } from '../../components/ui/controls';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../../components/ui/dialog';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import { Textarea } from '../../components/ui/textarea';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import type { Clausula } from '../../types/domain';
@@ -510,12 +524,66 @@ function ClausulaModal({ clausula, onClose }: ClausulaModalProps) {
   }
 
   return (
-    <Modal
-      open
-      title={isEdit ? 'Editar Cláusula' : 'Nova Cláusula'}
-      onClose={onClose}
-      footer={
-        <>
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-[680px]">
+        <DialogHeader>
+          <DialogTitle>
+            {isEdit ? 'Editar Cláusula' : 'Nova Cláusula'}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto p-6">
+          <form
+            id="form-clausula"
+            onSubmit={handleSubmit}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="cla-cat">Categoria *</Label>
+              <Select value={categoria} onValueChange={setCategoria}>
+                <SelectTrigger id="cla-cat">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIAS_FORM.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cla-titulo">Título *</Label>
+              <Input
+                id="cla-titulo"
+                value={titulo}
+                onChange={(event) => setTitulo(event.target.value)}
+                required
+                placeholder="Ex.: EPIs e EPCs"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cla-texto">Texto *</Label>
+              <Textarea
+                id="cla-texto"
+                value={texto}
+                onChange={(event) => setTexto(event.target.value)}
+                rows={8}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cla-tags">Tags (separadas por vírgula)</Label>
+              <Input
+                id="cla-tags"
+                value={tags}
+                onChange={(event) => setTags(event.target.value)}
+                placeholder="seguranca, padrao, fabricacao"
+              />
+            </div>
+          </form>
+        </div>
+        <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
@@ -526,50 +594,8 @@ function ClausulaModal({ clausula, onClose }: ClausulaModalProps) {
                 ? 'Salvar Alterações'
                 : 'Criar Cláusula'}
           </Button>
-        </>
-      }
-    >
-      <form id="form-clausula" onSubmit={handleSubmit}>
-        <FormField label="Categoria *" htmlFor="cla-cat">
-          <Select
-            id="cla-cat"
-            value={categoria}
-            onChange={(event) => setCategoria(event.target.value)}
-          >
-            {CATEGORIAS_FORM.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </Select>
-        </FormField>
-        <FormField label="Título *" htmlFor="cla-titulo">
-          <Input
-            id="cla-titulo"
-            value={titulo}
-            onChange={(event) => setTitulo(event.target.value)}
-            required
-            placeholder="Ex.: EPIs e EPCs"
-          />
-        </FormField>
-        <FormField label="Texto *" htmlFor="cla-texto">
-          <Textarea
-            id="cla-texto"
-            value={texto}
-            onChange={(event) => setTexto(event.target.value)}
-            rows={8}
-            required
-          />
-        </FormField>
-        <FormField label="Tags (separadas por vírgula)" htmlFor="cla-tags">
-          <Input
-            id="cla-tags"
-            value={tags}
-            onChange={(event) => setTags(event.target.value)}
-            placeholder="seguranca, padrao, fabricacao"
-          />
-        </FormField>
-      </form>
-    </Modal>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

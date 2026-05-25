@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.2.85",
+      "date": "2026-05-25",
+      "summary": "Fase 3 — Form shadcn + Clausulas piloto + fix imports Fase 1",
+      "changes": [
+        "Fix crítico: componentes da Fase 1 (aspect-ratio, avatar, checkbox, progress, separator, skeleton, sonner, switch, toggle, toggle-group, tooltip, alert) agora importam do monolith 'radix-ui' em vez de subpaths 'radix-ui/react-*' — corrige build Railway.",
+        "Adicionados input.tsx, label.tsx, textarea.tsx, radio-group.tsx, select.tsx no padrão oficial shadcn/ui.",
+        "Adicionado form.tsx com padrão shadcn/ui (Form=FormProvider, FormField=Controller, FormItem, FormLabel, FormControl, FormDescription, FormMessage, useFormField).",
+        "ClausulaModal migrado para Dialog composicional + Label/Input/Textarea/Select shadcn (piloto Fase 3).",
+        "controls.tsx: Input, Select e Textarea recebem console.warn deprecation em DEV (remover em v1.3.0)."
+      ]
+    },
+    {
       "version": "1.2.84",
       "date": "2026-05-25",
       "summary": "Fase 2 — Dialog composicional shadcn/ui",
