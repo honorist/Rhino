@@ -1,4 +1,5 @@
 import type { RouteDef } from '../routes/config';
+import Card from '../components/ui/Card';
 import PageHeader from '../components/layout/PageHeader';
 
 interface PlaceholderProps {
@@ -13,12 +14,12 @@ export default function Placeholder({ route }: PlaceholderProps) {
   return (
     <>
       <PageHeader title={route.title} subtitle="Tela ainda não migrada para React" />
-      <div className="card" style={{ padding: 32, textAlign: 'center' }}>
+      <Card style={{ padding: 32, textAlign: 'center' }}>
         <p className="text-muted" style={{ margin: 0 }}>
           A view <strong>{route.title}</strong> (<code>{route.path}</code>) será
           implementada na Fase 3 da migração para React.
         </p>
-      </div>
+      </Card>
     </>
   );
 }

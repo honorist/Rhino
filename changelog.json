@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.97",
+      "date": "2026-05-25",
+      "summary": "Fase 6 CONCLUÍDA — CSS legado zerado em pages/NotFound + Placeholder",
+      "changes": [
+        "NotFound.tsx: card→<Card>, btn btn-primary Link→<Button asChild>.",
+        "Placeholder.tsx: card→<Card>.",
+        "Zero ocorrências de .btn/.card/.badge/.form-control em toda src/features/ e src/pages/."
+      ]
+    },
+    {
       "version": "1.2.96",
       "date": "2026-05-25",
       "summary": "Fase 6 — CSS legado erradicado em propostas + solicitacoes",
