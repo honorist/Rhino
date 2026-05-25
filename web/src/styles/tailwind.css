@@ -7,6 +7,44 @@
 @import 'tailwindcss';
 
 /*
+ * Dark mode por classe `.dark` no <html> — compatível com o themer.ts legado.
+ * Permite usar `dark:` utilities do Tailwind (ex.: dark:bg-muted) em componentes
+ * shadcn gerados pelo CLI, que dependem dessa variante.
+ */
+@custom-variant dark (&:is(.dark, .dark *));
+
+/*
+ * Aliases sem prefixo `--color-` para compatibilidade com componentes shadcn/ui
+ * que lêem `var(--border)`, `var(--popover)`, `var(--radius)` etc. diretamente
+ * via inline style (Sonner, Vaul, etc.). As variáveis canônicas vivem no @theme
+ * acima como `--color-*`; estes são apenas espelhos.
+ */
+@layer base {
+  :root {
+    --background: var(--color-background);
+    --foreground: var(--color-foreground);
+    --card: var(--color-card);
+    --card-foreground: var(--color-card-foreground);
+    --popover: var(--color-popover);
+    --popover-foreground: var(--color-popover-foreground);
+    --primary: var(--color-primary);
+    --primary-foreground: var(--color-primary-foreground);
+    --secondary: var(--color-secondary);
+    --secondary-foreground: var(--color-secondary-foreground);
+    --muted: var(--color-muted);
+    --muted-foreground: var(--color-muted-foreground);
+    --accent: var(--color-accent);
+    --accent-foreground: var(--color-accent-foreground);
+    --destructive: var(--color-destructive);
+    --destructive-foreground: var(--color-destructive-foreground);
+    --border: var(--color-border);
+    --input: var(--color-input);
+    --ring: var(--color-ring);
+    --radius: var(--radius-md);
+  }
+}
+
+/*
  * Tokens do design system Rhino. Alinhados ao manifest PWA (theme #55588B,
  * background #F3F4F6) e ao verde corporativo da CV/onepage (#1D6B3F).
  *
@@ -133,7 +171,7 @@
   /*
    * Reset do margin-bottom legado (.form-group em components.css adiciona
    * var(--sp-md)) quando o campo está dentro de um Radix Dialog. O modal
-   * novo já controla o gap via `space-y-5` na shell — duplicar margin
+   * novo já controla o gap via `space-y-4` na shell — duplicar margin
    * gera espaçamento inconsistente entre form-rows.
    *
    * O seletor [role="dialog"] alcança qualquer Radix Dialog.Content sem
@@ -144,10 +182,18 @@
   }
 
   /*
-   * Form-row legado tem grid 2 colunas com `gap: var(--sp-lg)`. Confirmamos
-   * o gap dentro do modal (var(--sp-md) seria muito apertado para inputs h-10).
+   * Form-row legado tem grid 2 colunas com `gap: var(--sp-lg)`. Alinhamos
+   * o gap dentro do modal a 1rem (16px) para casar com `space-y-4` shadcn.
    */
   [role='dialog'] .form-row {
-    gap: 1.25rem;
+    gap: 1rem;
   }
+
+  /*
+   * Page-title/subtitle dentro do dashboard novo: reduz o tamanho para
+   * casar com a hierarquia shadcn (h1 em 24-30px, sub em 14px muted).
+   * Não tocamos no `.page-header` legado das outras páginas (Contracts,
+   * RDOs), apenas adicionamos o `:where()` para vencer sem afetar quem
+   * já depende do estilo antigo via `font-size` direto no h1.
+   */
 }

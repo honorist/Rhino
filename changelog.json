@@ -1,6 +1,28 @@
 {
   "entries": [
     {
+      "version": "1.2.83",
+      "date": "2026-05-25",
+      "summary": "Fase 1 shadcn — Sonner + 11 primitivos atômicos",
+      "changes": [
+        "Adicionados 12 componentes UI no padrão shadcn/ui: sonner, skeleton, separator, alert, aspect-ratio, progress, tooltip, avatar, switch, checkbox, toggle, toggle-group.",
+        "Sonner (Toaster) montado em main.tsx — substitui progressivamente o ToastProvider legado.",
+        "TooltipProvider adicionado na raiz do app — necessário para qualquer uso de <Tooltip>.",
+        "ToastProvider marcado como @deprecated com aviso em DEV — será removido em v1.3.0.",
+        "Deps: sonner ^2.0.7, radix-ui ^1.4.3, next-themes ^0.4.6."
+      ]
+    },
+    {
+      "version": "1.2.82",
+      "date": "2026-05-25",
+      "summary": "Pré-Fase 0 — saneamento do setup shadcn/ui",
+      "changes": [
+        "components.json configurado para new-york style, Tailwind v4 com cssVariables, alias @/lib/cn e @/components/ui.",
+        "Alias TypeScript @/* → src/* confirmado em tsconfig.app.json.",
+        "Tokens de cor e radius do design system Rhino alinhados ao manifest PWA."
+      ]
+    },
+    {
       "version": "1.2.81",
       "date": "2026-05-25",
       "summary": "UI polida — modais e Dashboard no padrão shadcn/ui",

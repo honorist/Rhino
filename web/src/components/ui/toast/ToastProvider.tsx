@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ToastContext, type ToastKind } from './ToastContext';
 
 interface ToastItem {
@@ -13,8 +13,15 @@ const TOAST_TTL_MS = 4000;
  * Provedor de toasts — substitui o `window.showToast` global do app antigo.
  * Renderiza a pilha de toasts (.toast-stack) ao fim da árvore.
  */
+/** @deprecated Migrar para `sonner` — será removido em v1.3.0. */
 export default function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      console.warn('[toast] ToastProvider deprecated — migrar chamadas para sonner toast(). Removido em v1.3.0.');
+    }
+  }, []);
 
   const show = useCallback((message: string, kind: ToastKind = 'info') => {
     const id = Date.now() + Math.random();
