@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.2.87",
+      "date": "2026-05-25",
+      "summary": "Fase 4b — SidebarFooter migrado para DropdownMenu shadcn",
+      "changes": [
+        "Sidebar.tsx SidebarFooter: dois botões separados (logout + trocar perfil) consolidados em um único <DropdownMenu> shadcn.",
+        "Dropdown mostra: nome/email do usuário, perfil ativo com ícone e cor, opção 'Trocar Perfil' (quando disponível), item destrutivo 'Sair'.",
+        "Importados DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger e ChevronsUpDown de lucide-react."
+      ]
+    },
+    {
       "version": "1.2.86",
       "date": "2026-05-25",
       "summary": "Fase 4a — 11 primitivos interação média + Propostas Tabs shadcn",

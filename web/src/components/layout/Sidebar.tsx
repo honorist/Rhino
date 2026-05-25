@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { ChevronRight, LogOut } from 'lucide-react';
+import { ChevronRight, ChevronsUpDown, LogOut } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
 import type { NavGroup, RouteDef } from '../../routes/config';
 import { GROUP_ROUTES, NAV_GROUPS, ROUTES } from '../../routes/config';
 import { podeAcessar, usePerfilStore } from '../../features/auth/perfilStore';
@@ -216,63 +224,66 @@ function SidebarFooter() {
     <div className="sidebar-footer">
       {user && <NotificacoesBell />}
       {user && (
-        <button
-          id="btn-logout"
-          type="button"
-          className="theme-toggle-btn"
-          onClick={handleLogout}
-          disabled={logout.isPending}
-          title={`Sair (${user.email})`}
-          aria-label="Sair"
-          style={{ marginBottom: 4 }}
-        >
-          <span className="theme-toggle-icon">
-            <LogOut size={16} />
-          </span>
-          <span style={{ fontWeight: 600 }}>{user.name || user.email}</span>
-          <span
-            style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--color-text-muted)' }}
-          >
-            sair
-          </span>
-        </button>
-      )}
-      {perfil &&
-        (podeTrocarPerfil ? (
-          <button
-            id="btn-trocar-perfil"
-            type="button"
-            className="theme-toggle-btn"
-            onClick={() => clearPerfil()}
-            title="Trocar perfil"
-            style={{ marginBottom: 4 }}
-          >
-            <span className="theme-toggle-icon" style={{ fontSize: 18 }}>
-              {perfil.icon}
-            </span>
-            <span style={{ color: perfil.cor, fontWeight: 600 }}>{perfil.label}</span>
-            <span
-              style={{
-                marginLeft: 'auto',
-                fontSize: 13,
-                color: 'var(--color-text-muted)',
-              }}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="theme-toggle-btn"
+              disabled={logout.isPending}
+              aria-label="Menu do usuário"
+              style={{ marginBottom: 4 }}
             >
-              trocar
-            </span>
-          </button>
-        ) : (
-          <div
-            className="theme-toggle-btn"
-            title="Seu nível de acesso"
-            style={{ marginBottom: 4, cursor: 'default' }}
-          >
-            <span className="theme-toggle-icon" style={{ fontSize: 18 }}>
-              {perfil.icon}
-            </span>
-            <span style={{ color: perfil.cor, fontWeight: 600 }}>{perfil.label}</span>
-          </div>
-        ))}
+              <span className="theme-toggle-icon">
+                <LogOut size={16} />
+              </span>
+              <span style={{ fontWeight: 600 }}>{user.name || user.email}</span>
+              <ChevronsUpDown
+                size={14}
+                style={{ marginLeft: 'auto', opacity: 0.5 }}
+              />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="start" className="w-56">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-sm font-semibold">
+                  {user.name || user.email}
+                </span>
+                {user.name && (
+                  <span className="text-xs text-muted-foreground">
+                    {user.email}
+                  </span>
+                )}
+              </div>
+            </DropdownMenuLabel>
+            {perfil && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="flex items-center gap-2 font-normal">
+                  <span style={{ fontSize: 16 }}>{perfil.icon}</span>
+                  <span style={{ color: perfil.cor, fontWeight: 600 }}>
+                    {perfil.label}
+                  </span>
+                </DropdownMenuLabel>
+                {podeTrocarPerfil && (
+                  <DropdownMenuItem onClick={() => clearPerfil()}>
+                    Trocar Perfil
+                  </DropdownMenuItem>
+                )}
+              </>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => void handleLogout()}
+              disabled={logout.isPending}
+            >
+              <LogOut size={14} />
+              Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
       <div className="sidebar-version">Rhino v{APP_VERSION}</div>
     </div>
   );
