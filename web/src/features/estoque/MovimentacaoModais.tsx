@@ -4,6 +4,7 @@ import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
+import { Combobox } from '../../components/ui/combobox';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
 import { todayISO } from '../../lib/formatDate';
@@ -284,17 +285,15 @@ export function EnviarObraModal({ item, almoxs, onClose }: MovModalProps) {
         />
       </FormField>
       <FormField label="Para qual obra? *" htmlFor="en-obra">
-        <Select
+        <Combobox
           id="en-obra"
+          options={contratos.map((c) => ({ value: c.id, label: String(c.name ?? '') }))}
           value={contractId}
-          onChange={(e) => setContractId(e.target.value)}
-        >
-          {contratos.map((c) => (
-            <option key={c.id} value={c.id}>
-              {String(c.name ?? '')}
-            </option>
-          ))}
-        </Select>
+          onChange={setContractId}
+          placeholder="— Selecione a obra —"
+          searchPlaceholder="Pesquisar obra..."
+          emptyText="Nenhuma obra encontrada."
+        />
       </FormField>
       <Row>
         <div style={{ flex: 1, minWidth: 130 }}>
