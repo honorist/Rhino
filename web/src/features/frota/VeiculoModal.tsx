@@ -3,6 +3,7 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
+import { Combobox } from '../../components/ui/combobox';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { useContracts } from '../contracts/queries';
 import { useCreateVeiculo, useUpdateVeiculo } from '../resources';
@@ -200,18 +201,18 @@ export default function VeiculoModal({ veiculo, onClose }: VeiculoModalProps) {
         </div>
         <div style={{ flex: 1, minWidth: 160 }}>
           <FormField label="Alocado em" htmlFor="ve-contrato">
-            <Select
+            <Combobox
               id="ve-contrato"
+              options={[
+                { value: '', label: '— Pool (sem alocação) —' },
+                ...contratos.map((c) => ({ value: c.id, label: String(c.name ?? '') })),
+              ]}
               value={contractId ?? ''}
-              onChange={(e) => setContractId(e.target.value)}
-            >
-              <option value="">— Pool (sem alocação) —</option>
-              {contratos.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {String(c.name ?? '')}
-                </option>
-              ))}
-            </Select>
+              onChange={setContractId}
+              placeholder="— Pool (sem alocação) —"
+              searchPlaceholder="Pesquisar contrato..."
+              emptyText="Nenhum contrato encontrado."
+            />
           </FormField>
         </div>
       </Row>

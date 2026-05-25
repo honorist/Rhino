@@ -5,6 +5,7 @@ import Card from '../../components/ui/Card';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import Spinner from '../../components/ui/Spinner';
 import { Input, Select } from '../../components/ui/controls';
+import { Combobox } from '../../components/ui/combobox';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import type { Contract } from '../contracts/types';
 import { useContracts } from '../contracts/queries';
@@ -291,17 +292,17 @@ export default function Frota() {
             <option value="manutencao">Em manutenção</option>
             <option value="inativo">Inativos</option>
           </Select>
-          <Select
+          <Combobox
+            options={[
+              { value: '', label: 'Todos os contratos' },
+              ...(contractsQuery.data ?? []).map((c) => ({ value: c.id, label: String(c.name ?? '') })),
+            ]}
             value={filtroContrato}
-            onChange={(e) => setFiltroContrato(e.target.value)}
-          >
-            <option value="">Todos os contratos</option>
-            {(contractsQuery.data ?? []).map((c) => (
-              <option key={c.id} value={c.id}>
-                {String(c.name ?? '')}
-              </option>
-            ))}
-          </Select>
+            onChange={setFiltroContrato}
+            placeholder="Todos os contratos"
+            searchPlaceholder="Pesquisar contrato..."
+            emptyText="Nenhum contrato encontrado."
+          />
         </div>
       </Card>
 

@@ -2,7 +2,8 @@ import { useState } from 'react';
 import Button from '../../components/ui/Button';
 import FormField from '../../components/ui/FormField';
 import Modal from '../../components/ui/Modal';
-import { Input, Select, Textarea } from '../../components/ui/controls';
+import { Input, Textarea } from '../../components/ui/controls';
+import { Combobox } from '../../components/ui/combobox';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { useContracts } from '../contracts/queries';
 import { useCriarSolicitacao } from './queries';
@@ -74,18 +75,21 @@ export default function NovaSolicitacaoModal({ onClose }: { onClose: () => void 
       }
     >
       <FormField label="Obra / Contrato (opcional)" htmlFor="sol-contrato">
-        <Select
+        <Combobox
           id="sol-contrato"
+          options={[
+            { value: '', label: '— Sem contrato específico —' },
+            ...(contractsQuery.data ?? []).map((c) => ({
+              value: c.id,
+              label: c.client ? `${c.name} · ${c.client}` : c.name,
+            })),
+          ]}
           value={contractId}
-          onChange={(e) => setContractId(e.target.value)}
-        >
-          <option value="">— Sem contrato específico —</option>
-          {(contractsQuery.data ?? []).map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name} {c.client ? `· ${c.client}` : ''}
-            </option>
-          ))}
-        </Select>
+          onChange={setContractId}
+          placeholder="— Sem contrato específico —"
+          searchPlaceholder="Pesquisar contrato..."
+          emptyText="Nenhum contrato encontrado."
+        />
       </FormField>
 
       <div
