@@ -5,6 +5,7 @@ import DataTable, { type Column } from '../../components/ui/DataTable';
 import EmptyState from '../../components/ui/EmptyState';
 import Spinner from '../../components/ui/Spinner';
 import { Input, Select } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import { computeDiff } from './diff';
 import {
   ACAO_OPCOES,
@@ -314,18 +315,16 @@ export default function Auditoria() {
         </div>
         <div className="form-group" style={{ margin: 0 }}>
           <label className="form-label">A partir de</label>
-          <Input
-            type="date"
+          <DatePicker
             value={filters.from}
-            onChange={(e) => setFilter({ from: e.target.value })}
+            onChange={(val) => setFilter({ from: val })}
           />
         </div>
         <div className="form-group" style={{ margin: 0 }}>
           <label className="form-label">Até</label>
-          <Input
-            type="date"
+          <DatePicker
             value={filters.to}
-            onChange={(e) => setFilter({ to: e.target.value })}
+            onChange={(val) => setFilter({ to: val })}
           />
         </div>
         <Button variant="secondary" onClick={limpar}>

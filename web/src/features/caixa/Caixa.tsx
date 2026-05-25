@@ -7,6 +7,7 @@ import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
@@ -969,29 +970,19 @@ function FiltrosCard({
         </div>
         <div style={{ flex: 1, minWidth: 140 }}>
           <FormField label="De" htmlFor="cx-de">
-            <Input
+            <DatePicker
               id="cx-de"
-              type="date"
               value={filters.dateFrom}
-              onChange={(event) =>
-                onChange({
-                  ...filters,
-                  dateFrom: event.target.value,
-                  mes: '',
-                })
-              }
+              onChange={(val) => onChange({ ...filters, dateFrom: val, mes: '' })}
             />
           </FormField>
         </div>
         <div style={{ flex: 1, minWidth: 140 }}>
           <FormField label="Até" htmlFor="cx-ate">
-            <Input
+            <DatePicker
               id="cx-ate"
-              type="date"
               value={filters.dateTo}
-              onChange={(event) =>
-                onChange({ ...filters, dateTo: event.target.value, mes: '' })
-              }
+              onChange={(val) => onChange({ ...filters, dateTo: val, mes: '' })}
             />
           </FormField>
         </div>
@@ -1257,12 +1248,10 @@ function EntryModal({ entry, contratos, onClose }: EntryModalProps) {
             </Select>
           </FormField>
           <FormField label="Data *" htmlFor="cx-date">
-            <Input
+            <DatePicker
               id="cx-date"
-              type="date"
               value={date}
-              onChange={(event) => setDate(event.target.value)}
-              required
+              onChange={(val) => setDate(val)}
             />
           </FormField>
         </div>
@@ -1397,12 +1386,10 @@ function MaterializeModal({ prefill, contratos, onClose }: MaterializeModalProps
         </FormField>
         <div className="form-row">
           <FormField label="Data *" htmlFor="mat-date">
-            <Input
+            <DatePicker
               id="mat-date"
-              type="date"
               value={date}
-              onChange={(event) => setDate(event.target.value)}
-              required
+              onChange={(val) => setDate(val)}
             />
           </FormField>
           <FormField label="Valor (BRL) *" htmlFor="mat-value">

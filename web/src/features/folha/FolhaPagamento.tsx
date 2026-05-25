@@ -6,6 +6,7 @@ import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
@@ -436,11 +437,10 @@ function PagarModal({ row, parcela, onClose }: PagarModalProps) {
         Valor: <strong>{formatBRL(valor)}</strong>
       </p>
       <FormField label="Data do pagamento" htmlFor="fp-data">
-        <Input
+        <DatePicker
           id="fp-data"
-          type="date"
           value={dataPagamento}
-          onChange={(event) => setDataPagamento(event.target.value)}
+          onChange={(val) => setDataPagamento(val)}
         />
       </FormField>
       <FormField label="Forma de pagamento" htmlFor="fp-forma">

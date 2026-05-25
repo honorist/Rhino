@@ -3,6 +3,7 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { useContracts } from '../contracts/queries';
 import { useCreateRecurso, useUpdateRecurso } from '../resources';
@@ -210,11 +211,10 @@ export default function RecursoModal({ recurso, onClose }: RecursoModalProps) {
       <Row>
         <div style={{ flex: 1, minWidth: 140 }}>
           <FormField label="Data de Nascimento" htmlFor="rc-nasc">
-            <Input
+            <DatePicker
               id="rc-nasc"
-              type="date"
               value={dataNascimento}
-              onChange={(e) => setDataNascimento(e.target.value)}
+              onChange={(val) => setDataNascimento(val)}
             />
           </FormField>
         </div>
@@ -315,11 +315,10 @@ export default function RecursoModal({ recurso, onClose }: RecursoModalProps) {
         </div>
         <div style={{ flex: 1, minWidth: 130 }}>
           <FormField label="Data de Admissão" htmlFor="rc-adm">
-            <Input
+            <DatePicker
               id="rc-adm"
-              type="date"
               value={dataAdmissao}
-              onChange={(e) => setDataAdmissao(e.target.value)}
+              onChange={(val) => setDataAdmissao(val)}
             />
           </FormField>
         </div>
@@ -401,11 +400,10 @@ export default function RecursoModal({ recurso, onClose }: RecursoModalProps) {
             </div>
             <div style={{ flex: 1, minWidth: 130 }}>
               <FormField label="Início na obra" htmlFor="rc-ini">
-                <Input
+                <DatePicker
                   id="rc-ini"
-                  type="date"
                   value={dataInicio}
-                  onChange={(e) => setDataInicio(e.target.value)}
+                  onChange={(val) => setDataInicio(val)}
                 />
               </FormField>
             </div>
@@ -443,11 +441,10 @@ export default function RecursoModal({ recurso, onClose }: RecursoModalProps) {
           <Row>
             <div style={{ flex: 1, minWidth: 140 }}>
               <FormField label="Data de Desligamento" htmlFor="rc-dd">
-                <Input
+                <DatePicker
                   id="rc-dd"
-                  type="date"
                   value={dataDesligamento}
-                  onChange={(e) => setDataDesligamento(e.target.value)}
+                  onChange={(val) => setDataDesligamento(val)}
                 />
               </FormField>
             </div>

@@ -4,6 +4,7 @@ import Modal from '../../components/ui/Modal';
 import Card from '../../components/ui/Card';
 import FormField from '../../components/ui/FormField';
 import { Input, Textarea, Select } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
 import { todayISO } from '../../lib/formatDate';
@@ -235,11 +236,10 @@ export function ComprarModal({ solicitacao: s, onClose }: ModalProps) {
         </div>
         <div style={{ flex: 1, minWidth: 150 }}>
           <FormField label="Previsão de entrega" htmlFor="cp-prev">
-            <Input
+            <DatePicker
               id="cp-prev"
-              type="date"
               value={dataPrevistaEntrega}
-              onChange={(e) => setDataPrevistaEntrega(e.target.value)}
+              onChange={(val) => setDataPrevistaEntrega(val)}
             />
           </FormField>
         </div>
@@ -263,11 +263,10 @@ export function ComprarModal({ solicitacao: s, onClose }: ModalProps) {
         </div>
         <div style={{ flex: 1, minWidth: 150 }}>
           <FormField label="Vencimento da CP *" htmlFor="cp-venc">
-            <Input
+            <DatePicker
               id="cp-venc"
-              type="date"
               value={dataVencimento}
-              onChange={(e) => setDataVencimento(e.target.value)}
+              onChange={(val) => setDataVencimento(val)}
             />
           </FormField>
         </div>
@@ -331,11 +330,10 @@ export function ReceberModal({ solicitacao: s, onClose }: ModalProps) {
       <Row>
         <div style={{ flex: 1, minWidth: 150 }}>
           <FormField label="Data de recebimento *" htmlFor="rc-data">
-            <Input
+            <DatePicker
               id="rc-data"
-              type="date"
               value={dataRecebimento}
-              onChange={(e) => setDataRecebimento(e.target.value)}
+              onChange={(val) => setDataRecebimento(val)}
             />
           </FormField>
         </div>

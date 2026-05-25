@@ -1,6 +1,7 @@
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import { Input, Textarea } from '../../../components/ui/controls';
+import { DatePicker } from '../../../components/ui/date-picker';
 import { localUid, type EditorTabProps, type FaseCronograma } from '../types';
 
 /** Fases padrão exibidas quando o cronograma ainda está vazio. */
@@ -119,19 +120,15 @@ export default function CronogramaTab({ proposta, onChange }: EditorTabProps) {
                   />
                 </td>
                 <td>
-                  <Input
-                    type="date"
+                  <DatePicker
                     value={f.inicio ?? ''}
-                    onChange={(e) =>
-                      editar(idx, { inicio: e.target.value || null })
-                    }
+                    onChange={(val) => editar(idx, { inicio: val || null })}
                   />
                 </td>
                 <td>
-                  <Input
-                    type="date"
+                  <DatePicker
                     value={f.fim ?? ''}
-                    onChange={(e) => editar(idx, { fim: e.target.value || null })}
+                    onChange={(val) => editar(idx, { fim: val || null })}
                   />
                 </td>
                 <td>

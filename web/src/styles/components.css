@@ -472,68 +472,6 @@ textarea.form-control {
 
 .stacked-segment:hover { opacity: 0.75; }
 
-/* ─── Toast Notifications ─── */
-.toast-container {
-  position: fixed;
-  bottom: var(--sp-lg);
-  right: var(--sp-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-sm);
-  z-index: 9999;
-  max-width: 380px;
-}
-
-.toast {
-  padding: 13px var(--sp-lg);
-  border-radius: var(--border-radius);
-  font-size: 15px;
-  box-shadow: var(--shadow-lg);
-  animation: toastIn 0.3s cubic-bezier(.16,1,.3,1);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,.08);
-}
-
-.toast {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-}
-
-.toast-success {
-  background: #ECFDF5;
-  color: #047857;
-  border-color: #A7F3D0;
-}
-
-.toast-error {
-  background: #FEF2F2;
-  color: #B91C1C;
-  border-color: #FECACA;
-}
-
-.toast-warning {
-  background: #FFFBEB;
-  color: #B45309;
-  border-color: #FDE68A;
-}
-
-.toast-info {
-  background: #EFF6FF;
-  color: #1D4ED8;
-  border-color: #BFDBFE;
-}
-
-.toast-icon { font-size: 18px; }
-
-@keyframes toastIn {
-  from { opacity: 0; transform: translateX(24px) scale(.95); }
-  to   { opacity: 1; transform: translateX(0) scale(1); }
-}
-
 /* ─── Filters Bar ─── */
 .filters-bar {
   display: flex;

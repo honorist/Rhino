@@ -3,6 +3,7 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Textarea } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import type { Atividade } from './types';
 import { useCreateAtividade, useUpdateAtividade } from './queries';
@@ -99,21 +100,19 @@ export default function AtividadeModal({
       <Row>
         <div style={{ flex: 1, minWidth: 150 }}>
           <FormField label="Início planejado" htmlFor="at-ini">
-            <Input
+            <DatePicker
               id="at-ini"
-              type="date"
               value={dataInicioPlan ?? ''}
-              onChange={(e) => setDataInicioPlan(e.target.value)}
+              onChange={(val) => setDataInicioPlan(val)}
             />
           </FormField>
         </div>
         <div style={{ flex: 1, minWidth: 150 }}>
           <FormField label="Fim planejado" htmlFor="at-fim">
-            <Input
+            <DatePicker
               id="at-fim"
-              type="date"
               value={dataFimPlan ?? ''}
-              onChange={(e) => setDataFimPlan(e.target.value)}
+              onChange={(val) => setDataFimPlan(val)}
             />
           </FormField>
         </div>

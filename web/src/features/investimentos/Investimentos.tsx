@@ -7,6 +7,7 @@ import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
@@ -753,12 +754,10 @@ function NovoAporteModal({
               />
             </FormField>
             <FormField label="Data *" htmlFor="aporte-date">
-              <Input
+              <DatePicker
                 id="aporte-date"
-                type="date"
                 value={date}
-                onChange={(event) => setDate(event.target.value)}
-                required
+                onChange={(val) => setDate(val)}
               />
             </FormField>
           </div>

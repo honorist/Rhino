@@ -3,6 +3,7 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR, todayISO } from '../../lib/formatDate';
@@ -276,21 +277,19 @@ export function AvaliarModal({ manutencao, onClose, nomeOrigem }: ModalProps) {
         </div>
         <div style={{ flex: 1, minWidth: 160 }}>
           <FormField label="Data de envio" htmlFor="av-envio">
-            <Input
+            <DatePicker
               id="av-envio"
-              type="date"
               value={dataEnvio}
-              onChange={(e) => setDataEnvio(e.target.value)}
+              onChange={(val) => setDataEnvio(val)}
             />
           </FormField>
         </div>
       </Row>
       <FormField label="Previsão de retorno" htmlFor="av-prev">
-        <Input
+        <DatePicker
           id="av-prev"
-          type="date"
           value={dataRetornoPrevista}
-          onChange={(e) => setDataRetornoPrevista(e.target.value)}
+          onChange={(val) => setDataRetornoPrevista(val)}
         />
       </FormField>
       <FormField label="Observações da avaliação" htmlFor="av-obs">
@@ -474,12 +473,10 @@ export function RetornoModal({ manutencao, onClose }: ModalProps) {
       <Row>
         <div style={{ flex: 1, minWidth: 160 }}>
           <FormField label="Data de retorno *" htmlFor="rt-data">
-            <Input
+            <DatePicker
               id="rt-data"
-              type="date"
               value={dataRetorno}
-              onChange={(e) => setDataRetorno(e.target.value)}
-              required
+              onChange={(val) => setDataRetorno(val)}
             />
           </FormField>
         </div>

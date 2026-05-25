@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Input, Select, Textarea } from '../../../components/ui/controls';
+import { DatePicker } from '../../../components/ui/date-picker';
 import Card from '../../../components/ui/Card';
 import { useClientes } from '../../clientes/queries';
 import type { Cliente } from '../../clientes/types';
@@ -153,10 +154,9 @@ export default function DadosGeraisTab({ proposta, onChange }: EditorTabProps) {
           </Select>
         </Field>
         <Field label="Data de emissão">
-          <Input
-            type="date"
+          <DatePicker
             value={proposta.dataEmissao ?? ''}
-            onChange={(e) => onChange({ dataEmissao: e.target.value })}
+            onChange={(val) => onChange({ dataEmissao: val })}
           />
         </Field>
         <Field label="Validade (dias)">

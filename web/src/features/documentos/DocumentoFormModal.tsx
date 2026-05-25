@@ -3,6 +3,7 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import type { Documento } from '../../types/domain';
 import { useRecursos } from '../resources';
@@ -224,13 +225,12 @@ export default function DocumentoFormModal({
       <Row>
         <div style={{ flex: 1, minWidth: 150 }}>
           <FormField label="Data de Emissão" htmlFor="doc-emissao">
-            <Input
+            <DatePicker
               id="doc-emissao"
-              type="date"
               value={dataEmissao}
-              onChange={(e) => {
-                setDataEmissao(e.target.value);
-                recalcVencimento(e.target.value, tipo);
+              onChange={(val) => {
+                setDataEmissao(val);
+                recalcVencimento(val, tipo);
               }}
             />
           </FormField>
@@ -241,11 +241,10 @@ export default function DocumentoFormModal({
             htmlFor="doc-venc"
             helper="Calculada ao escolher o tipo e a emissão"
           >
-            <Input
+            <DatePicker
               id="doc-venc"
-              type="date"
               value={dataVencimento}
-              onChange={(e) => setDataVencimento(e.target.value)}
+              onChange={(val) => setDataVencimento(val)}
             />
           </FormField>
         </div>

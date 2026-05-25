@@ -3,6 +3,7 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { todayISO } from '../../lib/formatDate';
 import { useCreateSaida, useUpdateSaida } from './queries';
@@ -131,11 +132,10 @@ export default function SaidaModal({
       <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 140 }}>
           <FormField label="Data" htmlFor="sd-data">
-            <Input
+            <DatePicker
               id="sd-data"
-              type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(val) => setDate(val)}
             />
           </FormField>
         </div>

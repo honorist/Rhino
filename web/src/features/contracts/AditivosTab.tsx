@@ -5,6 +5,7 @@ import { Badge } from '../../components/ui/badge';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR } from '../../lib/formatDate';
@@ -144,11 +145,10 @@ function AditivoModal({
         </div>
         <div style={{ flex: 1, minWidth: 130 }}>
           <FormField label="Data" htmlFor="ad-data">
-            <Input
+            <DatePicker
               id="ad-data"
-              type="date"
               value={data}
-              onChange={(e) => setData(e.target.value)}
+              onChange={(val) => setData(val)}
             />
           </FormField>
         </div>

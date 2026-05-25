@@ -8,6 +8,7 @@ import DataTable, { type Column } from '../../components/ui/DataTable';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
@@ -545,12 +546,10 @@ function BaseItemModal({ item, tipos, onClose }: BaseItemModalProps) {
         </div>
 
         <FormField label="Data *" htmlFor="base-date">
-          <Input
+          <DatePicker
             id="base-date"
-            type="date"
             value={date}
-            onChange={(event) => setDate(event.target.value)}
-            required
+            onChange={(val) => setDate(val)}
           />
         </FormField>
 
@@ -575,19 +574,17 @@ function BaseItemModal({ item, tipos, onClose }: BaseItemModalProps) {
           <>
             <div className="form-row">
               <FormField label="Início *" htmlFor="base-rec-inicio">
-                <Input
+                <DatePicker
                   id="base-rec-inicio"
-                  type="date"
                   value={recInicio}
-                  onChange={(event) => setRecInicio(event.target.value)}
+                  onChange={(val) => setRecInicio(val)}
                 />
               </FormField>
               <FormField label="Fim *" htmlFor="base-rec-fim">
-                <Input
+                <DatePicker
                   id="base-rec-fim"
-                  type="date"
                   value={recFim}
-                  onChange={(event) => setRecFim(event.target.value)}
+                  onChange={(val) => setRecFim(val)}
                 />
               </FormField>
             </div>

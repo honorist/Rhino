@@ -4,6 +4,7 @@ import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import Spinner from '../../components/ui/Spinner';
 import { Input, Select, Textarea } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR, todayISO } from '../../lib/formatDate';
@@ -146,11 +147,10 @@ function PlanoModal({
         </div>
         <div style={{ flex: 1, minWidth: 140 }}>
           <FormField label="Última data" htmlFor="pl-udata">
-            <Input
+            <DatePicker
               id="pl-udata"
-              type="date"
               value={ultimaData}
-              onChange={(e) => setUltimaData(e.target.value)}
+              onChange={(val) => setUltimaData(val)}
             />
           </FormField>
         </div>
@@ -236,11 +236,10 @@ function ManutModal({
       <Row>
         <div style={{ flex: 1, minWidth: 140 }}>
           <FormField label="Data *" htmlFor="mn-data">
-            <Input
+            <DatePicker
               id="mn-data"
-              type="date"
               value={data}
-              onChange={(e) => setData(e.target.value)}
+              onChange={(val) => setData(val)}
             />
           </FormField>
         </div>

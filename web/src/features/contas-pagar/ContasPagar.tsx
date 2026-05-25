@@ -7,6 +7,7 @@ import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
@@ -929,22 +930,19 @@ function ContaModal({ conta, fornecedores, contratos, onClose }: ContaModalProps
             />
           </FormField>
           <FormField label="Data de Emissão" htmlFor="cp-emissao">
-            <Input
+            <DatePicker
               id="cp-emissao"
-              type="date"
               value={dataEmissao}
-              onChange={(event) => setDataEmissao(event.target.value)}
+              onChange={(val) => setDataEmissao(val)}
             />
           </FormField>
         </div>
 
         <FormField label="Data de Vencimento *" htmlFor="cp-venc">
-          <Input
+          <DatePicker
             id="cp-venc"
-            type="date"
             value={dataVencimento}
-            onChange={(event) => setDataVencimento(event.target.value)}
-            required
+            onChange={(val) => setDataVencimento(val)}
           />
         </FormField>
 
@@ -1100,11 +1098,10 @@ function PagarModal({ conta, onClose }: PagarModalProps) {
 
       <div className="form-row">
         <FormField label="Data do Pagamento" htmlFor="cp-data-pag">
-          <Input
+          <DatePicker
             id="cp-data-pag"
-            type="date"
             value={dataPagamento}
-            onChange={(event) => setDataPagamento(event.target.value)}
+            onChange={(val) => setDataPagamento(val)}
           />
         </FormField>
         <FormField label="Valor Pago" htmlFor="cp-valor-pago">

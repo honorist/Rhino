@@ -6,6 +6,7 @@ import Card from '../../components/ui/Card';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
@@ -1084,12 +1085,10 @@ function NFModal({ nf, contratos, onClose }: NFModalProps) {
 
         <div className="form-row">
           <FormField label="Data Limite para Emissão *" htmlFor="nf-limite">
-            <Input
+            <DatePicker
               id="nf-limite"
-              type="date"
               value={dataLimite}
-              onChange={(event) => setDataLimite(event.target.value)}
-              required
+              onChange={(val) => setDataLimite(val)}
             />
           </FormField>
           <FormField
@@ -1115,11 +1114,10 @@ function NFModal({ nf, contratos, onClose }: NFModalProps) {
             htmlFor="nf-emissao"
             helper="NF emitida — altere para recalcular o recebimento"
           >
-            <Input
+            <DatePicker
               id="nf-emissao"
-              type="date"
               value={dataEmissaoReal}
-              onChange={(event) => setDataEmissaoReal(event.target.value)}
+              onChange={(val) => setDataEmissaoReal(val)}
             />
           </FormField>
         )}
@@ -1239,12 +1237,10 @@ function EmitirModal({ nf, contrato, onClose }: EmitirModalProps) {
         htmlFor="emitir-data"
         helper="Normalmente hoje. Usada para calcular o recebimento no caixa."
       >
-        <Input
+        <DatePicker
           id="emitir-data"
-          type="date"
           value={dataEmissaoReal}
-          onChange={(event) => setDataEmissaoReal(event.target.value)}
-          required
+          onChange={(val) => setDataEmissaoReal(val)}
         />
       </FormField>
 

@@ -3,6 +3,7 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import AddressAutocomplete from '../frota/AddressAutocomplete';
 import { useClientes } from '../clientes/queries';
@@ -298,21 +299,19 @@ export default function ContratoModal({
       <Row>
         <div style={{ flex: 1, minWidth: 130 }}>
           <FormField label="Data Início" htmlFor="ct-ini">
-            <Input
+            <DatePicker
               id="ct-ini"
-              type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(val) => setStartDate(val)}
             />
           </FormField>
         </div>
         <div style={{ flex: 1, minWidth: 130 }}>
           <FormField label="Data Fim" htmlFor="ct-fim">
-            <Input
+            <DatePicker
               id="ct-fim"
-              type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(val) => setEndDate(val)}
             />
           </FormField>
         </div>
@@ -322,11 +321,10 @@ export default function ContratoModal({
             htmlFor="ct-tend"
             helper="Previsão atualizada do fim da obra."
           >
-            <Input
+            <DatePicker
               id="ct-tend"
-              type="date"
               value={tendencyDate}
-              onChange={(e) => setTendencyDate(e.target.value)}
+              onChange={(val) => setTendencyDate(val)}
             />
           </FormField>
         </div>

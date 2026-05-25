@@ -3,6 +3,7 @@ import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
 import { todayISO } from '../../lib/formatDate';
@@ -187,11 +188,10 @@ export function ComprarModal({ item, almoxs, onClose }: MovModalProps) {
         </div>
       </Row>
       <FormField label="Data" htmlFor="cp-data">
-        <Input
+        <DatePicker
           id="cp-data"
-          type="date"
           value={data}
-          onChange={(e) => setData(e.target.value)}
+          onChange={(val) => setData(val)}
         />
       </FormField>
     </Modal>
@@ -299,11 +299,10 @@ export function EnviarObraModal({ item, almoxs, onClose }: MovModalProps) {
       <Row>
         <div style={{ flex: 1, minWidth: 130 }}>
           <FormField label="Data" htmlFor="en-data">
-            <Input
+            <DatePicker
               id="en-data"
-              type="date"
               value={data}
-              onChange={(e) => setData(e.target.value)}
+              onChange={(val) => setData(val)}
             />
           </FormField>
         </div>
@@ -449,11 +448,10 @@ export function UseiObraModal({ item, almoxs, onClose }: MovModalProps) {
         </div>
         <div style={{ flex: 1, minWidth: 130 }}>
           <FormField label="Data" htmlFor="us-data">
-            <Input
+            <DatePicker
               id="us-data"
-              type="date"
               value={data}
-              onChange={(e) => setData(e.target.value)}
+              onChange={(val) => setData(val)}
             />
           </FormField>
         </div>
@@ -565,11 +563,10 @@ export function VoltouObraModal({ item, almoxs, onClose }: MovModalProps) {
         </div>
         <div style={{ flex: 1, minWidth: 130 }}>
           <FormField label="Data" htmlFor="vt-data">
-            <Input
+            <DatePicker
               id="vt-data"
-              type="date"
               value={data}
-              onChange={(e) => setData(e.target.value)}
+              onChange={(val) => setData(val)}
             />
           </FormField>
         </div>
@@ -710,11 +707,10 @@ export function AjusteModal({ item, almoxs, onClose }: MovModalProps) {
         />
       </FormField>
       <FormField label="Data" htmlFor="aj-data">
-        <Input
+        <DatePicker
           id="aj-data"
-          type="date"
           value={data}
-          onChange={(e) => setData(e.target.value)}
+          onChange={(val) => setData(val)}
         />
       </FormField>
     </Modal>

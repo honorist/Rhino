@@ -4,6 +4,7 @@ import Modal from '../../components/ui/Modal';
 import Spinner from '../../components/ui/Spinner';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
+import { DatePicker } from '../../components/ui/date-picker';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR, todayISO } from '../../lib/formatDate';
@@ -84,21 +85,19 @@ function NovaFolgaModal({
       <Row>
         <div style={{ flex: 1, minWidth: 150 }}>
           <FormField label="Início da folga *" htmlFor="nf-ini">
-            <Input
+            <DatePicker
               id="nf-ini"
-              type="date"
               value={dataInicio}
-              onChange={(e) => setDataInicio(e.target.value)}
+              onChange={(val) => setDataInicio(val)}
             />
           </FormField>
         </div>
         <div style={{ flex: 1, minWidth: 150 }}>
           <FormField label="Fim da folga *" htmlFor="nf-fim">
-            <Input
+            <DatePicker
               id="nf-fim"
-              type="date"
               value={dataFim}
-              onChange={(e) => setDataFim(e.target.value)}
+              onChange={(val) => setDataFim(val)}
             />
           </FormField>
         </div>
@@ -247,11 +246,10 @@ function ComprarPassagemModal({
       <Row>
         <div style={{ flex: 1, minWidth: 130 }}>
           <FormField label="Data do Voo" htmlFor="ps-data">
-            <Input
+            <DatePicker
               id="ps-data"
-              type="date"
               value={dataVoo}
-              onChange={(e) => setDataVoo(e.target.value)}
+              onChange={(val) => setDataVoo(val)}
             />
           </FormField>
         </div>
@@ -280,11 +278,10 @@ function ComprarPassagemModal({
         </div>
         <div style={{ flex: 1, minWidth: 130 }}>
           <FormField label="Data da compra *" htmlFor="ps-dc">
-            <Input
+            <DatePicker
               id="ps-dc"
-              type="date"
               value={dataCompra}
-              onChange={(e) => setDataCompra(e.target.value)}
+              onChange={(val) => setDataCompra(val)}
             />
           </FormField>
         </div>

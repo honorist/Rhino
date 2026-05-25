@@ -693,10 +693,6 @@ body.sb-collapsed .footer-utils {
   .doc-tipo-badge              { font-size: 15px; }
   .stacked-segment             { font-size: 15px; }
 
-  /* Toasts */
-  .toast                       { font-size: 15px; }
-  .toast-icon                  { font-size: 17px; }
-
   /* Filtros e ações */
   .filter-label                { font-size: 15px; }
   .action-link                 { font-size: 15px; padding: 4px 9px; }
@@ -746,9 +742,6 @@ textarea.form-control             { font-size: calc(15px * var(--fs-mult)); }
 .badge                            { font-size: calc(15px * var(--fs-mult)); }
 .doc-tipo-badge                   { font-size: calc(15px * var(--fs-mult)); }
 .stacked-segment                  { font-size: calc(15px * var(--fs-mult)); }
-
-.toast                            { font-size: calc(15px * var(--fs-mult)); }
-.toast-icon                       { font-size: calc(18px * var(--fs-mult)); }
 
 .filter-label                     { font-size: calc(15px * var(--fs-mult)); }
 .action-link                      { font-size: calc(15px * var(--fs-mult)); }
