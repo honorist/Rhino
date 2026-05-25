@@ -329,6 +329,7 @@ export default function Documentos() {
         rows={filtrados}
         rowKey={(r) => r.id}
         emptyMessage="Nenhum resultado encontrado"
+        showColumnToggle
       />
 
       {modal?.type === 'docs' && (

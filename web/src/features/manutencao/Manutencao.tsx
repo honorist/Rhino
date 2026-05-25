@@ -406,6 +406,7 @@ export default function ManutencaoView() {
         columns={columns}
         rows={filtradas}
         rowKey={(m) => m.id}
+        showColumnToggle
         emptyMessage={
           filtroStatus
             ? 'Nenhum registro neste status'

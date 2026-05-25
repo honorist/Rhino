@@ -556,6 +556,7 @@ export default function RDOs() {
           setDetailRdoId({ rdoId: r.id, contractId: r.contractId })
         }
         emptyMessage="Nenhum RDO"
+        showColumnToggle
       />
 
       {totalPages > 1 && (

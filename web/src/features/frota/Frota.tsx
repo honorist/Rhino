@@ -310,6 +310,7 @@ export default function Frota() {
         rows={lista}
         rowKey={(v) => v.id}
         emptyMessage="Nenhum veículo cadastrado"
+        showColumnToggle
       />
 
       {(modal?.type === 'novo' || modal?.type === 'editar') && (

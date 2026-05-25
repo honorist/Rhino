@@ -346,6 +346,7 @@ export default function Recursos() {
         rows={filtrados}
         rowKey={(r) => r.id}
         emptyMessage="Nenhum cadastro encontrado"
+        showColumnToggle
       />
 
       {modal?.type === 'novo' && (
