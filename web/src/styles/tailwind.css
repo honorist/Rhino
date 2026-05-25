@@ -129,4 +129,25 @@
     outline: 2px solid var(--color-border);
     outline-offset: 2px;
   }
+
+  /*
+   * Reset do margin-bottom legado (.form-group em components.css adiciona
+   * var(--sp-md)) quando o campo está dentro de um Radix Dialog. O modal
+   * novo já controla o gap via `space-y-5` na shell — duplicar margin
+   * gera espaçamento inconsistente entre form-rows.
+   *
+   * O seletor [role="dialog"] alcança qualquer Radix Dialog.Content sem
+   * acoplar a uma classe específica.
+   */
+  [role='dialog'] .form-group {
+    margin-bottom: 0;
+  }
+
+  /*
+   * Form-row legado tem grid 2 colunas com `gap: var(--sp-lg)`. Confirmamos
+   * o gap dentro do modal (var(--sp-md) seria muito apertado para inputs h-10).
+   */
+  [role='dialog'] .form-row {
+    gap: 1.25rem;
+  }
 }

@@ -7,10 +7,10 @@ import { cn } from '../../lib/cn';
 export type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
 const SIZE_CLASS: Record<ModalSize, string> = {
-  sm: 'max-w-[420px]',
-  md: 'max-w-[640px]',
-  lg: 'max-w-[900px]',
-  xl: 'max-w-[1100px]',
+  sm: 'max-w-[480px]',
+  md: 'max-w-[680px]',
+  lg: 'max-w-[920px]',
+  xl: 'max-w-[1120px]',
 };
 
 interface ModalProps {
@@ -20,13 +20,18 @@ interface ModalProps {
   children: ReactNode;
   /** Conteúdo do rodapé (botões de ação). */
   footer?: ReactNode;
-  /** Tamanho do modal (default md = 640px). xl = 1100px (RDO form, etc). */
+  /** Tamanho do modal (default md = 680px). xl = 1120px (RDO form, etc). */
   size?: ModalSize;
+  /** Subtítulo opcional abaixo do title (contexto curto). */
+  description?: ReactNode;
 }
 
 /**
  * Diálogo modal — Radix UI por baixo (focus trap, ESC, click-outside,
  * portal e ARIA tudo nativo). API preservada da versão anterior.
+ *
+ * Espaçamento generoso: header 24px, content 24-32px, footer 20-24px com
+ * separadores claros. Title em 18px/semibold para hierarquia visível.
  */
 export default function Modal({
   open,
@@ -35,6 +40,7 @@ export default function Modal({
   children,
   footer,
   size = 'md',
+  description,
 }: ModalProps) {
   return (
     <Dialog.Root
@@ -44,28 +50,52 @@ export default function Modal({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
         <Dialog.Content
           className={cn(
             'fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2',
-            'w-[90vw] max-h-[92vh] flex flex-col',
-            'bg-card text-card-foreground rounded-lg shadow-lg border border-border',
+            'w-[92vw] max-h-[90vh] flex flex-col',
+            'bg-card text-card-foreground rounded-xl shadow-2xl border border-border',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+            'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
             SIZE_CLASS[size],
           )}
         >
-          <div className="flex items-center justify-between p-4 border-b border-border">
-            <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>
+          {/* Header: 24px vertical, 28px horizontal, separador inferior */}
+          <div className="flex items-start justify-between gap-4 px-7 pt-6 pb-5 border-b border-border">
+            <div className="min-w-0 flex-1">
+              <Dialog.Title className="text-[18px] font-semibold leading-tight text-foreground">
+                {title}
+              </Dialog.Title>
+              {description && (
+                <Dialog.Description className="mt-1 text-sm text-muted-foreground">
+                  {description}
+                </Dialog.Description>
+              )}
+            </div>
             <Dialog.Close
-              className="rounded-md p-1 text-muted-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="shrink-0 -mr-2 -mt-1 rounded-md p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="Fechar"
             >
-              <X size={18} />
+              <X size={20} />
             </Dialog.Close>
           </div>
-          <div className="flex-1 overflow-auto p-4">{children}</div>
-          {footer ? <div className="p-4 border-t border-border">{footer}</div> : null}
+
+          {/* Content: 28px horizontal, 24px vertical; rolável quando passa
+              do max-h. `space-y-5` dá gap consistente entre form-rows e
+              outros blocos sem depender do margin-bottom do .form-group. */}
+          <div className="flex-1 overflow-y-auto px-7 py-6 [&>form]:space-y-5">
+            {children}
+          </div>
+
+          {/* Footer: 20px vertical, 28px horizontal, separador superior.
+              gap-3 entre botões alinhados à direita. */}
+          {footer && (
+            <div className="flex items-center justify-end gap-3 px-7 py-5 border-t border-border bg-muted/30 rounded-b-xl">
+              {footer}
+            </div>
+          )}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
