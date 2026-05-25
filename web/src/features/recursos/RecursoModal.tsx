@@ -4,6 +4,7 @@ import Modal from '../../components/ui/Modal';
 import FormField from '../../components/ui/FormField';
 import { Input, Select, Textarea } from '../../components/ui/controls';
 import { DatePicker } from '../../components/ui/date-picker';
+import { Combobox } from '../../components/ui/combobox';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { useContracts } from '../contracts/queries';
 import { useCreateRecurso, useUpdateRecurso } from '../resources';
@@ -384,18 +385,15 @@ export default function RecursoModal({ recurso, onClose }: RecursoModalProps) {
           <Row>
             <div style={{ flex: 1, minWidth: 180 }}>
               <FormField label="Obra atual" htmlFor="rc-obra">
-                <Select
+                <Combobox
                   id="rc-obra"
+                  options={contratos.map((c) => ({ value: c.id, label: String(c.name ?? '') }))}
                   value={contractId ?? ''}
-                  onChange={(e) => setContractId(e.target.value)}
-                >
-                  <option value="">Sem alocação</option>
-                  {contratos.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {String(c.name ?? '')}
-                    </option>
-                  ))}
-                </Select>
+                  onChange={setContractId}
+                  placeholder="Sem alocação"
+                  searchPlaceholder="Pesquisar obra..."
+                  emptyText="Nenhuma obra encontrada."
+                />
               </FormField>
             </div>
             <div style={{ flex: 1, minWidth: 130 }}>
