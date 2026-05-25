@@ -8,7 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import { Input } from '../../components/ui/controls';
+import { Input } from '@/components/ui/input';
+
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { queryKeys } from '../../lib/queryKeys';
 import type { Rdo, RdoFoto } from './types';

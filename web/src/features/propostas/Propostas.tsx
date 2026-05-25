@@ -7,7 +7,8 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
-import { Input } from '../../components/ui/controls';
+import { Input } from '@/components/ui/input';
+
 import { Combobox } from '../../components/ui/combobox';
 import Spinner from '../../components/ui/Spinner';
 import { useToast } from '../../components/ui/toast/ToastContext';

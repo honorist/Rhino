@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Button from '../../components/ui/Button';
-import { Input } from '../../components/ui/controls';
+import { Input } from '@/components/ui/input';
 import { api } from '../../lib/api';
 
 interface Mensagem {

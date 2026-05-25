@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Spinner from '../../components/ui/Spinner';
-import { Select } from '../../components/ui/controls';
+import { Select } from '@/components/ui/native-select';
 import NovaSolicitacaoModal from './NovaSolicitacaoModal';
 import SolicitacaoDetail from './SolicitacaoDetail';
 import { useSolicitacoes } from './queries';

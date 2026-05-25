@@ -8,7 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import { Input, Select } from '../../components/ui/controls';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/native-select';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import {
   useAnexarDocumento,

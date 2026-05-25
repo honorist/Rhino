@@ -12,7 +12,8 @@ import {
   DialogTitle,
 } from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
-import { Input, Select } from '../../components/ui/controls';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/native-select';
 import { Combobox } from '../../components/ui/combobox';
 import { DatePicker } from '../../components/ui/date-picker';
 import Spinner from '../../components/ui/Spinner';

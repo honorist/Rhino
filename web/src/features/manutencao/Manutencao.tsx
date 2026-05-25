@@ -4,7 +4,7 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import Spinner from '../../components/ui/Spinner';
-import { Select } from '../../components/ui/controls';
+import { Select } from '@/components/ui/native-select';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatDateBR, todayISO } from '../../lib/formatDate';
 import type { Contract } from '../contracts/types';

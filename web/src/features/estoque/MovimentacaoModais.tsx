@@ -8,7 +8,8 @@ import {
   DialogTitle,
 } from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
-import { Input, Select } from '../../components/ui/controls';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/native-select';
 import { DatePicker } from '../../components/ui/date-picker';
 import { Combobox } from '../../components/ui/combobox';
 import { useToast } from '../../components/ui/toast/ToastContext';

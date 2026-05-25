@@ -8,7 +8,8 @@ import {
   DialogTitle,
 } from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
-import { Input, Textarea } from '../../components/ui/controls';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
 import type { Almoxarifado, EstoqueItem } from './types';

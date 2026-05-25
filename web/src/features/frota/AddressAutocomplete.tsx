@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Input } from '../../components/ui/controls';
+import { Input } from '@/components/ui/input';
 
 /** Item devolvido pelo Nominatim. */
 interface NominatimResult {

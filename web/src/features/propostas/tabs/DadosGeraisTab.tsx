@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
-import { Input, Select, Textarea } from '../../../components/ui/controls';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select } from '@/components/ui/native-select';
 import { DatePicker } from '../../../components/ui/date-picker';
 import { Combobox } from '../../../components/ui/combobox';
 import Card from '../../../components/ui/Card';

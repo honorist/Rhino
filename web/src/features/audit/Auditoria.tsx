@@ -4,7 +4,8 @@ import Button from '../../components/ui/Button';
 import DataTable, { type Column } from '../../components/ui/DataTable';
 import EmptyState from '../../components/ui/EmptyState';
 import Spinner from '../../components/ui/Spinner';
-import { Input, Select } from '../../components/ui/controls';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/native-select';
 import { DatePicker } from '../../components/ui/date-picker';
 import { computeDiff } from './diff';
 import {

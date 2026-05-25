@@ -6,7 +6,8 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '../../../components/ui/dialog';
 import Spinner from '../../../components/ui/Spinner';
-import { Input } from '../../../components/ui/controls';
+import { Input } from '@/components/ui/input';
+
 import { useToast } from '../../../components/ui/toast/ToastContext';
 import {
   useBase,

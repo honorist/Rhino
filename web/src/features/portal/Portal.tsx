@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Spinner from '../../components/ui/Spinner';
-import { Input } from '../../components/ui/controls';
+import { Input } from '@/components/ui/input';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR } from '../../lib/formatDate';
 

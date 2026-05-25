@@ -1,5 +1,5 @@
 import { useRef, useState, type ChangeEvent } from 'react';
-import { Input } from '../../../components/ui/controls';
+import { Input } from '@/components/ui/input';
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
 import { useToast } from '../../../components/ui/toast/ToastContext';

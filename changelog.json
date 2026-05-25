@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.3.7",
+      "date": "2026-05-25",
+      "summary": "Pós-Fase: deleta Modal/controls deprecated, codemod Input/Textarea/Select em 60 arquivos",
+      "changes": [
+        "delete: Modal.tsx, Modal.test.tsx, controls.tsx — zero consumers restantes.",
+        "new: native-select.tsx — styled native <select> sem Radix, substitui controls.Select.",
+        "codemod: 60 arquivos migrados de controls.{Input,Textarea,Select} para @/components/ui/{input,textarea,native-select}.",
+        "Input → @/components/ui/input (shadcn h-9, sem !important — CSS legado já erradicado).",
+        "Select → @/components/ui/native-select (mesma API de HTML select nativo, sem Radix)."
+      ]
+    },
+    {
       "version": "1.3.6",
       "date": "2026-05-25",
       "summary": "Pós-Fase: migração completa Modal → Dialog composicional (50 modais em 50 arquivos)",

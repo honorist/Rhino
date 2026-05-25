@@ -1,6 +1,7 @@
 import Button from '../../../components/ui/Button';
 import Card from '../../../components/ui/Card';
-import { Input, Select } from '../../../components/ui/controls';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/native-select';
 import { useToast } from '../../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../../lib/format';
 import type { Proposta } from '../../../types/domain';

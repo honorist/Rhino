@@ -8,7 +8,9 @@ import {
   DialogTitle,
 } from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
-import { Input, Select, Textarea } from '../../components/ui/controls';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select } from '@/components/ui/native-select';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import type { BudgetItem } from './types';
 import { useCreateBudgetItem, useUpdateBudgetItem } from './queries';

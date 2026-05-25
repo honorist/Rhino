@@ -5,7 +5,8 @@ import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import FormField from '../../components/ui/FormField';
 import Spinner from '../../components/ui/Spinner';
-import { Input, Textarea } from '../../components/ui/controls';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { queryKeys } from '../../lib/queryKeys';
 import {

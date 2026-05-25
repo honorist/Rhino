@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '../../components/ui/dialog';
 import FormField from '../../components/ui/FormField';
-import { Textarea } from '../../components/ui/controls';
+import { Textarea } from '@/components/ui/textarea';
 import { Combobox } from '../../components/ui/combobox';
 import { useToast } from '../../components/ui/toast/ToastContext';
 import { formatBRL } from '../../lib/format';
