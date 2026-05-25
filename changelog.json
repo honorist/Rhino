@@ -1,6 +1,22 @@
 {
   "entries": [
     {
+      "version": "1.4.3",
+      "date": "2026-05-25",
+      "summary": "Fase 7: Contratos migrado para DataTable v2 com bulk actions",
+      "changes": [
+        "Contratos: raw <table> de 8 colunas substituída por DataTable v2.",
+        "Sort nativo em Nome, Cliente, Valor, Período via TanStack Table — remove SortField/sortDir/sortIcon manual.",
+        "Paginação delegada ao DataTable (pageSize=25) — remove page/pageSafe/pagina state.",
+        "Seleção múltipla delegada ao DataTable (selectable) — remove selecionados/toggleSelecionado state.",
+        "bulkActions: CSV, Mudar Status e Excluir via BulkAction<Contract>[] — remove bulk action Card manual.",
+        "toggleFav/handleExcluir/exportarCsv/bulkStatus/bulkDelete convertidos para useCallback.",
+        "Favoritos-no-topo preservados via pre-sort no array antes de passar para DataTable.",
+        "Coluna fav (★) com stopPropagation no botão para não disparar onRowClick.",
+        "setPage(1) removido dos handlers de busca e status (DataTable gerencia página internamente)."
+      ]
+    },
+    {
       "version": "1.4.2",
       "date": "2026-05-25",
       "summary": "Fase 7: Propostas migrada para DataTable v2",
