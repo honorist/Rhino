@@ -172,7 +172,6 @@ window.Frota = {
                 <th>Placa</th>
                 <th>Veículo</th>
                 <th>Contrato</th>
-                <th>KM atual</th>
                 <th>Próx. manutenção</th>
                 <th>Localização</th>
                 <th>Status</th>
@@ -181,7 +180,7 @@ window.Frota = {
             </thead>
             <tbody>
               ${lista.length === 0 ? `
-                <tr><td colspan="8" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum veículo cadastrado</td></tr>
+                <tr><td colspan="7" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum veículo cadastrado</td></tr>
               ` : lista.map(v => {
                 const c = contratos.find(x => x.id === v.contractId);
                 const prox = this._proximaManut(v);
@@ -191,13 +190,14 @@ window.Frota = {
                   <td><strong>${escapeHtml(v.placa || '—')}</strong></td>
                   <td>${escapeHtml((v.marca || '') + ' ' + (v.modelo || '')).trim() || '—'}<div style="font-size:12px;color:var(--color-text-muted);">${escapeHtml(v.tipo || '')}${v.ano ? ' · ' + v.ano : ''}</div></td>
                   <td>${c ? escapeHtml(c.name) : '<span class="text-muted">—</span>'}</td>
-                  <td>${(v.kmAtual || 0).toLocaleString('pt-BR')} km</td>
                   <td>${this._badgeManut(prox)}<div style="font-size:11px;color:var(--color-text-muted);">${prox ? escapeHtml(prox.plano.descricao) : ''}</div></td>
                   <td style="font-size:13px;">${cidade ? escapeHtml(cidade) : '<span class="text-muted">—</span>'}</td>
                   <td>${v.status === 'manutencao' ? '🔧 Manut.' : v.status === 'inativo' ? '⏸ Inativo' : '✓ Ativo'}</td>
                   <td>
                     <div class="actions-cell" style="display:flex;gap:6px;flex-wrap:wrap;">
-                      <a class="action-link btn-detalhe" data-id="${v.id}">Detalhes</a>
+                      <a class="action-link btn-plano" data-id="${v.id}">Plano</a>
+                      <a class="action-link btn-historico" data-id="${v.id}">Manutenção</a>
+                      <a class="action-link btn-abastec" data-id="${v.id}">Abastecimento</a>
                       <a class="action-link btn-editar" data-id="${v.id}">Editar</a>
                       <a class="action-link btn-distancia" data-id="${v.id}">Distâncias</a>
                       <a class="action-link danger btn-excluir" data-id="${v.id}">Excluir</a>
@@ -221,7 +221,9 @@ window.Frota = {
     document.getElementById('filtroStatus').addEventListener('change', e => { this.filtroStatus = e.target.value; this._draw(); });
     document.getElementById('filtroContrato').addEventListener('change', e => { this.filtroContrato = e.target.value; this._draw(); });
 
-    document.querySelectorAll('.btn-detalhe').forEach(b => b.addEventListener('click', e => this.showDetalhe(e.target.dataset.id)));
+    document.querySelectorAll('.btn-plano').forEach(b => b.addEventListener('click', e => this.showDetalhe(e.target.dataset.id, 'plano')));
+    document.querySelectorAll('.btn-historico').forEach(b => b.addEventListener('click', e => this.showDetalhe(e.target.dataset.id, 'historico')));
+    document.querySelectorAll('.btn-abastec').forEach(b => b.addEventListener('click', e => this.showDetalhe(e.target.dataset.id, 'abastecimentos')));
     document.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', e => this.showModal(e.target.dataset.id)));
     document.querySelectorAll('.btn-distancia').forEach(b => b.addEventListener('click', e => this.showDistancias(e.target.dataset.id)));
     document.querySelectorAll('.btn-excluir').forEach(b => b.addEventListener('click', e => this.excluir(e.target.dataset.id)));
@@ -386,10 +388,10 @@ window.Frota = {
     });
   },
 
-  showDetalhe(id) {
+  showDetalhe(id, abaInicial) {
     const v = (Store.state.veiculos || []).find(x => x.id === id);
     if (!v) return;
-    let abaAtual = 'plano';
+    let abaAtual = abaInicial || 'plano';
 
     const draw = () => {
       const planos = v.planos || [];
