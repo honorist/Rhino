@@ -18,6 +18,7 @@ FROM node:20-alpine
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV SERVE_REACT=1
 
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force

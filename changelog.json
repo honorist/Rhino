@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.5.7",
+      "date": "2026-05-26",
+      "summary": "fix: CAUSA RAIZ — Dockerfile seta SERVE_REACT=1; Railway agora serve o React",
+      "changes": [
+        "Dockerfile: adicionado ENV SERVE_REACT=1 no Stage 2 — sem essa variável o server.js ignorava o web/dist/ buildado e servia o frontend legado vanilla JS.",
+        "vite.config.ts: cacheId 'rhino-v2' — força abandono dos caches antigos do Service Worker em todos os browsers.",
+        "vite.config.ts: networkTimeoutSeconds 3 → 8 — evita que latência do Railway cause fallback para index.html cacheado.",
+        "vite.config.ts: theme_color #55588B → #6366F1 no manifest PWA.",
+        "Todos os CSS fixes de v1.5.1-1.5.4 (Inter, indigo, 14px, sem Nunito) agora chegam ao browser."
+      ]
+    },
+    {
       "version": "1.5.6",
       "date": "2026-05-26",
       "summary": "ci: GitHub Actions build-frontend — dist commitado automaticamente após cada push",

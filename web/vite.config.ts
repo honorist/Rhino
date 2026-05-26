@@ -64,7 +64,7 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'portrait-primary',
         background_color: '#F3F4F6',
-        theme_color: '#55588B',
+        theme_color: '#6366F1',
         lang: 'pt-BR',
         dir: 'ltr',
         categories: ['business', 'productivity', 'finance'],
@@ -87,6 +87,7 @@ export default defineConfig({
         // o browser HTTP cache lida nativamente com isso. Precachear CSS no SW
         // causava que updates visuais nunca chegavam aos usuários sem clear manual.
         globPatterns: ['**/*.{js,svg,ico,woff2}'],
+        cacheId: 'rhino-v2',
         // O arquivo gerado pelo bundle pode passar de 2MB com sourcemaps;
         // garantimos margem.
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
@@ -108,7 +109,7 @@ export default defineConfig({
             handler: 'NetworkFirst',
             options: {
               cacheName: 'pages',
-              networkTimeoutSeconds: 3,
+              networkTimeoutSeconds: 8,
               expiration: { maxEntries: 50, maxAgeSeconds: 24 * 60 * 60 },
             },
           },
