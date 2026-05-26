@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { AlertTriangle } from 'lucide-react';
 import Card from '../../components/ui/card';
 import Spinner from '../../components/ui/spinner';
 import { BentoGrid, BentoItem } from '../../components/ui/bento-grid';
@@ -391,8 +392,8 @@ export default function Dashboard() {
       {/* Alertas — list view com separadores entre itens */}
       {indicadores.riscos.length > 0 && (
         <Card className="!p-6">
-          <h3 className="mb-5 text-base font-semibold leading-none tracking-tight">
-            ⚠️ Alertas ({indicadores.riscos.length})
+          <h3 className="mb-5 flex items-center gap-2 text-base font-semibold leading-none tracking-tight">
+            <AlertTriangle className="size-4" /> Alertas ({indicadores.riscos.length})
           </h3>
           <div className="divide-y divide-border">
             {indicadores.riscos.map((r, i) => (
