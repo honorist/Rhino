@@ -49,7 +49,20 @@ jobs:
           git add -f web/dist/
           if git diff --staged --quiet; then
             echo "Nenhuma mudança no dist — skip commit"
-          else
-            git commit -m "build: frontend dist [skip ci]"
-            git push
+            exit 0
           fi
+          git commit -m "build: frontend dist [skip ci]"
+
+          # Retry com rebase quando outro push ganhou a corrida (humano commitando
+          # ao mesmo tempo que o CI). Até 5 tentativas com backoff.
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              echo "Push OK na tentativa $attempt"
+              exit 0
+            fi
+            echo "Push rejeitado (tentativa $attempt) — rebasing"
+            git pull --rebase origin main
+            sleep $((attempt * 2))
+          done
+          echo "Falhou após 5 tentativas"
+          exit 1
