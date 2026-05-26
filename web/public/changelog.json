@@ -1,6 +1,685 @@
 {
   "entries": [
     {
+      "version": "1.5.13",
+      "date": "2026-05-26",
+      "summary": "fix: sidebar desaparecida — sidebar.tsx reescrito com inline styles",
+      "changes": [
+        "sidebar.tsx: reescrito completamente. Substituído w-(--sidebar-width) (Tailwind v4 não compilava) por style={{ width: 'var(--sidebar-width)' }}. Substituído h-svh/min-h-svh por h-screen/min-h-screen. SidebarRail: removida referência a 'side' que não existia no escopo (hardcoded -right-2).",
+        "Sidebar desktop: gap div + fixed panel com larguras calculadas via inline style. Transições CSS para width/left/right.",
+        "Sidebar mobile: mantido via Sheet (Radix) com style={{ width: SIDEBAR_WIDTH_MOBILE }}.",
+        "SidebarProvider: CSS vars --sidebar-width e --sidebar-width-icon injetadas via style prop no wrapper div."
+      ]
+    },
+    {
+      "version": "1.5.12",
+      "date": "2026-05-26",
+      "summary": "design: buttons, DataTable e form labels migrados para shadcn/ui",
+      "changes": [
+        "button.tsx: adicionado [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 para ícones SVG. shadow-sm em variantes primary/secondary/danger/success/outline. Tamanho md ajustado para h-9 (shadcn default), lg para h-10 px-8, icon para h-9 w-9.",
+        "data-table.tsx: tabela migrada de classes CSS legadas (.table-wrap, thead/tbody/tr/td globais) para Tailwind inline. Wrapper: rounded-md border border-border. thead: bg-muted/50, th: h-10 px-3 text-muted-foreground. tbody tr: hover:bg-muted/50, td: p-3 align-middle text-sm.",
+        "15 feature files: form-label → 'block text-sm font-medium leading-none text-foreground mb-1.5'. form-group → 'space-y-1.5'. Arquivos: Portal, Contratos, InvestimentoTab, DadosGeraisTab, CronogramaTab, Login, Usuarios, SolicitacoesCompra, RDOs, Propostas, Investimentos, ContasPagar, Clientes, Base, Auditoria."
+      ]
+    },
+    {
+      "version": "1.5.11",
+      "date": "2026-05-26",
+      "summary": "design: sidebar shadcn/ui completo — SidebarMenuButton, SidebarMenuSub, CSS vars sidebar-*",
+      "changes": [
+        "Criado web/src/components/ui/sidebar.tsx com primitivos shadcn/ui: SidebarHeader, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton (com asChild + isActive + data-[active=true]), SidebarMenuSub, SidebarMenuSubButton, SidebarSeparator.",
+        "tailwind.css: adicionadas CSS vars --color-sidebar, --color-sidebar-foreground, --color-sidebar-accent, --color-sidebar-accent-foreground, --color-sidebar-border, --color-sidebar-ring, --color-sidebar-primary no @theme. Dark mode vars correspondentes no .dark.",
+        "Sidebar.tsx reescrito usando os primitivos. Grupos colapsáveis via Collapsible + CollapsibleTrigger com group-data-[state=open]/collapsible:rotate-90. Subitems com SidebarMenuSub (border-l). Estado ativo via isActive prop (data-[active=true]).",
+        "Largura da sidebar: 16rem (shadcn default) via --sidebar-width. Layout.css e Shell.tsx atualizados.",
+        "Notificações e UserMenu preservados no SidebarFooter."
+      ]
+    },
+    {
+      "version": "1.5.10",
+      "date": "2026-05-26",
+      "summary": "design: sidebar migrada para Tailwind/shadcn — visual limpo estilo shadcn/ui",
+      "changes": [
+        "Sidebar.tsx: removidas todas as classes CSS legadas (nav-item, nav-group-*, sidebar-header, sidebar-footer, theme-toggle-btn). Substituídas por Tailwind v4 + cn().",
+        "Sidebar: itens de navegação usam bg-indigo-50 text-indigo-700 no estado ativo (sem barra lateral ::before). Hover bg-slate-100.",
+        "Shell.tsx: id='shell' agora tem className Tailwind (grid min-h-screen). id='app' com overflow-y-auto max-h-screen p-8.",
+        "uiStore.ts: setTheme agora também togla classList.toggle('dark') para Tailwind dark: variants funcionarem.",
+        "main.css: removidos ~380 linhas de CSS legado de sidebar (#shell, #sidebar, .nav-item, .nav-group-*, .sidebar-*, .theme-toggle-btn, .zoom-control, .footer-utils, #app).",
+        "polish.css: removidas referências obsoletas (.nav-item a nas transições e focus rings).",
+        "Mobile: comportamento drawer preservado via layout.css (id=sidebar com position:fixed no breakpoint 900px)."
+      ]
+    },
+    {
+      "version": "1.5.9",
+      "date": "2026-05-26",
+      "summary": "fix: Service Worker desativado — CSS/JS sempre frescos, sem cache travando updates",
+      "changes": [
+        "vite.config.ts: selfDestroying:true no VitePWA — SW se auto-deleta de todos os browsers.",
+        "main.css: --color-bg #ffffff (branco puro), sidebar sem box-shadow.",
+        "Após este deploy, todos os usuários terão o SW removido automaticamente na próxima visita.",
+        "Mudanças CSS passam a aparecer imediatamente sem precisar de hard refresh."
+      ]
+    },
+    {
+      "version": "1.5.8",
+      "date": "2026-05-26",
+      "summary": "design: visual shadcn/ui — background slate, muted cinza, sidebar compacta",
+      "changes": [
+        "main.css: --color-bg #F3F4F6 → #F8FAFC (slate-50, menos cinza opaco).",
+        "main.css: --color-text-muted #1F2937 → #64748B (cinza slate-500, não mais preto).",
+        "main.css: --color-border #E5E7EB → #E2E8F0 e --color-text #1F2937 → #0F172A (maior contraste base).",
+        "main.css: sidebar box-shadow removido (look mais plano/moderno).",
+        "main.css: nav items — padding 11px/14px → 8px/12px, font-size 15px → 14px (mais compacto, shadcn-like).",
+        "main.css: nav subitems — padding-left 38px → 34px, font-size 15px → 13px.",
+        "main.css: body letter-spacing -0.01em para melhor legibilidade Inter.",
+        "index.html: título v1.5.8 para confirmar deploy."
+      ]
+    },
+    {
+      "version": "1.5.7",
+      "date": "2026-05-26",
+      "summary": "fix: CAUSA RAIZ — Dockerfile seta SERVE_REACT=1; Railway agora serve o React",
+      "changes": [
+        "Dockerfile: adicionado ENV SERVE_REACT=1 no Stage 2 — sem essa variável o server.js ignorava o web/dist/ buildado e servia o frontend legado vanilla JS.",
+        "vite.config.ts: cacheId 'rhino-v2' — força abandono dos caches antigos do Service Worker em todos os browsers.",
+        "vite.config.ts: networkTimeoutSeconds 3 → 8 — evita que latência do Railway cause fallback para index.html cacheado.",
+        "vite.config.ts: theme_color #55588B → #6366F1 no manifest PWA.",
+        "Todos os CSS fixes de v1.5.1-1.5.4 (Inter, indigo, 14px, sem Nunito) agora chegam ao browser."
+      ]
+    },
+    {
+      "version": "1.5.6",
+      "date": "2026-05-26",
+      "summary": "ci: GitHub Actions build-frontend — dist commitado automaticamente após cada push",
+      "changes": [
+        ".github/workflows/build-frontend.yml: novo workflow que compila web/dist/ no GitHub Actions e commita de volta no main.",
+        "Dispara em push no main quando web/src/**, web/index.html, vite.config.ts, tsconfig*.json, package*.json ou web/public/** mudam.",
+        "workflow_dispatch: permite disparar manualmente para forçar rebuild do dist.",
+        "Previne loop infinito com 'if: github.actor != github-actions[bot]'.",
+        "Raiz do bug visual resolvida: dist nunca mais ficará desatualizado no repo — Railway recebe sempre o HTML/CSS/JS mais recente."
+      ]
+    },
+    {
+      "version": "1.5.5",
+      "date": "2026-05-26",
+      "summary": "fix: Railway agora recompila o frontend a cada deploy — raiz do problema visual",
+      "changes": [
+        "package.json raiz: adicionado script 'build' que instala deps e compila web/dist/ no Railway.",
+        "Raiz do bug: web/dist/ estava commitado e Railway deployava o dist antigo sem recompilar. Mudanças em web/src/styles/ nunca chegavam ao browser.",
+        "A partir de agora cada git push dispara npm install + vite build no Railway antes de subir o servidor.",
+        "Todos os CSS fixes de v1.5.1 a v1.5.4 serão aplicados no próximo deploy."
+      ]
+    },
+    {
+      "version": "1.5.4",
+      "date": "2026-05-26",
+      "summary": "fix: erradicação completa de Nunito + font-size cascata — Inter agora aparece em todos os elementos",
+      "changes": [
+        "main.css: removido font-family: 'Nunito' de 7 elementos (theme-toggle-btn, sidebar-version, zoom-btn, zoom-label, page-title, loading-spinner, tooltip).",
+        "components.css: removido font-family: 'Nunito' de .badge, .stacked-segment, .action-link.",
+        "main.css: multiplicador body font-size corrigido: calc(15.5px * var(--fs-mult)) → calc(14px * var(--fs-mult)) — 15.5px sobrepunha o 14px definido acima por vir depois com mesma especificidade.",
+        "main.css: dark mode --color-primary #8B8FBF (roxo antigo) → #818cf8 (indigo-400, dark mode shadcn-aligned).",
+        "main.css: .page-title font-size 26px → 24px e letter-spacing atualizado.",
+        "main.css: multiplicador .page-title calc(26px) → calc(24px).",
+        "index.html: theme-color meta #55588B → #6366F1."
+      ]
+    },
+    {
+      "version": "1.5.3",
+      "date": "2026-05-26",
+      "summary": "fix: CSS removido do precache do Service Worker — mudanças visuais chegam a todos os usuários automaticamente",
+      "changes": [
+        "vite.config.ts: removido 'css' de globPatterns no workbox — CSS com hash de conteúdo nunca mais precacheado pelo SW.",
+        "Root cause do bug: SW precacheava CSS (ex: main.abc123.css), e ao deploy com novo CSS (main.xyz789.css) o SW antigo continuava servindo o arquivo antigo do cache.",
+        "Solução: CSS com hash de Vite é tratado pelo HTTP cache do browser nativamente — não precisa do SW.",
+        "Combinado com o controllerchange → reload de 1.5.2: mudanças CSS agora chegam em 1 ciclo de deploy sem ação do usuário."
+      ]
+    },
+    {
+      "version": "1.5.2",
+      "date": "2026-05-26",
+      "summary": "fix: PWA Service Worker auto-reload — CSS/JS atualizados automaticamente após deploy",
+      "changes": [
+        "main.tsx: listener controllerchange → window.location.reload() — página recarrega automaticamente quando novo SW assume controle.",
+        "vite.config.ts: injectRegister 'auto' → 'script' para injeção determinística do registro do SW.",
+        "Resolve problema onde clientes viam versão nova mas CSS antigo após deploy."
+      ]
+    },
+    {
+      "version": "1.5.1",
+      "date": "2026-05-26",
+      "summary": "design: visual shadcn — Inter, indigo, tipografia compacta, tabelas sem uppercase",
+      "changes": [
+        "Fonte: Nunito → Inter em todo o app (Inter já carregada no index.html).",
+        "Font-size base: 16px → 14px; headings na escala shadcn (24/20/16/14px).",
+        "Cor primary: #55588B (roxo desbotado) → #6366F1 (indigo-500, shadcn-aligned).",
+        "Tabelas: cabeçalho sem uppercase/letter-spacing — padrão shadcn DataTable.",
+        "tailwind.css: @layer base com border-border global (padrão shadcn globals.css).",
+        "Sidebar/nav active state atualizado para indigo."
+      ]
+    },
+    {
+      "version": "1.5.0",
+      "date": "2026-05-26",
+      "summary": "Pós-Fase: Card sub-components + redução de !important (shadcn migration completa)",
+      "changes": [
+        "card.tsx: adicionados CardHeader, CardTitle, CardDescription, CardContent, CardFooter como named exports (padrão shadcn/ui composicional).",
+        "polish.css: removidos 9 !important desnecessários — bento responsive (2), rh-bulk-btn (4+hover+danger=6), row-contrato keyboard focus (1).",
+        "polish.css: especificidade aumentada (.rh-bulk-bar .rh-bulk-btn, tr.row-contrato.is-kbfocused, .bento > .bento-Nx) em substituição a !important.",
+        "Fase 7 (DataTable v2) e Pós-Fase (kebab-case codemod + limpeza) concluídas. Migração shadcn/ui completa."
+      ]
+    },
+    {
+      "version": "1.4.9",
+      "date": "2026-05-26",
+      "summary": "fix: imports PascalCase remanescentes após codemod (build Railway quebrado)",
+      "changes": [
+        "calendar.tsx: './Button' → './button'.",
+        "combobox.tsx: './Button' → './button'.",
+        "date-picker.tsx: './Button' → './button'.",
+        "map-view.tsx: './MapViewInner' → './map-view-inner' (lazy import + type inline).",
+        "primitives.test.tsx: './Button', './EmptyState', './Spinner', './DataTable' → kebab-case."
+      ]
+    },
+    {
+      "version": "1.4.8",
+      "date": "2026-05-26",
+      "summary": "refactor: codemod PascalCase → kebab-case em componentes UI (Pós-Fase)",
+      "changes": [
+        "Renomear 11 componentes PascalCase: Button→button, Card→card, DataTable→data-table, Spinner→spinner, FormField→form-field, EmptyState→empty-state, BentoGrid→bento-grid, MapView→map-view, MapViewInner→map-view-inner, VirtualList→virtual-list, Button.stories→button.stories.",
+        "Atualizar 118 arquivos: imports de ui/PascalCase → ui/kebab-case (307 substituições, zero mudança funcional).",
+        "Codebase agora 100% alinhado com convenção shadcn/ui (kebab-case para nomes de arquivo)."
+      ]
+    },
+    {
+      "version": "1.4.7",
+      "date": "2026-05-25",
+      "summary": "Fase 7: DataTable v2 — lote final (9 arquivos)",
+      "changes": [
+        "Audit: AuditDetailModal diff table → DataTable v2.",
+        "Comparativo: tabela manual com sort próprio → DataTable v2 (10 cols sortáveis, onRowClick).",
+        "Dashboard: ContratosCards tabela de margem → DataTable v2.",
+        "Portal: tabela de NFs → DataTable v2; fix rowKey de 2 argumentos.",
+        "Previsão: tabelas de entradas e saídas virtuais → DataTable v2.",
+        "Frota/Recursos: DistanciasModal → DataTable v2 (columns com useMemo([rotas])).",
+        "Configuração: DocTemplatesSection → DataTable v2.",
+        "Recrutamento: SolicitacaoDetail candidatos por vaga → DataTable v2."
+      ]
+    },
+    {
+      "version": "1.4.6",
+      "date": "2026-05-26",
+      "summary": "fix: Caixa.tsx OFX_COLUNAS — propriedades OfxTransacao corretas (data/memo/valor)",
+      "changes": [
+        "Caixa: OFX_COLUNAS corrigidas: t.date→t.data, t.name removido, t.amount→t.valor (6 erros TS2339 no build Railway).",
+        "Dashboard: EntradasPrevistasTable migrada para DataTable v2 — coluna Valor Esperado sortável."
+      ]
+    },
+    {
+      "version": "1.4.5",
+      "date": "2026-05-25",
+      "summary": "Fase 7: migração massiva para DataTable v2 — 16 arquivos em paralelo",
+      "changes": [
+        "ContasPagar: ContaRow sub-component inlined into DataTable columns; handleEstornar/handleExcluir → useCallback; search por descrição/NF/fornecedor.",
+        "Caixa: LancamentoRow removido; 4 tabelas → DataTable (lançamentos, resumo por mês, futuros, OFX import).",
+        "Investimentos: 2 tabelas → DataTable; ResumoPorSocio tabela migrada com total footer.",
+        "FolhaPagamento: FolhaTableRow removido e inlined; 9 colunas via useMemo.",
+        "CobrancaMensal: tabela modal de cobranças → DataTable estático.",
+        "contracts/FinanceiroTab: 2 tabelas (orçamento e saídas) → DataTable com tfoot substituído por div sibling.",
+        "contracts/CronogramaTab: tabela de atividades → DataTable sortable.",
+        "contracts/RdoFormModal: 3 tabelas (MO, terceirizados, equipamentos) → DataTable com inputs inline.",
+        "contracts/RdoTab: tabela de RDOs → DataTable com search e sort.",
+        "contracts/AditivosTab: tabela com tfoot → DataTable + div total.",
+        "contracts/OcorrenciasTab: tabela → DataTable com search e badge de severidade.",
+        "contracts/PendenciasTab: tabela de passagens → DataTable + total footer.",
+        "contracts/VisaoGeralTab: tabela de equipe → DataTable.",
+        "contracts/OrganogramaTab: lista de membros → DataTable (organograma arvore mantido).",
+        "contracts/DetalheComposicaoModal: tabela modal → DataTable estático.",
+        "estoque/Estoque: tabela histórico de movimentações → DataTable; tabela principal (expand/collapse Fragment) mantida."
+      ]
+    },
+    {
+      "version": "1.4.4",
+      "date": "2026-05-25",
+      "summary": "Fase 7: 3 seções de configuração migradas para DataTable v2",
+      "changes": [
+        "BackupSection: tabela de backups → DataTable com sort em Arquivo/Tamanho/Criado; remove th()/td() helpers.",
+        "ArquivosSection: tabela de arquivos → DataTable com search global (colaborador, tipo, nome); sort em Tamanho e Data.",
+        "TiposCustoSection: tabela de tipos de custo → DataTable com sort em Nome/Uso; ações Editar/Excluir por linha; handleDelete em useCallback.",
+        "DataTable: campo id? adicionado à Column<T> (já incluído em 1.4.2, confirmado estável)."
+      ]
+    },
+    {
+      "version": "1.4.3",
+      "date": "2026-05-25",
+      "summary": "Fase 7: Contratos migrado para DataTable v2 com bulk actions",
+      "changes": [
+        "Contratos: raw <table> de 8 colunas substituída por DataTable v2.",
+        "Sort nativo em Nome, Cliente, Valor, Período via TanStack Table — remove SortField/sortDir/sortIcon manual.",
+        "Paginação delegada ao DataTable (pageSize=25) — remove page/pageSafe/pagina state.",
+        "Seleção múltipla delegada ao DataTable (selectable) — remove selecionados/toggleSelecionado state.",
+        "bulkActions: CSV, Mudar Status e Excluir via BulkAction<Contract>[] — remove bulk action Card manual.",
+        "toggleFav/handleExcluir/exportarCsv/bulkStatus/bulkDelete convertidos para useCallback.",
+        "Favoritos-no-topo preservados via pre-sort no array antes de passar para DataTable.",
+        "Coluna fav (★) com stopPropagation no botão para não disparar onRowClick.",
+        "setPage(1) removido dos handlers de busca e status (DataTable gerencia página internamente)."
+      ]
+    },
+    {
+      "version": "1.4.2",
+      "date": "2026-05-25",
+      "summary": "Fase 7: Propostas migrada para DataTable v2",
+      "changes": [
+        "Propostas: raw <table> de 9 colunas substituída por DataTable v2.",
+        "Colunas sortáveis: Número (sortAccessor p.numero), Valor (p.valorTotal), Emissão (p.dataEmissao).",
+        "handleDuplicar e handleExcluir convertidos para useCallback para estabilidade do useMemo de colunas.",
+        "Contrato e Ações usam stopPropagation para não disparar onRowClick (navigate para /proposta/:id).",
+        "Column<T> interface: campo id?: string adicionado ao DataTable para identificação opcional de colunas.",
+        "showColumnToggle ativo: toggle de visibilidade de colunas disponível."
+      ]
+    },
+    {
+      "version": "1.4.1",
+      "date": "2026-05-25",
+      "summary": "Fase 7: NotasFiscais migrada para DataTable v2 (search + filtro situação)",
+      "changes": [
+        "NotasFiscais/ListaTab: raw <table> substituída por DataTable v2.",
+        "Busca global por NF, contrato e cliente; filtro facetado por situação (emitida/pendente).",
+        "handleCancelar/handleExcluir convertidos para useCallback para estabilidade do useMemo de colunas.",
+        "stopPropagation inline nos botões de ação para não disparar onRowClick."
+      ]
+    },
+    {
+      "version": "1.4.0",
+      "date": "2026-05-25",
+      "summary": "Fase 7: DataTable v2 — global search + filtros facetados; piloto em Cláusulas",
+      "changes": [
+        "DataTable: novo prop searchPlaceholder + globalFilterFn — input de busca global com ícone Search.",
+        "DataTable: novo prop filters: FacetedFilter<T>[] — checkboxes por valores discretos (status, categoria, etc.).",
+        "DataTable: toolbar unificada (search + faceted + column toggle) em flex row; 'Limpar tudo' remove todos os filtros ativos.",
+        "DataTable: filtragem feita no useMemo antes de passar para TanStack Table (sem acoplamento com accessorFn).",
+        "Clausulas: ClausulasTabela reescrita com DataTable v2 — busca por título/texto + filtros status/categoria.",
+        "Clausulas: Badge status usa variant=success/destructive; tags usam variant=secondary."
+      ]
+    },
+    {
+      "version": "1.3.9",
+      "date": "2026-05-25",
+      "summary": "Pós-Fase: migração completa useToast → Sonner (70 arquivos), remove ToastProvider",
+      "changes": [
+        "codemod: 70 arquivos migrados de useToast()+toast.show() para import{toast}from'sonner' direto.",
+        "toast.show(msg,'danger') → toast.error(msg); 'success' → toast.success; 'warning' → toast.warning; sem tipo → toast(msg).",
+        "fix: Caixa.tsx — condicional toast.show(msg, fail>0?'danger':'success') reescrito como if/else toast.error/toast.success.",
+        "main.tsx: remove <ToastProvider> wrapper — Sonner <Toaster/> já presente desde Fase 1.",
+        "delete: web/src/components/ui/toast/ToastProvider.tsx, ToastContext.ts, toast.test.tsx.",
+        "delete: _codemod_toast.cjs (script temporário de migração)."
+      ]
+    },
+    {
+      "version": "1.3.8",
+      "date": "2026-05-25",
+      "summary": "CSS cleanup: remove .form-control, .modal-*, @keyframes fadeIn/slideUp — 148 linhas mortas",
+      "changes": [
+        "delete: bloco .form-control / input.form-control / select.form-control / textarea.form-control de components.css (zero consumers — shadcn Input/Textarea não usa essa classe).",
+        "delete: blocos .modal-overlay, .modal, .modal-header, .modal-title, .modal-close, .modal-content, .modal-footer de components.css (zero consumers — Modal.tsx deletado).",
+        "delete: @keyframes fadeIn e @keyframes slideUp (usados apenas pelos blocos .modal deletados).",
+        "delete: .prop-fg .form-control overrides (zero consumers — inputs em DadosGeraisTab são shadcn).",
+        "components.css: 571 → 423 linhas (-148)."
+      ]
+    },
+    {
+      "version": "1.3.7",
+      "date": "2026-05-25",
+      "summary": "Pós-Fase: deleta Modal/controls deprecated, codemod Input/Textarea/Select em 60 arquivos",
+      "changes": [
+        "delete: Modal.tsx, Modal.test.tsx, controls.tsx — zero consumers restantes.",
+        "new: native-select.tsx — styled native <select> sem Radix, substitui controls.Select.",
+        "codemod: 60 arquivos migrados de controls.{Input,Textarea,Select} para @/components/ui/{input,textarea,native-select}.",
+        "Input → @/components/ui/input (shadcn h-9, sem !important — CSS legado já erradicado).",
+        "Select → @/components/ui/native-select (mesma API de HTML select nativo, sem Radix)."
+      ]
+    },
+    {
+      "version": "1.3.6",
+      "date": "2026-05-25",
+      "summary": "Pós-Fase: migração completa Modal → Dialog composicional (50 modais em 50 arquivos)",
+      "changes": [
+        "refactor: todos os consumidores do wrapper Modal deprecated migrados para Dialog composicional shadcn/ui.",
+        "Migrados: base/Base (2), caixa/Caixa (4), contas-pagar/ContasPagar (3), contracts/GerarDocumentoModal, RdoDetailModal, RdoFormModal.",
+        "Migrados: estoque/Estoque, MovimentacaoModais (5), folha/FolhaPagamento (3), frota/VeiculoDetalheModal (3).",
+        "Migrados: investimentos/Investimentos (2), manutencao/ManutencaoModals (4), notas-fiscais/NotasFiscais (3).",
+        "Migrados: rdos/RDOs, recrutamento/SolicitacaoDetail (2), recursos/FolgasModal (3), solicitacoes/SolicitacaoModals (3).",
+        "Modal.tsx agora é zero-consumer — pronto para remoção na Pós-Fase."
+      ]
+    },
+    {
+      "version": "1.3.5",
+      "date": "2026-05-25",
+      "summary": "Fase 7: Combobox em 12 features adicionais + fix id prop Combobox",
+      "changes": [
+        "fix: Combobox — id prop não era repassada ao Button trigger (TS2322).",
+        "Combobox: RecursoModal (obra/contrato), ManutencaoModals (origem), MovimentacaoModais (entrada-para-obra).",
+        "Combobox: NotasFiscais (contrato), Investimentos (sócio + contrato), RDOs (contrato modal + filtro).",
+        "Combobox: Caixa (filtro + vincular contrato em 2 modais), GerarDocumentoModal (templates).",
+        "Combobox: ObrigacoesTab (cláusulas biblioteca), Frota.tsx (filtroContrato), VeiculoModal (alocado em).",
+        "Combobox: NovaSolicitacaoModal Recrutamento (obra/contrato)."
+      ]
+    },
+    {
+      "version": "1.3.4",
+      "date": "2026-05-25",
+      "summary": "Fase 7: Combobox em mais features + showColumnToggle em todas as DataTables",
+      "changes": [
+        "showColumnToggle: ativado em 11 DataTables (Frota, Manutencao, RDOs, Recursos, Documentos, Solicitacoes, Clientes, Fornecedores, Base, Socios, Usuarios).",
+        "Combobox: ContasPagar (fornecedor + contrato), Frota VeiculoDetalheModal (fornecedor), Propostas DadosGeraisTab (cliente), MembroModal Contratos (recurso + supervisor).",
+        "fix: OcorrenciasTab.tsx — removido import Input não utilizado (TS6133)."
+      ]
+    },
+    {
+      "version": "1.3.3",
+      "date": "2026-05-25",
+      "summary": "Fase 7: DataTable v2 — column visibility via DropdownMenu",
+      "changes": [
+        "DataTable.tsx: adicionado showColumnToggle prop — exibe DropdownMenuCheckboxItem para toggle de colunas.",
+        "DataTable.tsx: Column.hideable prop para excluir colunas do menu (default true).",
+        "DataTable.tsx: integrado VisibilityState + onColumnVisibilityChange do TanStack Table.",
+        "DataTable.tsx: colSpan da linha vazia usa getVisibleFlatColumns().length para respeitar colunas ocultas."
+      ]
+    },
+    {
+      "version": "1.3.2",
+      "date": "2026-05-25",
+      "summary": "Fase 7 + Pós-Fase: DatePicker em todas as features + remoção do CSS toast legado",
+      "changes": [
+        "DatePicker: migrados todos os <Input type=date> para DatePicker em 22 arquivos (55 ocorrências) — calendar shadcn em toda a app.",
+        "polish.css: removida seção 8 (TOAST/NOTIFICATIONS) inteira — .toast-stack, .toast, .toast--, @keyframes toast-in/out.",
+        "components.css: removido bloco .toast-container/.toast/.toast-success/.toast-error/.toast-warning/.toast-info/@keyframes toastIn.",
+        "main.css: removidas 4 linhas de font-size para .toast e .toast-icon (desktop e zoom-control)."
+      ]
+    },
+    {
+      "version": "1.3.1",
+      "date": "2026-05-25",
+      "summary": "Pós-Fase: migração silenciosa de toast legado para Sonner",
+      "changes": [
+        "ToastProvider.tsx: reescrito para delegar ao Sonner internamente (toast.success/error/warning/info).",
+        "useToast() mantém API idêntica — zero alterações nos 68 arquivos consumers.",
+        "Toast legado removido da renderização (sem mais .toast-stack no DOM)."
+      ]
+    },
+    {
+      "version": "1.3.0",
+      "date": "2026-05-25",
+      "summary": "Pós-Fase + Fase 7: DatePicker Calendar em RDOs, limpeza",
+      "changes": [
+        "date-picker.tsx: novo componente DatePicker (Calendar + Popover) compatível com YYYY-MM-DD.",
+        "RdoFormModal.tsx: campo 'Data' migrado de <Input type=date> para <DatePicker> — Calendar shadcn.",
+        "Modal.tsx: deprecação atualizada para v1.4.0 (wrappers legados mantidos até migração completa).",
+        "Pós-Fase: wrappers Modal/FormField/controls preservados com console.warn em DEV."
+      ]
+    },
+    {
+      "version": "1.2.99",
+      "date": "2026-05-25",
+      "summary": "Fix espaçamento Card + Fase 7: Combobox em Propostas + Calendar/Command components",
+      "changes": [
+        "Card.tsx: adicionado padding padrão p-5 (20px) — corrige espaçamento interno das cards convertidas de .card legado.",
+        "components.css: removidos !important de .form-control (border/background/color) — deixa shadcn Input funcionar corretamente em dark mode e temas.",
+        "Novos componentes Fase 7: command.tsx (cmdk), calendar.tsx (react-day-picker v9), combobox.tsx (Popover+Command).",
+        "web/package.json: adicionadas dependências cmdk@1.0.4, react-day-picker@9.7.0, date-fns@4.1.0.",
+        "Propostas.tsx: seletor de cliente migrado de <Select> legado para <Combobox> pesquisável.",
+        "Dockerfile: web-builder stage usa npm install (suporta novos deps sem lock file sincronizado)."
+      ]
+    },
+    {
+      "version": "1.2.98",
+      "date": "2026-05-25",
+      "summary": "Fix crítico: remover seletores agressivos de main.css que bloqueavam visual shadcn",
+      "changes": [
+        "Removido [class*=\"text-muted\"] !important — capturava text-muted-foreground do shadcn e forçava preto.",
+        "Removidos [style*=\"color:#6B7280\"] etc. !important — anulavam todas as cores inline cinzas.",
+        "Corrigido body { font-size: 17px → 16px; line-height: 1.6 → 1.5 } para alinhar com shadcn.",
+        "Seletores legados (.text-muted, .card-title etc.) agora usam color sem !important."
+      ]
+    },
+    {
+      "version": "1.2.97",
+      "date": "2026-05-25",
+      "summary": "Fase 6 CONCLUÍDA — CSS legado zerado em pages/NotFound + Placeholder",
+      "changes": [
+        "NotFound.tsx: card→<Card>, btn btn-primary Link→<Button asChild>.",
+        "Placeholder.tsx: card→<Card>.",
+        "Zero ocorrências de .btn/.card/.badge/.form-control em toda src/features/ e src/pages/."
+      ]
+    },
+    {
+      "version": "1.2.96",
+      "date": "2026-05-25",
+      "summary": "Fase 6 — CSS legado erradicado em propostas + solicitacoes",
+      "changes": [
+        "PropostaDetail.tsx: badge→<Badge>, card→<Card>.",
+        "Propostas.tsx: 2 Link btn-secondary→<Button asChild>, 3 card→<Card>, 2 badge→<Badge>.",
+        "tabs/AnexosTab.tsx: 2 card→<Card>, 2 label btn-secondary→<Button asChild><label>.",
+        "tabs/CronogramaTab/CustoInternoTab/DadosGeraisTab/EscopoTab/InvestimentoTab/ObrigacoesTab/PreviewTab.tsx: card→<Card> (prop-dados-card preservado).",
+        "DetalheSolicitacaoModal.tsx + SolicitacoesCompra.tsx: badge→<Badge>."
+      ]
+    },
+    {
+      "version": "1.2.95",
+      "date": "2026-05-25",
+      "summary": "Fase 6 — CSS legado erradicado em contracts + fix Obras.tsx import",
+      "changes": [
+        "AditivosTab/FinanceiroTab/OcorrenciasTab/OrganogramaTab/PendenciasTab/RdoTab/VisaoGeralTab: badge→<Badge style>.",
+        "RdoFotosModal.tsx: form-control→<Input>.",
+        "ContratoModal.tsx: 2x card-title→Tailwind h3.",
+        "ContratoDetail.tsx: 2 card→<Card>, badge badge-${status}→<Badge variant>, btn btn-secondary Link→<Button asChild>.",
+        "Contratos.tsx: badge badge-${status}→<Badge variant>.",
+        "Obras.tsx: removido import Button unused (fix build error)."
+      ]
+    },
+    {
+      "version": "1.2.94",
+      "date": "2026-05-25",
+      "summary": "Fase 6 — CSS legado erradicado em cobranca, obras, users, theme",
+      "changes": [
+        "CobrancaMensal.tsx: 7 card→<Card>, card-header/title→Tailwind.",
+        "Obras.tsx: 4 card→<Card>, card-header/title→Tailwind, btn→<Button>.",
+        "Usuarios.tsx: error card→<Card>.",
+        "ThemeCustomizer.tsx: btn btn-sm→<Button size='sm'>."
+      ]
+    },
+    {
+      "version": "1.2.93",
+      "date": "2026-05-25",
+      "summary": "Fase 6 — CSS legado erradicado em batch: apresentacao, audit, configuracao, folha, manutencao, conciliacao, socios, clientes, fornecedores, base, recursos",
+      "changes": [
+        "Apresentacao.tsx: btn btn-secondary → <Button variant='secondary' asChild>.",
+        "AuditDetailModal.tsx + Auditoria.tsx: badge→<Badge style>.",
+        "LgpdSection.tsx: btn btn-secondary em <a>→<Button asChild>.",
+        "Manutencao.tsx: badge→<Badge style>.",
+        "FolhaPagamento.tsx: 2 badge→<Badge>, 2 card→<Card>.",
+        "Base.tsx + Clientes.tsx + Fornecedores.tsx + Conciliacao.tsx + Socios.tsx: card→<Card>, card-header/title→Tailwind.",
+        "Recursos.tsx + DistanciasModal.tsx: badge→<Badge style>."
+      ]
+    },
+    {
+      "version": "1.2.92",
+      "date": "2026-05-25",
+      "summary": "Fase 6 — CSS legado erradicado em caixa + notas-fiscais + dashboard",
+      "changes": [
+        "Caixa.tsx: 5 card→<Card> (error, resumo-mês, lançamentos, futuros, filtros), card-header/title→Tailwind, 3 badge spans→<Badge>, btn btn-sm→<Button variant='secondary' size='sm'>, stat-card mantido como className.",
+        "NotasFiscais.tsx: 5 card→<Card> (error, timeline, lista, semanal×5, mensal), card-header/title→Tailwind, 4 badge spans→<Badge variant='destructive'|'warning'|'success'|style>.",
+        "RdosCard.tsx: btn btn-secondary btn-sm→<Button variant='secondary' size='sm' asChild>."
+      ]
+    },
+    {
+      "version": "1.2.91",
+      "date": "2026-05-25",
+      "summary": "Fase 6 — CSS legado erradicado em investimentos + auth",
+      "changes": [
+        "Investimentos.tsx: 4 card→<Card>, card-header/title→Tailwind, 6 badge spans→<Badge>, stat-card mantido como className extra.",
+        "Login.tsx: 3 form-control→<Input>, 2 btn btn-primary→<Button>.",
+        "LgpdModal.tsx: 2 btn→<Button variant='secondary'/'primary'>."
+      ]
+    },
+    {
+      "version": "1.2.90",
+      "date": "2026-05-25",
+      "summary": "Fase 6 — CSS legado erradicado em contas-pagar",
+      "changes": [
+        "ContasPagar.tsx: 4 <div className='card'> → <Card> (error, timeline, filtros, tabela).",
+        "card-header/card-title removidos: substituídos por Tailwind (text-[15px] font-semibold tracking-tight).",
+        "badge badge-entrada → <Badge variant='success'>; outros badges → <Badge style={...}>."
+      ]
+    },
+    {
+      "version": "1.2.89",
+      "date": "2026-05-25",
+      "summary": "Fase 6 — CSS legado erradicado em rdos/frota/documentos",
+      "changes": [
+        "RDOs.tsx: dois <button className='btn'> → <Button variant='ghost' size='sm'>.",
+        "Frota.tsx: dois <span className='badge'> → <Badge> com inline style.",
+        "DocumentosModal.tsx: dois <span className='badge'> → <Badge>.",
+        "FichaColaboradorModal.tsx: <span className='badge'> → <Badge>.",
+        "DocumentoFormModal.tsx: <a className='btn btn-sm btn-secondary'> → <Button asChild variant='secondary' size='sm'>."
+      ]
+    },
+    {
+      "version": "1.2.88",
+      "date": "2026-05-25",
+      "summary": "Fase 6 — badge.tsx shadcn + CSS legado erradicado em clausulas/base/fornecedores",
+      "changes": [
+        "badge.tsx: reescrito no padrão shadcn/ui (CVA, named export Badge + badgeVariants, default export mantido para retrocompat).",
+        "pagination.tsx: fix size='default' → size='md' (ButtonSize não incluía 'default').",
+        "Clausulas.tsx: <div className='card'> → <Card>, <span className='badge'> → <Badge>, <Link className='btn btn-secondary btn-lg'> → <Button asChild>.",
+        "Base.tsx: <Badge variant={tipo.key}> → <Badge style={{ background: cor+'22', color: cor }}>; import atualizado para named export.",
+        "Fornecedores.tsx: import atualizado para named export."
+      ]
+    },
+    {
+      "version": "1.2.87",
+      "date": "2026-05-25",
+      "summary": "Fase 4b — SidebarFooter migrado para DropdownMenu shadcn",
+      "changes": [
+        "Sidebar.tsx SidebarFooter: dois botões separados (logout + trocar perfil) consolidados em um único <DropdownMenu> shadcn.",
+        "Dropdown mostra: nome/email do usuário, perfil ativo com ícone e cor, opção 'Trocar Perfil' (quando disponível), item destrutivo 'Sair'.",
+        "Importados DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger e ChevronsUpDown de lucide-react."
+      ]
+    },
+    {
+      "version": "1.2.86",
+      "date": "2026-05-25",
+      "summary": "Fase 4a — 11 primitivos interação média + Propostas Tabs shadcn",
+      "changes": [
+        "Adicionados 11 componentes: tabs, dropdown-menu, popover, scroll-area, sheet, hover-card, context-menu, pagination, breadcrumb, collapsible, accordion.",
+        "tailwind.css: keyframes accordion-down/up + --animate-accordion-* no @theme.",
+        "PropostaDetail.tsx: tabs customizadas (.tab-btn inline styles) substituídas por <Tabs><TabsList><TabsTrigger> shadcn; padrão lazy-render de ActiveTab preservado.",
+        "Nota: command.tsx adiado para Fase 7 (requer cmdk, não instalado)."
+      ]
+    },
+    {
+      "version": "1.2.85",
+      "date": "2026-05-25",
+      "summary": "Fase 3 — Form shadcn + Clausulas piloto + fix imports Fase 1",
+      "changes": [
+        "Fix crítico: componentes da Fase 1 (aspect-ratio, avatar, checkbox, progress, separator, skeleton, sonner, switch, toggle, toggle-group, tooltip, alert) agora importam do monolith 'radix-ui' em vez de subpaths 'radix-ui/react-*' — corrige build Railway.",
+        "Adicionados input.tsx, label.tsx, textarea.tsx, radio-group.tsx, select.tsx no padrão oficial shadcn/ui.",
+        "Adicionado form.tsx com padrão shadcn/ui (Form=FormProvider, FormField=Controller, FormItem, FormLabel, FormControl, FormDescription, FormMessage, useFormField).",
+        "ClausulaModal migrado para Dialog composicional + Label/Input/Textarea/Select shadcn (piloto Fase 3).",
+        "controls.tsx: Input, Select e Textarea recebem console.warn deprecation em DEV (remover em v1.3.0)."
+      ]
+    },
+    {
+      "version": "1.2.84",
+      "date": "2026-05-25",
+      "summary": "Fase 2 — Dialog composicional shadcn/ui",
+      "changes": [
+        "Adicionados dialog.tsx e alert-dialog.tsx no padrão oficial shadcn/ui (composicional, named exports).",
+        "Modal.tsx reescrito como wrapper deprecated sobre dialog.tsx — preserva API existente (open/title/onClose/footer/size/description) com console.warn em DEV.",
+        "AuditDetailModal e ValidacaoModal migrados para Dialog composicional (piloto Fase 2).",
+        "VeiculoDetalheModal mantém wrapper Modal por complexidade (sub-modais + tabs — migrar em Fase 6).",
+        "Botão de fechar (X) nativo embutido no DialogContent; sem close button manual no header."
+      ]
+    },
+    {
+      "version": "1.2.83",
+      "date": "2026-05-25",
+      "summary": "Fase 1 shadcn — Sonner + 11 primitivos atômicos",
+      "changes": [
+        "Adicionados 12 componentes UI no padrão shadcn/ui: sonner, skeleton, separator, alert, aspect-ratio, progress, tooltip, avatar, switch, checkbox, toggle, toggle-group.",
+        "Sonner (Toaster) montado em main.tsx — substitui progressivamente o ToastProvider legado.",
+        "TooltipProvider adicionado na raiz do app — necessário para qualquer uso de <Tooltip>.",
+        "ToastProvider marcado como @deprecated com aviso em DEV — será removido em v1.3.0.",
+        "Deps: sonner ^2.0.7, radix-ui ^1.4.3, next-themes ^0.4.6."
+      ]
+    },
+    {
+      "version": "1.2.82",
+      "date": "2026-05-25",
+      "summary": "Pré-Fase 0 — saneamento do setup shadcn/ui",
+      "changes": [
+        "components.json configurado para new-york style, Tailwind v4 com cssVariables, alias @/lib/cn e @/components/ui.",
+        "Alias TypeScript @/* → src/* confirmado em tsconfig.app.json.",
+        "Tokens de cor e radius do design system Rhino alinhados ao manifest PWA."
+      ]
+    },
+    {
+      "version": "1.2.81",
+      "date": "2026-05-25",
+      "summary": "UI polida — modais e Dashboard no padrão shadcn/ui",
+      "changes": [
+        "Modais de criar/editar com espaçamento padrão shadcn (header/body/footer em 24px), título com hierarquia clara e overlay com leve desfoque.",
+        "Cards do Dashboard com padding generoso, KPI principal em 30px, sparklines maiores e badge de variação % vs período anterior em todos os números.",
+        "Pipeline horizontal de medições com hover e barras maiores; cada estágio leva direto à lista filtrada.",
+        "Gráfico de fluxo de caixa com 340px de altura, controles 30/60/90 em estilo segmented control e header com descrição.",
+        "Inputs com altura fixa de 40px, foco visível e estado disabled padronizados.",
+        "Correção: utilitários Tailwind agora vencem CSS legado em casos críticos (padding de Card, espaçamento de FormField, etc.)."
+      ]
+    },
+    {
+      "version": "1.2.80",
+      "date": "2026-05-25",
+      "summary": "Refresh de UI — modais, Dashboard, design system shadcn/ui",
+      "changes": [
+        "Modais de criar/editar com espaçamento maior, header destacado, footer com separação visual e foco visível nos campos.",
+        "Dashboard reorganizado em layout bento com cards de KPI mais respirados, comparativo automático vs período anterior em cada métrica, sparklines e drill-down clicável.",
+        "Pipeline de medições virou um funil horizontal com barras proporcionais — cada estágio leva à lista filtrada.",
+        "Gráfico de fluxo de caixa ganhou área maior e botões de período em estilo segmented control.",
+        "Tema dark e modo alto contraste aplicam-se também a tabelas, gráficos e mapas.",
+        "Bug fix: alertas LGPD agora travam o foco no diálogo (acessibilidade)."
+      ]
+    },
+    {
+      "version": "1.2.79",
+      "date": "2026-05-25",
+      "summary": "Internal — Tailwind v4 + shadcn/ui (sem mudança visual ainda)",
+      "changes": [
+        "Setup do design system: Tailwind v4 com tokens em @theme, shadcn/ui parcial (Button/Modal/Form/Card/Badge/Spinner reescritos com Radix UI), helper cn() para concatenação de classes. Nada muda na interface até as telas serem migradas."
+      ]
+    },
+    {
+      "version": "1.2.78",
+      "date": "2026-05-25",
+      "summary": "Internal — React Hook Form + Zod + TanStack Table/Virtual",
+      "changes": [
+        "Infraestrutura para formulários tipados (RHF + Zod), tabelas com sort/filter (TanStack Table) e listas grandes virtualizadas. Migração das features acontece gradativamente."
+      ]
+    },
+    {
+      "version": "1.2.77",
+      "date": "2026-05-25",
+      "summary": "Internal — code splitting + error boundaries + bundle analyzer",
+      "changes": [
+        "Cada feature carrega sob demanda (React.lazy), erros isolados por tela (não derruba o resto do app), bundle analyzer no build e Lighthouse CI no GitHub Actions."
+      ]
+    },
+    {
+      "version": "1.2.76",
+      "date": "2026-05-25",
+      "summary": "Internal — React Compiler + Query DevTools + persistência de cache",
+      "changes": [
+        "Memoização automática (React Compiler 19), DevTools de cache em dev e persistência em localStorage com versionamento — melhora a sensação de velocidade offline e em redes lentas (latência Railway)."
+      ]
+    },
+    {
       "version": "1.2.75",
       "date": "2026-05-22",
       "summary": "Melhorias internas — utilitário de IDs em módulo próprio",
