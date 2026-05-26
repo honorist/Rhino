@@ -80,7 +80,10 @@ export default defineConfig({
       workbox: {
         // Precache só o shell — não inflar o cache com chunks pesados (mermaid,
         // jsPDF, leaflet) que entram via runtime.
-        globPatterns: ['**/*.{js,css,svg,ico,woff2}'],
+        // SVG fora do glob: arquivos de `includeAssets` já entram no precache
+        // sem hash; incluir svg no glob duplica a entrada (add-to-cache-list-
+        // conflicting-entries) e quebra a instalação do SW.
+        globPatterns: ['**/*.{js,css,ico,woff2}'],
         // O arquivo gerado pelo bundle pode passar de 2MB com sourcemaps;
         // garantimos margem.
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
