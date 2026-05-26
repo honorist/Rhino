@@ -156,7 +156,6 @@ export default function EscopoTab({ proposta, onChange }: EditorTabProps) {
                       borderRadius: 14,
                       fontSize: 11,
                       fontWeight: 700,
-                      cursor: 'pointer',
                       whiteSpace: 'nowrap',
                       letterSpacing: '.3px',
                     }}
@@ -171,7 +170,6 @@ export default function EscopoTab({ proposta, onChange }: EditorTabProps) {
                       style={{
                         background: 'none',
                         border: 'none',
-                        cursor: 'pointer',
                         fontSize: 10,
                         color: '#94a3b8',
                         padding: 0,
@@ -186,7 +184,6 @@ export default function EscopoTab({ proposta, onChange }: EditorTabProps) {
                       style={{
                         background: 'none',
                         border: 'none',
-                        cursor: 'pointer',
                         fontSize: 10,
                         color: '#94a3b8',
                         padding: 0,
@@ -216,7 +213,6 @@ export default function EscopoTab({ proposta, onChange }: EditorTabProps) {
                   style={{
                     background: 'none',
                     border: 'none',
-                    cursor: 'pointer',
                     color: '#dc2626',
                     padding: '4px 8px',
                     fontSize: 18,

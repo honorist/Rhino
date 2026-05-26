@@ -128,7 +128,6 @@ export default function NotificacoesBell() {
                   background: n.lida ? 'transparent' : 'rgba(49,130,206,.06)',
                   borderBottom: '1px solid var(--color-border)',
                   borderLeft: `3px solid ${n.lida ? 'transparent' : '#3182CE'}`,
-                  cursor: 'pointer',
                   fontSize: 13,
                   color: 'var(--color-text)',
                 }}

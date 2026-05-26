@@ -74,7 +74,6 @@ export default function ProfilePicker() {
                   borderRadius: 10,
                   background: 'var(--color-surface)',
                   border: '2px solid var(--color-border)',
-                  cursor: 'pointer',
                   textAlign: 'left',
                   transition: 'all .15s',
                 }}

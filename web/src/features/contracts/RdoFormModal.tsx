@@ -473,7 +473,7 @@ function CabecalhoTab({
       </div>
       <PeriodoTrabalho form={form} patch={patch} />
       <label
-        style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+        style={{ display: 'flex', alignItems: 'center', gap: 8 }}
       >
         <Checkbox
           checked={form.horaExtra}
@@ -1148,7 +1148,7 @@ function SegurancaTab({ form, patch }: { form: RdoFormData; patch: PatchFn }) {
             <label
               key={o.v}
               htmlFor={`rdo-acidente-${o.v}`}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
             >
               <RadioGroupItem id={`rdo-acidente-${o.v}`} value={o.v} />
               {o.l}

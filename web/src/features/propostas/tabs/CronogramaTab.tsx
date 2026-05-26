@@ -158,7 +158,6 @@ export default function CronogramaTab({ proposta, onChange }: EditorTabProps) {
                     style={{
                       background: 'none',
                       border: 'none',
-                      cursor: 'pointer',
                       color: '#dc2626',
                       fontSize: 18,
                     }}

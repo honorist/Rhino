@@ -338,7 +338,6 @@ export default function RecursoModal({ recurso, onClose }: RecursoModalProps) {
           display: 'flex',
           alignItems: 'center',
           gap: 8,
-          cursor: 'pointer',
           marginBottom: 'var(--sp-md)',
         }}
       >

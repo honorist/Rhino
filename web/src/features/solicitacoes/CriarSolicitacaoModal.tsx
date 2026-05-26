@@ -246,7 +246,6 @@ export default function CriarSolicitacaoModal({
                       background: 'none',
                       border: 'none',
                       color: '#DC2626',
-                      cursor: 'pointer',
                       fontSize: 16,
                     }}
                   >

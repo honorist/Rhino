@@ -363,7 +363,6 @@ const vazioStyle = {
 const iconBtnStyle = {
   background: 'none',
   border: 'none',
-  cursor: 'pointer',
   color: '#dc2626',
   fontSize: 18,
 } as const;

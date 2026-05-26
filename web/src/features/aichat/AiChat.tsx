@@ -173,7 +173,7 @@ export default function AiChat() {
             <span key={s}>
               {i > 0 && ' · '}
               <a
-                style={{ cursor: 'pointer', color: 'var(--color-primary)' }}
+                style={{ color: 'var(--color-primary)' }}
                 onClick={() => void enviar(s)}
               >
                 {s}

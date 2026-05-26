@@ -432,7 +432,6 @@ export default function VeiculoDetalheModal({
                       padding: '8px 14px',
                       border: 'none',
                       background: 'none',
-                      cursor: 'pointer',
                       fontWeight: aba === key ? 600 : 400,
                       color: aba === key ? '#1F497D' : '#64748b',
                       borderBottom: `2px solid ${

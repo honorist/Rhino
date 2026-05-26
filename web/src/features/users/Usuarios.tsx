@@ -269,7 +269,6 @@ function UserFormModal({ user, niveis, onClose }: UserFormModalProps) {
                 transform: 'translateY(-50%)',
                 background: 'none',
                 border: 'none',
-                cursor: 'pointer',
                 color: 'var(--color-text-muted)',
                 padding: 0,
               }}

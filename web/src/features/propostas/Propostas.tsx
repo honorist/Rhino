@@ -383,7 +383,6 @@ function NovaPropostaModal({ onClose }: { onClose: () => void }) {
                   key={t.value}
                   style={{
                     flex: 1,
-                    cursor: 'pointer',
                     border: `1.5px solid ${
                       ativo ? 'var(--color-primary)' : 'var(--color-border)'
                     }`,

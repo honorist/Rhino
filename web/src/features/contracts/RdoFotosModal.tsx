@@ -175,7 +175,6 @@ export default function RdoFotosModal({
                         background: 'rgba(0,0,0,.6)',
                         color: '#fff',
                         border: 'none',
-                        cursor: 'pointer',
                       }}
                     >
                       ✕

@@ -156,7 +156,6 @@ export default function Configuracao() {
                   background: ativo ? 'var(--color-primary)' : 'transparent',
                   color: ativo ? '#fff' : 'var(--color-text)',
                   borderRadius: 6,
-                  cursor: 'pointer',
                   fontSize: 14,
                   fontWeight: ativo ? 600 : 500,
                   textAlign: 'left',

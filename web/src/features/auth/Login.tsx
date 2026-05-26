@@ -115,7 +115,6 @@ function LoginForm({
               transform: 'translateY(-50%)',
               background: 'transparent',
               border: 'none',
-              cursor: 'pointer',
               padding: 6,
             }}
           >

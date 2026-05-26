@@ -421,7 +421,6 @@ function DestinoBadge({
           style={{
             background: 'rgba(46,125,82,.15)',
             color: '#2E7D52',
-            cursor: 'pointer',
           }}
         >
           ðŸ“‹ {contractName(contrato)}
@@ -850,7 +849,6 @@ function RadioCard({
         padding: 'var(--sp-md)',
         border: `2px solid ${checked ? activeBorder : 'var(--color-border)'}`,
         borderRadius: 8,
-        cursor: 'pointer',
         background: checked ? activeBg : undefined,
       }}
     >

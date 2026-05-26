@@ -183,7 +183,7 @@ export default function Contratos() {
       width: '40px',
       cell: (c) => (
         <button
-          style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0, fontSize: 16 }}
+          style={{ background: 'none', border: 'none', padding: 0, fontSize: 16 }}
           onClick={(e) => { e.stopPropagation(); toggleFav(c.id); }}
           title={favs.has(c.id) ? 'Remover favorito' : 'Favoritar'}
         >

@@ -298,7 +298,6 @@ export default function AvaliarModal({
                           background: 'none',
                           border: 'none',
                           color: '#DC2626',
-                          cursor: 'pointer',
                         }}
                       >
                         ✕

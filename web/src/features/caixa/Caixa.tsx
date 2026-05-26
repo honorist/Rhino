@@ -941,7 +941,6 @@ function FuturosCard({
         >
           <label
             style={{
-              cursor: 'pointer',
               fontSize: 13,
               fontWeight: 600,
               display: 'flex',

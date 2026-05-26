@@ -188,7 +188,7 @@ export default function Documentos() {
         <>
           <a
             className="action-link"
-            style={{ cursor: 'pointer', fontWeight: 700, fontSize: 15 }}
+            style={{ fontWeight: 700, fontSize: 15 }}
             onClick={() => setModal({ type: 'ficha', recursoId: r.id })}
           >
             {r.nome || '—'}

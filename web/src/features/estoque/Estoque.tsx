@@ -292,7 +292,6 @@ export default function Estoque() {
               color: aba === key ? '#fff' : 'var(--color-text)',
               border: 'none',
               borderRadius: '6px 6px 0 0',
-              cursor: 'pointer',
               fontWeight: aba === key ? 700 : 500,
             }}
           >
@@ -377,7 +376,6 @@ export default function Estoque() {
                             <TableRow
                               onClick={() => toggleExpand(item.id)}
                               style={{
-                                cursor: 'pointer',
                                 background: aberto
                                   ? 'rgba(59,130,246,.04)'
                                   : undefined,

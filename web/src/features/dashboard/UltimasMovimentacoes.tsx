@@ -62,7 +62,6 @@ export default function UltimasMovimentacoes({ entries }: { entries: CaixaEntry[
                 style={{
                   padding: '5px 12px',
                   border: 0,
-                  cursor: 'pointer',
                   fontSize: 13,
                   fontWeight: 600,
                   background: filtro === b.k ? b.c : 'transparent',

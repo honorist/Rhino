@@ -154,7 +154,7 @@ function AditivoModal({
             </div>
           </div>
           <label
-            style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
           >
             <input
               type="checkbox"

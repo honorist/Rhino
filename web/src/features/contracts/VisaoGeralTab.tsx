@@ -477,7 +477,6 @@ export default function VisaoGeralTab({ contract }: ContratoTabProps) {
                 padding: 0,
                 border: 'none',
                 background: 'none',
-                cursor: 'pointer',
                 textAlign: 'left',
                 font: 'inherit',
               }}

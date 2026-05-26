@@ -118,7 +118,7 @@ function ActionLink({
   return (
     <a
       className={`action-link${danger ? ' danger' : ''}`}
-      style={{ cursor: 'pointer', color }}
+      style={{ color }}
       onClick={onClick}
     >
       {label}

@@ -400,6 +400,5 @@ const delBtnStyle = {
   background: 'none',
   border: 'none',
   color: '#dc2626',
-  cursor: 'pointer',
   fontSize: 18,
 } as const;
