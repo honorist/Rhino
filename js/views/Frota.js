@@ -347,6 +347,7 @@ window.Frota = {
         if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
         window.showToast(v ? 'Veículo atualizado' : 'Veículo criado', 'success');
         close();
+        Store.invalidate();
         this.render();
       } catch (e) { window.showToast(e.message, 'error'); }
     });
@@ -562,6 +563,7 @@ window.Frota = {
   },
 
   async _reloadAndKeepDetalhe(veiculoId, aba) {
+    Store.invalidate();
     await Store.loadAll();
     const old = document.getElementById('modalDetVeic');
     if (old) old.remove();
@@ -933,6 +935,7 @@ window.Frota = {
       const res = await fetch(`/api/veiculos/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
       window.showToast('Veículo excluído', 'success');
+      Store.invalidate();
       this.render();
     } catch (e) { window.showToast(e.message, 'error'); }
   },
