@@ -82,3 +82,138 @@
     z-index: 250;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Breathing room — modais e formulários menos apertados.
+   Vence o CSS legado (last in import order).
+   ───────────────────────────────────────────────────────────── */
+
+/* Form-rows dentro de Radix Dialog: gap maior entre campos. */
+[role='dialog'] .form-row {
+  gap: 20px;
+  margin-bottom: 4px;
+}
+
+/* form-group dentro de Dialog: distância vertical confortável. */
+[role='dialog'] .form-group {
+  margin-bottom: 18px;
+}
+
+/* Labels mais legíveis dentro de modais. */
+[role='dialog'] .form-label,
+[role='dialog'] label {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  display: inline-block;
+}
+
+/* Inputs/selects dentro de modais: altura confortável + padding interno. */
+[role='dialog'] input.form-control,
+[role='dialog'] select.form-control,
+[role='dialog'] textarea.form-control,
+[role='dialog'] .input {
+  min-height: 40px;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+[role='dialog'] textarea.form-control,
+[role='dialog'] textarea.input {
+  min-height: 96px;
+  resize: vertical;
+}
+
+/* Cards das páginas — padding mais arejado. */
+.card,
+[data-slot='card'] {
+  padding: 24px;
+}
+
+/* Page-header — respiro abaixo e tipografia mais clara. */
+.page-header {
+  margin-bottom: 28px;
+  gap: 20px;
+}
+
+/* Botões dentro de modais: altura e padding maiores. */
+[role='dialog'] .btn,
+[role='dialog'] button[data-slot='button']:not([data-size]) {
+  min-height: 40px;
+  padding: 10px 18px;
+}
+
+/* Focus visível em todo elemento interativo dentro de modais. */
+[role='dialog'] *:focus-visible {
+  outline: 2px solid var(--color-primary, #6366f1);
+  outline-offset: 2px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Sidebar — tree-view nos sub-itens dos grupos colapsáveis.
+   Linha vertical contínua + tick horizontal por item.
+   ───────────────────────────────────────────────────────────── */
+
+.nav-group-children {
+  position: relative;
+}
+
+.nav-group-children.open {
+  max-height: 800px;
+}
+
+/* Linha vertical ancorada na coluna do ícone do grupo pai (~28px do edge).
+   `top: 6px; bottom: 6px` deixa o tronco com folga no início e no fim. */
+.nav-group-children.open::before {
+  content: '';
+  position: absolute;
+  left: 26px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: var(--color-border, #e2e8f0);
+}
+
+/* Tick horizontal antes de cada link filho. */
+.nav-group-children .nav-item {
+  position: relative;
+}
+
+.nav-group-children .nav-item a {
+  padding-left: 44px;
+}
+
+.nav-group-children .nav-item a::before {
+  content: '';
+  position: absolute;
+  left: 26px;
+  top: 50%;
+  width: 10px;
+  height: 1px;
+  background: var(--color-border, #e2e8f0);
+}
+
+/* Item ativo: tick + segmento da linha vertical em destaque. */
+.nav-group-children .nav-item a.active::after {
+  content: '';
+  position: absolute;
+  left: 26px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--color-primary, #6366f1);
+}
+
+/* Esconde o tree quando a sidebar está colapsada (icon-only mode). */
+body.sb-collapsed .nav-group-children.open::before,
+body.sb-collapsed .nav-group-children .nav-item a::before {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
