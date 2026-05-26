@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.4.6",
+      "date": "2026-05-26",
+      "summary": "fix: Caixa.tsx OFX_COLUNAS — propriedades OfxTransacao corretas (data/memo/valor)",
+      "changes": [
+        "Caixa: OFX_COLUNAS corrigidas: t.date→t.data, t.name removido, t.amount→t.valor (6 erros TS2339 no build Railway).",
+        "Dashboard: EntradasPrevistasTable migrada para DataTable v2 — coluna Valor Esperado sortável."
+      ]
+    },
+    {
       "version": "1.4.5",
       "date": "2026-05-25",
       "summary": "Fase 7: migração massiva para DataTable v2 — 16 arquivos em paralelo",

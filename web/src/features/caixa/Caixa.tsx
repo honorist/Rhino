@@ -107,10 +107,10 @@ const MESES_COLUNAS: Column<MesResumoRow>[] = [
 type OfxTransacaoRow = OfxTransacao & { _idx: number };
 
 const OFX_COLUNAS: Column<OfxTransacaoRow>[] = [
-  { id: 'data', header: 'Data', cell: (t) => formatDate(t.date) },
-  { id: 'desc', header: 'Descrição', cell: (t) => t.memo || t.name || '—' },
-  { id: 'valor', header: 'Valor', align: 'right', cell: (t) => <span style={{ fontWeight: 700, color: num(t.amount) >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>{formatBRL(Math.abs(num(t.amount)))}</span> },
-  { id: 'tipo', header: 'Tipo', cell: (t) => <Badge variant={num(t.amount) >= 0 ? 'success' : 'destructive'}>{num(t.amount) >= 0 ? 'Entrada' : 'Saída'}</Badge> },
+  { id: 'data', header: 'Data', cell: (t) => formatDate(t.data) },
+  { id: 'desc', header: 'Descrição', cell: (t) => t.memo || '—' },
+  { id: 'valor', header: 'Valor', align: 'right', cell: (t) => <span style={{ fontWeight: 700, color: num(t.valor) >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>{formatBRL(Math.abs(num(t.valor)))}</span> },
+  { id: 'tipo', header: 'Tipo', cell: (t) => <Badge variant={num(t.valor) >= 0 ? 'success' : 'destructive'}>{num(t.valor) >= 0 ? 'Entrada' : 'Saída'}</Badge> },
 ];
 
 /** Tela de Caixa — Lançamentos. Migração de js/views/Caixa.js. */
