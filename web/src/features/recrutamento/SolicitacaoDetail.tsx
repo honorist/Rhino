@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import FormField from '../../components/ui/FormField';
@@ -12,6 +12,7 @@ import {
 import Spinner from '../../components/ui/Spinner';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 import CandidatoWizardModal from './CandidatoWizardModal';
 import {
   useAdicionarCandidato,
@@ -37,6 +38,65 @@ export default function SolicitacaoDetail({ solicitacaoId, onClose }: Props) {
   const cancelar = useCancelarSolicitacao();
   const [novoCand, setNovoCand] = useState<{ vagaId: string } | null>(null);
   const [detalhe, setDetalhe] = useState<Candidato | null>(null);
+
+  const candidatoColumns = useMemo((): Column<Candidato>[] => [
+    {
+      id: 'nome',
+      header: 'Nome',
+      cell: (c) => <strong>{c.nome}</strong>,
+    },
+    {
+      id: 'telefone',
+      header: 'Telefone',
+      cell: (c) => c.telefone || '—',
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      cell: (c) => (
+        <span
+          style={{
+            padding: '2px 8px',
+            borderRadius: 10,
+            fontSize: 11,
+            fontWeight: 700,
+            background: STATUS_CANDIDATO_COR[c.status] + '22',
+            color: STATUS_CANDIDATO_COR[c.status],
+          }}
+        >
+          {STATUS_CANDIDATO_LABEL[c.status]}
+        </span>
+      ),
+    },
+    {
+      id: 'antecedentes',
+      header: 'Antecedentes',
+      cell: (c) => (
+        <>
+          {c.antecedentesStatus === 'pendente' ? '⏳' : c.antecedentesStatus === 'ok' ? '✓' : '✗'}{' '}
+          {c.antecedentesStatus}
+        </>
+      ),
+    },
+    {
+      id: 'docs',
+      header: 'Docs',
+      cell: (c) => <>{Object.keys(c.documentos || {}).length}/5</>,
+    },
+    {
+      id: 'acao',
+      header: '',
+      cell: (c) => (
+        <a
+          className="action-link"
+          style={{ cursor: 'pointer' }}
+          onClick={() => setDetalhe(c)}
+        >
+          Abrir
+        </a>
+      ),
+    },
+  ], []);
 
   if (isLoading) return <Spinner label="Carregando solicitação…" />;
   if (!data) return null;
@@ -99,64 +159,12 @@ export default function SolicitacaoDetail({ solicitacaoId, onClose }: Props) {
                   </Button>
                 )}
               </div>
-              {!vaga.candidatos || vaga.candidatos.length === 0 ? (
-                <p className="text-muted" style={{ fontSize: 13 }}>
-                  Nenhum candidato adicionado ainda.
-                </p>
-              ) : (
-                <table style={{ width: '100%', fontSize: 14 }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                      <th style={th()}>Nome</th>
-                      <th style={th()}>Telefone</th>
-                      <th style={th()}>Status</th>
-                      <th style={th()}>Antecedentes</th>
-                      <th style={th()}>Docs</th>
-                      <th style={th()}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {vaga.candidatos.map((c) => (
-                      <tr key={c.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                        <td style={td()}>
-                          <strong>{c.nome}</strong>
-                        </td>
-                        <td style={td()}>{c.telefone || '—'}</td>
-                        <td style={td()}>
-                          <span
-                            style={{
-                              padding: '2px 8px',
-                              borderRadius: 10,
-                              fontSize: 11,
-                              fontWeight: 700,
-                              background: STATUS_CANDIDATO_COR[c.status] + '22',
-                              color: STATUS_CANDIDATO_COR[c.status],
-                            }}
-                          >
-                            {STATUS_CANDIDATO_LABEL[c.status]}
-                          </span>
-                        </td>
-                        <td style={td()}>
-                          {c.antecedentesStatus === 'pendente' ? '⏳' : c.antecedentesStatus === 'ok' ? '✓' : '✗'}{' '}
-                          {c.antecedentesStatus}
-                        </td>
-                        <td style={td()}>
-                          {Object.keys(c.documentos || {}).length}/5
-                        </td>
-                        <td style={td()}>
-                          <a
-                            className="action-link"
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => setDetalhe(c)}
-                          >
-                            Abrir
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+              <DataTable
+                rows={vaga.candidatos ?? []}
+                columns={candidatoColumns}
+                rowKey={(c) => c.id}
+                emptyMessage="Nenhum candidato adicionado ainda."
+              />
             </Card>
           ))}
 
@@ -266,13 +274,3 @@ function NovoCandidatoModal({
   );
 }
 
-const th = (): React.CSSProperties => ({
-  padding: '8px 6px',
-  textAlign: 'left',
-  fontSize: 12,
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '.04em',
-  color: '#64748B',
-});
-const td = (): React.CSSProperties => ({ padding: '8px 6px', verticalAlign: 'middle' });

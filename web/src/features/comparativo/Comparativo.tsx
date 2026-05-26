@@ -1,40 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 import Spinner from '../../components/ui/Spinner';
 import { formatBRL } from '../../lib/format';
 import { useBase, useCaixa, useNotasFiscais, useRecursos } from '../resources';
 import { useContracts, useSaidas } from '../contracts/queries';
 import { calcMetrics, type ComparativoMetrics } from './metrics';
 
-type SortKey = keyof Pick<
-  ComparativoMetrics,
-  | 'nome'
-  | 'cliente'
-  | 'valor'
-  | 'pctMedido'
-  | 'pctMargem'
-  | 'margemReais'
-  | 'desvioOrcado'
-  | 'atrasoDias'
-  | 'equipeAtual'
-  | 'rdosUltimos30'
->;
 type Filtro = 'ativos' | 'concluidos' | 'todos';
-
-const COLUNAS: { key: SortKey; label: string; right?: boolean }[] = [
-  { key: 'nome', label: 'Contrato' },
-  { key: 'cliente', label: 'Cliente' },
-  { key: 'valor', label: 'Valor', right: true },
-  { key: 'pctMedido', label: '% Medido', right: true },
-  { key: 'pctMargem', label: '% Margem', right: true },
-  { key: 'margemReais', label: 'Margem R$', right: true },
-  { key: 'desvioOrcado', label: 'Desvio Orç.', right: true },
-  { key: 'atrasoDias', label: 'Atraso', right: true },
-  { key: 'equipeAtual', label: 'Equipe', right: true },
-  { key: 'rdosUltimos30', label: 'RDOs 30d', right: true },
-];
 
 function corPct(p: number, ref: number): string {
   if (p >= ref) return 'var(--color-success)';
@@ -52,8 +27,6 @@ export default function Comparativo() {
   const nfsQuery = useNotasFiscais();
   const recursosQuery = useRecursos();
 
-  const [sortBy, setSortBy] = useState<SortKey>('margemReais');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [filtro, setFiltro] = useState<Filtro>('ativos');
 
   const metrics = useMemo(() => {
@@ -80,36 +53,146 @@ export default function Comparativo() {
     filtro,
   ]);
 
+  const columns = useMemo((): Column<ComparativoMetrics>[] => [
+    {
+      id: 'nome',
+      header: 'Contrato',
+      sortable: true,
+      sortAccessor: (m) => m.nome,
+      cell: (m) => (
+        <>
+          <strong>{m.nome}</strong>
+          {m.contractNumber && (
+            <div className="text-muted" style={{ fontSize: 12 }}>
+              #{m.contractNumber}
+            </div>
+          )}
+        </>
+      ),
+    },
+    {
+      id: 'cliente',
+      header: 'Cliente',
+      sortable: true,
+      sortAccessor: (m) => m.cliente ?? '',
+      cell: (m) => m.cliente || '—',
+    },
+    {
+      id: 'valor',
+      header: 'Valor',
+      align: 'right',
+      sortable: true,
+      sortAccessor: (m) => m.valor,
+      cell: (m) => <span style={{ fontWeight: 600 }}>{formatBRL(m.valor)}</span>,
+    },
+    {
+      id: 'pctMedido',
+      header: '% Medido',
+      align: 'right',
+      sortable: true,
+      sortAccessor: (m) => m.pctMedido,
+      cell: (m) => (
+        <span style={{ color: corPct(m.pctMedido, 100) }}>
+          {m.pctMedido.toFixed(1)}%
+        </span>
+      ),
+    },
+    {
+      id: 'pctMargem',
+      header: '% Margem',
+      align: 'right',
+      sortable: true,
+      sortAccessor: (m) => m.pctMargem,
+      cell: (m) => (
+        <span style={{ fontWeight: 700, color: corPct(m.pctMargem, 20) }}>
+          {m.pctMargem.toFixed(1)}%
+        </span>
+      ),
+    },
+    {
+      id: 'margemReais',
+      header: 'Margem R$',
+      align: 'right',
+      sortable: true,
+      sortAccessor: (m) => m.margemReais,
+      cell: (m) => (
+        <span
+          style={{
+            color:
+              m.margemReais >= 0
+                ? 'var(--color-success)'
+                : 'var(--color-danger)',
+          }}
+        >
+          {formatBRL(m.margemReais)}
+        </span>
+      ),
+    },
+    {
+      id: 'desvioOrcado',
+      header: 'Desvio Orç.',
+      align: 'right',
+      sortable: true,
+      sortAccessor: (m) => m.desvioOrcado,
+      cell: (m) =>
+        m.orcado > 0
+          ? `${m.desvioOrcado >= 0 ? '+' : ''}${m.desvioOrcado.toFixed(1)}%`
+          : '—',
+    },
+    {
+      id: 'atrasoDias',
+      header: 'Atraso',
+      align: 'right',
+      sortable: true,
+      sortAccessor: (m) => m.atrasoDias,
+      cell: (m) =>
+        m.atrasoDias === 0 ? (
+          '—'
+        ) : (
+          <span
+            style={{
+              color:
+                m.atrasoDias > 0
+                  ? 'var(--color-danger)'
+                  : 'var(--color-success)',
+            }}
+          >
+            {`${m.atrasoDias > 0 ? '+' : ''}${m.atrasoDias}d`}
+          </span>
+        ),
+    },
+    {
+      id: 'equipeAtual',
+      header: 'Equipe',
+      align: 'right',
+      sortable: true,
+      sortAccessor: (m) => m.equipeAtual,
+      cell: (m) => m.equipeAtual,
+    },
+    {
+      id: 'rdosUltimos30',
+      header: 'RDOs 30d',
+      align: 'right',
+      sortable: true,
+      sortAccessor: (m) => m.rdosUltimos30,
+      cell: (m) => m.rdosUltimos30,
+    },
+  ], []);
+
+  const handleRowClick = useCallback(
+    (m: ComparativoMetrics) => navigate(`/contratos/${m.id}`),
+    [navigate],
+  );
+
   if (contractsQuery.isLoading) {
     return <Spinner label="Carregando..." />;
   }
-
-  const ordenados = [...metrics].sort((a, b) => {
-    const va = a[sortBy];
-    const vb = b[sortBy];
-    const dir = sortDir === 'asc' ? 1 : -1;
-    if (typeof va === 'string' && typeof vb === 'string') {
-      return va.localeCompare(vb) * dir;
-    }
-    return ((Number(va) || 0) - (Number(vb) || 0)) * dir;
-  });
 
   const totalValor = metrics.reduce((s, m) => s + m.valor, 0);
   const totalCusto = metrics.reduce((s, m) => s + m.totalCusto, 0);
   const totalMedido = metrics.reduce((s, m) => s + m.totalMedido, 0);
   const totalMargem = totalMedido - totalCusto;
   const pctMargemAg = totalValor > 0 ? (totalMargem / totalValor) * 100 : 0;
-
-  function ordenarPor(key: SortKey) {
-    if (sortBy === key) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortBy(key);
-      setSortDir('desc');
-    }
-  }
-  const seta = (key: SortKey) =>
-    sortBy !== key ? ' ↕' : sortDir === 'asc' ? ' ↑' : ' ↓';
 
   return (
     <>
@@ -182,112 +265,13 @@ export default function Comparativo() {
         ))}
       </div>
 
-      <Card style={{ padding: 0, overflow: 'hidden' }}>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                {COLUNAS.map((col) => (
-                  <th
-                    key={col.key}
-                    onClick={() => ordenarPor(col.key)}
-                    style={{
-                      cursor: 'pointer',
-                      textAlign: col.right ? 'right' : 'left',
-                      userSelect: 'none',
-                    }}
-                  >
-                    {col.label}
-                    {seta(col.key)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {ordenados.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={COLUNAS.length}
-                    className="text-muted"
-                    style={{ textAlign: 'center', padding: 'var(--sp-xl)' }}
-                  >
-                    Nenhum contrato no filtro selecionado.
-                  </td>
-                </tr>
-              ) : (
-                ordenados.map((m) => (
-                  <tr
-                    key={m.id}
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => navigate(`/contratos/${m.id}`)}
-                  >
-                    <td>
-                      <strong>{m.nome}</strong>
-                      {m.contractNumber && (
-                        <div className="text-muted" style={{ fontSize: 12 }}>
-                          #{m.contractNumber}
-                        </div>
-                      )}
-                    </td>
-                    <td>{m.cliente || '—'}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                      {formatBRL(m.valor)}
-                    </td>
-                    <td
-                      style={{
-                        textAlign: 'right',
-                        color: corPct(m.pctMedido, 100),
-                      }}
-                    >
-                      {m.pctMedido.toFixed(1)}%
-                    </td>
-                    <td
-                      style={{
-                        textAlign: 'right',
-                        fontWeight: 700,
-                        color: corPct(m.pctMargem, 20),
-                      }}
-                    >
-                      {m.pctMargem.toFixed(1)}%
-                    </td>
-                    <td
-                      style={{
-                        textAlign: 'right',
-                        color:
-                          m.margemReais >= 0
-                            ? 'var(--color-success)'
-                            : 'var(--color-danger)',
-                      }}
-                    >
-                      {formatBRL(m.margemReais)}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      {m.orcado > 0
-                        ? `${m.desvioOrcado >= 0 ? '+' : ''}${m.desvioOrcado.toFixed(1)}%`
-                        : '—'}
-                    </td>
-                    <td
-                      style={{
-                        textAlign: 'right',
-                        color:
-                          m.atrasoDias > 0
-                            ? 'var(--color-danger)'
-                            : 'var(--color-success)',
-                      }}
-                    >
-                      {m.atrasoDias === 0
-                        ? '—'
-                        : `${m.atrasoDias > 0 ? '+' : ''}${m.atrasoDias}d`}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>{m.equipeAtual}</td>
-                    <td style={{ textAlign: 'right' }}>{m.rdosUltimos30}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <DataTable
+        rows={metrics}
+        columns={columns}
+        rowKey={(m) => m.id}
+        onRowClick={handleRowClick}
+        emptyMessage="Nenhum contrato no filtro selecionado."
+      />
     </>
   );
 }

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Button from '../../../components/ui/Button';
+import DataTable, { type Column } from '../../../components/ui/DataTable';
 import Card from '../../../components/ui/Card';
 import FormField from '../../../components/ui/FormField';
 import {
@@ -44,6 +45,56 @@ export default function DocTemplatesSection() {
     onError: (e) => toast.error(e.message),
   });
 
+  const columns = useMemo((): Column<DocTemplate>[] => [
+    {
+      id: 'nome',
+      header: 'Nome',
+      cell: (t) => (
+        <strong>{(t as { label?: string }).label ?? t.nome ?? '—'}</strong>
+      ),
+    },
+    {
+      id: 'validade',
+      header: 'Validade',
+      cell: (t) => (
+        <>{(t as { validadeMeses?: number }).validadeMeses ?? '—'} meses</>
+      ),
+    },
+    {
+      id: 'checklist',
+      header: 'Checklist',
+      cell: (t) => (
+        <>{((t as { checklist?: string[] }).checklist ?? []).length} item(s)</>
+      ),
+    },
+    {
+      id: 'acoes',
+      header: '',
+      cell: (t) => (
+        <div className="actions-cell">
+          <a
+            className="action-link"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setModal({ template: t })}
+          >
+            Editar
+          </a>
+          <a
+            className="action-link danger"
+            style={{ cursor: 'pointer' }}
+            onClick={() => {
+              if (window.confirm(`Excluir template "${t.nome}"?`)) {
+                remover.mutate(t.id);
+              }
+            }}
+          >
+            Excluir
+          </a>
+        </div>
+      ),
+    },
+  ], [remover, setModal]);
+
   if (isLoading) return <Spinner label="Carregando templates…" />;
 
   return (
@@ -61,64 +112,12 @@ export default function DocTemplatesSection() {
       </div>
 
       <Card style={{ padding: 0 }}>
-        {templates.length === 0 ? (
-          <p className="text-muted" style={{ padding: 'var(--sp-lg)' }}>
-            Nenhum template cadastrado.
-          </p>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <th style={th()}>Nome</th>
-                  <th style={th()}>Validade</th>
-                  <th style={th()}>Checklist</th>
-                  <th style={th()}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {templates.map((t) => (
-                  <tr
-                    key={t.id}
-                    style={{ borderBottom: '1px solid var(--color-border)' }}
-                  >
-                    <td style={td()}>
-                      <strong>{(t as { label?: string }).label ?? t.nome ?? '—'}</strong>
-                    </td>
-                    <td style={td()}>
-                      {(t as { validadeMeses?: number }).validadeMeses ?? '—'} meses
-                    </td>
-                    <td style={td()}>
-                      {((t as { checklist?: string[] }).checklist ?? []).length} item(s)
-                    </td>
-                    <td style={td()}>
-                      <div className="actions-cell">
-                        <a
-                          className="action-link"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => setModal({ template: t })}
-                        >
-                          Editar
-                        </a>
-                        <a
-                          className="action-link danger"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => {
-                            if (window.confirm(`Excluir template "${t.nome}"?`)) {
-                              remover.mutate(t.id);
-                            }
-                          }}
-                        >
-                          Excluir
-                        </a>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable
+          rows={templates}
+          columns={columns}
+          rowKey={(t) => t.id}
+          emptyMessage="Nenhum template cadastrado."
+        />
       </Card>
 
       {modal && <TemplateModal template={modal.template} onClose={() => setModal(null)} />}
@@ -217,17 +216,3 @@ function TemplateModal({
     </Dialog>
   );
 }
-
-const th = (): React.CSSProperties => ({
-  padding: '10px 12px',
-  textAlign: 'left',
-  fontSize: 12,
-  fontWeight: 600,
-  textTransform: 'uppercase',
-  letterSpacing: '.04em',
-  color: '#64748B',
-});
-const td = (): React.CSSProperties => ({
-  padding: '10px 12px',
-  verticalAlign: 'middle',
-});

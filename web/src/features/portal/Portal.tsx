@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Spinner from '../../components/ui/Spinner';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 import { Input } from '@/components/ui/input';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR } from '../../lib/formatDate';
@@ -68,6 +69,91 @@ const STATUS_COR: Record<string, string> = {
   cancelado: '#E53E3E',
 };
 const KEY_SESSION = 'rhino-portal-cliente';
+
+const PROPOSTAS_COLUMNS: Column<PropostaPortal>[] = [
+  {
+    header: 'Número',
+    cell: (p) => {
+      const revisao = p.revisao ?? 0;
+      return (
+        <strong>
+          PC_{p.numero ?? '—'}-{String(p.ano ?? 0).padStart(2, '0')}
+          {revisao > 0 ? ` Rev.${String(revisao).padStart(2, '0')}` : ''}
+        </strong>
+      );
+    },
+  },
+  {
+    header: 'Título',
+    cell: (p) => p.titulo ?? '—',
+  },
+  {
+    header: 'Valor',
+    align: 'right',
+    cell: (p) => formatBRL(p.valorTotal ?? p.valor_total ?? 0),
+  },
+  {
+    header: 'Emissão',
+    cell: (p) => formatDateBR(p.dataEmissao ?? p.data_emissao),
+  },
+  {
+    header: 'Status',
+    cell: (p) => p.status ?? '—',
+  },
+  {
+    header: 'Baixar',
+    cell: (p) => (
+      <>
+        <a
+          className="action-link"
+          href={`/api/portal/propostas/${p.id}/pdf`}
+          target="_blank"
+          rel="noopener"
+          style={{ marginRight: 8 }}
+        >
+          PDF
+        </a>
+        <a
+          className="action-link"
+          href={`/api/portal/propostas/${p.id}/docx`}
+          target="_blank"
+          rel="noopener"
+        >
+          DOCX
+        </a>
+      </>
+    ),
+  },
+];
+
+const NFS_COLUMNS: Column<NfPortal>[] = [
+  {
+    header: 'Número',
+    cell: (n) => <strong>{n.numero ?? '—'}</strong>,
+  },
+  {
+    header: 'Data',
+    cell: (n) => formatDateBR(n.dataEmissao),
+  },
+  {
+    header: 'Valor',
+    align: 'right',
+    cell: (n) => formatBRL(n.valor ?? 0),
+  },
+  {
+    header: 'Status',
+    cell: (n) => (
+      <span
+        style={{
+          color: n.status === 'emitida' ? '#38A169' : '#D69E2E',
+          fontWeight: 600,
+        }}
+      >
+        {n.status === 'emitida' ? 'Emitida' : 'Pendente'}
+      </span>
+    ),
+  },
+];
 
 function PortalLogin({ onSuccess }: { onSuccess: (c: Cliente) => void }) {
   const [email, setEmail] = useState('');
@@ -361,58 +447,11 @@ function PortalDashboardView({
               Minhas Propostas
             </h2>
           </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Número</th>
-                  <th>Título</th>
-                  <th>Valor</th>
-                  <th>Emissão</th>
-                  <th>Status</th>
-                  <th>Baixar</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data.propostas ?? []).map((p) => (
-                  <tr key={p.id}>
-                    <td>
-                      <strong>
-                        PC_{p.numero ?? '—'}-
-                        {String(p.ano ?? 0).padStart(2, '0')}
-                        {(p.revisao ?? 0) > 0
-                          ? ` Rev.${String(p.revisao).padStart(2, '0')}`
-                          : ''}
-                      </strong>
-                    </td>
-                    <td>{p.titulo ?? '—'}</td>
-                    <td>{formatBRL(p.valorTotal ?? p.valor_total ?? 0)}</td>
-                    <td>{formatDateBR(p.dataEmissao ?? p.data_emissao)}</td>
-                    <td>{p.status ?? '—'}</td>
-                    <td>
-                      <a
-                        className="action-link"
-                        href={`/api/portal/propostas/${p.id}/pdf`}
-                        target="_blank"
-                        rel="noopener"
-                        style={{ marginRight: 8 }}
-                      >
-                        PDF
-                      </a>
-                      <a
-                        className="action-link"
-                        href={`/api/portal/propostas/${p.id}/docx`}
-                        target="_blank"
-                        rel="noopener"
-                      >
-                        DOCX
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={PROPOSTAS_COLUMNS}
+            rows={data.propostas ?? []}
+            rowKey={(p) => p.id}
+          />
         </Card>
       )}
 
@@ -428,37 +467,11 @@ function PortalDashboardView({
               Notas Fiscais
             </h2>
           </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Número</th>
-                  <th>Data</th>
-                  <th>Valor</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.nfs.map((n, i) => (
-                  <tr key={i}>
-                    <td>
-                      <strong>{n.numero ?? '—'}</strong>
-                    </td>
-                    <td>{formatDateBR(n.dataEmissao)}</td>
-                    <td>{formatBRL(n.valor ?? 0)}</td>
-                    <td
-                      style={{
-                        color: n.status === 'emitida' ? '#38A169' : '#D69E2E',
-                        fontWeight: 600,
-                      }}
-                    >
-                      {n.status === 'emitida' ? 'Emitida' : 'Pendente'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={NFS_COLUMNS}
+            rows={data.nfs}
+            rowKey={(n) => `${n.numero ?? ''}-${n.dataEmissao ?? ''}`}
+          />
         </Card>
       )}
     </>

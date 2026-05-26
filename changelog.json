@@ -1,6 +1,21 @@
 {
   "entries": [
     {
+      "version": "1.4.7",
+      "date": "2026-05-25",
+      "summary": "Fase 7: DataTable v2 — lote final (9 arquivos)",
+      "changes": [
+        "Audit: AuditDetailModal diff table → DataTable v2.",
+        "Comparativo: tabela manual com sort próprio → DataTable v2 (10 cols sortáveis, onRowClick).",
+        "Dashboard: ContratosCards tabela de margem → DataTable v2.",
+        "Portal: tabela de NFs → DataTable v2; fix rowKey de 2 argumentos.",
+        "Previsão: tabelas de entradas e saídas virtuais → DataTable v2.",
+        "Frota/Recursos: DistanciasModal → DataTable v2 (columns com useMemo([rotas])).",
+        "Configuração: DocTemplatesSection → DataTable v2.",
+        "Recrutamento: SolicitacaoDetail candidatos por vaga → DataTable v2."
+      ]
+    },
+    {
       "version": "1.4.6",
       "date": "2026-05-26",
       "summary": "fix: Caixa.tsx OFX_COLUNAS — propriedades OfxTransacao corretas (data/memo/valor)",

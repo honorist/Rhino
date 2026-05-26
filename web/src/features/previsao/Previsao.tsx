@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 import Spinner from '../../components/ui/Spinner';
 import { api } from '../../lib/api';
 import { formatBRL, formatBRLk } from '../../lib/format';
@@ -150,6 +151,44 @@ function Kpi({
 const VERDE = 'var(--color-success)';
 const VERMELHO = '#E53E3E';
 
+const ENTRADAS_COLUMNS: Column<{ data: string; numero?: string; valor?: number }>[] = [
+  {
+    header: 'Data',
+    sortable: true,
+    sortAccessor: (e) => e.data,
+    cell: (e) => formatDateBR(e.data),
+  },
+  {
+    header: 'NF',
+    cell: (e) => e.numero || '—',
+  },
+  {
+    header: 'Valor',
+    align: 'right',
+    cell: (e) => (
+      <span style={{ color: VERDE, fontWeight: 700 }}>{formatBRL(e.valor ?? 0)}</span>
+    ),
+  },
+];
+
+const SAIDAS_VIRTUAIS_COLUMNS: Column<OcorrenciaVirtual>[] = [
+  {
+    header: 'Data',
+    cell: (o) => formatDateBR(o.data),
+  },
+  {
+    header: 'Descrição',
+    cell: (o) => o.descricao || '—',
+  },
+  {
+    header: 'Valor',
+    align: 'right',
+    cell: (o) => (
+      <span style={{ color: VERMELHO, fontWeight: 700 }}>{formatBRL(o.valor ?? 0)}</span>
+    ),
+  },
+];
+
 /** Previsão de Caixa — porte de js/views/Previsao.js. */
 export default function Previsao() {
   const [days, setDays] = useState(60);
@@ -275,28 +314,11 @@ export default function Previsao() {
           <div style={{ padding: 'var(--sp-md) var(--sp-lg)', fontWeight: 700 }}>
             Entradas Previstas (NFs emitidas)
           </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>NF</th>
-                  <th style={{ textAlign: 'right' }}>Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entradas.map((e, i) => (
-                  <tr key={i}>
-                    <td>{formatDateBR(e.data)}</td>
-                    <td>{e.numero || '—'}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: VERDE }}>
-                      {formatBRL(e.valor ?? 0)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={ENTRADAS_COLUMNS}
+            rows={entradas}
+            rowKey={(e) => `${e.data}-${e.numero ?? ''}`}
+          />
         </Card>
       )}
 
@@ -305,28 +327,11 @@ export default function Previsao() {
           <div style={{ padding: 'var(--sp-md) var(--sp-lg)', fontWeight: 700 }}>
             Saídas Recorrentes Previstas
           </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Descrição</th>
-                  <th style={{ textAlign: 'right' }}>Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(d.ocorrenciasVirtuais ?? []).map((o, i) => (
-                  <tr key={i}>
-                    <td>{formatDateBR(o.data)}</td>
-                    <td>{o.descricao || '—'}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 700, color: VERMELHO }}>
-                      {formatBRL(o.valor ?? 0)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={SAIDAS_VIRTUAIS_COLUMNS}
+            rows={d.ocorrenciasVirtuais ?? []}
+            rowKey={(o) => `${o.data}-${o.descricao ?? ''}-${String(o.valor ?? '')}`}
+          />
         </Card>
       )}
     </>

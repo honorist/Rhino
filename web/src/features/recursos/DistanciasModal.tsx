@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 import {
   Dialog,
   DialogContent,
@@ -60,6 +61,50 @@ export default function DistanciasModal({
     [contractsQuery.data, lat1, lng1, recurso.alocacaoAtual],
   );
 
+  const columns = useMemo((): Column<ObraDistancia>[] => [
+    {
+      id: 'obra',
+      header: 'Obra',
+      cell: (o) => (
+        <>
+          <strong>{o.name}</strong>
+          {o.atual && (
+            <Badge style={{ marginLeft: 6, background: '#D1FAE5', color: '#065F46' }}>
+              OBRA ATUAL
+            </Badge>
+          )}
+          <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+            {o.client}
+          </div>
+        </>
+      ),
+    },
+    {
+      id: 'kmReta',
+      header: 'Linha reta',
+      align: 'right',
+      cell: (o) => `${o.kmReta.toFixed(1)} km`,
+    },
+    {
+      id: 'rotaReal',
+      header: 'Rota real',
+      align: 'right',
+      cell: (o) => {
+        const r = rotas[o.id];
+        return r ? `${r.km.toFixed(1)} km` : '—';
+      },
+    },
+    {
+      id: 'tempo',
+      header: 'Tempo',
+      align: 'right',
+      cell: (o) => {
+        const r = rotas[o.id];
+        return r ? fmtMin(r.min) : '—';
+      },
+    },
+  ], [rotas]);
+
   async function calcularRotas() {
     setCalculando(true);
     const resultado: Record<string, RotaOSRM | null> = {};
@@ -102,49 +147,12 @@ export default function DistanciasModal({
                 : 'Calcular rotas reais (OSRM)'}
             </Button>
           </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Obra</th>
-                  <th style={{ textAlign: 'right' }}>Linha reta</th>
-                  <th style={{ textAlign: 'right' }}>Rota real</th>
-                  <th style={{ textAlign: 'right' }}>Tempo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {obras.map((obra) => {
-                  const rota = rotas[obra.id];
-                  return (
-                    <tr key={obra.id}>
-                      <td>
-                        <strong>{obra.name}</strong>
-                        {obra.atual && (
-                          <Badge style={{ marginLeft: 6, background: '#D1FAE5', color: '#065F46' }}>
-                            OBRA ATUAL
-                          </Badge>
-                        )}
-                        <div
-                          style={{ fontSize: 12, color: 'var(--color-text-muted)' }}
-                        >
-                          {obra.client}
-                        </div>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        {obra.kmReta.toFixed(1)} km
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        {rota ? `${rota.km.toFixed(1)} km` : '—'}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        {rota ? fmtMin(rota.min) : '—'}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            rows={obras}
+            columns={columns}
+            rowKey={(o) => o.id}
+            emptyMessage="Nenhuma obra ativa com localização."
+          />
         </>
       )}
         </div>

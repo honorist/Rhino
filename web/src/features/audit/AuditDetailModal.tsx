@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,34 @@ import {
   visibleEntries,
 } from './diff';
 import type { AuditRow } from './types';
+
+type DiffEntry = { key: string; before: unknown; after: unknown };
+
+const DIFF_COLUMNS: Column<DiffEntry>[] = [
+  {
+    id: 'campo',
+    header: 'Campo',
+    cell: (d) => <strong>{fieldLabel(d.key)}</strong>,
+  },
+  {
+    id: 'antes',
+    header: 'Antes',
+    cell: (d) => (
+      <span style={{ color: 'var(--color-text-muted)', textDecoration: 'line-through' }}>
+        {formatValue(d.before)}
+      </span>
+    ),
+  },
+  {
+    id: 'depois',
+    header: 'Depois',
+    cell: (d) => (
+      <span style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
+        {formatValue(d.after)}
+      </span>
+    ),
+  },
+];
 
 function Linha({ rotulo, children }: { rotulo: string; children: ReactNode }) {
   return (
@@ -87,37 +116,12 @@ function SecaoMudancas({ ev }: { ev: AuditRow }) {
           📝 O que mudou ({diffs.length}{' '}
           {diffs.length === 1 ? 'campo' : 'campos'})
         </h4>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Campo</th>
-                <th>Antes</th>
-                <th>Depois</th>
-              </tr>
-            </thead>
-            <tbody>
-              {diffs.map((d) => (
-                <tr key={d.key}>
-                  <td>
-                    <strong>{fieldLabel(d.key)}</strong>
-                  </td>
-                  <td
-                    style={{
-                      color: 'var(--color-text-muted)',
-                      textDecoration: 'line-through',
-                    }}
-                  >
-                    {formatValue(d.before)}
-                  </td>
-                  <td style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
-                    {formatValue(d.after)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          rows={diffs as DiffEntry[]}
+          columns={DIFF_COLUMNS}
+          rowKey={(d) => d.key}
+          emptyMessage="Nenhuma diferença."
+        />
       </div>
     );
   }
