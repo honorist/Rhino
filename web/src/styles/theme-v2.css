@@ -8,13 +8,13 @@
 
 :root,
 [data-theme="light"] {
-  /* Brand — slate-purple Akaunting (mantém identidade) */
-  --rh-brand-50:  #EEF0F8;
-  --rh-brand-100: #DCDFEC;
-  --rh-brand-300: #A2A6C2;
-  --rh-brand-500: #55588B;
-  --rh-brand-700: #3E4068;
-  --rh-brand-900: #1E1F33;
+  /* Brand — indigo moderno (shadcn-aligned) */
+  --rh-brand-50:  #EEF2FF;
+  --rh-brand-100: #E0E7FF;
+  --rh-brand-300: #A5B4FC;
+  --rh-brand-500: #6366F1;
+  --rh-brand-700: #4F46E5;
+  --rh-brand-900: #312E81;
 
   /* Accent — laranja construção (CTAs primários, foco, alertas operacionais) */
   --rh-accent-300: #F8B98C;

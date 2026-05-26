@@ -9,17 +9,17 @@
   /* UI font-size multiplier (controlado por +/- na sidebar) */
   --fs-mult: 1;
 
-  /* Primary — slate-purple icônico do Akaunting */
-  --color-primary:       #55588B;
-  --color-primary-light: #6F73A8;
-  --color-primary-dark:  #3E4068;
+  /* Primary — indigo moderno */
+  --color-primary:       #6366F1;
+  --color-primary-light: #818CF8;
+  --color-primary-dark:  #4F46E5;
   --color-accent:        #6D9480;   /* sage green accent */
 
   /* Sidebar — branca com separadores sutis */
   --sidebar-bg:          #FFFFFF;
   --sidebar-text:        #374151;
-  --sidebar-active-bg:   rgba(85, 88, 139, 0.08);
-  --sidebar-active-text: #55588B;
+  --sidebar-active-bg:   rgba(99, 102, 241, 0.08);
+  --sidebar-active-text: #6366F1;
   --sidebar-width:       244px;
 
   /* Surface / Neutral — light */
@@ -75,13 +75,14 @@ html, body {
 }
 
 body {
-  font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background: var(--color-bg);
   color: var(--color-text);
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "rlig" 1, "calt" 1;
 }
 
 /* ═══ Texto — classes legadas pontuais (NÃO usar seletor de substring) ═══ */
@@ -97,27 +98,27 @@ body {
 .text-secondary {
   color: var(--color-text-muted);
 }
-/* Headings e destaques acima do piso */
-body h1, body .page-title         { font-size: 30px; font-weight: 800; }
-body h2                            { font-size: 26px; font-weight: 700; }
-body h3                            { font-size: 20px; font-weight: 700; }
-body h4                            { font-size: 18px; font-weight: 700; }
-body .modal-title                  { font-size: 24px; }
-body .card-title                   { font-size: 18px; }
-body .stat-value                   { font-size: 34px; }
-body .stat-label                   { font-size: 16px; }
-body tbody td                      { font-size: 16px; }
-body thead th                      { font-size: 15.5px; }
-body .btn                          { font-size: 16px; }
-body .btn-sm                       { font-size: 15.5px; }
-body .btn-lg                       { font-size: 18px; }
-body .form-control                 { font-size: 16px; }
-body .form-label                   { font-size: 16px; }
+/* Headings — escala shadcn/ui */
+body h1, body .page-title         { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+body h2                            { font-size: 20px; font-weight: 600; }
+body h3                            { font-size: 16px; font-weight: 600; }
+body h4                            { font-size: 14px; font-weight: 600; }
+body .modal-title                  { font-size: 18px; font-weight: 600; }
+body .card-title                   { font-size: 14px; font-weight: 600; }
+body .stat-value                   { font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+body .stat-label                   { font-size: 13px; }
+body tbody td                      { font-size: 14px; }
+body thead th                      { font-size: 13px; }
+body .btn                          { font-size: 14px; }
+body .btn-sm                       { font-size: 13px; }
+body .btn-lg                       { font-size: 15px; }
+body .form-control                 { font-size: 14px; }
+body .form-label                   { font-size: 13px; font-weight: 500; }
 body .nav-item a,
 body .nav-group-header,
-body .nav-link-soon                { font-size: 16.5px; }
-body .badge                        { font-size: 15.5px; }
-body .page-subtitle                { font-size: 16.5px; }
+body .nav-link-soon                { font-size: 14px; }
+body .badge                        { font-size: 12px; font-weight: 500; }
+body .page-subtitle                { font-size: 14px; }
 
 /* ─── Shell ─── */
 #shell {
@@ -200,7 +201,7 @@ body .page-subtitle                { font-size: 16.5px; }
 }
 
 .nav-item a:hover {
-  background: rgba(85, 88, 139, 0.06);
+  background: rgba(99, 102, 241, 0.06);
   color: var(--color-primary);
 }
 
@@ -254,8 +255,8 @@ body .page-subtitle                { font-size: 16.5px; }
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--color-primary);
-  background: rgba(85, 88, 139, 0.1);
-  border: 1px solid rgba(85, 88, 139, 0.18);
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.18);
   border-radius: 4px;
   padding: 2px 6px;
 }
@@ -285,7 +286,7 @@ body .page-subtitle                { font-size: 16.5px; }
 }
 
 .nav-group-header:hover {
-  background: rgba(85, 88, 139, 0.06);
+  background: rgba(99, 102, 241, 0.06);
   color: var(--color-primary);
 }
 
@@ -388,8 +389,8 @@ body .page-subtitle                { font-size: 16.5px; }
 }
 
 .theme-toggle-btn:hover {
-  background: rgba(85, 88, 139, 0.06);
-  border-color: rgba(85, 88, 139, 0.25);
+  background: rgba(99, 102, 241, 0.06);
+  border-color: rgba(99, 102, 241, 0.25);
   color: var(--color-primary);
 }
 

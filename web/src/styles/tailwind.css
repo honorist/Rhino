@@ -13,6 +13,16 @@
  */
 @custom-variant dark (&:is(.dark, .dark *));
 
+/* shadcn/ui base — aplica border-color e antialiasing globalmente. */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
 /*
  * Aliases sem prefixo `--color-` para compatibilidade com componentes shadcn/ui
  * que lêem `var(--border)`, `var(--popover)`, `var(--radius)` etc. diretamente
@@ -61,17 +71,17 @@
   --color-popover: #ffffff;
   --color-popover-foreground: #0f172a;
 
-  --color-primary: #55588b;
+  --color-primary: #6366f1;
   --color-primary-foreground: #ffffff;
 
-  --color-secondary: #f3f4f6;
+  --color-secondary: #f1f5f9;
   --color-secondary-foreground: #0f172a;
 
-  --color-muted: #f3f4f6;
+  --color-muted: #f1f5f9;
   --color-muted-foreground: #64748b;
 
-  --color-accent: #1d6b3f;
-  --color-accent-foreground: #ffffff;
+  --color-accent: #f1f5f9;
+  --color-accent-foreground: #0f172a;
 
   --color-destructive: #dc2626;
   --color-destructive-foreground: #ffffff;
@@ -84,7 +94,7 @@
 
   --color-border: #e5e7eb;
   --color-input: #e5e7eb;
-  --color-ring: #55588b;
+  --color-ring: #6366f1;
 
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;

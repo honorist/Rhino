@@ -1,6 +1,19 @@
 {
   "entries": [
     {
+      "version": "1.5.1",
+      "date": "2026-05-26",
+      "summary": "design: visual shadcn — Inter, indigo, tipografia compacta, tabelas sem uppercase",
+      "changes": [
+        "Fonte: Nunito → Inter em todo o app (Inter já carregada no index.html).",
+        "Font-size base: 16px → 14px; headings na escala shadcn (24/20/16/14px).",
+        "Cor primary: #55588B (roxo desbotado) → #6366F1 (indigo-500, shadcn-aligned).",
+        "Tabelas: cabeçalho sem uppercase/letter-spacing — padrão shadcn DataTable.",
+        "tailwind.css: @layer base com border-border global (padrão shadcn globals.css).",
+        "Sidebar/nav active state atualizado para indigo."
+      ]
+    },
+    {
       "version": "1.5.0",
       "date": "2026-05-26",
       "summary": "Pós-Fase: Card sub-components + redução de !important (shadcn migration completa)",
