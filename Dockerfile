@@ -1,7 +1,7 @@
 # ── Stage 1: build do bundle React (Vite) ──────────────────────────────
 # Roda independente do runtime para não inflar a imagem final com node_modules
 # de dev. Quando SERVE_REACT=1 o server.js serve este dist/.
-FROM node:20-alpine AS web-builder
+FROM node:22-alpine AS web-builder
 
 WORKDIR /web
 
@@ -13,7 +13,7 @@ COPY web/ ./
 RUN npm run build && ls -la dist/
 
 # ── Stage 2: runtime do server.js ─────────────────────────────────────
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
