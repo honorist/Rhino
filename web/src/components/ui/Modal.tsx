@@ -7,10 +7,10 @@ import { cn } from '../../lib/cn';
 export type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
 const SIZE_CLASS: Record<ModalSize, string> = {
-  sm: 'max-w-[480px]',
-  md: 'max-w-[680px]',
-  lg: 'max-w-[920px]',
-  xl: 'max-w-[1120px]',
+  sm: 'max-w-[560px]',
+  md: 'max-w-[800px]',
+  lg: 'max-w-[1040px]',
+  xl: 'max-w-[1280px]',
 };
 
 interface ModalProps {
@@ -62,8 +62,8 @@ export default function Modal({
             SIZE_CLASS[size],
           )}
         >
-          {/* Header: 24px vertical, 28px horizontal, separador inferior */}
-          <div className="flex items-start justify-between gap-4 px-7 pt-6 pb-5 border-b border-border">
+          {/* Header: 28px vertical, 32px horizontal, separador inferior */}
+          <div className="flex items-start justify-between gap-4 px-8 pt-7 pb-6 border-b border-border">
             <div className="min-w-0 flex-1">
               <Dialog.Title className="text-[18px] font-semibold leading-tight text-foreground">
                 {title}
@@ -85,14 +85,14 @@ export default function Modal({
           {/* Content: 28px horizontal, 24px vertical; rolável quando passa
               do max-h. `space-y-5` dá gap consistente entre form-rows e
               outros blocos sem depender do margin-bottom do .form-group. */}
-          <div className="flex-1 overflow-y-auto px-7 py-6 [&>form]:space-y-5">
+          <div className="flex-1 overflow-y-auto px-8 py-7 [&>form]:space-y-6">
             {children}
           </div>
 
           {/* Footer: 20px vertical, 28px horizontal, separador superior.
               gap-3 entre botões alinhados à direita. */}
           {footer && (
-            <div className="flex items-center justify-end gap-3 px-7 py-5 border-t border-border bg-muted/30 rounded-b-xl">
+            <div className="flex items-center justify-end gap-3 px-8 py-6 border-t border-border bg-muted/30 rounded-b-xl">
               {footer}
             </div>
           )}

@@ -12,6 +12,8 @@ import type { Contract, ContractStatus } from './types';
 
 const STATUS_OPCOES: { value: ContractStatus; label: string }[] = [
   { value: 'prospeccao', label: 'Prospecção' },
+  { value: 'nao_iniciado', label: 'Não iniciado' },
+  { value: 'nao_aprovado', label: 'Não aprovado' },
   { value: 'ativo', label: 'Ativo' },
   { value: 'pausado', label: 'Pausado' },
   { value: 'concluido', label: 'Concluído' },
