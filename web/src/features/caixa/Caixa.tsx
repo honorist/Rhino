@@ -89,6 +89,30 @@ interface FutureItem {
   virtual?: VirtualOccurrence;
 }
 
+interface MesResumoRow {
+  ym: string;
+  entradas: number;
+  saidas: number;
+  count: number;
+}
+
+const MESES_COLUNAS: Column<MesResumoRow>[] = [
+  { id: 'mes', header: 'Mês', sortable: true, sortAccessor: (r) => r.ym, cell: (r) => formatarMes(r.ym) },
+  { id: 'entradas', header: 'Entradas', align: 'right', sortable: true, sortAccessor: (r) => r.entradas, cell: (r) => <span style={{ color: 'var(--color-success)', fontWeight: 600 }}>{formatBRL(r.entradas)}</span> },
+  { id: 'saidas', header: 'Saídas', align: 'right', sortable: true, sortAccessor: (r) => r.saidas, cell: (r) => <span style={{ color: 'var(--color-danger)', fontWeight: 600 }}>{formatBRL(r.saidas)}</span> },
+  { id: 'saldo', header: 'Saldo', align: 'right', cell: (r) => { const s = r.entradas - r.saidas; return <span style={{ fontWeight: 700, color: s >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>{formatBRL(s)}</span>; } },
+  { id: 'lancamentos', header: 'Lançamentos', align: 'right', cell: (r) => r.count },
+];
+
+type OfxTransacaoRow = OfxTransacao & { _idx: number };
+
+const OFX_COLUNAS: Column<OfxTransacaoRow>[] = [
+  { id: 'data', header: 'Data', cell: (t) => formatDate(t.date) },
+  { id: 'desc', header: 'Descrição', cell: (t) => t.memo || t.name || '—' },
+  { id: 'valor', header: 'Valor', align: 'right', cell: (t) => <span style={{ fontWeight: 700, color: num(t.amount) >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>{formatBRL(Math.abs(num(t.amount)))}</span> },
+  { id: 'tipo', header: 'Tipo', cell: (t) => <Badge variant={num(t.amount) >= 0 ? 'success' : 'destructive'}>{num(t.amount) >= 0 ? 'Entrada' : 'Saída'}</Badge> },
+];
+
 /** Tela de Caixa — Lançamentos. Migração de js/views/Caixa.js. */
 export default function Caixa() {
   const caixaQuery = useCaixa();
