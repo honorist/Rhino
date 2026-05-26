@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.5.6",
+      "date": "2026-05-26",
+      "summary": "ci: GitHub Actions build-frontend — dist commitado automaticamente após cada push",
+      "changes": [
+        ".github/workflows/build-frontend.yml: novo workflow que compila web/dist/ no GitHub Actions e commita de volta no main.",
+        "Dispara em push no main quando web/src/**, web/index.html, vite.config.ts, tsconfig*.json, package*.json ou web/public/** mudam.",
+        "workflow_dispatch: permite disparar manualmente para forçar rebuild do dist.",
+        "Previne loop infinito com 'if: github.actor != github-actions[bot]'.",
+        "Raiz do bug visual resolvida: dist nunca mais ficará desatualizado no repo — Railway recebe sempre o HTML/CSS/JS mais recente."
+      ]
+    },
+    {
       "version": "1.5.5",
       "date": "2026-05-26",
       "summary": "fix: Railway agora recompila o frontend a cada deploy — raiz do problema visual",
