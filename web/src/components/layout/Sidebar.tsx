@@ -30,7 +30,7 @@ function useRotasPermitidas(): RouteDef[] {
   );
 }
 
-const APP_VERSION = '2.0.0-react';
+const APP_VERSION = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? '?';
 
 interface SidebarProps {
   /** Chamado ao clicar em qualquer item — fecha o drawer no mobile. */

@@ -1,6 +1,9 @@
 /// <reference types="vitest" />
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vitest/config';
+
+const { version } = JSON.parse(readFileSync('./package.json', 'utf-8')) as { version: string };
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { visualizer } from 'rollup-plugin-visualizer';
@@ -157,6 +160,9 @@ export default defineConfig({
       '/api': { target: API_TARGET, changeOrigin: true },
       // SSE de tempo real (useRealtime usa /api/stream) — proxied junto.
     },
+  },
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(version),
   },
   build: {
     outDir: 'dist',
