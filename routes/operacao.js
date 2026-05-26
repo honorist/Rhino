@@ -80,6 +80,10 @@ module.exports = function registerOperacao(router, deps) {
   router.post('/api/veiculos/:id/manutencoes',            (ctx) => deps.handlePostVeiculoManutencao(ctx.req, ctx.params[0], ctx.body, ctx.res));
   router.put('/api/veiculos/:id/manutencoes/:manutId',    (ctx) => deps.handlePutVeiculoManutencao(ctx.params[0], ctx.params[1], ctx.body, ctx.res));
   router.delete('/api/veiculos/:id/manutencoes/:manutId', (ctx) => deps.handleDeleteVeiculoManutencao(ctx.params[0], ctx.params[1], ctx.res));
+  router.get('/api/veiculos/:id/abastecimentos',              (ctx) => deps.handleListVeiculoAbastecimentos(ctx.params[0], ctx.res));
+  router.post('/api/veiculos/:id/abastecimentos',             (ctx) => deps.handlePostVeiculoAbastecimento(ctx.params[0], ctx.body, ctx.res));
+  router.put('/api/veiculos/:id/abastecimentos/:abastecId',   (ctx) => deps.handlePutVeiculoAbastecimento(ctx.params[0], ctx.params[1], ctx.body, ctx.res));
+  router.delete('/api/veiculos/:id/abastecimentos/:abastecId',(ctx) => deps.handleDeleteVeiculoAbastecimento(ctx.params[0], ctx.params[1], ctx.res));
 
   // ── Layouts de dashboard (por usuário) ──
   router.get('/api/dashboard/layouts',         (ctx) => deps.handleListDashLayouts(ctx.req, ctx.res));

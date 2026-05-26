@@ -421,6 +421,32 @@ window.Frota = {
           </tr>
         `;}).join('');
 
+      const abastecs = v.abastecimentos || [];
+      const totalAbastecGasto = abastecs.reduce((s, a) => s + (parseFloat(a.valorTotal) || 0), 0);
+      const totalAbastecLitros = abastecs.reduce((s, a) => s + (parseFloat(a.litros) || 0), 0);
+      // km rodado: diferença entre maior e menor km registrado nos abastecimentos
+      const kmsAbastec = abastecs.map(a => parseInt(a.km)).filter(k => k > 0).sort((a, b) => a - b);
+      const kmRodado = kmsAbastec.length >= 2 ? kmsAbastec[kmsAbastec.length - 1] - kmsAbastec[0] : 0;
+      const mediaConsumo = kmRodado > 0 && totalAbastecLitros > 0 ? (kmRodado / totalAbastecLitros).toFixed(2) : null;
+      const contratos = Store.state.contracts || [];
+
+      const abastecHtml = abastecs.length === 0
+        ? `<p class="text-muted" style="text-align:center;padding:var(--sp-lg);">Nenhum abastecimento registrado</p>`
+        : abastecs.map(a => {
+          const vlLitro = a.valorTotal && a.litros ? (parseFloat(a.valorTotal) / parseFloat(a.litros)).toFixed(3) : '—';
+          const ct = contratos.find(c => c.id === a.contractId);
+          return `<tr>
+            <td>${a.data ? new Date(a.data + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
+            <td>${a.km ? a.km.toLocaleString('pt-BR') + ' km' : '—'}</td>
+            <td>${parseFloat(a.litros).toLocaleString('pt-BR', {minimumFractionDigits:2})} L</td>
+            <td>R$ ${vlLitro}</td>
+            <td>${a.valorTotal ? Store.formatBRL(a.valorTotal) : '—'}</td>
+            <td>${escapeHtml(a.tipoCombustivel || '—')}</td>
+            <td style="font-size:12px;">${ct ? escapeHtml(ct.name) : '<span class="text-muted">—</span>'}</td>
+            <td><a class="action-link danger btn-del-abastec" data-id="${a.id}">×</a></td>
+          </tr>`;
+        }).join('');
+
       const tabBtn = (k, l) => `<button class="ctd-tab ${abaAtual===k?'active':''}" data-tab="${k}">${l}</button>`;
 
       const conteudo = abaAtual === 'plano' ? `
@@ -441,6 +467,40 @@ window.Frota = {
           <thead><tr style="background:var(--color-surface-2);"><th style="padding:8px;">Data</th><th style="padding:8px;">Tipo</th><th style="padding:8px;text-align:left;">Descrição</th><th style="padding:8px;">KM</th><th style="padding:8px;">Custo</th><th style="padding:8px;width:30px;"></th></tr></thead>
           <tbody>${manutsHtml}</tbody>
         </table>
+      ` : abaAtual === 'abastecimentos' ? `
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-sm);margin-bottom:var(--sp-md);">
+          <div style="background:var(--color-surface-2);border-radius:8px;padding:var(--sp-sm) var(--sp-md);">
+            <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">Total gasto</div>
+            <div style="font-size:20px;font-weight:800;">${Store.formatBRL(totalAbastecGasto)}</div>
+          </div>
+          <div style="background:var(--color-surface-2);border-radius:8px;padding:var(--sp-sm) var(--sp-md);">
+            <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">KM rodado (registros)</div>
+            <div style="font-size:20px;font-weight:800;">${kmRodado > 0 ? kmRodado.toLocaleString('pt-BR') + ' km' : '—'}</div>
+          </div>
+          <div style="background:var(--color-surface-2);border-radius:8px;padding:var(--sp-sm) var(--sp-md);">
+            <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">Média consumo</div>
+            <div style="font-size:20px;font-weight:800;">${mediaConsumo ? mediaConsumo + ' km/L' : '—'}</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-sm);">
+          <h3 style="margin:0;font-size:15px;">Histórico de Abastecimentos</h3>
+          <button class="btn btn-sm btn-primary" id="btnAddAbastec">+ Registrar abastecimento</button>
+        </div>
+        <div class="table-wrap">
+          <table style="width:100%;font-size:13px;">
+            <thead><tr style="background:var(--color-surface-2);">
+              <th style="padding:8px;">Data</th>
+              <th style="padding:8px;">KM</th>
+              <th style="padding:8px;">Litros</th>
+              <th style="padding:8px;">R$/L</th>
+              <th style="padding:8px;">Total</th>
+              <th style="padding:8px;">Combustível</th>
+              <th style="padding:8px;text-align:left;">Contrato</th>
+              <th style="padding:8px;width:30px;"></th>
+            </tr></thead>
+            <tbody>${abastecHtml}</tbody>
+          </table>
+        </div>
       ` : '';
 
       return `
@@ -457,6 +517,7 @@ window.Frota = {
               <div class="ctd-tabs" style="margin-bottom:var(--sp-md);">
                 ${tabBtn('plano', 'Plano de Manutenção')}
                 ${tabBtn('historico', 'Histórico')}
+                ${tabBtn('abastecimentos', 'Abastecimentos')}
               </div>
               ${conteudo}
             </div>
@@ -491,6 +552,10 @@ window.Frota = {
       const btnAddManut = document.getElementById('btnAddManut');
       if (btnAddManut) btnAddManut.addEventListener('click', () => this.showModalManut(v.id, () => this._reloadAndKeepDetalhe(v.id, abaAtual)));
       overlay.querySelectorAll('.btn-del-manut').forEach(b => b.addEventListener('click', e => this.deleteManut(v.id, e.target.dataset.id, () => this._reloadAndKeepDetalhe(v.id, abaAtual))));
+
+      const btnAddAbastec = document.getElementById('btnAddAbastec');
+      if (btnAddAbastec) btnAddAbastec.addEventListener('click', () => this.showModalAbastecimento(v.id, () => this._reloadAndKeepDetalhe(v.id, abaAtual)));
+      overlay.querySelectorAll('.btn-del-abastec').forEach(b => b.addEventListener('click', e => this.deleteAbastecimento(v.id, e.target.dataset.id, () => this._reloadAndKeepDetalhe(v.id, abaAtual))));
     };
 
     renderModal();
@@ -665,6 +730,125 @@ window.Frota = {
     if (!confirm('Excluir esta manutenção?')) return;
     try {
       const res = await fetch(`/api/veiculos/${veiculoId}/manutencoes/${manId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(await res.text());
+      if (onDone) onDone();
+    } catch (e) { window.showToast(e.message, 'error'); }
+  },
+
+  showModalAbastecimento(veiculoId, onDone) {
+    const v = (Store.state.veiculos || []).find(x => x.id === veiculoId);
+    const fornecedores = Store.state.fornecedores || [];
+    const contratos = Store.state.contracts || [];
+    const hoje = new Date().toISOString().split('T')[0];
+    const html = `
+      <div class="modal-overlay" id="modalAbastec" style="z-index:10000;">
+        <div class="modal" style="width:560px;">
+          <div class="modal-header">
+            <h2 class="modal-title">Registrar abastecimento</h2>
+            <button class="modal-close">✕</button>
+          </div>
+          <form id="formAbastec" class="modal-content">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Data *</label>
+                <input class="form-control" name="data" type="date" required value="${hoje}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">KM (hodômetro)</label>
+                <input class="form-control" name="km" type="number" min="0" value="${v?.kmAtual || ''}">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Litros *</label>
+                <input class="form-control" id="inpLitros" name="litros" type="number" step="0.01" min="0.01" required value="">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Valor total (R$)</label>
+                <input class="form-control" id="inpValorTotal" name="valorTotal" type="number" step="0.01" min="0" value="">
+              </div>
+              <div class="form-group">
+                <label class="form-label">R$/Litro</label>
+                <input class="form-control" id="inpVlLitro" type="number" step="0.001" min="0" placeholder="calculado" readonly style="background:var(--color-surface-2);">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Combustível</label>
+                <select class="form-control" name="tipoCombustivel">
+                  <option value="">—</option>
+                  <option value="gasolina">Gasolina</option>
+                  <option value="diesel">Diesel</option>
+                  <option value="etanol">Etanol</option>
+                  <option value="gnv">GNV</option>
+                  <option value="arla">Arla 32</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fornecedor (posto)</label>
+                <select class="form-control" name="fornecedorId">
+                  <option value="">—</option>
+                  ${fornecedores.map(f => `<option value="${f.id}">${escapeHtml(f.nome || f.razaoSocial)}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Lançar custo em contrato</label>
+              <select class="form-control" name="contractId">
+                <option value="">— Não lançar —</option>
+                ${contratos.map(c => `<option value="${c.id}" ${v?.contractId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
+              </select>
+              <span style="font-size:12px;color:var(--color-text-muted);">Se selecionado, o valor total será lançado no caixa do contrato.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Observações</label>
+              <textarea class="form-control" name="observacoes" rows="2" placeholder="Nota fiscal, motorista, posto..."></textarea>
+            </div>
+          </form>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnCancAbastec">Cancelar</button>
+            <button class="btn btn-primary" id="btnSalvAbastec">Registrar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalAbastec');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnCancAbastec').addEventListener('click', close);
+
+    // Cálculo automático R$/litro
+    const calcVlLitro = () => {
+      const l = parseFloat(document.getElementById('inpLitros').value) || 0;
+      const t = parseFloat(document.getElementById('inpValorTotal').value) || 0;
+      document.getElementById('inpVlLitro').value = l > 0 && t > 0 ? (t / l).toFixed(3) : '';
+    };
+    document.getElementById('inpLitros').addEventListener('input', calcVlLitro);
+    document.getElementById('inpValorTotal').addEventListener('input', calcVlLitro);
+
+    document.getElementById('btnSalvAbastec').addEventListener('click', async () => {
+      const fd = new FormData(document.getElementById('formAbastec'));
+      const data = Object.fromEntries(fd);
+      if (!data.litros || parseFloat(data.litros) <= 0) { window.showToast('Informe a quantidade de litros', 'error'); return; }
+      try {
+        const res = await fetch(`/api/veiculos/${veiculoId}/abastecimentos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+        window.showToast('Abastecimento registrado', 'success');
+        close();
+        if (onDone) onDone();
+      } catch (e) { window.showToast(e.message, 'error'); }
+    });
+  },
+
+  async deleteAbastecimento(veiculoId, abastecId, onDone) {
+    if (!confirm('Excluir este abastecimento?')) return;
+    try {
+      const res = await fetch(`/api/veiculos/${veiculoId}/abastecimentos/${abastecId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(await res.text());
       if (onDone) onDone();
     } catch (e) { window.showToast(e.message, 'error'); }

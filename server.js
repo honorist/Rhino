@@ -4779,6 +4779,7 @@ registerOperacao(apiRouter, {
   handlePutVeiculoKm, handlePutVeiculoLocalizacao,
   handlePostVeiculoPlano, handlePutVeiculoPlano, handleDeleteVeiculoPlano,
   handlePostVeiculoManutencao, handlePutVeiculoManutencao, handleDeleteVeiculoManutencao,
+  handleListVeiculoAbastecimentos, handlePostVeiculoAbastecimento, handlePutVeiculoAbastecimento, handleDeleteVeiculoAbastecimento,
   handleListDashLayouts, handlePostDashLayout, handlePutDashLayout, handleDeleteDashLayout,
   handleGetDocTemplates, handlePostDocTemplate, handlePutDocTemplate, handleDeleteDocTemplate,
 });
@@ -7140,6 +7141,77 @@ async function handlePutVeiculoManutencao(veiculoId, manId, body, res) {
 async function handleDeleteVeiculoManutencao(veiculoId, manId, res) {
   try {
     await repos.veiculoManutencoes.removeById(manId);
+    sendJson(res, await repos.veiculos.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+// ============ Abastecimentos ============
+async function handleListVeiculoAbastecimentos(veiculoId, res) {
+  try {
+    const rows = await repos.veiculoAbastecimentos.findAll();
+    sendJson(res, { abastecimentos: rows.filter(a => a.veiculoId === veiculoId) });
+  } catch (e) { sendError(res, 500, e.message); }
+}
+
+async function handlePostVeiculoAbastecimento(veiculoId, body, res) {
+  try {
+    if (!body.data)   return sendError(res, 400, 'Data obrigatória');
+    if (!body.litros) return sendError(res, 400, 'Litros obrigatório');
+    const data = {
+      id:              generateId('abst'),
+      veiculoId,
+      data:            body.data,
+      km:              body.km     ? parseInt(body.km)         : null,
+      litros:          parseFloat(body.litros),
+      valorTotal:      body.valorTotal ? parseFloat(body.valorTotal) : null,
+      tipoCombustivel: body.tipoCombustivel || null,
+      fornecedorId:    body.fornecedorId   || null,
+      contractId:      body.contractId     || null,
+      observacoes:     body.observacoes    || '',
+    };
+    await repos.veiculoAbastecimentos.create(data);
+
+    // Atualiza KM atual do veículo se o hodômetro informado for maior
+    if (data.km) {
+      const veic = await repos.veiculos.findById(veiculoId);
+      if (veic && data.km > (parseInt(veic.kmAtual) || 0)) {
+        await repos.veiculos.updateById(veiculoId, { kmAtual: data.km, kmAtualizadoEm: new Date() });
+      }
+    }
+
+    // Se vinculado a contrato, lança saída no caixa
+    if (data.contractId && data.valorTotal) {
+      await repos.caixa.create({
+        id:          generateId('cxa'),
+        type:        'saida',
+        value:       data.valorTotal,
+        date:        data.data,
+        description: `Abastecimento veículo — ${data.litros}L`,
+        category:    'abastecimento',
+        contractId:  data.contractId,
+      });
+    }
+
+    sendJson(res, await repos.veiculos.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handlePutVeiculoAbastecimento(veiculoId, abastecId, body, res) {
+  try {
+    const allowed = {};
+    const strFields = ['data', 'tipoCombustivel', 'fornecedorId', 'contractId', 'observacoes'];
+    for (const f of strFields) { if (body[f] !== undefined) allowed[f] = body[f] || null; }
+    if (body.km         !== undefined) allowed.km         = body.km         ? parseInt(body.km)         : null;
+    if (body.litros     !== undefined) allowed.litros     = body.litros     ? parseFloat(body.litros)   : null;
+    if (body.valorTotal !== undefined) allowed.valorTotal = body.valorTotal ? parseFloat(body.valorTotal) : null;
+    await repos.veiculoAbastecimentos.updateById(abastecId, allowed);
+    sendJson(res, await repos.veiculos.getEnvelope());
+  } catch (e) { sendError(res, 400, e.message); }
+}
+
+async function handleDeleteVeiculoAbastecimento(veiculoId, abastecId, res) {
+  try {
+    await repos.veiculoAbastecimentos.removeById(abastecId);
     sendJson(res, await repos.veiculos.getEnvelope());
   } catch (e) { sendError(res, 400, e.message); }
 }

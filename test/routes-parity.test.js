@@ -396,7 +396,7 @@ test('routes/comercial.js — proposta/:id não engole as sub-rotas (docx etc.)'
 // ─── routes/operacao.js (recursos, documentos, estoque, solicitações, ────────
 //     manutenções, frota, dashboard-layouts, doc-templates) ──────────────────
 
-test('routes/operacao.js — registra exatamente as 67 rotas de operação', () => {
+test('routes/operacao.js — registra exatamente as 71 rotas de operação', () => {
   const router = createRouter();
   require('../routes/operacao')(router, {});
   const rotas = router.list().map(r => `${r.method} ${r.pattern}`).sort();
@@ -407,12 +407,13 @@ test('routes/operacao.js — registra exatamente as 67 rotas de operação', () 
     'DELETE /api/recursos/:id', 'DELETE /api/recursos/:id/documentos/:docId',
     'DELETE /api/recursos/:id/documentos/:docId/arquivo', 'DELETE /api/recursos/:id/folgas/:folgaId',
     'DELETE /api/solicitacoes-compra/:id', 'DELETE /api/veiculos/:id',
+    'DELETE /api/veiculos/:id/abastecimentos/:abastecId',
     'DELETE /api/veiculos/:id/manutencoes/:manutId', 'DELETE /api/veiculos/:id/planos/:planoId',
     'GET /api/dashboard/layouts', 'GET /api/doc-templates', 'GET /api/documentos/status',
     'GET /api/estoque/almoxarifados', 'GET /api/estoque/itens', 'GET /api/estoque/movimentacoes',
     'GET /api/estoque/saldo', 'GET /api/estoque/visao-geral', 'GET /api/manutencoes',
     'GET /api/recursos', 'GET /api/recursos/:id/documentos/:docId/arquivo',
-    'GET /api/solicitacoes-compra', 'GET /api/veiculos',
+    'GET /api/solicitacoes-compra', 'GET /api/veiculos', 'GET /api/veiculos/:id/abastecimentos',
     'POST /api/dashboard/layouts', 'POST /api/doc-templates', 'POST /api/estoque/almoxarifados',
     'POST /api/estoque/itens', 'POST /api/estoque/movimentacoes', 'POST /api/manutencoes',
     'POST /api/manutencoes/:id/aprovar', 'POST /api/manutencoes/:id/avaliar',
@@ -424,12 +425,14 @@ test('routes/operacao.js — registra exatamente as 67 rotas de operação', () 
     'POST /api/solicitacoes-compra/:id/aprovar', 'POST /api/solicitacoes-compra/:id/avaliar',
     'POST /api/solicitacoes-compra/:id/cancelar', 'POST /api/solicitacoes-compra/:id/comprar',
     'POST /api/solicitacoes-compra/:id/receber', 'POST /api/solicitacoes-compra/:id/rejeitar',
-    'POST /api/veiculos', 'POST /api/veiculos/:id/manutencoes', 'POST /api/veiculos/:id/planos',
+    'POST /api/veiculos', 'POST /api/veiculos/:id/abastecimentos',
+    'POST /api/veiculos/:id/manutencoes', 'POST /api/veiculos/:id/planos',
     'PUT /api/dashboard/layouts/:id', 'PUT /api/doc-templates/:id',
     'PUT /api/estoque/almoxarifados/:id', 'PUT /api/estoque/itens/:id',
     'PUT /api/manutencoes/:id', 'PUT /api/recursos/:id',
     'PUT /api/recursos/:id/documentos/:docId', 'PUT /api/solicitacoes-compra/:id',
-    'PUT /api/veiculos/:id', 'PUT /api/veiculos/:id/km', 'PUT /api/veiculos/:id/localizacao',
+    'PUT /api/veiculos/:id', 'PUT /api/veiculos/:id/abastecimentos/:abastecId',
+    'PUT /api/veiculos/:id/km', 'PUT /api/veiculos/:id/localizacao',
     'PUT /api/veiculos/:id/manutencoes/:manutId', 'PUT /api/veiculos/:id/planos/:planoId',
   ].sort());
 });
