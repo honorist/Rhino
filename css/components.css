@@ -379,8 +379,17 @@ textarea.form-control {
   display: flex;
   gap: var(--sp-md);
   justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
   padding-top: var(--sp-lg);
   border-top: 1px solid var(--color-border);
+}
+/* botões do footer não encolhem — evita truncar "Criar Proposta" / "Criar"
+   quando .btn { min-width: 44px } combinado com overflow: hidden corta o
+   conteúdo em flex containers sob qualquer pressão de layout. */
+.modal-footer > .btn {
+  flex-shrink: 0;
+  min-width: max-content;
 }
 
 @keyframes fadeIn {
