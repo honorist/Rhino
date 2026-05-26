@@ -5,6 +5,7 @@ import { formatBRL } from '../../lib/format';
 import { formatDateBR, todayISO } from '../../lib/formatDate';
 import { useContasPagar } from '../resources';
 import type { ContratoTabProps } from './ContratoDetail';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 
 type Registro = Record<string, unknown>;
 const n = (v: unknown): number => Number(v) || 0;
@@ -35,6 +36,29 @@ export default function PendenciasTab({ contract }: ContratoTabProps) {
 
   const total = passagens.reduce((s, c) => s + n(c.valor), 0);
 
+  const passagemColumns = useMemo((): Column<Registro>[] => [
+    { id: 'colaborador', header: 'Colaborador', cell: (c) => <strong>{String(c.descricao ?? '—')}</strong> },
+    { id: 'obs', header: 'Observações', cell: (c) => <span className="text-muted">{String(c.observacoes ?? '—')}</span> },
+    { id: 'vencimento', header: 'Vencimento', sortable: true, sortAccessor: (c) => String(c.dataVencimento ?? ''), cell: (c) => formatDateBR(String(c.dataVencimento ?? '')) },
+    {
+      id: 'valor', header: 'Valor Previsto', align: 'right', sortable: true,
+      sortAccessor: (c) => n(c.valor),
+      cell: (c) => <span style={{ fontWeight: 700, color: '#7C3AED' }}>{formatBRL(n(c.valor))}</span>,
+    },
+    {
+      id: 'status', header: 'Status',
+      cell: (c) => {
+        const venc = String(c.dataVencimento ?? '');
+        const vencido = venc && venc < hoje;
+        return (
+          <Badge style={{ background: vencido ? '#FEE2E2' : '#EDE9FE', color: vencido ? '#991B1B' : '#5B21B6' }}>
+            {vencido ? '⚠ Vencida' : '⏳ Pendente'}
+          </Badge>
+        );
+      },
+    },
+  ] as Column<Registro>[], [hoje]);
+
   if (passagens.length === 0) {
     return (
       <Card style={{ padding: 'var(--sp-2xl)', textAlign: 'center' }}>
@@ -62,71 +86,15 @@ export default function PendenciasTab({ contract }: ContratoTabProps) {
         </h3>
         <strong style={{ color: '#7C3AED' }}>{formatBRL(total)}</strong>
       </div>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Colaborador</th>
-              <th>Observações</th>
-              <th>Vencimento</th>
-              <th style={{ textAlign: 'right' }}>Valor Previsto</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {passagens.map((c, i) => {
-              const venc = String(c.dataVencimento ?? '');
-              const vencido = venc && venc < hoje;
-              return (
-                <tr key={String(c.id ?? i)}>
-                  <td>
-                    <strong>{String(c.descricao ?? '—')}</strong>
-                  </td>
-                  <td className="text-muted">
-                    {String(c.observacoes ?? '—')}
-                  </td>
-                  <td>{formatDateBR(venc)}</td>
-                  <td
-                    style={{
-                      textAlign: 'right',
-                      fontWeight: 700,
-                      color: '#7C3AED',
-                    }}
-                  >
-                    {formatBRL(n(c.valor))}
-                  </td>
-                  <td>
-                    <Badge
-                      style={{
-                        background: vencido ? '#FEE2E2' : '#EDE9FE',
-                        color: vencido ? '#991B1B' : '#5B21B6',
-                      }}
-                    >
-                      {vencido ? '⚠ Vencida' : '⏳ Pendente'}
-                    </Badge>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-          <tfoot>
-            <tr style={{ fontWeight: 700 }}>
-              <td colSpan={3} style={{ padding: 'var(--sp-md)' }}>
-                Total previsto em passagens
-              </td>
-              <td
-                style={{
-                  textAlign: 'right',
-                  padding: 'var(--sp-md)',
-                  color: '#7C3AED',
-                }}
-              >
-                {formatBRL(total)}
-              </td>
-              <td />
-            </tr>
-          </tfoot>
-        </table>
+      <DataTable
+        rows={passagens}
+        columns={passagemColumns}
+        rowKey={(c) => String(c.id ?? Math.random())}
+        emptyMessage="Nenhuma passagem pendente."
+      />
+      <div style={{ padding: 'var(--sp-md) var(--sp-lg)', fontWeight: 700, borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between' }}>
+        <span>Total previsto em passagens</span>
+        <span style={{ color: '#7C3AED' }}>{formatBRL(total)}</span>
       </div>
     </Card>
   );

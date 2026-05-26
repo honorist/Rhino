@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { Badge } from '../../components/ui/badge';
@@ -12,6 +12,7 @@ import { exportRdoPdf } from './exportRdoPdf';
 import RdoDetailModal from './RdoDetailModal';
 import RdoFormModal from './RdoFormModal';
 import RdoFotosModal from './RdoFotosModal';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 
 const n = (v: unknown): number => Number(v) || 0;
 
@@ -81,24 +82,149 @@ export default function RdoTab({ contract }: ContratoTabProps) {
   const compliance = rdoCompliance(rdos, contract.status);
   const alerta = compliance.nivel ? ALERTA_ESTILO[compliance.nivel] : null;
 
-  function handleExcluir(rdo: Rdo) {
-    if (!window.confirm(`Excluir o RDO #${rdo.numero ?? ''}?`)) return;
-    deletar.mutate(
-      { contractId: contract.id, rdoId: rdo.id },
-      {
-        onSuccess: () => toast.success('RDO excluído'),
-        onError: (e) => toast.error(e.message),
-      },
-    );
-  }
+  const handleExcluir = useCallback(
+    (rdo: Rdo) => {
+      if (!window.confirm(`Excluir o RDO #${rdo.numero ?? ''}?`)) return;
+      deletar.mutate(
+        { contractId: contract.id, rdoId: rdo.id },
+        {
+          onSuccess: () => toast.success('RDO excluído'),
+          onError: (e) => toast.error(e.message),
+        },
+      );
+    },
+    [contract.id, deletar],
+  );
 
-  async function handlePdf(rdo: Rdo) {
-    try {
-      await exportRdoPdf(rdo, contract);
-    } catch {
-      toast.error('Falha ao gerar o PDF');
-    }
-  }
+  const handlePdf = useCallback(
+    async (rdo: Rdo) => {
+      try {
+        await exportRdoPdf(rdo, contract);
+      } catch {
+        toast.error('Falha ao gerar o PDF');
+      }
+    },
+    [contract],
+  );
+
+  const columns = useMemo<Column<Rdo>[]>(
+    () => [
+      {
+        id: 'numero',
+        header: 'Nº',
+        sortable: true,
+        sortAccessor: (r) => Number(r.numero ?? 0),
+        cell: (r) => (
+          <strong style={{ color: 'var(--color-primary)' }}>#{r.numero}</strong>
+        ),
+      },
+      {
+        id: 'data',
+        header: 'Data',
+        sortable: true,
+        sortAccessor: (r) => String(r.data ?? ''),
+        cell: (r) => (
+          <>
+            <strong>{formatDateBR(r.data)}</strong>
+            {r.diaSemana && (
+              <div className="text-muted" style={{ fontSize: 12 }}>
+                {r.diaSemana}
+              </div>
+            )}
+          </>
+        ),
+      },
+      {
+        id: 'clima',
+        header: 'Clima',
+        cell: (r) => <span style={{ fontSize: 18 }}>{climaManha(r)}</span>,
+      },
+      {
+        id: 'mo',
+        header: 'MO Total',
+        align: 'center',
+        cell: (r) => <strong>{moTotal(r)}</strong>,
+      },
+      {
+        id: 'equipamentos',
+        header: 'Equip.',
+        align: 'center',
+        cell: (r) =>
+          (r.equipamentos ?? []).reduce(
+            (s, x) => s + n(x.qtd ?? x.quantidade),
+            0,
+          ),
+      },
+      {
+        id: 'atividades',
+        header: 'Atividades',
+        align: 'center',
+        cell: (r) => (r.atividades ?? []).length,
+      },
+      {
+        id: 'fotos',
+        header: 'Fotos',
+        align: 'center',
+        cell: (r) => {
+          const qty = (r.fotos ?? []).length;
+          return qty > 0 ? `📷 ${qty}` : '—';
+        },
+      },
+      {
+        id: 'seguranca',
+        header: 'Segurança',
+        cell: (r) => segBadge(r),
+      },
+      {
+        id: 'acoes',
+        header: 'Ações',
+        hideable: false,
+        cell: (r) => (
+          <div
+            className="actions-cell"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <a
+              className="action-link"
+              style={{ cursor: 'pointer' }}
+              onClick={() => setModal({ tipo: 'detalhe', rdo: r })}
+            >
+              Ver
+            </a>
+            <a
+              className="action-link"
+              style={{ cursor: 'pointer' }}
+              onClick={() => setModal({ tipo: 'form', rdo: r })}
+            >
+              Editar
+            </a>
+            <a
+              className="action-link"
+              style={{ cursor: 'pointer' }}
+              onClick={() => setModal({ tipo: 'fotos', rdo: r })}
+            >
+              📷 Fotos
+            </a>
+            <a
+              className="action-link"
+              style={{ cursor: 'pointer' }}
+              onClick={() => void handlePdf(r)}
+            >
+              📄 PDF
+            </a>
+            <a
+              className="action-link danger"
+              style={{ cursor: 'pointer' }}
+              onClick={() => handleExcluir(r)}
+            >
+              Excluir
+            </a>
+          </div>
+        ),
+      },
+    ],
+    [setModal, handleExcluir, handlePdf],
+  );
 
   return (
     <>
@@ -134,116 +260,20 @@ export default function RdoTab({ contract }: ContratoTabProps) {
             + Novo RDO
           </Button>
         </div>
-        {rdos.length === 0 ? (
-          <p
-            className="text-muted"
-            style={{ padding: 'var(--sp-xl)', textAlign: 'center' }}
-          >
-            Nenhum RDO registrado.
-          </p>
-        ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Nº</th>
-                  <th>Data</th>
-                  <th>Clima</th>
-                  <th style={{ textAlign: 'center' }}>MO Total</th>
-                  <th style={{ textAlign: 'center' }}>Equip.</th>
-                  <th style={{ textAlign: 'center' }}>Atividades</th>
-                  <th style={{ textAlign: 'center' }}>Fotos</th>
-                  <th>Segurança</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rdos.map((r) => {
-                  const eqpTotal = (r.equipamentos ?? []).reduce(
-                    (s, x) => s + n(x.qtd ?? x.quantidade),
-                    0,
-                  );
-                  const fotos = (r.fotos ?? []).length;
-                  return (
-                    <tr
-                      key={r.id}
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => setModal({ tipo: 'detalhe', rdo: r })}
-                    >
-                      <td>
-                        <strong style={{ color: 'var(--color-primary)' }}>
-                          #{r.numero}
-                        </strong>
-                      </td>
-                      <td>
-                        <strong>{formatDateBR(r.data)}</strong>
-                        {r.diaSemana && (
-                          <div
-                            className="text-muted"
-                            style={{ fontSize: 12 }}
-                          >
-                            {r.diaSemana}
-                          </div>
-                        )}
-                      </td>
-                      <td style={{ fontSize: 18 }}>{climaManha(r)}</td>
-                      <td style={{ textAlign: 'center', fontWeight: 700 }}>
-                        {moTotal(r)}
-                      </td>
-                      <td style={{ textAlign: 'center' }}>{eqpTotal}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        {(r.atividades ?? []).length}
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        {fotos > 0 ? `📷 ${fotos}` : '—'}
-                      </td>
-                      <td>{segBadge(r)}</td>
-                      <td onClick={(e) => e.stopPropagation()}>
-                        <div className="actions-cell">
-                          <a
-                            className="action-link"
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => setModal({ tipo: 'detalhe', rdo: r })}
-                          >
-                            Ver
-                          </a>
-                          <a
-                            className="action-link"
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => setModal({ tipo: 'form', rdo: r })}
-                          >
-                            Editar
-                          </a>
-                          <a
-                            className="action-link"
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => setModal({ tipo: 'fotos', rdo: r })}
-                          >
-                            📷 Fotos
-                          </a>
-                          <a
-                            className="action-link"
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => handlePdf(r)}
-                          >
-                            📄 PDF
-                          </a>
-                          <a
-                            className="action-link danger"
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => handleExcluir(r)}
-                          >
-                            Excluir
-                          </a>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <div style={{ padding: '0 var(--sp-lg) var(--sp-lg)' }}>
+          <DataTable
+            rows={rdos}
+            columns={columns}
+            rowKey={(r) => r.id}
+            onRowClick={(r) => setModal({ tipo: 'detalhe', rdo: r })}
+            emptyMessage="Nenhum RDO registrado."
+            searchPlaceholder="Buscar por nº ou data…"
+            globalFilterFn={(r, q) =>
+              String(r.numero ?? '').includes(q) ||
+              formatDateBR(r.data).toLowerCase().includes(q)
+            }
+          />
+        </div>
       </Card>
 
       {modal?.tipo === 'detalhe' && (

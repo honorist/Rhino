@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { Badge } from '../../components/ui/badge';
@@ -23,6 +23,7 @@ import {
   useDeleteOcorrencia,
   useUpdateOcorrencia,
 } from './queries';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 
 const TIPO_LABEL: Record<string, string> = {
   geral: 'Geral',
@@ -181,7 +182,7 @@ export default function OcorrenciasTab({ contract }: ContratoTabProps) {
   const ocorrencias = (contract.ocorrencias as Ocorrencia[] | undefined) ?? [];
   const abertas = ocorrencias.filter((o) => !o.encerrada).length;
 
-  function handleExcluir(o: Ocorrencia) {
+  const handleExcluir = useCallback((o: Ocorrencia) => {
     if (!window.confirm('Excluir esta ocorrência?')) return;
     excluir.mutate(
       { contractId: contract.id, itemId: o.id },
@@ -190,7 +191,36 @@ export default function OcorrenciasTab({ contract }: ContratoTabProps) {
         onError: (e) => toast.error(e.message),
       },
     );
-  }
+  }, [excluir, contract.id]);
+
+  const ocorrenciaColumns = useMemo((): Column<Ocorrencia>[] => [
+    { id: 'data', header: 'Data', sortable: true, sortAccessor: (o) => o.data ?? '', cell: (o) => <span style={{ whiteSpace: 'nowrap' }}>{formatDateBR(o.data)}</span> },
+    { id: 'tipo', header: 'Tipo', cell: (o) => TIPO_LABEL[o.tipo ?? ''] ?? o.tipo },
+    {
+      id: 'severidade', header: 'Severidade',
+      cell: (o) => (
+        <Badge style={{ background: `${SEV_COR[o.severidade ?? 'media']}22`, color: SEV_COR[o.severidade ?? 'media'] }}>
+          {(o.severidade ?? 'media').toUpperCase()}
+        </Badge>
+      ),
+    },
+    { id: 'descricao', header: 'Descrição', cell: (o) => o.descricao },
+    {
+      id: 'status', header: 'Status',
+      cell: (o) => o.encerrada
+        ? <span style={{ color: 'var(--color-success)', fontWeight: 600 }}>Encerrada</span>
+        : <span style={{ color: 'var(--color-danger)', fontWeight: 600 }}>Aberta</span>,
+    },
+    {
+      id: 'acoes', header: '', hideable: false,
+      cell: (o) => (
+        <div className="actions-cell" onClick={(e) => e.stopPropagation()}>
+          <a className="action-link" style={{ cursor: 'pointer' }} onClick={() => setModal({ ocorrencia: o })}>Editar</a>
+          <a className="action-link danger" style={{ cursor: 'pointer' }} onClick={() => handleExcluir(o)}>Excluir</a>
+        </div>
+      ),
+    },
+  ] as Column<Ocorrencia>[], [handleExcluir, setModal]);
 
   return (
     <Card style={{ padding: 0, overflow: 'hidden' }}>
@@ -218,77 +248,18 @@ export default function OcorrenciasTab({ contract }: ContratoTabProps) {
           + Nova Ocorrência
         </Button>
       </div>
-      {ocorrencias.length === 0 ? (
-        <p
-          className="text-muted"
-          style={{ padding: 'var(--sp-xl)', textAlign: 'center' }}
-        >
-          Nenhuma ocorrência registrada.
-        </p>
-      ) : (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Tipo</th>
-                <th>Severidade</th>
-                <th>Descrição</th>
-                <th>Status</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ocorrencias.map((o) => (
-                <tr key={o.id} style={{ opacity: o.encerrada ? 0.6 : 1 }}>
-                  <td style={{ whiteSpace: 'nowrap' }}>{formatDateBR(o.data)}</td>
-                  <td>{TIPO_LABEL[o.tipo ?? ''] ?? o.tipo}</td>
-                  <td>
-                    <Badge
-                      style={{
-                        background: `${SEV_COR[o.severidade ?? 'media']}22`,
-                        color: SEV_COR[o.severidade ?? 'media'],
-                      }}
-                    >
-                      {(o.severidade ?? 'media').toUpperCase()}
-                    </Badge>
-                  </td>
-                  <td>{o.descricao}</td>
-                  <td>
-                    {o.encerrada ? (
-                      <span style={{ color: 'var(--color-success)', fontWeight: 600 }}>
-                        Encerrada
-                      </span>
-                    ) : (
-                      <span style={{ color: 'var(--color-danger)', fontWeight: 600 }}>
-                        Aberta
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    <div className="actions-cell">
-                      <a
-                        className="action-link"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => setModal({ ocorrencia: o })}
-                      >
-                        Editar
-                      </a>
-                      <a
-                        className="action-link danger"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => handleExcluir(o)}
-                      >
-                        Excluir
-                      </a>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        rows={ocorrencias}
+        columns={ocorrenciaColumns}
+        rowKey={(o) => o.id}
+        emptyMessage="Nenhuma ocorrência registrada."
+        searchPlaceholder="Buscar ocorrências..."
+        globalFilterFn={(o, q) =>
+          [o.descricao, TIPO_LABEL[o.tipo ?? ''] ?? o.tipo].some(
+            (v) => String(v ?? '').toLowerCase().includes(q),
+          )
+        }
+      />
 
       {modal && (
         <OcorrenciaModal

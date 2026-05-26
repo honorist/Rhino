@@ -1,9 +1,10 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/Button';
 import { Badge } from '../../components/ui/badge';
 import Card from '../../components/ui/Card';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 import {
   Dialog,
   DialogContent,
@@ -45,14 +46,14 @@ const TIPO_FALLBACK: TipoBase = {
   id: 'outros',
   key: 'outros',
   label: 'Outros',
-  icon: '🔹',
+  icon: 'ðŸ”¹',
   cor: '#718096',
 };
 
 const FILTROS: { value: 'todos' | AporteOrigem; label: string }[] = [
   { value: 'todos', label: 'Todos' },
-  { value: 'socio', label: '👥 Sócios' },
-  { value: 'caixa_empresa', label: '💰 Caixa Empresa' },
+  { value: 'socio', label: 'ðŸ‘¥ SÃ³cios' },
+  { value: 'caixa_empresa', label: 'ðŸ’° Caixa Empresa' },
 ];
 
 const num = (v: unknown): number => Number(v) || 0;
@@ -66,14 +67,14 @@ function destinoOf(ap: Investimento): AporteDestino {
 }
 
 function formatDate(d?: string): string {
-  return d ? new Date(`${d}T12:00:00`).toLocaleDateString('pt-BR') : '—';
+  return d ? new Date(`${d}T12:00:00`).toLocaleDateString('pt-BR') : 'â€”';
 }
 
 function contractName(contract: Contract | undefined): string {
   return contract ? String(contract.name ?? 'Contrato') : '';
 }
 
-/** Tela de Aportes dos Sócios — migração de js/views/Investimentos.js. */
+/** Tela de Aportes dos SÃ³cios â€” migraÃ§Ã£o de js/views/Investimentos.js. */
 export default function Investimentos() {
   const investimentosQuery = useInvestimentos();
   const sociosQuery = useSocios();
@@ -120,27 +121,101 @@ export default function Investimentos() {
     );
   const totalFiltrado = aportesFiltrados.reduce((s, a) => s + num(a.value), 0);
 
-  function handleDelete(ap: Investimento) {
-    const msg =
-      origemOf(ap) === 'caixa_empresa'
-        ? 'Excluir este aporte? A saída no caixa também será removida.'
-        : 'Excluir este aporte?';
-    if (!window.confirm(msg)) return;
-    removeInvestimento.mutate(ap.id, {
-      onSuccess: () => toast.success('Aporte removido'),
-      onError: (error) => toast.error(error.message),
-    });
-  }
+  const handleDelete = useCallback(
+    (ap: Investimento) => {
+      const msg =
+        origemOf(ap) === 'caixa_empresa'
+          ? 'Excluir este aporte? A saÃ­da no caixa tambÃ©m serÃ¡ removida.'
+          : 'Excluir este aporte?';
+      if (!window.confirm(msg)) return;
+      removeInvestimento.mutate(ap.id, {
+        onSuccess: () => toast.success('Aporte removido'),
+        onError: (error) => toast.error(error.message),
+      });
+    },
+    [removeInvestimento],
+  );
 
   const detalhe = detalheId
     ? aportes.find((a) => a.id === detalheId) ?? null
     : null;
 
+  const columns = useMemo<Column<Investimento>[]>(
+    () => [
+      {
+        header: 'Data',
+        sortable: true,
+        sortAccessor: (ap) => ap.date,
+        cell: (ap) => formatDate(ap.date),
+      },
+      {
+        header: 'Origem',
+        cell: (ap) => <OrigemBadge origem={origemOf(ap)} />,
+      },
+      {
+        header: 'SÃ³cio / DescriÃ§Ã£o',
+        cell: (ap) => {
+          const socio = socioById(ap.socioId);
+          return socio ? (
+            <>
+              <strong>{socio.name}</strong>
+              {ap.description && (
+                <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+                  {ap.description}
+                </div>
+              )}
+            </>
+          ) : (
+            <strong>{ap.description || 'Aporte via caixa'}</strong>
+          );
+        },
+      },
+      {
+        header: 'Tipo de Custo',
+        cell: (ap) => <TipoBadge tipo={tipoOf(ap.baseType)} />,
+      },
+      {
+        header: 'Destino',
+        cell: (ap) => (
+          <DestinoBadge
+            destino={destinoOf(ap)}
+            contrato={contratoById(ap.contractId)}
+            contractId={ap.contractId}
+          />
+        ),
+      },
+      {
+        header: 'Valor',
+        align: 'right',
+        sortable: true,
+        sortAccessor: (ap) => num(ap.value),
+        cell: (ap) => (
+          <span style={{ fontWeight: 700 }}>{formatBRL(num(ap.value))}</span>
+        ),
+      },
+      {
+        header: 'AÃ§Ãµes',
+        cell: (ap) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            <a
+              className="action-link danger"
+              style={{ cursor: 'pointer' }}
+              onClick={() => handleDelete(ap)}
+            >
+              Excluir
+            </a>
+          </div>
+        ),
+      },
+    ],
+    [tiposByKey, contratos, socios, handleDelete],
+  );
+
   return (
     <>
       <PageHeader
-        title="Aportes dos Sócios"
-        subtitle="Aportes de capital por sócio ou via caixa da empresa"
+        title="Aportes dos SÃ³cios"
+        subtitle="Aportes de capital por sÃ³cio ou via caixa da empresa"
         actions={
           <Button size="lg" onClick={() => setNovoAberto(true)}>
             + Novo Aporte
@@ -166,13 +241,13 @@ export default function Investimentos() {
             />
             <KpiCard
               valor={formatBRL(totalSocios)}
-              label="👥 Aportes dos Sócios"
+              label="ðŸ‘¥ Aportes dos SÃ³cios"
               borda="var(--color-info)"
               cor="var(--color-info)"
             />
             <KpiCard
               valor={formatBRL(totalCaixa)}
-              label="💰 Via Caixa da Empresa"
+              label="ðŸ’° Via Caixa da Empresa"
               borda="var(--color-warning)"
               cor="var(--color-warning)"
             />
@@ -219,118 +294,32 @@ export default function Investimentos() {
 
           <Card>
             <div className="flex justify-between items-center mb-4 px-5 pt-5">
-              <h3 className="text-[15px] font-semibold tracking-tight">Histórico de Aportes</h3>
-              <span
-                style={{ fontSize: 13, color: 'var(--color-text-muted)' }}
-              >
+              <h3 className="text-[15px] font-semibold tracking-tight">HistÃ³rico de Aportes</h3>
+              <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
                 {aportesFiltrados.length} aporte
                 {aportesFiltrados.length !== 1 ? 's' : ''}
               </span>
             </div>
-            {aportesFiltrados.length === 0 ? (
-              <p className="text-muted" style={{ padding: 'var(--sp-lg)' }}>
-                Nenhum aporte registrado
-              </p>
-            ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Data</th>
-                      <th>Origem</th>
-                      <th>Sócio / Descrição</th>
-                      <th>Tipo de Custo</th>
-                      <th>Destino</th>
-                      <th style={{ textAlign: 'right' }}>Valor</th>
-                      <th>Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {aportesFiltrados.map((ap) => {
-                      const socio = socioById(ap.socioId);
-                      const contrato = contratoById(ap.contractId);
-                      return (
-                        <tr
-                          key={ap.id}
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => setDetalheId(ap.id)}
-                        >
-                          <td>{formatDate(ap.date)}</td>
-                          <td>
-                            <OrigemBadge origem={origemOf(ap)} />
-                          </td>
-                          <td>
-                            {socio ? (
-                              <>
-                                <strong>{socio.name}</strong>
-                                {ap.description && (
-                                  <div
-                                    style={{
-                                      fontSize: 13,
-                                      color: 'var(--color-text-muted)',
-                                    }}
-                                  >
-                                    {ap.description}
-                                  </div>
-                                )}
-                              </>
-                            ) : (
-                              <strong>
-                                {ap.description || 'Aporte via caixa'}
-                              </strong>
-                            )}
-                          </td>
-                          <td>
-                            <TipoBadge tipo={tipoOf(ap.baseType)} />
-                          </td>
-                          <td>
-                            <DestinoBadge
-                              destino={destinoOf(ap)}
-                              contrato={contrato}
-                              contractId={ap.contractId}
-                            />
-                          </td>
-                          <td style={{ textAlign: 'right', fontWeight: 700 }}>
-                            {formatBRL(num(ap.value))}
-                          </td>
-                          <td>
-                            <a
-                              className="action-link danger"
-                              style={{ cursor: 'pointer' }}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                handleDelete(ap);
-                              }}
-                            >
-                              Excluir
-                            </a>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr
-                      style={{
-                        background: 'var(--color-bg)',
-                        fontWeight: 700,
-                      }}
-                    >
-                      <td colSpan={5} style={{ padding: 'var(--sp-md)' }}>
-                        Total filtrado
-                      </td>
-                      <td
-                        style={{
-                          textAlign: 'right',
-                          padding: 'var(--sp-md)',
-                        }}
-                      >
-                        {formatBRL(totalFiltrado)}
-                      </td>
-                      <td />
-                    </tr>
-                  </tfoot>
-                </table>
+            <DataTable
+              columns={columns}
+              rows={aportesFiltrados}
+              rowKey={(ap) => ap.id}
+              onRowClick={(ap) => setDetalheId(ap.id)}
+              emptyMessage="Nenhum aporte registrado"
+            />
+            {aportesFiltrados.length > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  padding: 'var(--sp-md)',
+                  background: 'var(--color-bg)',
+                  fontWeight: 700,
+                  borderTop: '1px solid var(--color-border)',
+                }}
+              >
+                <span>Total filtrado</span>
+                <span>{formatBRL(totalFiltrado)}</span>
               </div>
             )}
           </Card>
@@ -386,11 +375,11 @@ function KpiCard({
 function OrigemBadge({ origem }: { origem: AporteOrigem }) {
   return origem === 'caixa_empresa' ? (
     <Badge style={{ background: 'rgba(214,158,46,.15)', color: '#D69E2E' }}>
-      💰 Caixa
+      ðŸ’° Caixa
     </Badge>
   ) : (
     <Badge style={{ background: 'rgba(49,130,206,.15)', color: '#3182CE' }}>
-      👥 Sócio
+      ðŸ‘¥ SÃ³cio
     </Badge>
   );
 }
@@ -416,7 +405,7 @@ function DestinoBadge({
   if (destino === 'base') {
     return (
       <Badge style={{ background: 'rgba(49,130,206,.15)', color: '#3182CE' }}>
-        ⚙️ BASE
+        âš™ï¸ BASE
       </Badge>
     );
   }
@@ -434,14 +423,14 @@ function DestinoBadge({
             cursor: 'pointer',
           }}
         >
-          📋 {contractName(contrato)}
+          ðŸ“‹ {contractName(contrato)}
         </Badge>
       </Link>
     );
   }
   return (
     <Badge style={{ background: 'rgba(113,128,150,.15)', color: '#718096' }}>
-      📋 {contractId ? 'Contrato removido' : 'Contrato'}
+      ðŸ“‹ {contractId ? 'Contrato removido' : 'Contrato'}
     </Badge>
   );
 }
@@ -452,83 +441,102 @@ interface ResumoPorSocioProps {
   totalSocios: number;
 }
 
-/** Tabela "Aportes por Sócio" — compara aporte realizado x esperado. */
+/** Tabela "Aportes por SÃ³cio" â€” compara aporte realizado x esperado. */
 function ResumoPorSocio({
   socios,
   aportesDosSocios,
   totalSocios,
 }: ResumoPorSocioProps) {
+  const columns = useMemo<Column<Socio>[]>(
+    () => [
+      {
+        header: 'SÃ³cio',
+        cell: (socio) => <strong>{socio.name}</strong>,
+      },
+      {
+        header: 'ParticipaÃ§Ã£o',
+        cell: (socio) => `${num(socio.participacao).toFixed(2)}%`,
+      },
+      {
+        header: 'Aporte Realizado',
+        align: 'right',
+        cell: (socio) => {
+          const aportado = aportesDosSocios
+            .filter((a) => a.socioId === socio.id)
+            .reduce((s, a) => s + num(a.value), 0);
+          return <span style={{ fontWeight: 600 }}>{formatBRL(aportado)}</span>;
+        },
+      },
+      {
+        header: 'ContribuiÃ§Ã£o Esperada',
+        align: 'right',
+        cell: (socio) => {
+          const esperado =
+            totalSocios > 0
+              ? (totalSocios * num(socio.participacao)) / 100
+              : 0;
+          return (
+            <span style={{ color: 'var(--color-text-muted)' }}>
+              {formatBRL(esperado)}
+            </span>
+          );
+        },
+      },
+      {
+        header: 'DiferenÃ§a',
+        align: 'right',
+        cell: (socio) => {
+          const aportado = aportesDosSocios
+            .filter((a) => a.socioId === socio.id)
+            .reduce((s, a) => s + num(a.value), 0);
+          const esperado =
+            totalSocios > 0
+              ? (totalSocios * num(socio.participacao)) / 100
+              : 0;
+          const diff = aportado - esperado;
+          return (
+            <span
+              style={{
+                fontWeight: 700,
+                color: diff >= 0 ? 'var(--color-success)' : 'var(--color-danger)',
+              }}
+            >
+              {diff >= 0 ? '+' : ''}
+              {formatBRL(diff)}
+            </span>
+          );
+        },
+      },
+    ],
+    [aportesDosSocios, totalSocios],
+  );
+
   return (
     <Card style={{ marginBottom: 48 }}>
       <div className="flex justify-between items-center mb-4 px-5 pt-5">
-        <h3 className="text-[15px] font-semibold tracking-tight">Aportes por Sócio</h3>
+        <h3 className="text-[15px] font-semibold tracking-tight">Aportes por SÃ³cio</h3>
         <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-          Comparando com participação societária
+          Comparando com participaÃ§Ã£o societÃ¡ria
         </span>
       </div>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Sócio</th>
-              <th>Participação</th>
-              <th style={{ textAlign: 'right' }}>Aporte Realizado</th>
-              <th style={{ textAlign: 'right' }}>Contribuição Esperada</th>
-              <th style={{ textAlign: 'right' }}>Diferença</th>
-            </tr>
-          </thead>
-          <tbody>
-            {socios.map((socio) => {
-              const aportado = aportesDosSocios
-                .filter((a) => a.socioId === socio.id)
-                .reduce((s, a) => s + num(a.value), 0);
-              const esperado =
-                totalSocios > 0
-                  ? (totalSocios * num(socio.participacao)) / 100
-                  : 0;
-              const diff = aportado - esperado;
-              return (
-                <tr key={socio.id}>
-                  <td>
-                    <strong>{socio.name}</strong>
-                  </td>
-                  <td>{num(socio.participacao).toFixed(2)}%</td>
-                  <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                    {formatBRL(aportado)}
-                  </td>
-                  <td
-                    style={{
-                      textAlign: 'right',
-                      color: 'var(--color-text-muted)',
-                    }}
-                  >
-                    {formatBRL(esperado)}
-                  </td>
-                  <td
-                    style={{
-                      textAlign: 'right',
-                      fontWeight: 700,
-                      color:
-                        diff >= 0
-                          ? 'var(--color-success)'
-                          : 'var(--color-danger)',
-                    }}
-                  >
-                    {diff >= 0 ? '+' : ''}
-                    {formatBRL(diff)}
-                  </td>
-                </tr>
-              );
-            })}
-            <tr style={{ background: 'var(--color-bg)', fontWeight: 700 }}>
-              <td>TOTAL</td>
-              <td>100,00%</td>
-              <td style={{ textAlign: 'right' }}>{formatBRL(totalSocios)}</td>
-              <td style={{ textAlign: 'right' }}>{formatBRL(totalSocios)}</td>
-              <td style={{ textAlign: 'right' }}>—</td>
-            </tr>
-          </tbody>
-        </table>
+      <DataTable
+        columns={columns}
+        rows={socios}
+        rowKey={(socio) => socio.id}
+        emptyMessage="Nenhum sÃ³cio encontrado"
+      />
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          padding: 'var(--sp-md)',
+          background: 'var(--color-bg)',
+          fontWeight: 700,
+          borderTop: '1px solid var(--color-border)',
+        }}
+      >
+        <span>TOTAL — 100,00%</span>
+        <span>{formatBRL(totalSocios)}</span>
       </div>
     </Card>
   );
@@ -568,11 +576,11 @@ function NovoAporteModal({
 
     const valor = Number.parseFloat(value) || 0;
     if (valor <= 0) {
-      toast.error('Informe um valor válido');
+      toast.error('Informe um valor vÃ¡lido');
       return;
     }
     if (origem === 'socio' && !socioId) {
-      toast.error('Selecione o sócio');
+      toast.error('Selecione o sÃ³cio');
       return;
     }
     if (destino === 'contrato' && !contractId) {
@@ -594,7 +602,7 @@ function NovoAporteModal({
     createInvestimento.mutate(input, {
       onSuccess: () => {
         const msgs: string[] = [];
-        if (origem === 'caixa_empresa') msgs.push('saída lançada no caixa');
+        if (origem === 'caixa_empresa') msgs.push('saÃ­da lanÃ§ada no caixa');
         if (destino === 'base') msgs.push('item criado na BASE');
         const extra = msgs.length > 0 ? ` (${msgs.join(' e ')})` : '';
         toast.success(`Aporte registrado${extra}`);
@@ -625,8 +633,8 @@ function NovoAporteModal({
                   name="origem"
                   checked={origem === 'socio'}
                   onChange={() => setOrigem('socio')}
-                  titulo="👥 Sócio"
-                  descricao="Aporte de um sócio"
+                  titulo="ðŸ‘¥ SÃ³cio"
+                  descricao="Aporte de um sÃ³cio"
                   activeBorder="var(--color-info)"
                   activeBg="rgba(49,130,206,.05)"
                 />
@@ -634,8 +642,8 @@ function NovoAporteModal({
                   name="origem"
                   checked={origem === 'caixa_empresa'}
                   onChange={() => setOrigem('caixa_empresa')}
-                  titulo="💰 Caixa da Empresa"
-                  descricao="Aquisição via caixa (gera saída)"
+                  titulo="ðŸ’° Caixa da Empresa"
+                  descricao="AquisiÃ§Ã£o via caixa (gera saÃ­da)"
                   activeBorder="var(--color-warning)"
                   activeBg="rgba(214,158,46,.05)"
                 />
@@ -643,15 +651,15 @@ function NovoAporteModal({
             </div>
 
             {origem === 'socio' && (
-              <FormField label="Sócio *" htmlFor="aporte-socio">
+              <FormField label="SÃ³cio *" htmlFor="aporte-socio">
                 <Combobox
                   id="aporte-socio"
                   options={socios.map((s) => ({ value: s.id, label: s.name }))}
                   value={socioId}
                   onChange={setSocioId}
                   placeholder="Selecionar..."
-                  searchPlaceholder="Pesquisar sócio..."
-                  emptyText="Nenhum sócio encontrado."
+                  searchPlaceholder="Pesquisar sÃ³cio..."
+                  emptyText="Nenhum sÃ³cio encontrado."
                 />
               </FormField>
             )}
@@ -676,8 +684,8 @@ function NovoAporteModal({
                   name="destino"
                   checked={destino === 'contrato'}
                   onChange={() => setDestino('contrato')}
-                  titulo="📋 Contrato"
-                  descricao="Aporte para um contrato específico"
+                  titulo="ðŸ“‹ Contrato"
+                  descricao="Aporte para um contrato especÃ­fico"
                   activeBorder="var(--color-primary)"
                   activeBg="rgba(46,125,82,.05)"
                 />
@@ -685,7 +693,7 @@ function NovoAporteModal({
                   name="destino"
                   checked={destino === 'base'}
                   onChange={() => setDestino('base')}
-                  titulo="⚙️ BASE"
+                  titulo="âš™ï¸ BASE"
                   descricao="Custo administrativo geral"
                   activeBorder="var(--color-info)"
                   activeBg="rgba(49,130,206,.05)"
@@ -699,7 +707,7 @@ function NovoAporteModal({
                   id="aporte-contrato"
                   options={contratos.map((c) => ({
                     value: c.id,
-                    label: `${String(c.name ?? 'Contrato')} — ${String(c.client ?? '')}`,
+                    label: `${String(c.name ?? 'Contrato')} â€” ${String(c.client ?? '')}`,
                   }))}
                   value={contractId}
                   onChange={setContractId}
@@ -713,7 +721,7 @@ function NovoAporteModal({
             <FormField
               label="Tipo de Custo *"
               htmlFor="aporte-tipo"
-              helper="Classifica a natureza do custo (ex.: Material, Veículo, Software)."
+              helper="Classifica a natureza do custo (ex.: Material, VeÃ­culo, Software)."
             >
               <Select
                 id="aporte-tipo"
@@ -755,12 +763,12 @@ function NovoAporteModal({
                   />
                 </FormField>
               </div>
-              <FormField label="Descrição" htmlFor="aporte-desc">
+              <FormField label="DescriÃ§Ã£o" htmlFor="aporte-desc">
                 <Textarea
                   id="aporte-desc"
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
-                  placeholder="Ex.: Compra de notebook, maquinário, capital de giro..."
+                  placeholder="Ex.: Compra de notebook, maquinÃ¡rio, capital de giro..."
                 />
               </FormField>
             </div>
@@ -776,8 +784,8 @@ function NovoAporteModal({
                   marginTop: 'var(--sp-md)',
                 }}
               >
-                ⚠️ Este aporte gerará uma{' '}
-                <strong>saída contábil automática</strong> no caixa da empresa.
+                âš ï¸ Este aporte gerarÃ¡ uma{' '}
+                <strong>saÃ­da contÃ¡bil automÃ¡tica</strong> no caixa da empresa.
               </div>
             )}
             {destino === 'base' && (
@@ -791,7 +799,7 @@ function NovoAporteModal({
                   marginTop: 'var(--sp-md)',
                 }}
               >
-                ℹ️ Um item será criado na <strong>BASE</strong> para este aporte,
+                â„¹ï¸ Um item serÃ¡ criado na <strong>BASE</strong> para este aporte,
                 pronto para ser alocado em contratos.
               </div>
             )}
@@ -820,7 +828,7 @@ interface RadioCardProps {
   activeBg: string;
 }
 
-/** Cartão de seleção tipo radio — usado para origem e destino do aporte. */
+/** CartÃ£o de seleÃ§Ã£o tipo radio â€” usado para origem e destino do aporte. */
 function RadioCard({
   name,
   checked,
@@ -894,16 +902,16 @@ function DetalheModal({
 
   const origemLabel =
     aporte.origem === 'socio'
-      ? '👤 Sócio'
+      ? 'ðŸ‘¤ SÃ³cio'
       : aporte.origem === 'caixa_empresa'
-        ? '💼 Caixa da empresa'
-        : aporte.origem || '—';
+        ? 'ðŸ’¼ Caixa da empresa'
+        : aporte.origem || 'â€”';
   const destinoLabel =
     aporte.destino === 'base'
-      ? '⚙️ BASE'
+      ? 'âš™ï¸ BASE'
       : aporte.destino === 'contrato'
-        ? '📋 Contrato'
-        : aporte.destino || '—';
+        ? 'ðŸ“‹ Contrato'
+        : aporte.destino || 'â€”';
 
   return (
     <Dialog open onOpenChange={(next) => !next && onClose()}>
@@ -928,7 +936,7 @@ function DetalheModal({
           <DetalheRow label="Origem" value={origemLabel} />
           {socio && (
             <DetalheRow
-              label="Sócio"
+              label="SÃ³cio"
               value={
                 <>
                   <strong>{socio.name}</strong>

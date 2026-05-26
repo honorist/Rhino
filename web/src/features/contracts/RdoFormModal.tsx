@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 import Button from '../../components/ui/Button';
 import {
   Dialog,
@@ -607,6 +608,104 @@ function TempoTab({ form, patch }: { form: RdoFormData; patch: PatchFn }) {
   );
 }
 
+function MoSecaoTable({
+  rows,
+  cat,
+  updMo,
+  rmMo,
+}: {
+  rows: MoForm[];
+  cat: 'moi' | 'mod';
+  updMo: (c: 'moi' | 'mod', i: number, p: Partial<MoForm>) => void;
+  rmMo: (c: 'moi' | 'mod', i: number) => void;
+}) {
+  const columns = useMemo<Column<MoForm>[]>(
+    () => [
+      {
+        header: 'Cargo',
+        cell: (row) => (
+          <Input
+            list={`rdo-${cat}-list`}
+            value={row.cargo}
+            onChange={(e) =>
+              updMo(cat, rows.indexOf(row), { cargo: e.target.value })
+            }
+          />
+        ),
+      },
+      {
+        header: 'Qtd',
+        width: '80px',
+        cell: (row) => (
+          <Input
+            type="number"
+            value={String(row.qtd)}
+            onChange={(e) =>
+              updMo(cat, rows.indexOf(row), { qtd: Number(e.target.value) || 0 })
+            }
+          />
+        ),
+      },
+      {
+        header: 'H. Normais',
+        width: '100px',
+        cell: (row) => (
+          <Input
+            type="number"
+            step="0.5"
+            min="0"
+            value={String(row.horasNormais)}
+            onChange={(e) =>
+              updMo(cat, rows.indexOf(row), {
+                horasNormais: Number(e.target.value) || 0,
+              })
+            }
+          />
+        ),
+      },
+      {
+        header: 'H. Extras',
+        width: '100px',
+        cell: (row) => (
+          <Input
+            type="number"
+            step="0.5"
+            min="0"
+            value={String(row.horasExtras)}
+            onChange={(e) =>
+              updMo(cat, rows.indexOf(row), {
+                horasExtras: Number(e.target.value) || 0,
+              })
+            }
+          />
+        ),
+      },
+      {
+        header: '',
+        width: '36px',
+        cell: (row) => (
+          <a
+            className="action-link danger"
+            style={{ cursor: 'pointer' }}
+            onClick={() => rmMo(cat, rows.indexOf(row))}
+          >
+            ✕
+          </a>
+        ),
+      },
+    ],
+    [rows, cat, updMo, rmMo],
+  );
+  return (
+    <DataTable
+      columns={columns}
+      rows={rows}
+      rowKey={(row) => String(rows.indexOf(row))}
+      emptyMessage="Nenhum item."
+    />
+  );
+}
+
 function MoTab({
   form,
   addMo,
@@ -620,21 +719,120 @@ function MoTab({
   rmMo: (c: 'moi' | 'mod', i: number) => void;
   patch: PatchFn;
 }) {
-  const secoes: { k: 'moi' | 'mod'; l: string; cargos: string[] }[] = [
-    { k: 'moi', l: 'Mão de Obra Indireta (MOI)', cargos: RDO_MOI_CARGOS },
-    { k: 'mod', l: 'Mão de Obra Direta (MOD)', cargos: RDO_MOD_CARGOS },
+  const secoes: { k: 'moi' | 'mod'; l: string }[] = [
+    { k: 'moi', l: 'Mão de Obra Indireta (MOI)' },
+    { k: 'mod', l: 'Mão de Obra Direta (MOD)' },
   ];
-  function addTerc() {
-    patch({
-      terc: [
-        ...form.terc,
-        { empresa: '', cargo: '', qtd: 1, horasNormais: 9, horasExtras: 0 },
-      ],
-    });
-  }
-  function updTerc(i: number, p: Partial<TercForm>) {
-    patch({ terc: form.terc.map((x, j) => (j === i ? { ...x, ...p } : x)) });
-  }
+
+  const addTerc = useCallback(
+    function addTerc() {
+      patch({
+        terc: [
+          ...form.terc,
+          { empresa: '', cargo: '', qtd: 1, horasNormais: 9, horasExtras: 0 },
+        ],
+      });
+    },
+    [form.terc, patch],
+  );
+
+  const updTerc = useCallback(
+    function updTerc(i: number, p: Partial<TercForm>) {
+      patch({ terc: form.terc.map((x, j) => (j === i ? { ...x, ...p } : x)) });
+    },
+    [form.terc, patch],
+  );
+
+  const tercColumns = useMemo<Column<TercForm>[]>(
+    () => [
+      {
+        header: 'Empresa',
+        cell: (row) => (
+          <Input
+            value={row.empresa}
+            onChange={(e) =>
+              updTerc(form.terc.indexOf(row), { empresa: e.target.value })
+            }
+          />
+        ),
+      },
+      {
+        header: 'Cargo',
+        cell: (row) => (
+          <Input
+            value={row.cargo}
+            onChange={(e) =>
+              updTerc(form.terc.indexOf(row), { cargo: e.target.value })
+            }
+          />
+        ),
+      },
+      {
+        header: 'Qtd',
+        width: '70px',
+        cell: (row) => (
+          <Input
+            type="number"
+            value={String(row.qtd)}
+            onChange={(e) =>
+              updTerc(form.terc.indexOf(row), { qtd: Number(e.target.value) || 0 })
+            }
+          />
+        ),
+      },
+      {
+        header: 'H. Normais',
+        width: '90px',
+        cell: (row) => (
+          <Input
+            type="number"
+            step="0.5"
+            min="0"
+            value={String(row.horasNormais)}
+            onChange={(e) =>
+              updTerc(form.terc.indexOf(row), {
+                horasNormais: Number(e.target.value) || 0,
+              })
+            }
+          />
+        ),
+      },
+      {
+        header: 'H. Extras',
+        width: '90px',
+        cell: (row) => (
+          <Input
+            type="number"
+            step="0.5"
+            min="0"
+            value={String(row.horasExtras)}
+            onChange={(e) =>
+              updTerc(form.terc.indexOf(row), {
+                horasExtras: Number(e.target.value) || 0,
+              })
+            }
+          />
+        ),
+      },
+      {
+        header: '',
+        width: '36px',
+        cell: (row) => (
+          <a
+            className="action-link danger"
+            style={{ cursor: 'pointer' }}
+            onClick={() =>
+              patch({ terc: form.terc.filter((_, j) => j !== form.terc.indexOf(row)) })
+            }
+          >
+            ✕
+          </a>
+        ),
+      },
+    ],
+    [updTerc, form.terc, patch],
+  );
+
   return (
     <>
       <datalist id="rdo-moi-list">
@@ -663,82 +861,12 @@ function MoTab({
               + Adicionar
             </Button>
           </div>
-          {form[sec.k].length === 0 ? (
-            <p className="text-muted" style={{ fontSize: 13 }}>
-              Nenhum item.
-            </p>
-          ) : (
-            <table style={{ width: '100%' }}>
-              <thead>
-                <tr>
-                  <th>Cargo</th>
-                  <th style={{ width: 80 }}>Qtd</th>
-                  <th style={{ width: 100 }} title="Horas normais por pessoa (default 9)">H. Normais</th>
-                  <th style={{ width: 100 }} title="Horas extras por pessoa">H. Extras</th>
-                  <th style={{ width: 36 }} />
-                </tr>
-              </thead>
-              <tbody>
-                {form[sec.k].map((m, i) => (
-                  <tr key={i}>
-                    <td>
-                      <Input
-                        list={`rdo-${sec.k}-list`}
-                        value={m.cargo}
-                        onChange={(e) =>
-                          updMo(sec.k, i, { cargo: e.target.value })
-                        }
-                      />
-                    </td>
-                    <td>
-                      <Input
-                        type="number"
-                        value={String(m.qtd)}
-                        onChange={(e) =>
-                          updMo(sec.k, i, { qtd: Number(e.target.value) || 0 })
-                        }
-                      />
-                    </td>
-                    <td>
-                      <Input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        value={String(m.horasNormais)}
-                        onChange={(e) =>
-                          updMo(sec.k, i, {
-                            horasNormais: Number(e.target.value) || 0,
-                          })
-                        }
-                      />
-                    </td>
-                    <td>
-                      <Input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        value={String(m.horasExtras)}
-                        onChange={(e) =>
-                          updMo(sec.k, i, {
-                            horasExtras: Number(e.target.value) || 0,
-                          })
-                        }
-                      />
-                    </td>
-                    <td>
-                      <a
-                        className="action-link danger"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => rmMo(sec.k, i)}
-                      >
-                        ✕
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <MoSecaoTable
+            rows={form[sec.k]}
+            cat={sec.k}
+            updMo={updMo}
+            rmMo={rmMo}
+          />
         </div>
       ))}
 
@@ -755,84 +883,12 @@ function MoTab({
           + Adicionar
         </Button>
       </div>
-      {form.terc.length === 0 ? (
-        <p className="text-muted" style={{ fontSize: 13 }}>
-          Nenhum terceirizado.
-        </p>
-      ) : (
-        <table style={{ width: '100%' }}>
-          <thead>
-            <tr>
-              <th>Empresa</th>
-              <th>Cargo</th>
-              <th style={{ width: 70 }}>Qtd</th>
-              <th style={{ width: 90 }}>H. Normais</th>
-              <th style={{ width: 90 }}>H. Extras</th>
-              <th style={{ width: 36 }} />
-            </tr>
-          </thead>
-          <tbody>
-            {form.terc.map((t, i) => (
-              <tr key={i}>
-                <td>
-                  <Input
-                    value={t.empresa}
-                    onChange={(e) => updTerc(i, { empresa: e.target.value })}
-                  />
-                </td>
-                <td>
-                  <Input
-                    value={t.cargo}
-                    onChange={(e) => updTerc(i, { cargo: e.target.value })}
-                  />
-                </td>
-                <td>
-                  <Input
-                    type="number"
-                    value={String(t.qtd)}
-                    onChange={(e) =>
-                      updTerc(i, { qtd: Number(e.target.value) || 0 })
-                    }
-                  />
-                </td>
-                <td>
-                  <Input
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    value={String(t.horasNormais)}
-                    onChange={(e) =>
-                      updTerc(i, { horasNormais: Number(e.target.value) || 0 })
-                    }
-                  />
-                </td>
-                <td>
-                  <Input
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    value={String(t.horasExtras)}
-                    onChange={(e) =>
-                      updTerc(i, { horasExtras: Number(e.target.value) || 0 })
-                    }
-                  />
-                </td>
-                <td>
-                  <a
-                    className="action-link danger"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() =>
-                      patch({ terc: form.terc.filter((_, j) => j !== i) })
-                    }
-                  >
-                    ✕
-                  </a>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <DataTable
+        columns={tercColumns}
+        rows={form.terc}
+        rowKey={(row) => String(form.terc.indexOf(row))}
+        emptyMessage="Nenhum terceirizado."
+      />
     </>
   );
 }
@@ -844,13 +900,85 @@ function EquipamentosTab({
   form: RdoFormData;
   patch: PatchFn;
 }) {
-  function upd(i: number, p: Partial<EqpForm>) {
-    patch({
-      equipamentos: form.equipamentos.map((x, j) =>
-        j === i ? { ...x, ...p } : x,
-      ),
-    });
-  }
+  const upd = useCallback(
+    function upd(i: number, p: Partial<EqpForm>) {
+      patch({
+        equipamentos: form.equipamentos.map((x, j) =>
+          j === i ? { ...x, ...p } : x,
+        ),
+      });
+    },
+    [form.equipamentos, patch],
+  );
+
+  const columns = useMemo<Column<EqpForm>[]>(
+    () => [
+      {
+        header: 'Equipamento',
+        cell: (row) => (
+          <Input
+            list="rdo-eqp-list"
+            value={row.nome}
+            onChange={(ev) =>
+              upd(form.equipamentos.indexOf(row), { nome: ev.target.value })
+            }
+          />
+        ),
+      },
+      {
+        header: 'Qtd',
+        width: '90px',
+        cell: (row) => (
+          <Input
+            type="number"
+            value={String(row.qtd)}
+            onChange={(ev) =>
+              upd(form.equipamentos.indexOf(row), {
+                qtd: Number(ev.target.value) || 0,
+              })
+            }
+          />
+        ),
+      },
+      {
+        header: 'Horas',
+        width: '90px',
+        cell: (row) => (
+          <Input
+            type="number"
+            step="0.5"
+            value={String(row.horas)}
+            onChange={(ev) =>
+              upd(form.equipamentos.indexOf(row), {
+                horas: Number(ev.target.value) || 0,
+              })
+            }
+          />
+        ),
+      },
+      {
+        header: '',
+        width: '36px',
+        cell: (row) => (
+          <a
+            className="action-link danger"
+            style={{ cursor: 'pointer' }}
+            onClick={() =>
+              patch({
+                equipamentos: form.equipamentos.filter(
+                  (_, j) => j !== form.equipamentos.indexOf(row),
+                ),
+              })
+            }
+          >
+            ✕
+          </a>
+        ),
+      },
+    ],
+    [upd, form.equipamentos, patch],
+  );
+
   return (
     <>
       <datalist id="rdo-eqp-list">
@@ -881,67 +1009,12 @@ function EquipamentosTab({
           + Adicionar
         </Button>
       </div>
-      {form.equipamentos.length === 0 ? (
-        <p className="text-muted" style={{ fontSize: 13 }}>
-          Nenhum equipamento.
-        </p>
-      ) : (
-        <table style={{ width: '100%' }}>
-          <thead>
-            <tr>
-              <th>Equipamento</th>
-              <th style={{ width: 90 }}>Qtd</th>
-              <th style={{ width: 90 }}>Horas</th>
-              <th style={{ width: 36 }} />
-            </tr>
-          </thead>
-          <tbody>
-            {form.equipamentos.map((e, i) => (
-              <tr key={i}>
-                <td>
-                  <Input
-                    list="rdo-eqp-list"
-                    value={e.nome}
-                    onChange={(ev) => upd(i, { nome: ev.target.value })}
-                  />
-                </td>
-                <td>
-                  <Input
-                    type="number"
-                    value={String(e.qtd)}
-                    onChange={(ev) => upd(i, { qtd: Number(ev.target.value) || 0 })}
-                  />
-                </td>
-                <td>
-                  <Input
-                    type="number"
-                    step="0.5"
-                    value={String(e.horas)}
-                    onChange={(ev) =>
-                      upd(i, { horas: Number(ev.target.value) || 0 })
-                    }
-                  />
-                </td>
-                <td>
-                  <a
-                    className="action-link danger"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() =>
-                      patch({
-                        equipamentos: form.equipamentos.filter(
-                          (_, j) => j !== i,
-                        ),
-                      })
-                    }
-                  >
-                    ✕
-                  </a>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <DataTable
+        columns={columns}
+        rows={form.equipamentos}
+        rowKey={(row) => String(form.equipamentos.indexOf(row))}
+        emptyMessage="Nenhum equipamento."
+      />
     </>
   );
 }

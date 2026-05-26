@@ -10,6 +10,7 @@ import { NIVEL_COR, NIVEL_LABEL, NIVEL_ORDEM } from './organograma';
 import { useDeleteMembroOrg } from './queries';
 import OrganogramaArvore from './OrganogramaArvore';
 import MembroModal, { type RecursoOrg } from './MembroModal';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 
 type Vista = 'hierarquia' | 'lista';
 
@@ -75,6 +76,68 @@ export default function OrganogramaTab({ contract }: ContratoTabProps) {
     [membros, recursoMap],
   );
 
+  const columnsMembros = useMemo<Column<OrgMembro>[]>(
+    () => [
+      {
+        header: 'Nome',
+        cell: (m) => <strong>{nomeDe(m.recursoId)}</strong>,
+      },
+      {
+        header: 'Cargo',
+        cell: (m) => <>{profissaoDe(m.recursoId) || m.cargo || '—'}</>,
+      },
+      {
+        header: 'Nível',
+        cell: (m) => (
+          <Badge
+            style={{
+              background: `${NIVEL_COR[m.nivel]}22`,
+              color: NIVEL_COR[m.nivel],
+            }}
+          >
+            {NIVEL_LABEL[m.nivel]}
+          </Badge>
+        ),
+      },
+      {
+        header: 'Supervisor',
+        cell: (m) => {
+          const sup = m.supervisorId
+            ? membros.find((x) => x.id === m.supervisorId)
+            : undefined;
+          return <>{sup ? nomeDe(sup.recursoId) : '—'}</>;
+        },
+      },
+      {
+        header: 'Área',
+        cell: (m) => <>{m.area || '—'}</>,
+      },
+      {
+        header: 'Ações',
+        cell: (m) => (
+          <div className="actions-cell">
+            <a
+              className="action-link"
+              style={{ cursor: 'pointer' }}
+              onClick={(e) => { e.stopPropagation(); setModal({ membro: m }); }}
+            >
+              Editar
+            </a>
+            <a
+              className="action-link danger"
+              style={{ cursor: 'pointer' }}
+              onClick={(e) => { e.stopPropagation(); handleExcluir(m); }}
+            >
+              Excluir
+            </a>
+          </div>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [membros, recursoMap],
+  );
+
   return (
     <Card style={{ padding: 0, overflow: 'hidden' }}>
       <div
@@ -117,65 +180,12 @@ export default function OrganogramaTab({ contract }: ContratoTabProps) {
             Nenhum membro cadastrado. Clique em "+ Adicionar Membro".
           </p>
         ) : vista === 'lista' ? (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Cargo</th>
-                  <th>Nível</th>
-                  <th>Supervisor</th>
-                  <th>Área</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ordenados.map((m) => {
-                  const sup = m.supervisorId
-                    ? membros.find((x) => x.id === m.supervisorId)
-                    : undefined;
-                  return (
-                    <tr key={m.id}>
-                      <td>
-                        <strong>{nomeDe(m.recursoId)}</strong>
-                      </td>
-                      <td>{profissaoDe(m.recursoId) || m.cargo || '—'}</td>
-                      <td>
-                        <Badge
-                          style={{
-                            background: `${NIVEL_COR[m.nivel]}22`,
-                            color: NIVEL_COR[m.nivel],
-                          }}
-                        >
-                          {NIVEL_LABEL[m.nivel]}
-                        </Badge>
-                      </td>
-                      <td>{sup ? nomeDe(sup.recursoId) : '—'}</td>
-                      <td>{m.area || '—'}</td>
-                      <td>
-                        <div className="actions-cell">
-                          <a
-                            className="action-link"
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => setModal({ membro: m })}
-                          >
-                            Editar
-                          </a>
-                          <a
-                            className="action-link danger"
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => handleExcluir(m)}
-                          >
-                            Excluir
-                          </a>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={columnsMembros}
+            rows={ordenados}
+            rowKey={(m) => m.id}
+            emptyMessage="Nenhum membro cadastrado."
+          />
         ) : (
           <OrganogramaArvore
             membros={membros}

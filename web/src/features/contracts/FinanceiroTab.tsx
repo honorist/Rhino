@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { Badge } from '../../components/ui/badge';
@@ -25,6 +25,7 @@ import { buildBmInputFromSaida } from './bmFromSaida';
 import { exportBmPdf } from './exportBmPdf';
 import SaidaModal, { type SaidaEditavel } from './SaidaModal';
 import OrcamentoModal from './OrcamentoModal';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 
 const n = (v: unknown): number => Number(v) || 0;
 
@@ -121,42 +122,195 @@ export default function FinanceiroTab({ contract }: ContratoTabProps) {
   const pctOrcado = valor > 0 ? (totalOrcado / valor) * 100 : 0;
   const excedeu = totalOrcado > valor;
 
-  function handleDeleteSaida(id: string) {
-    if (!window.confirm('Excluir esta saída?')) return;
-    deletarSaida.mutate(id, {
-      onSuccess: () => toast.success('Saída excluída'),
-      onError: (e) => toast.error(e.message),
-    });
-  }
+  const handleDeleteSaida = useCallback(
+    (id: string) => {
+      if (!window.confirm('Excluir esta saída?')) return;
+      deletarSaida.mutate(id, {
+        onSuccess: () => toast.success('Saída excluída'),
+        onError: (e) => toast.error(e.message),
+      });
+    },
+    [deletarSaida],
+  );
 
   /** Gera o Boletim de Medição em PDF para a saída clicada. */
-  async function handleGerarBm(saidaId: string) {
-    const input = buildBmInputFromSaida({
-      contract,
-      saidaId,
-      saidas: (saidasQuery.data ?? []) as unknown as Array<Record<string, unknown>>,
-      notasFiscais: (nfsQuery.data ?? []) as unknown as Array<Record<string, unknown>>,
-    });
-    if (!input) {
-      toast.error('Saída não encontrada para gerar BM');
-      return;
-    }
-    try {
-      await exportBmPdf(input);
-    } catch (e) {
-      toast.error(`Erro ao gerar BM: ${(e as Error).message}`);
-    }
-  }
-  function handleDeleteItem(budgetId: string) {
-    if (!window.confirm('Excluir este item do orçamento?')) return;
-    deletarItem.mutate(
-      { contractId: contract.id, budgetId },
+  const handleGerarBm = useCallback(
+    async (saidaId: string) => {
+      const input = buildBmInputFromSaida({
+        contract,
+        saidaId,
+        saidas: (saidasQuery.data ?? []) as unknown as Array<Record<string, unknown>>,
+        notasFiscais: (nfsQuery.data ?? []) as unknown as Array<Record<string, unknown>>,
+      });
+      if (!input) {
+        toast.error('Saída não encontrada para gerar BM');
+        return;
+      }
+      try {
+        await exportBmPdf(input);
+      } catch (e) {
+        toast.error(`Erro ao gerar BM: ${(e as Error).message}`);
+      }
+    },
+    [contract, saidasQuery.data, nfsQuery.data],
+  );
+
+  const handleDeleteItem = useCallback(
+    (budgetId: string) => {
+      if (!window.confirm('Excluir este item do orçamento?')) return;
+      deletarItem.mutate(
+        { contractId: contract.id, budgetId },
+        {
+          onSuccess: () => toast.success('Item removido'),
+          onError: (e) => toast.error(e.message),
+        },
+      );
+    },
+    [deletarItem, contract.id],
+  );
+
+  const columnsBudget = useMemo<Column<BudgetItem>[]>(
+    () => [
       {
-        onSuccess: () => toast.success('Item removido'),
-        onError: (e) => toast.error(e.message),
+        header: 'Descrição',
+        cell: (b) => <strong>{b.description ?? '—'}</strong>,
       },
-    );
-  }
+      {
+        header: 'Categoria',
+        cell: (b) => tipoLabel(String(b.type ?? 'outros')),
+      },
+      {
+        header: 'Valor Orçado',
+        align: 'right',
+        cell: (b) => <span style={{ fontWeight: 600 }}>{formatBRL(n(b.value))}</span>,
+        sortable: true,
+        sortAccessor: (b) => n(b.value),
+      },
+      {
+        header: 'Ações',
+        hideable: false,
+        cell: (b) => (
+          <div
+            className="actions-cell"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <a
+              className="action-link"
+              style={{ cursor: 'pointer' }}
+              onClick={() => setModal({ tipo: 'orcamento', item: b })}
+            >
+              Editar
+            </a>
+            {b.id && (
+              <a
+                className="action-link danger"
+                style={{ cursor: 'pointer' }}
+                onClick={() => handleDeleteItem(b.id as string)}
+              >
+                Excluir
+              </a>
+            )}
+          </div>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [setModal, handleDeleteItem, tiposBaseQuery.data],
+  );
+
+  const columnsSaidas = useMemo<Column<LinhaSaida>[]>(
+    () => [
+      {
+        header: 'Data',
+        cell: (l) => formatDateBR(l.date),
+        sortable: true,
+        sortAccessor: (l) => l.date,
+      },
+      {
+        header: 'Descrição',
+        cell: (l) => <strong>{l.description}</strong>,
+      },
+      {
+        header: 'Tipo',
+        cell: (l) => (
+          <Badge
+            style={{
+              background: `${tipoCor(l.type)}22`,
+              color: tipoCor(l.type),
+            }}
+          >
+            {tipoLabel(l.type)}
+          </Badge>
+        ),
+      },
+      {
+        header: 'Origem',
+        cell: (l) => (
+          <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+            {l.origem}
+          </span>
+        ),
+      },
+      {
+        header: 'Valor',
+        align: 'right',
+        cell: (l) => <span style={{ fontWeight: 600 }}>{formatBRL(l.value)}</span>,
+        sortable: true,
+        sortAccessor: (l) => l.value,
+      },
+      {
+        header: 'Ações',
+        hideable: false,
+        cell: (l) => (
+          <div onClick={(e) => e.stopPropagation()}>
+            {l.kind === 'saida' ? (
+              <div className="actions-cell">
+                <a
+                  className="action-link"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() =>
+                    setModal({
+                      tipo: 'saida',
+                      saida: {
+                        id: l.id,
+                        description: l.description,
+                        type: l.type,
+                        value: l.value,
+                        date: l.date,
+                      },
+                    })
+                  }
+                >
+                  Editar
+                </a>
+                <a
+                  className="action-link btn-gerar-bm"
+                  style={{ cursor: 'pointer' }}
+                  title="Gerar Boletim de Medição (PDF)"
+                  onClick={() => void handleGerarBm(l.id)}
+                >
+                  BM
+                </a>
+                <a
+                  className="action-link danger"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => handleDeleteSaida(l.id)}
+                >
+                  Excluir
+                </a>
+              </div>
+            ) : (
+              <span className="text-muted" style={{ fontSize: 12 }}>
+                —
+              </span>
+            )}
+          </div>
+        ),
+      },
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [setModal, handleDeleteSaida, handleGerarBm, tiposBaseQuery.data],
+  );
 
   return (
     <>
@@ -274,52 +428,13 @@ export default function FinanceiroTab({ contract }: ContratoTabProps) {
         )}
 
         {(contract.budget ?? []).length > 0 && (
-          <div className="table-wrap" style={{ marginTop: 'var(--sp-md)' }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Descrição</th>
-                  <th>Categoria</th>
-                  <th style={{ textAlign: 'right' }}>Valor Orçado</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(contract.budget ?? []).map((b, i) => (
-                  <tr key={b.id ?? i}>
-                    <td>
-                      <strong>{b.description ?? '—'}</strong>
-                    </td>
-                    <td>{tipoLabel(String(b.type ?? 'outros'))}</td>
-                    <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                      {formatBRL(n(b.value))}
-                    </td>
-                    <td>
-                      <div className="actions-cell">
-                        <a
-                          className="action-link"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() =>
-                            setModal({ tipo: 'orcamento', item: b })
-                          }
-                        >
-                          Editar
-                        </a>
-                        {b.id && (
-                          <a
-                            className="action-link danger"
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => handleDeleteItem(b.id as string)}
-                          >
-                            Excluir
-                          </a>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ marginTop: 'var(--sp-md)' }}>
+            <DataTable<BudgetItem>
+              rows={contract.budget ?? []}
+              columns={columnsBudget}
+              rowKey={(b) => b.id ?? (b.description ?? '')}
+              emptyMessage="Nenhum item de orçamento."
+            />
           </div>
         )}
       </Card>
@@ -346,109 +461,34 @@ export default function FinanceiroTab({ contract }: ContratoTabProps) {
             Nenhuma saída registrada.
           </p>
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Descrição</th>
-                  <th>Tipo</th>
-                  <th>Origem</th>
-                  <th style={{ textAlign: 'right' }}>Valor</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {linhas.map((l) => (
-                  <tr key={`${l.kind}-${l.id}`}>
-                    <td>{formatDateBR(l.date)}</td>
-                    <td>
-                      <strong>{l.description}</strong>
-                    </td>
-                    <td>
-                      <Badge
-                        style={{
-                          background: `${tipoCor(l.type)}22`,
-                          color: tipoCor(l.type),
-                        }}
-                      >
-                        {tipoLabel(l.type)}
-                      </Badge>
-                    </td>
-                    <td style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-                      {l.origem}
-                    </td>
-                    <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                      {formatBRL(l.value)}
-                    </td>
-                    <td>
-                      {l.kind === 'saida' ? (
-                        <div className="actions-cell">
-                          <a
-                            className="action-link"
-                            style={{ cursor: 'pointer' }}
-                            onClick={() =>
-                              setModal({
-                                tipo: 'saida',
-                                saida: {
-                                  id: l.id,
-                                  description: l.description,
-                                  type: l.type,
-                                  value: l.value,
-                                  date: l.date,
-                                },
-                              })
-                            }
-                          >
-                            Editar
-                          </a>
-                          <a
-                            className="action-link btn-gerar-bm"
-                            style={{ cursor: 'pointer' }}
-                            title="Gerar Boletim de Medição (PDF)"
-                            onClick={() => void handleGerarBm(l.id)}
-                          >
-                            BM
-                          </a>
-                          <a
-                            className="action-link danger"
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => handleDeleteSaida(l.id)}
-                          >
-                            Excluir
-                          </a>
-                        </div>
-                      ) : (
-                        <span
-                          className="text-muted"
-                          style={{ fontSize: 12 }}
-                        >
-                          —
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr style={{ fontWeight: 700 }}>
-                  <td colSpan={4} style={{ padding: 'var(--sp-md)' }}>
-                    Total realizado
-                  </td>
-                  <td
-                    style={{
-                      textAlign: 'right',
-                      padding: 'var(--sp-md)',
-                      color: 'var(--color-danger)',
-                    }}
-                  >
-                    {formatBRL(data.totalRealizado)}
-                  </td>
-                  <td />
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+          <>
+            <DataTable<LinhaSaida>
+              rows={linhas}
+              columns={columnsSaidas}
+              rowKey={(l) => `${l.kind}-${l.id}`}
+              emptyMessage="Nenhuma saída registrada."
+              searchPlaceholder="Buscar saída..."
+              globalFilterFn={(l, q) =>
+                l.description.toLowerCase().includes(q) ||
+                l.origem.toLowerCase().includes(q) ||
+                tipoLabel(l.type).toLowerCase().includes(q)
+              }
+            />
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                padding: 'var(--sp-md) var(--sp-lg)',
+                fontWeight: 700,
+                borderTop: '1px solid var(--color-border)',
+              }}
+            >
+              <span>Total realizado</span>
+              <span style={{ color: 'var(--color-danger)' }}>
+                {formatBRL(data.totalRealizado)}
+              </span>
+            </div>
+          </>
         )}
       </Card>
 

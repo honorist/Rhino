@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, useCallback, useMemo, type ReactNode } from 'react';
 import PageHeader from '../../components/layout/PageHeader';
 import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
@@ -36,6 +36,7 @@ import {
   useRemoveFolhaItem,
   useUpdateFolhaItem,
 } from './queries';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 import type { FolhaItem, FolhaParcela, FolhaRow } from './types';
 
 const num = (v: unknown): number => Number(v) || 0;
@@ -149,7 +150,7 @@ export default function FolhaPagamento() {
     });
   }
 
-  function handleEstornar(row: FolhaRow, parcela: FolhaParcela) {
+  const handleEstornar = useCallback((row: FolhaRow, parcela: FolhaParcela) => {
     if (
       !window.confirm(
         'Estornar este pagamento? O lançamento no Caixa será removido.',
@@ -165,11 +166,137 @@ export default function FolhaPagamento() {
           toast.error(`Erro ao estornar: ${error.message}`),
       },
     );
-  }
+  }, [estornarParcela]);
 
   const acertosRow = acertosId
     ? folha.find((f) => f.id === acertosId) ?? null
     : null;
+
+  const columns = useMemo<Column<FolhaRow>[]>(
+    () => [
+      {
+        header: 'Colaborador',
+        cell: (f) => <strong>{f.recursoNome || '—'}</strong>,
+      },
+      {
+        header: 'Local de custo',
+        cell: (f) => nomeLocal(f, contracts),
+      },
+      {
+        header: 'Salário',
+        cell: (f) => formatBRL(num(f.salarioBase)),
+        align: 'right' as const,
+      },
+      {
+        header: 'Vale (40%)',
+        cell: (f) => {
+          const elegivel = f.elegivelVale && num(f.valorVale) > 0;
+          if (!elegivel) return <span className="text-muted">—</span>;
+          return (
+            <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+              {formatBRL(num(f.valorVale))}
+              <StatusBadge pago={f.valePago} />
+              {f.valePago ? (
+                <a
+                  className="action-link danger"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => handleEstornar(f, 'vale')}
+                >
+                  Estornar
+                </a>
+              ) : (
+                <a
+                  className="action-link"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setPagar({ row: f, parcela: 'vale' })}
+                >
+                  Pagar
+                </a>
+              )}
+            </span>
+          );
+        },
+      },
+      {
+        header: 'Proventos',
+        cell: (f) => {
+          const prov = somaItens(f.itens ?? [], 'provento');
+          return prov > 0 ? (
+            <span style={{ color: '#065F46' }}>+{formatBRL(prov)}</span>
+          ) : (
+            <span className="text-muted">—</span>
+          );
+        },
+        align: 'right' as const,
+      },
+      {
+        header: 'Descontos',
+        cell: (f) => {
+          const desc = somaItens(f.itens ?? [], 'desconto');
+          return desc > 0 ? (
+            <span style={{ color: '#991B1B' }}>−{formatBRL(desc)}</span>
+          ) : (
+            <span className="text-muted">—</span>
+          );
+        },
+        align: 'right' as const,
+      },
+      {
+        header: 'A pagar (5º dia útil)',
+        cell: (f) => (
+          <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+            {formatBRL(num(f.valorSaldo))}
+            <StatusBadge pago={f.saldoPago} />
+            {f.saldoPago ? (
+              <a
+                className="action-link danger"
+                style={{ cursor: 'pointer' }}
+                onClick={() => handleEstornar(f, 'saldo')}
+              >
+                Estornar
+              </a>
+            ) : (
+              <a
+                className="action-link"
+                style={{ cursor: 'pointer' }}
+                onClick={() => setPagar({ row: f, parcela: 'saldo' })}
+              >
+                Pagar
+              </a>
+            )}
+          </span>
+        ),
+      },
+      {
+        header: 'Líquido',
+        cell: (f) => {
+          const liquido = num(f.valorVale) + num(f.valorSaldo);
+          return (
+            <strong style={liquido < 0 ? { color: '#991B1B' } : undefined}>
+              {formatBRL(liquido)}
+            </strong>
+          );
+        },
+        align: 'right' as const,
+      },
+      {
+        header: 'Lançamentos',
+        cell: (f) => {
+          const itensCount = (f.itens ?? []).length;
+          return (
+            <a
+              className="action-link"
+              style={{ cursor: 'pointer' }}
+              onClick={() => setAcertosId(f.id)}
+            >
+              Lançamentos{itensCount ? ` (${itensCount})` : ''}
+            </a>
+          );
+        },
+      },
+    ],
+    [contracts, setPagar, handleEstornar, setAcertosId],
+  );
 
   return (
     <>
@@ -217,48 +344,12 @@ export default function FolhaPagamento() {
         </Card>
       ) : (
         <Card>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Colaborador</th>
-                  <th>Local de custo</th>
-                  <th>Salário</th>
-                  <th>Vale (40%)</th>
-                  <th>Proventos</th>
-                  <th>Descontos</th>
-                  <th>A pagar (5º dia útil)</th>
-                  <th>Líquido</th>
-                  <th>Lançamentos</th>
-                </tr>
-              </thead>
-              <tbody>
-                {folha.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={9}
-                      className="text-center text-muted"
-                      style={{ padding: 'var(--sp-xl)' }}
-                    >
-                      Folha de {competencia} ainda não gerada — clique em "Gerar
-                      folha do mês".
-                    </td>
-                  </tr>
-                ) : (
-                  folha.map((f) => (
-                    <FolhaTableRow
-                      key={f.id}
-                      row={f}
-                      local={nomeLocal(f, contracts)}
-                      onPagar={(parcela) => setPagar({ row: f, parcela })}
-                      onEstornar={(parcela) => handleEstornar(f, parcela)}
-                      onLancamentos={() => setAcertosId(f.id)}
-                    />
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            rows={folha}
+            columns={columns}
+            rowKey={(f) => f.id}
+            emptyMessage={`Folha de ${competencia} ainda não gerada — clique em "Gerar folha do mês".`}
+          />
         </Card>
       )}
 
@@ -278,106 +369,6 @@ export default function FolhaPagamento() {
         />
       )}
     </>
-  );
-}
-
-interface FolhaTableRowProps {
-  row: FolhaRow;
-  local: string;
-  onPagar: (parcela: FolhaParcela) => void;
-  onEstornar: (parcela: FolhaParcela) => void;
-  onLancamentos: () => void;
-}
-
-function FolhaTableRow({
-  row,
-  local,
-  onPagar,
-  onEstornar,
-  onLancamentos,
-}: FolhaTableRowProps) {
-  const elegivel = row.elegivelVale && num(row.valorVale) > 0;
-  const prov = somaItens(row.itens ?? [], 'provento');
-  const desc = somaItens(row.itens ?? [], 'desconto');
-  const liquido = num(row.valorVale) + num(row.valorSaldo);
-  const itensCount = (row.itens ?? []).length;
-
-  function acao(parcela: FolhaParcela, pago: boolean) {
-    return pago ? (
-      <a
-        className="action-link danger"
-        style={{ cursor: 'pointer' }}
-        onClick={() => onEstornar(parcela)}
-      >
-        Estornar
-      </a>
-    ) : (
-      <a
-        className="action-link"
-        style={{ cursor: 'pointer' }}
-        onClick={() => onPagar(parcela)}
-      >
-        Pagar
-      </a>
-    );
-  }
-
-  return (
-    <tr>
-      <td>
-        <strong>{row.recursoNome || '—'}</strong>
-      </td>
-      <td>{local}</td>
-      <td>{formatBRL(num(row.salarioBase))}</td>
-      <td>
-        {elegivel ? (
-          <span
-            style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}
-          >
-            {formatBRL(num(row.valorVale))}
-            <StatusBadge pago={row.valePago} />
-            {acao('vale', row.valePago)}
-          </span>
-        ) : (
-          <span className="text-muted">—</span>
-        )}
-      </td>
-      <td>
-        {prov > 0 ? (
-          <span style={{ color: '#065F46' }}>+{formatBRL(prov)}</span>
-        ) : (
-          <span className="text-muted">—</span>
-        )}
-      </td>
-      <td>
-        {desc > 0 ? (
-          <span style={{ color: '#991B1B' }}>−{formatBRL(desc)}</span>
-        ) : (
-          <span className="text-muted">—</span>
-        )}
-      </td>
-      <td>
-        <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
-          {formatBRL(num(row.valorSaldo))}
-          <StatusBadge pago={row.saldoPago} />
-          {acao('saldo', row.saldoPago)}
-        </span>
-      </td>
-      <td>
-        <strong style={liquido < 0 ? { color: '#991B1B' } : undefined}>
-          {formatBRL(liquido)}
-        </strong>
-      </td>
-      <td>
-        <a
-          className="action-link"
-          style={{ cursor: 'pointer' }}
-          onClick={onLancamentos}
-        >
-          Lançamentos{itensCount ? ` (${itensCount})` : ''}
-        </a>
-      </td>
-    </tr>
   );
 }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import { Badge } from '../../components/ui/badge';
@@ -21,6 +21,7 @@ import { formatDateBR } from '../../lib/formatDate';
 import type { ContratoTabProps } from './ContratoDetail';
 import type { Aditivo } from './types';
 import { useCreateAditivo, useDeleteAditivo, useUpdateAditivo } from './queries';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 
 const n = (v: unknown): number => Number(v) || 0;
 const TIPO_LABEL: Record<string, string> = {
@@ -185,7 +186,7 @@ export default function AditivosTab({ contract }: ContratoTabProps) {
   const totalValor = aditivos.reduce((s, a) => s + n(a.valorDelta), 0);
   const totalDias = aditivos.reduce((s, a) => s + n(a.diasDelta), 0);
 
-  function handleExcluir(a: Aditivo) {
+  const handleExcluir = useCallback((a: Aditivo) => {
     if (!window.confirm('Excluir este aditivo?')) return;
     excluir.mutate(
       { contractId: contract.id, itemId: a.id },
@@ -194,7 +195,44 @@ export default function AditivosTab({ contract }: ContratoTabProps) {
         onError: (e) => toast.error(e.message),
       },
     );
-  }
+  }, [excluir, contract.id]);
+
+  const aditivoColumns = useMemo((): Column<Aditivo>[] => [
+    { id: 'numero', header: 'Nº', cell: (a) => a.numero || '—' },
+    { id: 'tipo', header: 'Tipo', cell: (a) => TIPO_LABEL[a.tipo ?? ''] ?? a.tipo },
+    { id: 'descricao', header: 'Descrição', cell: (a) => a.descricao },
+    {
+      id: 'valor', header: 'Valor Δ', align: 'right', sortable: true,
+      sortAccessor: (a) => n(a.valorDelta),
+      cell: (a) => {
+        const v = n(a.valorDelta);
+        return (
+          <span style={{ fontWeight: 700, color: v >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+            {v >= 0 ? '+' : ''}{formatBRL(v)}
+          </span>
+        );
+      },
+    },
+    { id: 'prazo', header: 'Prazo Δ', cell: (a) => n(a.diasDelta) ? `${n(a.diasDelta)}d` : '—' },
+    { id: 'data', header: 'Data', sortable: true, sortAccessor: (a) => a.data ?? '', cell: (a) => formatDateBR(a.data) },
+    {
+      id: 'status', header: 'Status',
+      cell: (a) => (
+        <Badge style={{ background: a.aprovado ? '#D1FAE5' : '#FEF3C7', color: a.aprovado ? '#065F46' : '#92400E' }}>
+          {a.aprovado ? 'Aprovado' : 'Pendente'}
+        </Badge>
+      ),
+    },
+    {
+      id: 'acoes', header: '', hideable: false,
+      cell: (a) => (
+        <div className="actions-cell" onClick={(e) => e.stopPropagation()}>
+          <a className="action-link" style={{ cursor: 'pointer' }} onClick={() => setModal({ aditivo: a })}>Editar</a>
+          <a className="action-link danger" style={{ cursor: 'pointer' }} onClick={() => handleExcluir(a)}>Excluir</a>
+        </div>
+      ),
+    },
+  ] as Column<Aditivo>[], [handleExcluir, setModal]);
 
   return (
     <Card style={{ padding: 0, overflow: 'hidden' }}>
@@ -211,94 +249,17 @@ export default function AditivosTab({ contract }: ContratoTabProps) {
           + Novo Aditivo
         </Button>
       </div>
-      {aditivos.length === 0 ? (
-        <p
-          className="text-muted"
-          style={{ padding: 'var(--sp-xl)', textAlign: 'center' }}
-        >
-          Nenhum aditivo cadastrado.
-        </p>
-      ) : (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Nº</th>
-                <th>Tipo</th>
-                <th>Descrição</th>
-                <th style={{ textAlign: 'right' }}>Valor Δ</th>
-                <th>Prazo Δ</th>
-                <th>Data</th>
-                <th>Status</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {aditivos.map((a) => (
-                <tr key={a.id}>
-                  <td>{a.numero || '—'}</td>
-                  <td>{TIPO_LABEL[a.tipo ?? ''] ?? a.tipo}</td>
-                  <td>{a.descricao}</td>
-                  <td
-                    style={{
-                      textAlign: 'right',
-                      fontWeight: 700,
-                      color:
-                        n(a.valorDelta) >= 0
-                          ? 'var(--color-success)'
-                          : 'var(--color-danger)',
-                    }}
-                  >
-                    {n(a.valorDelta) >= 0 ? '+' : ''}
-                    {formatBRL(n(a.valorDelta))}
-                  </td>
-                  <td>{n(a.diasDelta) ? `${n(a.diasDelta)}d` : '—'}</td>
-                  <td>{formatDateBR(a.data)}</td>
-                  <td>
-                    <Badge
-                      style={{
-                        background: a.aprovado ? '#D1FAE5' : '#FEF3C7',
-                        color: a.aprovado ? '#065F46' : '#92400E',
-                      }}
-                    >
-                      {a.aprovado ? 'Aprovado' : 'Pendente'}
-                    </Badge>
-                  </td>
-                  <td>
-                    <div className="actions-cell">
-                      <a
-                        className="action-link"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => setModal({ aditivo: a })}
-                      >
-                        Editar
-                      </a>
-                      <a
-                        className="action-link danger"
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => handleExcluir(a)}
-                      >
-                        Excluir
-                      </a>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr style={{ fontWeight: 700 }}>
-                <td colSpan={3} style={{ padding: 'var(--sp-md)' }}>
-                  Total aditado
-                </td>
-                <td style={{ textAlign: 'right', padding: 'var(--sp-md)' }}>
-                  {formatBRL(totalValor)}
-                </td>
-                <td colSpan={4} style={{ padding: 'var(--sp-md)' }}>
-                  {totalDias !== 0 ? `${totalDias > 0 ? '+' : ''}${totalDias} dias` : ''}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
+      <DataTable
+        rows={aditivos}
+        columns={aditivoColumns}
+        rowKey={(a) => a.id}
+        emptyMessage="Nenhum aditivo cadastrado."
+      />
+      {aditivos.length > 0 && (
+        <div style={{ padding: 'var(--sp-md) var(--sp-lg)', fontWeight: 700, borderTop: '1px solid var(--color-border)', display: 'flex', gap: 24 }}>
+          <span>Total aditado</span>
+          <span>{formatBRL(totalValor)}</span>
+          {totalDias !== 0 && <span>{totalDias > 0 ? '+' : ''}{totalDias} dias</span>}
         </div>
       )}
 

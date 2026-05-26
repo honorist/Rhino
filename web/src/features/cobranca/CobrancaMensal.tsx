@@ -9,7 +9,7 @@ import {
 } from '../../components/ui/dialog';
 import { formatBRL } from '../../lib/format';
 import { useAiUsage, useCobrancaHistorico, useCobrancaProjecao } from './queries';
-import type { AiUsageStats, CobrancaMes } from './types';
+import type { AiUsageStats, CobrancaDetalhe, CobrancaMes } from './types';
 
 /** Taxa fixa mensal cobrada do app, em BRL. */
 const TAXA_FIXA = 500;
@@ -35,7 +35,7 @@ function plural(n: number, singular: string, pluralForm: string): string {
 }
 
 /**
- * Cobrança do app — valor mensal a pagar, visível só para administradores.
+ * Cobrança do app â€” valor mensal a pagar, visível só para administradores.
  * Migração de js/views/CobrancaMensal.js.
  */
 export default function CobrancaMensal() {
@@ -66,7 +66,7 @@ export default function CobrancaMensal() {
       ]);
     });
     const csv = linhas.map((l) => l.join(';')).join('\n');
-    const blob = new Blob(['﻿' + csv], {
+    const blob = new Blob(['ï»¿' + csv], {
       type: 'text/csv;charset=utf-8;',
     });
     const url = URL.createObjectURL(blob);
@@ -117,7 +117,7 @@ export default function CobrancaMensal() {
     <>
       <PageHeader
         title="Cobrança do app"
-        subtitle="Valor a pagar mensalmente — apenas administradores enxergam esta tela"
+        subtitle="Valor a pagar mensalmente â€” apenas administradores enxergam esta tela"
       />
 
       {historicoQuery.isLoading ? (
@@ -130,7 +130,7 @@ export default function CobrancaMensal() {
         </Card>
       ) : (
         <>
-          {/* KPIs: projeção, último fechado, acumulado 12m */}
+          {/* KPIs: projeção, Ãºltimo fechado, acumulado 12m */}
           <div
             style={{
               display: 'grid',
@@ -159,7 +159,7 @@ export default function CobrancaMensal() {
                 Projeção ·{' '}
                 {projecao
                   ? `${mesNome(projecao.mes)}/${projecao.ano}`
-                  : '—'}
+                  : 'â€”'}
               </div>
               {projecao ? (
                 <>
@@ -192,7 +192,7 @@ export default function CobrancaMensal() {
                       fontStyle: 'italic',
                     }}
                   >
-                    ⚠ Valor parcial — atualizado em tempo real até o fim do mês
+                    âš  Valor parcial â€” atualizado em tempo real até o fim do mês
                   </div>
                 </>
               ) : (
@@ -209,7 +209,7 @@ export default function CobrancaMensal() {
                   fontWeight: 700,
                 }}
               >
-                Último mês fechado
+                Ãšltimo mês fechado
               </div>
               {ultimoFechado ? (
                 <>
@@ -248,7 +248,7 @@ export default function CobrancaMensal() {
               <div
                 style={{ fontSize: 13, color: 'var(--color-text-muted)' }}
               >
-                soma dos últimos meses
+                soma dos Ãºltimos meses
               </div>
             </Card>
           </div>
@@ -283,7 +283,7 @@ export default function CobrancaMensal() {
 
             <Card style={{ padding: 'var(--sp-md)' }}>
               <h3 style={{ margin: '0 0 var(--sp-sm)', fontSize: 15 }}>
-                📊 Tabela de preços
+                ðŸ“Š Tabela de preços
               </h3>
               <div style={{ fontSize: 14, lineHeight: 1.6 }}>
                 <PrecoLinha
@@ -363,7 +363,7 @@ function AiUsageCard({ stats }: { stats: AiUsageStats }) {
         }}
       >
         <span style={{ fontSize: 15, fontWeight: 700, color: '#5B21B6' }}>
-          IA — Uso Claude API
+          IA â€” Uso Claude API
         </span>
         <span
           style={{
@@ -454,6 +454,31 @@ function AiTile({
   );
 }
 
+/** Colunas da tabela de contratos cobrados dentro do DetalheModal.
+ *  Definidas fora do componente pois a tabela é read-only e não tem callbacks. */
+const DETALHE_COLUMNS: Column<CobrancaDetalhe>[] = [
+  {
+    id: 'contrato',
+    header: 'Contrato',
+    cell: (d) => <strong>{d.name}</strong>,
+  },
+  {
+    id: 'diasAtivos',
+    header: 'Dias ativos no mês',
+    align: 'right',
+    cell: (d) => d.diasAtivos,
+  },
+  {
+    id: 'statusAtual',
+    header: 'Status atual',
+    cell: (d) => (
+      <span style={{ color: 'var(--color-text-muted)' }}>
+        {d.statusAtual || '—'}
+      </span>
+    ),
+  },
+];
+
 function DetalheModal({
   mes,
   onClose,
@@ -514,38 +539,12 @@ function DetalheModal({
       <h3 style={{ margin: '0 0 var(--sp-sm)', fontSize: 14 }}>
         Contratos cobrados ({det.length})
       </h3>
-      {det.length === 0 ? (
-        <p className="text-muted">
-          Nenhum contrato com 2+ dias ativos neste mês.
-        </p>
-      ) : (
-        <table style={{ width: '100%', fontSize: 13 }}>
-          <thead>
-            <tr style={{ background: 'var(--color-surface-2)' }}>
-              <th style={{ padding: 6, textAlign: 'left' }}>Contrato</th>
-              <th style={{ padding: 6, textAlign: 'right' }}>
-                Dias ativos no mês
-              </th>
-              <th style={{ padding: 6, textAlign: 'left' }}>Status atual</th>
-            </tr>
-          </thead>
-          <tbody>
-            {det.map((d, index) => (
-              <tr key={`${d.name}-${index}`}>
-                <td style={{ padding: 6 }}>
-                  <strong>{d.name}</strong>
-                </td>
-                <td style={{ padding: 6, textAlign: 'right' }}>
-                  {d.diasAtivos}
-                </td>
-                <td style={{ padding: 6, color: 'var(--color-text-muted)' }}>
-                  {d.statusAtual || '—'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <DataTable
+        columns={DETALHE_COLUMNS}
+        rows={det}
+        rowKey={(d) => d.name}
+        emptyMessage="Nenhum contrato com 2+ dias ativos neste mês."
+      />
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={onClose}>

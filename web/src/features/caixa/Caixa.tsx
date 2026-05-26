@@ -1,9 +1,10 @@
-import { useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import PageHeader from '../../components/layout/PageHeader';
 import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 import {
   Dialog,
   DialogContent,
@@ -37,7 +38,7 @@ import {
   useRemoveCaixa,
   useUpdateCaixa,
 } from '../resources';
-import { useImportarOfx, type OfxResultado } from './queries';
+import { useImportarOfx, type OfxResultado, type OfxTransacao } from './queries';
 
 const num = (v: unknown): number => Number(v) || 0;
 const MS_DIA = 86_400_000;
@@ -284,25 +285,32 @@ export default function Caixa() {
     filters.type !== 'todos' ||
     Boolean(filters.contractId);
 
-  function virtKey(o: VirtualOccurrence): string {
-    return `${o.sourceId}|${o.date}`;
-  }
+  const virtKey = useCallback(
+    (o: VirtualOccurrence): string => `${o.sourceId}|${o.date}`,
+    [],
+  );
 
-  function toggleVirt(o: VirtualOccurrence) {
-    setVirtSelecionadas((prev) => {
-      const next = new Set(prev);
-      const k = virtKey(o);
-      if (next.has(k)) next.delete(k);
-      else next.add(k);
-      return next;
-    });
-  }
+  const toggleVirt = useCallback(
+    (o: VirtualOccurrence) => {
+      setVirtSelecionadas((prev) => {
+        const next = new Set(prev);
+        const k = virtKey(o);
+        if (next.has(k)) next.delete(k);
+        else next.add(k);
+        return next;
+      });
+    },
+    [virtKey],
+  );
 
-  function toggleTodas(marcar: boolean) {
-    setVirtSelecionadas(
-      marcar ? new Set(virtualOcorrencias.map(virtKey)) : new Set(),
-    );
-  }
+  const toggleTodas = useCallback(
+    (marcar: boolean) => {
+      setVirtSelecionadas(
+        marcar ? new Set(virtualOcorrencias.map(virtKey)) : new Set(),
+      );
+    },
+    [virtualOcorrencias, virtKey],
+  );
 
   async function materializarSelecionadas() {
     const selecionadas = virtualOcorrencias.filter((o) =>
@@ -340,13 +348,28 @@ export default function Caixa() {
     if (fail > 0) toast.error(_msg); else toast.success(_msg);
   }
 
-  function handleDelete(id: string) {
-    if (!window.confirm('Excluir este lançamento?')) return;
-    removeCaixa.mutate(id, {
-      onSuccess: () => toast.success('Lançamento excluído'),
-      onError: (error) => toast.error(error.message),
-    });
-  }
+  const handleMaterializarIndividual = useCallback(
+    (o: VirtualOccurrence) =>
+      setMaterializePrefill({
+        sourceId: o.sourceId,
+        date: o.date,
+        value: o.value,
+        description: o.sourceDescription,
+        category: o.sourceTypeKey ?? '',
+      }),
+    [],
+  );
+
+  const handleDelete = useCallback(
+    (id: string) => {
+      if (!window.confirm('Excluir este lançamento?')) return;
+      removeCaixa.mutate(id, {
+        onSuccess: () => toast.success('Lançamento excluído'),
+        onError: (error) => toast.error(error.message),
+      });
+    },
+    [removeCaixa],
+  );
 
   function handleOfxFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -363,6 +386,148 @@ export default function Caixa() {
   const detailEntry = detailId
     ? caixa.find((e) => e.id === detailId) ?? null
     : null;
+
+  const mesesRows: MesResumoRow[] = mesesAgrupados.map(([ym, dados]) => ({
+    ym,
+    ...dados,
+  }));
+
+  const lancamentosRows = filtered
+    .slice()
+    .sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+
+  const lancamentoColunas = useMemo<Column<CaixaEntry>[]>(
+    () => [
+      {
+        header: 'Data',
+        sortable: true,
+        sortAccessor: (e) => e.date,
+        cell: (e) => formatDate(e.date),
+      },
+      {
+        header: 'Descrição',
+        cell: (e) => <strong>{e.description}</strong>,
+      },
+      {
+        header: 'Tipo',
+        cell: (e) => (
+          <Badge variant={e.type === 'entrada' ? 'success' : 'destructive'}>
+            {e.type}
+          </Badge>
+        ),
+      },
+      {
+        header: 'Projeto/Contrato',
+        cell: (e) => {
+          const contrato = contractById(e.contractId);
+          if (contrato) {
+            return (
+              <div onClick={(ev) => ev.stopPropagation()}>
+                <Link
+                  to={`/contratos/${contrato.id}`}
+                  style={{
+                    color: 'var(--color-primary)',
+                    textDecoration: 'none',
+                    fontWeight: 500,
+                  }}
+                >
+                  {String(contrato.name ?? '')}
+                </Link>
+                <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+                  {String(contrato.client ?? '')}
+                </div>
+              </div>
+            );
+          }
+          if (e.baseItemId) {
+            return <span style={{ color: 'var(--color-info)' }}>BASE</span>;
+          }
+          return <span style={{ color: 'var(--color-text-muted)' }}>—</span>;
+        },
+      },
+      {
+        header: 'Categoria',
+        cell: (e) => {
+          if (e.contaPagarId || e.category === 'conta_pagar') {
+            return (
+              <CategoriaTag
+                texto="Conta a Pagar"
+                cor="var(--color-danger)"
+                bg="rgba(229,62,62,.1)"
+              />
+            );
+          }
+          if (e.nfId || e.category === 'nota_fiscal') {
+            return (
+              <CategoriaTag
+                texto="Conta a Receber"
+                cor="var(--color-success)"
+                bg="rgba(56,161,105,.1)"
+              />
+            );
+          }
+          if (e.baseItemId) {
+            return (
+              <CategoriaTag texto="BASE" cor="var(--color-info)" bg="rgba(49,130,206,.1)" />
+            );
+          }
+          return (
+            <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+              Manual
+            </span>
+          );
+        },
+      },
+      {
+        header: 'Valor',
+        align: 'right',
+        sortable: true,
+        sortAccessor: (e) => num(e.value),
+        cell: (e) => (
+          <span
+            style={{
+              fontWeight: 700,
+              color:
+                e.type === 'entrada'
+                  ? 'var(--color-success)'
+                  : 'var(--color-danger)',
+            }}
+          >
+            {e.type === 'entrada' ? '+' : '-'}
+            {formatBRL(num(e.value))}
+          </span>
+        ),
+      },
+      {
+        header: 'Ações',
+        hideable: false,
+        cell: (e) => (
+          <div
+            style={{ display: 'flex', gap: 8 }}
+            onClick={(ev) => ev.stopPropagation()}
+          >
+            <a
+              className="action-link"
+              style={{ cursor: 'pointer' }}
+              onClick={() => setEntryModal({ entry: e })}
+            >
+              Editar
+            </a>
+            <a
+              className="action-link danger"
+              style={{ cursor: 'pointer' }}
+              onClick={() => handleDelete(e.id)}
+            >
+              Excluir
+            </a>
+          </div>
+        ),
+      },
+    ],
+    [contratos, handleDelete],
+  );
 
   return (
     <>
@@ -440,15 +605,7 @@ export default function Caixa() {
               onToggleVirt={toggleVirt}
               onToggleTodas={toggleTodas}
               onMaterializarBulk={materializarSelecionadas}
-              onMaterializarIndividual={(o) =>
-                setMaterializePrefill({
-                  sourceId: o.sourceId,
-                  date: o.date,
-                  value: o.value,
-                  description: o.sourceDescription,
-                  category: o.sourceTypeKey ?? '',
-                })
-              }
+              onMaterializarIndividual={handleMaterializarIndividual}
             />
           )}
 
@@ -463,147 +620,55 @@ export default function Caixa() {
 
           {!filters.mes && mesesAgrupados.length > 1 && (
             <Card style={{ marginBottom: 48 }}>
-              <h3 className="text-[15px] font-semibold tracking-tight px-5 pt-5 pb-4">Resumo por Mês</h3>
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Mês</th>
-                      <th style={{ textAlign: 'right' }}>Entradas</th>
-                      <th style={{ textAlign: 'right' }}>Saídas</th>
-                      <th style={{ textAlign: 'right' }}>Saldo</th>
-                      <th style={{ textAlign: 'right' }}>Lançamentos</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mesesAgrupados.map(([ym, dados]) => {
-                      const saldoMes = dados.entradas - dados.saidas;
-                      return (
-                        <tr
-                          key={ym}
-                          style={{ cursor: 'pointer' }}
-                          onClick={() =>
-                            setFilters((f) => ({ ...f, mes: ym }))
-                          }
-                        >
-                          <td>
-                            <strong>{formatarMes(ym)}</strong>
-                          </td>
-                          <td
-                            style={{
-                              textAlign: 'right',
-                              color: 'var(--color-success)',
-                              fontWeight: 600,
-                            }}
-                          >
-                            +{formatBRL(dados.entradas)}
-                          </td>
-                          <td
-                            style={{
-                              textAlign: 'right',
-                              color: 'var(--color-danger)',
-                              fontWeight: 600,
-                            }}
-                          >
-                            -{formatBRL(dados.saidas)}
-                          </td>
-                          <td
-                            style={{
-                              textAlign: 'right',
-                              fontWeight: 700,
-                              color:
-                                saldoMes >= 0
-                                  ? 'var(--color-success)'
-                                  : 'var(--color-danger)',
-                            }}
-                          >
-                            {formatBRL(saldoMes)}
-                          </td>
-                          <td style={{ textAlign: 'right' }}>{dados.count}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <h3 className="text-[15px] font-semibold tracking-tight px-5 pt-5 pb-4">
+                Resumo por Mês
+              </h3>
+              <DataTable
+                columns={MESES_COLUNAS}
+                rows={mesesRows}
+                rowKey={(row) => row.ym}
+                onRowClick={(row) => setFilters((f) => ({ ...f, mes: row.ym }))}
+                emptyMessage="Nenhum mês encontrado"
+              />
             </Card>
           )}
 
           <Card>
-              <h3 className="text-[15px] font-semibold tracking-tight px-5 pt-5 pb-4">
-                Lançamentos{' '}
-                {filters.mes ? `· ${formatarMes(filters.mes)}` : ''}
-              </h3>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Data</th>
-                    <th>Descrição</th>
-                    <th>Tipo</th>
-                    <th>Projeto/Contrato</th>
-                    <th>Categoria</th>
-                    <th style={{ textAlign: 'right' }}>Valor</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={7}
-                        className="text-center text-muted"
-                        style={{ padding: 'var(--sp-xl)' }}
-                      >
-                        Nenhum lançamento encontrado
-                      </td>
-                    </tr>
-                  ) : (
-                    filtered
-                      .slice()
-                      .sort(
-                        (a, b) =>
-                          new Date(b.date).getTime() -
-                          new Date(a.date).getTime(),
-                      )
-                      .map((e) => (
-                        <LancamentoRow
-                          key={e.id}
-                          entry={e}
-                          contrato={contractById(e.contractId)}
-                          onDetalhe={() => setDetailId(e.id)}
-                          onEditar={() => setEntryModal({ entry: e })}
-                          onExcluir={() => handleDelete(e.id)}
-                        />
-                      ))
-                  )}
-                </tbody>
-                {filtered.length > 0 && (
-                  <tfoot>
-                    <tr
-                      style={{ background: 'var(--color-bg)', fontWeight: 700 }}
-                    >
-                      <td colSpan={5} style={{ padding: 'var(--sp-md)' }}>
-                        Total
-                      </td>
-                      <td
-                        style={{
-                          textAlign: 'right',
-                          padding: 'var(--sp-md)',
-                          color:
-                            saldo >= 0
-                              ? 'var(--color-success)'
-                              : 'var(--color-danger)',
-                        }}
-                      >
-                        {formatBRL(saldo)}
-                      </td>
-                      <td />
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
-            </div>
+            <h3 className="text-[15px] font-semibold tracking-tight px-5 pt-5 pb-4">
+              Lançamentos{' '}
+              {filters.mes ? `· ${formatarMes(filters.mes)}` : ''}
+            </h3>
+            <DataTable
+              columns={lancamentoColunas}
+              rows={lancamentosRows}
+              rowKey={(e) => e.id}
+              onRowClick={(e) => setDetailId(e.id)}
+              emptyMessage="Nenhum lançamento encontrado"
+            />
+            {lancamentosRows.length > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  background: 'var(--color-bg)',
+                  fontWeight: 700,
+                  padding: 'var(--sp-md)',
+                  borderTop: '1px solid var(--color-border)',
+                }}
+              >
+                <span>Total</span>
+                <span
+                  style={{
+                    color:
+                      saldo >= 0
+                        ? 'var(--color-success)'
+                        : 'var(--color-danger)',
+                  }}
+                >
+                  {formatBRL(saldo)}
+                </span>
+              </div>
+            )}
           </Card>
         </>
       )}
@@ -712,6 +777,114 @@ function FuturosCard({
     virtSelecionadas.has(virtKey(o)),
   ).length;
 
+  const futurosColunas = useMemo<Column<FutureItem>[]>(
+    () => [
+      {
+        id: 'checkbox',
+        header: '',
+        width: '36px',
+        hideable: false,
+        cell: (item) =>
+          item.virtual ? (
+            <input
+              type="checkbox"
+              checked={virtSelecionadas.has(virtKey(item.virtual))}
+              onChange={() => item.virtual && onToggleVirt(item.virtual)}
+            />
+          ) : null,
+      },
+      {
+        header: 'Data',
+        cell: (item) => (
+          <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
+            {item.date && item.date !== '9999-99-99'
+              ? formatDate(item.date)
+              : '—'}
+          </span>
+        ),
+      },
+      {
+        header: 'Descrição',
+        cell: (item) => (
+          <span style={{ color: 'var(--color-text-muted)' }}>
+            {item.desc}
+            {item.virtual && (
+              <span
+                style={{ marginLeft: 8, fontSize: 11, color: 'var(--color-info)' }}
+              >
+                • previsto
+              </span>
+            )}
+          </span>
+        ),
+      },
+      {
+        header: 'Tipo',
+        cell: (item) => (
+          <Badge
+            style={{
+              background:
+                item.tipo === 'entrada'
+                  ? 'rgba(56,161,105,.12)'
+                  : 'rgba(229,62,62,.12)',
+              color:
+                item.tipo === 'entrada'
+                  ? 'var(--color-success)'
+                  : 'var(--color-danger)',
+              border: `1px dashed ${
+                item.tipo === 'entrada'
+                  ? 'var(--color-success)'
+                  : 'var(--color-danger)'
+              }`,
+            }}
+          >
+            {item.tipo}
+          </Badge>
+        ),
+      },
+      {
+        header: 'Origem',
+        cell: (item) => (
+          <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+            {item.origem}
+            {item.virtual && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                style={{ marginLeft: 8, fontSize: 11, padding: '3px 8px' }}
+                onClick={() =>
+                  item.virtual && onMaterializarIndividual(item.virtual)
+                }
+              >
+                ajustar e materializar
+              </Button>
+            )}
+          </span>
+        ),
+      },
+      {
+        header: 'Valor',
+        align: 'right',
+        cell: (item) => (
+          <span
+            style={{
+              fontWeight: 700,
+              color:
+                item.tipo === 'entrada'
+                  ? 'var(--color-success)'
+                  : 'var(--color-danger)',
+            }}
+          >
+            {item.tipo === 'entrada' ? '+' : '-'}
+            {formatBRL(item.valor)}
+          </span>
+        ),
+      },
+    ],
+    [virtSelecionadas, virtKey, onToggleVirt, onMaterializarIndividual],
+  );
+
   return (
     <Card
       style={{
@@ -719,159 +892,66 @@ function FuturosCard({
         border: '1px dashed var(--color-border)',
       }}
     >
-      <div className="flex justify-between items-center px-5 pt-5 pb-4" style={{ background: 'transparent' }}>
-        <h3 className="text-[15px] font-semibold tracking-tight" style={{ color: 'var(--color-text-muted)' }}>
+      <div
+        className="flex justify-between items-center px-5 pt-5 pb-4"
+        style={{ background: 'transparent' }}
+      >
+        <h3
+          className="text-[15px] font-semibold tracking-tight"
+          style={{ color: 'var(--color-text-muted)' }}
+        >
           ⏳ Lançamentos Futuros
         </h3>
         <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
           +{formatBRL(totalEntradas)} entradas · -{formatBRL(totalSaidas)} saídas
         </div>
       </div>
-      <div className="table-wrap">
-        {virtuais.length > 0 && (
-          <div
+      {virtuais.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--sp-md)',
+            padding: 'var(--sp-sm) var(--sp-md)',
+          }}
+        >
+          <label
             style={{
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 600,
               display: 'flex',
               alignItems: 'center',
-              gap: 'var(--sp-md)',
-              padding: 'var(--sp-sm) var(--sp-md)',
+              gap: 6,
             }}
           >
-            <label
-              style={{
-                cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={todasMarcadas}
-                onChange={(event) => onToggleTodas(event.target.checked)}
-              />
-              Selecionar todas as ocorrências previstas ({virtuais.length})
-            </label>
-            <Button
-              size="sm"
-              onClick={onMaterializarBulk}
-              disabled={qtdMarcadas === 0}
-              style={{ marginLeft: 'auto' }}
-            >
-              {qtdMarcadas === 0
-                ? 'Materializar selecionadas'
-                : `Materializar ${qtdMarcadas} selecionada${
-                    qtdMarcadas !== 1 ? 's' : ''
-                  }`}
-            </Button>
-          </div>
-        )}
-        <table>
-          <thead>
-            <tr>
-              <th style={{ width: 36 }} />
-              <th>Data</th>
-              <th>Descrição</th>
-              <th>Tipo</th>
-              <th>Origem</th>
-              <th style={{ textAlign: 'right' }}>Valor</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.key} style={{ opacity: 0.8 }}>
-                <td>
-                  {item.virtual && (
-                    <input
-                      type="checkbox"
-                      checked={virtSelecionadas.has(virtKey(item.virtual))}
-                      onChange={() =>
-                        item.virtual && onToggleVirt(item.virtual)
-                      }
-                    />
-                  )}
-                </td>
-                <td
-                  style={{
-                    color: 'var(--color-text-muted)',
-                    fontStyle: 'italic',
-                  }}
-                >
-                  {item.date && item.date !== '9999-99-99'
-                    ? formatDate(item.date)
-                    : '—'}
-                </td>
-                <td style={{ color: 'var(--color-text-muted)' }}>
-                  {item.desc}
-                  {item.virtual && (
-                    <span
-                      style={{
-                        marginLeft: 8,
-                        fontSize: 11,
-                        color: 'var(--color-info)',
-                      }}
-                    >
-                      • previsto
-                    </span>
-                  )}
-                </td>
-                <td>
-                  <Badge
-                    style={{
-                      background:
-                        item.tipo === 'entrada'
-                          ? 'rgba(56,161,105,.12)'
-                          : 'rgba(229,62,62,.12)',
-                      color:
-                        item.tipo === 'entrada'
-                          ? 'var(--color-success)'
-                          : 'var(--color-danger)',
-                      border: `1px dashed ${
-                        item.tipo === 'entrada'
-                          ? 'var(--color-success)'
-                          : 'var(--color-danger)'
-                      }`,
-                    }}
-                  >
-                    {item.tipo}
-                  </Badge>
-                </td>
-                <td style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-                  {item.origem}
-                  {item.virtual && (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      style={{ marginLeft: 8, fontSize: 11, padding: '3px 8px' }}
-                      onClick={() =>
-                        item.virtual && onMaterializarIndividual(item.virtual)
-                      }
-                    >
-                      ajustar e materializar
-                    </Button>
-                  )}
-                </td>
-                <td
-                  style={{
-                    textAlign: 'right',
-                    fontWeight: 700,
-                    color:
-                      item.tipo === 'entrada'
-                        ? 'var(--color-success)'
-                        : 'var(--color-danger)',
-                  }}
-                >
-                  {item.tipo === 'entrada' ? '+' : '-'}
-                  {formatBRL(item.valor)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            <input
+              type="checkbox"
+              checked={todasMarcadas}
+              onChange={(event) => onToggleTodas(event.target.checked)}
+            />
+            Selecionar todas as ocorrências previstas ({virtuais.length})
+          </label>
+          <Button
+            size="sm"
+            onClick={onMaterializarBulk}
+            disabled={qtdMarcadas === 0}
+            style={{ marginLeft: 'auto' }}
+          >
+            {qtdMarcadas === 0
+              ? 'Materializar selecionadas'
+              : `Materializar ${qtdMarcadas} selecionada${
+                  qtdMarcadas !== 1 ? 's' : ''
+                }`}
+          </Button>
+        </div>
+      )}
+      <DataTable
+        columns={futurosColunas}
+        rows={items}
+        rowKey={(item) => item.key}
+        emptyMessage="Nenhum lançamento futuro"
+      />
     </Card>
   );
 }
@@ -1009,126 +1089,6 @@ function FiltrosCard({
         </div>
       )}
     </Card>
-  );
-}
-
-interface LancamentoRowProps {
-  entry: CaixaEntry;
-  contrato: Contract | undefined;
-  onDetalhe: () => void;
-  onEditar: () => void;
-  onExcluir: () => void;
-}
-
-function LancamentoRow({
-  entry,
-  contrato,
-  onDetalhe,
-  onEditar,
-  onExcluir,
-}: LancamentoRowProps) {
-  function stop(handler: () => void) {
-    return (event: { stopPropagation: () => void }) => {
-      event.stopPropagation();
-      handler();
-    };
-  }
-
-  let categoria: ReactNode;
-  if (entry.contaPagarId || entry.category === 'conta_pagar') {
-    categoria = (
-      <CategoriaTag
-        texto="Conta a Pagar"
-        cor="var(--color-danger)"
-        bg="rgba(229,62,62,.1)"
-      />
-    );
-  } else if (entry.nfId || entry.category === 'nota_fiscal') {
-    categoria = (
-      <CategoriaTag
-        texto="Conta a Receber"
-        cor="var(--color-success)"
-        bg="rgba(56,161,105,.1)"
-      />
-    );
-  } else if (entry.baseItemId) {
-    categoria = (
-      <CategoriaTag texto="BASE" cor="var(--color-info)" bg="rgba(49,130,206,.1)" />
-    );
-  } else {
-    categoria = (
-      <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-        Manual
-      </span>
-    );
-  }
-
-  return (
-    <tr style={{ cursor: 'pointer' }} onClick={onDetalhe}>
-      <td>{formatDate(entry.date)}</td>
-      <td>
-        <strong>{entry.description}</strong>
-      </td>
-      <td>
-        <Badge variant={entry.type === 'entrada' ? 'success' : 'destructive'}>{entry.type}</Badge>
-      </td>
-      <td>
-        {contrato ? (
-          <>
-            <Link
-              to={`/contratos/${contrato.id}`}
-              style={{
-                color: 'var(--color-primary)',
-                textDecoration: 'none',
-                fontWeight: 500,
-              }}
-              onClick={(event) => event.stopPropagation()}
-            >
-              {String(contrato.name ?? '')}
-            </Link>
-            <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-              {String(contrato.client ?? '')}
-            </div>
-          </>
-        ) : entry.baseItemId ? (
-          <span style={{ color: 'var(--color-info)' }}>BASE</span>
-        ) : (
-          <span style={{ color: 'var(--color-text-muted)' }}>—</span>
-        )}
-      </td>
-      <td>{categoria}</td>
-      <td
-        style={{
-          textAlign: 'right',
-          fontWeight: 700,
-          color:
-            entry.type === 'entrada'
-              ? 'var(--color-success)'
-              : 'var(--color-danger)',
-        }}
-      >
-        {entry.type === 'entrada' ? '+' : '-'}
-        {formatBRL(num(entry.value))}
-      </td>
-      <td>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <a
-            className="action-link"
-            style={{ cursor: 'pointer' }}
-            onClick={stop(onEditar)}
-          >
-            Editar
-          </a>
-          <a
-            className="action-link danger"
-            style={{ cursor: 'pointer' }}
-            onClick={stop(onExcluir)}
-          >
-            Excluir
-          </a>
-        </div>
-      </td>
-    </tr>
   );
 }
 
@@ -1556,6 +1516,7 @@ interface OfxModalProps {
 /** Modal com o resultado da importação de extrato OFX. */
 function OfxModal({ result, onClose }: OfxModalProps) {
   const conciliadas = result.total - result.novos;
+  const rows: OfxTransacaoRow[] = result.transacoes.map((t, i) => ({ ...t, _idx: i }));
   return (
     <Dialog open onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[920px]">
@@ -1570,55 +1531,12 @@ function OfxModal({ result, onClose }: OfxModalProps) {
             </span>{' '}
             · <span style={{ color: '#D69E2E' }}>{result.novos} novas</span>
           </p>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Descrição</th>
-                  <th>Valor</th>
-                  <th>Status</th>
-                  <th>Lançamento Rhino</th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.transacoes.map((t, index) => (
-                  <tr key={index}>
-                    <td>{t.data}</td>
-                    <td style={{ maxWidth: 280, wordBreak: 'break-word' }}>
-                      {t.memo || '—'}
-                    </td>
-                    <td
-                      style={{
-                        fontWeight: 700,
-                        color:
-                          t.tipo === 'entrada'
-                            ? 'var(--color-success)'
-                            : 'var(--color-danger)',
-                      }}
-                    >
-                      {t.tipo === 'saida' ? '-' : '+'}{' '}
-                      {formatBRL(Math.abs(num(t.valor)))}
-                    </td>
-                    <td>
-                      <Badge
-                        style={{
-                          background:
-                            t.status === 'conciliado' ? '#D1FAE5' : '#FEF3C7',
-                          color: t.status === 'conciliado' ? '#065F46' : '#92400E',
-                        }}
-                      >
-                        {t.status === 'conciliado' ? '✅ Conciliado' : '🆕 Novo'}
-                      </Badge>
-                    </td>
-                    <td style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-                      {t.match ? t.match.description : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable
+            columns={OFX_COLUNAS}
+            rows={rows}
+            rowKey={(row) => String(row._idx)}
+            emptyMessage="Nenhuma transação encontrada"
+          />
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={onClose}>

@@ -1,6 +1,29 @@
 {
   "entries": [
     {
+      "version": "1.4.5",
+      "date": "2026-05-25",
+      "summary": "Fase 7: migração massiva para DataTable v2 — 16 arquivos em paralelo",
+      "changes": [
+        "ContasPagar: ContaRow sub-component inlined into DataTable columns; handleEstornar/handleExcluir → useCallback; search por descrição/NF/fornecedor.",
+        "Caixa: LancamentoRow removido; 4 tabelas → DataTable (lançamentos, resumo por mês, futuros, OFX import).",
+        "Investimentos: 2 tabelas → DataTable; ResumoPorSocio tabela migrada com total footer.",
+        "FolhaPagamento: FolhaTableRow removido e inlined; 9 colunas via useMemo.",
+        "CobrancaMensal: tabela modal de cobranças → DataTable estático.",
+        "contracts/FinanceiroTab: 2 tabelas (orçamento e saídas) → DataTable com tfoot substituído por div sibling.",
+        "contracts/CronogramaTab: tabela de atividades → DataTable sortable.",
+        "contracts/RdoFormModal: 3 tabelas (MO, terceirizados, equipamentos) → DataTable com inputs inline.",
+        "contracts/RdoTab: tabela de RDOs → DataTable com search e sort.",
+        "contracts/AditivosTab: tabela com tfoot → DataTable + div total.",
+        "contracts/OcorrenciasTab: tabela → DataTable com search e badge de severidade.",
+        "contracts/PendenciasTab: tabela de passagens → DataTable + total footer.",
+        "contracts/VisaoGeralTab: tabela de equipe → DataTable.",
+        "contracts/OrganogramaTab: lista de membros → DataTable (organograma arvore mantido).",
+        "contracts/DetalheComposicaoModal: tabela modal → DataTable estático.",
+        "estoque/Estoque: tabela histórico de movimentações → DataTable; tabela principal (expand/collapse Fragment) mantida."
+      ]
+    },
+    {
       "version": "1.4.4",
       "date": "2026-05-25",
       "summary": "Fase 7: 3 seções de configuração migradas para DataTable v2",

@@ -13,6 +13,7 @@ import type { ContratoTabProps } from './ContratoDetail';
 import { computeVisaoGeral } from './visaoGeral';
 import { exportContractPdf } from './exportContractPdf';
 import DetalheComposicaoModal from './DetalheComposicaoModal';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 
 type Registro = Record<string, unknown>;
 
@@ -135,6 +136,40 @@ export default function VisaoGeralTab({ contract }: ContratoTabProps) {
     );
     return emFolga ? 'Em folga' : 'Em campo';
   }
+
+  const columnsEquipe = useMemo<Column<Registro>[]>(
+    () => [
+      {
+        header: 'Pessoa',
+        cell: (m) => {
+          const r = m.recursoId ? recursosMap.get(String(m.recursoId)) : undefined;
+          return <strong>{String(r?.nome ?? m.nome ?? '—')}</strong>;
+        },
+      },
+      {
+        header: 'Função',
+        cell: (m) => {
+          const r = m.recursoId ? recursosMap.get(String(m.recursoId)) : undefined;
+          return <>{String(r?.profissao ?? m.cargo ?? '—')}</>;
+        },
+      },
+      {
+        header: 'Cat.',
+        cell: (m) => {
+          const r = m.recursoId ? recursosMap.get(String(m.recursoId)) : undefined;
+          return <>{String(r?.rdoCategoria ?? 'MOD').toUpperCase()}</>;
+        },
+      },
+      {
+        header: 'Status',
+        cell: (m) => {
+          const r = m.recursoId ? recursosMap.get(String(m.recursoId)) : undefined;
+          return <>{statusOps(r)}</>;
+        },
+      },
+    ],
+    [recursosMap],
+  );
 
   // ── RDO de hoje ──
   const rdos = (contract.rdos ?? []) as Registro[];
@@ -318,52 +353,13 @@ export default function VisaoGeralTab({ contract }: ContratoTabProps) {
             Equipe alocada · {membros.length} pessoa
             {membros.length !== 1 ? 's' : ''}
           </h3>
-          {membros.length === 0 ? (
-            <p className="text-muted" style={{ fontSize: 13 }}>
-              Nenhum membro alocado.
-            </p>
-          ) : (
-            <div className="table-wrap">
-              <table style={{ fontSize: 13 }}>
-                <thead>
-                  <tr>
-                    <th>Pessoa</th>
-                    <th>Função</th>
-                    <th>Cat.</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {membros.slice(0, 8).map((m, i) => {
-                    const r = m.recursoId
-                      ? recursosMap.get(String(m.recursoId))
-                      : undefined;
-                    const nome = String(r?.nome ?? m.nome ?? '—');
-                    const cargo = String(r?.profissao ?? m.cargo ?? '—');
-                    const cat = String(r?.rdoCategoria ?? 'MOD').toUpperCase();
-                    return (
-                      <tr key={String(m.recursoId ?? i)}>
-                        <td>
-                          <strong>{nome}</strong>
-                        </td>
-                        <td>{cargo}</td>
-                        <td>{cat}</td>
-                        <td>{statusOps(r)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              {membros.length > 8 && (
-                <div
-                  className="text-muted"
-                  style={{ fontSize: 12, padding: 8, textAlign: 'center' }}
-                >
-                  + {membros.length - 8} membro(s)
-                </div>
-              )}
-            </div>
-          )}
+          <DataTable
+            columns={columnsEquipe}
+            rows={membros}
+            rowKey={(m) => String(m.recursoId ?? m.id ?? JSON.stringify(m))}
+            emptyMessage="Nenhum membro alocado."
+            pageSize={8}
+          />
         </Card>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}>

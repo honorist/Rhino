@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import Spinner from '../../components/ui/Spinner';
@@ -11,6 +11,7 @@ import { useAtividades, useDeleteAtividade } from './queries';
 import { resumoCronograma } from './cronograma';
 import GanttContrato from './GanttContrato';
 import AtividadeModal from './AtividadeModal';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 
 function corExec(p: number): string {
   if (p >= 100) return 'var(--color-success)';
@@ -64,13 +65,104 @@ export default function CronogramaTab({ contract }: ContratoTabProps) {
   const resumo = resumoCronograma(atividades);
   const pesoOk = Math.abs(resumo.totalPeso - 100) < 0.01;
 
-  function handleExcluir(a: Atividade) {
-    if (!window.confirm(`Excluir a etapa "${a.nome}"?`)) return;
-    deletar.mutate(a.id, {
-      onSuccess: () => toast.success('Etapa excluída'),
-      onError: (e) => toast.error(e.message),
-    });
-  }
+  const handleExcluir = useCallback(
+    (a: Atividade) => {
+      if (!window.confirm(`Excluir a etapa "${a.nome}"?`)) return;
+      deletar.mutate(a.id, {
+        onSuccess: () => toast.success('Etapa excluída'),
+        onError: (e) => toast.error(e.message),
+      });
+    },
+    [deletar],
+  );
+
+  const columnsAtividades = useMemo<Column<Atividade>[]>(
+    () => [
+      {
+        header: 'Etapa',
+        cell: (a) => (
+          <>
+            <strong>{a.nome}</strong>
+            {a.notas && (
+              <div className="text-muted" style={{ fontSize: 13 }}>
+                {a.notas}
+              </div>
+            )}
+          </>
+        ),
+      },
+      {
+        header: 'Peso %',
+        align: 'right',
+        cell: (a) => (
+          <span style={{ fontWeight: 600 }}>
+            {(Number(a.pesoPct) || 0).toFixed(1)}%
+          </span>
+        ),
+        sortable: true,
+        sortAccessor: (a) => Number(a.pesoPct) || 0,
+      },
+      {
+        header: 'Início plan.',
+        cell: (a) => formatDateBR(a.dataInicioPlan),
+        sortable: true,
+        sortAccessor: (a) => a.dataInicioPlan ?? '',
+      },
+      {
+        header: 'Fim plan.',
+        cell: (a) => formatDateBR(a.dataFimPlan),
+        sortable: true,
+        sortAccessor: (a) => a.dataFimPlan ?? '',
+      },
+      {
+        header: 'Custo plan.',
+        align: 'right',
+        cell: (a) => formatBRL(Number(a.custoPlan) || 0),
+        sortable: true,
+        sortAccessor: (a) => Number(a.custoPlan) || 0,
+      },
+      {
+        header: '% Real',
+        align: 'right',
+        cell: (a) => {
+          const exec = Number(a.execPct) || 0;
+          return (
+            <span style={{ fontWeight: 700, color: corExec(exec) }}>
+              {exec.toFixed(0)}%
+            </span>
+          );
+        },
+        sortable: true,
+        sortAccessor: (a) => Number(a.execPct) || 0,
+      },
+      {
+        header: 'Ações',
+        hideable: false,
+        cell: (a) => (
+          <div
+            className="actions-cell"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <a
+              className="action-link"
+              style={{ cursor: 'pointer' }}
+              onClick={() => setModal({ atividade: a })}
+            >
+              Editar
+            </a>
+            <a
+              className="action-link danger"
+              style={{ cursor: 'pointer' }}
+              onClick={() => handleExcluir(a)}
+            >
+              Excluir
+            </a>
+          </div>
+        ),
+      },
+    ],
+    [setModal, handleExcluir],
+  );
 
   return (
     <Card style={{ padding: 'var(--sp-lg)' }}>
@@ -155,75 +247,13 @@ export default function CronogramaTab({ contract }: ContratoTabProps) {
             onBarClick={(a) => setModal({ atividade: a })}
           />
 
-          <div className="table-wrap" style={{ marginTop: 'var(--sp-lg)' }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Etapa</th>
-                  <th style={{ textAlign: 'right' }}>Peso %</th>
-                  <th>Início plan.</th>
-                  <th>Fim plan.</th>
-                  <th style={{ textAlign: 'right' }}>Custo plan.</th>
-                  <th style={{ textAlign: 'right' }}>% Real</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {atividades.map((a) => {
-                  const exec = Number(a.execPct) || 0;
-                  return (
-                    <tr key={a.id}>
-                      <td>
-                        <strong>{a.nome}</strong>
-                        {a.notas && (
-                          <div
-                            className="text-muted"
-                            style={{ fontSize: 13 }}
-                          >
-                            {a.notas}
-                          </div>
-                        )}
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                        {(Number(a.pesoPct) || 0).toFixed(1)}%
-                      </td>
-                      <td>{formatDateBR(a.dataInicioPlan)}</td>
-                      <td>{formatDateBR(a.dataFimPlan)}</td>
-                      <td style={{ textAlign: 'right' }}>
-                        {formatBRL(Number(a.custoPlan) || 0)}
-                      </td>
-                      <td
-                        style={{
-                          textAlign: 'right',
-                          fontWeight: 700,
-                          color: corExec(exec),
-                        }}
-                      >
-                        {exec.toFixed(0)}%
-                      </td>
-                      <td>
-                        <div className="actions-cell">
-                          <a
-                            className="action-link"
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => setModal({ atividade: a })}
-                          >
-                            Editar
-                          </a>
-                          <a
-                            className="action-link danger"
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => handleExcluir(a)}
-                          >
-                            Excluir
-                          </a>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div style={{ marginTop: 'var(--sp-lg)' }}>
+            <DataTable<Atividade>
+              rows={atividades}
+              columns={columnsAtividades}
+              rowKey={(a) => a.id}
+              emptyMessage="Nenhuma etapa cadastrada."
+            />
           </div>
         </>
       )}

@@ -11,7 +11,30 @@ import { formatBRL } from '../../lib/format';
 import { formatDateBR } from '../../lib/formatDate';
 import { useBase, useCaixa } from '../resources';
 import { useSaidas } from './queries';
-import { linhasSaidas } from './financeiro';
+import { linhasSaidas, type LinhaSaida } from './financeiro';
+import DataTable, { type Column } from '../../components/ui/DataTable';
+
+const COLUMNS: Column<LinhaSaida>[] = [
+  {
+    header: 'Data',
+    cell: (l) => <span style={{ whiteSpace: 'nowrap' }}>{formatDateBR(l.date)}</span>,
+  },
+  {
+    header: 'Descrição',
+    cell: (l) => <strong>{l.description}</strong>,
+  },
+  {
+    header: 'Origem',
+    cell: (l) => (
+      <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>{l.origem}</span>
+    ),
+  },
+  {
+    header: 'Valor',
+    align: 'right',
+    cell: (l) => <span style={{ fontWeight: 700 }}>{formatBRL(l.value)}</span>,
+  },
+];
 
 interface DetalheComposicaoModalProps {
   contractId: string;
@@ -51,59 +74,25 @@ export default function DetalheComposicaoModal({
           <DialogTitle>{tipoLabel} — Detalhamento</DialogTitle>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto p-6">
-          {linhas.length === 0 ? (
-            <p
-              className="text-muted"
-              style={{ textAlign: 'center', padding: 'var(--sp-lg)' }}
+          <DataTable
+            columns={COLUMNS}
+            rows={linhas}
+            rowKey={(l) => `${l.kind}-${l.id}`}
+            emptyMessage="Nenhum lançamento encontrado para esta categoria."
+          />
+          {linhas.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                padding: 'var(--sp-md)',
+                fontWeight: 700,
+                borderTop: '1px solid var(--color-border)',
+                marginTop: 4,
+              }}
             >
-              📭 Nenhum lançamento encontrado para esta categoria.
-            </p>
-          ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Data</th>
-                    <th>Descrição</th>
-                    <th>Origem</th>
-                    <th style={{ textAlign: 'right' }}>Valor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {linhas.map((l) => (
-                    <tr key={`${l.kind}-${l.id}`}>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        {formatDateBR(l.date)}
-                      </td>
-                      <td>
-                        <strong>{l.description}</strong>
-                      </td>
-                      <td style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-                        {l.origem}
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 700 }}>
-                        {formatBRL(l.value)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr style={{ fontWeight: 700 }}>
-                    <td colSpan={3} style={{ padding: 'var(--sp-md)' }}>
-                      Total realizado
-                    </td>
-                    <td
-                      style={{
-                        textAlign: 'right',
-                        padding: 'var(--sp-md)',
-                        color: 'var(--color-primary)',
-                      }}
-                    >
-                      {formatBRL(total)}
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
+              <span>Total realizado</span>
+              <span style={{ color: 'var(--color-primary)' }}>{formatBRL(total)}</span>
             </div>
           )}
         </div>

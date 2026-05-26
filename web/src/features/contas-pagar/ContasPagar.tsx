@@ -1,9 +1,10 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/Button';
 import { Badge } from '../../components/ui/badge';
 import Card from '../../components/ui/Card';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 import {
   Dialog,
   DialogContent,
@@ -179,33 +180,147 @@ export default function ContasPagar() {
   const fornecedorById = (id?: string): Fornecedor | undefined =>
     id ? fornecedores.find((f) => f.id === id) : undefined;
 
-  function handleEstornar(id: string) {
-    if (
-      !window.confirm(
-        'Estornar este pagamento? A saída no caixa será removida.',
-      )
-    ) {
-      return;
-    }
+  const handleEstornar = useCallback((id: string) => {
+    if (!window.confirm('Estornar este pagamento? A saída no caixa será removida.')) return;
     estornarConta.mutate(id, {
       onSuccess: () => toast.success('Pagamento estornado'),
       onError: (error) => toast.error(error.message),
     });
-  }
+  }, [estornarConta]);
 
-  function handleExcluir(id: string) {
-    if (
-      !window.confirm(
-        'Excluir esta conta? Se estiver paga, a saída no caixa também será removida.',
-      )
-    ) {
-      return;
-    }
+  const handleExcluir = useCallback((id: string) => {
+    if (!window.confirm('Excluir esta conta? Se estiver paga, a saída no caixa também será removida.')) return;
     deleteConta.mutate(id, {
       onSuccess: () => toast.success('Conta removida'),
       onError: (error) => toast.error(error.message),
     });
-  }
+  }, [deleteConta]);
+
+  const contaFilterFn = useCallback((c: ContaPagar, q: string) => {
+    const forn = fornecedores.find((f) => f.id === c.fornecedorId)?.nome ?? '';
+    return [c.descricao, c.numeroNF, forn].some(
+      (v) => String(v ?? '').toLowerCase().includes(q),
+    );
+  }, [fornecedores]);
+
+  const contaColumns = useMemo((): Column<ContaPagar>[] => [
+    {
+      id: 'descricao',
+      header: 'Descrição / NF',
+      sortable: true,
+      sortAccessor: (c) => c.descricao ?? '',
+      cell: (c) => (
+        <>
+          <strong>{c.descricao || '—'}</strong>
+          {c.numeroNF && (
+            <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>NF {c.numeroNF}</div>
+          )}
+        </>
+      ),
+    },
+    {
+      id: 'fornecedor',
+      header: 'Fornecedor',
+      sortable: true,
+      sortAccessor: (c) => fornecedores.find((f) => f.id === c.fornecedorId)?.nome ?? '',
+      cell: (c) => {
+        const forn = fornecedores.find((f) => f.id === c.fornecedorId);
+        return forn ? forn.nome : <span style={{ color: 'var(--color-text-muted)' }}>—</span>;
+      },
+    },
+    {
+      id: 'emissao',
+      header: 'Emissão',
+      sortable: true,
+      sortAccessor: (c) => c.dataEmissao ?? '',
+      cell: (c) => <span style={{ fontSize: 13 }}>{formatDate(c.dataEmissao)}</span>,
+    },
+    {
+      id: 'vencimento',
+      header: 'Vencimento',
+      sortable: true,
+      sortAccessor: (c) => c.dataVencimento ?? '',
+      cell: (c) => {
+        const vencida = c.status === 'pendente' && !!c.dataVencimento && c.dataVencimento < hoje;
+        const proxima = c.status === 'pendente' && !!c.dataVencimento && c.dataVencimento >= hoje && c.dataVencimento <= em7;
+        const vencCor = vencida ? 'var(--color-danger)' : proxima ? 'var(--color-warning)' : 'var(--color-text)';
+        const dias = diasAte(c.dataVencimento);
+        let diasLabel: ReactNode = null;
+        if (dias !== null && c.status === 'pendente') {
+          if (dias < 0) {
+            diasLabel = <div style={{ fontSize: 13, color: 'var(--color-danger)', fontWeight: 700 }}>{Math.abs(dias)}d vencida</div>;
+          } else if (dias === 0) {
+            diasLabel = <div style={{ fontSize: 13, color: 'var(--color-warning)', fontWeight: 700 }}>vence hoje</div>;
+          } else {
+            diasLabel = <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>em {dias}d</div>;
+          }
+        }
+        return (
+          <>
+            <span style={{ color: vencCor, fontWeight: vencida || proxima ? 700 : 400 }}>
+              {formatDate(c.dataVencimento)}
+            </span>
+            {diasLabel}
+          </>
+        );
+      },
+    },
+    {
+      id: 'valor',
+      header: 'Valor',
+      align: 'right',
+      sortable: true,
+      sortAccessor: (c) => num(c.valor),
+      cell: (c) => (
+        <span style={{ fontWeight: 700, color: 'var(--color-danger)' }}>
+          {formatBRL(num(c.valor))}
+        </span>
+      ),
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      cell: (c) => {
+        const vencida = c.status === 'pendente' && !!c.dataVencimento && c.dataVencimento < hoje;
+        if (c.status === 'pago') {
+          return (
+            <>
+              <Badge variant="success">Pago</Badge>
+              {c.dataPagamento && (
+                <div style={{ fontSize: 13, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                  {formatDate(c.dataPagamento)}{c.formaPagamento ? ` · ${c.formaPagamento}` : ''}
+                </div>
+              )}
+            </>
+          );
+        }
+        if (vencida) {
+          return <Badge style={{ background: 'rgba(229,62,62,.15)', color: 'var(--color-danger)' }}>Vencida</Badge>;
+        }
+        return <Badge style={{ background: 'rgba(214,158,46,.12)', color: 'var(--color-warning)' }}>Pendente</Badge>;
+      },
+    },
+    {
+      id: 'acoes',
+      header: '',
+      hideable: false,
+      cell: (c) => (
+        <div style={{ display: 'flex', gap: 8 }} onClick={(e) => e.stopPropagation()}>
+          {c.status === 'pendente' ? (
+            <a className="action-link" style={{ cursor: 'pointer', color: 'var(--color-success)' }}
+              onClick={() => setPagarId(c.id)}>Pagar</a>
+          ) : (
+            <a className="action-link" style={{ cursor: 'pointer', color: 'var(--color-text-muted)' }}
+              onClick={() => handleEstornar(c.id)}>Estornar</a>
+          )}
+          <a className="action-link" style={{ cursor: 'pointer' }}
+            onClick={() => setContaModal({ conta: c })}>Editar</a>
+          <a className="action-link danger" style={{ cursor: 'pointer' }}
+            onClick={() => handleExcluir(c.id)}>Excluir</a>
+        </div>
+      ),
+    },
+  ] as Column<ContaPagar>[], [fornecedores, hoje, em7, handleEstornar, handleExcluir, setPagarId, setContaModal]);
 
   const contaDoModal = pagarId
     ? contas.find((c) => c.id === pagarId) ?? null
@@ -348,57 +463,22 @@ export default function ContasPagar() {
             ))}
           </Card>
 
-          <Card>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Descrição / NF</th>
-                    <th>Fornecedor</th>
-                    <th>Emissão</th>
-                    <th>Vencimento</th>
-                    <th style={{ textAlign: 'right' }}>Valor</th>
-                    <th>Status</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtradas.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={7}
-                        className="text-center text-muted"
-                        style={{ padding: 'var(--sp-xl)' }}
-                      >
-                        Nenhuma conta{' '}
-                        {filtroStatus === 'pendente'
-                          ? 'pendente'
-                          : filtroStatus === 'pago'
-                            ? 'paga'
-                            : ''}{' '}
-                        cadastrada
-                      </td>
-                    </tr>
-                  ) : (
-                    filtradas.map((c) => (
-                      <ContaRow
-                        key={c.id}
-                        conta={c}
-                        fornecedor={fornecedorById(c.fornecedorId)}
-                        hoje={hoje}
-                        em7={em7}
-                        onDetalhe={() => setDetalheId(c.id)}
-                        onPagar={() => setPagarId(c.id)}
-                        onEstornar={() => handleEstornar(c.id)}
-                        onEditar={() => setContaModal({ conta: c })}
-                        onExcluir={() => handleExcluir(c.id)}
-                      />
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+          <DataTable
+            rows={filtradas}
+            columns={contaColumns}
+            rowKey={(c) => c.id}
+            onRowClick={(c) => setDetalheId(c.id)}
+            emptyMessage={
+              filtroStatus === 'pendente'
+                ? 'Nenhuma conta pendente cadastrada'
+                : filtroStatus === 'pago'
+                  ? 'Nenhuma conta paga cadastrada'
+                  : 'Nenhuma conta cadastrada'
+            }
+            searchPlaceholder="Buscar por descrição, NF ou fornecedor..."
+            globalFilterFn={contaFilterFn}
+            showColumnToggle
+          />
         </>
       )}
 
@@ -542,179 +622,6 @@ function TimelineItem({
   );
 }
 
-interface ContaRowProps {
-  conta: ContaPagar;
-  fornecedor: Fornecedor | undefined;
-  hoje: string;
-  em7: string;
-  onDetalhe: () => void;
-  onPagar: () => void;
-  onEstornar: () => void;
-  onEditar: () => void;
-  onExcluir: () => void;
-}
-
-function ContaRow({
-  conta,
-  fornecedor,
-  hoje,
-  em7,
-  onDetalhe,
-  onPagar,
-  onEstornar,
-  onEditar,
-  onExcluir,
-}: ContaRowProps) {
-  const vencida =
-    conta.status === 'pendente' &&
-    !!conta.dataVencimento &&
-    conta.dataVencimento < hoje;
-  const proxima =
-    conta.status === 'pendente' &&
-    !!conta.dataVencimento &&
-    conta.dataVencimento >= hoje &&
-    conta.dataVencimento <= em7;
-  const vencCor = vencida
-    ? 'var(--color-danger)'
-    : proxima
-      ? 'var(--color-warning)'
-      : 'var(--color-text)';
-
-  const dias = diasAte(conta.dataVencimento);
-  let diasLabel: ReactNode = null;
-  if (dias !== null && conta.status === 'pendente') {
-    if (dias < 0) {
-      diasLabel = (
-        <div style={{ fontSize: 13, color: 'var(--color-danger)', fontWeight: 700 }}>
-          {Math.abs(dias)}d vencida
-        </div>
-      );
-    } else if (dias === 0) {
-      diasLabel = (
-        <div style={{ fontSize: 13, color: 'var(--color-warning)', fontWeight: 700 }}>
-          vence hoje
-        </div>
-      );
-    } else {
-      diasLabel = (
-        <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-          em {dias}d
-        </div>
-      );
-    }
-  }
-
-  function stop(handler: () => void) {
-    return (event: { stopPropagation: () => void }) => {
-      event.stopPropagation();
-      handler();
-    };
-  }
-
-  return (
-    <tr style={{ cursor: 'pointer' }} onClick={onDetalhe}>
-      <td>
-        <strong>{conta.descricao || '—'}</strong>
-        {conta.numeroNF && (
-          <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-            NF {conta.numeroNF}
-          </div>
-        )}
-      </td>
-      <td>
-        {fornecedor ? (
-          fornecedor.nome || '—'
-        ) : (
-          <span style={{ color: 'var(--color-text-muted)' }}>—</span>
-        )}
-      </td>
-      <td style={{ fontSize: 13 }}>{formatDate(conta.dataEmissao)}</td>
-      <td>
-        <span
-          style={{ color: vencCor, fontWeight: vencida || proxima ? 700 : 400 }}
-        >
-          {formatDate(conta.dataVencimento)}
-        </span>
-        {diasLabel}
-      </td>
-      <td
-        style={{
-          textAlign: 'right',
-          fontWeight: 700,
-          color: 'var(--color-danger)',
-        }}
-      >
-        {formatBRL(num(conta.valor))}
-      </td>
-      <td>
-        {conta.status === 'pago' ? (
-          <>
-            <Badge variant="success">Pago</Badge>
-            {conta.dataPagamento && (
-              <div
-                style={{
-                  fontSize: 13,
-                  color: 'var(--color-text-muted)',
-                  marginTop: 2,
-                }}
-              >
-                {formatDate(conta.dataPagamento)}
-                {conta.formaPagamento ? ` · ${conta.formaPagamento}` : ''}
-              </div>
-            )}
-          </>
-        ) : vencida ? (
-          <Badge
-            style={{ background: 'rgba(229,62,62,.15)', color: 'var(--color-danger)' }}
-          >
-            Vencida
-          </Badge>
-        ) : (
-          <Badge
-            style={{ background: 'rgba(214,158,46,.12)', color: 'var(--color-warning)' }}
-          >
-            Pendente
-          </Badge>
-        )}
-      </td>
-      <td>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {conta.status === 'pendente' ? (
-            <a
-              className="action-link"
-              style={{ cursor: 'pointer', color: 'var(--color-success)' }}
-              onClick={stop(onPagar)}
-            >
-              Pagar
-            </a>
-          ) : (
-            <a
-              className="action-link"
-              style={{ cursor: 'pointer', color: 'var(--color-text-muted)' }}
-              onClick={stop(onEstornar)}
-            >
-              Estornar
-            </a>
-          )}
-          <a
-            className="action-link"
-            style={{ cursor: 'pointer' }}
-            onClick={stop(onEditar)}
-          >
-            Editar
-          </a>
-          <a
-            className="action-link danger"
-            style={{ cursor: 'pointer' }}
-            onClick={stop(onExcluir)}
-          >
-            Excluir
-          </a>
-        </div>
-      </td>
-    </tr>
-  );
-}
 
 interface ContaModalProps {
   conta: ContaPagar | null;

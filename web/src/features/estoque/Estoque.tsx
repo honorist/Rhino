@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useCallback, useMemo, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Card from '../../components/ui/Card';
 import {
@@ -24,6 +24,7 @@ import {
 } from './saldo';
 import { useMovimentacoes, useReverterMovimentacao, useVisaoGeral } from './queries';
 import ItemModal from './ItemModal';
+import DataTable, { type Column } from '../../components/ui/DataTable';
 import {
   AjusteModal,
   ComprarModal,
@@ -173,6 +174,32 @@ export default function Estoque() {
   );
   const itens = useMemo(() => visaoQuery.data?.itens ?? [], [visaoQuery.data]);
 
+  const handleReverter = useCallback((m: Movimentacao) => {
+    if (!window.confirm('Reverter esta movimentação? O saldo será ajustado de volta.')) return;
+    reverter.mutate(m.id, {
+      onSuccess: () => toast.success('Movimentação revertida'),
+      onError: (e) => toast.error(e.message),
+    });
+  }, [reverter]);
+
+  const historicoColumns = useMemo((): Column<Movimentacao>[] => [
+    {
+      id: 'data', header: 'Data', sortable: true, sortAccessor: (m) => m.data ?? '',
+      cell: (m) => <span style={{ whiteSpace: 'nowrap' }}>{formatDateBR(m.data)}</span>,
+    },
+    { id: 'mov', header: 'Movimentação', cell: (m) => movTexto(m, almoxs) },
+    {
+      id: 'acao', header: '', hideable: false,
+      cell: (m) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Button size="sm" variant="secondary" onClick={() => handleReverter(m)} title="Reverter movimentação">
+            ↩️
+          </Button>
+        </div>
+      ),
+    },
+  ] as Column<Movimentacao>[], [almoxs, handleReverter]);
+
   if (visaoQuery.isLoading) {
     return <Spinner label="Carregando estoque..." />;
   }
@@ -200,20 +227,6 @@ export default function Estoque() {
       String(c ?? '').toLowerCase().includes(termo),
     );
   });
-
-  function handleReverter(m: Movimentacao) {
-    if (
-      !window.confirm(
-        'Reverter esta movimentação? O saldo será ajustado de volta.',
-      )
-    ) {
-      return;
-    }
-    reverter.mutate(m.id, {
-      onSuccess: () => toast.success('Movimentação revertida'),
-      onError: (e) => toast.error(e.message),
-    });
-  }
 
   return (
     <>
@@ -536,39 +549,14 @@ export default function Estoque() {
           </>
         )
       ) : movsQuery.data && movsQuery.data.length > 0 ? (
-        <Card style={{ padding: 0, overflow: 'hidden' }}>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: 120 }}>Data</th>
-                  <th>Movimentação</th>
-                  <th style={{ width: 80, textAlign: 'center' }}>Ação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {movsQuery.data.map((m) => (
-                  <tr key={m.id}>
-                    <td style={{ whiteSpace: 'nowrap' }}>
-                      {formatDateBR(m.data)}
-                    </td>
-                    <td>{movTexto(m, almoxs)}</td>
-                    <td style={{ textAlign: 'center' }}>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleReverter(m)}
-                        title="Reverter movimentação"
-                      >
-                        ↩️
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <DataTable
+          rows={movsQuery.data}
+          columns={historicoColumns}
+          rowKey={(m) => m.id}
+          emptyMessage="Nenhuma movimentação ainda."
+          searchPlaceholder="Buscar movimentações..."
+          globalFilterFn={(m, q) => movTexto(m, almoxs).toLowerCase().includes(q)}
+        />
       ) : (
         <Card style={{ padding: 'var(--sp-xl)', textAlign: 'center' }}>
           <span className="text-muted">
