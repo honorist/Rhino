@@ -491,7 +491,12 @@ button, .btn, [role="button"], a.nav-link, .nav-item a, input[type="checkbox"], 
 }
 @media (max-width: 600px) {
   .bento { grid-template-columns: 1fr; }
-  .bento > * { grid-column: 1 / -1 !important; grid-row: auto !important; }
+  .bento > .bento-1x1,
+  .bento > .bento-2x1,
+  .bento > .bento-2x2,
+  .bento > .bento-3x1,
+  .bento > .bento-4x1,
+  .bento > .bento-1x2 { grid-column: 1 / -1; grid-row: auto; }
 }
 
 /* Mini KPI dentro do bento */
@@ -1258,13 +1263,13 @@ label.required::after {
 .rh-bulk-bar.is-visible { transform: translateY(0); }
 .rh-bulk-bar__count { font-weight: 700; font-size: 15px; flex-shrink: 0; }
 .rh-bulk-bar__actions { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
-.rh-bulk-btn {
-  background: rgba(255,255,255,.15) !important;
-  border-color: rgba(255,255,255,.35) !important;
-  color: #fff !important; font-size: 13px; padding: 6px 14px;
+.rh-bulk-bar .rh-bulk-btn {
+  background: rgba(255,255,255,.15);
+  border-color: rgba(255,255,255,.35);
+  color: #fff; font-size: 13px; padding: 6px 14px;
 }
-.rh-bulk-btn:hover { background: rgba(255,255,255,.25) !important; }
-.rh-bulk-btn.danger { background: rgba(220,38,38,.6) !important; border-color: rgba(220,38,38,.8) !important; }
+.rh-bulk-bar .rh-bulk-btn:hover { background: rgba(255,255,255,.25); }
+.rh-bulk-bar .rh-bulk-btn.danger { background: rgba(220,38,38,.6); border-color: rgba(220,38,38,.8); }
 /* Give body bottom padding when bulk bar is open */
 body.has-bulk-bar { padding-bottom: 64px; }
 body.has-bulk-bar.has-bottom-nav { padding-bottom: 120px; }
@@ -1297,10 +1302,10 @@ body.has-bulk-bar.has-bottom-nav { padding-bottom: 120px; }
 .rh-reldate:hover { border-bottom-color: var(--color-primary); color: var(--color-primary); }
 
 /* ─── Keyboard-focused table row ─── */
-.row-contrato.is-kbfocused {
+tr.row-contrato.is-kbfocused {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
-  background: rgba(var(--color-primary-rgb, 59,130,246),.06) !important;
+  background: rgba(var(--color-primary-rgb, 59,130,246),.06);
 }
 
 /* ─── Sticky Table Header ─── */

@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.5.0",
+      "date": "2026-05-26",
+      "summary": "Pós-Fase: Card sub-components + redução de !important (shadcn migration completa)",
+      "changes": [
+        "card.tsx: adicionados CardHeader, CardTitle, CardDescription, CardContent, CardFooter como named exports (padrão shadcn/ui composicional).",
+        "polish.css: removidos 9 !important desnecessários — bento responsive (2), rh-bulk-btn (4+hover+danger=6), row-contrato keyboard focus (1).",
+        "polish.css: especificidade aumentada (.rh-bulk-bar .rh-bulk-btn, tr.row-contrato.is-kbfocused, .bento > .bento-Nx) em substituição a !important.",
+        "Fase 7 (DataTable v2) e Pós-Fase (kebab-case codemod + limpeza) concluídas. Migração shadcn/ui completa."
+      ]
+    },
+    {
       "version": "1.4.9",
       "date": "2026-05-26",
       "summary": "fix: imports PascalCase remanescentes após codemod (build Railway quebrado)",
