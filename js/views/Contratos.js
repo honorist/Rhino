@@ -209,6 +209,8 @@ window.Contratos = {
               {v:'todos', l:'Todos'},
               {v:'ativo', l:'Ativo'},
               {v:'prospeccao', l:'Prospecção'},
+              {v:'nao_iniciado', l:'Não iniciado'},
+              {v:'nao_aprovado', l:'Não aprovado'},
               {v:'pausado', l:'Pausado'},
               {v:'concluido', l:'Concluído'},
               {v:'cancelado', l:'Cancelado'},
@@ -277,7 +279,7 @@ window.Contratos = {
                         ${total}
                       </div>
                     </td>
-                    <td><span class="badge badge-${c.status}" title="${{ prospeccao:'Em prospecção — contrato ainda não confirmado', ativo:'Ativo — obra em andamento', pausado:'Pausado — obra temporariamente suspensa', concluido:'Concluído — obra finalizada', cancelado:'Cancelado — contrato encerrado' }[c.status] || c.status}">${c.status}</span></td>
+                    <td><span class="badge badge-${c.status}" title="${{ prospeccao:'Em prospecção — contrato ainda não confirmado', nao_aprovado:'Não aprovado — proposta rejeitada pelo cliente', nao_iniciado:'Não iniciado — contrato fechado, obra ainda não começou', ativo:'Ativo — obra em andamento', pausado:'Pausado — obra temporariamente suspensa', concluido:'Concluído — obra finalizada', cancelado:'Cancelado — contrato encerrado' }[c.status] || c.status}">${({ nao_iniciado:'Não iniciado', nao_aprovado:'Não aprovado' })[c.status] || c.status}</span></td>
                     <td>
                       <div class="actions-cell">
                         <button class="btn-fav action-link" data-id="${c.id}" title="${this._favs.has(c.id) ? 'Remover dos favoritos' : 'Fixar no topo'}">${this._favs.has(c.id) ? '★' : '☆'}</button>
@@ -571,7 +573,7 @@ window.Contratos = {
 
       // ── Bulk: change status
       document.getElementById('bulkStatus')?.addEventListener('click', async () => {
-        const statuses = ['prospeccao', 'ativo', 'pausado', 'concluido', 'cancelado'];
+        const statuses = ['prospeccao', 'nao_aprovado', 'nao_iniciado', 'ativo', 'pausado', 'concluido', 'cancelado'];
         const novo = prompt(`Novo status para ${this._selectedIds.size} contrato(s):\n\n${statuses.join('\n')}`);
         if (!novo) return;
         const status = novo.trim().toLowerCase();
@@ -658,11 +660,13 @@ window.Contratos = {
     const nfsEmitidas = nfs.filter(n => n.emitida).length;
 
     const statusColors = {
-      ativo:      { bg: 'rgba(16,185,129,.15)',  fg: '#10b981', border: 'rgba(16,185,129,.4)' },
-      concluido:  { bg: 'rgba(59,130,246,.15)',  fg: '#3b82f6', border: 'rgba(59,130,246,.4)' },
-      cancelado:  { bg: 'rgba(220,38,38,.15)',   fg: '#dc2626', border: 'rgba(220,38,38,.4)'  },
-      pausado:    { bg: 'rgba(245,158,11,.15)',  fg: '#f59e0b', border: 'rgba(245,158,11,.4)' },
-      prospeccao: { bg: 'rgba(139,92,246,.15)',  fg: '#8b5cf6', border: 'rgba(139,92,246,.4)' },
+      ativo:        { bg: 'rgba(16,185,129,.15)',  fg: '#10b981', border: 'rgba(16,185,129,.4)' },
+      concluido:    { bg: 'rgba(59,130,246,.15)',  fg: '#3b82f6', border: 'rgba(59,130,246,.4)' },
+      cancelado:    { bg: 'rgba(220,38,38,.15)',   fg: '#dc2626', border: 'rgba(220,38,38,.4)'  },
+      pausado:      { bg: 'rgba(245,158,11,.15)',  fg: '#f59e0b', border: 'rgba(245,158,11,.4)' },
+      prospeccao:   { bg: 'rgba(139,92,246,.15)',  fg: '#8b5cf6', border: 'rgba(139,92,246,.4)' },
+      nao_iniciado: { bg: 'rgba(107,114,128,.15)', fg: '#6b7280', border: 'rgba(107,114,128,.4)' },
+      nao_aprovado: { bg: 'rgba(249,115,22,.15)',  fg: '#f97316', border: 'rgba(249,115,22,.4)' },
     };
     const col = statusColors[c.status] || { bg: 'var(--color-bg)', fg: 'var(--color-text)', border: 'var(--color-border)' };
 
@@ -815,6 +819,8 @@ window.Contratos = {
                 <label class="form-label">Status *</label>
                 <select class="form-control" name="status" required>
                   <option value="prospeccao" ${contract?.status === 'prospeccao' ? 'selected' : ''}>Prospecção</option>
+                  <option value="nao_aprovado" ${contract?.status === 'nao_aprovado' ? 'selected' : ''}>Não aprovado</option>
+                  <option value="nao_iniciado" ${contract?.status === 'nao_iniciado' ? 'selected' : ''}>Não iniciado</option>
                   <option value="ativo" ${(!contract || contract.status === 'ativo') ? 'selected' : ''}>Ativo</option>
                   <option value="pausado" ${contract?.status === 'pausado' ? 'selected' : ''}>Pausado</option>
                   <option value="concluido" ${contract?.status === 'concluido' ? 'selected' : ''}>Concluído</option>

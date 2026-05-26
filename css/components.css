@@ -428,6 +428,8 @@ textarea.form-control {
 .badge-entrada      { background: #ECFDF5; color: #047857; }
 .badge-saida        { background: #FEE2E2; color: #B91C1C; }
 .badge-prospeccao   { background: #EDE9FE; color: #6D28D9; }
+.badge-nao_aprovado { background: #FFEDD5; color: #9A3412; }
+.badge-nao_iniciado { background: #F3F4F6; color: #374151; }
 .badge-ativo        { background: #ECFDF5; color: #047857; }
 .badge-pausado      { background: #FEF3C7; color: #B45309; }
 .badge-concluido    { background: #DBEAFE; color: #1D4ED8; }
