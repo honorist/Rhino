@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.5.11",
+      "date": "2026-05-26",
+      "summary": "design: sidebar shadcn/ui completo — SidebarMenuButton, SidebarMenuSub, CSS vars sidebar-*",
+      "changes": [
+        "Criado web/src/components/ui/sidebar.tsx com primitivos shadcn/ui: SidebarHeader, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton (com asChild + isActive + data-[active=true]), SidebarMenuSub, SidebarMenuSubButton, SidebarSeparator.",
+        "tailwind.css: adicionadas CSS vars --color-sidebar, --color-sidebar-foreground, --color-sidebar-accent, --color-sidebar-accent-foreground, --color-sidebar-border, --color-sidebar-ring, --color-sidebar-primary no @theme. Dark mode vars correspondentes no .dark.",
+        "Sidebar.tsx reescrito usando os primitivos. Grupos colapsáveis via Collapsible + CollapsibleTrigger com group-data-[state=open]/collapsible:rotate-90. Subitems com SidebarMenuSub (border-l). Estado ativo via isActive prop (data-[active=true]).",
+        "Largura da sidebar: 16rem (shadcn default) via --sidebar-width. Layout.css e Shell.tsx atualizados.",
+        "Notificações e UserMenu preservados no SidebarFooter."
+      ]
+    },
+    {
       "version": "1.5.10",
       "date": "2026-05-26",
       "summary": "design: sidebar migrada para Tailwind/shadcn — visual limpo estilo shadcn/ui",

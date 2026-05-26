@@ -46,7 +46,7 @@ export default function Shell() {
     <div
       id="shell"
       data-nav-open={navOpen}
-      className={cn('grid min-h-screen bg-background', '[grid-template-columns:244px_1fr]')}
+      className={cn('grid min-h-screen bg-background', '[grid-template-columns:var(--sidebar-width)_1fr]')}
     >
       <TopProgressBar />
       <Topbar onMenuClick={() => setNavOpen((open) => !open)} />

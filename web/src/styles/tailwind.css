@@ -103,6 +103,17 @@
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  /* Sidebar — shadcn/ui defaults */
+  --color-sidebar: #fafafa;
+  --color-sidebar-foreground: #3f3f46;
+  --color-sidebar-accent: #f4f4f5;
+  --color-sidebar-accent-foreground: #18181b;
+  --color-sidebar-border: #e4e4e7;
+  --color-sidebar-ring: #6366f1;
+  --color-sidebar-primary: #18181b;
+  --color-sidebar-primary-foreground: #fafafa;
+  --sidebar-width: 16rem;
 }
 
 @keyframes accordion-down {
@@ -137,6 +148,15 @@
     --color-accent-foreground: #0f172a;
     --color-border: #334155;
     --color-input: #334155;
+    /* Sidebar dark */
+    --color-sidebar: #18181b;
+    --color-sidebar-foreground: #f4f4f5;
+    --color-sidebar-accent: #27272a;
+    --color-sidebar-accent-foreground: #f4f4f5;
+    --color-sidebar-border: #27272a;
+    --color-sidebar-ring: #818cf8;
+    --color-sidebar-primary: #f4f4f5;
+    --color-sidebar-primary-foreground: #18181b;
   }
 
   /*
