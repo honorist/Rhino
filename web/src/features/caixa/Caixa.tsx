@@ -14,6 +14,7 @@ import {
 } from '../../components/ui/dialog';
 import FormField from '../../components/ui/form-field';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select } from '@/components/ui/native-select';
 import { Combobox } from '../../components/ui/combobox';
 import { DatePicker } from '../../components/ui/date-picker';
@@ -810,10 +811,9 @@ function FuturosCard({
         hideable: false,
         cell: (item) =>
           item.virtual ? (
-            <input
-              type="checkbox"
+            <Checkbox
               checked={virtSelecionadas.has(virtKey(item.virtual))}
-              onChange={() => item.virtual && onToggleVirt(item.virtual)}
+              onCheckedChange={() => item.virtual && onToggleVirt(item.virtual)}
             />
           ) : null,
       },
@@ -949,10 +949,9 @@ function FuturosCard({
               gap: 6,
             }}
           >
-            <input
-              type="checkbox"
+            <Checkbox
               checked={todasMarcadas}
-              onChange={(event) => onToggleTodas(event.target.checked)}
+              onCheckedChange={(c) => onToggleTodas(c === true)}
             />
             Selecionar todas as ocorrências previstas ({virtuais.length})
           </label>
