@@ -54,7 +54,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          'bg-background fixed top-1/2 left-1/2 z-50 flex max-h-[90vh] w-[92vw] max-w-[calc(100%-2rem)] sm:max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl border shadow-2xl',
+          'bg-background fixed top-1/2 left-1/2 z-50 flex max-h-[90vh] w-[92vw] max-w-[calc(100%-2rem)] sm:max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl border shadow-2xl',
           className
         )}
         {...props}
@@ -78,6 +78,22 @@ function DialogHeader({ className, ...props }: React.ComponentProps<'div'>) {
       data-slot="dialog-header"
       className={cn(
         'flex flex-col gap-1.5 px-6 pt-6 pb-4 border-b border-border',
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+/** Corpo do diálogo: padding consistente + scroll vertical + espaçamento padrão
+ *  entre filhos. Antes cada modal definia seu próprio padding/scroll, levando
+ *  a forms apertados em umas telas e folgados em outras. */
+function DialogBody({ className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot="dialog-body"
+      className={cn(
+        'flex-1 overflow-y-auto px-6 py-5 space-y-5',
         className
       )}
       {...props}
@@ -126,6 +142,7 @@ function DialogDescription({
 
 export {
   Dialog,
+  DialogBody,
   DialogClose,
   DialogContent,
   DialogDescription,
