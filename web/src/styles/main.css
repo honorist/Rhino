@@ -138,6 +138,35 @@ body .page-subtitle                { font-size: 14px; }
   color: var(--color-text-muted);
 }
 
+/*
+ * Sidebar tree-view — linha vertical contínua + tick horizontal em cada
+ * sub-item. Tailwind v4 não estava gerando o ::before com content-[""]
+ * dentro de cn(), então o estilo vive aqui como classe CSS clássica.
+ */
+.sidebar-tree {
+  /* Linha vertical contínua à esquerda. Usa cor accent do sidebar pra ficar
+   * visível tanto no tema claro quanto no escuro. */
+  border-left: 2px solid var(--sidebar-border, hsl(0 0% 100% / 0.15));
+  padding-left: 16px;
+}
+
+.sidebar-tree__item {
+  position: relative;
+}
+
+.sidebar-tree__item::before {
+  content: '';
+  position: absolute;
+  /* -16px porque o pai .sidebar-tree tem pl-4 (16px) entre a borda esquerda
+   * e o conteúdo. O tick sai da linha e vai até a row. */
+  left: -16px;
+  top: 50%;
+  width: 12px;
+  height: 2px;
+  background-color: var(--sidebar-border, hsl(0 0% 100% / 0.15));
+  border-radius: 1px;
+}
+
 /* ─── Main Content ─── */
 
 .page-header {

@@ -577,10 +577,9 @@ function SidebarMenuSub({ className, ...props }: React.ComponentProps<'ul'>) {
       data-slot="sidebar-menu-sub"
       data-sidebar="menu-sub"
       className={cn(
-        // Tree-view: linha vertical contínua à esquerda, mais visível que o
-        // border-l/60% anterior. Animação de fade-in quando expande.
-        'relative mx-3.5 flex min-w-0 flex-col gap-0.5 border-l-2 border-sidebar-border/70 pl-4 py-1 group-data-[collapsible=icon]:hidden',
-        'data-[state=open]:animate-in data-[state=open]:fade-in-50',
+        // Tree-view: estilo aplicado via .sidebar-tree (main.css) — Tailwind v4
+        // não estava gerando o ::before com content-[""] dentro de cn().
+        'sidebar-tree relative mx-3.5 flex min-w-0 flex-col gap-0.5 py-1 group-data-[collapsible=icon]:hidden',
         className,
       )}
       {...props}
@@ -593,16 +592,7 @@ function SidebarMenuSubItem({ className, ...props }: React.ComponentProps<'li'>)
     <li
       data-slot="sidebar-menu-sub-item"
       data-sidebar="menu-sub-item"
-      className={cn(
-        // Tick horizontal conectando a linha vertical à row — efeito tree:
-        // ─┬─ item 1
-        //  ├─ item 2
-        //  └─ item 3
-        // O ::before fica grudado na borda esquerda da <li> com largura fixa.
-        'group/menu-sub-item relative',
-        'before:absolute before:left-[-1rem] before:top-1/2 before:h-px before:w-3 before:bg-sidebar-border/70 before:content-[""]',
-        className,
-      )}
+      className={cn('sidebar-tree__item group/menu-sub-item relative', className)}
       {...props}
     />
   );
