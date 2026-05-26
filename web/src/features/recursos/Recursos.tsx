@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Badge } from '../../components/ui/badge';
+import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/button';
 import Card from '../../components/ui/card';
 import DataTable, { type Column } from '../../components/ui/data-table';
@@ -251,27 +252,20 @@ export default function Recursos() {
 
   return (
     <>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Recursos Humanos</h1>
-          <p className="page-subtitle">
-            {recursos.length} pessoa{recursos.length !== 1 ? 's' : ''} cadastrada
-            {recursos.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 'var(--sp-sm)' }}>
-          <Button
-            variant="secondary"
-            size="lg"
-            onClick={() => setModal({ type: 'mapa' })}
-          >
-            🗺 Mapa Geral
-          </Button>
-          <Button size="lg" onClick={() => setModal({ type: 'novo' })}>
-            + Novo Cadastro
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Recursos Humanos"
+        subtitle={`${recursos.length} pessoa${recursos.length !== 1 ? 's' : ''} cadastrada${recursos.length !== 1 ? 's' : ''}`}
+        actions={
+          <>
+            <Button variant="secondary" size="lg" onClick={() => setModal({ type: 'mapa' })}>
+              Mapa Geral
+            </Button>
+            <Button size="lg" onClick={() => setModal({ type: 'novo' })}>
+              + Novo Cadastro
+            </Button>
+          </>
+        }
+      />
 
       <div
         style={{

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Button from '../../components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '../../lib/api';
+import PageHeader from '../../components/layout/PageHeader';
 
 interface Mensagem {
   role: 'user' | 'assistant';
@@ -53,14 +54,7 @@ export default function AiChat() {
 
   return (
     <>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">🤖 Assistente IA</h1>
-          <p className="page-subtitle">
-            Faça perguntas sobre contratos, caixa e contas em linguagem natural
-          </p>
-        </div>
-      </div>
+      <PageHeader title="🤖 Assistente IA" subtitle="Faça perguntas sobre contratos, caixa e contas em linguagem natural" />
 
       <div
         style={{

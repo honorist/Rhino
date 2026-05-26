@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle } from 'lucide-react';
+import PageHeader from '../../components/layout/PageHeader';
 import Card from '../../components/ui/card';
 import Spinner from '../../components/ui/spinner';
 import { BentoGrid, BentoItem } from '../../components/ui/bento-grid';
@@ -226,19 +227,14 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Page header — saudação + status do dia. Mantém as classes legadas
-          `page-header`/`page-title` para preservar o gradiente do tema,
-          mas o `space-y-8` do wrapper já garante o respiro abaixo. */}
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">
+      <PageHeader
+        title={
+          <span className="display block">
             {saudacao(horaH)}, {nome}
-          </h1>
-          <p className="page-subtitle mt-1.5 text-muted-foreground">
-            {subParts.join(' · ')}
-          </p>
-        </div>
-      </div>
+          </span>
+        }
+        subtitle={subParts.join(' · ')}
+      />
 
       {/*
        * Hero bento (DASH-8): Pipeline horizontal (DASH-9) à esquerda como

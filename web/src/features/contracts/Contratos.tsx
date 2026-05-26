@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '../../components/ui/badge';
+import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/button';
 import Card from '../../components/ui/card';
 import Spinner from '../../components/ui/spinner';
@@ -317,20 +318,20 @@ export default function Contratos() {
 
   return (
     <>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Contratos</h1>
-          <p className="page-subtitle">Gerenciar contratos de serviços</p>
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <Button variant="secondary" onClick={() => exportarCsv(filtrados)}>
-            ⬇ CSV
-          </Button>
-          <Button size="lg" onClick={() => setModal({ type: 'novo' })}>
-            + Novo Contrato
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Contratos"
+        subtitle="Gerenciar contratos de serviços"
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => exportarCsv(filtrados)}>
+              Exportar CSV
+            </Button>
+            <Button size="lg" onClick={() => setModal({ type: 'novo' })}>
+              + Novo Contrato
+            </Button>
+          </>
+        }
+      />
 
       {stats &&
         !stats.ehFimDeSemana &&

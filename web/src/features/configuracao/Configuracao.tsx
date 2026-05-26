@@ -11,6 +11,7 @@ import NiveisAcessoSection from './sections/NiveisAcessoSection';
 import PushSection from './sections/PushSection';
 import TiposCustoSection from './sections/TiposCustoSection';
 import TourSection from './sections/TourSection';
+import PageHeader from '../../components/layout/PageHeader';
 
 const SECAO_COMPONENTS: Record<string, ComponentType> = {
   tipos_custo: TiposCustoSection,
@@ -117,12 +118,7 @@ export default function Configuracao() {
 
   return (
     <>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">⚙️ Configurações</h1>
-          <p className="page-subtitle">Personalize seu sistema</p>
-        </div>
-      </div>
+      <PageHeader title="⚙️ Configurações" subtitle="Personalize seu sistema" />
 
       <div
         style={{

@@ -8,6 +8,7 @@ import { formatBRL } from '../../lib/format';
 import { useBase, useCaixa, useNotasFiscais, useRecursos } from '../resources';
 import { useContracts, useSaidas } from '../contracts/queries';
 import { calcMetrics, type ComparativoMetrics } from './metrics';
+import PageHeader from '../../components/layout/PageHeader';
 
 type Filtro = 'ativos' | 'concluidos' | 'todos';
 
@@ -196,15 +197,8 @@ export default function Comparativo() {
 
   return (
     <>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">📊 Comparativo de Contratos</h1>
-          <p className="page-subtitle">
-            Ranking por margem, atraso, execução — clique nas colunas para
-            ordenar
-          </p>
-        </div>
-      </div>
+      <PageHeader title="📊 Comparativo de Contratos" subtitle="Ranking por margem, atraso, execução — clique nas colunas para
+            ordenar" />
 
       <Card style={{ padding: 0, overflow: 'hidden', marginBottom: 'var(--sp-lg)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
