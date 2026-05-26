@@ -22,6 +22,7 @@ import {
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
   SidebarSeparator,
   useSidebar,
@@ -52,11 +53,12 @@ function NavItem({ route }: { route: RouteDef }) {
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild isActive={isActive}>
-        <NavLink to={route.path} onClick={() => setOpenMobile(false)}>
-          {Icon && <Icon />}
-          <span>{route.label}</span>
-        </NavLink>
+      <SidebarMenuButton
+        render={<NavLink to={route.path} onClick={() => setOpenMobile(false)} />}
+        isActive={isActive}
+      >
+        {Icon && <Icon />}
+        <span>{route.label}</span>
       </SidebarMenuButton>
     </SidebarMenuItem>
   );
@@ -112,14 +114,15 @@ function SubNavItem({ route }: { route: RouteDef }) {
   const Icon = route.icon;
 
   return (
-    <li>
-      <SidebarMenuSubButton asChild isActive={isActive}>
-        <NavLink to={route.path} onClick={() => setOpenMobile(false)}>
-          {Icon && <Icon />}
-          <span>{route.label}</span>
-        </NavLink>
+    <SidebarMenuSubItem>
+      <SidebarMenuSubButton
+        render={<NavLink to={route.path} onClick={() => setOpenMobile(false)} />}
+        isActive={isActive}
+      >
+        {Icon && <Icon />}
+        <span>{route.label}</span>
       </SidebarMenuSubButton>
-    </li>
+    </SidebarMenuSubItem>
   );
 }
 
