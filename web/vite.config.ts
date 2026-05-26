@@ -53,6 +53,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: 'script',
+      selfDestroying: true,
       includeAssets: ['favicon.svg', 'icon.svg', 'icon-maskable.svg', 'logo.png'],
       manifest: {
         name: 'Rhino — Gestão Empresarial',

@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.5.9",
+      "date": "2026-05-26",
+      "summary": "fix: Service Worker desativado — CSS/JS sempre frescos, sem cache travando updates",
+      "changes": [
+        "vite.config.ts: selfDestroying:true no VitePWA — SW se auto-deleta de todos os browsers.",
+        "main.css: --color-bg #ffffff (branco puro), sidebar sem box-shadow.",
+        "Após este deploy, todos os usuários terão o SW removido automaticamente na próxima visita.",
+        "Mudanças CSS passam a aparecer imediatamente sem precisar de hard refresh."
+      ]
+    },
+    {
       "version": "1.5.8",
       "date": "2026-05-26",
       "summary": "design: visual shadcn/ui — background slate, muted cinza, sidebar compacta",
