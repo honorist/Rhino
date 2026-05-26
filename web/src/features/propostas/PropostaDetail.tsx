@@ -4,8 +4,22 @@ import {
   useRef,
   useState,
   type ComponentType,
+  type ReactNode,
 } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  AlertCircle,
+  Calendar,
+  Check,
+  ClipboardList,
+  DollarSign,
+  Eye,
+  FileDown,
+  FileText,
+  Lock,
+  Paperclip,
+  Scale,
+} from 'lucide-react';
 import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/button';
 import Card from '../../components/ui/card';
@@ -40,19 +54,21 @@ type SaveState = 'idle' | 'saving' | 'saved' | 'error';
 interface TabDef {
   id: string;
   label: string;
-  icon: string;
+  icon: ReactNode;
   Component: ComponentType<EditorTabProps>;
 }
 
+const ICON_CLS = 'size-4';
+
 const TABS: TabDef[] = [
-  { id: 'dados', label: 'Dados Gerais', icon: '📋', Component: DadosGeraisTab },
-  { id: 'escopo', label: 'Escopo / Fora', icon: '📑', Component: EscopoTab },
-  { id: 'obrigacoes', label: 'Obrigações', icon: '⚖️', Component: ObrigacoesTab },
-  { id: 'cronograma', label: 'Cronograma', icon: '📅', Component: CronogramaTab },
-  { id: 'investimento', label: 'Investimento', icon: '💰', Component: InvestimentoTab },
-  { id: 'custo-interno', label: '🔒 Custo Interno', icon: '', Component: CustoInternoTab },
-  { id: 'anexos', label: 'Anexos', icon: '📎', Component: AnexosTab },
-  { id: 'preview', label: 'Preview', icon: '👁️', Component: PreviewTab },
+  { id: 'dados', label: 'Dados Gerais', icon: <FileText className={ICON_CLS} />, Component: DadosGeraisTab },
+  { id: 'escopo', label: 'Escopo / Fora', icon: <ClipboardList className={ICON_CLS} />, Component: EscopoTab },
+  { id: 'obrigacoes', label: 'Obrigações', icon: <Scale className={ICON_CLS} />, Component: ObrigacoesTab },
+  { id: 'cronograma', label: 'Cronograma', icon: <Calendar className={ICON_CLS} />, Component: CronogramaTab },
+  { id: 'investimento', label: 'Investimento', icon: <DollarSign className={ICON_CLS} />, Component: InvestimentoTab },
+  { id: 'custo-interno', label: 'Custo Interno', icon: <Lock className={ICON_CLS} />, Component: CustoInternoTab },
+  { id: 'anexos', label: 'Anexos', icon: <Paperclip className={ICON_CLS} />, Component: AnexosTab },
+  { id: 'preview', label: 'Preview', icon: <Eye className={ICON_CLS} />, Component: PreviewTab },
 ];
 
 interface EditorApi {
@@ -154,10 +170,10 @@ function SaveIndicator({ state }: { state: SaveState }) {
     return <span style={{ fontSize: 12, color: '#64748b' }}>salvando…</span>;
   }
   if (state === 'saved') {
-    return <span style={{ fontSize: 12, color: '#10b981' }}>✓ salvo</span>;
+    return <span className="inline-flex items-center gap-1" style={{ fontSize: 12, color: '#10b981' }}><Check className="size-3" />salvo</span>;
   }
   if (state === 'error') {
-    return <span style={{ fontSize: 12, color: '#dc2626' }}>⚠ erro ao salvar</span>;
+    return <span className="inline-flex items-center gap-1" style={{ fontSize: 12, color: '#dc2626' }}><AlertCircle className="size-3" />erro ao salvar</span>;
   }
   return null;
 }
@@ -317,7 +333,7 @@ function PropostaEditorView({ id }: { id: string }) {
                 onClick={handleAceitar}
                 disabled={aceitar.isPending}
               >
-                ✓ Marcar como Aceita
+                <Check className="size-4 mr-1" /> Marcar como Aceita
               </Button>
               <Button
                 variant="secondary"
@@ -334,7 +350,7 @@ function PropostaEditorView({ id }: { id: string }) {
             disabled={duplicar.isPending}
             title="Cria nova revisão (Rev.+1)"
           >
-            📋 Nova Revisão
+            <FileText className="size-4 mr-1" /> Nova Revisão
           </Button>
           <Button
             variant="secondary"
@@ -348,7 +364,7 @@ function PropostaEditorView({ id }: { id: string }) {
             onClick={() => handleDownload('pdf')}
             title="Baixar PDF"
           >
-            📑 PDF
+            <FileDown className="size-4 mr-1" /> PDF
           </Button>
         </div>
       </div>
@@ -362,7 +378,7 @@ function PropostaEditorView({ id }: { id: string }) {
                 value={tab.id}
                 className="rounded-none border-b-[3px] border-transparent bg-transparent px-[18px] py-[14px] text-sm font-normal text-muted-foreground whitespace-nowrap data-[state=active]:border-primary data-[state=active]:font-semibold data-[state=active]:text-primary data-[state=active]:shadow-none"
               >
-                {tab.icon} {tab.label}
+                <span className="inline-flex items-center gap-1.5">{tab.icon} {tab.label}</span>
               </TabsTrigger>
             ))}
           </TabsList>

@@ -243,7 +243,7 @@ export default function Propostas() {
         style={{ padding: 'var(--sp-md)', marginBottom: 'var(--sp-lg)' }}
       >
         <Input
-          placeholder="🔍 Buscar por número, título, cliente ou referência..."
+          placeholder="Buscar por número, título, cliente ou referência..."
           value={busca}
           onChange={(event) => setBusca(event.target.value)}
         />
