@@ -1,3 +1,0 @@
-import{H as i,ax as d,a8 as l,y as m}from"./index-pG4Pd7RI.js";const p="\uFEFF";function b(t,e){const c=e.map(a=>a.map(u=>{const n=String(u??"");return/[",;\n]/.test(n)?`"${n.replace(/"/g,'""')}"`:n}).join(";")).join(`\r
-`),s=new Blob([p+c],{type:"text/csv;charset=utf-8;"}),r=URL.createObjectURL(s),o=document.createElement("a");o.href=r,o.download=t,document.body.appendChild(o),o.click(),document.body.removeChild(o),URL.revokeObjectURL(r)}function h(){const t=i.c(1);let e;return t[0]===Symbol.for("react.memo_cache_sentinel")?(e={queryKey:l.rdos,queryFn:y},t[0]=e):e=t[0],d(e)}function y(){return m.get("/api/rdos")}export{b as d,h as u};
-//# sourceMappingURL=queries-CWJ8uXTZ.js.map

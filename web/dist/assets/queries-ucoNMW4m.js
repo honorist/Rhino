@@ -1,0 +1,3 @@
+import{M as i,aA as d,ab as l,G as m}from"./index-Djki33LZ.js";const p="\uFEFF";function f(t,e){const c=e.map(a=>a.map(u=>{const n=String(u??"");return/[",;\n]/.test(n)?`"${n.replace(/"/g,'""')}"`:n}).join(";")).join(`\r
+`),s=new Blob([p+c],{type:"text/csv;charset=utf-8;"}),r=URL.createObjectURL(s),o=document.createElement("a");o.href=r,o.download=t,document.body.appendChild(o),o.click(),document.body.removeChild(o),URL.revokeObjectURL(r)}function h(){const t=i.c(1);let e;return t[0]===Symbol.for("react.memo_cache_sentinel")?(e={queryKey:l.rdos,queryFn:y},t[0]=e):e=t[0],d(e)}function y(){return m.get("/api/rdos")}export{f as d,h as u};
+//# sourceMappingURL=queries-ucoNMW4m.js.map
