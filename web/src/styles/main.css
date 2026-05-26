@@ -23,12 +23,12 @@
   --sidebar-width:       244px;
 
   /* Surface / Neutral — light */
-  --color-bg:            #F3F4F6;
+  --color-bg:            #F8FAFC;
   --color-surface:       #FFFFFF;
-  --color-surface-2:     #F9FAFB;
-  --color-border:        #E5E7EB;
-  --color-text:          #1F2937;
-  --color-text-muted:    #1F2937;  /* forçado para preto — requisito de legibilidade */
+  --color-surface-2:     #F1F5F9;
+  --color-border:        #E2E8F0;
+  --color-text:          #0F172A;
+  --color-text-muted:    #64748B;
 
   /* Status — Akaunting vibes */
   --color-success:       #6D9480;
@@ -83,6 +83,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: "rlig" 1, "calt" 1;
+  letter-spacing: -0.01em;
 }
 
 /* ═══ Texto — classes legadas pontuais (NÃO usar seletor de substring) ═══ */
@@ -138,7 +139,7 @@ body .page-subtitle                { font-size: 14px; }
   overflow-y: auto;
   border-right: 1px solid var(--color-border);
   z-index: 100;
-  box-shadow: 0 0 20px rgba(0,0,0,.03);
+  box-shadow: none;
 }
 
 .sidebar-header {
@@ -188,14 +189,14 @@ body .page-subtitle                { font-size: 14px; }
 .nav-item a {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 11px 14px;
+  gap: 10px;
+  padding: 8px 12px;
   color: var(--sidebar-text);
   text-decoration: none;
   transition: background 0.15s, color 0.15s;
   cursor: pointer;
   border-radius: var(--border-radius);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   position: relative;
 }
@@ -238,11 +239,11 @@ body .page-subtitle                { font-size: 14px; }
 .nav-link-soon {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 11px 14px;
+  gap: 10px;
+  padding: 8px 12px;
   color: var(--color-text-muted);
   border-radius: var(--border-radius);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   cursor: default;
   opacity: 0.55;
@@ -269,14 +270,14 @@ body .page-subtitle                { font-size: 14px; }
 .nav-group-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  padding: 11px 14px;
+  padding: 8px 12px;
   background: none;
   border: none;
   border-radius: var(--border-radius);
   color: var(--sidebar-text);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
@@ -358,8 +359,8 @@ body .page-subtitle                { font-size: 14px; }
 }
 
 .nav-group-children .nav-item a {
-  padding-left: 38px;
-  font-size: 15px;
+  padding-left: 34px;
+  font-size: 13px;
 }
 
 .sidebar-footer {

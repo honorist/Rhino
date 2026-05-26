@@ -1,6 +1,21 @@
 {
   "entries": [
     {
+      "version": "1.5.8",
+      "date": "2026-05-26",
+      "summary": "design: visual shadcn/ui — background slate, muted cinza, sidebar compacta",
+      "changes": [
+        "main.css: --color-bg #F3F4F6 → #F8FAFC (slate-50, menos cinza opaco).",
+        "main.css: --color-text-muted #1F2937 → #64748B (cinza slate-500, não mais preto).",
+        "main.css: --color-border #E5E7EB → #E2E8F0 e --color-text #1F2937 → #0F172A (maior contraste base).",
+        "main.css: sidebar box-shadow removido (look mais plano/moderno).",
+        "main.css: nav items — padding 11px/14px → 8px/12px, font-size 15px → 14px (mais compacto, shadcn-like).",
+        "main.css: nav subitems — padding-left 38px → 34px, font-size 15px → 13px.",
+        "main.css: body letter-spacing -0.01em para melhor legibilidade Inter.",
+        "index.html: título v1.5.8 para confirmar deploy."
+      ]
+    },
+    {
       "version": "1.5.7",
       "date": "2026-05-26",
       "summary": "fix: CAUSA RAIZ — Dockerfile seta SERVE_REACT=1; Railway agora serve o React",
