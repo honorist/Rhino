@@ -85,7 +85,7 @@ export default function Modal({
           {/* Content: 28px horizontal, 24px vertical; rolável quando passa
               do max-h. `space-y-5` dá gap consistente entre form-rows e
               outros blocos sem depender do margin-bottom do .form-group. */}
-          <div className="flex-1 overflow-y-auto px-8 py-7 [&>form]:space-y-6">
+          <div className="flex-1 overflow-y-auto px-8 py-7 space-y-5 [&>form]:space-y-5">
             {children}
           </div>
 

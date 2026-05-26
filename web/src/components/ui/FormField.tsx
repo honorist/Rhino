@@ -32,7 +32,7 @@ export default function FormField({
   className,
 }: FormFieldProps) {
   return (
-    <div className={cn('space-y-2', className)}>
+    <div className={cn('space-y-2.5', className)}>
       <RadixLabel.Root
         className="block text-[13px] font-medium text-foreground leading-tight"
         htmlFor={htmlFor}

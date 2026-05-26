@@ -13,20 +13,20 @@ import { cn } from '../../lib/cn';
  * usando `<input className="form-control">` direto.
  */
 const BASE_INPUT_CLASS =
-  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ' +
+  'flex h-11 w-full rounded-md border border-input bg-background px-3.5 py-2.5 text-sm ' +
   'text-foreground placeholder:text-muted-foreground transition-colors ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ' +
   'disabled:cursor-not-allowed disabled:opacity-50 ' +
   'file:border-0 file:bg-transparent file:text-sm file:font-medium';
 
 const BASE_TEXTAREA_CLASS =
-  'flex min-h-[90px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ' +
-  'text-foreground placeholder:text-muted-foreground transition-colors resize-y ' +
+  'flex min-h-[120px] w-full rounded-md border border-input bg-background px-3.5 py-2.5 text-sm ' +
+  'text-foreground placeholder:text-muted-foreground transition-colors resize-y leading-relaxed ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ' +
   'disabled:cursor-not-allowed disabled:opacity-50';
 
 const BASE_SELECT_CLASS =
-  'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ' +
+  'flex h-11 w-full rounded-md border border-input bg-background px-3.5 py-2.5 text-sm ' +
   'text-foreground transition-colors ' +
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ' +
   'disabled:cursor-not-allowed disabled:opacity-50';
