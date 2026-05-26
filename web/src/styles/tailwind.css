@@ -365,3 +365,20 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.553 0.013 58.071);
 }
+
+/*
+ * Acessibilidade: respeita prefers-reduced-motion.
+ * Desabilita animações, transições e scroll suave quando o usuário pediu menos
+ * movimento no sistema. WCAG 2.3.3 / SC 2.3.3 (AAA) — pre-delivery checklist
+ * exige esse handler global.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

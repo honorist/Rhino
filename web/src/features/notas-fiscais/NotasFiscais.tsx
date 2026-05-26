@@ -1,5 +1,16 @@
 import { useCallback, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  AlertCircle,
+  AlertTriangle,
+  Calendar,
+  Check,
+  CheckCircle2,
+  DollarSign,
+  List,
+  Send,
+  Undo2,
+} from 'lucide-react';
 import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/button';
 import DataTable, { type Column, type FacetedFilter } from '../../components/ui/data-table';
@@ -111,10 +122,10 @@ export default function NotasFiscais() {
       : 100;
   const statusGeral =
     vencidas.length > 0
-      ? { cor: '#E53E3E', bg: 'rgba(229,62,62,.07)', texto: 'Atenção urgente', icone: '🔴' }
+      ? { cor: '#E53E3E', bg: 'rgba(229,62,62,.07)', texto: 'Atenção urgente', icone: <AlertCircle className="size-4" /> }
       : proximas.length > 0
-        ? { cor: '#D69E2E', bg: 'rgba(214,158,46,.07)', texto: 'Requer atenção', icone: '⚠️' }
-        : { cor: '#38A169', bg: 'rgba(56,161,105,.07)', texto: 'Tudo em dia', icone: '✅' };
+        ? { cor: '#D69E2E', bg: 'rgba(214,158,46,.07)', texto: 'Requer atenção', icone: <AlertTriangle className="size-4" /> }
+        : { cor: '#38A169', bg: 'rgba(56,161,105,.07)', texto: 'Tudo em dia', icone: <CheckCircle2 className="size-4" /> };
 
   const proximasTimeline = pendentes
     .filter((nf) => {
@@ -180,13 +191,13 @@ export default function NotasFiscais() {
               flexWrap: 'wrap',
             }}
           >
-            <PanelMetric icone="🔴" valor={vencidas.length} cor="#E53E3E" rotulo="Vencidas" />
+            <PanelMetric icone={<AlertCircle className="size-4" style={{ color: '#E53E3E' }} />} valor={vencidas.length} cor="#E53E3E" rotulo="Vencidas" />
             <PanelDivisor cor={statusGeral.cor} />
-            <PanelMetric icone="⚠️" valor={proximas.length} cor="#D69E2E" rotulo="Próx. 7d" />
+            <PanelMetric icone={<AlertTriangle className="size-4" style={{ color: '#D69E2E' }} />} valor={proximas.length} cor="#D69E2E" rotulo="Próx. 7d" />
             <PanelDivisor cor={statusGeral.cor} />
-            <PanelMetric icone="✅" valor={noPrazo.length} cor="#38A169" rotulo="No prazo" />
+            <PanelMetric icone={<CheckCircle2 className="size-4" style={{ color: '#38A169' }} />} valor={noPrazo.length} cor="#38A169" rotulo="No prazo" />
             <PanelDivisor cor={statusGeral.cor} />
-            <PanelMetric icone="📤" valor={emitidas.length} cor="#3182CE" rotulo="Emitidas" />
+            <PanelMetric icone={<Send className="size-4" style={{ color: '#3182CE' }} />} valor={emitidas.length} cor="#3182CE" rotulo="Emitidas" />
             <div style={{ flex: 1 }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }}>
               <span style={{ fontWeight: 700, color: statusGeral.cor }}>
@@ -244,21 +255,21 @@ export default function NotasFiscais() {
               variant={tab === 'lista' ? 'primary' : 'secondary'}
               onClick={() => setTab('lista')}
             >
-              📋 Lista Geral
+              <List className="size-4 mr-1.5" /> Lista Geral
             </Button>
             <Button
               size="sm"
               variant={tab === 'semanal' ? 'primary' : 'secondary'}
               onClick={() => setTab('semanal')}
             >
-              📅 Semanal
+              <Calendar className="size-4 mr-1.5" /> Semanal
             </Button>
             <Button
               size="sm"
               variant={tab === 'mensal' ? 'primary' : 'secondary'}
               onClick={() => setTab('mensal')}
             >
-              📆 Mensal
+              <Calendar className="size-4 mr-1.5" /> Mensal
             </Button>
           </div>
 
@@ -322,14 +333,14 @@ function PanelMetric({
   cor,
   rotulo,
 }: {
-  icone: string;
+  icone: ReactNode;
   valor: number;
   cor: string;
   rotulo: string;
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }}>
-      <span>{icone}</span>
+      <span className="flex items-center">{icone}</span>
       <span style={{ fontSize: 18, fontWeight: 800, color: cor, lineHeight: 1 }}>
         {valor}
       </span>
@@ -522,7 +533,7 @@ function ListaTab({
           if (nf.emitida) {
             return (
               <div>
-                <Badge style={{ background: 'rgba(56,161,105,.15)', color: '#38A169' }}>✓ EMITIDA</Badge>
+                <Badge style={{ background: 'rgba(56,161,105,.15)', color: '#38A169' }} className="gap-1"><Check className="size-3" />EMITIDA</Badge>
                 <div className="text-sm text-muted-foreground mt-0.5">em {formatDate(nf.dataEmissaoReal)}</div>
               </div>
             );
@@ -530,8 +541,8 @@ function ListaTab({
           const st = getNotaFiscalStatus(nf.dataLimite);
           return (
             <div>
-              <Badge variant={st.status === 'vencida' ? 'destructive' : st.status === 'proximo_vencer' ? 'warning' : 'success'}>
-                {st.status === 'vencida' ? '🔴 Vencida' : st.status === 'proximo_vencer' ? '⚠️ Próxima' : '🟢 No prazo'}
+              <Badge variant={st.status === 'vencida' ? 'destructive' : st.status === 'proximo_vencer' ? 'warning' : 'success'} className="gap-1">
+                {st.status === 'vencida' ? <><AlertCircle className="size-3" />Vencida</> : st.status === 'proximo_vencer' ? <><AlertTriangle className="size-3" />Próxima</> : <><CheckCircle2 className="size-3" />No prazo</>}
               </Badge>
               <div className="text-sm text-muted-foreground mt-0.5">
                 {st.status === 'vencida'
@@ -553,7 +564,7 @@ function ListaTab({
                 className="h-auto p-0 text-green-600 font-semibold"
                 onClick={(e) => { e.stopPropagation(); onEmitir(nf.id); }}
               >
-                ✓ Marcar Emitida
+                <Check className="size-4 mr-1" /> Marcar Emitida
               </Button>
             ) : (
               <Button
@@ -562,7 +573,7 @@ function ListaTab({
                 className="h-auto p-0"
                 onClick={(e) => { e.stopPropagation(); handleCancelar(nf.id); }}
               >
-                ↶ Desfazer
+                <Undo2 className="size-4 mr-1" /> Desfazer
               </Button>
             )}
             <Button
@@ -737,12 +748,12 @@ function SemanalTab({ notas, contractById }: SemanalTabProps) {
                   <TableBody>
                     {nfsSem.map((nf) => {
                       const st = getNotaFiscalStatus(nf.dataLimite);
-                      const icon =
+                      const StatusIcon =
                         st.status === 'vencida'
-                          ? '🔴'
+                          ? AlertCircle
                           : st.status === 'proximo_vencer'
-                            ? '⚠️'
-                            : '🟢';
+                            ? AlertTriangle
+                            : CheckCircle2;
                       return (
                         <TableRow key={nf.id}>
                           <TableCell>
@@ -753,8 +764,8 @@ function SemanalTab({ notas, contractById }: SemanalTabProps) {
                           </TableCell>
                           <TableCell>{formatDate(nf.dataLimite)}</TableCell>
                           <TableCell>
-                            <Badge variant={st.status === 'vencida' ? 'destructive' : st.status === 'proximo_vencer' ? 'warning' : 'success'}>
-                              {icon} {st.dias >= 0 ? `${st.dias}d` : 'Vencida'}
+                            <Badge variant={st.status === 'vencida' ? 'destructive' : st.status === 'proximo_vencer' ? 'warning' : 'success'} className="gap-1">
+                              <StatusIcon className="size-3" /> {st.dias >= 0 ? `${st.dias}d` : 'Vencida'}
                             </Badge>
                           </TableCell>
                         </TableRow>
@@ -893,16 +904,17 @@ function MensalTab({ notas, currentMonth, onChangeMonth }: MensalTabProps) {
                       </div>
                       {nfsDia.map((nf) => {
                         const st = getNotaFiscalStatus(nf.dataLimite);
-                        const icon =
+                        const StatusIcon =
                           st.status === 'vencida'
-                            ? '🔴'
+                            ? AlertCircle
                             : st.status === 'proximo_vencer'
-                              ? '⚠️'
-                              : '🟢';
+                              ? AlertTriangle
+                              : CheckCircle2;
                         return (
                           <div
                             key={nf.id}
                             title={`NF ${nf.numero}`}
+                            className="flex items-center gap-1"
                             style={{
                               fontSize: 12,
                               padding: '2px 4px',
@@ -915,7 +927,7 @@ function MensalTab({ notas, currentMonth, onChangeMonth }: MensalTabProps) {
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            {icon} NF {nf.numero}
+                            <StatusIcon className="size-3 shrink-0" /> NF {nf.numero}
                           </div>
                         );
                       })}
@@ -1120,7 +1132,7 @@ function NFModal({ nf, contratos, onClose }: NFModalProps) {
                   fontSize: 13,
                 }}
               >
-                💰 Recebimento previsto: <strong>{previewRecebimento}</strong>
+                <DollarSign className="size-4 inline mr-1" />Recebimento previsto: <strong>{previewRecebimento}</strong>
               </div>
             )}
 
@@ -1191,7 +1203,7 @@ function EmitirModal({ nf, contrato, onClose }: EmitirModalProps) {
     <Dialog open onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
         <DialogHeader>
-          <DialogTitle>{`✓ Marcar NF ${nf.numero} como Emitida`}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2"><Check className="size-5" />{`Marcar NF ${nf.numero} como Emitida`}</DialogTitle>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           <div
@@ -1238,7 +1250,7 @@ function EmitirModal({ nf, contrato, onClose }: EmitirModalProps) {
             }}
           >
             <div style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
-              💰 Entrada automática no caixa
+              <DollarSign className="size-4 inline mr-1" />Entrada automática no caixa
             </div>
             <div style={{ color: 'var(--color-text-muted)', marginTop: 4 }}>
               {recebimento ? (
@@ -1264,7 +1276,7 @@ function EmitirModal({ nf, contrato, onClose }: EmitirModalProps) {
             onClick={handleConfirmar}
             disabled={emitir.isPending}
           >
-            {emitir.isPending ? 'Confirmando...' : '✓ Confirmar Emissão'}
+            {emitir.isPending ? 'Confirmando...' : <><Check className="size-4 mr-1" /> Confirmar Emissão</>}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1355,7 +1367,7 @@ function DetailModal({ nf, contrato, onClose, onEmitir }: DetailModalProps) {
               background: nf.emitida ? 'rgba(56,161,105,.15)' : 'rgba(214,158,46,.12)',
               color: nf.emitida ? 'var(--color-success)' : 'var(--color-warning)',
             }}>
-              {nf.emitida ? '✓ Emitida' : 'Pendente'}
+              {nf.emitida ? <><Check className="size-3 inline mr-1" />Emitida</> : 'Pendente'}
             </Badge>
             <span
               style={{
