@@ -371,8 +371,8 @@ export default function InvestimentoTab({ proposta, onChange }: EditorTabProps) 
         </div>
       )}
 
-      <div className="form-group" style={{ marginTop: 24 }}>
-        <label className="form-label">Condições de Pagamento</label>
+      <div className="space-y-1.5" style={{ marginTop: 24 }}>
+        <label className="block text-sm font-medium leading-none text-foreground mb-1.5">Condições de Pagamento</label>
         <Textarea
           rows={4}
           value={proposta.condicoesPagamento ?? ''}

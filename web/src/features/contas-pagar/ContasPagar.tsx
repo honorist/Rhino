@@ -854,7 +854,7 @@ function ContaModal({ conta, fornecedores, contratos, onClose }: ContaModalProps
             </FormField>
 
             <div
-              className="form-group"
+              className="space-y-1.5"
               style={{
                 borderTop: '1px solid var(--color-border)',
                 paddingTop: 'var(--sp-sm)',
@@ -950,8 +950,8 @@ function PagarModal({ conta, onClose }: PagarModalProps) {
             {conta.numeroNF ? ` — NF ${conta.numeroNF}` : ''}
           </p>
 
-          <div className="form-group">
-            <label className="form-label">Forma de Pagamento</label>
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium leading-none text-foreground mb-1.5">Forma de Pagamento</label>
             <div
               style={{
                 display: 'grid',

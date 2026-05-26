@@ -295,7 +295,7 @@ function UserFormModal({ user, niveis, onClose }: UserFormModalProps) {
         </FormField>
 
         {isEdit && (
-          <div className="form-group">
+          <div className="space-y-1.5">
             <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input
                 type="checkbox"

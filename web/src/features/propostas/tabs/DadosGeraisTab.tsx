@@ -24,8 +24,8 @@ function Field({
   children: ReactNode;
 }) {
   return (
-    <div className={`form-group prop-fg${full ? ' full' : ''}`}>
-      <label className="form-label">{label}</label>
+    <div className={`space-y-1.5 prop-fg${full ? ' full' : ''}`}>
+      <label className="block text-sm font-medium leading-none text-foreground mb-1.5">{label}</label>
       {children}
     </div>
   );
@@ -186,8 +186,8 @@ export default function DadosGeraisTab({ proposta, onChange }: EditorTabProps) {
       </div>
 
       <h3 className="prop-section-title">Texto de Abertura</h3>
-      <div className="form-group prop-fg" style={{ marginBottom: 10 }}>
-        <label className="form-label">Objetivo</label>
+      <div className="space-y-1.5 prop-fg" style={{ marginBottom: 10 }}>
+        <label className="block text-sm font-medium leading-none text-foreground mb-1.5">Objetivo</label>
         <Textarea
           rows={3}
           value={proposta.objetivo ?? ''}
@@ -195,8 +195,8 @@ export default function DadosGeraisTab({ proposta, onChange }: EditorTabProps) {
           placeholder="Descrição do que a proposta visa atender..."
         />
       </div>
-      <div className="form-group prop-fg" style={{ marginBottom: 10 }}>
-        <label className="form-label">Saudação (parágrafo de abertura)</label>
+      <div className="space-y-1.5 prop-fg" style={{ marginBottom: 10 }}>
+        <label className="block text-sm font-medium leading-none text-foreground mb-1.5">Saudação (parágrafo de abertura)</label>
         <Textarea
           rows={2}
           value={proposta.saudacao ?? SAUDACAO_PADRAO}

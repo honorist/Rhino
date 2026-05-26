@@ -354,7 +354,7 @@ export default function Contratos() {
       <Card style={{ padding: 'var(--sp-md)', marginBottom: 'var(--sp-md)' }}>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: 1, minWidth: 200 }}>
-            <label className="form-label">Buscar</label>
+            <label className="block text-sm font-medium leading-none text-foreground mb-1.5">Buscar</label>
             <Input
               type="search"
               placeholder="Nome, cliente ou número..."
@@ -363,7 +363,7 @@ export default function Contratos() {
             />
           </div>
           <div style={{ width: 200 }}>
-            <label className="form-label">Status</label>
+            <label className="block text-sm font-medium leading-none text-foreground mb-1.5">Status</label>
             <Select
               value={filtroStatus}
               onChange={(e) => setFiltroStatus(e.target.value)}

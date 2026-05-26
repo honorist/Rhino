@@ -326,7 +326,7 @@ function ClienteFormModal({ cliente, onClose }: ClienteFormModalProps) {
         </FormField>
 
         <div
-          className="form-group"
+          className="space-y-1.5"
           style={{
             marginTop: 'var(--sp-md)',
             paddingTop: 'var(--sp-md)',

@@ -342,7 +342,7 @@ export default function SolicitacoesCompra() {
           }}
         >
           <div>
-            <label className="form-label">Etapa</label>
+            <label className="block text-sm font-medium leading-none text-foreground mb-1.5">Etapa</label>
             <Select
               value={filtroStatus}
               onChange={(e) => setFiltroStatus(e.target.value)}
@@ -356,7 +356,7 @@ export default function SolicitacoesCompra() {
             </Select>
           </div>
           <div>
-            <label className="form-label">Contrato (após avaliação)</label>
+            <label className="block text-sm font-medium leading-none text-foreground mb-1.5">Contrato (após avaliação)</label>
             <Select
               value={filtroContrato}
               onChange={(e) => setFiltroContrato(e.target.value)}

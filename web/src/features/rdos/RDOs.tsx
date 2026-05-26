@@ -174,8 +174,8 @@ function PickerContratoModal({ onClose }: { onClose: () => void }) {
           ) : ativos.length === 0 ? (
             <p className="text-muted">Nenhum contrato ativo encontrado.</p>
           ) : (
-            <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">Contrato *</label>
+            <div className="space-y-1.5" style={{ margin: 0 }}>
+              <label className="block text-sm font-medium leading-none text-foreground mb-1.5">Contrato *</label>
               <Combobox
                 options={ativos.map((c) => ({
                   value: c.id,
@@ -503,8 +503,8 @@ export default function RDOs() {
           flexWrap: 'wrap',
         }}
       >
-        <div className="form-group" style={{ margin: 0, minWidth: 240 }}>
-          <label className="form-label">Contrato</label>
+        <div className="space-y-1.5" style={{ margin: 0, minWidth: 240 }}>
+          <label className="block text-sm font-medium leading-none text-foreground mb-1.5">Contrato</label>
           <Combobox
             options={[
               { value: '', label: '— Todos —' },
@@ -523,8 +523,8 @@ export default function RDOs() {
             emptyText="Nenhum contrato encontrado."
           />
         </div>
-        <div className="form-group" style={{ margin: 0 }}>
-          <label className="form-label">Mês</label>
+        <div className="space-y-1.5" style={{ margin: 0 }}>
+          <label className="block text-sm font-medium leading-none text-foreground mb-1.5">Mês</label>
           <Input
             type="month"
             value={filterMes}

@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.5.12",
+      "date": "2026-05-26",
+      "summary": "design: buttons, DataTable e form labels migrados para shadcn/ui",
+      "changes": [
+        "button.tsx: adicionado [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 para ícones SVG. shadow-sm em variantes primary/secondary/danger/success/outline. Tamanho md ajustado para h-9 (shadcn default), lg para h-10 px-8, icon para h-9 w-9.",
+        "data-table.tsx: tabela migrada de classes CSS legadas (.table-wrap, thead/tbody/tr/td globais) para Tailwind inline. Wrapper: rounded-md border border-border. thead: bg-muted/50, th: h-10 px-3 text-muted-foreground. tbody tr: hover:bg-muted/50, td: p-3 align-middle text-sm.",
+        "15 feature files: form-label → 'block text-sm font-medium leading-none text-foreground mb-1.5'. form-group → 'space-y-1.5'. Arquivos: Portal, Contratos, InvestimentoTab, DadosGeraisTab, CronogramaTab, Login, Usuarios, SolicitacoesCompra, RDOs, Propostas, Investimentos, ContasPagar, Clientes, Base, Auditoria."
+      ]
+    },
+    {
       "version": "1.5.11",
       "date": "2026-05-26",
       "summary": "design: sidebar shadcn/ui completo — SidebarMenuButton, SidebarMenuSub, CSS vars sidebar-*",

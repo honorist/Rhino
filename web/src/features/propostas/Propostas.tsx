@@ -373,8 +373,8 @@ function NovaPropostaModal({ onClose }: { onClose: () => void }) {
           />
         </FormField>
 
-        <div className="form-group">
-          <label className="form-label">Tipo *</label>
+        <div className="space-y-1.5">
+          <label className="block text-sm font-medium leading-none text-foreground mb-1.5">Tipo *</label>
           <div style={{ display: 'flex', gap: 8 }}>
             {TIPOS.map((t) => {
               const ativo = tipo === t.value;

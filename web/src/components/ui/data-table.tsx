@@ -225,10 +225,10 @@ export default function DataTable<T>({
   const hideableColumns = table.getAllColumns().filter((col) => col.getCanHide());
 
   return (
-    <div className={cn('table-wrap', className)}>
+    <div className={cn('w-full overflow-x-auto rounded-md border border-border', className)}>
       {/* Toolbar: search + faceted filters + column toggle */}
       {(searchPlaceholder || (filters && filters.length > 0) || (showColumnToggle && hideableColumns.length > 0)) && (
-        <div className="flex flex-wrap items-center gap-2 mb-3">
+        <div className="flex flex-wrap items-center gap-2 p-3 border-b border-border">
           {searchPlaceholder && globalFilterFn && (
             <div className="relative flex-1 min-w-[160px] max-w-xs">
               <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
@@ -379,12 +379,12 @@ export default function DataTable<T>({
           </div>
         </div>
       )}
-      <table className="w-full">
-        <thead>
+      <table className="w-full caption-bottom text-sm">
+        <thead className="[&_tr]:border-b border-border bg-muted/50">
           {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
+            <tr key={headerGroup.id} className="border-b border-border transition-colors">
               {selectable && (
-                <th style={{ width: 36 }}>
+                <th className="h-10 px-3 text-left align-middle font-medium text-muted-foreground" style={{ width: 36 }}>
                   <input
                     type="checkbox"
                     aria-label="Selecionar todas as linhas visíveis"
@@ -406,13 +406,16 @@ export default function DataTable<T>({
                   <th
                     key={header.id}
                     style={{ width: meta?.width }}
-                    className={cn(meta?.align && ALIGN_CLASS[meta.align])}
+                    className={cn(
+                      'h-10 px-3 text-left align-middle font-medium text-muted-foreground whitespace-nowrap',
+                      meta?.align && ALIGN_CLASS[meta.align],
+                    )}
                   >
                     {canSort ? (
                       <button
                         type="button"
                         onClick={header.column.getToggleSortingHandler()}
-                        className="inline-flex items-center gap-1 hover:text-primary"
+                        className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
                       >
                         {flexRender(header.column.columnDef.header, header.getContext())}
                         {sortState === 'asc' ? (
@@ -432,13 +435,12 @@ export default function DataTable<T>({
             </tr>
           ))}
         </thead>
-        <tbody>
+        <tbody className="[&_tr:last-child]:border-0">
           {visibleRows.length === 0 ? (
             <tr>
               <td
                 colSpan={table.getVisibleFlatColumns().length + (selectable ? 1 : 0)}
-                className="text-center text-muted-foreground"
-                style={{ padding: 32 }}
+                className="h-24 text-center text-muted-foreground"
               >
                 {emptyMessage}
               </td>
@@ -450,12 +452,15 @@ export default function DataTable<T>({
                 <tr
                   key={row.id}
                   onClick={onRowClick ? () => onRowClick(row.original) : undefined}
-                  style={onRowClick ? { cursor: 'pointer' } : undefined}
-                  className={isSelected ? 'bg-primary/5' : undefined}
+                  className={cn(
+                    'border-b border-border transition-colors hover:bg-muted/50',
+                    onRowClick && 'cursor-pointer',
+                    isSelected && 'bg-primary/5',
+                  )}
                   aria-selected={selectable ? isSelected : undefined}
                 >
                   {selectable && (
-                    <td onClick={(e) => e.stopPropagation()}>
+                    <td className="p-3 align-middle" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         aria-label={`Selecionar linha ${row.id}`}
@@ -471,7 +476,10 @@ export default function DataTable<T>({
                     return (
                       <td
                         key={cell.id}
-                        className={cn(meta?.align && ALIGN_CLASS[meta.align])}
+                        className={cn(
+                          'p-3 align-middle text-sm',
+                          meta?.align && ALIGN_CLASS[meta.align],
+                        )}
                       >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>

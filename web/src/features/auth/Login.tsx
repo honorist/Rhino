@@ -73,8 +73,8 @@ function LoginForm({
         />
         <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Acessar o Rhino</h1>
       </div>
-      <div className="form-group">
-        <label className="form-label" htmlFor="login-email">
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium leading-none text-foreground mb-1.5" htmlFor="login-email">
           Email
         </label>
         <Input
@@ -87,8 +87,8 @@ function LoginForm({
           onChange={(e) => setEmail(e.target.value)}
         />
       </div>
-      <div className="form-group">
-        <label className="form-label" htmlFor="loginPwd">
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium leading-none text-foreground mb-1.5" htmlFor="loginPwd">
           Senha
         </label>
         <div style={{ position: 'relative' }}>
@@ -213,8 +213,8 @@ function ForgotForm({ onBack }: { onBack: () => void }) {
           Informe seu email pra receber o link de recuperação
         </p>
       </div>
-      <div className="form-group">
-        <label className="form-label" htmlFor="forgot-email">
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium leading-none text-foreground mb-1.5" htmlFor="forgot-email">
           Email
         </label>
         <Input

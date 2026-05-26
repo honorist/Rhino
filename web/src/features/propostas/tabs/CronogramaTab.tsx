@@ -295,8 +295,8 @@ export default function CronogramaTab({ proposta, onChange }: EditorTabProps) {
         </div>
       )}
 
-      <div className="form-group" style={{ marginTop: 24 }}>
-        <label className="form-label">
+      <div className="space-y-1.5" style={{ marginTop: 24 }}>
+        <label className="block text-sm font-medium leading-none text-foreground mb-1.5">
           Prazo total / observações de execução
         </label>
         <Textarea

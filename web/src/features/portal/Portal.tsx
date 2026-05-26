@@ -216,7 +216,7 @@ function PortalLogin({ onSuccess }: { onSuccess: (c: Cliente) => void }) {
             style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-md)' }}
           >
             <label>
-              <div className="form-label">Email</div>
+              <div className="block text-sm font-medium leading-none text-foreground mb-1.5">Email</div>
               <Input
                 type="email"
                 autoComplete="username"
@@ -226,7 +226,7 @@ function PortalLogin({ onSuccess }: { onSuccess: (c: Cliente) => void }) {
               />
             </label>
             <label>
-              <div className="form-label">Senha</div>
+              <div className="block text-sm font-medium leading-none text-foreground mb-1.5">Senha</div>
               <Input
                 type="password"
                 autoComplete="current-password"

@@ -620,8 +620,8 @@ function NovoAporteModal({
         </DialogHeader>
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           <form id="form-aporte" onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label className="form-label">1. Origem do Aporte *</label>
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium leading-none text-foreground mb-1.5">1. Origem do Aporte *</label>
               <div
                 style={{
                   display: 'grid',
@@ -665,14 +665,14 @@ function NovoAporteModal({
             )}
 
             <div
-              className="form-group"
+              className="space-y-1.5"
               style={{
                 marginTop: 'var(--sp-lg)',
                 paddingTop: 'var(--sp-lg)',
                 borderTop: '1px solid var(--color-border)',
               }}
             >
-              <label className="form-label">2. Destino do Aporte *</label>
+              <label className="block text-sm font-medium leading-none text-foreground mb-1.5">2. Destino do Aporte *</label>
               <div
                 style={{
                   display: 'grid',

@@ -276,8 +276,8 @@ export default function Auditoria() {
           alignItems: 'end',
         }}
       >
-        <div className="form-group" style={{ margin: 0 }}>
-          <label className="form-label">Pesquisar por usuário</label>
+        <div className="space-y-1.5" style={{ margin: 0 }}>
+          <label className="block text-sm font-medium leading-none text-foreground mb-1.5">Pesquisar por usuário</label>
           <Input
             placeholder="digite um email"
             value={userDraft}
@@ -286,8 +286,8 @@ export default function Auditoria() {
             onKeyDown={handleUserKey}
           />
         </div>
-        <div className="form-group" style={{ margin: 0 }}>
-          <label className="form-label">Em qual tela</label>
+        <div className="space-y-1.5" style={{ margin: 0 }}>
+          <label className="block text-sm font-medium leading-none text-foreground mb-1.5">Em qual tela</label>
           <Select
             value={filters.entity}
             onChange={(e) => setFilter({ entity: e.target.value })}
@@ -300,8 +300,8 @@ export default function Auditoria() {
             ))}
           </Select>
         </div>
-        <div className="form-group" style={{ margin: 0 }}>
-          <label className="form-label">Tipo de ação</label>
+        <div className="space-y-1.5" style={{ margin: 0 }}>
+          <label className="block text-sm font-medium leading-none text-foreground mb-1.5">Tipo de ação</label>
           <Select
             value={filters.action}
             onChange={(e) => setFilter({ action: e.target.value })}
@@ -314,15 +314,15 @@ export default function Auditoria() {
             ))}
           </Select>
         </div>
-        <div className="form-group" style={{ margin: 0 }}>
-          <label className="form-label">A partir de</label>
+        <div className="space-y-1.5" style={{ margin: 0 }}>
+          <label className="block text-sm font-medium leading-none text-foreground mb-1.5">A partir de</label>
           <DatePicker
             value={filters.from}
             onChange={(val) => setFilter({ from: val })}
           />
         </div>
-        <div className="form-group" style={{ margin: 0 }}>
-          <label className="form-label">Até</label>
+        <div className="space-y-1.5" style={{ margin: 0 }}>
+          <label className="block text-sm font-medium leading-none text-foreground mb-1.5">Até</label>
           <DatePicker
             value={filters.to}
             onChange={(val) => setFilter({ to: val })}

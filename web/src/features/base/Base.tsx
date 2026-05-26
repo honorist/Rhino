@@ -552,7 +552,7 @@ function BaseItemModal({ item, tipos, onClose }: BaseItemModalProps) {
             </FormField>
 
             <div
-              className="form-group"
+              className="space-y-1.5"
               style={{
                 borderTop: '1px solid var(--color-border)',
                 paddingTop: 'var(--sp-md)',
