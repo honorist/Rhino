@@ -133,11 +133,11 @@ function ContratoDetailView({ id }: { id: string }) {
             <Badge
               variant={
                 contract.status === 'ativo' ? 'success' :
-                contract.status === 'cancelado' ? 'destructive' :
-                contract.status === 'pausado' ? 'warning' : 'secondary'
+                contract.status === 'cancelado' || contract.status === 'nao_aprovado' ? 'destructive' :
+                contract.status === 'pausado' || contract.status === 'nao_iniciado' ? 'warning' : 'secondary'
               }
             >
-              {contract.status.toUpperCase()}
+              {contract.status.replace('_', ' ').toUpperCase()}
             </Badge>
             {(contract.startDate || contract.endDate) && (
               <span

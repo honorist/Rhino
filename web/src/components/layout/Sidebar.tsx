@@ -14,6 +14,7 @@ import { GROUP_ROUTES, NAV_GROUPS, ROUTES } from '../../routes/config';
 import { podeAcessar, usePerfilStore } from '../../features/auth/perfilStore';
 import { useCurrentUser, useLogout } from '../../features/auth/queries';
 import NotificacoesBell from '../../features/recrutamento/NotificacoesBell';
+import { cn } from '@/lib/cn';
 
 /**
  * Filtra rotas conforme o perfil ativo. Espelha o `perfil.podeAcessar()` do
@@ -38,17 +39,33 @@ interface SidebarProps {
 }
 
 // ─── Item de navegação (link) ───
-function NavItem({ route, onNavigate }: { route: RouteDef; onNavigate: () => void }) {
+function NavItem({
+  route,
+  onNavigate,
+  nested = false,
+}: {
+  route: RouteDef;
+  onNavigate: () => void;
+  nested?: boolean;
+}) {
   const Icon = route.icon;
   return (
-    <li className="nav-item">
+    <li>
       <NavLink
         to={route.path}
-        className={({ isActive }) => (isActive ? 'active' : undefined)}
+        className={({ isActive }) =>
+          cn(
+            'flex items-center gap-2.5 rounded-md font-medium transition-colors',
+            nested ? 'px-3 py-1.5 text-[13px]' : 'px-3 py-2 text-sm',
+            isActive
+              ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
+          )
+        }
         onClick={onNavigate}
       >
-        <span className="nav-icon">{Icon ? <Icon size={18} /> : null}</span>
-        <span className="nav-label">{route.label}</span>
+        {Icon && <Icon size={nested ? 15 : 18} className="shrink-0" />}
+        <span>{route.label}</span>
       </NavLink>
     </li>
   );
@@ -76,24 +93,36 @@ function NavGroupSection({
   const GroupIcon = group.icon;
 
   return (
-    <li className="nav-group-item">
+    <li>
       <button
         type="button"
-        className={hasActiveChild ? 'nav-group-header active' : 'nav-group-header'}
+        className={cn(
+          'flex items-center gap-2.5 w-full px-3 py-2 rounded-md text-sm font-medium transition-colors text-left bg-transparent border-0',
+          hasActiveChild
+            ? 'text-indigo-700 dark:text-indigo-400'
+            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100',
+        )}
         onClick={onToggle}
         aria-expanded={open}
       >
-        <span className="nav-icon">
-          <GroupIcon size={18} />
-        </span>
-        <span className="nav-group-label">{group.label}</span>
-        <span className={open ? 'nav-group-arrow open' : 'nav-group-arrow'}>
-          <ChevronRight size={16} />
-        </span>
+        <GroupIcon size={18} className="shrink-0" />
+        <span className="flex-1">{group.label}</span>
+        <ChevronRight
+          size={14}
+          className={cn(
+            'shrink-0 opacity-50 transition-transform duration-200',
+            open && 'rotate-90',
+          )}
+        />
       </button>
-      <ul className={open ? 'nav-group-children open' : 'nav-group-children'}>
+      <ul
+        className={cn(
+          'list-none pl-5 space-y-0.5 overflow-hidden transition-all duration-200',
+          open ? 'max-h-96 opacity-100 mt-0.5' : 'max-h-0 opacity-0',
+        )}
+      >
         {items.map((route) => (
-          <NavItem key={route.path} route={route} onNavigate={onNavigate} />
+          <NavItem key={route.path} route={route} onNavigate={onNavigate} nested />
         ))}
       </ul>
     </li>
@@ -165,14 +194,17 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
   })).filter((g) => g.items.length > 0);
 
   return (
-    <nav id="sidebar" aria-label="Menu principal">
-      <div className="sidebar-header">
-        <div className="sidebar-logo">
-          <img className="sidebar-logo-img" src="/assets/logo.png" alt="Rhino" />
-        </div>
+    <nav
+      id="sidebar"
+      aria-label="Menu principal"
+      className="flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 sticky top-0 h-screen overflow-y-auto z-[100]"
+      style={{ width: 244 }}
+    >
+      <div className="flex items-center min-h-[60px] px-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+        <img className="w-36 h-auto block" src="/assets/logo.png" alt="Rhino" />
       </div>
 
-      <ul className="nav-links">
+      <ul className="flex-1 list-none p-2 space-y-0.5 overflow-y-auto">
         {topLevel.map((route) => (
           <NavItem key={route.path} route={route} onNavigate={onNavigate} />
         ))}
@@ -221,26 +253,22 @@ function SidebarFooter() {
   const podeTrocarPerfil = !!perfil && !user?.nivelAcessoId;
 
   return (
-    <div className="sidebar-footer">
+    <div className="p-2 border-t border-slate-200 dark:border-slate-800 flex flex-col gap-1.5 shrink-0">
       {user && <NotificacoesBell />}
       {user && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="theme-toggle-btn"
+              className="flex items-center gap-2 w-full px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors bg-transparent border-0"
               disabled={logout.isPending}
               aria-label="Menu do usuário"
-              style={{ marginBottom: 4 }}
             >
-              <span className="theme-toggle-icon">
-                <LogOut size={16} />
+              <LogOut size={16} className="shrink-0" />
+              <span className="flex-1 text-left truncate font-semibold">
+                {user.name || user.email}
               </span>
-              <span style={{ fontWeight: 600 }}>{user.name || user.email}</span>
-              <ChevronsUpDown
-                size={14}
-                style={{ marginLeft: 'auto', opacity: 0.5 }}
-              />
+              <ChevronsUpDown size={14} className="shrink-0 opacity-50" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-56">
@@ -284,7 +312,9 @@ function SidebarFooter() {
           </DropdownMenuContent>
         </DropdownMenu>
       )}
-      <div className="sidebar-version">Rhino v{APP_VERSION}</div>
+      <div className="px-3 py-1 text-xs text-slate-400 dark:text-slate-600 text-center">
+        Rhino v{APP_VERSION}
+      </div>
     </div>
   );
 }

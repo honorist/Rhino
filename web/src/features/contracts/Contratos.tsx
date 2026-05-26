@@ -24,6 +24,8 @@ const STATUS_CHIPS: { v: string; l: string }[] = [
   { v: 'todos', l: 'Todos' },
   { v: 'ativo', l: 'Ativo' },
   { v: 'prospeccao', l: 'Prospecção' },
+  { v: 'nao_aprovado', l: 'Não aprovado' },
+  { v: 'nao_iniciado', l: 'Não iniciado' },
   { v: 'pausado', l: 'Pausado' },
   { v: 'concluido', l: 'Concluído' },
   { v: 'cancelado', l: 'Cancelado' },
@@ -31,11 +33,23 @@ const STATUS_CHIPS: { v: string; l: string }[] = [
 
 const STATUS_VALIDOS: ContractStatus[] = [
   'prospeccao',
+  'nao_aprovado',
+  'nao_iniciado',
   'ativo',
   'pausado',
   'concluido',
   'cancelado',
 ];
+
+const STATUS_LABEL: Record<ContractStatus, string> = {
+  prospeccao: 'Prospecção',
+  nao_aprovado: 'Não aprovado',
+  nao_iniciado: 'Não iniciado',
+  ativo: 'Ativo',
+  pausado: 'Pausado',
+  concluido: 'Concluído',
+  cancelado: 'Cancelado',
+};
 
 function loadFavs(): Set<string> {
   try {
@@ -249,11 +263,11 @@ export default function Contratos() {
         <Badge
           variant={
             c.status === 'ativo' ? 'success' :
-            c.status === 'cancelado' ? 'destructive' :
-            c.status === 'pausado' ? 'warning' : 'secondary'
+            c.status === 'cancelado' || c.status === 'nao_aprovado' ? 'destructive' :
+            c.status === 'pausado' || c.status === 'nao_iniciado' ? 'warning' : 'secondary'
           }
         >
-          {c.status}
+          {STATUS_LABEL[c.status] ?? c.status}
         </Badge>
       ),
     },
@@ -357,7 +371,7 @@ export default function Contratos() {
               <option value="todos">Todos</option>
               {STATUS_VALIDOS.map((s) => (
                 <option key={s} value={s}>
-                  {s}
+                  {STATUS_LABEL[s]}
                 </option>
               ))}
             </Select>

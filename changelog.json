@@ -1,6 +1,20 @@
 {
   "entries": [
     {
+      "version": "1.5.10",
+      "date": "2026-05-26",
+      "summary": "design: sidebar migrada para Tailwind/shadcn — visual limpo estilo shadcn/ui",
+      "changes": [
+        "Sidebar.tsx: removidas todas as classes CSS legadas (nav-item, nav-group-*, sidebar-header, sidebar-footer, theme-toggle-btn). Substituídas por Tailwind v4 + cn().",
+        "Sidebar: itens de navegação usam bg-indigo-50 text-indigo-700 no estado ativo (sem barra lateral ::before). Hover bg-slate-100.",
+        "Shell.tsx: id='shell' agora tem className Tailwind (grid min-h-screen). id='app' com overflow-y-auto max-h-screen p-8.",
+        "uiStore.ts: setTheme agora também togla classList.toggle('dark') para Tailwind dark: variants funcionarem.",
+        "main.css: removidos ~380 linhas de CSS legado de sidebar (#shell, #sidebar, .nav-item, .nav-group-*, .sidebar-*, .theme-toggle-btn, .zoom-control, .footer-utils, #app).",
+        "polish.css: removidas referências obsoletas (.nav-item a nas transições e focus rings).",
+        "Mobile: comportamento drawer preservado via layout.css (id=sidebar com position:fixed no breakpoint 900px)."
+      ]
+    },
+    {
       "version": "1.5.9",
       "date": "2026-05-26",
       "summary": "fix: Service Worker desativado — CSS/JS sempre frescos, sem cache travando updates",

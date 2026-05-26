@@ -198,7 +198,7 @@
   --easing: cubic-bezier(.4, 0, .2, 1);
 }
 
-a, button, .btn, .nav-item a, .card, .stat-card,
+a, button, .btn, .card, .stat-card,
 .form-control, input, select, textarea, [role="button"] {
   transition:
     background-color var(--motion-base) var(--easing),
@@ -222,8 +222,6 @@ button.btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
-
-.nav-item a:hover { transform: translateX(2px); }
 
 /* Focus rings acessíveis */
 *:focus-visible {
@@ -276,7 +274,7 @@ button.btn:hover:not(:disabled) {
 .skip-link:focus { top: 8px; outline: 3px solid #fff; outline-offset: 2px; }
 
 /* Min target size: WCAG 2.2 — 24x24 mínimo */
-button, .btn, [role="button"], a.nav-link, .nav-item a, input[type="checkbox"], input[type="radio"] {
+button, .btn, [role="button"], a.nav-link, input[type="checkbox"], input[type="radio"] {
   min-height: 24px;
   min-width: 24px;
 }

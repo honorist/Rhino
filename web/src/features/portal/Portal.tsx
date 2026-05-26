@@ -61,12 +61,18 @@ const STATUS_LABEL: Record<string, string> = {
   concluido: 'Concluído',
   pausado: 'Pausado',
   cancelado: 'Cancelado',
+  prospeccao: 'Prospecção',
+  nao_aprovado: 'Não aprovado',
+  nao_iniciado: 'Não iniciado',
 };
 const STATUS_COR: Record<string, string> = {
   ativo: '#38A169',
   concluido: '#3182CE',
   pausado: '#D69E2E',
   cancelado: '#E53E3E',
+  prospeccao: '#3182CE',
+  nao_aprovado: '#E53E3E',
+  nao_iniciado: '#D69E2E',
 };
 const KEY_SESSION = 'rhino-portal-cliente';
 

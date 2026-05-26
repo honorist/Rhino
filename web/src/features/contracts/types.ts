@@ -3,6 +3,8 @@ import type { DomainRecord } from '../../types/domain';
 /** Estados de um contrato. */
 export type ContractStatus =
   | 'prospeccao'
+  | 'nao_aprovado'
+  | 'nao_iniciado'
   | 'ativo'
   | 'pausado'
   | 'concluido'

@@ -39,6 +39,7 @@ export const useUIStore = create<UIState>((set, get) => ({
       /* ignora */
     }
     document.documentElement.dataset.theme = theme;
+    document.documentElement.classList.toggle('dark', theme === 'dark');
     set({ theme });
   },
 

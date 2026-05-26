@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import { cn } from '@/lib/cn';
 import { useCurrentUser } from '../../features/auth/queries';
 import CommandPalette from '../../features/command-palette/CommandPalette';
 import { useCommandPalette } from '../../features/command-palette/useCommandPalette';
@@ -42,19 +43,23 @@ export default function Shell() {
   const cmdk = useCommandPalette();
 
   return (
-    <div id="shell" data-nav-open={navOpen}>
+    <div
+      id="shell"
+      data-nav-open={navOpen}
+      className={cn('grid min-h-screen bg-background', '[grid-template-columns:244px_1fr]')}
+    >
       <TopProgressBar />
       <Topbar onMenuClick={() => setNavOpen((open) => !open)} />
       <Sidebar onNavigate={closeNav} />
       {navOpen && (
         <button
           type="button"
-          className="rh-nav-backdrop"
+          className="fixed inset-0 z-[250] bg-black/45 border-0 md:hidden"
           aria-label="Fechar menu"
           onClick={closeNav}
         />
       )}
-      <main id="app" tabIndex={-1}>
+      <main id="app" className="overflow-y-auto max-h-screen p-8 bg-transparent" tabIndex={-1}>
         <Outlet />
       </main>
       <ThemeCustomizer />

@@ -13,6 +13,8 @@ import { useContracts } from '../contracts/queries';
 const STATUS_COR: Record<string, string> = {
   ativo: '#38A169',
   prospeccao: '#3182CE',
+  nao_aprovado: '#E53E3E',
+  nao_iniciado: '#D69E2E',
   pausado: '#D69E2E',
   concluido: '#718096',
   cancelado: '#E53E3E',
@@ -21,6 +23,8 @@ const STATUS_COR: Record<string, string> = {
 const STATUS_LABEL: Record<string, string> = {
   ativo: 'Ativo',
   prospeccao: 'Prospecção',
+  nao_aprovado: 'Não aprovado',
+  nao_iniciado: 'Não iniciado',
   pausado: 'Pausado',
   concluido: 'Concluído',
   cancelado: 'Cancelado',
