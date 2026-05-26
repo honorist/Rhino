@@ -15,7 +15,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -239,12 +238,10 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
 
       {/* Rodapé */}
       <SidebarFooter className="border-t border-sidebar-border pt-0">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            {/* Notificações */}
-          </SidebarMenuItem>
-        </SidebarMenu>
         <UserMenu />
+        <div className="px-3 pb-1 text-[10px] text-sidebar-foreground/40 select-none">
+          v{APP_VERSION}
+        </div>
       </SidebarFooter>
     </nav>
   );
