@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.5.5",
+      "date": "2026-05-26",
+      "summary": "fix: Railway agora recompila o frontend a cada deploy — raiz do problema visual",
+      "changes": [
+        "package.json raiz: adicionado script 'build' que instala deps e compila web/dist/ no Railway.",
+        "Raiz do bug: web/dist/ estava commitado e Railway deployava o dist antigo sem recompilar. Mudanças em web/src/styles/ nunca chegavam ao browser.",
+        "A partir de agora cada git push dispara npm install + vite build no Railway antes de subir o servidor.",
+        "Todos os CSS fixes de v1.5.1 a v1.5.4 serão aplicados no próximo deploy."
+      ]
+    },
+    {
       "version": "1.5.4",
       "date": "2026-05-26",
       "summary": "fix: erradicação completa de Nunito + font-size cascata — Inter agora aparece em todos os elementos",
