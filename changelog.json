@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.5.2",
+      "date": "2026-05-26",
+      "summary": "fix: PWA Service Worker auto-reload — CSS/JS atualizados automaticamente após deploy",
+      "changes": [
+        "main.tsx: listener controllerchange → window.location.reload() — página recarrega automaticamente quando novo SW assume controle.",
+        "vite.config.ts: injectRegister 'auto' → 'script' para injeção determinística do registro do SW.",
+        "Resolve problema onde clientes viam versão nova mas CSS antigo após deploy."
+      ]
+    },
+    {
       "version": "1.5.1",
       "date": "2026-05-26",
       "summary": "design: visual shadcn — Inter, indigo, tipografia compacta, tabelas sem uppercase",

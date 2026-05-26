@@ -52,7 +52,7 @@ export default defineConfig({
     //     hooks/useOfflineSync.ts (patcha window.fetch).
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: 'auto',
+      injectRegister: 'script',
       includeAssets: ['favicon.svg', 'icon.svg', 'icon-maskable.svg', 'logo.png'],
       manifest: {
         name: 'Rhino — Gestão Empresarial',

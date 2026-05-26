@@ -9,6 +9,14 @@ import { TooltipProvider } from './components/ui/tooltip';
 import { queryClient, persister } from './lib/queryClient';
 import './styles/index.css';
 
+// Quando o Service Worker novo assume o controle (novo deploy),
+// recarrega a página automaticamente para servir CSS/JS atualizados.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
+  });
+}
+
 const rootEl = document.getElementById('root');
 if (!rootEl) {
   throw new Error('Elemento #root não encontrado no index.html');
