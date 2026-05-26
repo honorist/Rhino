@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from '../../components/ui/badge';
-import Button from '../../components/ui/Button';
-import DataTable, { type Column, type FacetedFilter } from '../../components/ui/DataTable';
-import Card from '../../components/ui/Card';
+import Button from '../../components/ui/button';
+import DataTable, { type Column, type FacetedFilter } from '../../components/ui/data-table';
+import Card from '../../components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -11,12 +11,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import FormField from '../../components/ui/FormField';
+import FormField from '../../components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Combobox } from '../../components/ui/combobox';
 import { DatePicker } from '../../components/ui/date-picker';
-import Spinner from '../../components/ui/Spinner';
+import Spinner from '../../components/ui/spinner';
 import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import type { CaixaEntry, NotaFiscal } from '../../types/domain';

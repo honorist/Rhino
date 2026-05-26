@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import Button from '../../components/ui/Button';
+import Button from '../../components/ui/button';
 import { Select } from '@/components/ui/native-select';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import DataTable, { type Column } from '../../components/ui/data-table';
 import NovaSolicitacaoModal from './NovaSolicitacaoModal';
 import SolicitacaoDetail from './SolicitacaoDetail';
 import { useSolicitacoes } from './queries';

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
-import FormField from '../../components/ui/FormField';
-import Spinner from '../../components/ui/Spinner';
+import Button from '../../components/ui/button';
+import Card from '../../components/ui/card';
+import FormField from '../../components/ui/form-field';
+import Spinner from '../../components/ui/spinner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';

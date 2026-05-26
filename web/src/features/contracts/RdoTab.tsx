@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
+import Button from '../../components/ui/button';
+import Card from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
 import { formatDateBR } from '../../lib/formatDate';
@@ -12,7 +12,7 @@ import { exportRdoPdf } from './exportRdoPdf';
 import RdoDetailModal from './RdoDetailModal';
 import RdoFormModal from './RdoFormModal';
 import RdoFotosModal from './RdoFotosModal';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import DataTable, { type Column } from '../../components/ui/data-table';
 
 const n = (v: unknown): number => Number(v) || 0;
 

@@ -1,5 +1,5 @@
 import { useId, useState } from 'react';
-import Button from '../../components/ui/Button';
+import Button from '../../components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import FormField from '../../components/ui/FormField';
+import FormField from '../../components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';

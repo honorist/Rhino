@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import PageHeader from '../../components/layout/PageHeader';
-import Spinner from '../../components/ui/Spinner';
-import Card from '../../components/ui/Card';
-import MapView, { type MapMarker } from '../../components/ui/MapView';
+import Spinner from '../../components/ui/spinner';
+import Card from '../../components/ui/card';
+import MapView, { type MapMarker } from '../../components/ui/map-view';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/native-select';
 import { formatBRL } from '../../lib/format';

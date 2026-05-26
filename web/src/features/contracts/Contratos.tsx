@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '../../components/ui/badge';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
-import Spinner from '../../components/ui/Spinner';
+import Button from '../../components/ui/button';
+import Card from '../../components/ui/card';
+import Spinner from '../../components/ui/spinner';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/native-select';
 import { toast } from 'sonner';
@@ -15,7 +15,7 @@ import { useRdos } from '../rdos/queries';
 import { useContracts, useDeleteContract, useSaidas, useUpdateContract } from './queries';
 import type { Contract, ContractStatus } from './types';
 import ContratoModal from './ContratoModal';
-import DataTable, { type BulkAction, type Column } from '../../components/ui/DataTable';
+import DataTable, { type BulkAction, type Column } from '../../components/ui/data-table';
 
 const FAVS_KEY = 'rhino-favs';
 const PAGE_SIZE = 25;

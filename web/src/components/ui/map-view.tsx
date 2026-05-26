@@ -1,8 +1,8 @@
 import { Suspense, lazy } from 'react';
-import Spinner from './Spinner';
+import Spinner from './spinner';
 
 // Re-exporta o tipo público para que call-sites não percebam o split.
-export type { MapMarker } from './MapViewInner';
+export type { MapMarker } from './map-view-inner';
 
 // Leaflet (~150 KB gzip) + leaflet.css só entram no bundle quando o usuário
 // abre uma tela que monta o mapa (Obras, Mapa Geral). O lazy() faz a divisão

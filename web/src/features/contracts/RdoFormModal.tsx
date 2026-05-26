@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
-import DataTable, { type Column } from '../../components/ui/DataTable';
-import Button from '../../components/ui/Button';
+import DataTable, { type Column } from '../../components/ui/data-table';
+import Button from '../../components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import FormField from '../../components/ui/FormField';
+import FormField from '../../components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';

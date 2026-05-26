@@ -1,6 +1,6 @@
 import { useState, type ComponentType } from 'react';
 import { Link } from 'react-router-dom';
-import Card from '../../components/ui/Card';
+import Card from '../../components/ui/card';
 import ArquivosSection from './sections/ArquivosSection';
 import AtualizacoesSection from './sections/AtualizacoesSection';
 import BackupSection from './sections/BackupSection';

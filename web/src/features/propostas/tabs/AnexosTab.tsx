@@ -1,7 +1,7 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { Input } from '@/components/ui/input';
-import Button from '../../../components/ui/Button';
-import Card from '../../../components/ui/Card';
+import Button from '../../../components/ui/button';
+import Card from '../../../components/ui/card';
 import { toast } from 'sonner';
 import type { Proposta } from '../../../types/domain';
 import { useAtualizarAnexo, useDeletarAnexo } from '../queries';

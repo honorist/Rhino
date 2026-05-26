@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
+import Button from '../../components/ui/button';
+import Card from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
@@ -13,7 +13,7 @@ import type { ContratoTabProps } from './ContratoDetail';
 import { computeVisaoGeral } from './visaoGeral';
 import { exportContractPdf } from './exportContractPdf';
 import DetalheComposicaoModal from './DetalheComposicaoModal';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import DataTable, { type Column } from '../../components/ui/data-table';
 
 type Registro = Record<string, unknown>;
 

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
+import Button from '../../components/ui/button';
+import Card from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
@@ -25,7 +25,7 @@ import { buildBmInputFromSaida } from './bmFromSaida';
 import { exportBmPdf } from './exportBmPdf';
 import SaidaModal, { type SaidaEditavel } from './SaidaModal';
 import OrcamentoModal from './OrcamentoModal';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import DataTable, { type Column } from '../../components/ui/data-table';
 
 const n = (v: unknown): number => Number(v) || 0;
 

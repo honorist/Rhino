@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import Button from '../../components/ui/Button';
+import Button from '../../components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import { formatDateBR } from '../../lib/formatDate';
 import { useBase, useCaixa } from '../resources';
 import { useSaidas } from './queries';
 import { linhasSaidas, type LinhaSaida } from './financeiro';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import DataTable, { type Column } from '../../components/ui/data-table';
 
 const COLUMNS: Column<LinhaSaida>[] = [
   {

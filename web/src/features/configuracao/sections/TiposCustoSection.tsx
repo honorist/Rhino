@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
-import Button from '../../../components/ui/Button';
-import Card from '../../../components/ui/Card';
-import FormField from '../../../components/ui/FormField';
+import Button from '../../../components/ui/button';
+import Card from '../../../components/ui/card';
+import FormField from '../../../components/ui/form-field';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '../../../components/ui/dialog';
-import Spinner from '../../../components/ui/Spinner';
+import Spinner from '../../../components/ui/spinner';
 import { Input } from '@/components/ui/input';
 
 import { toast } from 'sonner';
@@ -17,7 +17,7 @@ import {
   useUpdateTipoBase,
 } from '../../resources';
 import type { TipoBase } from '../../../types/domain';
-import DataTable, { type Column } from '../../../components/ui/DataTable';
+import DataTable, { type Column } from '../../../components/ui/data-table';
 
 interface TipoComUso extends TipoBase {
   sistema?: boolean;

@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import Card from '../../../components/ui/Card';
-import Spinner from '../../../components/ui/Spinner';
+import Card from '../../../components/ui/card';
+import Spinner from '../../../components/ui/spinner';
 import { api } from '../../../lib/api';
-import DataTable, { type Column } from '../../../components/ui/DataTable';
+import DataTable, { type Column } from '../../../components/ui/data-table';
 
 /** Arquivos vêm de /api/admin/arquivos — colunas reais do recurso_doc_arquivos. */
 interface ArquivoInfo {

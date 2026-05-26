@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import Card from '../../components/ui/Card';
-import Spinner from '../../components/ui/Spinner';
-import { BentoGrid, BentoItem } from '../../components/ui/BentoGrid';
+import Card from '../../components/ui/card';
+import Spinner from '../../components/ui/spinner';
+import { BentoGrid, BentoItem } from '../../components/ui/bento-grid';
 import { api } from '../../lib/api';
 import { formatBRL, formatBRLk } from '../../lib/format';
 import { useCurrentUser } from '../auth/queries';

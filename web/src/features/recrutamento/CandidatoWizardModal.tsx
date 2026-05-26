@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import Button from '../../components/ui/Button';
-import FormField from '../../components/ui/FormField';
+import Button from '../../components/ui/button';
+import FormField from '../../components/ui/form-field';
 import {
   Dialog,
   DialogContent,

@@ -7,10 +7,10 @@ import {
 } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Badge } from '../../components/ui/badge';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
+import Button from '../../components/ui/button';
+import Card from '../../components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import Spinner from '../../components/ui/Spinner';
+import Spinner from '../../components/ui/spinner';
 import { toast } from 'sonner';
 import type { PropostaStatus } from '../../types/domain';
 import { STATUS_COLORS, STATUS_LABELS, numeroCompleto } from './shared';

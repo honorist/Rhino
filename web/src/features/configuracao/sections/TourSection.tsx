@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import Button from '../../../components/ui/Button';
-import Card from '../../../components/ui/Card';
+import Button from '../../../components/ui/button';
+import Card from '../../../components/ui/card';
 import OnboardingTour from '../../onboarding/OnboardingTour';
 import { resetTour } from '../../onboarding/tourSteps';
 

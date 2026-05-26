@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import Card from '../../components/ui/Card';
+import Card from '../../components/ui/card';
 import { formatDateBR, todayISO } from '../../lib/formatDate';
 import { useNotasFiscais } from '../resources';
 import type { ContratoTabProps } from './ContratoDetail';

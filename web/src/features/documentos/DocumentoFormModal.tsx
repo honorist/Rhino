@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import Button from '../../components/ui/Button';
+import Button from '../../components/ui/button';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '../../components/ui/dialog';
-import FormField from '../../components/ui/FormField';
+import FormField from '../../components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';

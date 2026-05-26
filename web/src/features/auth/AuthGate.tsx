@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Spinner from '../../components/ui/Spinner';
+import Spinner from '../../components/ui/spinner';
 import LgpdModal from './LgpdModal';
 import Login from './Login';
 import { usePerfilStore } from './perfilStore';

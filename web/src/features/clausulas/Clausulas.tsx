@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import Button from '../../components/ui/Button';
-import DataTable, { type Column, type FacetedFilter } from '../../components/ui/DataTable';
+import Button from '../../components/ui/button';
+import DataTable, { type Column, type FacetedFilter } from '../../components/ui/data-table';
 import { Badge } from '../../components/ui/badge';
-import Card from '../../components/ui/Card';
+import Card from '../../components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from '../../components/ui/select';
 import { Textarea } from '../../components/ui/textarea';
-import Spinner from '../../components/ui/Spinner';
+import Spinner from '../../components/ui/spinner';
 import { toast } from 'sonner';
 import type { Clausula } from '../../types/domain';
 import {

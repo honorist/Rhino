@@ -1,4 +1,4 @@
-import Button from '../../components/ui/Button';
+import Button from '../../components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import MapView, { type MapMarker } from '../../components/ui/MapView';
+import MapView, { type MapMarker } from '../../components/ui/map-view';
 import { escapeHtml } from '../../lib/escapeHtml';
 import { useContracts } from '../contracts/queries';
 import { useRecursos } from '../resources';

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import Card from '../../../components/ui/Card';
-import Spinner from '../../../components/ui/Spinner';
+import Card from '../../../components/ui/card';
+import Spinner from '../../../components/ui/spinner';
 
 interface ChangelogEntry {
   version: string;

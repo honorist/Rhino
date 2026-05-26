@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
+import Button from '../../components/ui/button';
+import Card from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
 import { useRecursos } from '../resources';
@@ -10,7 +10,7 @@ import { NIVEL_COR, NIVEL_LABEL, NIVEL_ORDEM } from './organograma';
 import { useDeleteMembroOrg } from './queries';
 import OrganogramaArvore from './OrganogramaArvore';
 import MembroModal, { type RecursoOrg } from './MembroModal';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import DataTable, { type Column } from '../../components/ui/data-table';
 
 type Vista = 'hierarquia' | 'lista';
 

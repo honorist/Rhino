@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import Button from '../../components/ui/Button';
+import Button from '../../components/ui/button';
 import {
   Dialog,
   DialogContent,

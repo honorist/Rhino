@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import Card from '../../components/ui/Card';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import Card from '../../components/ui/card';
+import DataTable, { type Column } from '../../components/ui/data-table';
 import { formatBRL } from '../../lib/format';
 
 interface EntradaPrevista {

@@ -1,5 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog';
-import Button from '../../components/ui/Button';
+import Button from '../../components/ui/button';
 import { useAcceptTerms, useLogout } from './queries';
 
 /**

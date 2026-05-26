@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import Button from '../../components/ui/Button';
+import Button from '../../components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -7,8 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import FormField from '../../components/ui/FormField';
-import Spinner from '../../components/ui/Spinner';
+import FormField from '../../components/ui/form-field';
+import Spinner from '../../components/ui/spinner';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';

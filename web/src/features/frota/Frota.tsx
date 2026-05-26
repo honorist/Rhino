@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import Button from '../../components/ui/Button';
+import Button from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import Card from '../../components/ui/Card';
-import DataTable, { type Column } from '../../components/ui/DataTable';
-import Spinner from '../../components/ui/Spinner';
+import Card from '../../components/ui/card';
+import DataTable, { type Column } from '../../components/ui/data-table';
+import Spinner from '../../components/ui/spinner';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/native-select';
 import { Combobox } from '../../components/ui/combobox';

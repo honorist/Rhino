@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from 'react';
 import PageHeader from '../../components/layout/PageHeader';
-import Spinner from '../../components/ui/Spinner';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import Spinner from '../../components/ui/spinner';
+import Button from '../../components/ui/button';
+import Card from '../../components/ui/card';
+import DataTable, { type Column } from '../../components/ui/data-table';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '../../components/ui/dialog';

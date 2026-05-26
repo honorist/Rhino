@@ -1,17 +1,17 @@
 import { useState, type FormEvent } from 'react';
 import { Eye, EyeOff, Pencil, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/layout/PageHeader';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import Button from '../../components/ui/button';
+import Card from '../../components/ui/card';
+import DataTable, { type Column } from '../../components/ui/data-table';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '../../components/ui/dialog';
-import FormField from '../../components/ui/FormField';
+import FormField from '../../components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/native-select';
 
-import Spinner from '../../components/ui/Spinner';
+import Spinner from '../../components/ui/spinner';
 import { toast } from 'sonner';
 import { useCurrentUser } from '../auth/queries';
 import {

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
-import Spinner from '../../components/ui/Spinner';
+import Button from '../../components/ui/button';
+import Card from '../../components/ui/card';
+import Spinner from '../../components/ui/spinner';
 import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import { useCaixa, useContasPagar, useNotasFiscais } from '../resources';

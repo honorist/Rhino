@@ -3,7 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Shell from './components/layout/Shell';
 import AuthGate from './features/auth/AuthGate';
 import { installMoneyMaskSubscription } from './lib/moneyMask';
-import Spinner from './components/ui/Spinner';
+import Spinner from './components/ui/spinner';
 import FeatureErrorBoundary from './components/FeatureErrorBoundary';
 
 // CRÍTICO: garante que formatBRL/formatBRLk respeitam a permissão

@@ -1,11 +1,11 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Button from '../../components/ui/Button';
+import Button from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '../../components/ui/dialog';
-import Spinner from '../../components/ui/Spinner';
+import Spinner from '../../components/ui/spinner';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR } from '../../lib/formatDate';
 import { useContracts } from '../contracts/queries';

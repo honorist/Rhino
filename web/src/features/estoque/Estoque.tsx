@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useMemo, useState } from 'react';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
+import Button from '../../components/ui/button';
+import Card from '../../components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import Spinner from '../../components/ui/Spinner';
+import Spinner from '../../components/ui/spinner';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/native-select';
 import { toast } from 'sonner';
@@ -24,7 +24,7 @@ import {
 } from './saldo';
 import { useMovimentacoes, useReverterMovimentacao, useVisaoGeral } from './queries';
 import ItemModal from './ItemModal';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import DataTable, { type Column } from '../../components/ui/data-table';
 import {
   AjusteModal,
   ComprarModal,

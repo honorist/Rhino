@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
-import Spinner from '../../components/ui/Spinner';
+import Button from '../../components/ui/button';
+import Card from '../../components/ui/card';
+import Spinner from '../../components/ui/spinner';
 import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR } from '../../lib/formatDate';
@@ -11,7 +11,7 @@ import { useAtividades, useDeleteAtividade } from './queries';
 import { resumoCronograma } from './cronograma';
 import GanttContrato from './GanttContrato';
 import AtividadeModal from './AtividadeModal';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import DataTable, { type Column } from '../../components/ui/data-table';
 
 function corExec(p: number): string {
   if (p >= 100) return 'var(--color-success)';

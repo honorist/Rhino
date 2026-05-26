@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
-import DataTable, { type Column } from '../../components/ui/DataTable';
-import Spinner from '../../components/ui/Spinner';
+import Button from '../../components/ui/button';
+import Card from '../../components/ui/card';
+import DataTable, { type Column } from '../../components/ui/data-table';
+import Spinner from '../../components/ui/spinner';
 import { formatBRL } from '../../lib/format';
 import { useBase, useCaixa, useNotasFiscais, useRecursos } from '../resources';
 import { useContracts, useSaidas } from '../contracts/queries';

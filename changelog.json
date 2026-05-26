@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.4.8",
+      "date": "2026-05-26",
+      "summary": "refactor: codemod PascalCase → kebab-case em componentes UI (Pós-Fase)",
+      "changes": [
+        "Renomear 11 componentes PascalCase: Button→button, Card→card, DataTable→data-table, Spinner→spinner, FormField→form-field, EmptyState→empty-state, BentoGrid→bento-grid, MapView→map-view, MapViewInner→map-view-inner, VirtualList→virtual-list, Button.stories→button.stories.",
+        "Atualizar 118 arquivos: imports de ui/PascalCase → ui/kebab-case (307 substituições, zero mudança funcional).",
+        "Codebase agora 100% alinhado com convenção shadcn/ui (kebab-case para nomes de arquivo)."
+      ]
+    },
+    {
       "version": "1.4.7",
       "date": "2026-05-25",
       "summary": "Fase 7: DataTable v2 — lote final (9 arquivos)",

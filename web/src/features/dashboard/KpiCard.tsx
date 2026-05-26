@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
-import Card from '../../components/ui/Card';
+import Card from '../../components/ui/card';
 import { cn } from '../../lib/cn';
 
 export type KpiTone = 'pos' | 'neg' | 'warn' | 'neutral';

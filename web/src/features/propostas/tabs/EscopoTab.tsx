@@ -1,5 +1,5 @@
-import Button from '../../../components/ui/Button';
-import Card from '../../../components/ui/Card';
+import Button from '../../../components/ui/button';
+import Card from '../../../components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { localUid, type EditorTabProps, type EscopoItem } from '../types';
 

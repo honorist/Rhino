@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import Button from '../../../components/ui/Button';
-import Card from '../../../components/ui/Card';
+import Button from '../../../components/ui/button';
+import Card from '../../../components/ui/card';
 import { toast } from 'sonner';
 import { api } from '../../../lib/api';
 

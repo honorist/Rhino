@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import PageHeader from '../../components/layout/PageHeader';
-import Button from '../../components/ui/Button';
+import Button from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import Card from '../../components/ui/Card';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import Card from '../../components/ui/card';
+import DataTable, { type Column } from '../../components/ui/data-table';
 import {
   Dialog,
   DialogContent,
@@ -12,13 +12,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import FormField from '../../components/ui/FormField';
+import FormField from '../../components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
 import { DatePicker } from '../../components/ui/date-picker';
 import { Combobox } from '../../components/ui/combobox';
-import Spinner from '../../components/ui/Spinner';
+import Spinner from '../../components/ui/spinner';
 import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import type { ContaPagar, Fornecedor } from '../../types/domain';

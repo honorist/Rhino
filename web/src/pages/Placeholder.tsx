@@ -1,5 +1,5 @@
 import type { RouteDef } from '../routes/config';
-import Card from '../components/ui/Card';
+import Card from '../components/ui/card';
 import PageHeader from '../components/layout/PageHeader';
 
 interface PlaceholderProps {

@@ -1,9 +1,9 @@
 import { useState, type KeyboardEvent } from 'react';
 import { Badge } from '../../components/ui/badge';
-import Button from '../../components/ui/Button';
-import DataTable, { type Column } from '../../components/ui/DataTable';
-import EmptyState from '../../components/ui/EmptyState';
-import Spinner from '../../components/ui/Spinner';
+import Button from '../../components/ui/button';
+import DataTable, { type Column } from '../../components/ui/data-table';
+import EmptyState from '../../components/ui/empty-state';
+import Spinner from '../../components/ui/spinner';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/native-select';
 import { DatePicker } from '../../components/ui/date-picker';

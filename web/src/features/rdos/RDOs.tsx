@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Button from '../../components/ui/Button';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import Button from '../../components/ui/button';
+import DataTable, { type Column } from '../../components/ui/data-table';
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import Spinner from '../../components/ui/Spinner';
+import Spinner from '../../components/ui/spinner';
 import { Input } from '@/components/ui/input';
 import { Combobox } from '../../components/ui/combobox';
 import { toast } from 'sonner';

@@ -1,16 +1,16 @@
 import { useState, useCallback, useMemo, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Badge } from '../../components/ui/badge';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
+import Button from '../../components/ui/button';
+import Card from '../../components/ui/card';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '../../components/ui/dialog';
-import FormField from '../../components/ui/FormField';
+import FormField from '../../components/ui/form-field';
 import { Input } from '@/components/ui/input';
 
 import { Combobox } from '../../components/ui/combobox';
-import Spinner from '../../components/ui/Spinner';
+import Spinner from '../../components/ui/spinner';
 import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import type { Cliente } from '../clientes/types';
@@ -19,7 +19,7 @@ import { usePropostas } from '../resources';
 import type { Proposta } from '../../types/domain';
 import { useCriarProposta, useDeletarProposta, useDuplicarProposta } from './queries';
 import { STATUS_COLORS, STATUS_LABELS, numeroCompleto } from './shared';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import DataTable, { type Column } from '../../components/ui/data-table';
 
 const num = (v: unknown): number => Number(v) || 0;
 

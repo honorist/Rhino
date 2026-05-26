@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import Button from '../../components/ui/Button';
+import Button from '../../components/ui/button';
 import { PRESETS } from './presets';
 import { useTheme } from './useTheme';
 

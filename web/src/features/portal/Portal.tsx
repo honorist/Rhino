@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
-import Spinner from '../../components/ui/Spinner';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import Button from '../../components/ui/button';
+import Card from '../../components/ui/card';
+import Spinner from '../../components/ui/spinner';
+import DataTable, { type Column } from '../../components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR } from '../../lib/formatDate';

@@ -4,7 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
 import { DatePicker } from '../../../components/ui/date-picker';
 import { Combobox } from '../../../components/ui/combobox';
-import Card from '../../../components/ui/Card';
+import Card from '../../../components/ui/card';
 import { useClientes } from '../../clientes/queries';
 import type { Cliente } from '../../clientes/types';
 import type { EditorTabProps } from '../types';

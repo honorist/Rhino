@@ -6,7 +6,7 @@ import Obras from './Obras';
 
 // O MapView usa Leaflet (API imperativa, depende de layout real) — mockado
 // nos testes para isolar a lógica de filtro/lista da view.
-vi.mock('../../components/ui/MapView', () => ({
+vi.mock('../../components/ui/map-view', () => ({
   default: () => <div data-testid="map-view" />,
 }));
 

@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
-import Card from '../../components/ui/Card';
+import Card from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { formatBRL } from '../../lib/format';
 import { formatDateBR, todayISO } from '../../lib/formatDate';
 import { useContasPagar } from '../resources';
 import type { ContratoTabProps } from './ContratoDetail';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import DataTable, { type Column } from '../../components/ui/data-table';
 
 type Registro = Record<string, unknown>;
 const n = (v: unknown): number => Number(v) || 0;

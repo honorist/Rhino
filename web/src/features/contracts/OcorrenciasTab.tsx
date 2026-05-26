@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
+import Button from '../../components/ui/button';
+import Card from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import {
   Dialog,
@@ -9,7 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import FormField from '../../components/ui/FormField';
+import FormField from '../../components/ui/form-field';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
 
@@ -23,7 +23,7 @@ import {
   useDeleteOcorrencia,
   useUpdateOcorrencia,
 } from './queries';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import DataTable, { type Column } from '../../components/ui/data-table';
 
 const TIPO_LABEL: Record<string, string> = {
   geral: 'Geral',

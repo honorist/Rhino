@@ -2,9 +2,9 @@ import { useState, type FormEvent } from 'react';
 import { ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import PageHeader from '../../components/layout/PageHeader';
 import { Badge } from '../../components/ui/badge';
-import Button from '../../components/ui/Button';
-import Card from '../../components/ui/Card';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import Button from '../../components/ui/button';
+import Card from '../../components/ui/card';
+import DataTable, { type Column } from '../../components/ui/data-table';
 import {
   Dialog,
   DialogContent,
@@ -12,12 +12,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../../components/ui/dialog';
-import FormField from '../../components/ui/FormField';
+import FormField from '../../components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
 import { DatePicker } from '../../components/ui/date-picker';
-import Spinner from '../../components/ui/Spinner';
+import Spinner from '../../components/ui/spinner';
 import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
 import type { BaseItem, BaseRecurrence, TipoBase } from '../../types/domain';

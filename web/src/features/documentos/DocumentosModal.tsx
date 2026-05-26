@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import Button from '../../components/ui/Button';
+import Button from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '../../components/ui/dialog';
-import Spinner from '../../components/ui/Spinner';
-import DataTable, { type Column } from '../../components/ui/DataTable';
+import Spinner from '../../components/ui/spinner';
+import DataTable, { type Column } from '../../components/ui/data-table';
 import { toast } from 'sonner';
 import { formatDateBR } from '../../lib/formatDate';
 import type { Documento } from '../../types/domain';
