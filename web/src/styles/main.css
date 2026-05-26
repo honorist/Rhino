@@ -257,8 +257,6 @@ body .page-subtitle                { font-size: 14px; }
 .font-xl   { font-size: 22px; }
 .font-bold { font-weight: 600; }
 
-.hidden { display: none !important; }
-
 /* ─── Notebook readability — escala tipográfica (legado, base já é grande) ─── */
 @media (max-width: 1600px) and (min-width: 9999px) {
   body                         { font-size: 15px; }

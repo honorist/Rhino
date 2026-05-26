@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.5.14",
+      "date": "2026-05-26",
+      "summary": "fix: sidebar oculta por .hidden !important no main.css + shadcn init preset",
+      "changes": [
+        "main.css: removida regra `.hidden { display: none !important; }` que impedia md:block/md:flex do Tailwind de funcionar na sidebar fixa (bug raiz da sidebar desaparecida).",
+        "tailwind.css: shadcn init --preset b38BV44lc adicionou @import 'shadcn/tailwind.css' + @theme inline + :root oklch stone/maia + .dark stone. Tokens primary agora verde (maia), sidebar background oklch warm-white.",
+        "components.json: style → radix-maia, baseColor → stone."
+      ]
+    },
+    {
       "version": "1.5.13",
       "date": "2026-05-26",
       "summary": "fix: sidebar desaparecida — sidebar.tsx reescrito com inline styles",
