@@ -1,6 +1,20 @@
 {
   "entries": [
     {
+      "version": "1.5.4",
+      "date": "2026-05-26",
+      "summary": "fix: erradicação completa de Nunito + font-size cascata — Inter agora aparece em todos os elementos",
+      "changes": [
+        "main.css: removido font-family: 'Nunito' de 7 elementos (theme-toggle-btn, sidebar-version, zoom-btn, zoom-label, page-title, loading-spinner, tooltip).",
+        "components.css: removido font-family: 'Nunito' de .badge, .stacked-segment, .action-link.",
+        "main.css: multiplicador body font-size corrigido: calc(15.5px * var(--fs-mult)) → calc(14px * var(--fs-mult)) — 15.5px sobrepunha o 14px definido acima por vir depois com mesma especificidade.",
+        "main.css: dark mode --color-primary #8B8FBF (roxo antigo) → #818cf8 (indigo-400, dark mode shadcn-aligned).",
+        "main.css: .page-title font-size 26px → 24px e letter-spacing atualizado.",
+        "main.css: multiplicador .page-title calc(26px) → calc(24px).",
+        "index.html: theme-color meta #55588B → #6366F1."
+      ]
+    },
+    {
       "version": "1.5.3",
       "date": "2026-05-26",
       "summary": "fix: CSS removido do precache do Service Worker — mudanças visuais chegam a todos os usuários automaticamente",

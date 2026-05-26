@@ -382,7 +382,7 @@ body .page-subtitle                { font-size: 14px; }
   color: var(--color-text-muted);
   font-size: 15px;
   font-weight: 500;
-  font-family: 'Nunito', sans-serif;
+  font-family: inherit;
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   text-align: left;
@@ -415,11 +415,11 @@ body.sb-collapsed .footer-utils {
 }
 
 .sidebar-version {
-  font-size: 15px;
+  font-size: 13px;
   color: var(--color-text-muted);
   opacity: 0.5;
-  font-family: 'Nunito', sans-serif;
-  letter-spacing: 0.06em;
+  font-family: inherit;
+  letter-spacing: 0.04em;
   padding: 4px;
   text-align: center;
 }
@@ -445,7 +445,7 @@ body.sb-collapsed .footer-utils {
   color: var(--sidebar-text);
   font-size: 16px;
   font-weight: 700;
-  font-family: 'Nunito', sans-serif;
+  font-family: inherit;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -471,7 +471,7 @@ body.sb-collapsed .footer-utils {
   color: var(--sidebar-text);
   font-size: 15px;
   font-weight: 600;
-  font-family: 'Nunito', sans-serif;
+  font-family: inherit;
   letter-spacing: 0.04em;
   cursor: pointer;
   padding: 0;
@@ -516,12 +516,12 @@ body.sb-collapsed .footer-utils {
 }
 
 .page-title {
-  font-family: 'Nunito', sans-serif;
-  font-size: 26px;
+  font-family: inherit;
+  font-size: 24px;
   font-weight: 700;
   color: var(--color-text);
   margin: 0;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.02em;
 }
 
 .page-subtitle {
@@ -537,10 +537,10 @@ body.sb-collapsed .footer-utils {
   justify-content: center;
   align-items: center;
   min-height: 200px;
-  font-size: 15px;
+  font-size: 14px;
   color: var(--color-text-muted);
-  font-family: 'Nunito', sans-serif;
-  letter-spacing: 0.08em;
+  font-family: inherit;
+  letter-spacing: 0;
 }
 
 .spinner {
@@ -578,9 +578,9 @@ body.sb-collapsed .footer-utils {
 
 /* ─── Dark Theme Override (opcional via toggle) ─── */
 [data-theme="dark"] {
-  --color-primary:       #8B8FBF;
-  --color-primary-light: #A5A9D1;
-  --color-primary-dark:  #55588B;
+  --color-primary:       #818cf8;
+  --color-primary-light: #a5b4fc;
+  --color-primary-dark:  #6366f1;
   --color-accent:        #8FAE9B;
 
   --sidebar-bg:          #1E2233;
@@ -706,9 +706,9 @@ body.sb-collapsed .footer-utils {
 
 /* ─── Multiplicador global de fonte (controle +/- da sidebar) ─── */
 /* Sobrepõe os font-sizes dos elementos principais com calc(...*--fs-mult) */
-body                              { font-size: calc(15.5px * var(--fs-mult)); }
+body                              { font-size: calc(14px * var(--fs-mult)); }
 
-.page-title                       { font-size: calc(26px * var(--fs-mult)); }
+.page-title                       { font-size: calc(24px * var(--fs-mult)); }
 .page-subtitle                    { font-size: calc(15px * var(--fs-mult)); }
 
 .nav-item a                       { font-size: calc(15px * var(--fs-mult)); }
@@ -864,7 +864,7 @@ body.sb-collapsed [data-tooltip]::after {
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
-  font-family: 'Nunito', sans-serif;
+  font-family: inherit;
   white-space: nowrap;
   pointer-events: none;
   opacity: 0;

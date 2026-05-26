@@ -133,12 +133,12 @@ tbody tr:last-child td {
   display: inline-block;
   padding: 3px 9px;
   border-radius: 4px;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.05em;
   line-height: 1.5;
-  font-family: 'Nunito', sans-serif;
+  font-family: inherit;
 }
 
 .badge-mao-de-obra  { background: #EDE9FE; color: #6D28D9; }
@@ -193,10 +193,10 @@ tbody tr:last-child td {
   align-items: center;
   justify-content: center;
   color: #FFFFFF;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
   transition: opacity 0.2s;
-  font-family: 'Nunito', sans-serif;
+  font-family: inherit;
 }
 
 .stacked-segment.mao-de-obra { background: var(--cat-mao-de-obra); }
@@ -244,7 +244,7 @@ tbody tr:last-child td {
 
 .action-link {
   padding: 5px 11px;
-  font-size: 15px;
+  font-size: 14px;
   border: 1px solid transparent;
   background: none;
   color: var(--color-primary);
@@ -252,7 +252,7 @@ tbody tr:last-child td {
   text-decoration: none;
   transition: all 0.14s;
   border-radius: var(--border-radius);
-  font-family: 'Nunito', sans-serif;
+  font-family: inherit;
   font-weight: 500;
 }
 
