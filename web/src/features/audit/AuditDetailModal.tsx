@@ -237,6 +237,7 @@ export default function AuditDetailModal({
             <details>
               <summary
                 style={{
+                  cursor: 'pointer',
                   fontSize: 13,
                   fontWeight: 600,
                   color: 'var(--color-text-muted)',

@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '../../components/ui/badge';
-import PageHeader from '../../components/layout/PageHeader';
 import Button from '../../components/ui/button';
 import Card from '../../components/ui/card';
 import Spinner from '../../components/ui/spinner';
@@ -184,7 +183,7 @@ export default function Contratos() {
       width: '40px',
       cell: (c) => (
         <button
-          style={{ background: 'none', border: 'none', padding: 0, fontSize: 16 }}
+          style={{ cursor: 'pointer', background: 'none', border: 'none', padding: 0, fontSize: 16 }}
           onClick={(e) => { e.stopPropagation(); toggleFav(c.id); }}
           title={favs.has(c.id) ? 'Remover favorito' : 'Favoritar'}
         >
@@ -318,20 +317,20 @@ export default function Contratos() {
 
   return (
     <>
-      <PageHeader
-        title="Contratos"
-        subtitle="Gerenciar contratos de serviços"
-        actions={
-          <>
-            <Button variant="secondary" onClick={() => exportarCsv(filtrados)}>
-              Exportar CSV
-            </Button>
-            <Button size="lg" onClick={() => setModal({ type: 'novo' })}>
-              + Novo Contrato
-            </Button>
-          </>
-        }
-      />
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Contratos</h1>
+          <p className="page-subtitle">Gerenciar contratos de serviços</p>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Button variant="secondary" onClick={() => exportarCsv(filtrados)}>
+            ⬇ CSV
+          </Button>
+          <Button size="lg" onClick={() => setModal({ type: 'novo' })}>
+            + Novo Contrato
+          </Button>
+        </div>
+      </div>
 
       {stats &&
         !stats.ehFimDeSemana &&

@@ -1,16 +1,5 @@
 import { useCallback, useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  AlertCircle,
-  AlertTriangle,
-  Calendar,
-  Check,
-  CheckCircle2,
-  DollarSign,
-  List,
-  Send,
-  Undo2,
-} from 'lucide-react';
 import { Badge } from '../../components/ui/badge';
 import Button from '../../components/ui/button';
 import DataTable, { type Column, type FacetedFilter } from '../../components/ui/data-table';
@@ -25,14 +14,6 @@ import {
 import FormField from '../../components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Combobox } from '../../components/ui/combobox';
 import { DatePicker } from '../../components/ui/date-picker';
 import Spinner from '../../components/ui/spinner';
@@ -122,10 +103,10 @@ export default function NotasFiscais() {
       : 100;
   const statusGeral =
     vencidas.length > 0
-      ? { cor: '#E53E3E', bg: 'rgba(229,62,62,.07)', texto: 'Atenção urgente', icone: <AlertCircle className="size-4" /> }
+      ? { cor: '#E53E3E', bg: 'rgba(229,62,62,.07)', texto: 'Atenção urgente', icone: '🔴' }
       : proximas.length > 0
-        ? { cor: '#D69E2E', bg: 'rgba(214,158,46,.07)', texto: 'Requer atenção', icone: <AlertTriangle className="size-4" /> }
-        : { cor: '#38A169', bg: 'rgba(56,161,105,.07)', texto: 'Tudo em dia', icone: <CheckCircle2 className="size-4" /> };
+        ? { cor: '#D69E2E', bg: 'rgba(214,158,46,.07)', texto: 'Requer atenção', icone: '⚠️' }
+        : { cor: '#38A169', bg: 'rgba(56,161,105,.07)', texto: 'Tudo em dia', icone: '✅' };
 
   const proximasTimeline = pendentes
     .filter((nf) => {
@@ -191,13 +172,13 @@ export default function NotasFiscais() {
               flexWrap: 'wrap',
             }}
           >
-            <PanelMetric icone={<AlertCircle className="size-4" style={{ color: '#E53E3E' }} />} valor={vencidas.length} cor="#E53E3E" rotulo="Vencidas" />
+            <PanelMetric icone="🔴" valor={vencidas.length} cor="#E53E3E" rotulo="Vencidas" />
             <PanelDivisor cor={statusGeral.cor} />
-            <PanelMetric icone={<AlertTriangle className="size-4" style={{ color: '#D69E2E' }} />} valor={proximas.length} cor="#D69E2E" rotulo="Próx. 7d" />
+            <PanelMetric icone="⚠️" valor={proximas.length} cor="#D69E2E" rotulo="Próx. 7d" />
             <PanelDivisor cor={statusGeral.cor} />
-            <PanelMetric icone={<CheckCircle2 className="size-4" style={{ color: '#38A169' }} />} valor={noPrazo.length} cor="#38A169" rotulo="No prazo" />
+            <PanelMetric icone="✅" valor={noPrazo.length} cor="#38A169" rotulo="No prazo" />
             <PanelDivisor cor={statusGeral.cor} />
-            <PanelMetric icone={<Send className="size-4" style={{ color: '#3182CE' }} />} valor={emitidas.length} cor="#3182CE" rotulo="Emitidas" />
+            <PanelMetric icone="📤" valor={emitidas.length} cor="#3182CE" rotulo="Emitidas" />
             <div style={{ flex: 1 }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }}>
               <span style={{ fontWeight: 700, color: statusGeral.cor }}>
@@ -255,21 +236,21 @@ export default function NotasFiscais() {
               variant={tab === 'lista' ? 'primary' : 'secondary'}
               onClick={() => setTab('lista')}
             >
-              <List className="size-4 mr-1.5" /> Lista Geral
+              📋 Lista Geral
             </Button>
             <Button
               size="sm"
               variant={tab === 'semanal' ? 'primary' : 'secondary'}
               onClick={() => setTab('semanal')}
             >
-              <Calendar className="size-4 mr-1.5" /> Semanal
+              📅 Semanal
             </Button>
             <Button
               size="sm"
               variant={tab === 'mensal' ? 'primary' : 'secondary'}
               onClick={() => setTab('mensal')}
             >
-              <Calendar className="size-4 mr-1.5" /> Mensal
+              📆 Mensal
             </Button>
           </div>
 
@@ -333,14 +314,14 @@ function PanelMetric({
   cor,
   rotulo,
 }: {
-  icone: ReactNode;
+  icone: string;
   valor: number;
   cor: string;
   rotulo: string;
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-sm)' }}>
-      <span className="flex items-center">{icone}</span>
+      <span>{icone}</span>
       <span style={{ fontSize: 18, fontWeight: 800, color: cor, lineHeight: 1 }}>
         {valor}
       </span>
@@ -533,7 +514,7 @@ function ListaTab({
           if (nf.emitida) {
             return (
               <div>
-                <Badge style={{ background: 'rgba(56,161,105,.15)', color: '#38A169' }} className="gap-1"><Check className="size-3" />EMITIDA</Badge>
+                <Badge style={{ background: 'rgba(56,161,105,.15)', color: '#38A169' }}>✓ EMITIDA</Badge>
                 <div className="text-sm text-muted-foreground mt-0.5">em {formatDate(nf.dataEmissaoReal)}</div>
               </div>
             );
@@ -541,8 +522,8 @@ function ListaTab({
           const st = getNotaFiscalStatus(nf.dataLimite);
           return (
             <div>
-              <Badge variant={st.status === 'vencida' ? 'destructive' : st.status === 'proximo_vencer' ? 'warning' : 'success'} className="gap-1">
-                {st.status === 'vencida' ? <><AlertCircle className="size-3" />Vencida</> : st.status === 'proximo_vencer' ? <><AlertTriangle className="size-3" />Próxima</> : <><CheckCircle2 className="size-3" />No prazo</>}
+              <Badge variant={st.status === 'vencida' ? 'destructive' : st.status === 'proximo_vencer' ? 'warning' : 'success'}>
+                {st.status === 'vencida' ? '🔴 Vencida' : st.status === 'proximo_vencer' ? '⚠️ Próxima' : '🟢 No prazo'}
               </Badge>
               <div className="text-sm text-muted-foreground mt-0.5">
                 {st.status === 'vencida'
@@ -558,40 +539,24 @@ function ListaTab({
         cell: (nf) => (
           <div className="flex flex-wrap gap-2">
             {!nf.emitida ? (
-              <Button
-                variant="link"
-                size="sm"
-                className="h-auto p-0 text-green-600 font-semibold"
-                onClick={(e) => { e.stopPropagation(); onEmitir(nf.id); }}
-              >
-                <Check className="size-4 mr-1" /> Marcar Emitida
-              </Button>
+              <button type="button" className="action-link text-green-600 font-semibold"
+                onClick={(e) => { e.stopPropagation(); onEmitir(nf.id); }}>
+                ✓ Marcar Emitida
+              </button>
             ) : (
-              <Button
-                variant="link"
-                size="sm"
-                className="h-auto p-0"
-                onClick={(e) => { e.stopPropagation(); handleCancelar(nf.id); }}
-              >
-                <Undo2 className="size-4 mr-1" /> Desfazer
-              </Button>
+              <button type="button" className="action-link"
+                onClick={(e) => { e.stopPropagation(); handleCancelar(nf.id); }}>
+                ↶ Desfazer
+              </button>
             )}
-            <Button
-              variant="link"
-              size="sm"
-              className="h-auto p-0"
-              onClick={(e) => { e.stopPropagation(); onEditar(nf); }}
-            >
+            <button type="button" className="action-link"
+              onClick={(e) => { e.stopPropagation(); onEditar(nf); }}>
               Editar
-            </Button>
-            <Button
-              variant="link"
-              size="sm"
-              className="h-auto p-0 text-destructive"
-              onClick={(e) => { e.stopPropagation(); handleExcluir(nf); }}
-            >
+            </button>
+            <button type="button" className="action-link danger"
+              onClick={(e) => { e.stopPropagation(); handleExcluir(nf); }}>
               Excluir
-            </Button>
+            </button>
           </div>
         ),
       },
@@ -736,43 +701,43 @@ function SemanalTab({ notas, contractById }: SemanalTabProps) {
             </div>
             {nfsSem.length > 0 ? (
               <div className="table-wrap">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>NF</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Data Limite</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>NF</th>
+                      <th>Cliente</th>
+                      <th>Data Limite</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {nfsSem.map((nf) => {
                       const st = getNotaFiscalStatus(nf.dataLimite);
-                      const StatusIcon =
+                      const icon =
                         st.status === 'vencida'
-                          ? AlertCircle
+                          ? '🔴'
                           : st.status === 'proximo_vencer'
-                            ? AlertTriangle
-                            : CheckCircle2;
+                            ? '⚠️'
+                            : '🟢';
                       return (
-                        <TableRow key={nf.id}>
-                          <TableCell>
+                        <tr key={nf.id}>
+                          <td>
                             <strong>{nf.numero}</strong>
-                          </TableCell>
-                          <TableCell>
+                          </td>
+                          <td>
                             {contractClient(contractById(nf.contractId)) || '—'}
-                          </TableCell>
-                          <TableCell>{formatDate(nf.dataLimite)}</TableCell>
-                          <TableCell>
-                            <Badge variant={st.status === 'vencida' ? 'destructive' : st.status === 'proximo_vencer' ? 'warning' : 'success'} className="gap-1">
-                              <StatusIcon className="size-3" /> {st.dias >= 0 ? `${st.dias}d` : 'Vencida'}
+                          </td>
+                          <td>{formatDate(nf.dataLimite)}</td>
+                          <td>
+                            <Badge variant={st.status === 'vencida' ? 'destructive' : st.status === 'proximo_vencer' ? 'warning' : 'success'}>
+                              {icon} {st.dias >= 0 ? `${st.dias}d` : 'Vencida'}
                             </Badge>
-                          </TableCell>
-                        </TableRow>
+                          </td>
+                        </tr>
                       );
                     })}
-                  </TableBody>
-                </Table>
+                  </tbody>
+                </table>
               </div>
             ) : (
               <p
@@ -845,11 +810,11 @@ function MensalTab({ notas, currentMonth, onChangeMonth }: MensalTabProps) {
         </Button>
       </div>
       <Card>
-        <Table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <TableHeader>
-            <TableRow>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
               {DIAS_SEMANA.map((d) => (
-                <TableHead
+                <th
                   key={d}
                   style={{
                     padding: 'var(--sp-sm)',
@@ -860,18 +825,18 @@ function MensalTab({ notas, currentMonth, onChangeMonth }: MensalTabProps) {
                   }}
                 >
                   {d}
-                </TableHead>
+                </th>
               ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+            </tr>
+          </thead>
+          <tbody>
             {linhas.map((linha, li) => (
-              <TableRow key={li}>
+              <tr key={li}>
                 {Array.from({ length: 7 }, (_, i) => {
                   const dia = linha[i] ?? null;
                   if (!dia) {
                     return (
-                      <TableCell key={i} style={{ background: 'var(--color-bg)' }} />
+                      <td key={i} style={{ background: 'var(--color-bg)' }} />
                     );
                   }
                   const nfsDia = nfsMes.filter(
@@ -883,7 +848,7 @@ function MensalTab({ notas, currentMonth, onChangeMonth }: MensalTabProps) {
                     hoje.getMonth() === mes &&
                     hoje.getFullYear() === ano;
                   return (
-                    <TableCell
+                    <td
                       key={i}
                       style={{
                         border: '1px solid var(--color-border)',
@@ -904,17 +869,16 @@ function MensalTab({ notas, currentMonth, onChangeMonth }: MensalTabProps) {
                       </div>
                       {nfsDia.map((nf) => {
                         const st = getNotaFiscalStatus(nf.dataLimite);
-                        const StatusIcon =
+                        const icon =
                           st.status === 'vencida'
-                            ? AlertCircle
+                            ? '🔴'
                             : st.status === 'proximo_vencer'
-                              ? AlertTriangle
-                              : CheckCircle2;
+                              ? '⚠️'
+                              : '🟢';
                         return (
                           <div
                             key={nf.id}
                             title={`NF ${nf.numero}`}
-                            className="flex items-center gap-1"
                             style={{
                               fontSize: 12,
                               padding: '2px 4px',
@@ -927,17 +891,17 @@ function MensalTab({ notas, currentMonth, onChangeMonth }: MensalTabProps) {
                               whiteSpace: 'nowrap',
                             }}
                           >
-                            <StatusIcon className="size-3 shrink-0" /> NF {nf.numero}
+                            {icon} NF {nf.numero}
                           </div>
                         );
                       })}
-                    </TableCell>
+                    </td>
                   );
                 })}
-              </TableRow>
+              </tr>
             ))}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </Card>
     </div>
   );
@@ -1132,7 +1096,7 @@ function NFModal({ nf, contratos, onClose }: NFModalProps) {
                   fontSize: 13,
                 }}
               >
-                <DollarSign className="size-4 inline mr-1" />Recebimento previsto: <strong>{previewRecebimento}</strong>
+                💰 Recebimento previsto: <strong>{previewRecebimento}</strong>
               </div>
             )}
 
@@ -1203,7 +1167,7 @@ function EmitirModal({ nf, contrato, onClose }: EmitirModalProps) {
     <Dialog open onOpenChange={(next) => !next && onClose()}>
       <DialogContent className="p-0 gap-0 w-[92vw] sm:max-w-[680px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Check className="size-5" />{`Marcar NF ${nf.numero} como Emitida`}</DialogTitle>
+          <DialogTitle>{`✓ Marcar NF ${nf.numero} como Emitida`}</DialogTitle>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           <div
@@ -1250,7 +1214,7 @@ function EmitirModal({ nf, contrato, onClose }: EmitirModalProps) {
             }}
           >
             <div style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
-              <DollarSign className="size-4 inline mr-1" />Entrada automática no caixa
+              💰 Entrada automática no caixa
             </div>
             <div style={{ color: 'var(--color-text-muted)', marginTop: 4 }}>
               {recebimento ? (
@@ -1276,7 +1240,7 @@ function EmitirModal({ nf, contrato, onClose }: EmitirModalProps) {
             onClick={handleConfirmar}
             disabled={emitir.isPending}
           >
-            {emitir.isPending ? 'Confirmando...' : <><Check className="size-4 mr-1" /> Confirmar Emissão</>}
+            {emitir.isPending ? 'Confirmando...' : '✓ Confirmar Emissão'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1367,7 +1331,7 @@ function DetailModal({ nf, contrato, onClose, onEmitir }: DetailModalProps) {
               background: nf.emitida ? 'rgba(56,161,105,.15)' : 'rgba(214,158,46,.12)',
               color: nf.emitida ? 'var(--color-success)' : 'var(--color-warning)',
             }}>
-              {nf.emitida ? <><Check className="size-3 inline mr-1" />Emitida</> : 'Pendente'}
+              {nf.emitida ? '✓ Emitida' : 'Pendente'}
             </Badge>
             <span
               style={{

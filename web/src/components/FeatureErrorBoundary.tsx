@@ -58,6 +58,7 @@ function FeatureErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
           border: 0,
           backgroundColor: '#991B1B',
           color: 'white',
+          cursor: 'pointer',
         }}
       >
         Tentar novamente

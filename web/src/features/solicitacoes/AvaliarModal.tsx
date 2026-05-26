@@ -1,14 +1,6 @@
 import { useState } from 'react';
 import Button from '../../components/ui/button';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -222,29 +214,29 @@ export default function AvaliarModal({
             </Button>
           </div>
           <div className="table-wrap">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead style={{ width: 30 }}>✓</TableHead>
-                  <TableHead>Fornecedor</TableHead>
-                  <TableHead style={{ width: 120 }}>Preço unit.</TableHead>
-                  <TableHead>Link / observação</TableHead>
-                  <TableHead style={{ width: 110, textAlign: 'right' }}>Subtotal</TableHead>
-                  <TableHead style={{ width: 30 }} />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <table>
+              <thead>
+                <tr>
+                  <th style={{ width: 30 }}>✓</th>
+                  <th>Fornecedor</th>
+                  <th style={{ width: 120 }}>Preço unit.</th>
+                  <th>Link / observação</th>
+                  <th style={{ width: 110, textAlign: 'right' }}>Subtotal</th>
+                  <th style={{ width: 30 }} />
+                </tr>
+              </thead>
+              <tbody>
                 {it.cotacoes.map((c, j) => (
-                  <TableRow key={j}>
-                    <TableCell style={{ textAlign: 'center' }}>
+                  <tr key={j}>
+                    <td style={{ textAlign: 'center' }}>
                       <input
                         type="radio"
                         name={`esc-${i}`}
                         checked={it.cotacaoEscolhidaIdx === j}
                         onChange={() => patchItem(i, { cotacaoEscolhidaIdx: j })}
                       />
-                    </TableCell>
-                    <TableCell>
+                    </td>
+                    <td>
                       <Select
                         value={c.fornecedorId}
                         onChange={(e) => {
@@ -264,8 +256,8 @@ export default function AvaliarModal({
                           </option>
                         ))}
                       </Select>
-                    </TableCell>
-                    <TableCell>
+                    </td>
+                    <td>
                       <Input
                         type="number"
                         step="0.01"
@@ -277,8 +269,8 @@ export default function AvaliarModal({
                           })
                         }
                       />
-                    </TableCell>
-                    <TableCell>
+                    </td>
+                    <td>
                       <Input
                         value={c.link ?? ''}
                         onChange={(e) =>
@@ -286,11 +278,11 @@ export default function AvaliarModal({
                         }
                         placeholder="link, condições, prazo..."
                       />
-                    </TableCell>
-                    <TableCell style={{ textAlign: 'right', fontWeight: 700 }}>
+                    </td>
+                    <td style={{ textAlign: 'right', fontWeight: 700 }}>
                       {formatBRL(it.qtd * (Number(c.precoUnit) || 0))}
-                    </TableCell>
-                    <TableCell style={{ textAlign: 'center' }}>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
                       <button
                         type="button"
                         onClick={() => removeCotacao(i, j)}
@@ -298,15 +290,16 @@ export default function AvaliarModal({
                           background: 'none',
                           border: 'none',
                           color: '#DC2626',
+                          cursor: 'pointer',
                         }}
                       >
                         ✕
                       </button>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
           </div>
         </Card>
       ))}

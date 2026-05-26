@@ -1,5 +1,4 @@
 import { useRef, useState, type ChangeEvent } from 'react';
-import { ImageIcon, Paperclip } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import Button from '../../../components/ui/button';
 import Card from '../../../components/ui/card';
@@ -157,8 +156,8 @@ export default function AnexosTab({ proposta, onLocalUpdate }: EditorTabProps) {
           }}
         >
           <div>
-            <h4 className="flex items-center gap-2" style={{ margin: 0, color: '#1F497D' }}>
-              <ImageIcon className="size-4" /> Imagens Ilustrativas
+            <h4 style={{ margin: 0, color: '#1F497D' }}>
+              🖼️ Imagens Ilustrativas
             </h4>
             <p
               className="text-muted"
@@ -270,7 +269,7 @@ export default function AnexosTab({ proposta, onLocalUpdate }: EditorTabProps) {
           }}
         >
           <div>
-            <h4 className="flex items-center gap-2" style={{ margin: 0, color: '#1F497D' }}><Paperclip className="size-4" /> Anexos PDF</h4>
+            <h4 style={{ margin: 0, color: '#1F497D' }}>📎 Anexos PDF</h4>
             <p
               className="text-muted"
               style={{ margin: '4px 0 0', fontSize: 12 }}
@@ -364,6 +363,7 @@ const vazioStyle = {
 const iconBtnStyle = {
   background: 'none',
   border: 'none',
+  cursor: 'pointer',
   color: '#dc2626',
   fontSize: 18,
 } as const;

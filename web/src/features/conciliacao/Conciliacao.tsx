@@ -292,6 +292,7 @@ function UploadScreen({ onFile }: { onFile: (file: File) => void }) {
             borderRadius: 12,
             padding: 'var(--sp-xl) var(--sp-lg)',
             textAlign: 'center',
+            cursor: 'pointer',
             background: dragOver ? 'var(--color-surface)' : 'var(--color-bg)',
           }}
         >

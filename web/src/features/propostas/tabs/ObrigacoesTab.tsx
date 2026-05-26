@@ -154,7 +154,7 @@ function LadoObrigacoes({ titulo, itens, biblioteca, onCommit }: LadoProps) {
 }
 
 function iconBtn(color: string, fontSize: number): CSSProperties {
-  return { background: 'none', border: 'none', color, fontSize };
+  return { background: 'none', border: 'none', cursor: 'pointer', color, fontSize };
 }
 
 /**

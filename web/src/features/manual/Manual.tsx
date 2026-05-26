@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import PageHeader from '../../components/layout/PageHeader';
 import { CONTEUDOS, SECOES } from './manualContent';
 import './manual.css';
 
@@ -42,7 +41,12 @@ export default function Manual() {
 
   return (
     <div className="man-root">
-      <PageHeader title="📖 Manual do Usuário" subtitle="Guia completo do sistema com fluxogramas" />
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">📖 Manual do Usuário</h1>
+          <p className="page-subtitle">Guia completo do sistema com fluxogramas</p>
+        </div>
+      </div>
 
       <div className="man-layout">
         <div className="man-menu">

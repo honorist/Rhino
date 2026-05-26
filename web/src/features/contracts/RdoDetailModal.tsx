@@ -1,14 +1,6 @@
 import { useState } from 'react';
 import Button from '../../components/ui/button';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -88,34 +80,34 @@ function MiniTabela({
       >
         {titulo}
       </div>
-      <Table style={{ width: '100%', fontSize: 13 }}>
-        <TableHeader>
-          <TableRow>
+      <table style={{ width: '100%', fontSize: 13 }}>
+        <thead>
+          <tr>
             {colunas.map((c) => (
-              <TableHead
+              <th
                 key={c.chave}
                 style={{ textAlign: c.centro ? 'center' : 'left' }}
               >
                 {c.label}
-              </TableHead>
+              </th>
             ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+          </tr>
+        </thead>
+        <tbody>
           {linhas.map((l, i) => (
-            <TableRow key={i}>
+            <tr key={i}>
               {colunas.map((c) => (
-                <TableCell
+                <td
                   key={c.chave}
                   style={{ textAlign: c.centro ? 'center' : 'left' }}
                 >
                   {l[c.chave] ?? '—'}
-                </TableCell>
+                </td>
               ))}
-            </TableRow>
+            </tr>
           ))}
-        </TableBody>
-      </Table>
+        </tbody>
+      </table>
     </div>
   );
 }

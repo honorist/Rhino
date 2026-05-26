@@ -243,7 +243,7 @@ export default function Propostas() {
         style={{ padding: 'var(--sp-md)', marginBottom: 'var(--sp-lg)' }}
       >
         <Input
-          placeholder="Buscar por número, título, cliente ou referência..."
+          placeholder="🔍 Buscar por número, título, cliente ou referência..."
           value={busca}
           onChange={(event) => setBusca(event.target.value)}
         />
@@ -383,6 +383,7 @@ function NovaPropostaModal({ onClose }: { onClose: () => void }) {
                   key={t.value}
                   style={{
                     flex: 1,
+                    cursor: 'pointer',
                     border: `1.5px solid ${
                       ativo ? 'var(--color-primary)' : 'var(--color-border)'
                     }`,

@@ -1,14 +1,6 @@
 import { useState } from 'react';
 import Button from '../../components/ui/button';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -432,6 +424,7 @@ export default function VeiculoDetalheModal({
                       padding: '8px 14px',
                       border: 'none',
                       background: 'none',
+                      cursor: 'pointer',
                       fontWeight: aba === key ? 600 : 400,
                       color: aba === key ? '#1F497D' : '#64748b',
                       borderBottom: `2px solid ${
@@ -517,36 +510,36 @@ function PlanoTab({
         </p>
       ) : (
         <div className="table-wrap">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Item</TableHead>
-                <TableHead>Intervalo KM</TableHead>
-                <TableHead>Intervalo</TableHead>
-                <TableHead>Último KM</TableHead>
-                <TableHead>Última data</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Intervalo KM</th>
+                <th>Intervalo</th>
+                <th>Último KM</th>
+                <th>Última data</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
               {planos.map((p) => (
-                <TableRow key={p.id}>
-                  <TableCell>
+                <tr key={p.id}>
+                  <td>
                     <strong>{p.descricao}</strong>
-                  </TableCell>
-                  <TableCell>
+                  </td>
+                  <td>
                     {p.intervaloKm
                       ? `${p.intervaloKm.toLocaleString('pt-BR')} km`
                       : '—'}
-                  </TableCell>
-                  <TableCell>{p.intervaloMeses ? `${p.intervaloMeses} meses` : '—'}</TableCell>
-                  <TableCell>
+                  </td>
+                  <td>{p.intervaloMeses ? `${p.intervaloMeses} meses` : '—'}</td>
+                  <td>
                     {p.ultimoKm
                       ? `${p.ultimoKm.toLocaleString('pt-BR')} km`
                       : '—'}
-                  </TableCell>
-                  <TableCell>{formatDateBR(p.ultimaData)}</TableCell>
-                  <TableCell>
+                  </td>
+                  <td>{formatDateBR(p.ultimaData)}</td>
+                  <td>
                     <a
                       className="action-link"
                       style={{ cursor: 'pointer' }}
@@ -562,11 +555,11 @@ function PlanoTab({
                     >
                       ×
                     </a>
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
       )}
     </>
@@ -608,28 +601,28 @@ function HistoricoTab({
         </p>
       ) : (
         <div className="table-wrap">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>KM</TableHead>
-                <TableHead>Custo</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Descrição</th>
+                <th>KM</th>
+                <th>Custo</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
               {manuts.map((m: VeiculoManutencao) => (
-                <TableRow key={m.id}>
-                  <TableCell>{formatDateBR(m.data)}</TableCell>
-                  <TableCell>{m.tipo || '—'}</TableCell>
-                  <TableCell>{m.descricao || nomePlano(m.planoId)}</TableCell>
-                  <TableCell>
+                <tr key={m.id}>
+                  <td>{formatDateBR(m.data)}</td>
+                  <td>{m.tipo || '—'}</td>
+                  <td>{m.descricao || nomePlano(m.planoId)}</td>
+                  <td>
                     {m.km ? `${m.km.toLocaleString('pt-BR')} km` : '—'}
-                  </TableCell>
-                  <TableCell>{m.custo ? formatBRL(m.custo) : '—'}</TableCell>
-                  <TableCell>
+                  </td>
+                  <td>{m.custo ? formatBRL(m.custo) : '—'}</td>
+                  <td>
                     <a
                       className="action-link danger"
                       style={{ cursor: 'pointer' }}
@@ -637,11 +630,11 @@ function HistoricoTab({
                     >
                       ×
                     </a>
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
       )}
     </>

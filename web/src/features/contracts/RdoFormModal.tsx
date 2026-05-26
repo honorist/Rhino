@@ -12,9 +12,6 @@ import FormField from '../../components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DatePicker } from '../../components/ui/date-picker';
 import { toast } from 'sonner';
 import { todayISO } from '../../lib/formatDate';
@@ -271,49 +268,58 @@ export default function RdoFormModal({
         {contract.name}
       </p>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
-        <TabsList className="mb-4 h-auto w-full justify-start overflow-x-auto bg-transparent p-0 border-b border-border rounded-none">
-          {TABS.map((t) => (
-            <TabsTrigger
-              key={t.k}
-              value={t.k}
-              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary data-[state=active]:shadow-none whitespace-nowrap"
-            >
-              {t.l}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        <TabsContent value="cabecalho">
-          <CabecalhoTab form={form} patch={patch} setData={setData} />
-        </TabsContent>
-        <TabsContent value="tempo">
-          <TempoTab form={form} patch={patch} />
-        </TabsContent>
-        <TabsContent value="mo">
-          <MoTab form={form} addMo={addMo} updMo={updMo} rmMo={rmMo} patch={patch} />
-        </TabsContent>
-        <TabsContent value="equipamentos">
-          <EquipamentosTab form={form} patch={patch} />
-        </TabsContent>
-        <TabsContent value="atividades">
-          <AtividadesTab form={form} patch={patch} />
-        </TabsContent>
-        <TabsContent value="seguranca">
-          <SegurancaTab form={form} patch={patch} />
-        </TabsContent>
-        <TabsContent value="fiscalizacao">
-          <FormField label="Comentários da Fiscalização" htmlFor="rdo-fisc">
-            <Textarea
-              id="rdo-fisc"
-              rows={8}
-              value={form.fiscalizacaoComentarios}
-              onChange={(e) =>
-                patch({ fiscalizacaoComentarios: e.target.value })
-              }
-            />
-          </FormField>
-        </TabsContent>
-      </Tabs>
+      <div
+        style={{
+          display: 'flex',
+          gap: 2,
+          borderBottom: '1px solid var(--color-border)',
+          overflowX: 'auto',
+          marginBottom: 'var(--sp-md)',
+        }}
+      >
+        {TABS.map((t) => (
+          <button
+            key={t.k}
+            type="button"
+            onClick={() => setTab(t.k)}
+            style={{
+              padding: '8px 12px',
+              border: 'none',
+              borderBottom: `3px solid ${tab === t.k ? 'var(--color-primary)' : 'transparent'}`,
+              background: 'none',
+              cursor: 'pointer',
+              fontWeight: tab === t.k ? 600 : 400,
+              color: tab === t.k ? 'var(--color-primary)' : 'var(--color-text-muted)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t.l}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'cabecalho' && (
+        <CabecalhoTab form={form} patch={patch} setData={setData} />
+      )}
+      {tab === 'tempo' && <TempoTab form={form} patch={patch} />}
+      {tab === 'mo' && (
+        <MoTab form={form} addMo={addMo} updMo={updMo} rmMo={rmMo} patch={patch} />
+      )}
+      {tab === 'equipamentos' && <EquipamentosTab form={form} patch={patch} />}
+      {tab === 'atividades' && <AtividadesTab form={form} patch={patch} />}
+      {tab === 'seguranca' && <SegurancaTab form={form} patch={patch} />}
+      {tab === 'fiscalizacao' && (
+        <FormField label="Comentários da Fiscalização" htmlFor="rdo-fisc">
+          <Textarea
+            id="rdo-fisc"
+            rows={8}
+            value={form.fiscalizacaoComentarios}
+            onChange={(e) =>
+              patch({ fiscalizacaoComentarios: e.target.value })
+            }
+          />
+        </FormField>
+      )}
         </div>
         <DialogFooter>
           <Button variant="secondary" onClick={onClose} disabled={pending}>
@@ -473,11 +479,12 @@ function CabecalhoTab({
       </div>
       <PeriodoTrabalho form={form} patch={patch} />
       <label
-        style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
       >
-        <Checkbox
+        <input
+          type="checkbox"
           checked={form.horaExtra}
-          onCheckedChange={(c) => patch({ horaExtra: c === true })}
+          onChange={(e) => patch({ horaExtra: e.target.checked })}
         />
         Hora Extra
       </label>
@@ -1139,22 +1146,22 @@ function SegurancaTab({ form, patch }: { form: RdoFormData; patch: PatchFn }) {
         />
       </FormField>
       <FormField label="Houve Acidente?">
-        <RadioGroup
-          value={seg.acidente}
-          onValueChange={(v) => setSeg({ acidente: v as typeof seg.acidente })}
-          style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}
-        >
+        <div style={{ display: 'flex', gap: 'var(--sp-md)', flexWrap: 'wrap' }}>
           {ACIDENTES.map((o) => (
             <label
               key={o.v}
-              htmlFor={`rdo-acidente-${o.v}`}
-              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
             >
-              <RadioGroupItem id={`rdo-acidente-${o.v}`} value={o.v} />
+              <input
+                type="radio"
+                name="rdo-acidente"
+                checked={seg.acidente === o.v}
+                onChange={() => setSeg({ acidente: o.v })}
+              />
               {o.l}
             </label>
           ))}
-        </RadioGroup>
+        </div>
       </FormField>
       {seg.acidente !== 'nao_houve' && (
         <FormField label="Diagnóstico" htmlFor="rdo-diag">

@@ -1,7 +1,5 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle } from 'lucide-react';
-import PageHeader from '../../components/layout/PageHeader';
 import Card from '../../components/ui/card';
 import Spinner from '../../components/ui/spinner';
 import { BentoGrid, BentoItem } from '../../components/ui/bento-grid';
@@ -227,14 +225,19 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        title={
-          <span className="display block">
+      {/* Page header — saudação + status do dia. Mantém as classes legadas
+          `page-header`/`page-title` para preservar o gradiente do tema,
+          mas o `space-y-8` do wrapper já garante o respiro abaixo. */}
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">
             {saudacao(horaH)}, {nome}
-          </span>
-        }
-        subtitle={subParts.join(' · ')}
-      />
+          </h1>
+          <p className="page-subtitle mt-1.5 text-muted-foreground">
+            {subParts.join(' · ')}
+          </p>
+        </div>
+      </div>
 
       {/*
        * Hero bento (DASH-8): Pipeline horizontal (DASH-9) à esquerda como
@@ -388,8 +391,8 @@ export default function Dashboard() {
       {/* Alertas — list view com separadores entre itens */}
       {indicadores.riscos.length > 0 && (
         <Card className="!p-6">
-          <h3 className="mb-5 flex items-center gap-2 text-base font-semibold leading-none tracking-tight">
-            <AlertTriangle className="size-4" /> Alertas ({indicadores.riscos.length})
+          <h3 className="mb-5 text-base font-semibold leading-none tracking-tight">
+            ⚠️ Alertas ({indicadores.riscos.length})
           </h3>
           <div className="divide-y divide-border">
             {indicadores.riscos.map((r, i) => (

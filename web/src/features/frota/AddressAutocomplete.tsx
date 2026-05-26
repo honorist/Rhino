@@ -118,6 +118,7 @@ export default function AddressAutocomplete({
               onMouseDown={() => escolher(r)}
               style={{
                 padding: '8px 12px',
+                cursor: 'pointer',
                 fontSize: 13,
                 borderBottom: '1px solid var(--color-border)',
               }}

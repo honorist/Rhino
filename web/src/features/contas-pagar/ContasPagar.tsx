@@ -307,10 +307,10 @@ export default function ContasPagar() {
       cell: (c) => (
         <div style={{ display: 'flex', gap: 8 }} onClick={(e) => e.stopPropagation()}>
           {c.status === 'pendente' ? (
-            <a className="action-link" style={{ color: 'var(--color-success)' }}
+            <a className="action-link" style={{ cursor: 'pointer', color: 'var(--color-success)' }}
               onClick={() => setPagarId(c.id)}>Pagar</a>
           ) : (
-            <a className="action-link" style={{ color: 'var(--color-text-muted)' }}
+            <a className="action-link" style={{ cursor: 'pointer', color: 'var(--color-text-muted)' }}
               onClick={() => handleEstornar(c.id)}>Estornar</a>
           )}
           <a className="action-link" style={{ cursor: 'pointer' }}
@@ -977,6 +977,7 @@ function PagarModal({ conta, onClose }: PagarModalProps) {
                         : 'var(--color-surface)',
                       color: ativo ? '#fff' : 'var(--color-text-muted)',
                       fontWeight: ativo ? 700 : 500,
+                      cursor: 'pointer',
                     }}
                   >
                     {icone} {forma}

@@ -399,11 +399,11 @@ const CLAUSULA_COLUMNS = (
     header: 'Ações',
     cell: (c) => (
       <div className="flex gap-3">
-        <Button variant="link" size="sm" className="h-auto p-0" onClick={() => onEditar(c)}>Editar</Button>
-        <Button variant="link" size="sm" className="h-auto p-0" onClick={() => onToggle(c)}>
+        <button type="button" className="action-link" onClick={() => onEditar(c)}>Editar</button>
+        <button type="button" className="action-link" onClick={() => onToggle(c)}>
           {c.ativa ? 'Desativar' : 'Ativar'}
-        </Button>
-        <Button variant="link" size="sm" className="h-auto p-0 text-destructive" onClick={() => onExcluir(c)}>Excluir</Button>
+        </button>
+        <button type="button" className="action-link danger" onClick={() => onExcluir(c)}>Excluir</button>
       </div>
     ),
   },

@@ -1,14 +1,6 @@
 import { useState } from 'react';
 import Button from '../../components/ui/button';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -183,20 +175,20 @@ export default function CriarSolicitacaoModal({
         </Button>
       </div>
       <div className="table-wrap">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Descrição *</TableHead>
-              <TableHead style={{ width: 120 }}>Tipo</TableHead>
-              <TableHead style={{ width: 90 }}>Qtd *</TableHead>
-              <TableHead>Observações</TableHead>
-              <TableHead style={{ width: 40 }} />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+        <table>
+          <thead>
+            <tr>
+              <th>Descrição *</th>
+              <th style={{ width: 120 }}>Tipo</th>
+              <th style={{ width: 90 }}>Qtd *</th>
+              <th>Observações</th>
+              <th style={{ width: 40 }} />
+            </tr>
+          </thead>
+          <tbody>
             {itens.map((it, idx) => (
-              <TableRow key={idx}>
-                <TableCell>
+              <tr key={idx}>
+                <td>
                   <Input
                     value={it.descricao}
                     onChange={(e) =>
@@ -204,8 +196,8 @@ export default function CriarSolicitacaoModal({
                     }
                     placeholder="Descrição do material"
                   />
-                </TableCell>
-                <TableCell>
+                </td>
+                <td>
                   <Select
                     value={it.tipo}
                     onChange={(e) =>
@@ -217,8 +209,8 @@ export default function CriarSolicitacaoModal({
                     <option value="compra">🛒 Compra</option>
                     <option value="aluguel">🔑 Aluguel</option>
                   </Select>
-                </TableCell>
-                <TableCell>
+                </td>
+                <td>
                   <Input
                     type="number"
                     step="0.01"
@@ -226,8 +218,8 @@ export default function CriarSolicitacaoModal({
                     value={it.qtd}
                     onChange={(e) => editarItem(idx, { qtd: e.target.value })}
                   />
-                </TableCell>
-                <TableCell>
+                </td>
+                <td>
                   <Input
                     value={it.observacoes}
                     onChange={(e) =>
@@ -235,8 +227,8 @@ export default function CriarSolicitacaoModal({
                     }
                     placeholder="Notas (opcional)"
                   />
-                </TableCell>
-                <TableCell>
+                </td>
+                <td>
                   <button
                     type="button"
                     onClick={() =>
@@ -246,16 +238,17 @@ export default function CriarSolicitacaoModal({
                       background: 'none',
                       border: 'none',
                       color: '#DC2626',
+                      cursor: 'pointer',
                       fontSize: 16,
                     }}
                   >
                     ✕
                   </button>
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ))}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
         </div>
         <DialogFooter>

@@ -32,14 +32,14 @@ function OrgNode({ membro, ctx }: { membro: OrgMembro; ctx: ArvoreCtx }) {
         <div className="org-node-actions">
           <a
             className="action-link"
-            style={{ fontSize: 12 }}
+            style={{ cursor: 'pointer', fontSize: 12 }}
             onClick={() => ctx.onEdit(membro)}
           >
             Editar
           </a>
           <a
             className="action-link danger"
-            style={{ fontSize: 12 }}
+            style={{ cursor: 'pointer', fontSize: 12 }}
             onClick={() => ctx.onDelete(membro)}
           >
             Excluir

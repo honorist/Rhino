@@ -30,11 +30,11 @@ export default function Card({ className, ...rest }: CardProps) {
 }
 
 export function CardHeader({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('flex flex-col space-y-1 mb-4', className)} {...rest} />;
+  return <div className={cn('flex flex-col space-y-1.5 p-6', className)} {...rest} />;
 }
 
 export function CardTitle({ className, ...rest }: HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn('text-base font-semibold leading-none tracking-tight', className)} {...rest} />;
+  return <h3 className={cn('text-2xl font-semibold leading-none tracking-tight', className)} {...rest} />;
 }
 
 export function CardDescription({ className, ...rest }: HTMLAttributes<HTMLParagraphElement>) {
@@ -42,9 +42,9 @@ export function CardDescription({ className, ...rest }: HTMLAttributes<HTMLParag
 }
 
 export function CardContent({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn(className)} {...rest} />;
+  return <div className={cn('p-6 pt-0', className)} {...rest} />;
 }
 
 export function CardFooter({ className, ...rest }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('flex items-center mt-4', className)} {...rest} />;
+  return <div className={cn('flex items-center p-6 pt-0', className)} {...rest} />;
 }

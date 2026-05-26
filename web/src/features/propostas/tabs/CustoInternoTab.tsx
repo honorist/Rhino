@@ -6,14 +6,6 @@ import { toast } from 'sonner';
 import { formatBRL } from '../../../lib/format';
 import type { Proposta } from '../../../types/domain';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   useAtualizarCusto,
   useCriarCusto,
   useDeletarCusto,
@@ -269,30 +261,30 @@ export default function CustoInternoTab({
       </div>
 
       <div className="table-wrap">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Categoria</TableHead>
-              <TableHead>Descrição</TableHead>
-              <TableHead style={{ width: 160 }}>Valor (R$)</TableHead>
-              <TableHead style={{ width: 120 }}>Percentual</TableHead>
-              <TableHead style={{ width: 60 }}>Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+        <table>
+          <thead>
+            <tr>
+              <th>Categoria</th>
+              <th>Descrição</th>
+              <th style={{ width: 160 }}>Valor (R$)</th>
+              <th style={{ width: 120 }}>Percentual</th>
+              <th style={{ width: 60 }}>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
             {custos.length === 0 ? (
-              <TableRow>
-                <TableCell
+              <tr>
+                <td
                   colSpan={5}
                   style={{ textAlign: 'center', padding: 24, color: '#94a3b8' }}
                 >
                   Nenhum item de custo. Adicione para calcular margem.
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ) : (
               custos.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell>
+                <tr key={c.id}>
+                  <td>
                     <Select
                       value={c.categoria}
                       onChange={(e) => {
@@ -307,8 +299,8 @@ export default function CustoInternoTab({
                         </option>
                       ))}
                     </Select>
-                  </TableCell>
-                  <TableCell>
+                  </td>
+                  <td>
                     <Input
                       value={c.descricao}
                       onChange={(e) =>
@@ -318,8 +310,8 @@ export default function CustoInternoTab({
                         persistir(c.id, { descricao: e.target.value })
                       }
                     />
-                  </TableCell>
-                  <TableCell>
+                  </td>
+                  <td>
                     <Input
                       type="number"
                       min={0}
@@ -334,8 +326,8 @@ export default function CustoInternoTab({
                         persistir(c.id, { valor: Number(e.target.value) || 0 })
                       }
                     />
-                  </TableCell>
-                  <TableCell>
+                  </td>
+                  <td>
                     <Input
                       type="number"
                       step="0.01"
@@ -358,8 +350,8 @@ export default function CustoInternoTab({
                         })
                       }
                     />
-                  </TableCell>
-                  <TableCell>
+                  </td>
+                  <td>
                     <button
                       type="button"
                       onClick={() => remover(c.id)}
@@ -367,17 +359,18 @@ export default function CustoInternoTab({
                         background: 'none',
                         border: 'none',
                         color: '#dc2626',
+                        cursor: 'pointer',
                         fontSize: 18,
                       }}
                     >
                       ×
                     </button>
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ))
             )}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
     </Card>
   );

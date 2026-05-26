@@ -5,14 +5,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '../../../components/ui/date-picker';
 import { localUid, type EditorTabProps, type FaseCronograma } from '../types';
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 /** Fases padrão exibidas quando o cronograma ainda está vazio. */
 const FASES_PADRAO: FaseCronograma[] = [
   { id: 'fase_eng', fase: 'Engenharia', inicio: null, fim: null, duracaoDias: 0, ordem: 0 },
@@ -107,40 +99,40 @@ export default function CronogramaTab({ proposta, onChange }: EditorTabProps) {
       </div>
 
       <div className="table-wrap" style={{ marginBottom: 24 }}>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead style={{ width: 40 }}>#</TableHead>
-              <TableHead>Fase</TableHead>
-              <TableHead style={{ width: 160 }}>Início</TableHead>
-              <TableHead style={{ width: 160 }}>Fim</TableHead>
-              <TableHead style={{ width: 110 }}>Duração (dias)</TableHead>
-              <TableHead style={{ width: 80 }}>Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+        <table>
+          <thead>
+            <tr>
+              <th style={{ width: 40 }}>#</th>
+              <th>Fase</th>
+              <th style={{ width: 160 }}>Início</th>
+              <th style={{ width: 160 }}>Fim</th>
+              <th style={{ width: 110 }}>Duração (dias)</th>
+              <th style={{ width: 80 }}>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
             {fases.map((f, idx) => (
-              <TableRow key={f.id}>
-                <TableCell style={{ fontWeight: 600, color: '#64748b' }}>{idx + 1}</TableCell>
-                <TableCell>
+              <tr key={f.id}>
+                <td style={{ fontWeight: 600, color: '#64748b' }}>{idx + 1}</td>
+                <td>
                   <Input
                     value={f.fase}
                     onChange={(e) => editar(idx, { fase: e.target.value })}
                   />
-                </TableCell>
-                <TableCell>
+                </td>
+                <td>
                   <DatePicker
                     value={f.inicio ?? ''}
                     onChange={(val) => editar(idx, { inicio: val || null })}
                   />
-                </TableCell>
-                <TableCell>
+                </td>
+                <td>
                   <DatePicker
                     value={f.fim ?? ''}
                     onChange={(val) => editar(idx, { fim: val || null })}
                   />
-                </TableCell>
-                <TableCell>
+                </td>
+                <td>
                   <Input
                     type="number"
                     min={0}
@@ -149,8 +141,8 @@ export default function CronogramaTab({ proposta, onChange }: EditorTabProps) {
                       editar(idx, { duracaoDias: Number(e.target.value) || 0 })
                     }
                   />
-                </TableCell>
-                <TableCell>
+                </td>
+                <td>
                   <button
                     type="button"
                     title="Remover"
@@ -158,17 +150,18 @@ export default function CronogramaTab({ proposta, onChange }: EditorTabProps) {
                     style={{
                       background: 'none',
                       border: 'none',
+                      cursor: 'pointer',
                       color: '#dc2626',
                       fontSize: 18,
                     }}
                   >
                     ×
                   </button>
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ))}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
 
       {dataMin && dataMax ? (

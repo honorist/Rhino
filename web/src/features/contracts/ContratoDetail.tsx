@@ -192,6 +192,7 @@ function ContratoDetailView({ id }: { id: string }) {
                   padding: '14px 18px',
                   border: 'none',
                   background: 'none',
+                  cursor: 'pointer',
                   fontWeight: active ? 600 : 400,
                   color: active ? '#1F497D' : '#64748b',
                   borderBottom: `3px solid ${active ? '#1F497D' : 'transparent'}`,

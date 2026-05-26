@@ -149,7 +149,7 @@ function OcorrenciaModal({
             />
           </FormField>
           <label
-            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
           >
             <input
               type="checkbox"

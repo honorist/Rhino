@@ -169,9 +169,6 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(version),
   },
-  esbuild: {
-    charset: 'utf8',
-  },
   build: {
     outDir: 'dist',
     sourcemap: true,

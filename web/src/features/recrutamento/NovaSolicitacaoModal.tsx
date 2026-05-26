@@ -2,14 +2,6 @@ import { useState } from 'react';
 import Button from '../../components/ui/button';
 import FormField from '../../components/ui/form-field';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -117,27 +109,27 @@ export default function NovaSolicitacaoModal({ onClose }: { onClose: () => void 
             + Vaga
           </Button>
         </div>
-        <Table style={{ width: '100%', fontSize: 14 }}>
-          <TableHeader>
-            <TableRow>
-              <TableHead style={{ textAlign: 'left', fontSize: 12, color: '#64748B' }}>Cargo</TableHead>
-              <TableHead style={{ width: 100, textAlign: 'left', fontSize: 12, color: '#64748B' }}>
+        <table style={{ width: '100%', fontSize: 14 }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: 'left', fontSize: 12, color: '#64748B' }}>Cargo</th>
+              <th style={{ width: 100, textAlign: 'left', fontSize: 12, color: '#64748B' }}>
                 Qtd
-              </TableHead>
-              <TableHead style={{ width: 36 }} />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+              </th>
+              <th style={{ width: 36 }} />
+            </tr>
+          </thead>
+          <tbody>
             {vagas.map((v, i) => (
-              <TableRow key={i}>
-                <TableCell style={{ padding: '4px 0' }}>
+              <tr key={i}>
+                <td style={{ padding: '4px 0' }}>
                   <Input
                     value={v.cargo}
                     onChange={(e) => patchVaga(i, { cargo: e.target.value })}
                     placeholder="Ex.: Pedreiro, Servente, Eletricista"
                   />
-                </TableCell>
-                <TableCell style={{ padding: '4px 0' }}>
+                </td>
+                <td style={{ padding: '4px 0' }}>
                   <Input
                     type="number"
                     min={1}
@@ -146,8 +138,8 @@ export default function NovaSolicitacaoModal({ onClose }: { onClose: () => void 
                       patchVaga(i, { qtdTotal: Number(e.target.value) || 0 })
                     }
                   />
-                </TableCell>
-                <TableCell style={{ padding: '4px 0', textAlign: 'center' }}>
+                </td>
+                <td style={{ padding: '4px 0', textAlign: 'center' }}>
                   {vagas.length > 1 && (
                     <a
                       className="action-link danger"
@@ -157,11 +149,11 @@ export default function NovaSolicitacaoModal({ onClose }: { onClose: () => void 
                       ✕
                     </a>
                   )}
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             ))}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
 
       <div style={{ marginTop: 'var(--sp-md)' }}>

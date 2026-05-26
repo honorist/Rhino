@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import Button from '../../components/ui/button';
 import { Input } from '@/components/ui/input';
 import { api } from '../../lib/api';
-import PageHeader from '../../components/layout/PageHeader';
 
 interface Mensagem {
   role: 'user' | 'assistant';
@@ -54,7 +53,14 @@ export default function AiChat() {
 
   return (
     <>
-      <PageHeader title="🤖 Assistente IA" subtitle="Faça perguntas sobre contratos, caixa e contas em linguagem natural" />
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">🤖 Assistente IA</h1>
+          <p className="page-subtitle">
+            Faça perguntas sobre contratos, caixa e contas em linguagem natural
+          </p>
+        </div>
+      </div>
 
       <div
         style={{
@@ -167,7 +173,7 @@ export default function AiChat() {
             <span key={s}>
               {i > 0 && ' · '}
               <a
-                style={{ color: 'var(--color-primary)' }}
+                style={{ cursor: 'pointer', color: 'var(--color-primary)' }}
                 onClick={() => void enviar(s)}
               >
                 {s}

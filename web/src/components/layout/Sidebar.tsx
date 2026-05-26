@@ -22,7 +22,6 @@ import {
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarRail,
   SidebarSeparator,
   useSidebar,
@@ -53,12 +52,11 @@ function NavItem({ route }: { route: RouteDef }) {
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton
-        render={<NavLink to={route.path} onClick={() => setOpenMobile(false)} />}
-        isActive={isActive}
-      >
-        {Icon && <Icon />}
-        <span>{route.label}</span>
+      <SidebarMenuButton asChild isActive={isActive}>
+        <NavLink to={route.path} onClick={() => setOpenMobile(false)}>
+          {Icon && <Icon />}
+          <span>{route.label}</span>
+        </NavLink>
       </SidebarMenuButton>
     </SidebarMenuItem>
   );
@@ -114,37 +112,28 @@ function SubNavItem({ route }: { route: RouteDef }) {
   const Icon = route.icon;
 
   return (
-    <SidebarMenuSubItem>
-      <SidebarMenuSubButton
-        render={<NavLink to={route.path} onClick={() => setOpenMobile(false)} />}
-        isActive={isActive}
-      >
-        {Icon && <Icon />}
-        <span>{route.label}</span>
+    <li>
+      <SidebarMenuSubButton asChild isActive={isActive}>
+        <NavLink to={route.path} onClick={() => setOpenMobile(false)}>
+          {Icon && <Icon />}
+          <span>{route.label}</span>
+        </NavLink>
       </SidebarMenuSubButton>
-    </SidebarMenuSubItem>
+    </li>
   );
 }
 
 // ─── Accordion ───────────────────────────────────────────────────────────────
 
-// Persiste múltiplos grupos abertos simultaneamente (Set serializado como CSV).
-// Antes era single-open: trocar entre Obras e Financeiro forçava colapsar e
-// reabrir — friction alta para fluxos cross-grupo.
-const ACCORDION_KEY = 'rhino-sb-open-groups';
+const ACCORDION_KEY = 'rhino-sb-open-group';
 
-function readOpenGroups(): Set<string> {
-  try {
-    const raw = localStorage.getItem(ACCORDION_KEY);
-    if (!raw) return new Set();
-    return new Set(raw.split(',').filter(Boolean));
-  } catch { return new Set(); }
+function readOpenGroup(): string | null {
+  try { return localStorage.getItem(ACCORDION_KEY); } catch { return null; }
 }
-
-function writeOpenGroups(ids: Set<string>): void {
+function writeOpenGroup(id: string | null): void {
   try {
-    if (ids.size === 0) localStorage.removeItem(ACCORDION_KEY);
-    else localStorage.setItem(ACCORDION_KEY, [...ids].join(','));
+    if (id) localStorage.setItem(ACCORDION_KEY, id);
+    else localStorage.removeItem(ACCORDION_KEY);
   } catch { /* ignore */ }
 }
 
@@ -164,32 +153,21 @@ export default function AppSidebar() {
       GROUP_ROUTES[g.id].some((r) => r.path === pathname),
     )?.id ?? null) as string | null;
 
-  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
-    const persisted = readOpenGroups();
-    if (activeGroupId) persisted.add(activeGroupId);
-    return persisted;
-  });
+  const [openGroupId, setOpenGroupId] = useState<string | null>(
+    () => activeGroupId ?? readOpenGroup(),
+  );
 
-  // Quando a rota muda para outro grupo, garante que ele esteja aberto — sem
-  // colapsar os demais (multi-open).
   useEffect(() => {
-    if (activeGroupId && !openGroups.has(activeGroupId)) {
-      setOpenGroups((prev) => {
-        const next = new Set(prev);
-        next.add(activeGroupId);
-        writeOpenGroups(next);
-        return next;
-      });
+    if (activeGroupId && activeGroupId !== openGroupId) {
+      setOpenGroupId(activeGroupId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeGroupId]);
 
   function toggleGroup(id: string) {
-    setOpenGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      writeOpenGroups(next);
+    setOpenGroupId((prev) => {
+      const next = prev === id ? null : id;
+      writeOpenGroup(next);
       return next;
     });
   }
@@ -240,7 +218,7 @@ export default function AppSidebar() {
                 <NavGroupSection
                   group={group}
                   items={items}
-                  open={openGroups.has(group.id)}
+                  open={openGroupId === group.id}
                   onToggle={() => toggleGroup(group.id)}
                 />
               </SidebarMenu>

@@ -2,14 +2,6 @@ import { useState } from 'react';
 import Button from '../../components/ui/button';
 import FormField from '../../components/ui/form-field';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -371,16 +363,16 @@ function StepDocumentos({
       <p style={{ marginTop: 0 }}>
         Anexe os 4 documentos obrigatórios para liberar a aprovação final.
       </p>
-      <Table style={{ width: '100%', fontSize: 14 }}>
-        <TableHeader>
-          <TableRow style={{ borderBottom: '1px solid var(--color-border)' }}>
-            <TableHead style={th()}>Documento</TableHead>
-            <TableHead style={th()}>Status</TableHead>
-            <TableHead style={th()}>Arquivo</TableHead>
-            <TableHead style={th()}></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+      <table style={{ width: '100%', fontSize: 14 }}>
+        <thead>
+          <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <th style={th()}>Documento</th>
+            <th style={th()}>Status</th>
+            <th style={th()}>Arquivo</th>
+            <th style={th()}></th>
+          </tr>
+        </thead>
+        <tbody>
           {DOCUMENTOS_OBRIGATORIOS.map((tipo) => (
             <DocRow
               key={tipo}
@@ -390,8 +382,8 @@ function StepDocumentos({
               loading={loading}
             />
           ))}
-        </TableBody>
-      </Table>
+        </tbody>
+      </table>
     </>
   );
 }
@@ -411,18 +403,18 @@ function DocRow({
   const [storagePath, setStoragePath] = useState(doc?.storagePath ?? '');
   const anexado = !!doc;
   return (
-    <TableRow style={{ borderBottom: '1px solid var(--color-border)' }}>
-      <TableCell style={td()}>
+    <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+      <td style={td()}>
         <strong>{DOC_LABEL[tipo]}</strong>
-      </TableCell>
-      <TableCell style={td()}>
+      </td>
+      <td style={td()}>
         {anexado ? (
           <span style={{ color: '#16A34A', fontWeight: 700 }}>✓ anexado</span>
         ) : (
           <span style={{ color: '#D97706', fontWeight: 700 }}>pendente</span>
         )}
-      </TableCell>
-      <TableCell style={td()}>
+      </td>
+      <td style={td()}>
         <div style={{ display: 'flex', gap: 4 }}>
           <Input
             value={filename}
@@ -435,8 +427,8 @@ function DocRow({
             placeholder="/path/..."
           />
         </div>
-      </TableCell>
-      <TableCell style={td()}>
+      </td>
+      <td style={td()}>
         <Button
           size="sm"
           disabled={loading || !filename || !storagePath}
@@ -444,8 +436,8 @@ function DocRow({
         >
           {anexado ? 'Substituir' : 'Anexar'}
         </Button>
-      </TableCell>
-    </TableRow>
+      </td>
+    </tr>
   );
 }
 
