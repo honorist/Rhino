@@ -83,24 +83,6 @@ const RDOs = {
         </div>
       ` : ''}
 
-      ${stats.obrasSemRdoOntem.length > 0 ? `
-        <div style="background:#dc2626;color:#fff;padding:var(--sp-md) var(--sp-lg);border-radius:8px;margin-bottom:var(--sp-lg);box-shadow:0 2px 8px rgba(220,38,38,0.3);">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;flex-wrap:wrap;">
-            <div style="font-weight:700;font-size:15px;">⚠ Obras sem RDO no último dia útil (${fmtData(stats.ultimoDiaUtil)}):</div>
-            <button class="btn" id="btnExportSemRdo" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4);font-size:13px;padding:4px 12px;">⬇ Exportar CSV</button>
-          </div>
-          <ul style="margin:0;padding-left:22px;line-height:1.7;">
-            ${stats.obrasSemRdoOntem.map(o => `
-              <li>
-                <a href="#/contratos/${o.contractId}" style="color:#fff;font-weight:700;text-decoration:underline;">${escapeHtml(o.name)}</a>
-                — ${escapeHtml(o.client || '')}
-                <span style="color:rgba(255,255,255,0.85);font-size:13px;">(último RDO: ${fmtUltimoRdo(o.ultimoRdo)})</span>
-              </li>
-            `).join('')}
-          </ul>
-        </div>
-      ` : ''}
-
       ${stats.obrasAtrasadas.length > 0 ? `
         <div style="background:#f59e0b;color:#1f1300;padding:var(--sp-md) var(--sp-lg);border-radius:8px;margin-bottom:var(--sp-lg);box-shadow:0 2px 8px rgba(245,158,11,0.3);">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:10px;flex-wrap:wrap;">
@@ -228,14 +210,6 @@ const RDOs = {
     const next = document.getElementById('btnNext');
     if (prev) prev.addEventListener('click', () => { this._page--; this.draw(); });
     if (next) next.addEventListener('click', () => { this._page++; this.draw(); });
-
-    // Exportar CSV — obras sem RDO ontem
-    const btnExpSem = document.getElementById('btnExportSemRdo');
-    if (btnExpSem) btnExpSem.addEventListener('click', () => {
-      const rows = [['Contrato', 'Cliente', 'Último RDO']];
-      stats.obrasSemRdoOntem.forEach(o => rows.push([o.name || '', o.client || '', o.ultimoRdo || 'nunca']));
-      this._downloadCsv(`obras-sem-rdo-${stats.ultimoDiaUtil}.csv`, rows);
-    });
 
     // Exportar CSV — obras atrasadas
     const btnExpAtr = document.getElementById('btnExportAtrasadas');

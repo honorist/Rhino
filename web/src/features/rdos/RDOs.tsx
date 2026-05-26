@@ -253,14 +253,6 @@ export default function RDOs() {
     return <div className="error-banner">Erro ao carregar os RDOs.</div>;
   }
 
-  function exportarSemRdo() {
-    const rows: (string | number)[][] = [['Contrato', 'Cliente', 'Último RDO']];
-    for (const o of stats!.obrasSemRdoOntem) {
-      rows.push([o.name, o.client ?? '', o.ultimoRdo ?? 'nunca']);
-    }
-    downloadCsv(`obras-sem-rdo-${stats!.ultimoDiaUtil}.csv`, rows);
-  }
-
   function exportarAtrasadas() {
     const rows: (string | number)[][] = [
       ['Contrato', 'Cliente', 'Dias úteis sem RDO', 'Último RDO'],
@@ -356,68 +348,6 @@ export default function RDOs() {
       </div>
 
       <AderenciaChart stats={stats} />
-
-      {stats.obrasSemRdoOntem.length > 0 && (
-        <div
-          style={{
-            background: '#dc2626',
-            color: '#fff',
-            padding: 'var(--sp-md) var(--sp-lg)',
-            borderRadius: 8,
-            marginBottom: 'var(--sp-lg)',
-            boxShadow: '0 2px 8px rgba(220,38,38,0.3)',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 8,
-              gap: 10,
-              flexWrap: 'wrap',
-            }}
-          >
-            <div style={{ fontWeight: 700, fontSize: 15 }}>
-              ⚠ Obras sem RDO no último dia útil ({fmtData(stats.ultimoDiaUtil)}):
-            </div>
-            <button
-              type="button"
-              className="btn"
-              onClick={exportarSemRdo}
-              style={{
-                background: 'rgba(255,255,255,0.2)',
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.4)',
-                fontSize: 13,
-                padding: '4px 12px',
-              }}
-            >
-              ⬇ Exportar CSV
-            </button>
-          </div>
-          <ul style={{ margin: 0, paddingLeft: 22, lineHeight: 1.7 }}>
-            {stats.obrasSemRdoOntem.map((o) => (
-              <li key={o.contractId}>
-                <a
-                  href={`/contratos/${o.contractId}`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate(`/contratos/${o.contractId}`);
-                  }}
-                  style={{ color: '#fff', fontWeight: 700 }}
-                >
-                  {o.name}
-                </a>{' '}
-                — {o.client ?? ''}{' '}
-                <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13 }}>
-                  (último RDO: {o.ultimoRdo ? fmtData(o.ultimoRdo) : 'nunca'})
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
 
       {stats.obrasAtrasadas.length > 0 && (
         <div
