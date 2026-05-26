@@ -129,14 +129,14 @@ test('routes/portal.js — pdf e docx recebem (req, id, res)', async () => {
 
 // ─── routes/platform.js ──────────────────────────────────────────────────────
 
-test('routes/platform.js — registra exatamente as 28 rotas de plataforma', () => {
+test('routes/platform.js — registra exatamente as 29 rotas de plataforma', () => {
   const router = createRouter();
   require('../routes/platform')(router, {});
   const rotas = router.list().map(r => `${r.method} ${r.pattern}`).sort();
   assert.deepEqual(rotas, [
     'DELETE /api/users/:id',
     'GET /api/admin/arquivos', 'GET /api/ai-usage/stats', 'GET /api/anomalias',
-    'GET /api/audit', 'GET /api/backup/download', 'GET /api/dashboard',
+    'GET /api/audit', 'GET /api/backup/download', 'GET /api/changelog', 'GET /api/dashboard',
     'GET /api/feature-flags', 'GET /api/health', 'GET /api/lgpd/export',
     'GET /api/metrics', 'GET /api/niveis-acesso', 'GET /api/online',
     'GET /api/push/vapid-public-key', 'GET /api/search', 'GET /api/stream', 'GET /api/users',
