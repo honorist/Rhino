@@ -114,6 +114,7 @@
   --color-sidebar-primary: #18181b;
   --color-sidebar-primary-foreground: #fafafa;
   --sidebar-width: 16rem;
+  --sidebar-width-icon: 3rem;
 }
 
 @keyframes accordion-down {

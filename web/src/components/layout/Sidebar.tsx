@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import {
+  Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
@@ -21,7 +22,9 @@ import {
   SidebarMenuItem,
   SidebarMenuSub,
   SidebarMenuSubButton,
+  SidebarRail,
   SidebarSeparator,
+  useSidebar,
 } from '../ui/sidebar';
 import type { NavGroup, RouteDef } from '../../routes/config';
 import { GROUP_ROUTES, NAV_GROUPS, ROUTES } from '../../routes/config';
@@ -29,6 +32,8 @@ import { podeAcessar, usePerfilStore } from '../../features/auth/perfilStore';
 import { useCurrentUser, useLogout } from '../../features/auth/queries';
 import NotificacoesBell from '../../features/recrutamento/NotificacoesBell';
 import { cn } from '@/lib/cn';
+
+const APP_VERSION = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? '?';
 
 function useRotasPermitidas(): RouteDef[] {
   const perfil = usePerfilStore((s) => s.current);
@@ -38,22 +43,18 @@ function useRotasPermitidas(): RouteDef[] {
   );
 }
 
-const APP_VERSION = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? '?';
+// ─── NavItem ─────────────────────────────────────────────────────────────────
 
-interface SidebarProps {
-  onNavigate: () => void;
-}
-
-// ─── Item de navegação simples ───
-function NavItem({ route, onNavigate }: { route: RouteDef; onNavigate: () => void }) {
+function NavItem({ route }: { route: RouteDef }) {
   const { pathname } = useLocation();
+  const { setOpenMobile } = useSidebar();
   const isActive = pathname === route.path;
   const Icon = route.icon;
 
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild isActive={isActive}>
-        <NavLink to={route.path} onClick={onNavigate}>
+        <NavLink to={route.path} onClick={() => setOpenMobile(false)}>
           {Icon && <Icon />}
           <span>{route.label}</span>
         </NavLink>
@@ -62,18 +63,16 @@ function NavItem({ route, onNavigate }: { route: RouteDef; onNavigate: () => voi
   );
 }
 
-// ─── Grupo colapsável ───
-// Accordion exclusivo: abrir um fecha os outros (controlado pelo pai).
+// ─── NavGroupSection ─────────────────────────────────────────────────────────
+
 function NavGroupSection({
   group,
   items,
-  onNavigate,
   open,
   onToggle,
 }: {
   group: NavGroup;
   items: RouteDef[];
-  onNavigate: () => void;
   open: boolean;
   onToggle: () => void;
 }) {
@@ -85,10 +84,7 @@ function NavGroupSection({
     <SidebarMenuItem>
       <Collapsible open={open} onOpenChange={onToggle} className="group/collapsible">
         <CollapsibleTrigger asChild>
-          <SidebarMenuButton
-            isActive={hasActiveChild}
-            className="justify-between"
-          >
+          <SidebarMenuButton isActive={hasActiveChild} className="justify-between">
             <span className="flex items-center gap-2 min-w-0">
               <GroupIcon className="size-4 shrink-0" />
               <span className="truncate">{group.label}</span>
@@ -99,7 +95,7 @@ function NavGroupSection({
         <CollapsibleContent>
           <SidebarMenuSub>
             {items.map((route) => (
-              <SubNavItem key={route.path} route={route} onNavigate={onNavigate} />
+              <SubNavItem key={route.path} route={route} />
             ))}
           </SidebarMenuSub>
         </CollapsibleContent>
@@ -108,15 +104,18 @@ function NavGroupSection({
   );
 }
 
-function SubNavItem({ route, onNavigate }: { route: RouteDef; onNavigate: () => void }) {
+// ─── SubNavItem ───────────────────────────────────────────────────────────────
+
+function SubNavItem({ route }: { route: RouteDef }) {
   const { pathname } = useLocation();
+  const { setOpenMobile } = useSidebar();
   const isActive = pathname === route.path;
   const Icon = route.icon;
 
   return (
-    <li className="group/menu-item relative">
+    <li>
       <SidebarMenuSubButton asChild isActive={isActive}>
-        <NavLink to={route.path} onClick={onNavigate}>
+        <NavLink to={route.path} onClick={() => setOpenMobile(false)}>
           {Icon && <Icon />}
           <span>{route.label}</span>
         </NavLink>
@@ -125,7 +124,8 @@ function SubNavItem({ route, onNavigate }: { route: RouteDef; onNavigate: () => 
   );
 }
 
-// ─── Accordion key ───
+// ─── Accordion ───────────────────────────────────────────────────────────────
+
 const ACCORDION_KEY = 'rhino-sb-open-group';
 
 function readOpenGroup(): string | null {
@@ -138,7 +138,9 @@ function writeOpenGroup(id: string | null): void {
   } catch { /* ignore */ }
 }
 
-export default function Sidebar({ onNavigate }: SidebarProps) {
+// ─── AppSidebar ───────────────────────────────────────────────────────────────
+
+export default function AppSidebar() {
   const permitidas = useRotasPermitidas();
   const { pathname } = useLocation();
 
@@ -179,16 +181,20 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
   })).filter((g) => g.items.length > 0);
 
   return (
-    <nav
-      id="sidebar"
-      aria-label="Menu principal"
-      className="flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border sticky top-0 h-screen overflow-y-auto z-[100]"
-      style={{ width: 'var(--sidebar-width)' }}
-    >
+    <Sidebar collapsible="icon">
       {/* Logo */}
-      <SidebarHeader className="border-b border-sidebar-border pb-0 min-h-[60px] justify-center">
-        <div className="flex items-center px-2 py-1">
-          <img className="w-32 h-auto block" src="/assets/logo.png" alt="Rhino" />
+      <SidebarHeader className="border-b border-sidebar-border py-3">
+        <div className="flex items-center px-2">
+          <img
+            className="w-32 h-auto block group-data-[collapsible=icon]:hidden"
+            src="/assets/logo.png"
+            alt="Rhino"
+          />
+          <img
+            className="hidden size-7 group-data-[collapsible=icon]:block"
+            src="/assets/favicon.svg"
+            alt="Rhino"
+          />
         </div>
       </SidebarHeader>
 
@@ -198,7 +204,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
           <SidebarGroupContent>
             <SidebarMenu>
               {topLevel.map((route) => (
-                <NavItem key={route.path} route={route} onNavigate={onNavigate} />
+                <NavItem key={route.path} route={route} />
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -213,7 +219,6 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
                 <NavGroupSection
                   group={group}
                   items={items}
-                  onNavigate={onNavigate}
                   open={openGroupId === group.id}
                   onToggle={() => toggleGroup(group.id)}
                 />
@@ -228,7 +233,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
             <SidebarGroup>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  <NavItem route={configRoute} onNavigate={onNavigate} />
+                  <NavItem route={configRoute} />
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
@@ -237,15 +242,19 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
       </SidebarContent>
 
       {/* Rodapé */}
-      <SidebarFooter className="border-t border-sidebar-border pt-0">
+      <SidebarFooter className="border-t border-sidebar-border">
         <UserMenu />
-        <div className="px-3 pb-1 text-[10px] text-sidebar-foreground/40 select-none">
+        <div className="px-2 pb-1 text-[10px] text-sidebar-foreground/40 select-none group-data-[collapsible=icon]:hidden">
           v{APP_VERSION}
         </div>
       </SidebarFooter>
-    </nav>
+
+      <SidebarRail />
+    </Sidebar>
   );
 }
+
+// ─── UserMenu ────────────────────────────────────────────────────────────────
 
 function UserMenu() {
   const meQuery = useCurrentUser();
@@ -265,61 +274,62 @@ function UserMenu() {
   const podeTrocarPerfil = !!perfil && !user?.nivelAcessoId;
 
   return (
-    <div className="flex items-center gap-1 px-1">
-      <NotificacoesBell />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            disabled={logout.isPending}
-            aria-label="Menu do usuário"
-            className={cn(
-              'flex flex-1 items-center gap-2 overflow-hidden rounded-md px-2 py-1.5 text-sm outline-none ring-sidebar-ring transition-colors',
-              'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-              'focus-visible:ring-2 disabled:opacity-50',
-            )}
-          >
-            <LogOut size={16} className="shrink-0" />
-            <span className="flex-1 truncate text-left font-semibold">
-              {user.name || user.email}
-            </span>
-            <ChevronsUpDown size={14} className="shrink-0 opacity-50" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="start" className="w-56">
-          <DropdownMenuLabel className="font-normal">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-sm font-semibold">{user.name || user.email}</span>
-              {user.name && (
-                <span className="text-xs text-muted-foreground">{user.email}</span>
-              )}
-            </div>
-          </DropdownMenuLabel>
-          {perfil && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel className="flex items-center gap-2 font-normal">
-                <span style={{ fontSize: 16 }}>{perfil.icon}</span>
-                <span style={{ color: perfil.cor, fontWeight: 600 }}>{perfil.label}</span>
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <div className="flex items-center gap-1">
+          <NotificacoesBell />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <SidebarMenuButton
+                size="lg"
+                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              >
+                <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                  <span className="truncate font-semibold">{user.name || user.email}</span>
+                  {user.name && (
+                    <span className="truncate text-xs text-sidebar-foreground/60">{user.email}</span>
+                  )}
+                </div>
+                <ChevronsUpDown className="ml-auto size-4 shrink-0 opacity-50 group-data-[collapsible=icon]:hidden" />
+                <LogOut className="size-4 shrink-0 hidden group-data-[collapsible=icon]:block" />
+              </SidebarMenuButton>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" className="w-56">
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-semibold">{user.name || user.email}</span>
+                  {user.name && (
+                    <span className="text-xs text-muted-foreground">{user.email}</span>
+                  )}
+                </div>
               </DropdownMenuLabel>
-              {podeTrocarPerfil && (
-                <DropdownMenuItem onClick={() => clearPerfil()}>
-                  Trocar Perfil
-                </DropdownMenuItem>
+              {perfil && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="flex items-center gap-2 font-normal">
+                    <span style={{ fontSize: 16 }}>{perfil.icon}</span>
+                    <span style={{ color: perfil.cor, fontWeight: 600 }}>{perfil.label}</span>
+                  </DropdownMenuLabel>
+                  {podeTrocarPerfil && (
+                    <DropdownMenuItem onClick={() => clearPerfil()}>
+                      Trocar Perfil
+                    </DropdownMenuItem>
+                  )}
+                </>
               )}
-            </>
-          )}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            variant="destructive"
-            onClick={() => void handleLogout()}
-            disabled={logout.isPending}
-          >
-            <LogOut size={14} />
-            Sair
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => void handleLogout()}
+                disabled={logout.isPending}
+              >
+                <LogOut size={14} />
+                Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </SidebarMenuItem>
+    </SidebarMenu>
   );
 }

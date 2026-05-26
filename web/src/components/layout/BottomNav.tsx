@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { useUIStore } from '../../stores/uiStore';
+import { useSidebar } from '../ui/sidebar';
 
 /** Itens fixos da barra inferior — espelha BOTTOM_NAV_ITEMS de js/polish.js. */
 const ITEMS: ReadonlyArray<
@@ -27,7 +27,7 @@ export default function BottomNav() {
     if (typeof window === 'undefined') return false;
     return window.innerWidth <= BREAKPOINT;
   });
-  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
+  const { toggleSidebar } = useSidebar();
 
   useEffect(() => {
     let timer: number | null = null;
