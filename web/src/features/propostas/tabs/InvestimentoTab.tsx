@@ -4,6 +4,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { formatBRL } from '../../../lib/format';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
   localUid,
   type EditorTabProps,
   type LinhaHH,
@@ -124,42 +133,42 @@ export default function InvestimentoTab({ proposta, onChange }: EditorTabProps) 
             extra será cobrada via aditivo de contrato.
           </p>
           <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Cargo / Função</th>
-                  <th style={{ width: 80 }}>Qtd</th>
-                  <th style={{ width: 90 }}>Horas</th>
-                  <th style={{ width: 120 }}>R$ / Hora</th>
-                  <th style={{ width: 120 }}>HE 50%</th>
-                  <th style={{ width: 120 }}>HE 100%</th>
-                  <th style={{ width: 140 }}>Total (normal)</th>
-                  <th style={{ width: 40 }} />
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Cargo / Função</TableHead>
+                  <TableHead style={{ width: 80 }}>Qtd</TableHead>
+                  <TableHead style={{ width: 90 }}>Horas</TableHead>
+                  <TableHead style={{ width: 120 }}>R$ / Hora</TableHead>
+                  <TableHead style={{ width: 120 }}>HE 50%</TableHead>
+                  <TableHead style={{ width: 120 }}>HE 100%</TableHead>
+                  <TableHead style={{ width: 140 }}>Total (normal)</TableHead>
+                  <TableHead style={{ width: 40 }} />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {hh.length === 0 ? (
-                  <tr>
-                    <td
+                  <TableRow>
+                    <TableCell
                       colSpan={8}
                       style={{ textAlign: 'center', padding: 16, color: '#94a3b8' }}
                     >
                       Nenhuma linha. Clique em "+ Adicionar linha".
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   hh.map((l, idx) => {
                     const vh = Number(l.valorHora) || 0;
                     return (
-                      <tr key={l.id}>
-                        <td>
+                      <TableRow key={l.id}>
+                        <TableCell>
                           <Input
                             value={l.cargo}
                             onChange={(e) => editHH(idx, { cargo: e.target.value })}
                             placeholder="Ex: Soldador, Caldeireiro, Ajudante"
                           />
-                        </td>
-                        <td>
+                        </TableCell>
+                        <TableCell>
                           <Input
                             type="number"
                             min={0}
@@ -168,8 +177,8 @@ export default function InvestimentoTab({ proposta, onChange }: EditorTabProps) 
                               editHH(idx, { qtd: Number(e.target.value) || 0 })
                             }
                           />
-                        </td>
-                        <td>
+                        </TableCell>
+                        <TableCell>
                           <Input
                             type="number"
                             min={0}
@@ -179,8 +188,8 @@ export default function InvestimentoTab({ proposta, onChange }: EditorTabProps) 
                               editHH(idx, { horas: Number(e.target.value) || 0 })
                             }
                           />
-                        </td>
-                        <td>
+                        </TableCell>
+                        <TableCell>
                           <Input
                             type="number"
                             min={0}
@@ -192,8 +201,8 @@ export default function InvestimentoTab({ proposta, onChange }: EditorTabProps) 
                               })
                             }
                           />
-                        </td>
-                        <td
+                        </TableCell>
+                        <TableCell
                           style={{
                             textAlign: 'right',
                             color: '#f59e0b',
@@ -201,8 +210,8 @@ export default function InvestimentoTab({ proposta, onChange }: EditorTabProps) 
                           }}
                         >
                           {formatBRL(vh * 1.5)}
-                        </td>
-                        <td
+                        </TableCell>
+                        <TableCell
                           style={{
                             textAlign: 'right',
                             color: '#dc2626',
@@ -210,11 +219,11 @@ export default function InvestimentoTab({ proposta, onChange }: EditorTabProps) 
                           }}
                         >
                           {formatBRL(vh * 2)}
-                        </td>
-                        <td style={{ fontWeight: 600, textAlign: 'right' }}>
+                        </TableCell>
+                        <TableCell style={{ fontWeight: 600, textAlign: 'right' }}>
                           {formatBRL(totalHH(l))}
-                        </td>
-                        <td>
+                        </TableCell>
+                        <TableCell>
                           <button
                             type="button"
                             onClick={() => delHH(idx)}
@@ -222,19 +231,19 @@ export default function InvestimentoTab({ proposta, onChange }: EditorTabProps) 
                           >
                             ×
                           </button>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
                   })
                 )}
-              </tbody>
+              </TableBody>
               {hh.length > 0 && (
-                <tfoot>
-                  <tr style={{ background: '#f1f5f9' }}>
-                    <td colSpan={6} style={{ textAlign: 'right', fontWeight: 600 }}>
+                <TableFooter>
+                  <TableRow style={{ background: '#f1f5f9' }}>
+                    <TableCell colSpan={6} style={{ textAlign: 'right', fontWeight: 600 }}>
                       Subtotal HH (horas normais):
-                    </td>
-                    <td
+                    </TableCell>
+                    <TableCell
                       style={{
                         fontWeight: 700,
                         color: '#1F497D',
@@ -242,12 +251,12 @@ export default function InvestimentoTab({ proposta, onChange }: EditorTabProps) 
                       }}
                     >
                       {formatBRL(subtotalHH)}
-                    </td>
-                    <td />
-                  </tr>
-                </tfoot>
+                    </TableCell>
+                    <TableCell />
+                  </TableRow>
+                </TableFooter>
               )}
-            </table>
+            </Table>
           </div>
         </div>
       )}
@@ -270,38 +279,38 @@ export default function InvestimentoTab({ proposta, onChange }: EditorTabProps) 
             </Button>
           </div>
           <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Item / Descrição</th>
-                  <th style={{ width: 100 }}>Qtd</th>
-                  <th style={{ width: 80 }}>Unid.</th>
-                  <th style={{ width: 140 }}>R$ Unit</th>
-                  <th style={{ width: 160 }}>Total</th>
-                  <th style={{ width: 50 }} />
-                </tr>
-              </thead>
-              <tbody>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Item / Descrição</TableHead>
+                  <TableHead style={{ width: 100 }}>Qtd</TableHead>
+                  <TableHead style={{ width: 80 }}>Unid.</TableHead>
+                  <TableHead style={{ width: 140 }}>R$ Unit</TableHead>
+                  <TableHead style={{ width: 160 }}>Total</TableHead>
+                  <TableHead style={{ width: 50 }} />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {mat.length === 0 ? (
-                  <tr>
-                    <td
+                  <TableRow>
+                    <TableCell
                       colSpan={6}
                       style={{ textAlign: 'center', padding: 16, color: '#94a3b8' }}
                     >
                       Nenhuma linha. Clique em "+ Adicionar linha".
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ) : (
                   mat.map((l, idx) => (
-                    <tr key={l.id}>
-                      <td>
+                    <TableRow key={l.id}>
+                      <TableCell>
                         <Input
                           value={l.item}
                           onChange={(e) => editMat(idx, { item: e.target.value })}
                           placeholder='Ex: Tubo AC SCH40 4"'
                         />
-                      </td>
-                      <td>
+                      </TableCell>
+                      <TableCell>
                         <Input
                           type="number"
                           min={0}
@@ -310,15 +319,15 @@ export default function InvestimentoTab({ proposta, onChange }: EditorTabProps) 
                             editMat(idx, { qtd: Number(e.target.value) || 0 })
                           }
                         />
-                      </td>
-                      <td>
+                      </TableCell>
+                      <TableCell>
                         <Input
                           value={l.unid}
                           onChange={(e) => editMat(idx, { unid: e.target.value })}
                           placeholder="un, kg, m"
                         />
-                      </td>
-                      <td>
+                      </TableCell>
+                      <TableCell>
                         <Input
                           type="number"
                           min={0}
@@ -330,11 +339,11 @@ export default function InvestimentoTab({ proposta, onChange }: EditorTabProps) 
                             })
                           }
                         />
-                      </td>
-                      <td style={{ fontWeight: 600, textAlign: 'right' }}>
+                      </TableCell>
+                      <TableCell style={{ fontWeight: 600, textAlign: 'right' }}>
                         {formatBRL(totalMat(l))}
-                      </td>
-                      <td>
+                      </TableCell>
+                      <TableCell>
                         <button
                           type="button"
                           onClick={() => delMat(idx)}
@@ -342,18 +351,18 @@ export default function InvestimentoTab({ proposta, onChange }: EditorTabProps) 
                         >
                           ×
                         </button>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
-              </tbody>
+              </TableBody>
               {mat.length > 0 && (
-                <tfoot>
-                  <tr style={{ background: '#f1f5f9' }}>
-                    <td colSpan={4} style={{ textAlign: 'right', fontWeight: 600 }}>
+                <TableFooter>
+                  <TableRow style={{ background: '#f1f5f9' }}>
+                    <TableCell colSpan={4} style={{ textAlign: 'right', fontWeight: 600 }}>
                       Subtotal Materiais:
-                    </td>
-                    <td
+                    </TableCell>
+                    <TableCell
                       style={{
                         fontWeight: 700,
                         color: '#1F497D',
@@ -361,12 +370,12 @@ export default function InvestimentoTab({ proposta, onChange }: EditorTabProps) 
                       }}
                     >
                       {formatBRL(subtotalMat)}
-                    </td>
-                    <td />
-                  </tr>
-                </tfoot>
+                    </TableCell>
+                    <TableCell />
+                  </TableRow>
+                </TableFooter>
               )}
-            </table>
+            </Table>
           </div>
         </div>
       )}

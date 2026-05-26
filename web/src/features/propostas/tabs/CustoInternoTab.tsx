@@ -6,6 +6,14 @@ import { toast } from 'sonner';
 import { formatBRL } from '../../../lib/format';
 import type { Proposta } from '../../../types/domain';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
   useAtualizarCusto,
   useCriarCusto,
   useDeletarCusto,
@@ -261,30 +269,30 @@ export default function CustoInternoTab({
       </div>
 
       <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Categoria</th>
-              <th>Descrição</th>
-              <th style={{ width: 160 }}>Valor (R$)</th>
-              <th style={{ width: 120 }}>Percentual</th>
-              <th style={{ width: 60 }}>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Categoria</TableHead>
+              <TableHead>Descrição</TableHead>
+              <TableHead style={{ width: 160 }}>Valor (R$)</TableHead>
+              <TableHead style={{ width: 120 }}>Percentual</TableHead>
+              <TableHead style={{ width: 60 }}>Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {custos.length === 0 ? (
-              <tr>
-                <td
+              <TableRow>
+                <TableCell
                   colSpan={5}
                   style={{ textAlign: 'center', padding: 24, color: '#94a3b8' }}
                 >
                   Nenhum item de custo. Adicione para calcular margem.
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               custos.map((c) => (
-                <tr key={c.id}>
-                  <td>
+                <TableRow key={c.id}>
+                  <TableCell>
                     <Select
                       value={c.categoria}
                       onChange={(e) => {
@@ -299,8 +307,8 @@ export default function CustoInternoTab({
                         </option>
                       ))}
                     </Select>
-                  </td>
-                  <td>
+                  </TableCell>
+                  <TableCell>
                     <Input
                       value={c.descricao}
                       onChange={(e) =>
@@ -310,8 +318,8 @@ export default function CustoInternoTab({
                         persistir(c.id, { descricao: e.target.value })
                       }
                     />
-                  </td>
-                  <td>
+                  </TableCell>
+                  <TableCell>
                     <Input
                       type="number"
                       min={0}
@@ -326,8 +334,8 @@ export default function CustoInternoTab({
                         persistir(c.id, { valor: Number(e.target.value) || 0 })
                       }
                     />
-                  </td>
-                  <td>
+                  </TableCell>
+                  <TableCell>
                     <Input
                       type="number"
                       step="0.01"
@@ -350,8 +358,8 @@ export default function CustoInternoTab({
                         })
                       }
                     />
-                  </td>
-                  <td>
+                  </TableCell>
+                  <TableCell>
                     <button
                       type="button"
                       onClick={() => remover(c.id)}
@@ -365,12 +373,12 @@ export default function CustoInternoTab({
                     >
                       ×
                     </button>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </Card>
   );
