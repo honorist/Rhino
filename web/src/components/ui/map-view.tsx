@@ -7,10 +7,10 @@ export type { MapMarker } from './map-view-inner';
 // Leaflet (~150 KB gzip) + leaflet.css só entram no bundle quando o usuário
 // abre uma tela que monta o mapa (Obras, Mapa Geral). O lazy() faz a divisão
 // pelo Vite/Rollup; o re-export public-facing fica em MapView.tsx.
-const MapViewInner = lazy(() => import('./MapViewInner'));
+const MapViewInner = lazy(() => import('./map-view-inner'));
 
 interface MapViewProps {
-  markers: import('./MapViewInner').MapMarker[];
+  markers: import('./map-view-inner').MapMarker[];
   height?: number;
   center?: [number, number];
   zoom?: number;

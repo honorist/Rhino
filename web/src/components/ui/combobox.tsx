@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { cn } from '../../lib/cn';
-import Button from './Button';
+import Button from './button';
 import {
   Command,
   CommandEmpty,

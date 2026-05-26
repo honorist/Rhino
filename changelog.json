@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.4.9",
+      "date": "2026-05-26",
+      "summary": "fix: imports PascalCase remanescentes após codemod (build Railway quebrado)",
+      "changes": [
+        "calendar.tsx: './Button' → './button'.",
+        "combobox.tsx: './Button' → './button'.",
+        "date-picker.tsx: './Button' → './button'.",
+        "map-view.tsx: './MapViewInner' → './map-view-inner' (lazy import + type inline).",
+        "primitives.test.tsx: './Button', './EmptyState', './Spinner', './DataTable' → kebab-case."
+      ]
+    },
+    {
       "version": "1.4.8",
       "date": "2026-05-26",
       "summary": "refactor: codemod PascalCase → kebab-case em componentes UI (Pós-Fase)",

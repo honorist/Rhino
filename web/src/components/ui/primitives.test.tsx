@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import Button from './Button';
+import Button from './button';
 import { Badge } from './badge';
-import EmptyState from './EmptyState';
-import Spinner from './Spinner';
-import DataTable, { type Column } from './DataTable';
+import EmptyState from './empty-state';
+import Spinner from './spinner';
+import DataTable, { type Column } from './data-table';
 
 describe('Button', () => {
   it('renderiza com variante danger', () => {
