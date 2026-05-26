@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.5.3",
+      "date": "2026-05-26",
+      "summary": "fix: CSS removido do precache do Service Worker — mudanças visuais chegam a todos os usuários automaticamente",
+      "changes": [
+        "vite.config.ts: removido 'css' de globPatterns no workbox — CSS com hash de conteúdo nunca mais precacheado pelo SW.",
+        "Root cause do bug: SW precacheava CSS (ex: main.abc123.css), e ao deploy com novo CSS (main.xyz789.css) o SW antigo continuava servindo o arquivo antigo do cache.",
+        "Solução: CSS com hash de Vite é tratado pelo HTTP cache do browser nativamente — não precisa do SW.",
+        "Combinado com o controllerchange → reload de 1.5.2: mudanças CSS agora chegam em 1 ciclo de deploy sem ação do usuário."
+      ]
+    },
+    {
       "version": "1.5.2",
       "date": "2026-05-26",
       "summary": "fix: PWA Service Worker auto-reload — CSS/JS atualizados automaticamente após deploy",

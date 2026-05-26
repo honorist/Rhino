@@ -83,7 +83,10 @@ export default defineConfig({
       workbox: {
         // Precache só o shell — não inflar o cache com chunks pesados (mermaid,
         // jsPDF, leaflet) que entram via runtime.
-        globPatterns: ['**/*.{js,css,svg,ico,woff2}'],
+        // CSS removido do precache — Vite gera nomes com hash (main.abc123.css),
+        // o browser HTTP cache lida nativamente com isso. Precachear CSS no SW
+        // causava que updates visuais nunca chegavam aos usuários sem clear manual.
+        globPatterns: ['**/*.{js,svg,ico,woff2}'],
         // O arquivo gerado pelo bundle pode passar de 2MB com sourcemaps;
         // garantimos margem.
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
