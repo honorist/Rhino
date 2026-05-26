@@ -59,8 +59,10 @@ export const NAV_GROUPS: NavGroup[] = [
  * Espelha o `routes` + `_lazyManifest` do app vanilla (js/app.js).
  */
 export const ROUTES: RouteDef[] = [
-  // ── Topo (sem grupo) ──
+  // ── Topo (sem grupo) — telas mais usadas ──
   { path: '/dashboard', title: 'Dashboard', label: 'Dashboard', icon: Home },
+  { path: '/proposta', title: 'Propostas', label: 'Propostas', icon: FileText },
+  { path: '/contratos', title: 'Contratos', label: 'Contratos', icon: Briefcase },
   { path: '/ai-chat', title: 'Assistente IA', label: 'Assistente IA', icon: MessageSquare },
   { path: '/configuracao', title: 'Configuração', label: 'Configuração', icon: Settings },
 
@@ -72,9 +74,7 @@ export const ROUTES: RouteDef[] = [
   { path: '/manutencao', title: 'Manutenção', label: 'Manutenção', icon: Wrench, group: 'obras' },
   { path: '/frota', title: 'Frota', label: 'Frota', icon: Truck, group: 'obras' },
 
-  // ── Grupo: Comercial (Propostas, Contratos, Clientes, Fornecedores) ──
-  { path: '/proposta', title: 'Propostas', label: 'Propostas', icon: FileText, group: 'comercial' },
-  { path: '/contratos', title: 'Contratos', label: 'Contratos', icon: Briefcase, group: 'comercial' },
+  // ── Grupo: Comercial ──
   { path: '/clientes', title: 'Clientes', label: 'Clientes', icon: Users, group: 'comercial' },
   { path: '/fornecedores', title: 'Fornecedores', label: 'Fornecedores', icon: Truck, group: 'comercial' },
 
