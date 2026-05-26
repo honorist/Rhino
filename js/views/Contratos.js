@@ -175,6 +175,8 @@ window.Contratos = {
             <select class="form-control filter-control" id="filterStatus">
               <option value="todos" ${this.currentFilter === 'todos' ? 'selected' : ''}>Todos</option>
               <option value="prospeccao" ${this.currentFilter === 'prospeccao' ? 'selected' : ''}>Prospecção</option>
+              <option value="nao_aprovado" ${this.currentFilter === 'nao_aprovado' ? 'selected' : ''}>Não aprovado</option>
+              <option value="nao_iniciado" ${this.currentFilter === 'nao_iniciado' ? 'selected' : ''}>Não iniciado</option>
               <option value="ativo" ${this.currentFilter === 'ativo' ? 'selected' : ''}>Ativo</option>
               <option value="pausado" ${this.currentFilter === 'pausado' ? 'selected' : ''}>Pausado</option>
               <option value="concluido" ${this.currentFilter === 'concluido' ? 'selected' : ''}>Concluído</option>
