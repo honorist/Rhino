@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select } from '@/components/ui/native-select';
 import { Combobox } from '../../components/ui/combobox';
 import { DatePicker } from '../../components/ui/date-picker';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Spinner from '../../components/ui/spinner';
 import { toast } from 'sonner';
 import { formatBRL } from '../../lib/format';
@@ -622,7 +623,9 @@ function NovoAporteModal({
           <form id="form-aporte" onSubmit={handleSubmit}>
             <div className="space-y-1.5">
               <label className="block text-sm font-medium leading-none text-foreground mb-1.5">1. Origem do Aporte *</label>
-              <div
+              <RadioGroup
+                value={origem}
+                onValueChange={(v) => setOrigem(v as AporteOrigem)}
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
@@ -630,24 +633,22 @@ function NovoAporteModal({
                 }}
               >
                 <RadioCard
-                  name="origem"
+                  value="socio"
                   checked={origem === 'socio'}
-                  onChange={() => setOrigem('socio')}
                   titulo="ðŸ‘¥ SÃ³cio"
                   descricao="Aporte de um sÃ³cio"
                   activeBorder="var(--color-info)"
                   activeBg="rgba(49,130,206,.05)"
                 />
                 <RadioCard
-                  name="origem"
+                  value="caixa_empresa"
                   checked={origem === 'caixa_empresa'}
-                  onChange={() => setOrigem('caixa_empresa')}
                   titulo="ðŸ’° Caixa da Empresa"
                   descricao="AquisiÃ§Ã£o via caixa (gera saÃ­da)"
                   activeBorder="var(--color-warning)"
                   activeBg="rgba(214,158,46,.05)"
                 />
-              </div>
+              </RadioGroup>
             </div>
 
             {origem === 'socio' && (
@@ -673,7 +674,9 @@ function NovoAporteModal({
               }}
             >
               <label className="block text-sm font-medium leading-none text-foreground mb-1.5">2. Destino do Aporte *</label>
-              <div
+              <RadioGroup
+                value={destino}
+                onValueChange={(v) => setDestino(v as AporteDestino)}
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
@@ -681,24 +684,22 @@ function NovoAporteModal({
                 }}
               >
                 <RadioCard
-                  name="destino"
+                  value="contrato"
                   checked={destino === 'contrato'}
-                  onChange={() => setDestino('contrato')}
                   titulo="ðŸ“‹ Contrato"
                   descricao="Aporte para um contrato especÃ­fico"
                   activeBorder="var(--color-primary)"
                   activeBg="rgba(46,125,82,.05)"
                 />
                 <RadioCard
-                  name="destino"
+                  value="base"
                   checked={destino === 'base'}
-                  onChange={() => setDestino('base')}
                   titulo="âš™ï¸ BASE"
                   descricao="Custo administrativo geral"
                   activeBorder="var(--color-info)"
                   activeBg="rgba(49,130,206,.05)"
                 />
-              </div>
+              </RadioGroup>
             </div>
 
             {destino === 'contrato' && (
@@ -819,27 +820,29 @@ function NovoAporteModal({
 }
 
 interface RadioCardProps {
-  name: string;
+  value: string;
   checked: boolean;
-  onChange: () => void;
   titulo: string;
   descricao: string;
   activeBorder: string;
   activeBg: string;
 }
 
-/** CartÃ£o de seleÃ§Ã£o tipo radio â€” usado para origem e destino do aporte. */
+/** CartÃ£o de seleÃ§Ã£o tipo radio â€” usado para origem e destino do aporte.
+ *  Deve estar dentro de um <RadioGroup>; o RadioGroupItem fica visualmente
+ *  escondido (sr-only) e o prÃ³prio cartÃ£o serve como indicador visual. */
 function RadioCard({
-  name,
+  value,
   checked,
-  onChange,
   titulo,
   descricao,
   activeBorder,
   activeBg,
 }: RadioCardProps) {
+  const id = `radiocard-${value}`;
   return (
     <label
+      htmlFor={id}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -851,13 +854,7 @@ function RadioCard({
         background: checked ? activeBg : undefined,
       }}
     >
-      <input
-        type="radio"
-        name={name}
-        checked={checked}
-        onChange={onChange}
-        style={{ margin: 0 }}
-      />
+      <RadioGroupItem id={id} value={value} className="sr-only" />
       <div>
         <div style={{ fontWeight: 600 }}>{titulo}</div>
         <div style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
