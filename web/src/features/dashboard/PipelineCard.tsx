@@ -68,11 +68,11 @@ export default function PipelineCard({ pipeline }: PipelineCardProps) {
   const totalValor = stages.reduce((s, x) => s + x.valor, 0);
 
   return (
-    <Card className="h-full flex flex-col !p-6">
+    <Card className="h-full flex flex-col">
       {/* Header: title + subtítulo + ação secundária */}
-      <div className="flex items-start justify-between gap-3 mb-6">
-        <div className="space-y-1">
-          <h3 className="m-0 text-base font-semibold leading-none tracking-tight">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div className="space-y-0.5">
+          <h3 className="m-0 text-sm font-semibold leading-none tracking-tight">
             Pipeline de medições
           </h3>
           <p className="text-sm text-muted-foreground capitalize">

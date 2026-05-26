@@ -27,3 +27,92 @@
     color: var(--color-primary);
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Density + Style Pass — shadcn neutral aesthetic
+   Aperta o ritmo vertical, suaviza sombras, alinha hierarquia
+   tipográfica. Loaded last (após theme-v2/polish), então vence
+   o legado sem precisar tocar arquivo por arquivo.
+   ───────────────────────────────────────────────────────────── */
+
+/* Page header — menos respiro abaixo (era 32px). */
+.page-header {
+  margin-bottom: 20px;
+  gap: 16px;
+}
+
+.page-title {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+/* shadcn Card — padding mais econômico e sombra sutil. */
+[data-slot="card"] {
+  padding: 20px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border-radius: 10px;
+}
+
+[data-slot="card"] [data-slot="card-header"] {
+  padding: 0 0 12px 0;
+}
+
+[data-slot="card"] [data-slot="card-content"] {
+  padding: 0;
+}
+
+[data-slot="card"] [data-slot="card-footer"] {
+  padding: 12px 0 0 0;
+}
+
+/* Hover discreto em cards interativos. */
+[data-slot="card"][role="button"]:hover,
+[data-slot="card"] a:hover,
+a > [data-slot="card"]:hover {
+  border-color: oklch(0.85 0.005 56);
+  transition: border-color 150ms ease;
+}
+
+/* Desktop sticky header — mais fino, borda mais sutil. */
+main#app > * + * {
+  /* nada — só marker */
+}
+
+/* Botões shadcn — mantêm padrão, só ajuste fino de altura. */
+button[data-slot="button"]:not([data-size]) {
+  height: 36px;
+}
+
+/* Tabelas shadcn — linhas mais densas (era ~52px). */
+[data-slot="table"] th,
+[data-slot="table"] td {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+/* Input/Select — altura consistente com botões. */
+input[data-slot="input"],
+button[data-slot="select-trigger"]:not([data-size]) {
+  height: 36px;
+}
+
+/* Foco padrão shadcn — anel mais visível. */
+*:focus-visible {
+  outline: 2px solid var(--ring, oklch(0.709 0.01 56));
+  outline-offset: 2px;
+}
+
+/* Respeito a prefers-reduced-motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

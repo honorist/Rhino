@@ -135,7 +135,7 @@ export default function KpiCard({
     <Link to={href} className="block h-full text-inherit no-underline group">
       <Card
         className={cn(
-          'flex h-full flex-col !p-6 transition-all',
+          'flex h-full flex-col transition-all',
           'group-hover:shadow-md group-hover:-translate-y-0.5',
           'group-focus-visible:ring-2 group-focus-visible:ring-ring',
         )}

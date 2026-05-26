@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { AlertTriangle } from 'lucide-react';
 import Card from '../../components/ui/card';
 import Spinner from '../../components/ui/spinner';
 import { BentoGrid, BentoItem } from '../../components/ui/bento-grid';
@@ -224,16 +225,13 @@ export default function Dashboard() {
     subParts.push(`${rdosAtrasados} RDO${rdosAtrasados !== 1 ? 's' : ''} atrasado${rdosAtrasados !== 1 ? 's' : ''}`);
 
   return (
-    <div className="space-y-8">
-      {/* Page header — saudação + status do dia. Mantém as classes legadas
-          `page-header`/`page-title` para preservar o gradiente do tema,
-          mas o `space-y-8` do wrapper já garante o respiro abaixo. */}
+    <div className="space-y-6">
       <div className="page-header">
         <div>
           <h1 className="page-title">
             {saudacao(horaH)}, {nome}
           </h1>
-          <p className="page-subtitle mt-1.5 text-muted-foreground">
+          <p className="page-subtitle text-muted-foreground">
             {subParts.join(' · ')}
           </p>
         </div>
@@ -390,9 +388,10 @@ export default function Dashboard() {
 
       {/* Alertas — list view com separadores entre itens */}
       {indicadores.riscos.length > 0 && (
-        <Card className="!p-6">
-          <h3 className="mb-5 text-base font-semibold leading-none tracking-tight">
-            ⚠️ Alertas ({indicadores.riscos.length})
+        <Card>
+          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold leading-none tracking-tight">
+            <AlertTriangle className="h-4 w-4 text-warning" aria-hidden="true" />
+            Alertas ({indicadores.riscos.length})
           </h3>
           <div className="divide-y divide-border">
             {indicadores.riscos.map((r, i) => (
@@ -428,13 +427,13 @@ export default function Dashboard() {
       {/* Gráfico Fluxo de Caixa — passado real + projeção 30/60/90 dias.
           Header com titulo + subtitulo à esquerda, toggle de projeção à
           direita. Body com `pt-2` extra antes do gráfico para respirar. */}
-      <Card className="!p-6">
-        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-1">
-            <h3 className="m-0 text-base font-semibold leading-none tracking-tight">
+      <Card>
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-0.5">
+            <h3 className="m-0 text-sm font-semibold leading-none tracking-tight">
               Fluxo de Caixa
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               30 dias passados + {projDays} dias projetados
             </p>
           </div>
