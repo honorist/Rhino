@@ -14,6 +14,14 @@ import {
 import FormField from '../../components/ui/form-field';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Combobox } from '../../components/ui/combobox';
 import { DatePicker } from '../../components/ui/date-picker';
 import Spinner from '../../components/ui/spinner';
@@ -539,24 +547,40 @@ function ListaTab({
         cell: (nf) => (
           <div className="flex flex-wrap gap-2">
             {!nf.emitida ? (
-              <button type="button" className="action-link text-green-600 font-semibold"
-                onClick={(e) => { e.stopPropagation(); onEmitir(nf.id); }}>
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-green-600 font-semibold"
+                onClick={(e) => { e.stopPropagation(); onEmitir(nf.id); }}
+              >
                 ✓ Marcar Emitida
-              </button>
+              </Button>
             ) : (
-              <button type="button" className="action-link"
-                onClick={(e) => { e.stopPropagation(); handleCancelar(nf.id); }}>
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0"
+                onClick={(e) => { e.stopPropagation(); handleCancelar(nf.id); }}
+              >
                 ↶ Desfazer
-              </button>
+              </Button>
             )}
-            <button type="button" className="action-link"
-              onClick={(e) => { e.stopPropagation(); onEditar(nf); }}>
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto p-0"
+              onClick={(e) => { e.stopPropagation(); onEditar(nf); }}
+            >
               Editar
-            </button>
-            <button type="button" className="action-link danger"
-              onClick={(e) => { e.stopPropagation(); handleExcluir(nf); }}>
+            </Button>
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-destructive"
+              onClick={(e) => { e.stopPropagation(); handleExcluir(nf); }}
+            >
               Excluir
-            </button>
+            </Button>
           </div>
         ),
       },
@@ -701,16 +725,16 @@ function SemanalTab({ notas, contractById }: SemanalTabProps) {
             </div>
             {nfsSem.length > 0 ? (
               <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>NF</th>
-                      <th>Cliente</th>
-                      <th>Data Limite</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>NF</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Data Limite</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {nfsSem.map((nf) => {
                       const st = getNotaFiscalStatus(nf.dataLimite);
                       const icon =
@@ -720,24 +744,24 @@ function SemanalTab({ notas, contractById }: SemanalTabProps) {
                             ? '⚠️'
                             : '🟢';
                       return (
-                        <tr key={nf.id}>
-                          <td>
+                        <TableRow key={nf.id}>
+                          <TableCell>
                             <strong>{nf.numero}</strong>
-                          </td>
-                          <td>
+                          </TableCell>
+                          <TableCell>
                             {contractClient(contractById(nf.contractId)) || '—'}
-                          </td>
-                          <td>{formatDate(nf.dataLimite)}</td>
-                          <td>
+                          </TableCell>
+                          <TableCell>{formatDate(nf.dataLimite)}</TableCell>
+                          <TableCell>
                             <Badge variant={st.status === 'vencida' ? 'destructive' : st.status === 'proximo_vencer' ? 'warning' : 'success'}>
                               {icon} {st.dias >= 0 ? `${st.dias}d` : 'Vencida'}
                             </Badge>
-                          </td>
-                        </tr>
+                          </TableCell>
+                        </TableRow>
                       );
                     })}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             ) : (
               <p
@@ -810,11 +834,11 @@ function MensalTab({ notas, currentMonth, onChangeMonth }: MensalTabProps) {
         </Button>
       </div>
       <Card>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
+        <Table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <TableHeader>
+            <TableRow>
               {DIAS_SEMANA.map((d) => (
-                <th
+                <TableHead
                   key={d}
                   style={{
                     padding: 'var(--sp-sm)',
@@ -825,18 +849,18 @@ function MensalTab({ notas, currentMonth, onChangeMonth }: MensalTabProps) {
                   }}
                 >
                   {d}
-                </th>
+                </TableHead>
               ))}
-            </tr>
-          </thead>
-          <tbody>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {linhas.map((linha, li) => (
-              <tr key={li}>
+              <TableRow key={li}>
                 {Array.from({ length: 7 }, (_, i) => {
                   const dia = linha[i] ?? null;
                   if (!dia) {
                     return (
-                      <td key={i} style={{ background: 'var(--color-bg)' }} />
+                      <TableCell key={i} style={{ background: 'var(--color-bg)' }} />
                     );
                   }
                   const nfsDia = nfsMes.filter(
@@ -848,7 +872,7 @@ function MensalTab({ notas, currentMonth, onChangeMonth }: MensalTabProps) {
                     hoje.getMonth() === mes &&
                     hoje.getFullYear() === ano;
                   return (
-                    <td
+                    <TableCell
                       key={i}
                       style={{
                         border: '1px solid var(--color-border)',
@@ -895,13 +919,13 @@ function MensalTab({ notas, currentMonth, onChangeMonth }: MensalTabProps) {
                           </div>
                         );
                       })}
-                    </td>
+                    </TableCell>
                   );
                 })}
-              </tr>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </Card>
     </div>
   );
