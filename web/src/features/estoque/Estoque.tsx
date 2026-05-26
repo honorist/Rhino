@@ -2,6 +2,14 @@ import { Fragment, useCallback, useMemo, useState } from 'react';
 import Button from '../../components/ui/button';
 import Card from '../../components/ui/card';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -335,27 +343,27 @@ export default function Estoque() {
 
             <Card style={{ padding: 0, overflow: 'hidden' }}>
               <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th style={{ width: 36 }}></th>
-                      <th>Item</th>
-                      <th style={{ width: 110, textAlign: 'center' }}>Σ Total</th>
-                      <th style={{ width: 90, textAlign: 'center' }}>Status</th>
-                      <th style={{ width: 320, textAlign: 'center' }}>Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead style={{ width: 36 }}></TableHead>
+                      <TableHead>Item</TableHead>
+                      <TableHead style={{ width: 110, textAlign: 'center' }}>Σ Total</TableHead>
+                      <TableHead style={{ width: 90, textAlign: 'center' }}>Status</TableHead>
+                      <TableHead style={{ width: 320, textAlign: 'center' }}>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {filtrados.length === 0 ? (
-                      <tr>
-                        <td
+                      <TableRow>
+                        <TableCell
                           colSpan={5}
                           className="text-center text-muted"
                           style={{ padding: 'var(--sp-md)' }}
                         >
                           Nenhum item no filtro
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ) : (
                       filtrados.map((item) => {
                         const total = saldoTotal(item);
@@ -366,7 +374,7 @@ export default function Estoque() {
                         const aberto = expandidos.has(item.id);
                         return (
                           <Fragment key={item.id}>
-                            <tr
+                            <TableRow
                               onClick={() => toggleExpand(item.id)}
                               style={{
                                 cursor: 'pointer',
@@ -375,7 +383,7 @@ export default function Estoque() {
                                   : undefined,
                               }}
                             >
-                              <td
+                              <TableCell
                                 aria-label={aberto ? 'Recolher' : 'Expandir'}
                                 style={{
                                   textAlign: 'center',
@@ -384,8 +392,8 @@ export default function Estoque() {
                                 }}
                               >
                                 {aberto ? '▾' : '▸'}
-                              </td>
-                              <td>
+                              </TableCell>
+                              <TableCell>
                                 <strong>{item.descricao}</strong>
                                 <div
                                   className="text-muted"
@@ -408,8 +416,8 @@ export default function Estoque() {
                                     {Number(item.estoqueMinimo) || 0})
                                   </div>
                                 )}
-                              </td>
-                              <td
+                              </TableCell>
+                              <TableCell
                                 style={{
                                   textAlign: 'center',
                                   fontWeight: 800,
@@ -424,8 +432,8 @@ export default function Estoque() {
                                 >
                                   {item.unidade}
                                 </div>
-                              </td>
-                              <td
+                              </TableCell>
+                              <TableCell
                                 style={{ textAlign: 'center' }}
                                 title={
                                   abaixo
@@ -443,8 +451,8 @@ export default function Estoque() {
                                 >
                                   {abaixo ? '⚠' : '✓'}
                                 </span>
-                              </td>
-                              <td
+                              </TableCell>
+                              <TableCell
                                 style={{ whiteSpace: 'nowrap', textAlign: 'center' }}
                                 onClick={(e) => e.stopPropagation()}
                               >
@@ -480,16 +488,16 @@ export default function Estoque() {
                                 >
                                   ⋯
                                 </Button>
-                              </td>
-                            </tr>
+                              </TableCell>
+                            </TableRow>
                             {aberto && (
-                              <tr
+                              <TableRow
                                 style={{
                                   background: 'rgba(59,130,246,.04)',
                                 }}
                               >
-                                <td></td>
-                                <td colSpan={4} style={{ padding: '8px 12px 14px' }}>
+                                <TableCell></TableCell>
+                                <TableCell colSpan={4} style={{ padding: '8px 12px 14px' }}>
                                   <div
                                     className="text-muted"
                                     style={{
@@ -535,15 +543,15 @@ export default function Estoque() {
                                       </span>
                                     )}
                                   </div>
-                                </td>
-                              </tr>
+                                </TableCell>
+                              </TableRow>
                             )}
                           </Fragment>
                         );
                       })
                     )}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             </Card>
           </>
