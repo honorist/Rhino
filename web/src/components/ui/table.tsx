@@ -13,11 +13,24 @@ function Table({ className, ...props }: React.ComponentProps<'table'>) {
   );
 }
 
-function TableHeader({ className, ...props }: React.ComponentProps<'thead'>) {
+function TableHeader({
+  className,
+  sticky = false,
+  ...props
+}: React.ComponentProps<'thead'> & {
+  /** Mantém o cabeçalho fixo no topo enquanto o conteúdo rola. Para listas
+   *  longas isso evita perder contexto da coluna. */
+  sticky?: boolean;
+}) {
   return (
     <thead
       data-slot="table-header"
-      className={cn('[&_tr]:border-b', className)}
+      className={cn(
+        '[&_tr]:border-b',
+        sticky &&
+          'sticky top-0 z-10 bg-background [&_tr]:bg-background shadow-[0_1px_0_0_var(--border)]',
+        className,
+      )}
       {...props}
     />
   );
