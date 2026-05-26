@@ -59,10 +59,8 @@ export const NAV_GROUPS: NavGroup[] = [
  * Espelha o `routes` + `_lazyManifest` do app vanilla (js/app.js).
  */
 export const ROUTES: RouteDef[] = [
-  // ── Topo (sem grupo) — telas mais usadas ──
+  // ── Topo (sem grupo) ──
   { path: '/dashboard', title: 'Dashboard', label: 'Dashboard', icon: Home },
-  { path: '/proposta', title: 'Propostas', label: 'Propostas', icon: FileText },
-  { path: '/contratos', title: 'Contratos', label: 'Contratos', icon: Briefcase },
   { path: '/ai-chat', title: 'Assistente IA', label: 'Assistente IA', icon: MessageSquare },
   { path: '/configuracao', title: 'Configuração', label: 'Configuração', icon: Settings },
 
@@ -75,6 +73,8 @@ export const ROUTES: RouteDef[] = [
   { path: '/frota', title: 'Frota', label: 'Frota', icon: Truck, group: 'obras' },
 
   // ── Grupo: Comercial ──
+  { path: '/proposta', title: 'Propostas', label: 'Propostas', icon: FileText, group: 'comercial' },
+  { path: '/contratos', title: 'Contratos', label: 'Contratos', icon: Briefcase, group: 'comercial' },
   { path: '/clientes', title: 'Clientes', label: 'Clientes', icon: Users, group: 'comercial' },
   { path: '/fornecedores', title: 'Fornecedores', label: 'Fornecedores', icon: Truck, group: 'comercial' },
 
