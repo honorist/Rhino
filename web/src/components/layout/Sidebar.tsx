@@ -31,7 +31,6 @@ import { GROUP_ROUTES, NAV_GROUPS, ROUTES } from '../../routes/config';
 import { podeAcessar, usePerfilStore } from '../../features/auth/perfilStore';
 import { useCurrentUser, useLogout } from '../../features/auth/queries';
 import NotificacoesBell from '../../features/recrutamento/NotificacoesBell';
-import { cn } from '@/lib/cn';
 
 const APP_VERSION = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? '?';
 
