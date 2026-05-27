@@ -409,24 +409,32 @@
   }
 
   // ─────────────────────────────────────────────
-  // TOOLBAR — barra de busca + filtros + limpar
-  // search: { value, placeholder, id }
-  // selects: [{ id, label, options:[{value,label,selected}] }]
+  // TOOLBAR — barra de busca + filtros (padrão visual igual ao Contratos:
+  // .filters-bar com labels acima de cada campo)
+  // search: { value, placeholder, id, label }
+  // selects: [{ id, label, options, title }]
   // ─────────────────────────────────────────────
   function toolbar({ search, selects = [], extra = '', showClear = false, clearId = 'btnLimparFiltros' } = {}) {
     const sId = search?.id || 'inputBusca';
     const searchHtml = search ? `
-      <input class="form-control ui-toolbar__search" id="${sId}"
-        placeholder="${esc(search.placeholder || '🔍 Buscar...')}"
-        value="${esc(search.value || '')}">` : '';
+      <div class="filter-group" style="flex:1;min-width:220px;">
+        <label class="filter-label" for="${sId}">${esc(search.label || 'Buscar')}</label>
+        <input type="search" class="form-control filter-control" id="${sId}"
+          placeholder="${esc(search.placeholder || 'Nome, descrição...')}"
+          value="${esc(search.value || '')}" style="width:100%;">
+      </div>` : '';
     const selectsHtml = selects.map(s => `
-      <select class="form-control ui-toolbar__select" id="${s.id}" ${s.title ? `title="${esc(s.title)}"` : ''}>
-        ${(s.options || []).map(o => `<option value="${esc(o.value ?? '')}" ${o.selected ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}
-      </select>`).join('');
+      <div class="filter-group" style="min-width:180px;">
+        <label class="filter-label" for="${s.id}">${esc(s.label || '')}</label>
+        <select class="form-control filter-control" id="${s.id}" ${s.title ? `title="${esc(s.title)}"` : ''}>
+          ${(s.options || []).map(o => `<option value="${esc(o.value ?? '')}" ${o.selected ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}
+        </select>
+      </div>`).join('');
     const clearHtml = showClear
-      ? `<button class="btn btn-secondary ui-toolbar__clear" id="${clearId}">Limpar</button>` : '';
+      ? `<div class="filter-group"><label class="filter-label">&nbsp;</label>
+          <button class="btn btn-secondary" id="${clearId}">Limpar</button></div>` : '';
     return `
-      <div class="card ui-toolbar">
+      <div class="filters-bar" style="align-items:flex-end;">
         ${searchHtml}
         ${selectsHtml}
         ${extra}
@@ -436,18 +444,20 @@
 
   // ─────────────────────────────────────────────
   // CHIPS — filtros tipo pill com contagem
-  // [{ value, label, count, active }]
+  // Renderiza com classes .rh-chip (padrão visual igual ao Contratos)
+  // Opcionalmente embrulha no topo de um card de tabela.
   // ─────────────────────────────────────────────
-  function chips(items = [], { name = 'chips' } = {}) {
+  function chips(items = [], { name = 'chips', inCard = false } = {}) {
     if (!items.length) return '';
-    return `
-      <div class="ui-chips" role="tablist" data-chips="${esc(name)}">
+    const inner = `
+      <div class="rh-status-chips" data-chips="${esc(name)}" style="display:flex;gap:6px;flex-wrap:wrap;${inCard ? 'padding:12px 16px 0;' : 'margin-bottom:var(--sp-md);'}">
         ${items.map(c => `
-          <button class="ui-chip ${c.active ? 'is-active' : ''}" data-value="${esc(c.value ?? '')}" role="tab" aria-selected="${c.active ? 'true' : 'false'}">
-            ${esc(c.label)}${c.count != null ? ` <span class="ui-chip__count">${c.count}</span>` : ''}
+          <button class="rh-chip ${c.active ? 'is-active' : ''}" data-value="${esc(c.value ?? '')}" role="tab" aria-selected="${c.active ? 'true' : 'false'}">
+            ${esc(c.label)}${c.count != null ? ` <span class="rh-chip-count">${c.count}</span>` : ''}
           </button>
         `).join('')}
       </div>`;
+    return inner;
   }
 
   // ─────────────────────────────────────────────

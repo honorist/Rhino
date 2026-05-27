@@ -64,46 +64,20 @@
 }
 
 /* ═══════════════════════════════════════════════════════
-   CHIPS — filtros pill com contagem
+   CHIPS — adiciona contagem ao .rh-chip existente (padrão Contratos)
 ═══════════════════════════════════════════════════════ */
-.ui-chips {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-bottom: var(--sp-md);
-}
-.ui-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  color: var(--color-text);
-  font-size: var(--fs-sm);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background .15s, color .15s, border-color .15s;
-  white-space: nowrap;
-}
-.ui-chip:hover { background: var(--color-surface-2); border-color: var(--color-primary-light); }
-.ui-chip.is-active {
-  background: var(--color-primary);
-  color: #fff;
-  border-color: var(--color-primary);
-}
-.ui-chip__count {
-  background: rgba(255,255,255,.18);
-  color: inherit;
+.rh-chip-count {
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
   border-radius: 999px;
   padding: 1px 8px;
   font-size: var(--fs-xs);
   font-weight: 700;
+  margin-left: 4px;
 }
-.ui-chip:not(.is-active) .ui-chip__count {
-  background: var(--color-surface-2);
-  color: var(--color-text-muted);
+.rh-chip.is-active .rh-chip-count {
+  background: rgba(255,255,255,.22);
+  color: #fff;
 }
 
 /* ═══════════════════════════════════════════════════════

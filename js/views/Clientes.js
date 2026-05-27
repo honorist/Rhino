@@ -56,18 +56,35 @@ window.Clientes = {
       ]) : '';
 
       const toolbarHtml = window.UIKit?.toolbar ? window.UIKit.toolbar({
-        search:  { id: 'inputBusca', value: this.busca, placeholder: '🔍 Buscar por nome, empresa, email ou telefone...' },
+        search: {
+          id: 'inputBusca', value: this.busca, label: 'Buscar',
+          placeholder: 'Nome, empresa, email ou telefone...',
+        },
         selects: [{
           id: 'filtroEmpresa',
-          title: 'Filtrar por empresa',
+          label: 'Empresa',
           options: [
-            { value: '', label: `Todas as empresas (${empresasUnicas.length})`, selected: !filtroEmp },
+            { value: '', label: `Todas (${empresasUnicas.length})`, selected: !filtroEmp },
             ...empresasUnicas.map(e => ({ value: e, label: e, selected: filtroEmp === e })),
           ],
         }],
-        showClear: true,
+        showClear: filtroAtivo,
         clearId: 'btnLimparFiltrosCli',
       }) : '';
+
+      // Chips: top empresas por frequência + "Todos"
+      const empContagem = {};
+      (Store.state.clientes || []).forEach(c => {
+        const e = (c.empresa || '').trim();
+        if (e) empContagem[e] = (empContagem[e] || 0) + 1;
+      });
+      const topEmpresas = Object.entries(empContagem)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6);
+      const chipsHtml = window.UIKit?.chips ? window.UIKit.chips([
+        { value: '', label: 'Todos', count: totalCli, active: !filtroEmp },
+        ...topEmpresas.map(([nome, n]) => ({ value: nome, label: nome, count: n, active: filtroEmp === nome })),
+      ], { name: 'empresa', inCard: true }) : '';
 
       const html = `
         ${headerHtml}
@@ -75,6 +92,7 @@ window.Clientes = {
         ${toolbarHtml}
 
         <div class="card">
+          ${chipsHtml}
           <div class="table-wrap">
             <table>
               <thead>
@@ -135,9 +153,16 @@ window.Clientes = {
         this.empresa = e.target.value;
         this.render();
       });
-      document.getElementById('btnLimparFiltrosCli').addEventListener('click', () => {
+      document.getElementById('btnLimparFiltrosCli')?.addEventListener('click', () => {
         this._filterStore?.clear();
         this.render();
+      });
+      // Chips de empresa
+      document.querySelectorAll('[data-chips="empresa"] .rh-chip').forEach(b => {
+        b.addEventListener('click', () => {
+          this.empresa = b.dataset.value || '';
+          this.render();
+        });
       });
 
       document.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); this.showModal(e.target.dataset.id); }));

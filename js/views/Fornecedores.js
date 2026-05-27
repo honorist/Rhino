@@ -55,12 +55,15 @@ window.Fornecedores = {
       ]) : '';
 
       const toolbarHtml = window.UIKit?.toolbar ? window.UIKit.toolbar({
-        search: { id: 'inputBusca', value: this.busca, placeholder: '🔍 Buscar por nome, CNPJ, contato ou telefone...' },
+        search: {
+          id: 'inputBusca', value: this.busca, label: 'Buscar',
+          placeholder: 'Nome, CNPJ, contato ou telefone...',
+        },
         selects: [{
           id: 'filtroMaterial',
-          title: 'Filtrar por material',
+          label: 'Material',
           options: [
-            { value: '', label: `Todos os materiais (${todosMateriais.length})`, selected: !this.filtroMaterial },
+            { value: '', label: `Todos (${todosMateriais.length})`, selected: !this.filtroMaterial },
             ...todosMateriais.map(m => ({ value: m, label: m, selected: this.filtroMaterial === m })),
           ],
         }],
@@ -68,12 +71,24 @@ window.Fornecedores = {
         clearId: 'btnLimparFornecedores',
       }) : '';
 
+      // Chips: top materiais por frequência + "Todos"
+      const matContagem = {};
+      Store.state.fornecedores.forEach(f => (f.materiais || []).forEach(m => {
+        matContagem[m] = (matContagem[m] || 0) + 1;
+      }));
+      const topMateriais = Object.entries(matContagem).sort((a, b) => b[1] - a[1]).slice(0, 6);
+      const chipsHtml = window.UIKit?.chips ? window.UIKit.chips([
+        { value: '', label: 'Todos', count: totalF, active: !this.filtroMaterial },
+        ...topMateriais.map(([m, n]) => ({ value: m, label: m, count: n, active: this.filtroMaterial === m })),
+      ], { name: 'material', inCard: true }) : '';
+
       const html = `
         ${headerHtml}
         ${kpisHtml}
         ${toolbarHtml}
 
         <div class="card">
+          ${chipsHtml}
           <div class="table-wrap">
             <table>
               <thead>
@@ -147,6 +162,12 @@ window.Fornecedores = {
       });
       document.getElementById('btnLimparFornecedores')?.addEventListener('click', () => {
         this.busca = ''; this.filtroMaterial = ''; this.render();
+      });
+      document.querySelectorAll('[data-chips="material"] .rh-chip').forEach(b => {
+        b.addEventListener('click', () => {
+          this.filtroMaterial = b.dataset.value || '';
+          this.render();
+        });
       });
 
       document.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', e => this.showModal(e.target.dataset.id)));
