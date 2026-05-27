@@ -58,42 +58,52 @@ window.Propostas = {
         return acc;
       }, {});
 
+      const valorTotal = (Store.state.propostas || [])
+        .filter(p => ['aceita','enviada'].includes(p.status))
+        .reduce((s, p) => s + (parseFloat(p.valorTotal) || 0), 0);
+      const filtroAtivo = !!(termo || this.currentFilter !== 'todos');
+
+      const headerHtml = window.UIKit?.pageHeader ? window.UIKit.pageHeader({
+        title: 'Propostas Comerciais',
+        subtitle: filtroAtivo
+          ? `${propostas.length} de ${totalGeral} proposta${totalGeral !== 1 ? 's' : ''}`
+          : `${totalGeral} proposta${totalGeral !== 1 ? 's' : ''} no total`,
+        actions: `
+          <a class="btn btn-secondary" href="#/apresentacao" title="Apresentação da empresa">🏢 Apresentação</a>
+          <a class="btn btn-secondary" href="#/clausulas" title="Biblioteca de cláusulas">📖 Cláusulas</a>
+          <button class="btn btn-primary btn-lg" id="btnNovaProposta">+ Nova Proposta</button>`,
+      }) : '';
+
+      const kpisHtml = window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
+        { label: 'Total',            value: totalGeral,                       color: 'var(--color-primary)' },
+        { label: 'Enviadas',         value: contagemPorStatus.enviada || 0,   color: 'var(--color-info)' },
+        { label: 'Aceitas',          value: contagemPorStatus.aceita || 0,    color: 'var(--color-success)',
+          hint: `${Math.round((contagemPorStatus.aceita||0)/Math.max(totalGeral,1)*100)}% de conversão` },
+        { label: 'Pipeline (aceitas+enviadas)', value: Store.formatBRL(valorTotal), color: 'var(--color-violet)' },
+      ]) : '';
+
+      const toolbarHtml = window.UIKit?.toolbar ? window.UIKit.toolbar({
+        search: { id: 'inputBusca', value: this.busca, label: 'Buscar',
+                  placeholder: 'Número, título, cliente ou referência...' },
+        showClear: filtroAtivo, clearId: 'btnLimparPropostas',
+      }) : '';
+
+      const chipsHtml = window.UIKit?.chips ? window.UIKit.chips([
+        { value:'todos',     label:'Todos',     count: totalGeral, active: this.currentFilter === 'todos' },
+        { value:'rascunho',  label:'Rascunho',  count: contagemPorStatus.rascunho  || 0, active: this.currentFilter === 'rascunho' },
+        { value:'enviada',   label:'Enviada',   count: contagemPorStatus.enviada   || 0, active: this.currentFilter === 'enviada' },
+        { value:'aceita',    label:'Aceita',    count: contagemPorStatus.aceita    || 0, active: this.currentFilter === 'aceita' },
+        { value:'rejeitada', label:'Rejeitada', count: contagemPorStatus.rejeitada || 0, active: this.currentFilter === 'rejeitada' },
+        { value:'expirada',  label:'Expirada',  count: contagemPorStatus.expirada  || 0, active: this.currentFilter === 'expirada' },
+      ], { name: 'propostas-status', inCard: true }) : '';
+
       const html = `
-        <div class="page-header">
-          <div>
-            <h1 class="page-title">Propostas Comerciais</h1>
-            <p class="page-subtitle">
-              ${totalGeral} proposta${totalGeral !== 1 ? 's' : ''} no total
-              ${propostas.length !== totalGeral ? ` · ${propostas.length} exibida${propostas.length !== 1 ? 's' : ''}` : ''}
-            </p>
-          </div>
-          <div style="display:flex;gap:8px;">
-            <a class="btn btn-secondary btn-lg" href="#/apresentacao" title="Apresentação da empresa (texto + logos de cases — usada em todas as propostas)">🏢 Apresentação</a>
-            <a class="btn btn-secondary btn-lg" href="#/clausulas" title="Biblioteca de cláusulas reusáveis">📖 Cláusulas</a>
-            <button class="btn btn-primary btn-lg" id="btnNovaProposta">+ Nova Proposta</button>
-          </div>
-        </div>
-
-        <div class="rh-status-chips" style="display:flex;gap:6px;flex-wrap:wrap;padding:0 0 12px 0;">
-          ${[
-            {v:'todos',     l:'Todos',     n: totalGeral},
-            {v:'rascunho',  l:'Rascunho',  n: contagemPorStatus.rascunho || 0},
-            {v:'enviada',   l:'Enviada',   n: contagemPorStatus.enviada || 0},
-            {v:'aceita',    l:'Aceita',    n: contagemPorStatus.aceita || 0},
-            {v:'rejeitada', l:'Rejeitada', n: contagemPorStatus.rejeitada || 0},
-            {v:'expirada',  l:'Expirada',  n: contagemPorStatus.expirada || 0},
-          ].map(s => `
-            <button class="rh-chip${this.currentFilter === s.v ? ' is-active' : ''}" data-status="${s.v}">
-              ${s.l} ${s.n > 0 ? `<span class="chip-count">${s.n}</span>` : ''}
-            </button>
-          `).join('')}
-        </div>
-
-        <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-lg);">
-          <input class="form-control" id="inputBusca" placeholder="🔍 Buscar por número, título, cliente ou referência..." value="${escapeHtml(this.busca)}">
-        </div>
+        ${headerHtml}
+        ${kpisHtml}
+        ${toolbarHtml}
 
         <div class="card">
+          ${chipsHtml}
           <div class="table-wrap">
             <table>
               <thead>
@@ -179,12 +189,16 @@ window.Propostas = {
   },
 
   _attachEvents() {
-    // Chips de status
-    document.querySelectorAll('.rh-chip[data-status]').forEach(btn => {
+    // Chips de status (novo padrão UIKit usa data-value dentro de [data-chips])
+    document.querySelectorAll('[data-chips="propostas-status"] .rh-chip').forEach(btn => {
       btn.addEventListener('click', () => {
-        this.currentFilter = btn.dataset.status;
+        this.currentFilter = btn.dataset.value || 'todos';
         this.render();
       });
+    });
+    // Botão limpar
+    document.getElementById('btnLimparPropostas')?.addEventListener('click', () => {
+      this.busca = ''; this.currentFilter = 'todos'; this.render();
     });
 
     // Busca (debounce)

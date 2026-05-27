@@ -44,42 +44,60 @@ window.Recursos = {
       return info && info.diasRestantes <= 5;
     }).length;
 
+    const filtroAtivo = this._temFiltro();
+    const headerHtml = window.UIKit?.pageHeader ? window.UIKit.pageHeader({
+      title: 'Recursos Humanos',
+      subtitle: filtroAtivo
+        ? `${filtrados.length} de ${total} pessoa${total !== 1 ? 's' : ''}`
+        : `${total} pessoa${total !== 1 ? 's' : ''} cadastrada${total !== 1 ? 's' : ''}`,
+      actions: `
+        <button class="btn btn-secondary" id="btnMapaGeral">🗺 Mapa Geral</button>
+        <button class="btn btn-primary btn-lg" id="btnNovoRecurso">+ Novo Cadastro</button>`,
+    }) : '';
+
+    const kpisHtml = window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
+      { label: 'Funcionários ativos', value: ativos,         color: 'var(--color-success)' },
+      { label: 'Candidatos',          value: candidatos,     color: 'var(--color-info)' },
+      { label: 'Ex-funcionários',     value: exFuncionarios, color: 'var(--color-gray)' },
+      { label: alertasFolga > 0 ? 'Folgas próximas' : 'Total',
+        value: alertasFolga > 0 ? alertasFolga : total,
+        color: alertasFolga > 0 ? 'var(--color-danger)' : 'var(--color-primary)',
+        hint: alertasFolga > 0 ? '⚑ próx. 5 dias' : '' },
+    ]) : '';
+
+    const toolbarHtml = window.UIKit?.toolbar ? window.UIKit.toolbar({
+      search: { id: 'inputBusca', value: this.busca, label: 'Buscar',
+                placeholder: 'Nome, CPF, profissão...' },
+      selects: [{
+        id: 'filtroStatus', label: 'Status', options: [
+          { value: '',               label: 'Todos os status',  selected: !this.filtroStatus },
+          { value: 'funcionario',    label: 'Funcionário Ativo',selected: this.filtroStatus === 'funcionario' },
+          { value: 'candidato',      label: 'Candidato',        selected: this.filtroStatus === 'candidato' },
+          { value: 'ex_funcionario', label: 'Ex-Funcionário',   selected: this.filtroStatus === 'ex_funcionario' },
+        ],
+      }],
+      extra: `<div class="filter-group" style="min-width:180px;">
+        <label class="filter-label">Cargo</label>
+        ${this._renderCargoFilter(profissoes, contagemCargo)}
+      </div>`,
+      showClear: filtroAtivo, clearId: 'btnLimparRec',
+    }) : '';
+
+    const chipsHtml = window.UIKit?.chips ? window.UIKit.chips([
+      { value: '',               label: 'Todos',         count: total,          active: !this.filtroStatus },
+      { value: 'funcionario',    label: 'Ativos',        count: ativos,         active: this.filtroStatus === 'funcionario' },
+      { value: 'candidato',      label: 'Candidatos',    count: candidatos,     active: this.filtroStatus === 'candidato' },
+      { value: 'ex_funcionario', label: 'Ex-funcionários', count: exFuncionarios, active: this.filtroStatus === 'ex_funcionario' },
+    ], { name: 'rec-status', inCard: true }) : '';
+
     app.innerHTML = `
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Recursos Humanos</h1>
-          <p class="page-subtitle">${total} pessoa${total !== 1 ? 's' : ''} cadastrada${total !== 1 ? 's' : ''}</p>
-        </div>
-        <div style="display:flex;gap:var(--sp-sm);">
-          <button class="btn btn-ghost btn-lg" id="btnMapaGeral">🗺 Mapa Geral</button>
-          <button class="btn btn-primary btn-lg" id="btnNovoRecurso">+ Novo Cadastro</button>
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-md);margin-bottom:var(--sp-lg);">
-        ${this._statCard('Funcionários Ativos', ativos, '#059669', '◉')}
-        ${this._statCard('Candidatos', candidatos, '#3182CE', '◎')}
-        ${this._statCard('Ex-Funcionários', exFuncionarios, '#718096', '⊗')}
-        ${alertasFolga > 0
-          ? this._statCard('Folgas Próximas', alertasFolga, '#DC2626', '⚑')
-          : this._statCard('Total', total, 'var(--color-primary)', '⊕')}
-      </div>
-
-      <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-lg);position:relative;z-index:40;">
-        <div style="display:flex;gap:var(--sp-md);align-items:center;flex-wrap:wrap;">
-          <input class="form-control" id="inputBusca" placeholder="Buscar por nome, CPF, profissão..." value="${this.busca}" style="flex:1;min-width:200px;">
-          <select class="form-control" id="filtroStatus" style="width:200px;">
-            <option value="">Todos os status</option>
-            <option value="funcionario"   ${this.filtroStatus === 'funcionario'   ? 'selected' : ''}>Funcionário Ativo</option>
-            <option value="candidato"     ${this.filtroStatus === 'candidato'     ? 'selected' : ''}>Candidato</option>
-            <option value="ex_funcionario"${this.filtroStatus === 'ex_funcionario'? 'selected' : ''}>Ex-Funcionário</option>
-          </select>
-          ${this._renderCargoFilter(profissoes, contagemCargo)}
-        </div>
-        <div id="recursosResultado" style="margin-top:var(--sp-sm);font-size:13px;color:var(--color-text-muted);display:${textoResultado ? 'block' : 'none'};">${textoResultado}</div>
-      </div>
+      ${headerHtml}
+      ${kpisHtml}
+      ${toolbarHtml}
+      <div id="recursosResultado" style="font-size:13px;color:var(--color-text-muted);margin:-8px 0 8px;display:${textoResultado ? 'block' : 'none'};">${textoResultado}</div>
 
       <div class="card">
+        ${chipsHtml}
         <div class="table-wrap">
           <table>
             <thead>
@@ -113,6 +131,13 @@ window.Recursos = {
     document.getElementById('filtroStatus').addEventListener('change', e => {
       this.filtroStatus = e.target.value;
       this._renderLista();
+    });
+    document.getElementById('btnLimparRec')?.addEventListener('click', () => {
+      this.busca = ''; this.filtroStatus = ''; this.filtroProfissoes = [];
+      this.render();
+    });
+    document.querySelectorAll('[data-chips="rec-status"] .rh-chip').forEach(b => {
+      b.addEventListener('click', () => { this.filtroStatus = b.dataset.value || ''; this.render(); });
     });
 
     this._attachCargoFilter();

@@ -45,66 +45,23 @@ window.ContasPagar = {
       const filtradas = this.filtroStatus === 'pendente' ? pendentes
         : this.filtroStatus === 'pago' ? pagas : contas;
 
+      const headerHtml = window.UIKit?.pageHeader ? window.UIKit.pageHeader({
+        title: 'Contas a Pagar',
+        subtitle: `${pendentes.length} pendente${pendentes.length !== 1 ? 's' : ''} · ${statusGeral.icone} ${statusGeral.texto} (${pctOk}% em dia)`,
+        actions: '<button class="btn btn-primary btn-lg" id="btnNovaConta">+ Nova Conta</button>',
+      }) : '';
+
+      const kpisHtml = window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
+        { label: 'A pagar',     value: Store.formatBRL(totalPendente), color: 'var(--color-danger)',
+          hint: `${pendentes.length} conta${pendentes.length !== 1 ? 's' : ''}` },
+        { label: 'Vencidas',    value: vencidas.length,        color: 'var(--color-danger)',  hint: '🔴 ação urgente' },
+        { label: 'Próximos 7d', value: proximasVencer.length,  color: 'var(--color-warning)', hint: '⚠️ atenção' },
+        { label: 'Pagas',       value: pagas.length,           color: 'var(--color-success)', hint: '💸 quitadas' },
+      ]) : '';
+
       const html = `
-        <div class="page-header">
-          <div>
-            <h1 class="page-title">Contas a Pagar</h1>
-            <p class="page-subtitle">${pendentes.length} pendente${pendentes.length !== 1 ? 's' : ''} · Total ${Store.formatBRL(totalPendente)}</p>
-          </div>
-          <button class="btn btn-primary btn-lg" id="btnNovaConta">+ Nova Conta</button>
-        </div>
-
-        <!-- Painel de status (faixa compacta) -->
-        <div style="background:${statusGeral.bg};border:1px solid ${statusGeral.cor}30;border-radius:8px;padding:var(--sp-sm) var(--sp-md);margin-bottom:var(--sp-lg);display:flex;align-items:center;gap:var(--sp-lg);flex-wrap:wrap;">
-
-          <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-            <span style="font-size:15px;">🔴</span>
-            <span style="font-size:18px;font-weight:800;color:#E53E3E;line-height:1;">${vencidas.length}</span>
-            <span style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Vencidas</span>
-          </div>
-
-          <div style="width:1px;height:20px;background:${statusGeral.cor}25;"></div>
-
-          <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-            <span style="font-size:15px;">⚠️</span>
-            <span style="font-size:18px;font-weight:800;color:#D69E2E;line-height:1;">${proximasVencer.length}</span>
-            <span style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Próx. 7d</span>
-          </div>
-
-          <div style="width:1px;height:20px;background:${statusGeral.cor}25;"></div>
-
-          <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-            <span style="font-size:15px;">✅</span>
-            <span style="font-size:18px;font-weight:800;color:#38A169;line-height:1;">${noPrazo.length}</span>
-            <span style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">No prazo</span>
-          </div>
-
-          <div style="width:1px;height:20px;background:${statusGeral.cor}25;"></div>
-
-          <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-            <span style="font-size:15px;">💸</span>
-            <span style="font-size:18px;font-weight:800;color:#3182CE;line-height:1;">${pagas.length}</span>
-            <span style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Pagas</span>
-          </div>
-
-          <div style="width:1px;height:20px;background:${statusGeral.cor}25;"></div>
-
-          <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-            <span style="font-size:15px;">💰</span>
-            <span style="font-size:15px;font-weight:800;color:var(--color-danger);line-height:1;">${Store.formatBRL(totalPendente)}</span>
-            <span style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">A pagar</span>
-          </div>
-
-          <div style="flex:1;"></div>
-
-          <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-            <span style="font-size:15px;font-weight:700;color:${statusGeral.cor};">${statusGeral.icone} ${statusGeral.texto}</span>
-            <div style="width:80px;height:6px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden;">
-              <div style="height:100%;width:${pctOk}%;background:${statusGeral.cor};border-radius:99px;transition:width .5s;"></div>
-            </div>
-            <span style="font-size:15px;font-weight:800;color:${statusGeral.cor};">${pctOk}%</span>
-          </div>
-        </div>
+        ${headerHtml}
+        ${kpisHtml}
 
         <!-- Timeline de próximos vencimentos -->
         ${proximasTimeline.length > 0 ? `
@@ -139,18 +96,11 @@ window.ContasPagar = {
           </div>
         ` : ''}
 
-        <!-- Filtros de status -->
-        <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-lg);display:flex;gap:var(--sp-sm);">
-          ${[
-            { s:'pendente', cor:'var(--color-warning)', label:'⏳ Pendentes' },
-            { s:'pago',     cor:'var(--color-success)', label:'✅ Pagas' },
-            { s:'todos',    cor:'var(--color-primary)', label:'📋 Todas' }
-          ].map(f => `
-            <button class="btn btn-sm btn-filtro-status" data-status="${f.s}" style="font-size:15px;font-weight:600;${this.filtroStatus === f.s ? `background:${f.cor};color:#fff;border:1px solid ${f.cor};` : 'background:transparent;color:var(--color-text);border:1px solid var(--color-border);'}">
-              ${f.label}
-            </button>
-          `).join('')}
-        </div>
+        ${window.UIKit?.chips ? `<div style="margin-bottom:var(--sp-md);">${window.UIKit.chips([
+          { value: 'pendente', label: '⏳ Pendentes', count: pendentes.length, active: this.filtroStatus === 'pendente' },
+          { value: 'pago',     label: '✅ Pagas',     count: pagas.length,     active: this.filtroStatus === 'pago' },
+          { value: 'todos',    label: '📋 Todas',     count: contas.length,    active: this.filtroStatus === 'todos' },
+        ], { name: 'cp-status' })}</div>` : ''}
 
         <div class="card">
           <div class="table-wrap">
@@ -236,8 +186,8 @@ window.ContasPagar = {
       app.innerHTML = html;
 
       document.getElementById('btnNovaConta').addEventListener('click', () => this.showModal());
-      document.querySelectorAll('.btn-filtro-status').forEach(b => b.addEventListener('click', e => {
-        this.filtroStatus = e.target.dataset.status;
+      document.querySelectorAll('[data-chips="cp-status"] .rh-chip').forEach(b => b.addEventListener('click', () => {
+        this.filtroStatus = b.dataset.value || 'todos';
         this.render();
       }));
       document.querySelectorAll('.btn-pagar').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); this.showModalPagar(e.target.dataset.id); }));

@@ -66,11 +66,26 @@ const RDOs = {
 
     const fmtUltimoRdo = (d) => d ? fmtData(d) : '<strong>nunca</strong>';
 
+    const headerHtml = window.UIKit?.pageHeader ? window.UIKit.pageHeader({
+      title: 'RDOs — Todos os Contratos',
+      subtitle: `${filtered.length} RDO${filtered.length !== 1 ? 's' : ''} no filtro · ${stats.obrasAtivas} obra${stats.obrasAtivas !== 1 ? 's' : ''} ativa${stats.obrasAtivas !== 1 ? 's' : ''}`,
+      actions: '<button class="btn btn-primary btn-lg" id="btnNovoRdoGlobal">+ Novo RDO</button>',
+    }) : '';
+
+    const adColor = stats.aderencia7d >= 80 ? 'var(--color-success)' : stats.aderencia7d >= 50 ? 'var(--color-warning)' : 'var(--color-danger)';
+    const kpisHtml = window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
+      { label: 'Obras ativas',  value: stats.obrasAtivas,                color: 'var(--color-primary)' },
+      { label: 'Sem RDO ontem', value: stats.obrasSemRdoOntem.length,
+        color: stats.obrasSemRdoOntem.length > 0 ? 'var(--color-danger)' : 'var(--color-success)' },
+      { label: 'Atrasadas',     value: stats.obrasAtrasadas.length,
+        color: stats.obrasAtrasadas.length > 0 ? 'var(--color-warning)' : 'var(--color-success)',
+        hint: '>2 dias úteis' },
+      { label: `Aderência ${stats.diasUteisAvaliados}d`, value: `${stats.aderencia7d}%`, color: adColor },
+    ]) : '';
+
     root.innerHTML = `
-      <div class="page-header">
-        <h1 class="page-title">RDOs — Todos os Contratos</h1>
-        <button class="btn btn-primary" id="btnNovoRdoGlobal">+ Novo RDO</button>
-      </div>
+      ${headerHtml}
+      ${kpisHtml}
 
       ${stats.ehFimDeSemana ? `
         <div style="background:#dbeafe;color:#1e3a8a;padding:var(--sp-md) var(--sp-lg);border-radius:8px;margin-bottom:var(--sp-lg);border:1px solid #93c5fd;display:flex;align-items:center;gap:10px;">
@@ -81,14 +96,6 @@ const RDOs = {
           </div>
         </div>
       ` : ''}
-
-      <!-- KPIs -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:var(--sp-md);margin-bottom:var(--sp-lg);">
-        ${kpiCard('Obras ativas', stats.obrasAtivas, '#3b82f6')}
-        ${kpiCard('Sem RDO ontem', stats.obrasSemRdoOntem.length, stats.obrasSemRdoOntem.length > 0 ? '#dc2626' : '#10b981')}
-        ${kpiCard('Atrasadas (>2 dias úteis)', stats.obrasAtrasadas.length, stats.obrasAtrasadas.length > 0 ? '#f59e0b' : '#10b981')}
-        ${kpiCard(`Aderência ${stats.diasUteisAvaliados} dias úteis`, `${stats.aderencia7d}%`, stats.aderencia7d >= 80 ? '#10b981' : stats.aderencia7d >= 50 ? '#f59e0b' : '#dc2626')}
-      </div>
 
       <!-- Gráfico de aderência diária -->
       ${stats.aderenciaDiaria && stats.aderenciaDiaria.length > 0 ? `
@@ -116,24 +123,20 @@ const RDOs = {
         </div>
       ` : ''}
 
-      <!-- Filtros -->
-      <div style="display:flex;gap:var(--sp-md);align-items:end;margin-bottom:var(--sp-md);flex-wrap:wrap;">
-        <div class="form-group" style="margin:0;min-width:240px;">
-          <label class="form-label">Contrato</label>
-          <select class="form-control" id="fltContract">
-            <option value="">— Todos —</option>
-            ${contratos.map(c => `<option value="${c.id}" ${this._filters.contractId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}${c.client ? ' (' + escapeHtml(c.client) + ')' : ''}</option>`).join('')}
-          </select>
-        </div>
-        <div class="form-group" style="margin:0;">
-          <label class="form-label">Mês</label>
-          <input class="form-control" id="fltMes" type="month" value="${this._filters.mes}">
-        </div>
-        <button class="btn btn-secondary" id="btnLimparFiltros">Limpar</button>
-        <div style="margin-left:auto;color:var(--color-text-muted);font-size:14px;">
-          ${filtered.length} RDOs encontrados
-        </div>
-      </div>
+      ${window.UIKit?.toolbar ? window.UIKit.toolbar({
+        selects: [
+          { id: 'fltContract', label: 'Contrato', options: [
+            { value: '', label: `Todos (${contratos.length})`, selected: !this._filters.contractId },
+            ...contratos.map(c => ({ value: c.id, label: c.name + (c.client ? ` (${c.client})` : ''), selected: this._filters.contractId === c.id })),
+          ]},
+        ],
+        extra: `<div class="filter-group" style="min-width:160px;">
+          <label class="filter-label" for="fltMes">Mês</label>
+          <input class="form-control filter-control" id="fltMes" type="month" value="${this._filters.mes || ''}">
+        </div>`,
+        showClear: !!(this._filters.contractId || this._filters.mes),
+        clearId: 'btnLimparFiltros',
+      }) : ''}
 
       <!-- Tabela -->
       <table class="data-table">

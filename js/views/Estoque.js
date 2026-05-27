@@ -103,34 +103,25 @@ window.Estoque = {
     const abaixoMin = this._itens.filter(i => this._saldoTotal(i) < (parseFloat(i.estoqueMinimo) || 0)).length;
     const obras = this._almoxsObras();
 
-    app.innerHTML = `
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">📦 Almoxarifado</h1>
-          <p class="page-subtitle">Controle simples — Central + 1 almoxarifado por obra (criado automaticamente)</p>
-        </div>
-        <button class="btn btn-primary" id="btnNovoItem">+ Novo item</button>
-      </div>
+    const headerHtml = window.UIKit?.pageHeader ? window.UIKit.pageHeader({
+      title: 'Almoxarifado',
+      icon: '📦',
+      subtitle: 'Central + 1 almoxarifado por obra (auto)',
+      actions: '<button class="btn btn-primary btn-lg" id="btnNovoItem">+ Novo item</button>',
+    }) : '';
 
-      <!-- KPIs -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:var(--sp-md);">
-        <div class="card" style="padding:12px;border-left:3px solid #3b82f6;">
-          <div class="text-muted font-sm">Itens cadastrados</div>
-          <div style="font-size:22px;font-weight:800;">${totalItens}</div>
-        </div>
-        <div class="card" style="padding:12px;border-left:3px solid #8b5cf6;">
-          <div class="text-muted font-sm">Valor em estoque</div>
-          <div style="font-size:22px;font-weight:800;">${fmt(valorTotal)}</div>
-        </div>
-        <div class="card" style="padding:12px;border-left:3px solid ${abaixoMin > 0 ? 'var(--color-danger)' : 'var(--color-success)'};">
-          <div class="text-muted font-sm">Abaixo do mínimo</div>
-          <div style="font-size:22px;font-weight:800;color:${abaixoMin > 0 ? 'var(--color-danger)' : 'var(--color-success)'};">${abaixoMin}</div>
-        </div>
-        <div class="card" style="padding:12px;border-left:3px solid #f59e0b;">
-          <div class="text-muted font-sm">Obras com estoque</div>
-          <div style="font-size:22px;font-weight:800;">${obras.length}</div>
-        </div>
-      </div>
+    const kpisHtml = window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
+      { label: 'Itens cadastrados', value: totalItens, color: 'var(--color-primary)' },
+      { label: 'Valor em estoque',  value: fmt(valorTotal), color: 'var(--color-violet)' },
+      { label: 'Abaixo do mínimo',  value: abaixoMin,
+        color: abaixoMin > 0 ? 'var(--color-danger)' : 'var(--color-success)',
+        hint: abaixoMin > 0 ? '⚠ reposição' : '✓ ok' },
+      { label: 'Obras com estoque', value: obras.length, color: 'var(--color-warning)' },
+    ]) : '';
+
+    app.innerHTML = `
+      ${headerHtml}
+      ${kpisHtml}
 
       <!-- Tabs -->
       <div style="display:flex;gap:2px;margin-bottom:var(--sp-md);border-bottom:1px solid var(--color-border);">

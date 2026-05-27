@@ -120,51 +120,58 @@ window.Frota = {
     const kpiProximos = proxs.filter(p => p?.status === 'proximo').length;
     const kpiManut = todos.filter(v => v.status === 'manutencao').length;
 
+    const filtroAtivo = !!(termo || this.filtroStatus || this.filtroContrato);
+    const kpiAtivos = todos.filter(v => v.status === 'ativo').length;
+
+    const headerHtml = window.UIKit?.pageHeader ? window.UIKit.pageHeader({
+      title: 'Frota',
+      subtitle: filtroAtivo
+        ? `${lista.length} de ${todos.length} veículo${todos.length !== 1 ? 's' : ''}`
+        : `${todos.length} veículo${todos.length !== 1 ? 's' : ''}`,
+      actions: '<button class="btn btn-primary btn-lg" id="btnNovoVeic">+ Novo Veículo</button>',
+    }) : `<div class="page-header"><div><h1 class="page-title">Frota</h1></div><button class="btn btn-primary btn-lg" id="btnNovoVeic">+ Novo Veículo</button></div>`;
+
+    const kpisHtml = window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
+      { label: 'Total',           value: todos.length,   color: 'var(--color-primary)' },
+      { label: 'Ativos',          value: kpiAtivos,      color: 'var(--color-success)' },
+      { label: 'Em manutenção',   value: kpiManut,       color: 'var(--color-warning)' },
+      { label: 'Manut. vencidas', value: kpiVencidos,    color: 'var(--color-danger)',
+        hint: kpiProximos ? `+${kpiProximos} próximas` : 'tudo em dia' },
+    ]) : '';
+
+    const toolbarHtml = window.UIKit?.toolbar ? window.UIKit.toolbar({
+      search:  { id: 'inpBusca', value: this.busca, label: 'Buscar',
+                 placeholder: 'Placa, modelo ou marca...' },
+      selects: [
+        { id: 'filtroStatus', label: 'Status', options: [
+          { value: '',           label: 'Todos status',  selected: !this.filtroStatus },
+          { value: 'ativo',      label: 'Ativos',        selected: this.filtroStatus==='ativo' },
+          { value: 'manutencao', label: 'Em manutenção', selected: this.filtroStatus==='manutencao' },
+          { value: 'inativo',    label: 'Inativos',      selected: this.filtroStatus==='inativo' },
+        ]},
+        { id: 'filtroContrato', label: 'Contrato', options: [
+          { value: '', label: `Todos (${contratos.length})`, selected: !this.filtroContrato },
+          ...contratos.map(c => ({ value: c.id, label: c.name, selected: this.filtroContrato===c.id })),
+        ]},
+      ],
+      showClear: filtroAtivo, clearId: 'btnLimparFrota',
+    }) : '';
+
+    // Chips por status
+    const chipsHtml = window.UIKit?.chips ? window.UIKit.chips([
+      { value: '',           label: 'Todos',         count: todos.length, active: !this.filtroStatus },
+      { value: 'ativo',      label: 'Ativos',        count: kpiAtivos,    active: this.filtroStatus==='ativo' },
+      { value: 'manutencao', label: 'Em manutenção', count: kpiManut,     active: this.filtroStatus==='manutencao' },
+      { value: 'inativo',    label: 'Inativos',      count: todos.filter(v=>v.status==='inativo').length, active: this.filtroStatus==='inativo' },
+    ], { name: 'frota-status', inCard: true }) : '';
+
     const html = `
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Frota</h1>
-          <p class="page-subtitle">${todos.length} veículo${todos.length !== 1 ? 's' : ''}</p>
-        </div>
-        <button class="btn btn-primary btn-lg" id="btnNovoVeic">+ Novo Veículo</button>
-      </div>
-
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-md);margin-bottom:var(--sp-lg);">
-        <div class="card" style="padding:var(--sp-md);">
-          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">Total</div>
-          <div style="font-size:28px;font-weight:800;">${todos.length}</div>
-        </div>
-        <div class="card" style="padding:var(--sp-md);">
-          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">Em manutenção</div>
-          <div style="font-size:28px;font-weight:800;color:#92400E;">${kpiManut}</div>
-        </div>
-        <div class="card" style="padding:var(--sp-md);">
-          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">Próximas</div>
-          <div style="font-size:28px;font-weight:800;color:#92400E;">${kpiProximos}</div>
-        </div>
-        <div class="card" style="padding:var(--sp-md);">
-          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">Manutenções vencidas</div>
-          <div style="font-size:28px;font-weight:800;color:#991B1B;">${kpiVencidos}</div>
-        </div>
-      </div>
-
-      <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-lg);">
-        <div style="display:grid;grid-template-columns:1fr 200px 240px;gap:var(--sp-md);">
-          <input class="form-control" id="inpBusca" placeholder="🔍 Buscar por placa, modelo ou marca" value="${escapeHtml(this.busca)}">
-          <select class="form-control" id="filtroStatus">
-            <option value="">Todos status</option>
-            <option value="ativo"      ${this.filtroStatus==='ativo'?'selected':''}>Ativos</option>
-            <option value="manutencao" ${this.filtroStatus==='manutencao'?'selected':''}>Em manutenção</option>
-            <option value="inativo"    ${this.filtroStatus==='inativo'?'selected':''}>Inativos</option>
-          </select>
-          <select class="form-control" id="filtroContrato">
-            <option value="">Todos os contratos</option>
-            ${contratos.map(c => `<option value="${c.id}" ${this.filtroContrato===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
-          </select>
-        </div>
-      </div>
+      ${headerHtml}
+      ${kpisHtml}
+      ${toolbarHtml}
 
       <div class="card">
+        ${chipsHtml}
         <div class="table-wrap">
           <table>
             <thead>
@@ -230,6 +237,12 @@ window.Frota = {
     });
     document.getElementById('filtroStatus').addEventListener('change', e => { this.filtroStatus = e.target.value; this._draw(); });
     document.getElementById('filtroContrato').addEventListener('change', e => { this.filtroContrato = e.target.value; this._draw(); });
+    document.getElementById('btnLimparFrota')?.addEventListener('click', () => {
+      this.busca = ''; this.filtroStatus = ''; this.filtroContrato = ''; this._draw();
+    });
+    document.querySelectorAll('[data-chips="frota-status"] .rh-chip').forEach(b => {
+      b.addEventListener('click', () => { this.filtroStatus = b.dataset.value || ''; this._draw(); });
+    });
 
     document.querySelectorAll('.btn-plano').forEach(b => b.addEventListener('click', e => this.showDetalhe(e.target.dataset.id, 'plano')));
     document.querySelectorAll('.btn-historico').forEach(b => b.addEventListener('click', e => this.showDetalhe(e.target.dataset.id, 'historico')));
