@@ -1040,13 +1040,9 @@ function renderSidebar(opts) {
       ) : ''}
 
       <div class="footer-utils">
-        <button id="btn-themer" class="theme-toggle-btn" title="Personalizar tema" data-tooltip="Tema">
-          <span class="theme-toggle-icon">🎨</span>
-          <span>Tema</span>
-        </button>
-        <button id="btn-density" class="theme-toggle-btn" title="Alternar densidade da interface (compact / cozy / comfortable)" data-tooltip="Densidade">
-          <span class="theme-toggle-icon" id="btn-density-icon">▦</span>
-          <span id="btn-density-label">Densidade</span>
+        <button id="btn-density" class="theme-toggle-btn" title="Alternar densidade (compacto / padrão / amplo)" data-tooltip="Densidade">
+          <span class="theme-toggle-icon" id="btn-density-icon">▥</span>
+          <span id="btn-density-label">Padrão</span>
         </button>
         <a href="#/manual" id="btn-manual" class="theme-toggle-btn" title="Abrir Manual do Usuário" data-tooltip="Manual" style="text-decoration:none;">
           <span class="theme-toggle-icon">${_ic('book')}</span>
@@ -1123,23 +1119,19 @@ function renderSidebar(opts) {
   }
 
 
-  // Themer button — delegates to the hidden FAB (which owns the panel lifecycle)
-  const btnThemer = document.getElementById('btn-themer');
-  if (btnThemer) {
-    btnThemer.addEventListener('click', () => {
-      const fab = document.querySelector('.theme-customizer-fab');
-      if (fab) fab.click();
-    });
-  }
+  // (Botão "Tema" removido da sidebar — mudança visível baixa não justificava
+  //  ocupar slot do rodapé. A customização ainda existe via FAB oculto se
+  //  necessário no futuro.)
 
   // Densidade da interface — cicla compact / cozy / comfortable
   const btnDensity = document.getElementById('btn-density');
   if (btnDensity && window.UIKit?.density) {
+    // Labels curtos pra não estourar a largura do botão na sidebar.
     const _updateDensityLabel = () => {
       const cur = window.UIKit.density.get();
-      const icon = cur === 'compact' ? '▤' : cur === 'comfortable' ? '▦' : '▥';
+      const icon  = cur === 'compact' ? '▤' : cur === 'comfortable' ? '▦' : '▥';
       const label = cur === 'compact' ? 'Compacto'
-                  : cur === 'comfortable' ? 'Confortável'
+                  : cur === 'comfortable' ? 'Amplo'
                   : 'Padrão';
       const iconEl = document.getElementById('btn-density-icon');
       const lblEl  = document.getElementById('btn-density-label');
