@@ -229,7 +229,18 @@ window.Clientes = {
               </div>
               <div class="form-group">
                 <label class="form-label">Empresa</label>
-                <input class="form-control" name="empresa" value="${cliente?.empresa || ''}" placeholder="Razão social">
+                <input class="form-control" name="empresa" list="empresasJaCadastradas"
+                  value="${cliente?.empresa || ''}"
+                  placeholder="Escolha uma cadastrada ou digite nova..."
+                  autocomplete="off">
+                <datalist id="empresasJaCadastradas">
+                  ${[...new Set((Store.state.clientes || [])
+                    .map(c => (c.empresa || '').trim())
+                    .filter(Boolean))]
+                    .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+                    .map(e => `<option value="${escapeHtml(e)}"></option>`).join('')}
+                </datalist>
+                <span style="font-size:11px;color:var(--color-text-muted);">Clique pra ver empresas já usadas ou digite uma nova</span>
               </div>
             </div>
             <div class="form-row">
