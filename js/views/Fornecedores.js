@@ -34,24 +34,44 @@ window.Fornecedores = {
         filtrados = filtrados.filter(f => (f.materiais || []).includes(this.filtroMaterial));
       }
 
-      const html = `
-        <div class="page-header">
-          <div>
-            <h1 class="page-title">Fornecedores</h1>
-            <p class="page-subtitle">${Store.state.fornecedores.length} fornecedor${Store.state.fornecedores.length !== 1 ? 'es' : ''} cadastrado${Store.state.fornecedores.length !== 1 ? 's' : ''}</p>
-          </div>
-          <button class="btn btn-primary btn-lg" id="btnNovoFornecedor">+ Novo Fornecedor</button>
-        </div>
+      const totalF = Store.state.fornecedores.length;
+      const filtroAtivo = !!(termo || this.filtroMaterial);
+      const comCnpj = Store.state.fornecedores.filter(f => f.cnpj).length;
+      const comBanco = Store.state.fornecedores.filter(f => f.banco || f.agencia || f.conta || f.pix).length;
 
-        <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-lg);">
-          <div style="display:grid;grid-template-columns:1fr auto;gap:var(--sp-md);">
-            <input class="form-control" id="inputBusca" placeholder="🔍 Buscar por nome, CNPJ, contato ou telefone..." value="${this.busca}">
-            <select class="form-control" id="filtroMaterial" style="min-width:200px;">
-              <option value="">Todos os materiais</option>
-              ${todosMateriais.map(m => `<option value="${m}" ${this.filtroMaterial === m ? 'selected' : ''}>${m}</option>`).join('')}
-            </select>
-          </div>
-        </div>
+      const headerHtml = window.UIKit?.pageHeader ? window.UIKit.pageHeader({
+        title: 'Fornecedores',
+        subtitle: filtroAtivo
+          ? `${filtrados.length} de ${totalF} fornecedor${totalF !== 1 ? 'es' : ''}`
+          : `${totalF} fornecedor${totalF !== 1 ? 'es' : ''} cadastrado${totalF !== 1 ? 's' : ''}`,
+        actions: '<button class="btn btn-primary btn-lg" id="btnNovoFornecedor">+ Novo Fornecedor</button>',
+      }) : `<div class="page-header"><div><h1 class="page-title">Fornecedores</h1></div><button class="btn btn-primary btn-lg" id="btnNovoFornecedor">+ Novo Fornecedor</button></div>`;
+
+      const kpisHtml = window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
+        { label: 'Total',          value: totalF,                color: 'var(--color-primary)' },
+        { label: 'Materiais',      value: todosMateriais.length, color: 'var(--color-violet)' },
+        { label: 'Com CNPJ',       value: comCnpj,               color: 'var(--color-info)',   hint: `${Math.round(comCnpj/Math.max(totalF,1)*100)}% do total` },
+        { label: 'Dados bancários',value: comBanco,              color: 'var(--color-success)',hint: `${Math.round(comBanco/Math.max(totalF,1)*100)}% completos` },
+      ]) : '';
+
+      const toolbarHtml = window.UIKit?.toolbar ? window.UIKit.toolbar({
+        search: { id: 'inputBusca', value: this.busca, placeholder: '🔍 Buscar por nome, CNPJ, contato ou telefone...' },
+        selects: [{
+          id: 'filtroMaterial',
+          title: 'Filtrar por material',
+          options: [
+            { value: '', label: `Todos os materiais (${todosMateriais.length})`, selected: !this.filtroMaterial },
+            ...todosMateriais.map(m => ({ value: m, label: m, selected: this.filtroMaterial === m })),
+          ],
+        }],
+        showClear: filtroAtivo,
+        clearId: 'btnLimparFornecedores',
+      }) : '';
+
+      const html = `
+        ${headerHtml}
+        ${kpisHtml}
+        ${toolbarHtml}
 
         <div class="card">
           <div class="table-wrap">
@@ -124,6 +144,9 @@ window.Fornecedores = {
       document.getElementById('filtroMaterial').addEventListener('change', e => {
         this.filtroMaterial = e.target.value;
         this.render();
+      });
+      document.getElementById('btnLimparFornecedores')?.addEventListener('click', () => {
+        this.busca = ''; this.filtroMaterial = ''; this.render();
       });
 
       document.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', e => this.showModal(e.target.dataset.id)));

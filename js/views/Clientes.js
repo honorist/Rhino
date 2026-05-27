@@ -36,28 +36,43 @@ window.Clientes = {
 
       const totalCli = Store.state.clientes.length;
       const filtroAtivo = !!(termo || filtroEmp);
+      const comEmail = (Store.state.clientes || []).filter(c => c.email).length;
+      const comTel   = (Store.state.clientes || []).filter(c => c.telefone).length;
+
+      // Padrão B: pageHeader + kpiGrid + toolbar
+      const headerHtml = window.UIKit?.pageHeader ? window.UIKit.pageHeader({
+        title: 'Clientes',
+        subtitle: filtroAtivo
+          ? `${filtrados.length} de ${totalCli} cliente${totalCli !== 1 ? 's' : ''}`
+          : `${totalCli} cliente${totalCli !== 1 ? 's' : ''} cadastrado${totalCli !== 1 ? 's' : ''}`,
+        actions: '<button class="btn btn-primary btn-lg" id="btnNovoCliente">+ Novo Cliente</button>',
+      }) : `<div class="page-header"><div><h1 class="page-title">Clientes</h1></div><button class="btn btn-primary btn-lg" id="btnNovoCliente">+ Novo Cliente</button></div>`;
+
+      const kpisHtml = window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
+        { label: 'Total',         value: totalCli,            color: 'var(--color-primary)' },
+        { label: 'Empresas',      value: empresasUnicas.length, color: 'var(--color-violet)' },
+        { label: 'Com email',     value: comEmail,            color: 'var(--color-info)', hint: `${Math.round(comEmail/Math.max(totalCli,1)*100)}% do total` },
+        { label: 'Com telefone',  value: comTel,              color: 'var(--color-success)', hint: `${Math.round(comTel/Math.max(totalCli,1)*100)}% do total` },
+      ]) : '';
+
+      const toolbarHtml = window.UIKit?.toolbar ? window.UIKit.toolbar({
+        search:  { id: 'inputBusca', value: this.busca, placeholder: '🔍 Buscar por nome, empresa, email ou telefone...' },
+        selects: [{
+          id: 'filtroEmpresa',
+          title: 'Filtrar por empresa',
+          options: [
+            { value: '', label: `Todas as empresas (${empresasUnicas.length})`, selected: !filtroEmp },
+            ...empresasUnicas.map(e => ({ value: e, label: e, selected: filtroEmp === e })),
+          ],
+        }],
+        showClear: true,
+        clearId: 'btnLimparFiltrosCli',
+      }) : '';
 
       const html = `
-        <div class="page-header">
-          <div>
-            <h1 class="page-title">Clientes</h1>
-            <p class="page-subtitle">
-              ${filtroAtivo
-                ? `${filtrados.length} de ${totalCli} cliente${totalCli !== 1 ? 's' : ''}`
-                : `${totalCli} cliente${totalCli !== 1 ? 's' : ''} cadastrado${totalCli !== 1 ? 's' : ''}`}
-            </p>
-          </div>
-          <button class="btn btn-primary btn-lg" id="btnNovoCliente">+ Novo Cliente</button>
-        </div>
-
-        <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-lg);display:grid;grid-template-columns:1fr 260px auto;gap:var(--sp-sm);align-items:center;">
-          <input class="form-control" id="inputBusca" placeholder="🔍 Buscar por nome, empresa, email ou telefone..." value="${escapeHtml(this.busca)}">
-          <select class="form-control" id="filtroEmpresa" title="Filtrar por empresa">
-            <option value="">Todas as empresas (${empresasUnicas.length})</option>
-            ${empresasUnicas.map(e => `<option value="${escapeHtml(e)}" ${filtroEmp === e ? 'selected' : ''}>${escapeHtml(e)}</option>`).join('')}
-          </select>
-          <button class="btn btn-secondary" id="btnLimparFiltrosCli" ${!filtroAtivo ? 'disabled style="opacity:.5;cursor:not-allowed;"' : ''}>Limpar</button>
-        </div>
+        ${headerHtml}
+        ${kpisHtml}
+        ${toolbarHtml}
 
         <div class="card">
           <div class="table-wrap">

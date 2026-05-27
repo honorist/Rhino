@@ -6,6 +6,107 @@
 ───────────────────────────────────────────────────────── */
 
 /* ═══════════════════════════════════════════════════════
+   PAGE HEADER actions — alinhamento da ação primária
+═══════════════════════════════════════════════════════ */
+.page-header-actions { display: flex; gap: var(--sp-sm); align-items: center; flex-wrap: wrap; }
+
+/* ═══════════════════════════════════════════════════════
+   KPI GRID — cards de métricas (Padrão B)
+═══════════════════════════════════════════════════════ */
+.ui-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--sp-sm);
+  margin-bottom: var(--sp-md);
+}
+.ui-kpi {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--border-radius);
+  padding: 12px 14px;
+  transition: transform .15s, box-shadow .15s;
+}
+.ui-kpi:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.ui-kpi__label {
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 4px;
+}
+.ui-kpi__value {
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+.ui-kpi__hint { font-size: var(--fs-xs); color: var(--color-text-muted); margin-top: 2px; }
+
+/* ═══════════════════════════════════════════════════════
+   TOOLBAR — busca + selects + limpar em 1 linha
+═══════════════════════════════════════════════════════ */
+.ui-toolbar {
+  display: flex;
+  gap: var(--sp-sm);
+  align-items: center;
+  padding: var(--sp-sm) var(--sp-md);
+  margin-bottom: var(--sp-sm);
+  flex-wrap: wrap;
+}
+.ui-toolbar__search { flex: 1; min-width: 220px; max-width: 100%; }
+.ui-toolbar__select { width: auto; min-width: 160px; max-width: 240px; flex-shrink: 0; }
+.ui-toolbar__clear  { flex-shrink: 0; margin-left: auto; }
+@media (max-width: 640px) {
+  .ui-toolbar__search, .ui-toolbar__select { width: 100%; min-width: 0; max-width: none; }
+  .ui-toolbar__clear { margin-left: 0; width: 100%; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   CHIPS — filtros pill com contagem
+═══════════════════════════════════════════════════════ */
+.ui-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-md);
+}
+.ui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.ui-chip:hover { background: var(--color-surface-2); border-color: var(--color-primary-light); }
+.ui-chip.is-active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+.ui-chip__count {
+  background: rgba(255,255,255,.18);
+  color: inherit;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+}
+.ui-chip:not(.is-active) .ui-chip__count {
+  background: var(--color-surface-2);
+  color: var(--color-text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════
    FOCO ACESSÍVEL — outline visível para teclado (WCAG 2.4.7)
    Só aparece com :focus-visible, então não polui clicks.
 ═══════════════════════════════════════════════════════ */

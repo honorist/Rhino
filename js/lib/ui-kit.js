@@ -377,11 +377,87 @@
   }
 
   // ─────────────────────────────────────────────
+  // PAGE HEADER — padrão B: título + subtítulo + ação primária
+  // ─────────────────────────────────────────────
+  function pageHeader({ title, subtitle = '', actions = '', icon = '' } = {}) {
+    return `
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">${icon ? icon + ' ' : ''}${esc(title || '')}</h1>
+          ${subtitle ? `<p class="page-subtitle">${esc(subtitle)}</p>` : ''}
+        </div>
+        ${actions ? `<div class="page-header-actions">${actions}</div>` : ''}
+      </div>`;
+  }
+
+  // ─────────────────────────────────────────────
+  // KPI GRID — cards de métricas (padrão B)
+  // [{ label, value, color, hint, icon }]
+  // ─────────────────────────────────────────────
+  function kpiGrid(items = []) {
+    if (!items.length) return '';
+    return `
+      <div class="ui-kpi-grid">
+        ${items.map(k => `
+          <div class="ui-kpi" style="${k.color ? `border-left-color:${k.color};` : ''}" ${k.title ? `title="${esc(k.title)}"` : ''}>
+            <div class="ui-kpi__label">${k.icon ? k.icon + ' ' : ''}${esc(k.label || '')}</div>
+            <div class="ui-kpi__value" ${k.color ? `style="color:${k.color};"` : ''}>${k.value ?? '—'}</div>
+            ${k.hint ? `<div class="ui-kpi__hint">${esc(k.hint)}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>`;
+  }
+
+  // ─────────────────────────────────────────────
+  // TOOLBAR — barra de busca + filtros + limpar
+  // search: { value, placeholder, id }
+  // selects: [{ id, label, options:[{value,label,selected}] }]
+  // ─────────────────────────────────────────────
+  function toolbar({ search, selects = [], extra = '', showClear = false, clearId = 'btnLimparFiltros' } = {}) {
+    const sId = search?.id || 'inputBusca';
+    const searchHtml = search ? `
+      <input class="form-control ui-toolbar__search" id="${sId}"
+        placeholder="${esc(search.placeholder || '🔍 Buscar...')}"
+        value="${esc(search.value || '')}">` : '';
+    const selectsHtml = selects.map(s => `
+      <select class="form-control ui-toolbar__select" id="${s.id}" ${s.title ? `title="${esc(s.title)}"` : ''}>
+        ${(s.options || []).map(o => `<option value="${esc(o.value ?? '')}" ${o.selected ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}
+      </select>`).join('');
+    const clearHtml = showClear
+      ? `<button class="btn btn-secondary ui-toolbar__clear" id="${clearId}">Limpar</button>` : '';
+    return `
+      <div class="card ui-toolbar">
+        ${searchHtml}
+        ${selectsHtml}
+        ${extra}
+        ${clearHtml}
+      </div>`;
+  }
+
+  // ─────────────────────────────────────────────
+  // CHIPS — filtros tipo pill com contagem
+  // [{ value, label, count, active }]
+  // ─────────────────────────────────────────────
+  function chips(items = [], { name = 'chips' } = {}) {
+    if (!items.length) return '';
+    return `
+      <div class="ui-chips" role="tablist" data-chips="${esc(name)}">
+        ${items.map(c => `
+          <button class="ui-chip ${c.active ? 'is-active' : ''}" data-value="${esc(c.value ?? '')}" role="tab" aria-selected="${c.active ? 'true' : 'false'}">
+            ${esc(c.label)}${c.count != null ? ` <span class="ui-chip__count">${c.count}</span>` : ''}
+          </button>
+        `).join('')}
+      </div>`;
+  }
+
+  // ─────────────────────────────────────────────
   // EXPORT
   // ─────────────────────────────────────────────
   window.UIKit = {
     statusPill, skeleton, empty, breadcrumb, smartBack, avatar,
     showUndoToast, toast, deleteWithUndo, persistFilter, sortable,
     density, autosave, esc,
+    // Padrão de cabeçalho B (KPIs + Toolbar)
+    pageHeader, kpiGrid, toolbar, chips,
   };
 })();
