@@ -114,6 +114,7 @@ const routes = {
   '#/solicitacoes-compra': { view: window.SolicitacoesCompra, label: 'Solicitações de Compra', icon: _ic('shopping-cart'), group: 'obras' },
   '#/manutencao':   { view: window.Manutencao,      label: 'Manutenção',      icon: _ic('wrench'),      group: 'obras' },
   '#/frota':        { view: window.Frota,           label: 'Frota',           icon: _ic('truck'),       group: 'obras' },
+  '#/cronograma-geral': { view: window.CronogramaGeral, label: 'Cronograma',  icon: _ic('calendar'),    group: 'obras' },
   '#/previsao':     { view: window.Previsao,        label: 'Previsão',        icon: _ic('trending-up'),  group: 'financeiro' },
   '#/ai-chat':      { view: window.AiChat,         label: 'Assistente IA',   icon: _ic('message-square'), group: 'financeiro' },
   '#/configuracao': { view: window.Configuracao,   label: 'Configuração',    icon: _ic('settings') },
@@ -513,7 +514,7 @@ const perfil = {
     // (controle fino fica em cada tela, ex: ver/editar).
     // #/usuarios e #/auditoria NÃO são universais: exigem a permissão nas abas
     // — senão abririam vazias (dados barrados no servidor) para quem não tem acesso.
-    const universais = ['#/manual', '#/rdos', '#/estoque', '#/comparativo', '#/solicitacoes-compra', '#/manutencao', '#/frota', '#/proposta', '#/clausulas', '#/apresentacao', '#/recrutamento'];
+    const universais = ['#/manual', '#/rdos', '#/estoque', '#/comparativo', '#/solicitacoes-compra', '#/manutencao', '#/frota', '#/proposta', '#/clausulas', '#/apresentacao', '#/recrutamento', '#/cronograma-geral'];
     if (universais.includes(base)) return true;
     return abas.includes(base);
   },
