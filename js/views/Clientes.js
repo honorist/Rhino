@@ -1,5 +1,10 @@
 window.Clientes = {
-  busca: '',
+  // Filtros persistidos (sobrevivem reload)
+  _filterStore: (window.UIKit?.persistFilter?.('clientes', { busca: '', empresa: '' })) || null,
+  get busca()    { return this._filterStore?.get('busca')   ?? ''; },
+  set busca(v)   { this._filterStore?.set('busca', v); },
+  get empresa()  { return this._filterStore?.get('empresa') ?? ''; },
+  set empresa(v) { this._filterStore?.set('empresa', v); },
 
   async render() {
     const app = document.getElementById('app');
@@ -8,28 +13,50 @@ window.Clientes = {
     try {
       await Store.loadFor(['clientes']);
 
+      // Empresas distintas (para o filtro)
+      const empresasUnicas = [...new Set((Store.state.clientes || [])
+        .map(c => (c.empresa || '').trim())
+        .filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
       const termo = (this.busca || '').toLowerCase().trim();
-      const filtrados = termo
-        ? Store.state.clientes.filter(c =>
-            (c.nome || '').toLowerCase().includes(termo) ||
-            (c.empresa || '').toLowerCase().includes(termo) ||
-            (c.email || '').toLowerCase().includes(termo) ||
-            (c.telefone || '').includes(termo) ||
-            (c.cargo || '').toLowerCase().includes(termo) ||
-            (c.setor || '').toLowerCase().includes(termo))
-        : Store.state.clientes;
+      const filtroEmp = this.empresa || '';
+      const filtrados = (Store.state.clientes || []).filter(c => {
+        if (filtroEmp && (c.empresa || '') !== filtroEmp) return false;
+        if (termo) {
+          return (c.nome || '').toLowerCase().includes(termo) ||
+                 (c.empresa || '').toLowerCase().includes(termo) ||
+                 (c.email || '').toLowerCase().includes(termo) ||
+                 (c.telefone || '').includes(termo) ||
+                 (c.cargo || '').toLowerCase().includes(termo) ||
+                 (c.setor || '').toLowerCase().includes(termo);
+        }
+        return true;
+      });
+
+      const totalCli = Store.state.clientes.length;
+      const filtroAtivo = !!(termo || filtroEmp);
 
       const html = `
         <div class="page-header">
           <div>
             <h1 class="page-title">Clientes</h1>
-            <p class="page-subtitle">${Store.state.clientes.length} cliente${Store.state.clientes.length !== 1 ? 's' : ''} cadastrado${Store.state.clientes.length !== 1 ? 's' : ''}</p>
+            <p class="page-subtitle">
+              ${filtroAtivo
+                ? `${filtrados.length} de ${totalCli} cliente${totalCli !== 1 ? 's' : ''}`
+                : `${totalCli} cliente${totalCli !== 1 ? 's' : ''} cadastrado${totalCli !== 1 ? 's' : ''}`}
+            </p>
           </div>
           <button class="btn btn-primary btn-lg" id="btnNovoCliente">+ Novo Cliente</button>
         </div>
 
-        <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-lg);">
-          <input class="form-control" id="inputBusca" placeholder="🔍 Buscar por nome, empresa, email ou telefone..." value="${this.busca}">
+        <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-lg);display:grid;grid-template-columns:1fr 260px auto;gap:var(--sp-sm);align-items:center;">
+          <input class="form-control" id="inputBusca" placeholder="🔍 Buscar por nome, empresa, email ou telefone..." value="${escapeHtml(this.busca)}">
+          <select class="form-control" id="filtroEmpresa" title="Filtrar por empresa">
+            <option value="">Todas as empresas (${empresasUnicas.length})</option>
+            ${empresasUnicas.map(e => `<option value="${escapeHtml(e)}" ${filtroEmp === e ? 'selected' : ''}>${escapeHtml(e)}</option>`).join('')}
+          </select>
+          <button class="btn btn-secondary" id="btnLimparFiltrosCli" ${!filtroAtivo ? 'disabled style="opacity:.5;cursor:not-allowed;"' : ''}>Limpar</button>
         </div>
 
         <div class="card">
@@ -88,6 +115,14 @@ window.Clientes = {
         // Re-renderiza apenas a tabela (debounce simples: só a cada 250ms)
         clearTimeout(this._tBusca);
         this._tBusca = setTimeout(() => this.render(), 250);
+      });
+      document.getElementById('filtroEmpresa').addEventListener('change', e => {
+        this.empresa = e.target.value;
+        this.render();
+      });
+      document.getElementById('btnLimparFiltrosCli').addEventListener('click', () => {
+        this._filterStore?.clear();
+        this.render();
       });
 
       document.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); this.showModal(e.target.dataset.id); }));
