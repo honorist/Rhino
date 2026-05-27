@@ -2,7 +2,13 @@
 // Recrutamento — solicitações de contratação (US-05 a US-09)
 
 window.Recrutamento = {
-  _filtro: 'todas',
+  _store: (window.UIKit?.persistFilter?.('recrut', { filtro: 'todas', contrato: '', view: 'list' })) || null,
+  get _filtro()      { return this._store?.get('filtro')   ?? 'todas'; },
+  set _filtro(v)     { this._store?.set('filtro', v); },
+  get _contrato()    { return this._store?.get('contrato') ?? ''; },
+  set _contrato(v)   { this._store?.set('contrato', v); },
+  get _view()        { return this._store?.get('view')     ?? 'list'; },
+  set _view(v)       { this._store?.set('view', v); },
 
   async render() {
     const app = document.getElementById('app');
@@ -25,72 +31,120 @@ window.Recrutamento = {
 
   _renderLista(lista) {
     const app = document.getElementById('app');
+    // Filtro adicional por contrato (cliente-side)
+    if (this._contrato) lista = lista.filter(s => s.contractId === this._contrato);
     const total      = lista.length;
     const abertas    = lista.filter(s => s.status === 'aberta').length;
     const prenchidas = lista.filter(s => s.status === 'preenchida').length;
     const canceladas = lista.filter(s => s.status === 'cancelada').length;
+    const contratos  = (window.Store?.state?.contracts || []).filter(c => c.status === 'ativo' || c.status === 'pausado');
+    const filtroAtivo = this._filtro !== 'todas' || !!this._contrato;
 
-    const FILTROS = [
-      { v: 'todas',      l: 'Todas' },
-      { v: 'aberta',     l: 'Abertas' },
-      { v: 'preenchida', l: 'Preenchidas' },
-      { v: 'cancelada',  l: 'Canceladas' },
-    ];
+    const headerHtml = window.UIKit?.pageHeader ? window.UIKit.pageHeader({
+      title: 'Recrutamento',
+      subtitle: 'Solicitações de contratação dos encarregados',
+      actions: `
+        ${window.UIKit?.viewToggle ? window.UIKit.viewToggle({ current: this._view, options: [
+          { value:'list', label:'☰ Lista' },
+          { value:'kanban', label:'▦ Kanban' },
+        ]}) : ''}
+        <button class="btn btn-primary btn-lg" id="btnNovaSolicitacao">+ Nova solicitação</button>`,
+    }) : '';
+
+    const kpisHtml = window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
+      { label: 'Total',       value: total,      color: 'var(--color-primary)' },
+      { label: '🔵 Abertas',  value: abertas,    color: 'var(--color-info)' },
+      { label: '✅ Preenchidas', value: prenchidas, color: 'var(--color-success)' },
+      { label: '✗ Canceladas',  value: canceladas, color: 'var(--color-gray)' },
+    ]) : '';
+
+    const toolbarHtml = window.UIKit?.toolbar ? window.UIKit.toolbar({
+      selects: [
+        { id: 'recrutFiltroStatus', label: 'Status', options: [
+          { value: 'todas',     label: 'Todas',       selected: this._filtro === 'todas' },
+          { value: 'aberta',    label: '🔵 Abertas',    selected: this._filtro === 'aberta' },
+          { value: 'preenchida',label: '✅ Preenchidas', selected: this._filtro === 'preenchida' },
+          { value: 'cancelada', label: '✗ Canceladas',  selected: this._filtro === 'cancelada' },
+        ]},
+        { id: 'recrutFiltroContrato', label: 'Contrato', options: [
+          { value: '', label: `Todos (${contratos.length})`, selected: !this._contrato },
+          ...contratos.map(c => ({ value: c.id, label: c.name, selected: this._contrato === c.id })),
+        ]},
+      ],
+      showClear: filtroAtivo, clearId: 'btnLimparRecrut',
+    }) : '';
+
+    // Card do Kanban
+    const renderCard = (s) => {
+      const totalVagas  = (s.vagas || []).reduce((a, v) => a + v.qtdTotal, 0);
+      const preenchidas = (s.vagas || []).reduce((a, v) => a + v.qtdPreenchida, 0);
+      const cargos      = (s.vagas || []).map(v => `${v.qtdTotal}× ${escapeHtml(v.cargo)}`).join(', ');
+      const data        = new Date(s.createdAt).toLocaleDateString('pt-BR');
+      return `
+        <div class="ui-kanban__card btn-abrir-sol" data-id="${s.id}">
+          <div class="ui-kanban__card-title">${escapeHtml(s.solicitanteNome || '—')}</div>
+          <div class="ui-kanban__card-meta">
+            <span>📅 ${data}</span>
+            ${s.contractName ? `<span>🏗️ ${escapeHtml(s.contractName)}</span>` : ''}
+          </div>
+          <div style="font-size:13px;">
+            <strong>${preenchidas}/${totalVagas}</strong> vagas
+            ${cargos ? `<div style="color:var(--color-text-muted);margin-top:2px;">${cargos}</div>` : ''}
+          </div>
+        </div>`;
+    };
+
+    let contentHtml = '';
+    if (this._view === 'kanban') {
+      const COLS = [
+        { key:'aberta',     title:'Abertas',     icon:'🔵', variant:'info' },
+        { key:'preenchida', title:'Preenchidas', icon:'✅', variant:'success' },
+        { key:'cancelada',  title:'Canceladas',  icon:'✗',  variant:'gray' },
+      ];
+      const columns = COLS.map(c => ({ ...c, items: lista.filter(s => s.status === c.key), emptyMsg: 'Sem solicitações' }));
+      contentHtml = window.UIKit?.kanban ? window.UIKit.kanban({ columns, renderCard }) : '';
+    } else {
+      contentHtml = `
+        <div class="card" style="padding:0;">
+          ${lista.length === 0 ? `
+            <p class="text-muted" style="padding:var(--sp-xl);text-align:center;">
+              Nenhuma solicitação ${filtroAtivo ? 'com este filtro' : 'cadastrada'}.
+            </p>
+          ` : `
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Solicitante</th><th>Data</th><th>Obra / Contrato</th>
+                    <th>Vagas</th><th>Status</th><th></th>
+                  </tr>
+                </thead>
+                <tbody>${lista.map(s => this._tr(s)).join('')}</tbody>
+              </table>
+            </div>
+          `}
+        </div>`;
+    }
 
     app.innerHTML = `
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Recrutamento</h1>
-          <p class="page-subtitle">Solicitações de contratação dos encarregados</p>
-        </div>
-        <button class="btn btn-primary btn-lg" id="btnNovaSolicitacao">+ Nova solicitação</button>
-      </div>
-
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-md);margin-bottom:var(--sp-lg);">
-        ${this._stat('Total',       total,      'var(--color-primary)', '📋')}
-        ${this._stat('Abertas',     abertas,    '#D97706',              '🔵')}
-        ${this._stat('Preenchidas', prenchidas, '#16A34A',              '✅')}
-        ${this._stat('Canceladas',  canceladas, '#64748B',              '✗')}
-      </div>
-
-      <div class="card" style="padding:0;">
-        <div class="rh-status-chips" style="display:flex;gap:6px;flex-wrap:wrap;padding:12px 16px 0;">
-          ${FILTROS.map(f => `<button class="rh-chip${this._filtro === f.v ? ' is-active' : ''}" data-filtro="${f.v}">${f.l}</button>`).join('')}
-        </div>
-
-        ${lista.length === 0 ? `
-          <p class="text-muted" style="padding:var(--sp-xl);text-align:center;">
-            Nenhuma solicitação ${this._filtro !== 'todas' ? 'com este status' : 'cadastrada'}.
-          </p>
-        ` : `
-          <div class="table-wrap">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>Solicitante</th>
-                  <th>Data</th>
-                  <th>Obra / Contrato</th>
-                  <th>Vagas</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                ${lista.map(s => this._tr(s)).join('')}
-              </tbody>
-            </table>
-          </div>
-        `}
-      </div>
+      ${headerHtml}
+      ${kpisHtml}
+      ${toolbarHtml}
+      ${contentHtml}
     `;
 
     document.getElementById('btnNovaSolicitacao').addEventListener('click', () => this._showModalNova());
-
-    app.querySelectorAll('.rh-chip[data-filtro]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        this._filtro = btn.dataset.filtro;
-        this._load();
-      });
+    document.getElementById('recrutFiltroStatus')?.addEventListener('change', e => {
+      this._filtro = e.target.value; this._load();
+    });
+    document.getElementById('recrutFiltroContrato')?.addEventListener('change', e => {
+      this._contrato = e.target.value; this._load();
+    });
+    document.getElementById('btnLimparRecrut')?.addEventListener('click', () => {
+      this._filtro = 'todas'; this._contrato = ''; this._load();
+    });
+    document.querySelectorAll('.ui-view-toggle button[data-view]').forEach(b => {
+      b.addEventListener('click', () => { this._view = b.dataset.view; this._load(); });
     });
 
     app.querySelectorAll('.btn-abrir-sol').forEach(btn => {

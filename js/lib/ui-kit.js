@@ -461,13 +461,52 @@
   }
 
   // ─────────────────────────────────────────────
+  // KANBAN — colunas horizontais com cards (sem drag)
+  // columns: [{ key, title, color?, items: [...], variant? }]
+  // renderCard(item) → string HTML do card
+  // ─────────────────────────────────────────────
+  function kanban({ columns = [], renderCard, emptyMsg = 'Vazio' } = {}) {
+    if (!columns.length) return '';
+    return `
+      <div class="ui-kanban">
+        ${columns.map(col => `
+          <div class="ui-kanban__col ${col.variant ? `ui-kanban__col--${col.variant}` : ''}" data-col="${esc(col.key)}">
+            <div class="ui-kanban__col-header">
+              <div class="ui-kanban__col-title">${col.icon ? col.icon + ' ' : ''}${esc(col.title)}</div>
+              <span class="ui-kanban__col-count">${(col.items || []).length}</span>
+            </div>
+            <div class="ui-kanban__col-body">
+              ${(col.items || []).length === 0
+                ? `<div class="ui-kanban__empty">${esc(col.emptyMsg || emptyMsg)}</div>`
+                : col.items.map(it => typeof renderCard === 'function' ? renderCard(it, col) : '').join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>`;
+  }
+
+  // ─────────────────────────────────────────────
+  // VIEW TOGGLE — Lista / Kanban
+  // ─────────────────────────────────────────────
+  function viewToggle({ current = 'list', options = [{ value:'list', label:'☰ Lista' }, { value:'kanban', label:'▦ Kanban' }] } = {}) {
+    return `
+      <div class="ui-view-toggle" role="tablist">
+        ${options.map(o => `
+          <button data-view="${esc(o.value)}" class="${current === o.value ? 'is-active' : ''}" role="tab" aria-selected="${current === o.value ? 'true' : 'false'}">
+            ${esc(o.label)}
+          </button>
+        `).join('')}
+      </div>`;
+  }
+
+  // ─────────────────────────────────────────────
   // EXPORT
   // ─────────────────────────────────────────────
   window.UIKit = {
     statusPill, skeleton, empty, breadcrumb, smartBack, avatar,
     showUndoToast, toast, deleteWithUndo, persistFilter, sortable,
     density, autosave, esc,
-    // Padrão de cabeçalho B (KPIs + Toolbar)
-    pageHeader, kpiGrid, toolbar, chips,
+    // Padrão de cabeçalho B (KPIs + Toolbar) + visualizações
+    pageHeader, kpiGrid, toolbar, chips, kanban, viewToggle,
   };
 })();

@@ -3,8 +3,16 @@
 //   2) Equipe de compras avalia: lança cotações por item, escolhe a vencedora, define destino → ou cancela
 //   3) Gerente aprova/rejeita; aprovação gera entrada de estoque + Conta a Pagar
 window.SolicitacoesCompra = {
-  filtroStatus: '',
-  filtroContrato: '',
+  // Persistido: filtros + modo de visualização (lista/kanban)
+  _store: (window.UIKit?.persistFilter?.('sol-compra', {
+    filtroStatus: '', filtroContrato: '', view: 'list',
+  })) || null,
+  get filtroStatus()    { return this._store?.get('filtroStatus')   ?? ''; },
+  set filtroStatus(v)   { this._store?.set('filtroStatus', v); },
+  get filtroContrato()  { return this._store?.get('filtroContrato') ?? ''; },
+  set filtroContrato(v) { this._store?.set('filtroContrato', v); },
+  get view()            { return this._store?.get('view')           ?? 'list'; },
+  set view(v)           { this._store?.set('view', v); },
 
   _abas() { return window.perfil?.abas?.() || null; },
   _podeAvaliar() { const a = this._abas(); return !a || a.includes('solicitacoes-compra:avaliar'); },
@@ -72,127 +80,155 @@ window.SolicitacoesCompra = {
     const kpiRecebida = todas.filter(s => s.status === 'recebida').length;
     const kpiTotalAprov = todas.filter(s => s.status === 'pendente_aprovacao').reduce((sum, s) => sum + (parseFloat(s.valorTotal) || 0), 0);
 
-    const html = `
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Solicitações de Compra</h1>
-          <p class="page-subtitle">${todas.length} solicitação${todas.length !== 1 ? 'ões' : ''}${podeAvaliar ? ' · você pode avaliar/precificar' : podeAprovar ? ' · você pode aprovar' : ''}</p>
-        </div>
-        <button class="btn btn-primary btn-lg" id="btnNovaSolicitacao">+ Nova Solicitação</button>
-      </div>
+    const filtroAtivo = !!(this.filtroStatus || this.filtroContrato);
+    const headerHtml = window.UIKit?.pageHeader ? window.UIKit.pageHeader({
+      title: 'Solicitações de Compra',
+      subtitle: `${todas.length} solicitação${todas.length !== 1 ? 'ões' : ''}${podeAvaliar ? ' · você pode avaliar' : podeAprovar ? ' · você pode aprovar' : ''}`,
+      actions: `
+        ${window.UIKit?.viewToggle ? window.UIKit.viewToggle({ current: this.view, options: [
+          { value: 'list',   label: '☰ Lista' },
+          { value: 'kanban', label: '▦ Kanban' },
+        ]}) : ''}
+        <button class="btn btn-primary btn-lg" id="btnNovaSolicitacao">+ Nova Solicitação</button>`,
+    }) : '';
 
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:var(--sp-md);margin-bottom:var(--sp-lg);">
-        <div class="card" style="padding:var(--sp-md);">
-          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">🟡 Aguardando equipe de compras</div>
-          <div style="font-size:28px;font-weight:800;color:#92400E;">${kpiAvaliacao}</div>
-        </div>
-        <div class="card" style="padding:var(--sp-md);">
-          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">🟠 Aguardando gerente</div>
-          <div style="font-size:28px;font-weight:800;color:#9A3412;">${kpiAprovacao}</div>
-          <div style="font-size:13px;color:var(--color-text-muted);">${Store.formatBRL(kpiTotalAprov)} para aprovar</div>
-        </div>
-        <div class="card" style="padding:var(--sp-md);">
-          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">🔵 A comprar</div>
-          <div style="font-size:28px;font-weight:800;color:#1E40AF;">${kpiAprov}</div>
-        </div>
-        <div class="card" style="padding:var(--sp-md);">
-          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">📦 A receber</div>
-          <div style="font-size:28px;font-weight:800;color:#3730A3;">${kpiComprada}</div>
-        </div>
-        <div class="card" style="padding:var(--sp-md);">
-          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">✅ Recebidas</div>
-          <div style="font-size:28px;font-weight:800;color:#065F46;">${kpiRecebida}</div>
-        </div>
-      </div>
+    const kpisHtml = window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
+      { label: '🟡 Aguard. cotação',  value: kpiAvaliacao, color: 'var(--color-warning)' },
+      { label: '🟠 Aguard. gerente',  value: kpiAprovacao, color: 'var(--color-orange)',
+        hint: kpiTotalAprov > 0 ? `${Store.formatBRL(kpiTotalAprov)} p/ aprovar` : '' },
+      { label: '🔵 A comprar',        value: kpiAprov,     color: 'var(--color-info)' },
+      { label: '📦 A receber',        value: kpiComprada,  color: 'var(--color-violet)' },
+      { label: '✅ Recebidas',        value: kpiRecebida,  color: 'var(--color-success)' },
+    ]) : '';
 
-      <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-lg);">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-md);">
-          <div>
-            <label class="form-label">Etapa</label>
-            <select id="filtroStatus" class="form-control">
-              <option value="">Todas</option>
-              <option value="pendente_avaliacao" ${this.filtroStatus==='pendente_avaliacao'?'selected':''}>🟡 Aguardando equipe de compras</option>
-              <option value="pendente_aprovacao" ${this.filtroStatus==='pendente_aprovacao'?'selected':''}>🟠 Aguardando gerente</option>
-              <option value="aprovada"           ${this.filtroStatus==='aprovada'?'selected':''}>🔵 Aprovada (a comprar)</option>
-              <option value="comprada"           ${this.filtroStatus==='comprada'?'selected':''}>📦 Comprada (a receber)</option>
-              <option value="recebida"           ${this.filtroStatus==='recebida'?'selected':''}>✅ Recebida</option>
-              <option value="rejeitada"          ${this.filtroStatus==='rejeitada'?'selected':''}>❌ Rejeitada</option>
-              <option value="cancelada"          ${this.filtroStatus==='cancelada'?'selected':''}>🚫 Cancelada</option>
-            </select>
+    const toolbarHtml = window.UIKit?.toolbar ? window.UIKit.toolbar({
+      selects: [
+        { id: 'filtroStatus', label: 'Etapa', options: [
+          { value: '',                   label: 'Todas etapas',              selected: !this.filtroStatus },
+          { value: 'pendente_avaliacao', label: '🟡 Aguard. cotação',        selected: this.filtroStatus === 'pendente_avaliacao' },
+          { value: 'pendente_aprovacao', label: '🟠 Aguard. gerente',        selected: this.filtroStatus === 'pendente_aprovacao' },
+          { value: 'aprovada',           label: '🔵 Aprovada (a comprar)',   selected: this.filtroStatus === 'aprovada' },
+          { value: 'comprada',           label: '📦 Comprada (a receber)',   selected: this.filtroStatus === 'comprada' },
+          { value: 'recebida',           label: '✅ Recebida',               selected: this.filtroStatus === 'recebida' },
+          { value: 'rejeitada',          label: '❌ Rejeitada',              selected: this.filtroStatus === 'rejeitada' },
+          { value: 'cancelada',          label: '🚫 Cancelada',              selected: this.filtroStatus === 'cancelada' },
+        ]},
+        { id: 'filtroContrato', label: 'Contrato', options: [
+          { value: '', label: `Todos (${contratos.length})`, selected: !this.filtroContrato },
+          ...contratos.map(c => ({ value: c.id, label: c.name, selected: this.filtroContrato === c.id })),
+        ]},
+      ],
+      showClear: filtroAtivo, clearId: 'btnLimparSC',
+    }) : '';
+
+    // Card do Kanban (compartilhado pelos 2 modos)
+    const renderCard = (s) => {
+      const contrato = contratos.find(c => c.id === s.contractId);
+      const itens = Array.isArray(s.itens) ? s.itens : (s.itens ? JSON.parse(s.itens) : []);
+      const semValor = s.status === 'pendente_avaliacao';
+      const data = s.createdAt ? new Date(s.createdAt).toLocaleDateString('pt-BR') : '—';
+      const actions = [
+        `<a class="action-link btn-detalhe" data-id="${s.id}">Ver</a>`,
+        s.status === 'pendente_avaliacao' && podeAvaliar ? `<a class="action-link btn-avaliar" data-id="${s.id}" style="color:#9A3412;font-weight:700;">Avaliar</a>` : '',
+        s.status === 'pendente_aprovacao' && podeAprovar ? `<a class="action-link btn-aprovar" data-id="${s.id}" style="color:#065F46;font-weight:700;">Aprovar</a>` : '',
+        s.status === 'aprovada' && podeAvaliar ? `<a class="action-link btn-comprar" data-id="${s.id}" style="color:#1E40AF;font-weight:700;">Comprar</a>` : '',
+        s.status === 'comprada' && podeReceber ? `<a class="action-link btn-receber" data-id="${s.id}" style="color:#3730A3;font-weight:700;">Receber</a>` : '',
+      ].filter(Boolean).join('');
+      return `
+        <div class="ui-kanban__card" data-id="${s.id}">
+          <div class="ui-kanban__card-title">${escapeHtml(s.solicitanteNome || '—')}</div>
+          <div class="ui-kanban__card-meta">
+            <span>📅 ${data}</span>
+            <span>${contrato ? '🏗️ ' + escapeHtml(contrato.name) : '🏢 Sede'}</span>
+            <span>${itens.length} ${itens.length === 1 ? 'item' : 'itens'}</span>
+            ${semValor ? '' : `<span><strong>${Store.formatBRL(parseFloat(s.valorTotal) || 0)}</strong></span>`}
           </div>
-          <div>
-            <label class="form-label">Contrato (após avaliação)</label>
-            <select id="filtroContrato" class="form-control">
-              <option value="">Todos</option>
-              ${contratos.map(c => `<option value="${c.id}" ${this.filtroContrato===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
-            </select>
-          </div>
-        </div>
-      </div>
+          ${actions ? `<div class="ui-kanban__card-actions">${actions}</div>` : ''}
+        </div>`;
+    };
 
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Solicitante</th>
-                <th>Destino</th>
-                <th>Itens</th>
-                <th>Valor</th>
-                <th>Etapa</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${lista.length === 0 ? `
-                <tr><td colspan="7" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhuma solicitação encontrada</td></tr>
-              ` : lista.map(s => {
-                const contrato = contratos.find(c => c.id === s.contractId);
-                const itens = Array.isArray(s.itens) ? s.itens : (s.itens ? JSON.parse(s.itens) : []);
-                const semValor = s.status === 'pendente_avaliacao';
-                return `
+    // Conteúdo: Lista (tabela) ou Kanban (colunas)
+    let contentHtml = '';
+    if (this.view === 'kanban') {
+      const COLS = [
+        { key:'pendente_avaliacao', title:'Aguard. cotação', icon:'🟡', variant:'warning' },
+        { key:'pendente_aprovacao', title:'Aguard. gerente', icon:'🟠', variant:'orange'  },
+        { key:'aprovada',           title:'Aprovada',        icon:'🔵', variant:'info'    },
+        { key:'comprada',           title:'Comprada',        icon:'📦', variant:'violet'  },
+        { key:'recebida',           title:'Recebida',        icon:'✅', variant:'success' },
+      ];
+      const columns = COLS.map(c => ({
+        ...c,
+        items: lista.filter(s => s.status === c.key),
+        emptyMsg: 'Sem itens nesta etapa',
+      }));
+      contentHtml = window.UIKit?.kanban ? window.UIKit.kanban({ columns, renderCard }) : '';
+    } else {
+      contentHtml = `
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
                 <tr>
-                  <td>${s.createdAt ? new Date(s.createdAt).toLocaleDateString('pt-BR') : '—'}</td>
-                  <td>${escapeHtml(s.solicitanteNome || '—')}</td>
-                  <td>${contrato ? '🏗️ ' + escapeHtml(contrato.name) : '🏢 Sede'}</td>
-                  <td>${itens.length} ${itens.length === 1 ? 'item' : 'itens'}</td>
-                  <td>${semValor ? '<span class="text-muted">—</span>' : `<strong>${Store.formatBRL(parseFloat(s.valorTotal) || 0)}</strong>`}</td>
-                  <td>${this._badgeEtapa(s.status)}</td>
-                  <td>
-                    <div class="actions-cell" style="display:flex;gap:6px;flex-wrap:wrap;">
-                      <a class="action-link btn-detalhe" data-id="${s.id}">Ver</a>
-                      ${s.status === 'pendente_avaliacao' && podeAvaliar ? `
-                        <a class="action-link btn-avaliar"  data-id="${s.id}" style="color:#9A3412;font-weight:700;">Avaliar/Precificar</a>
-                        <a class="action-link btn-cancelar" data-id="${s.id}" style="color:#6B7280;">Cancelar</a>
-                      ` : ''}
-                      ${s.status === 'pendente_aprovacao' && podeAprovar ? `
-                        <a class="action-link btn-aprovar"  data-id="${s.id}" style="color:#065F46;font-weight:700;">Aprovar</a>
-                        <a class="action-link btn-rejeitar" data-id="${s.id}" style="color:#991B1B;">Rejeitar</a>
-                      ` : ''}
-                      ${s.status === 'aprovada' && podeAvaliar ? `
-                        <a class="action-link btn-comprar"  data-id="${s.id}" style="color:#1E40AF;font-weight:700;">Registrar compra</a>
-                      ` : ''}
-                      ${s.status === 'comprada' && podeReceber ? `
-                        <a class="action-link btn-receber"  data-id="${s.id}" style="color:#3730A3;font-weight:700;">Confirmar chegada</a>
-                      ` : ''}
-                      ${s.status === 'pendente_avaliacao' ? `<a class="action-link btn-editar"  data-id="${s.id}">Editar</a>` : ''}
-                      ${s.status === 'pendente_avaliacao' ? `<a class="action-link danger btn-excluir" data-id="${s.id}">Excluir</a>` : ''}
-                    </div>
-                  </td>
-                </tr>`;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                  <th>Data</th><th>Solicitante</th><th>Destino</th>
+                  <th>Itens</th><th>Valor</th><th>Etapa</th><th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${lista.length === 0 ? `<tr><td colspan="7" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhuma solicitação encontrada</td></tr>` : lista.map(s => {
+                  const contrato = contratos.find(c => c.id === s.contractId);
+                  const itens = Array.isArray(s.itens) ? s.itens : (s.itens ? JSON.parse(s.itens) : []);
+                  const semValor = s.status === 'pendente_avaliacao';
+                  return `
+                  <tr>
+                    <td>${s.createdAt ? new Date(s.createdAt).toLocaleDateString('pt-BR') : '—'}</td>
+                    <td>${escapeHtml(s.solicitanteNome || '—')}</td>
+                    <td>${contrato ? '🏗️ ' + escapeHtml(contrato.name) : '🏢 Sede'}</td>
+                    <td>${itens.length} ${itens.length === 1 ? 'item' : 'itens'}</td>
+                    <td>${semValor ? '<span class="text-muted">—</span>' : `<strong>${Store.formatBRL(parseFloat(s.valorTotal) || 0)}</strong>`}</td>
+                    <td>${this._badgeEtapa(s.status)}</td>
+                    <td>
+                      <div class="actions-cell" style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <a class="action-link btn-detalhe" data-id="${s.id}">Ver</a>
+                        ${s.status === 'pendente_avaliacao' && podeAvaliar ? `
+                          <a class="action-link btn-avaliar"  data-id="${s.id}" style="color:#9A3412;font-weight:700;">Avaliar/Precificar</a>
+                          <a class="action-link btn-cancelar" data-id="${s.id}" style="color:#6B7280;">Cancelar</a>` : ''}
+                        ${s.status === 'pendente_aprovacao' && podeAprovar ? `
+                          <a class="action-link btn-aprovar"  data-id="${s.id}" style="color:#065F46;font-weight:700;">Aprovar</a>
+                          <a class="action-link btn-rejeitar" data-id="${s.id}" style="color:#991B1B;">Rejeitar</a>` : ''}
+                        ${s.status === 'aprovada' && podeAvaliar ? `<a class="action-link btn-comprar"  data-id="${s.id}" style="color:#1E40AF;font-weight:700;">Registrar compra</a>` : ''}
+                        ${s.status === 'comprada' && podeReceber ? `<a class="action-link btn-receber"  data-id="${s.id}" style="color:#3730A3;font-weight:700;">Confirmar chegada</a>` : ''}
+                        ${s.status === 'pendente_avaliacao' ? `<a class="action-link btn-editar"  data-id="${s.id}">Editar</a>` : ''}
+                        ${s.status === 'pendente_avaliacao' ? `<a class="action-link danger btn-excluir" data-id="${s.id}">Excluir</a>` : ''}
+                      </div>
+                    </td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+    }
+
+    const html = `
+      ${headerHtml}
+      ${kpisHtml}
+      ${toolbarHtml}
+      ${contentHtml}
     `;
 
     app.innerHTML = html;
 
     document.getElementById('btnNovaSolicitacao').addEventListener('click', () => this.showModalCriar());
-    document.getElementById('filtroStatus').addEventListener('change', e => { this.filtroStatus = e.target.value; this._draw(); });
-    document.getElementById('filtroContrato').addEventListener('change', e => { this.filtroContrato = e.target.value; this._draw(); });
+    document.getElementById('filtroStatus')?.addEventListener('change', e => { this.filtroStatus = e.target.value; this._draw(); });
+    document.getElementById('filtroContrato')?.addEventListener('change', e => { this.filtroContrato = e.target.value; this._draw(); });
+    document.getElementById('btnLimparSC')?.addEventListener('click', () => {
+      this.filtroStatus = ''; this.filtroContrato = ''; this._draw();
+    });
+    // Toggle Lista / Kanban
+    document.querySelectorAll('.ui-view-toggle button[data-view]').forEach(b => {
+      b.addEventListener('click', () => { this.view = b.dataset.view; this._draw(); });
+    });
 
     document.querySelectorAll('.btn-detalhe').forEach(b => b.addEventListener('click', e => this.showDetalhe(e.target.dataset.id)));
     document.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', e => this.showModalCriar(e.target.dataset.id)));
