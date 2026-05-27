@@ -125,11 +125,21 @@ window.SolicitacoesCompra = {
       showClear: filtroAtivo, clearId: 'btnLimparSC',
     }) : '';
 
+    // Helper: equipe de compras já começou a cotar? (algum item com preço > 0)
+    const _temCotacao = (s) => {
+      const itens = Array.isArray(s.itens) ? s.itens : (s.itens ? JSON.parse(s.itens) : []);
+      return itens.some(it => {
+        const cot = Array.isArray(it.cotacoes) ? it.cotacoes : (it.cotacoes ? JSON.parse(it.cotacoes) : []);
+        return cot.some(c => parseFloat(c.precoUnit) > 0);
+      });
+    };
+
     // Card do Kanban (compartilhado pelos 2 modos)
     const renderCard = (s) => {
       const contrato = contratos.find(c => c.id === s.contractId);
       const itens = Array.isArray(s.itens) ? s.itens : (s.itens ? JSON.parse(s.itens) : []);
       const semValor = s.status === 'pendente_avaliacao';
+      const isNova   = s.status === 'pendente_avaliacao' && !_temCotacao(s);
       const data = s.createdAt ? new Date(s.createdAt).toLocaleDateString('pt-BR') : '—';
       const actions = [
         `<a class="action-link btn-detalhe" data-id="${s.id}">Ver</a>`,
@@ -140,7 +150,10 @@ window.SolicitacoesCompra = {
       ].filter(Boolean).join('');
       return `
         <div class="ui-kanban__card" data-id="${s.id}">
-          <div class="ui-kanban__card-title">${escapeHtml(s.solicitanteNome || '—')}</div>
+          <div class="ui-kanban__card-title">
+            ${escapeHtml(s.solicitanteNome || '—')}
+            ${isNova ? '<span style="background:var(--color-info-soft);color:var(--color-info);font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle;">🆕 NOVA</span>' : ''}
+          </div>
           <div class="ui-kanban__card-meta">
             <span>📅 ${data}</span>
             <span>${contrato ? '🏗️ ' + escapeHtml(contrato.name) : '🏢 Sede'}</span>
@@ -152,33 +165,24 @@ window.SolicitacoesCompra = {
     };
 
     // Conteúdo: Lista (tabela) ou Kanban (colunas)
+    // Fluxo real: Equipe de Compras (cotando) → Gerente (aprovando) → A Comprar → A Receber → Recebida
+    // Cards novos (sem cotação ainda) ficam na 1ª coluna com etiqueta 🆕 NOVA.
     let contentHtml = '';
     if (this.view === 'kanban') {
-      // Helper: equipe de compras já começou a cotar? (algum item com cotação > 0)
-      const equipeJaIniciou = (s) => {
-        const itens = Array.isArray(s.itens) ? s.itens : (s.itens ? JSON.parse(s.itens) : []);
-        return itens.some(it => (it.cotacoes || []).some(c => parseFloat(c.precoUnit) > 0));
-      };
-      const pendAval = lista.filter(s => s.status === 'pendente_avaliacao');
-
-      // Ordem do fluxo: Solicitação → Equipe de Compras → Gerente → Comprar → Receber → Recebida
       const columns = [
-        { key:'solicitacao',  title:'Solicitação',     icon:'📥', variant:'info',
-          items: pendAval.filter(s => !equipeJaIniciou(s)),
-          emptyMsg:'Nenhuma solicitação nova' },
-        { key:'compras',      title:'Equipe de Compras', icon:'💼', variant:'warning',
-          items: pendAval.filter(s => equipeJaIniciou(s)),
-          emptyMsg:'Nada em cotação' },
-        { key:'gerente',      title:'Gerente',          icon:'👔', variant:'orange',
+        { key:'pendente_avaliacao', title:'Equipe de Compras', icon:'💼', variant:'warning',
+          items: lista.filter(s => s.status === 'pendente_avaliacao'),
+          emptyMsg:'Nenhuma solicitação' },
+        { key:'pendente_aprovacao', title:'Gerente',           icon:'👔', variant:'orange',
           items: lista.filter(s => s.status === 'pendente_aprovacao'),
           emptyMsg:'Nada aguardando aprovação' },
-        { key:'aprovada',     title:'A Comprar',        icon:'🛒', variant:'blue',
+        { key:'aprovada',           title:'A Comprar',         icon:'🛒', variant:'blue',
           items: lista.filter(s => s.status === 'aprovada'),
           emptyMsg:'Nada aprovado pendente' },
-        { key:'comprada',     title:'A Receber',        icon:'📦', variant:'violet',
+        { key:'comprada',           title:'A Receber',         icon:'📦', variant:'violet',
           items: lista.filter(s => s.status === 'comprada'),
           emptyMsg:'Nada em trânsito' },
-        { key:'recebida',     title:'Recebida',         icon:'✅', variant:'success',
+        { key:'recebida',           title:'Recebida',          icon:'✅', variant:'success',
           items: lista.filter(s => s.status === 'recebida'),
           emptyMsg:'Nenhuma recebida ainda' },
       ];
