@@ -22,7 +22,9 @@ window.Recrutamento = {
   },
 
   async _load() {
-    const qs = this._filtro !== 'todas' ? `?status=${this._filtro}` : '';
+    // No modo Kanban, sempre busca TUDO (as colunas fazem o split por status).
+    // No modo Lista, respeita o filtro selecionado.
+    const qs = (this._view === 'kanban' || this._filtro === 'todas') ? '' : `?status=${this._filtro}`;
     const resp = await fetch(`/api/recrutamento/solicitacoes${qs}`, { credentials: 'same-origin' });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();

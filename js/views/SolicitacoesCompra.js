@@ -70,7 +70,11 @@ window.SolicitacoesCompra = {
     const podeReceber = this._podeReceber();
 
     let lista = todas;
-    if (this.filtroStatus) lista = lista.filter(s => s.status === this.filtroStatus);
+    // No modo Kanban, ignora o filtro de status (as colunas já fazem esse split).
+    // No modo Lista, aplica filtroStatus + filtroContrato normalmente.
+    if (this.view !== 'kanban' && this.filtroStatus) {
+      lista = lista.filter(s => s.status === this.filtroStatus);
+    }
     if (this.filtroContrato) lista = lista.filter(s => s.contractId === this.filtroContrato);
 
     const kpiAvaliacao = todas.filter(s => s.status === 'pendente_avaliacao').length;
