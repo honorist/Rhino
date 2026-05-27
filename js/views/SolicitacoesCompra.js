@@ -154,18 +154,34 @@ window.SolicitacoesCompra = {
     // Conteúdo: Lista (tabela) ou Kanban (colunas)
     let contentHtml = '';
     if (this.view === 'kanban') {
-      const COLS = [
-        { key:'pendente_avaliacao', title:'Aguard. cotação', icon:'🟡', variant:'warning' },
-        { key:'pendente_aprovacao', title:'Aguard. gerente', icon:'🟠', variant:'orange'  },
-        { key:'aprovada',           title:'Aprovada',        icon:'🔵', variant:'info'    },
-        { key:'comprada',           title:'Comprada',        icon:'📦', variant:'violet'  },
-        { key:'recebida',           title:'Recebida',        icon:'✅', variant:'success' },
+      // Helper: equipe de compras já começou a cotar? (algum item com cotação > 0)
+      const equipeJaIniciou = (s) => {
+        const itens = Array.isArray(s.itens) ? s.itens : (s.itens ? JSON.parse(s.itens) : []);
+        return itens.some(it => (it.cotacoes || []).some(c => parseFloat(c.precoUnit) > 0));
+      };
+      const pendAval = lista.filter(s => s.status === 'pendente_avaliacao');
+
+      // Ordem do fluxo: Solicitação → Equipe de Compras → Gerente → Comprar → Receber → Recebida
+      const columns = [
+        { key:'solicitacao',  title:'Solicitação',     icon:'📥', variant:'info',
+          items: pendAval.filter(s => !equipeJaIniciou(s)),
+          emptyMsg:'Nenhuma solicitação nova' },
+        { key:'compras',      title:'Equipe de Compras', icon:'💼', variant:'warning',
+          items: pendAval.filter(s => equipeJaIniciou(s)),
+          emptyMsg:'Nada em cotação' },
+        { key:'gerente',      title:'Gerente',          icon:'👔', variant:'orange',
+          items: lista.filter(s => s.status === 'pendente_aprovacao'),
+          emptyMsg:'Nada aguardando aprovação' },
+        { key:'aprovada',     title:'A Comprar',        icon:'🛒', variant:'blue',
+          items: lista.filter(s => s.status === 'aprovada'),
+          emptyMsg:'Nada aprovado pendente' },
+        { key:'comprada',     title:'A Receber',        icon:'📦', variant:'violet',
+          items: lista.filter(s => s.status === 'comprada'),
+          emptyMsg:'Nada em trânsito' },
+        { key:'recebida',     title:'Recebida',         icon:'✅', variant:'success',
+          items: lista.filter(s => s.status === 'recebida'),
+          emptyMsg:'Nenhuma recebida ainda' },
       ];
-      const columns = COLS.map(c => ({
-        ...c,
-        items: lista.filter(s => s.status === c.key),
-        emptyMsg: 'Sem itens nesta etapa',
-      }));
       contentHtml = window.UIKit?.kanban ? window.UIKit.kanban({ columns, renderCard }) : '';
     } else {
       contentHtml = `
