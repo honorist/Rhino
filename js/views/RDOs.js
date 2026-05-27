@@ -13,9 +13,14 @@ const RDOs = {
       const r = await fetch('/api/rdos');
       if (!r.ok) throw new Error(await r.text());
       this._cache = await r.json();
-      // Pré-carrega os contratos (com RDOs aninhados) no Store — assim abrir
-      // um RDO da lista é instantâneo, sem baixar /api/contracts a cada clique.
-      await Store.loadOnly('contracts', { force: true }).catch(() => {});
+      // Cache de contratos respeita TTL (60s) — sem force: true, evita re-download
+      // pesado de todos os contratos com RDOs aninhados a cada visita à tela.
+      Store.loadOnly('contracts').catch(() => {});
+      // Pré-aquece o bundle do ContratoDetail em background — assim o 1º clique
+      // num RDO já encontra o módulo carregado e abre instantâneo.
+      if (typeof _loadLazyForPattern === 'function') {
+        _loadLazyForPattern('#/contratos/:id').catch(() => {});
+      }
     } catch (e) {
       root.innerHTML = `<div style="padding:var(--sp-xl);color:#c33;">Erro ao carregar: ${escapeHtml(e.message)}</div>`;
       return;

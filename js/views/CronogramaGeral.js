@@ -1,6 +1,8 @@
 window.CronogramaGeral = {
   _zoom: 'all',
   _filter: '',
+  _anchor: null,    // data de referência da janela (null = usar hoje / fit)
+  _allShift: 0,     // deslocamento em ms aplicado ao modo 'all'
 
   async render() {
     const app = document.getElementById('app');
@@ -76,6 +78,8 @@ window.CronogramaGeral = {
       `<button class="btn btn-sm ${this._zoom === z ? 'btn-primary' : 'btn-outline'}" data-zoom="${z}">${l}</button>`
     ).join('');
 
+    const periodLabel = this._periodLabel(rangeStart, rangeEnd);
+
     const statusOptions = Object.entries(statusLabels).map(([v, l]) =>
       `<option value="${v}" ${this._filter === v ? 'selected' : ''}>${l}</option>`
     ).join('');
@@ -134,6 +138,14 @@ window.CronogramaGeral = {
             <span style="font-size:12px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.5px;">Zoom</span>
             <div style="display:flex;gap:4px;" id="cg-zoom-btns">${zoomBtns}</div>
           </div>
+
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button class="btn btn-sm btn-outline" id="cg-prev" title="Período anterior" style="padding:4px 10px;font-size:14px;">◀</button>
+            <button class="btn btn-sm btn-outline" id="cg-today" title="Voltar para hoje" style="padding:4px 10px;font-size:12px;">Hoje</button>
+            <button class="btn btn-sm btn-outline" id="cg-next" title="Próximo período" style="padding:4px 10px;font-size:14px;">▶</button>
+            <span id="cg-period-label" style="font-size:13px;font-weight:700;color:var(--color-text);padding:4px 10px;background:var(--color-surface-2);border-radius:4px;min-width:120px;text-align:center;">${periodLabel}</span>
+          </div>
+
           <select class="form-control" id="cg-filter-status" style="height:32px;padding:2px 10px;font-size:13px;max-width:200px;">
             <option value="">Todos os status</option>
             ${statusOptions}
@@ -171,6 +183,16 @@ window.CronogramaGeral = {
       const btn = e.target.closest('[data-zoom]');
       if (!btn) return;
       this._zoom = btn.dataset.zoom;
+      this._anchor = null;
+      this._allShift = 0;
+      this._draw();
+    });
+
+    document.getElementById('cg-prev').addEventListener('click', () => { this._shift(-1); this._draw(); });
+    document.getElementById('cg-next').addEventListener('click', () => { this._shift( 1); this._draw(); });
+    document.getElementById('cg-today').addEventListener('click', () => {
+      this._anchor = null;
+      this._allShift = 0;
       this._draw();
     });
 
@@ -187,48 +209,88 @@ window.CronogramaGeral = {
   },
 
   _getRange(contracts) {
-    const today = new Date();
+    const ref = this._anchor ? new Date(this._anchor) : new Date();
 
     if (this._zoom === 'month') {
       return {
-        rangeStart: new Date(today.getFullYear(), today.getMonth(), 1),
-        rangeEnd:   new Date(today.getFullYear(), today.getMonth() + 1, 0),
+        rangeStart: new Date(ref.getFullYear(), ref.getMonth(), 1),
+        rangeEnd:   new Date(ref.getFullYear(), ref.getMonth() + 1, 0),
       };
     }
     if (this._zoom === 'quarter') {
-      const q = Math.floor(today.getMonth() / 3);
+      const q = Math.floor(ref.getMonth() / 3);
       return {
-        rangeStart: new Date(today.getFullYear(), q * 3, 1),
-        rangeEnd:   new Date(today.getFullYear(), q * 3 + 3, 0),
+        rangeStart: new Date(ref.getFullYear(), q * 3, 1),
+        rangeEnd:   new Date(ref.getFullYear(), q * 3 + 3, 0),
       };
     }
     if (this._zoom === 'year') {
       return {
-        rangeStart: new Date(today.getFullYear(), 0, 1),
-        rangeEnd:   new Date(today.getFullYear(), 11, 31),
+        rangeStart: new Date(ref.getFullYear(), 0, 1),
+        rangeEnd:   new Date(ref.getFullYear(), 11, 31),
       };
     }
 
-    // 'all' — fit to contract dates
+    // 'all' — fit to contract dates (com pan via _allShift)
     const dates = contracts.flatMap(c => [
       c.startDate ? new Date(c.startDate) : null,
       c.endDate   ? new Date(c.endDate)   : null,
     ]).filter(Boolean);
 
+    let rangeStart, rangeEnd;
     if (dates.length === 0) {
-      return {
-        rangeStart: new Date(today.getFullYear() - 1, 0, 1),
-        rangeEnd:   new Date(today.getFullYear() + 1, 11, 31),
-      };
+      const today = new Date();
+      rangeStart = new Date(today.getFullYear() - 1, 0, 1);
+      rangeEnd   = new Date(today.getFullYear() + 1, 11, 31);
+    } else {
+      const minD = new Date(Math.min(...dates));
+      const maxD = new Date(Math.max(...dates));
+      const pad  = Math.max((maxD - minD) * 0.04, 30 * 24 * 3600 * 1000);
+      rangeStart = new Date(minD.getTime() - pad);
+      rangeEnd   = new Date(maxD.getTime() + pad);
     }
 
-    const minD = new Date(Math.min(...dates));
-    const maxD = new Date(Math.max(...dates));
-    const pad  = Math.max((maxD - minD) * 0.04, 30 * 24 * 3600 * 1000);
-    return {
-      rangeStart: new Date(minD.getTime() - pad),
-      rangeEnd:   new Date(maxD.getTime() + pad),
-    };
+    if (this._allShift) {
+      rangeStart = new Date(rangeStart.getTime() + this._allShift);
+      rangeEnd   = new Date(rangeEnd.getTime()   + this._allShift);
+    }
+    return { rangeStart, rangeEnd };
+  },
+
+  _shift(dir) {
+    if (this._zoom === 'all') {
+      // pan 'all' por ~25% da janela atual
+      const contracts = (Store.state.contracts || []).filter(c =>
+        !this._filter || c.status === this._filter
+      );
+      const { rangeStart, rangeEnd } = this._getRange(contracts);
+      const span = rangeEnd - rangeStart;
+      this._allShift = (this._allShift || 0) + dir * span * 0.25;
+      return;
+    }
+    const ref = this._anchor ? new Date(this._anchor) : new Date();
+    if (this._zoom === 'month')   ref.setMonth(ref.getMonth() + dir);
+    if (this._zoom === 'quarter') ref.setMonth(ref.getMonth() + dir * 3);
+    if (this._zoom === 'year')    ref.setFullYear(ref.getFullYear() + dir);
+    this._anchor = ref;
+  },
+
+  _periodLabel(rangeStart, rangeEnd) {
+    const mNames = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    if (this._zoom === 'month') {
+      return `${mNames[rangeStart.getMonth()]} ${rangeStart.getFullYear()}`;
+    }
+    if (this._zoom === 'quarter') {
+      const q = Math.floor(rangeStart.getMonth() / 3) + 1;
+      return `T${q} ${rangeStart.getFullYear()}`;
+    }
+    if (this._zoom === 'year') {
+      return String(rangeStart.getFullYear());
+    }
+    // 'all'
+    const sY = rangeStart.getFullYear();
+    const eY = rangeEnd.getFullYear();
+    return sY === eY ? `${sY}` : `${sY} – ${eY}`;
   },
 
   _buildTicks(rangeStart, rangeEnd, totalMs) {

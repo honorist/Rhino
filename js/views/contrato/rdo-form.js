@@ -113,12 +113,17 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Período de Trabalho</label>
-          <select class="form-control" data-rdo-field="periodoTrabalho">
-            <option ${d.periodoTrabalho === '7:00 às 15:00' ? 'selected' : ''}>7:00 às 15:00</option>
-            <option ${d.periodoTrabalho === '7:00 às 17:00' ? 'selected' : ''}>7:00 às 17:00</option>
-            <option ${d.periodoTrabalho === '23:00 às 7:00' ? 'selected' : ''}>23:00 às 7:00</option>
-            <option ${d.periodoTrabalho === 'Outro' ? 'selected' : ''}>Outro</option>
-          </select>
+          <input class="form-control" data-rdo-field="periodoTrabalho" list="rdoPeriodosPreset" value="${escapeHtml(d.periodoTrabalho || '')}" placeholder="Ex: 8:00 às 17:30">
+          <datalist id="rdoPeriodosPreset">
+            <option value="7:00 às 15:00"></option>
+            <option value="7:00 às 17:00"></option>
+            <option value="8:00 às 17:00"></option>
+            <option value="8:00 às 18:00"></option>
+            <option value="23:00 às 7:00"></option>
+            <option value="Meio período (manhã)"></option>
+            <option value="Meio período (tarde)"></option>
+          </datalist>
+          <span style="font-size:11px;color:var(--color-text-muted);">Selecione um padrão ou digite o horário que quiser</span>
         </div>
         <div class="form-group" style="display:flex;align-items:center;gap:8px;margin-top:28px;">
           <input type="checkbox" id="rdoHoraExtra" data-rdo-field="horaExtra" ${d.horaExtra ? 'checked' : ''} style="width:18px;height:18px;">

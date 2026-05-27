@@ -400,7 +400,6 @@
         atividadesTxt ? `\n✅ *O que foi feito hoje:*\n${atividadesTxt}` : '',
         `\n🦺 Segurança: ${acidenteLbl}`,
         rdo.fiscalizacaoComentarios ? `📝 Obs: ${rdo.fiscalizacaoComentarios}` : '',
-        fotos.length ? `📷 ${fotos.length} foto${fotos.length !== 1 ? 's' : ''}` : '',
       ].filter(Boolean).join('\n');
 
       // Janela com o texto pronto — o encarregado copia e cola no grupo da obra.

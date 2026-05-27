@@ -175,37 +175,51 @@ window.Estoque = {
 
       <div class="card" style="padding:0;overflow:hidden;">
         <div style="overflow-x:auto;">
-          <table class="table" style="margin:0;min-width:800px;">
+          <table class="table" style="margin:0;">
             <thead>
               <tr style="background:var(--color-surface-2);">
-                <th style="position:sticky;left:0;background:var(--color-surface-2);z-index:1;min-width:240px;">Item</th>
+                <th style="min-width:260px;">Item</th>
                 <th>Categoria</th>
-                <th style="text-align:center;background:rgba(59,130,246,.1);">🏠 Central</th>
-                ${obras.map(o => `<th style="text-align:center;background:rgba(245,158,11,.08);" title="${escapeHtml(o.endereco || '')}">🏗️ ${escapeHtml(o.contractName || o.nome)}</th>`).join('')}
+                <th style="text-align:center;background:rgba(59,130,246,.08);" title="Saldo no almoxarifado Central">🏠 Central</th>
+                <th style="text-align:center;background:rgba(245,158,11,.08);" title="Soma do saldo distribuído nas obras">🏗️ Σ Obras</th>
+                <th style="text-align:center;" title="Em quantas obras o item tem saldo">Obras c/ item</th>
                 <th style="text-align:center;background:var(--color-surface-2);">Σ Total</th>
                 <th style="text-align:right;">Custo médio</th>
                 <th style="text-align:center;width:280px;">Ações</th>
               </tr>
             </thead>
             <tbody>
-              ${filtrados.length === 0 ? `<tr><td colspan="${5 + obras.length + 2}" style="text-align:center;color:var(--color-text-muted);padding:var(--sp-md);">Nenhum item no filtro</td></tr>` : ''}
+              ${filtrados.length === 0 ? `<tr><td colspan="8" style="text-align:center;color:var(--color-text-muted);padding:var(--sp-md);">Nenhum item no filtro</td></tr>` : ''}
               ${filtrados.map(item => {
                 const total = this._saldoTotal(item);
                 const min = parseFloat(item.estoqueMinimo) || 0;
                 const abaixo = total < min && min > 0;
                 const corLinha = abaixo ? 'rgba(220,38,38,.05)' : 'transparent';
                 const saldoCentral = central ? this._saldoEm(item, central.id) : 0;
+                const saldoObras = obras.reduce((s, o) => s + this._saldoEm(item, o.id), 0);
+                const nObras = obras.filter(o => this._saldoEm(item, o.id) > 0).length;
 
                 return `
                 <tr style="background:${corLinha};">
-                  <td style="position:sticky;left:0;background:${abaixo ? 'rgba(220,38,38,.05)' : 'var(--color-surface)'};z-index:1;">
-                    <strong>${escapeHtml(item.descricao || '')}</strong>
+                  <td>
+                    <a href="#" class="link-item-est" data-id="${item.id}" style="color:var(--color-text);text-decoration:none;font-weight:600;cursor:pointer;" title="Ver distribuição por obra">
+                      ${escapeHtml(item.descricao || '')}
+                    </a>
                     ${item.codigo ? `<div class="text-muted font-sm">cod. ${escapeHtml(item.codigo)} · ${escapeHtml(item.unidade || '')}</div>` : `<div class="text-muted font-sm">${escapeHtml(item.unidade || '')}</div>`}
                     ${abaixo ? `<div style="font-size:11px;color:var(--color-danger);">⚠ abaixo do mínimo (${min})</div>` : ''}
                   </td>
                   <td><span class="badge" style="background:var(--color-surface-2);font-size:11px;">${escapeHtml(item.categoria || '—')}</span></td>
                   <td style="text-align:center;font-weight:700;background:rgba(59,130,246,.04);">${saldoCentral.toFixed(2)}</td>
-                  ${obras.map(o => `<td style="text-align:center;background:rgba(245,158,11,.03);">${this._saldoEm(item, o.id).toFixed(2)}</td>`).join('')}
+                  <td style="text-align:center;font-weight:700;background:rgba(245,158,11,.04);">
+                    ${nObras > 0
+                      ? `<a href="#" class="link-item-est" data-id="${item.id}" style="color:var(--color-primary);text-decoration:none;" title="Ver lista de obras com este item">${saldoObras.toFixed(2)}</a>`
+                      : saldoObras.toFixed(2)}
+                  </td>
+                  <td style="text-align:center;">
+                    ${nObras > 0
+                      ? `<a href="#" class="link-item-est" data-id="${item.id}" style="color:var(--color-primary);text-decoration:none;font-weight:600;" title="Ver lista de obras com este item">${nObras}</a>`
+                      : '<span class="text-muted">0</span>'}
+                  </td>
                   <td style="text-align:center;font-weight:700;background:var(--color-surface-2);">${total.toFixed(2)}</td>
                   <td style="text-align:right;">${Store.formatBRL(parseFloat(item.custoMedio) || 0)}</td>
                   <td style="text-align:center;white-space:nowrap;">
@@ -219,6 +233,10 @@ window.Estoque = {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div class="text-muted font-sm" style="margin-top:6px;font-size:12px;">
+        💡 Clique no <strong>nome do item</strong> (ou nos números coloridos) para ver a lista de obras onde ele está alocado.
       </div>
 
       <div class="text-muted font-sm" style="margin-top:var(--sp-md);padding:var(--sp-md);background:var(--color-surface-2);border-radius:6px;">
@@ -260,6 +278,93 @@ window.Estoque = {
     document.querySelectorAll('.btn-mais').forEach(b => b.addEventListener('click', (e) => {
       const item = this._itens.find(x => x.id === b.dataset.id);
       if (item) this._modalMaisOpcoes(item, e);
+    }));
+    document.querySelectorAll('.link-item-est').forEach(a => a.addEventListener('click', (e) => {
+      e.preventDefault();
+      const item = this._itens.find(x => x.id === a.dataset.id);
+      if (item) this._modalDistribuicao(item);
+    }));
+  },
+
+  // Modal: distribuição do item — lista por almoxarifado (Central + cada obra com saldo)
+  _modalDistribuicao(item) {
+    const central = this._almoxs.find(a => !a.contractId);
+    const obras = this._almoxsObras();
+    const saldoCentral = central ? this._saldoEm(item, central.id) : 0;
+    const linhasObras = obras
+      .map(o => ({ almox: o, saldo: this._saldoEm(item, o.id) }))
+      .filter(r => r.saldo > 0)
+      .sort((a, b) => b.saldo - a.saldo);
+
+    const total = saldoCentral + linhasObras.reduce((s, r) => s + r.saldo, 0);
+    const custo = parseFloat(item.custoMedio) || 0;
+    const un = escapeHtml(item.unidade || '');
+
+    const linhaTpl = (titulo, subtitulo, saldo, contractId, isCentral) => {
+      const valor = saldo * custo;
+      const pct = total > 0 ? (saldo / total * 100) : 0;
+      const corBarra = isCentral ? '#3b82f6' : '#f59e0b';
+      return `
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid var(--color-border);">
+          <div style="flex:0 0 28px;font-size:22px;text-align:center;">${isCentral ? '🏠' : '🏗️'}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;${contractId ? 'cursor:pointer;color:var(--color-primary);' : ''}" ${contractId ? `data-goto="${contractId}"` : ''}>
+              ${escapeHtml(titulo)}
+            </div>
+            ${subtitulo ? `<div class="text-muted font-sm" style="font-size:11px;">${escapeHtml(subtitulo)}</div>` : ''}
+            <div style="margin-top:6px;height:6px;background:var(--color-surface-2);border-radius:3px;overflow:hidden;">
+              <div style="height:100%;width:${pct.toFixed(1)}%;background:${corBarra};"></div>
+            </div>
+          </div>
+          <div style="flex:0 0 auto;text-align:right;min-width:120px;">
+            <div style="font-size:16px;font-weight:800;">${saldo.toFixed(2)} <span style="font-size:11px;font-weight:600;color:var(--color-text-muted);">${un}</span></div>
+            <div class="text-muted font-sm" style="font-size:11px;">${Store.formatBRL(valor)} · ${pct.toFixed(1)}%</div>
+          </div>
+        </div>`;
+    };
+
+    const linhasHtml = [
+      saldoCentral > 0 ? linhaTpl('Central', 'Almoxarifado central', saldoCentral, null, true) : '',
+      ...linhasObras.map(r => linhaTpl(r.almox.contractName || r.almox.nome, r.almox.endereco || '', r.saldo, r.almox.contractId, false)),
+    ].join('');
+
+    const html = `
+      <div class="modal-overlay" id="modalDistrib">
+        <div class="modal" style="width:620px;max-height:90vh;display:flex;flex-direction:column;">
+          <div class="modal-header" style="flex-shrink:0;">
+            <h2 class="modal-title">📍 Onde está este item</h2>
+            <button class="modal-close">✕</button>
+          </div>
+          <div class="modal-content" style="overflow-y:auto;flex:1;padding:0;">
+            <div style="padding:var(--sp-md);border-bottom:1px solid var(--color-border);background:linear-gradient(135deg,rgba(59,130,246,.06),rgba(139,92,246,.06));">
+              <div style="font-size:16px;font-weight:700;">${escapeHtml(item.descricao || '')}</div>
+              <div class="text-muted font-sm">${item.codigo ? `cod. ${escapeHtml(item.codigo)} · ` : ''}${un} · ${escapeHtml(item.categoria || '—')}</div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;">
+                <div><div class="text-muted font-sm">Saldo total</div><div style="font-size:18px;font-weight:800;">${total.toFixed(2)} ${un}</div></div>
+                <div><div class="text-muted font-sm">Custo médio</div><div style="font-size:16px;font-weight:700;">${Store.formatBRL(custo)}</div></div>
+                <div><div class="text-muted font-sm">Valor total</div><div style="font-size:16px;font-weight:700;">${Store.formatBRL(total * custo)}</div></div>
+              </div>
+            </div>
+            ${total === 0
+              ? `<div style="padding:32px;text-align:center;color:var(--color-text-muted);">Item sem saldo em nenhum almoxarifado.</div>`
+              : linhasHtml}
+          </div>
+          <div class="modal-footer" style="flex-shrink:0;">
+            <button class="btn btn-secondary" id="btnFecharDistrib">Fechar</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', html);
+    const overlay = document.getElementById('modalDistrib');
+    const close = () => overlay.remove();
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+    document.getElementById('btnFecharDistrib').addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    overlay.querySelectorAll('[data-goto]').forEach(el => el.addEventListener('click', () => {
+      const id = el.dataset.goto;
+      close();
+      location.hash = '#/contratos/' + id;
     }));
   },
 
