@@ -289,15 +289,15 @@ window.Documentos = {
 
     const html = `
       <div class="modal-overlay" id="modalDocsOverlay">
-        <div class="modal" style="width:780px;max-height:90vh;overflow-y:auto;">
-          <div class="modal-header">
+        <div class="modal" style="width:min(1200px,96vw);max-height:92vh;display:flex;flex-direction:column;">
+          <div class="modal-header" style="flex-shrink:0;">
             <div>
               <h2 class="modal-title">Documentos — ${escapeHtml(r.nome)}</h2>
               <p style="font-size:15px;color:var(--color-text-muted);margin:0;">${r.profissao || ''}</p>
             </div>
             <button class="modal-close">✕</button>
           </div>
-          <div class="modal-content">
+          <div class="modal-content" style="overflow-y:auto;flex:1;">
             <div style="margin-bottom:var(--sp-md);display:flex;justify-content:flex-end;">
               <button class="btn btn-primary" id="btnAddDoc">+ Adicionar Documento</button>
             </div>
