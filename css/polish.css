@@ -869,10 +869,11 @@ label.required::after {
 ═══════════════════════════════════════════════ */
 .rh-back-top {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 40px;
-  height: 40px;
+  /* Empilhado ACIMA do botão de tema (.rh-theme-toggle = 44px @ bottom:16px) */
+  bottom: 72px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: var(--color-primary);
   color: #fff;
@@ -881,9 +882,11 @@ label.required::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
   box-shadow: var(--shadow-md);
-  z-index: 500;
+  z-index: 9999;
   opacity: 0;
   transform: translateY(12px);
   transition: opacity var(--motion-base) var(--easing), transform var(--motion-base) var(--easing);
@@ -894,8 +897,9 @@ label.required::after {
   transform: translateY(0);
   pointer-events: auto;
 }
-.rh-back-top:hover { background: var(--color-primary-dark, var(--color-primary)); }
-@media (max-width: 768px) { .rh-back-top { bottom: 88px; right: 12px; } }
+.rh-back-top:hover { background: var(--color-primary-dark, var(--color-primary)); transform: translateY(-2px); }
+/* Mobile: theme toggle vai pra bottom:12px (44px alto) + 12px gap = 68px */
+@media (max-width: 768px) { .rh-back-top { bottom: 68px; right: 12px; } }
 
 /* ═══════════════════════════════════════════════
    17. ALTO CONTRASTE

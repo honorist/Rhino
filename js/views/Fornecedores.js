@@ -74,9 +74,14 @@ window.Fornecedores = {
                 ` : filtrados.map(f => `
                   <tr>
                     <td>
-                      <strong>${escapeHtml(f.nome) || '—'}</strong>
-                      ${f.telefone ? `<div style="font-size:15px;color:var(--color-text-muted);">📞 ${escapeHtml(f.telefone)}</div>` : ''}
-                      ${f.endereco ? `<div style="font-size:15px;color:var(--color-text-muted);">📍 ${escapeHtml(f.endereco.slice(0, 50))}${f.endereco.length > 50 ? '...' : ''}</div>` : ''}
+                      <div style="display:flex;align-items:center;gap:10px;">
+                        ${window.UIKit?.avatar ? window.UIKit.avatar(f.nome || '?') : ''}
+                        <div style="min-width:0;">
+                          <strong>${escapeHtml(f.nome) || '—'}</strong>
+                          ${f.telefone ? `<div style="font-size:15px;color:var(--color-text-muted);">📞 ${escapeHtml(f.telefone)}</div>` : ''}
+                          ${f.endereco ? `<div style="font-size:15px;color:var(--color-text-muted);">📍 ${escapeHtml(f.endereco.slice(0, 50))}${f.endereco.length > 50 ? '...' : ''}</div>` : ''}
+                        </div>
+                      </div>
                     </td>
                     <td><code style="font-size:15px;">${escapeHtml(f.cnpj) || '—'}</code></td>
                     <td>

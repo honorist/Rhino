@@ -180,7 +180,12 @@ window.Frota = {
             </thead>
             <tbody>
               ${lista.length === 0 ? `
-                <tr><td colspan="7" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum veículo cadastrado</td></tr>
+                <tr><td colspan="7" style="padding:0;">${window.UIKit?.empty ? window.UIKit.empty({
+                  icon: '🚛',
+                  title: 'Nenhum veículo cadastrado',
+                  desc: 'Comece registrando os veículos da frota — carros, caminhões, máquinas. Você poderá acompanhar abastecimentos, manutenções e custos por veículo.',
+                  cta: '<button class="btn btn-primary" onclick="document.getElementById(\'btnNovoVeic\')?.click()">+ Cadastrar primeiro veículo</button>',
+                }) : '<div class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum veículo cadastrado</div>'}</td></tr>
               ` : lista.map(v => {
                 const c = contratos.find(x => x.id === v.contractId);
                 const prox = this._proximaManut(v);
@@ -192,7 +197,12 @@ window.Frota = {
                   <td>${c ? escapeHtml(c.name) : '<span class="text-muted">—</span>'}</td>
                   <td>${this._badgeManut(prox)}<div style="font-size:11px;color:var(--color-text-muted);">${prox ? escapeHtml(prox.plano.descricao) : ''}</div></td>
                   <td style="font-size:13px;">${cidade ? escapeHtml(cidade) : '<span class="text-muted">—</span>'}</td>
-                  <td>${v.status === 'manutencao' ? '🔧 Manut.' : v.status === 'inativo' ? '⏸ Inativo' : '✓ Ativo'}</td>
+                  <td>${window.UIKit?.statusPill
+                    ? (v.status === 'manutencao' ? window.UIKit.statusPill('pausado', '🔧 Manutenção')
+                       : v.status === 'inativo'  ? window.UIKit.statusPill('cancelado', '⏸ Inativo')
+                       : window.UIKit.statusPill('ativo'))
+                    : (v.status === 'manutencao' ? '🔧 Manut.' : v.status === 'inativo' ? '⏸ Inativo' : '✓ Ativo')
+                  }</td>
                   <td>
                     <div class="actions-cell" style="display:flex;gap:6px;flex-wrap:wrap;">
                       <a class="action-link btn-plano" data-id="${v.id}">Plano</a>

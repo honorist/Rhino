@@ -60,7 +60,58 @@
   --sp-lg:               24px;
   --sp-xl:               32px;
   --sp-2xl:              48px;
+
+  /* Escala tipográfica (multiplicada por --fs-mult quando aplicada) */
+  --fs-xs:    11px;
+  --fs-sm:    12px;
+  --fs-base:  14px;
+  --fs-md:    15px;
+  --fs-lg:    16px;
+  --fs-xl:    18px;
+  --fs-2xl:   22px;
+  --fs-3xl:   28px;
+
+  /* Variantes "soft" das cores semânticas (bg p/ badges/alertas) */
+  --color-success-soft: rgba(109,148,128,.14);
+  --color-warning-soft: rgba(245,158,11,.14);
+  --color-danger-soft:  rgba(220,38,38,.10);
+  --color-info-soft:    rgba(37,99,235,.10);
+
+  /* Cores estendidas (status de contrato e categorias afins) */
+  --color-violet:       #8B5CF6;
+  --color-violet-soft:  rgba(139,92,246,.12);
+  --color-blue:         #3B82F6;
+  --color-blue-soft:    rgba(59,130,246,.12);
+  --color-orange:       #F97316;
+  --color-orange-soft:  rgba(249,115,22,.12);
+  --color-gray:         #6B7280;
+  --color-gray-soft:    rgba(107,114,128,.12);
+
+  /* Densidade (ajustada via [data-density] no <html>) */
+  --density-pad-y:      8px;
+  --density-pad-x:      12px;
+  --density-row-h:      40px;
+  --density-gap:        var(--sp-sm);
 }
+
+/* Densidade compacta */
+:root[data-density="compact"] {
+  --density-pad-y: 4px;
+  --density-pad-x: 8px;
+  --density-row-h: 32px;
+  --density-gap:   6px;
+}
+/* Densidade confortável */
+:root[data-density="comfortable"] {
+  --density-pad-y: 12px;
+  --density-pad-x: 16px;
+  --density-row-h: 48px;
+  --density-gap:   var(--sp-md);
+}
+/* Aplica densidade onde houver opt-in via classe `.density-aware` */
+.density-aware { padding: var(--density-pad-y) var(--density-pad-x); }
+.density-aware-row td,
+.density-aware-row th { padding-top: var(--density-pad-y); padding-bottom: var(--density-pad-y); }
 
 /* ─── Reset ─── */
 *, *::before, *::after {
@@ -617,16 +668,36 @@ body.sb-collapsed .footer-utils {
   --color-accent:        #8FAE9B;
 
   --sidebar-bg:          #1E2233;
-  --sidebar-text:        #9CA3AF;
-  --sidebar-active-bg:   rgba(139, 143, 191, 0.12);
-  --sidebar-active-text: #C5C9E6;
+  --sidebar-text:        #C5CAD6;        /* AA contrast — antes era #9CA3AF */
+  --sidebar-active-bg:   rgba(139, 143, 191, 0.18);
+  --sidebar-active-text: #E0E2F2;
 
   --color-bg:            #0F1220;
   --color-surface:       #1A1E30;
   --color-surface-2:     #242840;
   --color-border:        #2D3450;
   --color-text:          #E5E7EB;
-  --color-text-muted:    #9CA3AF;
+  --color-text-muted:    #B5BAD0;        /* AA contrast — antes era #9CA3AF (3.2:1) */
+
+  /* Status — versões mais saturadas pra contrastar com fundo dark */
+  --color-success:       #34D399;
+  --color-warning:       #FBBF24;
+  --color-danger:        #F87171;
+  --color-info:          #60A5FA;
+
+  /* Variantes soft ajustadas pra dark (mais opacidade) */
+  --color-success-soft:  rgba(52,211,153,.18);
+  --color-warning-soft:  rgba(251,191,36,.18);
+  --color-danger-soft:   rgba(248,113,113,.16);
+  --color-info-soft:     rgba(96,165,250,.16);
+  --color-violet:        #A78BFA;
+  --color-violet-soft:   rgba(167,139,250,.18);
+  --color-blue:          #60A5FA;
+  --color-blue-soft:     rgba(96,165,250,.16);
+  --color-orange:        #FB923C;
+  --color-orange-soft:   rgba(251,146,60,.18);
+  --color-gray:          #9CA3AF;
+  --color-gray-soft:     rgba(156,163,175,.16);
 
   --shadow-sm:           0 1px 2px rgba(0,0,0,.4);
   --shadow-md:           0 4px 14px rgba(0,0,0,.35);

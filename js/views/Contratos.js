@@ -1,8 +1,16 @@
 window.Contratos = {
-  currentFilter: 'todos',
-  currentSearch: '',
-  sortField: null,
-  sortDir: 'asc',
+  // Filtros persistidos via UIKit.persistFilter (sobrevivem a reload e navegação)
+  _filterStore: (window.UIKit?.persistFilter?.('contratos', {
+    currentFilter: 'todos', currentSearch: '', sortField: null, sortDir: 'asc',
+  })) || null,
+  get currentFilter()  { return this._filterStore?.get('currentFilter')  ?? 'todos'; },
+  set currentFilter(v) { this._filterStore?.set('currentFilter', v); },
+  get currentSearch()  { return this._filterStore?.get('currentSearch')  ?? '';      },
+  set currentSearch(v) { this._filterStore?.set('currentSearch', v); },
+  get sortField()      { return this._filterStore?.get('sortField')      ?? null;    },
+  set sortField(v)     { this._filterStore?.set('sortField', v); },
+  get sortDir()        { return this._filterStore?.get('sortDir')        ?? 'asc';   },
+  set sortDir(v)       { this._filterStore?.set('sortDir', v); },
   currentPage: 1,
   pageSize: 25,
   _favs: new Set(JSON.parse(localStorage.getItem('rhino-favs') || '[]')),
@@ -219,7 +227,7 @@ window.Contratos = {
             ].map(s => `<button class="rh-chip${this.currentFilter === s.v ? ' is-active' : ''}" data-status="${s.v}">${s.l}</button>`).join('')}
           </div>
           <div class="table-wrap">
-            <table class="rh-table--sticky">
+            <table class="rh-table--sticky ui-stick-col-2">
               <thead>
                 <tr>
                   <th style="width:36px;padding-left:12px;"><input type="checkbox" id="chkAll" title="Selecionar todos na página" style="cursor:pointer;width:16px;height:16px;"></th>
@@ -281,7 +289,7 @@ window.Contratos = {
                         ${total}
                       </div>
                     </td>
-                    <td><span class="badge badge-${c.status}" title="${{ prospeccao:'Em prospecção — contrato ainda não confirmado', nao_aprovado:'Não aprovado — proposta rejeitada pelo cliente', nao_iniciado:'Não iniciado — contrato fechado, obra ainda não começou', ativo:'Ativo — obra em andamento', pausado:'Pausado — obra temporariamente suspensa', concluido:'Concluído — obra finalizada', cancelado:'Cancelado — contrato encerrado' }[c.status] || c.status}">${({ nao_iniciado:'Não iniciado', nao_aprovado:'Não aprovado' })[c.status] || c.status}</span></td>
+                    <td title="${{ prospeccao:'Em prospecção — contrato ainda não confirmado', nao_aprovado:'Não aprovado — proposta rejeitada pelo cliente', nao_iniciado:'Não iniciado — contrato fechado, obra ainda não começou', ativo:'Ativo — obra em andamento', pausado:'Pausado — obra temporariamente suspensa', concluido:'Concluído — obra finalizada', cancelado:'Cancelado — contrato encerrado' }[c.status] || c.status}">${window.UIKit?.statusPill ? window.UIKit.statusPill(c.status) : `<span class="badge badge-${c.status}">${c.status}</span>`}</td>
                     <td>
                       <div class="actions-cell">
                         <button class="btn-fav action-link" data-id="${c.id}" title="${this._favs.has(c.id) ? 'Remover dos favoritos' : 'Fixar no topo'}">${this._favs.has(c.id) ? '★' : '☆'}</button>

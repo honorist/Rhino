@@ -212,12 +212,17 @@ window.ContratoDetail = {
       ])];
 
       const html = `
-        <nav aria-label="Navegação" style="font-size:13px;color:var(--color-text-muted);margin-bottom:var(--sp-sm);display:flex;align-items:center;gap:6px;">
-          <a href="#/contratos" style="color:var(--color-primary);text-decoration:none;font-weight:600;">Contratos</a>
-          <span aria-hidden="true" style="opacity:.5;">›</span>
-          <span style="color:var(--color-text);">${escapeHtml(contract.name)}</span>
-          ${contract.contractNumber ? `<span style="opacity:.5;">·</span><span style="font-family:monospace;font-size:12px;">#${escapeHtml(contract.contractNumber)}</span>` : ''}
-        </nav>
+        <div style="display:flex;align-items:center;gap:var(--sp-sm);margin-bottom:var(--sp-sm);flex-wrap:wrap;">
+          ${window.UIKit?.smartBack ? window.UIKit.smartBack('#/contratos', 'Contratos') : ''}
+          ${window.UIKit?.breadcrumb ? window.UIKit.breadcrumb([
+            { label: 'Contratos', href: '#/contratos' },
+            { label: contract.name + (contract.contractNumber ? ` · #${contract.contractNumber}` : '') },
+          ]) : `<nav aria-label="Navegação" style="font-size:13px;color:var(--color-text-muted);display:flex;align-items:center;gap:6px;">
+            <a href="#/contratos" style="color:var(--color-primary);text-decoration:none;font-weight:600;">Contratos</a>
+            <span aria-hidden="true" style="opacity:.5;">›</span>
+            <span style="color:var(--color-text);">${escapeHtml(contract.name)}</span>
+          </nav>`}
+        </div>
         <div style="margin-bottom: var(--sp-xl);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--sp-lg);">
             <div>

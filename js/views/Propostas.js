@@ -111,11 +111,13 @@ window.Propostas = {
               </thead>
               <tbody>
                 ${propostas.length === 0 ? `
-                  <tr><td colspan="9" class="text-center text-muted" style="padding:var(--sp-xl);">
-                    ${termo || this.currentFilter !== 'todos'
-                      ? 'Nenhuma proposta encontrada com esses filtros'
-                      : 'Nenhuma proposta cadastrada. Clique em "+ Nova Proposta" para começar.'}
-                  </td></tr>
+                  <tr><td colspan="9" style="padding:0;">${window.UIKit?.empty ? window.UIKit.empty(
+                    (termo || this.currentFilter !== 'todos')
+                      ? { icon:'🔎', title:'Nenhuma proposta nesse filtro', desc:'Tente limpar os filtros ou ajustar a busca.' }
+                      : { icon:'📝', title:'Nenhuma proposta cadastrada',
+                          desc:'Comece criando sua primeira proposta — gere PDF/DOCX em timbrado, anexe portfolio e envie ao cliente.',
+                          cta:'<button class="btn btn-primary" onclick="document.getElementById(\'btnNovaProposta\')?.click()">+ Criar primeira proposta</button>' }
+                  ) : 'Nenhuma proposta'}</td></tr>
                 ` : propostas.map(p => this._renderRow(p)).join('')}
               </tbody>
             </table>

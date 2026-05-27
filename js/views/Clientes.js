@@ -52,7 +52,12 @@ window.Clientes = {
                   </td></tr>
                 ` : filtrados.map(c => `
                   <tr class="row-cliente" data-id="${c.id}" style="cursor:pointer;" title="Clique para ver detalhes">
-                    <td><strong>${escapeHtml(c.nome) || '—'}</strong></td>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:10px;">
+                        ${window.UIKit?.avatar ? window.UIKit.avatar(c.nome || c.empresa || '?') : ''}
+                        <strong>${escapeHtml(c.nome) || '—'}</strong>
+                      </div>
+                    </td>
                     <td>${escapeHtml(c.empresa) || '—'}</td>
                     <td>
                       ${c.cargo ? `<div style="font-size:15px;">${escapeHtml(c.cargo)}</div>` : ''}
@@ -406,11 +411,38 @@ window.Clientes = {
   },
 
   async deleteCliente(id) {
-    if (!confirm('Excluir este cliente?')) return;
+    // Padrão otimista: some da UI imediatamente; toast com Desfazer (5s).
+    // Sem UIKit, cai pro confirm() nativo legado.
+    const cliente = (Store.state.clientes || []).find(c => c.id === id);
+    if (!cliente) return;
+    if (!window.UIKit?.deleteWithUndo) {
+      if (!confirm('Excluir este cliente?')) return;
+      try {
+        await Store.deleteCliente(id);
+        window.showToast('Cliente removido', 'success');
+        this.render();
+      } catch (e) { window.showToast(e.message, 'error'); }
+      return;
+    }
+    // Remoção otimista do cache local; re-render esconde o item.
+    const arr = Store.state.clientes;
+    const idx = arr.findIndex(c => c.id === id);
+    if (idx < 0) return;
+    const removed = arr.splice(idx, 1)[0];
+    this.render();
+    const r = await window.UIKit.deleteWithUndo({ msg: `Cliente "${removed.nome || removed.empresa || '—'}" removido` });
+    if (r === 'undo') {
+      arr.splice(idx, 0, removed);
+      this.render();
+      return;
+    }
     try {
       await Store.deleteCliente(id);
-      window.showToast('Cliente removido', 'success');
+    } catch (e) {
+      // Falhou no servidor — restaura no cache e avisa.
+      arr.splice(idx, 0, removed);
       this.render();
-    } catch (e) { window.showToast(e.message, 'error'); }
+      window.showToast('Erro ao remover: ' + e.message, 'error');
+    }
   }
 };

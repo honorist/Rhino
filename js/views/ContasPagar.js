@@ -207,11 +207,11 @@ window.ContasPagar = {
                       </td>
                       <td>
                         ${c.status === 'pago'
-                          ? `<span class="badge badge-entrada">Pago</span>
+                          ? `${window.UIKit?.statusPill ? window.UIKit.statusPill('pago') : '<span class="badge badge-entrada">Pago</span>'}
                              ${c.dataPagamento ? `<div style="font-size:15px;color:var(--color-text-muted);margin-top:2px;">${new Date(c.dataPagamento + 'T12:00:00').toLocaleDateString('pt-BR')}${c.formaPagamento ? ` · ${c.formaPagamento}` : ''}</div>` : ''}`
                           : vencida
-                            ? `<span class="badge" style="background:rgba(229,62,62,.15);color:var(--color-danger);">Vencida</span>`
-                            : `<span class="badge" style="background:rgba(214,158,46,.12);color:var(--color-warning);">Pendente</span>`
+                            ? (window.UIKit?.statusPill ? window.UIKit.statusPill('atrasado', 'Vencida') : '<span class="badge" style="background:rgba(229,62,62,.15);color:var(--color-danger);">Vencida</span>')
+                            : (window.UIKit?.statusPill ? window.UIKit.statusPill('pendente') : '<span class="badge" style="background:rgba(214,158,46,.12);color:var(--color-warning);">Pendente</span>')
                         }
                       </td>
                       <td>

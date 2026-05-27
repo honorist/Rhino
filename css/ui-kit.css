@@ -1,0 +1,285 @@
+/* ─────────────────────────────────────────────────────────
+   RHINO · UI Kit (Wave 1)
+   Componentes reutilizáveis: status pill, skeleton, empty,
+   breadcrumb, smart-back, avatar, undo toast.
+   Adicionado SEM tocar nas views existentes — opt-in.
+───────────────────────────────────────────────────────── */
+
+/* ═══════════════════════════════════════════════════════
+   FOCO ACESSÍVEL — outline visível para teclado (WCAG 2.4.7)
+   Só aparece com :focus-visible, então não polui clicks.
+═══════════════════════════════════════════════════════ */
+button:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--border-radius);
+}
+
+/* ═══════════════════════════════════════════════════════
+   STATUS PILL — badges de status padronizados
+═══════════════════════════════════════════════════════ */
+.ui-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+.ui-pill::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .9;
+  flex-shrink: 0;
+}
+.ui-pill--success { color: var(--color-success); background: var(--color-success-soft); }
+.ui-pill--warning { color: #B45309;            background: var(--color-warning-soft); }
+.ui-pill--danger  { color: var(--color-danger);  background: var(--color-danger-soft); }
+.ui-pill--info    { color: var(--color-info);    background: var(--color-info-soft); }
+.ui-pill--violet  { color: var(--color-violet);  background: var(--color-violet-soft); }
+.ui-pill--blue    { color: var(--color-blue);    background: var(--color-blue-soft); }
+.ui-pill--orange  { color: var(--color-orange);  background: var(--color-orange-soft); }
+.ui-pill--gray    { color: var(--color-gray);    background: var(--color-gray-soft); }
+.ui-pill--solid   { color: #fff; background: var(--color-primary); }
+
+/* ═══════════════════════════════════════════════════════
+   SKELETON — placeholder de carregamento
+═══════════════════════════════════════════════════════ */
+.ui-sk {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(90deg,
+    var(--color-surface-2) 0%,
+    rgba(0,0,0,.04) 50%,
+    var(--color-surface-2) 100%);
+  background-size: 200% 100%;
+  animation: ui-sk-shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--border-radius);
+}
+@keyframes ui-sk-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.ui-sk--line   { height: 12px; margin: 6px 0; }
+.ui-sk--title  { height: 22px; width: 60%; margin: 0 0 12px; }
+.ui-sk--row    { height: 48px; margin-bottom: 8px; }
+.ui-sk--card   { height: 120px; margin-bottom: 12px; }
+.ui-sk--circle { width: 36px; height: 36px; border-radius: 50%; }
+.ui-sk-list { padding: 0; }
+.ui-sk-list .ui-sk--row { width: 100%; }
+
+[data-theme="dark"] .ui-sk {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,.04) 0%,
+    rgba(255,255,255,.10) 50%,
+    rgba(255,255,255,.04) 100%);
+  background-size: 200% 100%;
+}
+
+/* ═══════════════════════════════════════════════════════
+   EMPTY STATE — listas vazias com CTA
+═══════════════════════════════════════════════════════ */
+.ui-empty {
+  text-align: center;
+  padding: var(--sp-2xl) var(--sp-lg);
+  color: var(--color-text-muted);
+}
+.ui-empty__icon { font-size: 48px; margin-bottom: var(--sp-sm); opacity: .8; }
+.ui-empty__title { font-size: var(--fs-lg); font-weight: 700; color: var(--color-text); margin-bottom: 4px; }
+.ui-empty__desc  { font-size: var(--fs-base); line-height: 1.55; margin-bottom: var(--sp-md); }
+.ui-empty__cta   { display: inline-block; }
+
+/* ═══════════════════════════════════════════════════════
+   BREADCRUMB
+═══════════════════════════════════════════════════════ */
+.ui-bc {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--sp-sm);
+  flex-wrap: wrap;
+}
+.ui-bc a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background .15s, color .15s;
+}
+.ui-bc a:hover { background: var(--color-surface-2); color: var(--color-text); }
+.ui-bc__sep { opacity: .5; padding: 0 2px; }
+.ui-bc__current { color: var(--color-text); font-weight: 600; padding: 2px 6px; }
+
+/* ═══════════════════════════════════════════════════════
+   SMART BACK — botão de voltar com label de origem
+═══════════════════════════════════════════════════════ */
+.ui-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  color: var(--color-text);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .15s, transform .15s;
+}
+.ui-back:hover { background: var(--color-surface-2); transform: translateX(-2px); }
+.ui-back__arrow { font-size: var(--fs-md); line-height: 1; }
+
+/* ═══════════════════════════════════════════════════════
+   AVATAR — iniciais coloridas determinísticas
+═══════════════════════════════════════════════════════ */
+.ui-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  user-select: none;
+}
+.ui-avatar--sm { width: 24px; height: 24px; font-size: 9px; }
+.ui-avatar--lg { width: 44px; height: 44px; font-size: var(--fs-base); }
+/* 8 cores rotacionadas via classe data-color (0..7) */
+.ui-avatar[data-color="0"] { background: #55588B; }
+.ui-avatar[data-color="1"] { background: #6D9480; }
+.ui-avatar[data-color="2"] { background: #F59E0B; }
+.ui-avatar[data-color="3"] { background: #DC2626; }
+.ui-avatar[data-color="4"] { background: #2563EB; }
+.ui-avatar[data-color="5"] { background: #8B5CF6; }
+.ui-avatar[data-color="6"] { background: #F97316; }
+.ui-avatar[data-color="7"] { background: #0891B2; }
+
+/* ═══════════════════════════════════════════════════════
+   UNDO TOAST — toast com ação "Desfazer"
+═══════════════════════════════════════════════════════ */
+.ui-toast-stack {
+  position: fixed;
+  bottom: 128px;       /* acima do theme toggle (44+gap) e do back-top */
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10001;
+  max-width: 360px;
+  pointer-events: none;
+}
+.ui-toast {
+  pointer-events: auto;
+  background: var(--color-text);
+  color: var(--color-surface);
+  border-radius: var(--border-radius-lg);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow-lg);
+  font-size: var(--fs-base);
+  animation: ui-toast-in .25s ease-out;
+}
+.ui-toast--success { background: var(--color-success); color: #fff; }
+.ui-toast--danger  { background: var(--color-danger);  color: #fff; }
+.ui-toast--warning { background: #B45309;              color: #fff; }
+.ui-toast__msg { flex: 1; min-width: 0; }
+.ui-toast__btn {
+  background: rgba(255,255,255,.18);
+  border: 1px solid rgba(255,255,255,.3);
+  color: inherit;
+  font-weight: 700;
+  font-size: var(--fs-sm);
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  flex-shrink: 0;
+}
+.ui-toast__btn:hover { background: rgba(255,255,255,.28); }
+.ui-toast__close {
+  background: none; border: none; color: inherit;
+  cursor: pointer; font-size: 18px; opacity: .7; padding: 0 4px;
+}
+.ui-toast__close:hover { opacity: 1; }
+@keyframes ui-toast-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.ui-toast.is-leaving { animation: ui-toast-out .2s ease-in forwards; }
+@keyframes ui-toast-out {
+  to { opacity: 0; transform: translateX(20px); }
+}
+@media (max-width: 768px) {
+  .ui-toast-stack { right: 12px; left: 12px; bottom: 132px; max-width: none; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   SORTABLE TABLE — indicadores ▲▼ em <th>
+═══════════════════════════════════════════════════════ */
+.ui-sortable th[data-sort] {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  padding-right: 22px;
+}
+.ui-sortable th[data-sort]:hover { background: var(--color-surface-2); }
+.ui-sortable th[data-sort]::after {
+  content: '⇅';
+  position: absolute;
+  right: 6px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  opacity: .35;
+}
+.ui-sortable th[data-sort][aria-sort="ascending"]::after  { content: '▲'; opacity: 1; color: var(--color-primary); }
+.ui-sortable th[data-sort][aria-sort="descending"]::after { content: '▼'; opacity: 1; color: var(--color-primary); }
+
+/* ═══════════════════════════════════════════════════════
+   STICKY FIRST COLUMN — opcional via .ui-stick-col
+═══════════════════════════════════════════════════════ */
+.ui-stick-col thead th:first-child,
+.ui-stick-col tbody td:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--color-surface);
+  z-index: 1;
+  box-shadow: 1px 0 0 var(--color-border);
+}
+.ui-stick-col thead th:first-child { background: var(--color-surface-2); z-index: 2; }
+
+/* Variante: 2 primeiras colunas sticky (útil quando 1ª é checkbox/avatar) */
+.ui-stick-col-2 thead th:nth-child(-n+2),
+.ui-stick-col-2 tbody td:nth-child(-n+2) {
+  position: sticky;
+  background: var(--color-surface);
+  z-index: 1;
+}
+.ui-stick-col-2 thead th:nth-child(1),
+.ui-stick-col-2 tbody td:nth-child(1) { left: 0; }
+.ui-stick-col-2 thead th:nth-child(2),
+.ui-stick-col-2 tbody td:nth-child(2) { left: 48px; box-shadow: 1px 0 0 var(--color-border); }
+.ui-stick-col-2 thead th { background: var(--color-surface-2); z-index: 2; }

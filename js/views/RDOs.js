@@ -1,13 +1,23 @@
 // Tela global de RDOs — listagem flat + dashboard de aderência.
 const RDOs = {
   _cache: null,
-  _filters: { contractId: '', mes: '' },
+  // Filtros persistidos por usuário (sobrevivem a reload/navegação)
+  _filterStore: (window.UIKit?.persistFilter?.('rdos', { contractId: '', mes: '' })) || null,
+  get _filters() { return this._filterStore?.get() || { contractId: '', mes: '' }; },
+  set _filters(v) { this._filterStore?.set(v); },
   _page: 0,
   _pageSize: 50,
 
   async render() {
     const root = document.getElementById('app');
-    root.innerHTML = `<div style="padding:var(--sp-xl);color:var(--color-text-muted);">Carregando RDOs...</div>`;
+    root.innerHTML = window.UIKit?.skeleton ? `
+      <div class="page-header"><div>${window.UIKit.skeleton('title', 1)}</div></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--sp-md);margin-bottom:var(--sp-lg);">
+        ${window.UIKit.skeleton('card', 1)}${window.UIKit.skeleton('card', 1)}
+        ${window.UIKit.skeleton('card', 1)}${window.UIKit.skeleton('card', 1)}
+      </div>
+      <div class="card" style="padding:var(--sp-md);">${window.UIKit.skeleton('row', 8)}</div>
+    ` : `<div style="padding:var(--sp-xl);color:var(--color-text-muted);">Carregando RDOs...</div>`;
 
     try {
       const r = await fetch('/api/rdos');
@@ -163,17 +173,17 @@ const RDOs = {
 
     document.getElementById('btnNovoRdoGlobal').addEventListener('click', () => this.showPickerContrato());
     document.getElementById('fltContract').addEventListener('change', (e) => {
-      this._filters.contractId = e.target.value;
+      this._filterStore?.set('contractId', e.target.value);
       this._page = 0;
       this.draw();
     });
     document.getElementById('fltMes').addEventListener('change', (e) => {
-      this._filters.mes = e.target.value;
+      this._filterStore?.set('mes', e.target.value);
       this._page = 0;
       this.draw();
     });
     document.getElementById('btnLimparFiltros').addEventListener('click', () => {
-      this._filters = { contractId: '', mes: '' };
+      this._filterStore?.clear();
       this._page = 0;
       this.draw();
     });

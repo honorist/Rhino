@@ -4,9 +4,14 @@ window.Estoque = {
   _almoxs: [],          // [{ id, nome, contract_id, contract_name, endereco }]
   _itens: [],           // [{ id, codigo, descricao, ..., custo_medio, saldos: [{almoxId, qtd}] }]
   _historico: [],       // últimas movimentações
-  _busca: '',
-  _filtroCategoria: '',
-  _tab: 'geral',        // geral | historico
+  // Filtros e aba persistidos (sobrevivem a reload)
+  _filterStore: (window.UIKit?.persistFilter?.('estoque', { busca: '', filtroCategoria: '', tab: 'geral' })) || null,
+  get _busca()           { return this._filterStore?.get('busca')           ?? ''; },
+  set _busca(v)          { this._filterStore?.set('busca', v); },
+  get _filtroCategoria() { return this._filterStore?.get('filtroCategoria') ?? ''; },
+  set _filtroCategoria(v){ this._filterStore?.set('filtroCategoria', v); },
+  get _tab()             { return this._filterStore?.get('tab')             ?? 'geral'; },
+  set _tab(v)            { this._filterStore?.set('tab', v); },
 
   CATEGORIAS_PADRAO: [
     'Material de Consumo',
@@ -30,7 +35,18 @@ window.Estoque = {
 
   async render() {
     const app = document.getElementById('app');
-    app.innerHTML = '<div class="loading-spinner">Carregando estoque...</div>';
+    // Skeleton inicial — header + KPIs + tabela placeholder
+    app.innerHTML = window.UIKit?.skeleton ? `
+      <div class="page-header"><div>
+        ${window.UIKit.skeleton('title', 1)}
+      </div></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:var(--sp-md);">
+        ${window.UIKit.skeleton('card', 1)}${window.UIKit.skeleton('card', 1)}
+        ${window.UIKit.skeleton('card', 1)}${window.UIKit.skeleton('card', 1)}
+      </div>
+      <div class="card" style="padding:var(--sp-md);">
+        ${window.UIKit.skeleton('row', 6)}
+      </div>` : '<div class="loading-spinner">Carregando estoque...</div>';
     try {
       await this._loadAll();
       this._draw();
@@ -143,12 +159,15 @@ window.Estoque = {
   // ─────────── Visão Geral (matriz item × almoxarifado) ───────────
   _renderGeral() {
     if (this._itens.length === 0) {
-      return `
-        <div class="card" style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">
-          <div style="font-size:48px;margin-bottom:8px;">📦</div>
-          <div style="font-weight:600;font-size:16px;margin-bottom:4px;">Nenhum item cadastrado</div>
-          <div style="font-size:13px;margin-bottom:16px;">Comece cadastrando um item no botão acima</div>
-        </div>`;
+      return `<div class="card">${window.UIKit?.empty ? window.UIKit.empty({
+        icon: '📦',
+        title: 'Nenhum item cadastrado',
+        desc: 'Comece cadastrando seu primeiro item de almoxarifado. Depois use os botões 🟢 Comprei / 🔵 Enviar / 🔴 Usei pra movimentar o estoque.',
+        cta: '<button class="btn btn-primary" onclick="document.getElementById(\'btnNovoItem\')?.click()">+ Cadastrar primeiro item</button>',
+      }) : `<div style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">
+        <div style="font-size:48px;margin-bottom:8px;">📦</div>
+        <div style="font-weight:600;font-size:16px;">Nenhum item cadastrado</div>
+      </div>`}</div>`;
     }
 
     const central = this._almoxs.find(a => !a.contractId);

@@ -95,11 +95,16 @@ window.PropostaDetail = {
     const statusLabel = window.Propostas?.STATUS_LABELS?.[p.status] || p.status;
 
     app.innerHTML = `
+      <div style="display:flex;align-items:center;gap:var(--sp-sm);margin-bottom:var(--sp-sm);flex-wrap:wrap;">
+        ${window.UIKit?.smartBack ? window.UIKit.smartBack('#/proposta', 'Propostas') : ''}
+        ${window.UIKit?.breadcrumb ? window.UIKit.breadcrumb([
+          { label: 'Propostas', href: '#/proposta' },
+          { label: numeroCompleto },
+        ]) : ''}
+      </div>
       <div class="page-header" style="margin-bottom:12px;">
         <div style="min-width:0;">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <a href="#/proposta" class="action-link" style="color:#64748b;">← Propostas</a>
-            <span style="color:#cbd5e1;">/</span>
             <h1 class="page-title" style="margin:0;">${escapeHtml(numeroCompleto)}</h1>
             <span class="badge" style="background:${statusColors.bg};color:${statusColors.fg};border:1px solid ${statusColors.border};padding:4px 12px;border-radius:14px;">
               ${statusLabel}

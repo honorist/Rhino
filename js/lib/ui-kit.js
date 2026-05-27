@@ -1,0 +1,387 @@
+/**
+ * RHINO · UI Kit — helpers reutilizáveis (Wave 1).
+ *
+ * Exposto em `window.UIKit`. Opt-in: nenhuma view existente é alterada
+ * automaticamente. Cada view escolhe se usa.
+ *
+ *   UIKit.statusPill(status, label)      → string HTML
+ *   UIKit.skeleton(kind, count)          → string HTML
+ *   UIKit.empty({ icon, title, desc, cta }) → string HTML
+ *   UIKit.breadcrumb([{label, href}])    → string HTML
+ *   UIKit.smartBack(fallbackHref, label) → string HTML (e wire global)
+ *   UIKit.avatar(name, opts)             → string HTML
+ *   UIKit.showUndoToast(msg, onUndo, ms) → função revert manual
+ *   UIKit.persistFilter(key, getter, setter) → wire transparente
+ *   UIKit.sortable(tableEl, opts)        → ativa ordenação por header
+ *   UIKit.density.set('compact'|'cozy'|'comfortable')
+ */
+(function () {
+  'use strict';
+
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+
+  // ─────────────────────────────────────────────
+  // STATUS PILL
+  // ─────────────────────────────────────────────
+  const PILL_MAP = {
+    ativo:        { variant: 'success', label: 'Ativo' },
+    pausado:      { variant: 'warning', label: 'Pausado' },
+    concluido:    { variant: 'blue',    label: 'Concluído' },
+    cancelado:    { variant: 'danger',  label: 'Cancelado' },
+    prospeccao:   { variant: 'violet',  label: 'Prospecção' },
+    nao_iniciado: { variant: 'gray',    label: 'Não iniciado' },
+    nao_aprovado: { variant: 'orange',  label: 'Não aprovado' },
+    aberto:       { variant: 'info',    label: 'Aberto' },
+    pago:         { variant: 'success', label: 'Pago' },
+    atrasado:     { variant: 'danger',  label: 'Atrasado' },
+    pendente:     { variant: 'warning', label: 'Pendente' },
+  };
+
+  function statusPill(status, customLabel) {
+    const def = PILL_MAP[status] || { variant: 'gray', label: status || '—' };
+    const label = customLabel || def.label;
+    return `<span class="ui-pill ui-pill--${def.variant}">${esc(label)}</span>`;
+  }
+
+  // ─────────────────────────────────────────────
+  // SKELETON
+  // ─────────────────────────────────────────────
+  function skeleton(kind = 'row', count = 1) {
+    const one = () => {
+      switch (kind) {
+        case 'title':  return '<div class="ui-sk ui-sk--title"></div>';
+        case 'line':   return '<div class="ui-sk ui-sk--line"></div>';
+        case 'card':   return '<div class="ui-sk ui-sk--card"></div>';
+        case 'circle': return '<div class="ui-sk ui-sk--circle"></div>';
+        case 'row':
+        default:       return '<div class="ui-sk ui-sk--row"></div>';
+      }
+    };
+    return `<div class="ui-sk-list">${Array.from({ length: count }, one).join('')}</div>`;
+  }
+
+  // ─────────────────────────────────────────────
+  // EMPTY STATE
+  // ─────────────────────────────────────────────
+  function empty({ icon = '📭', title = 'Nada por aqui', desc = '', cta = '' } = {}) {
+    return `
+      <div class="ui-empty">
+        <div class="ui-empty__icon">${icon}</div>
+        <div class="ui-empty__title">${esc(title)}</div>
+        ${desc ? `<div class="ui-empty__desc">${esc(desc)}</div>` : ''}
+        ${cta ? `<div class="ui-empty__cta">${cta}</div>` : ''}
+      </div>`;
+  }
+
+  // ─────────────────────────────────────────────
+  // BREADCRUMB
+  // ─────────────────────────────────────────────
+  function breadcrumb(items) {
+    if (!Array.isArray(items) || items.length === 0) return '';
+    const parts = items.map((it, i) => {
+      const isLast = i === items.length - 1;
+      if (isLast || !it.href) {
+        return `<span class="ui-bc__current">${esc(it.label)}</span>`;
+      }
+      return `<a href="${it.href}">${esc(it.label)}</a>`;
+    });
+    return `<nav class="ui-bc" aria-label="breadcrumb">${parts.join('<span class="ui-bc__sep">/</span>')}</nav>`;
+  }
+
+  // ─────────────────────────────────────────────
+  // SMART BACK
+  // Histórico de navegação curto guardado em sessionStorage.
+  // ─────────────────────────────────────────────
+  const NAV_KEY = 'rhino-nav-history';
+  function _readNav() {
+    try { return JSON.parse(sessionStorage.getItem(NAV_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function _writeNav(arr) {
+    try { sessionStorage.setItem(NAV_KEY, JSON.stringify(arr.slice(-10))); } catch {}
+  }
+  function _pushNav(hash) {
+    const arr = _readNav();
+    if (arr[arr.length - 1] === hash) return;
+    arr.push(hash);
+    _writeNav(arr);
+  }
+
+  function smartBack(fallbackHref = '#/', fallbackLabel = 'Voltar') {
+    const arr = _readNav();
+    // Acha o primeiro hash de origem que não seja a tela atual.
+    const cur = location.hash || '#/';
+    let origin = null;
+    for (let i = arr.length - 2; i >= 0; i--) {
+      if (arr[i] && arr[i] !== cur) { origin = arr[i]; break; }
+    }
+    const href = origin || fallbackHref;
+    const label = origin ? _hashToLabel(origin) : fallbackLabel;
+    return `<a href="${href}" class="ui-back"><span class="ui-back__arrow">←</span> ${esc(label)}</a>`;
+  }
+  function _hashToLabel(hash) {
+    if (!hash) return 'Voltar';
+    const seg = hash.replace(/^#\//, '').split('/')[0] || 'início';
+    const map = {
+      contratos:'Contratos', rdos:'RDOs', estoque:'Almoxarifado',
+      frota:'Frota', recursos:'Recursos', clientes:'Clientes',
+      fornecedores:'Fornecedores', propostas:'Propostas',
+      caixa:'Caixa', 'contas-pagar':'Contas a pagar',
+      'notas-fiscais':'Notas fiscais', dashboard:'Dashboard',
+      'cronograma-geral':'Cronograma geral', obras:'Obras',
+    };
+    return map[seg] || seg.charAt(0).toUpperCase() + seg.slice(1);
+  }
+
+  // Hook global: registra cada hashchange.
+  window.addEventListener('hashchange', () => _pushNav(location.hash));
+  // Boot: registra a tela inicial.
+  if (location.hash) _pushNav(location.hash);
+
+  // ─────────────────────────────────────────────
+  // AVATAR — iniciais coloridas determinísticas
+  // ─────────────────────────────────────────────
+  function _hash(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+    return Math.abs(h);
+  }
+  function avatar(name, { size = '' } = {}) {
+    const n = String(name || '').trim();
+    if (!n) return '<span class="ui-avatar" data-color="0">·</span>';
+    const parts = n.split(/\s+/).filter(Boolean);
+    const ini = (parts[0][0] + (parts[parts.length - 1]?.[0] || '')).slice(0, 2);
+    const color = _hash(n) % 8;
+    const cls = size ? ` ui-avatar--${size}` : '';
+    return `<span class="ui-avatar${cls}" data-color="${color}" title="${esc(n)}">${esc(ini)}</span>`;
+  }
+
+  // ─────────────────────────────────────────────
+  // UNDO TOAST
+  // ─────────────────────────────────────────────
+  function _ensureStack() {
+    let stack = document.querySelector('.ui-toast-stack');
+    if (!stack) {
+      stack = document.createElement('div');
+      stack.className = 'ui-toast-stack';
+      document.body.appendChild(stack);
+    }
+    return stack;
+  }
+  function _dismiss(el) {
+    if (!el || el.dataset.leaving === '1') return;
+    el.dataset.leaving = '1';
+    el.classList.add('is-leaving');
+    setTimeout(() => el.remove(), 220);
+  }
+
+  /**
+   * Mostra toast com botão Desfazer. Retorna função pra dismissar manualmente.
+   * O callback `onUndo` é chamado se o usuário clicar em Desfazer (antes do timeout).
+   * `onCommit` (opcional) roda quando o timeout estoura sem undo.
+   */
+  function showUndoToast(msg, onUndo, { ms = 5000, variant = '', onCommit } = {}) {
+    const stack = _ensureStack();
+    const el = document.createElement('div');
+    el.className = 'ui-toast' + (variant ? ` ui-toast--${variant}` : '');
+    el.innerHTML = `
+      <span class="ui-toast__msg">${esc(msg)}</span>
+      <button class="ui-toast__btn" type="button">Desfazer</button>
+      <button class="ui-toast__close" type="button" aria-label="Fechar">×</button>
+    `;
+    stack.appendChild(el);
+
+    let undone = false;
+    const timer = setTimeout(() => {
+      if (!undone) { _dismiss(el); if (typeof onCommit === 'function') onCommit(); }
+    }, ms);
+
+    el.querySelector('.ui-toast__btn').addEventListener('click', () => {
+      undone = true; clearTimeout(timer); _dismiss(el);
+      try { onUndo && onUndo(); } catch (e) { console.warn('[UIKit/undo] callback falhou', e); }
+    });
+    el.querySelector('.ui-toast__close').addEventListener('click', () => {
+      clearTimeout(timer); _dismiss(el);
+      if (!undone && typeof onCommit === 'function') onCommit();
+    });
+    return () => { clearTimeout(timer); _dismiss(el); };
+  }
+
+  // Toast simples (substitui showToast em chamadas que adotarem o kit)
+  function toast(msg, variant = '', ms = 3500) {
+    const stack = _ensureStack();
+    const el = document.createElement('div');
+    el.className = 'ui-toast' + (variant ? ` ui-toast--${variant}` : '');
+    el.innerHTML = `<span class="ui-toast__msg">${esc(msg)}</span>
+      <button class="ui-toast__close" type="button" aria-label="Fechar">×</button>`;
+    stack.appendChild(el);
+    el.querySelector('.ui-toast__close').addEventListener('click', () => _dismiss(el));
+    setTimeout(() => _dismiss(el), ms);
+  }
+
+  // ─────────────────────────────────────────────
+  // DELETE WITH UNDO — toast com Desfazer (5s)
+  // Retorna Promise<'commit' | 'undo'>. O caller faz a remoção
+  // otimista da UI ANTES e a restauração no caso 'undo'.
+  //
+  // Uso típico:
+  //   const idx = arr.findIndex(x => x.id === id);
+  //   const item = arr[idx]; arr.splice(idx, 1); this.render();
+  //   const r = await UIKit.deleteWithUndo({ msg: `"${item.nome}" removido` });
+  //   if (r === 'undo')  { arr.splice(idx, 0, item); this.render(); }
+  //   else               { await fetch(url, {method:'DELETE'}); }
+  // ─────────────────────────────────────────────
+  function deleteWithUndo({ msg = 'Removido', ms = 5000 } = {}) {
+    return new Promise(resolve => {
+      let resolved = false;
+      showUndoToast(msg, () => { if (!resolved) { resolved = true; resolve('undo'); } }, {
+        ms, variant: 'danger',
+        onCommit: () => { if (!resolved) { resolved = true; resolve('commit'); } },
+      });
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // FILTER PERSIST — grava/lê filtros por chave
+  // ─────────────────────────────────────────────
+  const FILTER_PREFIX = 'rhino-filter:';
+  function persistFilter(key, defaults = {}) {
+    const k = FILTER_PREFIX + key;
+    let data = { ...defaults };
+    try {
+      const stored = JSON.parse(localStorage.getItem(k) || 'null');
+      if (stored && typeof stored === 'object') data = { ...data, ...stored };
+    } catch {}
+    return {
+      get: (field) => field == null ? { ...data } : data[field],
+      set: (field, value) => {
+        if (typeof field === 'object') Object.assign(data, field);
+        else data[field] = value;
+        try { localStorage.setItem(k, JSON.stringify(data)); } catch {}
+      },
+      clear: () => { data = { ...defaults }; try { localStorage.removeItem(k); } catch {} },
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // SORTABLE TABLE
+  // ─────────────────────────────────────────────
+  /**
+   * Ativa ordenação por header em uma <table> que tenha <th data-sort="key">.
+   * `getRows()` deve devolver o array de dados; `render(sortedRows)` re-renderiza o tbody.
+   * `comparators` opcional: { key: (a,b) => number }. Sem comparator, faz comparação genérica.
+   */
+  function sortable(tableEl, { getRows, render, comparators = {}, initial = null }) {
+    if (!tableEl) return;
+    tableEl.classList.add('ui-sortable');
+    let state = initial ? { key: initial.key, dir: initial.dir || 'asc' } : { key: null, dir: 'asc' };
+
+    const apply = () => {
+      const rows = [...getRows()];
+      if (!state.key) { render(rows); return; }
+      const cmp = comparators[state.key] || ((a, b) => {
+        const av = a?.[state.key], bv = b?.[state.key];
+        if (av == null && bv == null) return 0;
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        if (typeof av === 'number' && typeof bv === 'number') return av - bv;
+        return String(av).localeCompare(String(bv), 'pt-BR', { numeric: true });
+      });
+      rows.sort((a, b) => cmp(a, b) * (state.dir === 'desc' ? -1 : 1));
+      render(rows);
+      tableEl.querySelectorAll('th[data-sort]').forEach(th => {
+        th.setAttribute('aria-sort', th.dataset.sort === state.key
+          ? (state.dir === 'asc' ? 'ascending' : 'descending')
+          : 'none');
+      });
+    };
+
+    tableEl.querySelectorAll('th[data-sort]').forEach(th => {
+      th.addEventListener('click', () => {
+        const k = th.dataset.sort;
+        if (state.key === k) state.dir = state.dir === 'asc' ? 'desc' : 'asc';
+        else { state.key = k; state.dir = 'asc'; }
+        apply();
+      });
+    });
+    apply();
+    return { sort: (k, dir = 'asc') => { state = { key: k, dir }; apply(); } };
+  }
+
+  // ─────────────────────────────────────────────
+  // DENSITY
+  // ─────────────────────────────────────────────
+  const density = {
+    get() { return localStorage.getItem('rhino-density') || 'cozy'; },
+    set(value) {
+      const v = ['compact', 'cozy', 'comfortable'].includes(value) ? value : 'cozy';
+      if (v === 'cozy') document.documentElement.removeAttribute('data-density');
+      else document.documentElement.setAttribute('data-density', v);
+      try { localStorage.setItem('rhino-density', v); } catch {}
+    },
+    cycle() {
+      const cur = density.get();
+      const next = cur === 'compact' ? 'cozy' : cur === 'cozy' ? 'comfortable' : 'compact';
+      density.set(next);
+      toast(`Densidade: ${next}`, 'success', 1500);
+    },
+  };
+  // Aplica densidade salva no boot.
+  density.set(density.get());
+
+  // ─────────────────────────────────────────────
+  // AUTOSAVE — orquestrador de salvamento automático
+  // Uso:
+  //   const as = UIKit.autosave({
+  //     formEl, save: (data) => fetch(...),
+  //     debounceMs: 1200, indicator: '#saveIndicator',
+  //   });
+  //   as.markDirty();   // chame em cada input change
+  //   as.flush();       // força salvar agora (ex.: ao fechar modal)
+  // ─────────────────────────────────────────────
+  function autosave({ save, debounceMs = 1200, indicator }) {
+    let timer = null;
+    let pending = false;
+    let saving = false;
+    const ind = typeof indicator === 'string' ? document.querySelector(indicator) : indicator;
+    const setState = (txt, color) => {
+      if (!ind) return;
+      ind.textContent = txt;
+      ind.style.color = color || '';
+      ind.style.display = txt ? 'inline' : 'none';
+    };
+    const flush = async () => {
+      if (saving) { pending = true; return; }
+      clearTimeout(timer); timer = null;
+      saving = true; setState('salvando…', 'var(--color-text-muted)');
+      try {
+        await save();
+        setState('✓ salvo', 'var(--color-success)');
+        setTimeout(() => { if (!pending) setState('', ''); }, 1500);
+      } catch (e) {
+        setState('⚠ falhou', 'var(--color-danger)');
+        console.warn('[UIKit/autosave] save error', e);
+      } finally {
+        saving = false;
+        if (pending) { pending = false; markDirty(); }
+      }
+    };
+    const markDirty = () => {
+      clearTimeout(timer);
+      setState('alterado…', 'var(--color-text-muted)');
+      timer = setTimeout(flush, debounceMs);
+    };
+    return { markDirty, flush };
+  }
+
+  // ─────────────────────────────────────────────
+  // EXPORT
+  // ─────────────────────────────────────────────
+  window.UIKit = {
+    statusPill, skeleton, empty, breadcrumb, smartBack, avatar,
+    showUndoToast, toast, deleteWithUndo, persistFilter, sortable,
+    density, autosave, esc,
+  };
+})();
