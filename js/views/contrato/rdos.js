@@ -119,7 +119,10 @@
       <div class="card mb-2xl">
         <div class="card-header">
           <h3 class="card-title">Relatórios Diários de Obra (RDO)</h3>
-          <button class="btn btn-primary btn-sm" id="btnNovoRdo">+ Novo RDO</button>
+          <div style="display:flex;gap:8px;">
+            ${rdos.length > 0 ? `<button class="btn btn-secondary btn-sm" id="btnExportarPeriodo">📄 Exportar período</button>` : ''}
+            <button class="btn btn-primary btn-sm" id="btnNovoRdo">+ Novo RDO</button>
+          </div>
         </div>
         ${body}
       </div>
@@ -129,6 +132,8 @@
   _attachRdoListeners(contract) {
     const btnNovo = document.getElementById('btnNovoRdo');
     if (btnNovo) btnNovo.addEventListener('click', () => this.showModalRdo(contract.id));
+    const btnExportar = document.getElementById('btnExportarPeriodo');
+    if (btnExportar) btnExportar.addEventListener('click', () => this.showModalExportarPeriodo(contract.rdos || [], contract));
     document.querySelectorAll('.btn-editar-rdo').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();

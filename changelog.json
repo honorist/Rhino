@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.2.85",
+      "date": "2026-05-28",
+      "summary": "Exportação de RDOs por período: gera PDF único com capa, sumário e todos os RDOs do intervalo",
+      "changes": [
+        "Exportação de RDOs por período: gera PDF único com capa, sumário e todos os RDOs do intervalo"
+      ]
+    },
+    {
       "version": "1.2.84",
       "date": "2026-05-28",
       "summary": "Campo 'Quando precisa na obra' nas solicitações de compra e contratação",
