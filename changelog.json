@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.3.7",
+      "date": "2026-05-28",
+      "summary": "Remove aba Agenda; Cronograma Geral agora visível no topo da sidebar",
+      "changes": [
+        "Remove aba Agenda; Cronograma Geral agora visível no topo da sidebar"
+      ]
+    },
+    {
       "version": "1.3.6",
       "date": "2026-05-28",
       "summary": "Cronograma Geral: movido para nível superior da sidebar (fora do grupo Obras)",
