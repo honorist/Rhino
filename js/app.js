@@ -91,7 +91,7 @@ async function _loadLazyForPattern(pattern) {
 
 const routes = {
   '#/dashboard':    { view: window.Dashboard,      label: 'Dashboard',       icon: _ic('home') },
-  '#/agenda':       { view: window.Agenda,         label: 'Agenda',          icon: _ic('calendar') },
+  '#/agenda':       { view: window.Agenda,         label: 'Agenda',          icon: _ic('list') },
   '#/proposta':     { view: null,                  label: 'Propostas',       icon: _ic('file-text') },
   '#/proposta/:id': { view: null,                  label: null,              icon: null },
   '#/clausulas':    { view: null,                  label: null,              icon: null },
@@ -119,7 +119,7 @@ const routes = {
   '#/cotacoes-historico':  { view: window.CotacoesHistorico,  label: 'Histórico de Cotações',  icon: _ic('bar-chart-2'),  group: 'obras' },
   '#/manutencao':   { view: window.Manutencao,      label: 'Manutenção',      icon: _ic('wrench'),      group: 'obras' },
   '#/frota':        { view: window.Frota,           label: 'Frota',           icon: _ic('truck'),       group: 'obras' },
-  '#/cronograma-geral': { view: window.CronogramaGeral, label: 'Cronograma',  icon: _ic('calendar'),    group: 'obras' },
+  '#/cronograma-geral': { view: window.CronogramaGeral, label: 'Cronograma Geral', icon: _ic('bar-chart-2'), group: 'obras' },
   '#/previsao':     { view: window.Previsao,        label: 'Previsão',        icon: _ic('trending-up'),  group: 'financeiro' },
   '#/ai-chat':      { view: window.AiChat,         label: 'Assistente IA',   icon: _ic('message-square'), group: 'financeiro' },
   '#/configuracao': { view: window.Configuracao,   label: 'Configuração',    icon: _ic('settings') },

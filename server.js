@@ -4831,7 +4831,7 @@ async function handleAgendaEventos(query, res) {
   try {
     const days = Math.min(Math.max(parseInt(query.days) || 30, 1), 365);
 
-    const [nfs, contas, marcos, recursos, scs, contratacoes] = await Promise.all([
+    const [nfs, contas, marcos, docsRec, scs, contratacoes] = await Promise.all([
       // 1. Notas Fiscais não emitidas com data_limite próxima
       db.getMany(`
         SELECT id, numero AS titulo, contract_id, data_limite AS data,
@@ -4868,23 +4868,27 @@ async function handleAgendaEventos(query, res) {
         ORDER BY m.prazo
       `, [days]),
 
-      // 4. Documentos de colaboradores com vencimento próximo (JSONB)
+      // 4. Documentos de colaboradores com vencimento próximo (JSONB).
+      // COALESCE protege contra documentos = NULL em linhas antigas.
+      // Subquery valida formato antes do ::date para evitar cast inválido.
       db.getMany(`
-        SELECT
-          r.id    AS recurso_id,
-          r.nome  AS recurso_nome,
-          r.contract_id,
-          d.val->>'tipo'           AS doc_tipo,
-          d.val->>'tipoLabel'      AS doc_label,
-          (d.val->>'dataVencimento')::date AS data,
-          'doc' AS tipo
-        FROM recursos r,
-             jsonb_array_elements(r.documentos) AS d(val)
-        WHERE r.status = 'funcionario'
-          AND (d.val->>'dataVencimento') IS NOT NULL
-          AND (d.val->>'dataVencimento') <> ''
-          AND (d.val->>'dataVencimento')::date BETWEEN CURRENT_DATE AND CURRENT_DATE + $1
-        ORDER BY (d.val->>'dataVencimento')::date
+        SELECT recurso_id, recurso_nome, doc_tipo, doc_label,
+               data_venc::date AS data, 'doc' AS tipo
+        FROM (
+          SELECT
+            r.id   AS recurso_id,
+            r.nome AS recurso_nome,
+            d.val->>'tipo'            AS doc_tipo,
+            d.val->>'tipoLabel'       AS doc_label,
+            d.val->>'dataVencimento'  AS data_venc
+          FROM recursos r,
+               jsonb_array_elements(COALESCE(r.documentos, '[]'::jsonb)) AS d(val)
+          WHERE r.status = 'funcionario'
+            AND (d.val->>'dataVencimento') IS NOT NULL
+            AND (d.val->>'dataVencimento') ~ '^\\d{4}-\\d{2}-\\d{2}$'
+        ) sub
+        WHERE sub.data_venc::date BETWEEN CURRENT_DATE AND CURRENT_DATE + $1
+        ORDER BY sub.data_venc::date
       `, [days]),
 
       // 5. Solicitações de compra com data_desejada_obra próxima (ainda abertas)
@@ -4915,6 +4919,7 @@ async function handleAgendaEventos(query, res) {
         ORDER BY sc.data_desejada_obra
       `, [days]),
     ]);
+    const recursos = docsRec;
 
     const fmt = (row) => row.data
       ? (row.data instanceof Date ? row.data.toISOString().slice(0, 10) : String(row.data).slice(0, 10))
