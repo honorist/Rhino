@@ -467,6 +467,9 @@ textarea:focus-visible,
   .rh-grid-3, .rh-grid-4 { grid-template-columns: repeat(2, 1fr); }
 }
 
+/* Hambúrguer oculto por padrão — só aparece via body.rh-mobile dentro do media query */
+.rh-mobile-burger { display: none; }
+
 /* ─── Responsividade — Mobile (≤768px) ─── */
 @media (max-width: 768px) {
   /* Sidebar fora da tela com toggle */

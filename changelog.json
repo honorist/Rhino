@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.2.83",
+      "date": "2026-05-28",
+      "summary": "fix: hamburguer mobile nao aparece mais no desktop",
+      "changes": [
+        "fix: hamburguer mobile nao aparece mais no desktop"
+      ]
+    },
+    {
       "version": "1.2.82",
       "date": "2026-05-27",
       "summary": "Kanban em Compras e Recrutamento + visual uniforme em todas as telas",
