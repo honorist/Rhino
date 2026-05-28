@@ -32,14 +32,15 @@ jobs:
       ADMIN_PASSWORD:  admin123
       NODE_ENV:        test
       RHINO_URL:       http://localhost:3001
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - uses: actions/checkout@v5
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 22
         uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install deps

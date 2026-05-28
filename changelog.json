@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.3.4",
+      "date": "2026-05-28",
+      "summary": "CI: Node.js 20 → 22 (LTS) + opt-in Node.js 24 nas GitHub Actions",
+      "changes": [
+        "CI: Node.js 20 → 22 (LTS) + opt-in Node.js 24 nas GitHub Actions"
+      ]
+    },
+    {
       "version": "1.3.3",
       "date": "2026-05-28",
       "summary": "Agenda: cada query isolada (falha parcial não retorna 500) + cast explícito ::integer",
