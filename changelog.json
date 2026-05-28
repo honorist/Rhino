@@ -1,6 +1,81 @@
 {
   "entries": [
     {
+      "version": "1.2.82",
+      "date": "2026-05-27",
+      "summary": "Kanban em Compras e Recrutamento + visual uniforme em todas as telas",
+      "changes": [
+        "Solicitacoes de Compra e Recrutamento agora tem visualizacao Kanban: visualize cada etapa do fluxo em colunas separadas.",
+        "Cabecalho com KPIs e barra de acoes padronizado em todas as telas (Frota, Propostas, Contas a Pagar, Recursos, RDOs, Estoque).",
+        "Correcoes no Kanban: colunas exibem apenas os itens de cada status, sem interferencia do filtro de busca."
+      ]
+    },
+    {
+      "version": "1.2.81",
+      "date": "2026-05-27",
+      "summary": "Redesenho visual completo + Clientes: campo Empresa e filtro",
+      "changes": [
+        "Revisao visual abrangente: densidade ajustada, pilulas de status, suporte a modo escuro e botao de desfazer acao.",
+        "Clientes: novo campo Empresa com sugestoes automaticas das empresas ja cadastradas.",
+        "Clientes: filtro por empresa na lista com contador e persistencia de busca.",
+        "Correcao no rodape da sidebar e ajuste de submenu."
+      ]
+    },
+    {
+      "version": "1.2.80",
+      "date": "2026-05-27",
+      "summary": "Navegacao no cronograma + estoque clicavel + RDO horario livre + WhatsApp",
+      "changes": [
+        "Cronograma: botoes anterior/proximo para navegar entre contratos sem voltar a lista.",
+        "Estoque: clique direto no item da tabela abre o detalhe.",
+        "RDO: horario de inicio e fim e de livre digitacao.",
+        "Numero de WhatsApp do cliente exibido nos detalhes do contrato."
+      ]
+    },
+    {
+      "version": "1.2.79",
+      "date": "2026-05-26",
+      "summary": "Cronograma Geral de Obras (Gantt) + acesso rapido nas abas da Frota",
+      "changes": [
+        "Nova tela Cronograma Geral: visao Gantt unificada de todos os contratos ativos.",
+        "Frota: clique direto nas abas (Abastecimentos, Manutencoes, Multas) a partir da tabela de veiculos.",
+        "Frota: coluna KM atual removida para simplificar a lista.",
+        "Contratos: filtro de status inclui os novos valores Nao aprovado e Nao iniciado."
+      ]
+    },
+    {
+      "version": "1.2.78",
+      "date": "2026-05-26",
+      "summary": "Modais maiores + novos status de contrato + correcoes visuais",
+      "changes": [
+        "Modais de cadastro e edicao com espacamento maior e mais confortaveis de preencher.",
+        "Contratos ganham dois novos status: Nao iniciado e Nao aprovado.",
+        "Arvore de navegacao na sidebar para submenus com muitos itens.",
+        "Correcoes: botoes no rodape de modais nao truncam mais; PWA instalava com erro de icone duplicado (corrigido)."
+      ]
+    },
+    {
+      "version": "1.2.77",
+      "date": "2026-05-24",
+      "summary": "Recrutamento completo (vagas, candidatos, pipeline) + notificacoes",
+      "changes": [
+        "Recrutamento: modulo completo com vagas, candidatos, pipeline de selecao, avaliacoes e historico.",
+        "Sininho de notificacoes na sidebar para candidatos com acao pendente.",
+        "Correcao de 4 bugs na tela de Configuracao.",
+        "Seguranca: permissao de nao exibir valores financeiros respeitada nos formatadores de moeda em todas as telas."
+      ]
+    },
+    {
+      "version": "1.2.76",
+      "date": "2026-05-26",
+      "summary": "Frota: modulo de Abastecimento + Recrutamento no menu",
+      "changes": [
+        "Frota ganha historico de abastecimentos: registre data, km, litros, valor e posto.",
+        "Modulo de Recrutamento aparece no menu lateral.",
+        "RDOs: melhorias no formulario e remocao do alerta diario de obras sem RDO."
+      ]
+    },
+    {
       "version": "1.2.75",
       "date": "2026-05-22",
       "summary": "Melhorias internas — utilitário de IDs em módulo próprio",
