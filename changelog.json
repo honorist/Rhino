@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.2.84",
+      "date": "2026-05-28",
+      "summary": "Campo 'Quando precisa na obra' nas solicitações de compra e contratação",
+      "changes": [
+        "Campo 'Quando precisa na obra' nas solicitações de compra e contratação"
+      ]
+    },
+    {
       "version": "1.2.83",
       "date": "2026-05-28",
       "summary": "fix: hamburguer mobile nao aparece mais no desktop",

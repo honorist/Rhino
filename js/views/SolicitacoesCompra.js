@@ -159,6 +159,7 @@ window.SolicitacoesCompra = {
             <span>${contrato ? '🏗️ ' + escapeHtml(contrato.name) : '🏢 Sede'}</span>
             <span>${itens.length} ${itens.length === 1 ? 'item' : 'itens'}</span>
             ${semValor ? '' : `<span><strong>${Store.formatBRL(parseFloat(s.valorTotal) || 0)}</strong></span>`}
+            ${s.dataDesejadaObra ? `<span style="color:var(--color-warning-dark);font-weight:600;">🏁 ${s.dataDesejadaObra.slice(8,10)}/${s.dataDesejadaObra.slice(5,7)}</span>` : ''}
           </div>
           ${actions ? `<div class="ui-kanban__card-actions">${actions}</div>` : ''}
         </div>`;
@@ -195,14 +196,15 @@ window.SolicitacoesCompra = {
               <thead>
                 <tr>
                   <th>Data</th><th>Solicitante</th><th>Destino</th>
-                  <th>Itens</th><th>Valor</th><th>Etapa</th><th>Ações</th>
+                  <th>Itens</th><th>Valor</th><th>Obra em</th><th>Etapa</th><th>Ações</th>
                 </tr>
               </thead>
               <tbody>
-                ${lista.length === 0 ? `<tr><td colspan="7" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhuma solicitação encontrada</td></tr>` : lista.map(s => {
+                ${lista.length === 0 ? `<tr><td colspan="8" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhuma solicitação encontrada</td></tr>` : lista.map(s => {
                   const contrato = contratos.find(c => c.id === s.contractId);
                   const itens = Array.isArray(s.itens) ? s.itens : (s.itens ? JSON.parse(s.itens) : []);
                   const semValor = s.status === 'pendente_avaliacao';
+                  const fmtDate = v => v ? v.slice(8,10)+'/'+v.slice(5,7)+'/'+v.slice(0,4) : '—';
                   return `
                   <tr>
                     <td>${s.createdAt ? new Date(s.createdAt).toLocaleDateString('pt-BR') : '—'}</td>
@@ -210,6 +212,7 @@ window.SolicitacoesCompra = {
                     <td>${contrato ? '🏗️ ' + escapeHtml(contrato.name) : '🏢 Sede'}</td>
                     <td>${itens.length} ${itens.length === 1 ? 'item' : 'itens'}</td>
                     <td>${semValor ? '<span class="text-muted">—</span>' : `<strong>${Store.formatBRL(parseFloat(s.valorTotal) || 0)}</strong>`}</td>
+                    <td>${s.dataDesejadaObra ? `<span style="color:var(--color-warning-dark);font-weight:600;">🏁 ${fmtDate(s.dataDesejadaObra)}</span>` : '<span class="text-muted">—</span>'}</td>
                     <td>${this._badgeEtapa(s.status)}</td>
                     <td>
                       <div class="actions-cell" style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -311,6 +314,11 @@ window.SolicitacoesCompra = {
               <label class="form-label">Justificativa *</label>
               <textarea class="form-control" name="justificativa" rows="2" required placeholder="Por que esses materiais são necessários?">${escapeHtml(s?.justificativa || '')}</textarea>
             </div>
+            <div class="form-group">
+              <label class="form-label">Quando precisa na obra?</label>
+              <input class="form-control" type="date" name="dataDesejadaObra" value="${s?.dataDesejadaObra ? s.dataDesejadaObra.slice(0, 10) : ''}" style="max-width:200px;">
+              <div style="font-size:12px;color:var(--color-text-muted);margin-top:4px;">Prazo que o financeiro deve ter como meta para a compra.</div>
+            </div>
             <div style="margin-top:var(--sp-lg);">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-sm);">
                 <h3 style="margin:0;font-size:16px;font-weight:700;">Itens solicitados</h3>
@@ -374,6 +382,7 @@ window.SolicitacoesCompra = {
         contractId = destino.slice(5);
         almoxarifadoDestinoId = `auto-obra:${contractId}`;
       }
+      const dataDesejadaObra = fd.get('dataDesejadaObra') || null;
 
       // Desabilita só depois de validar — se o envio falhar, reabilita p/ nova tentativa.
       const txtOrig = btnSalvar.textContent;
@@ -382,7 +391,7 @@ window.SolicitacoesCompra = {
       try {
         const url = s ? `/api/solicitacoes-compra/${s.id}` : '/api/solicitacoes-compra';
         const method = s ? 'PUT' : 'POST';
-        const payload = { itens, justificativa, contractId, almoxarifadoDestinoId };
+        const payload = { itens, justificativa, contractId, almoxarifadoDestinoId, dataDesejadaObra };
         const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
         window.showToast(s ? 'Solicitação atualizada' : 'Solicitação enviada para avaliação', 'success');

@@ -6539,6 +6539,7 @@ async function handlePostSolicitacaoCompra(req, body, res) {
       itens: JSON.stringify(itens),
       valorTotal: 0,
       justificativa: body.justificativa || '',
+      dataDesejadaObra: body.dataDesejadaObra || null,
       status: 'pendente_avaliacao',
     };
     const created = await repos.solicitacoesCompra.create(data);
@@ -6562,6 +6563,7 @@ async function handlePutSolicitacaoCompra(id, body, res) {
     if (body.itens !== undefined) {
       allowed.itens = JSON.stringify(_normalizaItensInicial(body.itens));
     }
+    if (body.dataDesejadaObra !== undefined) allowed.dataDesejadaObra = body.dataDesejadaObra || null;
     const result = await repos.solicitacoesCompra.updateById(id, allowed);
     sendJson(res, { solicitacao: result });
   } catch (e) { sendError(res, 400, e.message); }

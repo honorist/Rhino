@@ -88,6 +88,7 @@ window.Recrutamento = {
           <div class="ui-kanban__card-meta">
             <span>📅 ${data}</span>
             ${s.contractName ? `<span>🏗️ ${escapeHtml(s.contractName)}</span>` : ''}
+            ${s.dataDesejadaObra ? `<span style="color:var(--color-warning-dark);font-weight:600;">🏁 ${s.dataDesejadaObra.slice(8,10)}/${s.dataDesejadaObra.slice(5,7)}</span>` : ''}
           </div>
           <div style="font-size:13px;">
             <strong>${preenchidas}/${totalVagas}</strong> vagas
@@ -118,7 +119,7 @@ window.Recrutamento = {
                 <thead>
                   <tr>
                     <th>Solicitante</th><th>Data</th><th>Obra / Contrato</th>
-                    <th>Vagas</th><th>Status</th><th></th>
+                    <th>Vagas</th><th>Obra em</th><th>Status</th><th></th>
                   </tr>
                 </thead>
                 <tbody>${lista.map(s => this._tr(s)).join('')}</tbody>
@@ -162,12 +163,14 @@ window.Recrutamento = {
     const { bg, fg }   = this._statusCor(s.status);
     const label        = this._statusLabel(s.status);
 
+    const fmtDate = v => v ? v.slice(8,10)+'/'+v.slice(5,7)+'/'+v.slice(0,4) : '—';
     return `
       <tr style="cursor:pointer;" class="btn-abrir-sol" data-id="${s.id}">
         <td><strong>${escapeHtml(s.solicitanteNome || '—')}</strong></td>
         <td>${data}</td>
         <td>${escapeHtml(s.contractName || '—')}</td>
         <td>${preenchidas}/${totalVagas} · <span class="text-muted" style="font-size:13px;">${cargos || '—'}</span></td>
+        <td>${s.dataDesejadaObra ? `<span style="color:var(--color-warning-dark);font-weight:600;">🏁 ${fmtDate(s.dataDesejadaObra)}</span>` : '<span class="text-muted">—</span>'}</td>
         <td><span style="padding:2px 9px;border-radius:12px;font-size:11px;font-weight:700;background:${bg};color:${fg};">${label}</span></td>
         <td><a class="action-link">Abrir</a></td>
       </tr>
@@ -196,6 +199,11 @@ window.Recrutamento = {
                 <option value="">— Sem contrato específico —</option>
                 ${contratos}
               </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Quando precisa na obra?</label>
+              <input class="form-control" type="date" name="dataDesejadaObra" style="max-width:200px;">
+              <div style="font-size:12px;color:var(--color-text-muted);margin-top:4px;">Prazo que o RH deve ter como meta para a contratação.</div>
             </div>
 
             <div class="form-group" style="border:1px solid var(--color-border);border-radius:6px;padding:var(--sp-md);">
@@ -275,8 +283,9 @@ window.Recrutamento = {
 
   async _submitNova(close) {
     const form = document.getElementById('recrutFormNova');
-    const contractId  = form.querySelector('[name=contractId]').value;
-    const observacoes = form.querySelector('[name=observacoes]').value.trim();
+    const contractId       = form.querySelector('[name=contractId]').value;
+    const observacoes      = form.querySelector('[name=observacoes]').value.trim();
+    const dataDesejadaObra = form.querySelector('[name=dataDesejadaObra]').value || null;
     const cargos = [...form.querySelectorAll('[name="cargo[]"]')].map(i => i.value.trim());
     const qtds   = [...form.querySelectorAll('[name="qtd[]"]')].map(i => parseInt(i.value) || 0);
 
@@ -296,7 +305,7 @@ window.Recrutamento = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ contractId: contractId || null, observacoes: observacoes || undefined, vagas }),
+        body: JSON.stringify({ contractId: contractId || null, observacoes: observacoes || undefined, vagas, dataDesejadaObra }),
       });
       if (!resp.ok) { const d = await resp.json().catch(() => ({})); throw new Error(d.error || `HTTP ${resp.status}`); }
       window.showToast('Solicitação criada. RH foi notificado.', 'success');

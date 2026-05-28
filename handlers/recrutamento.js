@@ -130,6 +130,7 @@ async function criarSolicitacao(req, body, res) {
       solicitanteNome: user.name || user.email,
       status: 'aberta',
       observacoes: body.observacoes || null,
+      dataDesejadaObra: body.dataDesejadaObra || null,
     });
     const vagasCriadas = [];
     for (const v of vagas) {
