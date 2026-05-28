@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.3.0",
+      "date": "2026-05-28",
+      "summary": "Agenda: visualização cronológica de todos os eventos futuros do sistema (NFs, contas, marcos, documentos, SCs)",
+      "changes": [
+        "Agenda: visualização cronológica de todos os eventos futuros do sistema (NFs, contas, marcos, documentos, SCs)"
+      ]
+    },
+    {
       "version": "1.2.86",
       "date": "2026-05-28",
       "summary": "Histórico de Cotações: compare preços de fornecedores por item ao longo das SCs",

@@ -70,6 +70,7 @@ module.exports = function registerPlatform(router, deps) {
     sendJson(ctx.res, { ok: true, message: `Backup iniciado — será enviado para ${dest}` });
   });
   router.get('/api/anomalias',            (ctx) => deps.handleGetAnomalias(ctx.res));
+  router.get('/api/agenda/eventos',       (ctx) => deps.handleAgendaEventos(ctx.parsedUrl.query, ctx.res));
   router.get('/api/lgpd/export',          (ctx) => deps.handleLgpdExport(ctx.req, ctx.res));
   router.post('/api/lgpd/delete-account', (ctx) => deps.handleLgpdDelete(ctx.req, ctx.res));
 };

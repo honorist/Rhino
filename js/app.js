@@ -35,6 +35,7 @@ const _lazyManifest = {
   '#/usuarios':            { viewName: 'Usuarios',           scripts: ['./js/views/Usuarios.js'] },
   '#/solicitacoes-compra': { viewName: 'SolicitacoesCompra', scripts: ['./js/views/SolicitacoesCompra.js'] },
   '#/cotacoes-historico':  { viewName: 'CotacoesHistorico',  scripts: ['./js/views/CotacoesHistorico.js'] },
+  '#/agenda':              { viewName: 'Agenda',              scripts: ['./js/views/Agenda.js'] },
   '#/manutencao':          { viewName: 'Manutencao',         scripts: ['./js/views/Manutencao.js'] },
   '#/frota':               { viewName: 'Frota',              scripts: ['./js/views/Frota.js'] },
   '#/estoque':             { viewName: 'Estoque',            scripts: ['./js/views/Estoque.js'] },
@@ -90,6 +91,7 @@ async function _loadLazyForPattern(pattern) {
 
 const routes = {
   '#/dashboard':    { view: window.Dashboard,      label: 'Dashboard',       icon: _ic('home') },
+  '#/agenda':       { view: window.Agenda,         label: 'Agenda',          icon: _ic('calendar') },
   '#/proposta':     { view: null,                  label: 'Propostas',       icon: _ic('file-text') },
   '#/proposta/:id': { view: null,                  label: null,              icon: null },
   '#/clausulas':    { view: null,                  label: null,              icon: null },
@@ -517,7 +519,7 @@ const perfil = {
     // (controle fino fica em cada tela, ex: ver/editar).
     // #/usuarios e #/auditoria NÃO são universais: exigem a permissão nas abas
     // — senão abririam vazias (dados barrados no servidor) para quem não tem acesso.
-    const universais = ['#/manual', '#/rdos', '#/estoque', '#/comparativo', '#/solicitacoes-compra', '#/cotacoes-historico', '#/manutencao', '#/frota', '#/proposta', '#/clausulas', '#/apresentacao', '#/recrutamento', '#/cronograma-geral'];
+    const universais = ['#/manual', '#/rdos', '#/estoque', '#/comparativo', '#/agenda', '#/solicitacoes-compra', '#/cotacoes-historico', '#/manutencao', '#/frota', '#/proposta', '#/clausulas', '#/apresentacao', '#/recrutamento', '#/cronograma-geral'];
     if (universais.includes(base)) return true;
     return abas.includes(base);
   },

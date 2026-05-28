@@ -4730,6 +4730,7 @@ registerPlatform(apiRouter, {
   handlePushSubscribe, handlePushUnsubscribe,
   handleDashboard, handleBackup, handleBackupDownload, _runEmailBackup,
   handleGetAnomalias, handleLgpdExport, handleLgpdDelete,
+  handleAgendaEventos,
 });
 registerFinanceiro(apiRouter, {
   withIdempotency,
@@ -4822,6 +4823,142 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   // direto na serveStaticFile, que devolve o index.html quando o arquivo não
   // existe. Sem o modo cutover, a allowlist em serveStaticFile devolve 404.
   serveStaticFile(pathname, res);
+}
+
+// ============ Agenda de Eventos ============
+
+async function handleAgendaEventos(query, res) {
+  try {
+    const days = Math.min(Math.max(parseInt(query.days) || 30, 1), 365);
+
+    const [nfs, contas, marcos, recursos, scs, contratacoes] = await Promise.all([
+      // 1. Notas Fiscais não emitidas com data_limite próxima
+      db.getMany(`
+        SELECT id, numero AS titulo, contract_id, data_limite AS data,
+               valor, 'nf' AS tipo
+        FROM notas_fiscais
+        WHERE emitida = FALSE
+          AND data_limite IS NOT NULL
+          AND data_limite BETWEEN CURRENT_DATE AND CURRENT_DATE + $1
+        ORDER BY data_limite
+      `, [days]),
+
+      // 2. Contas a pagar em aberto com vencimento próximo
+      db.getMany(`
+        SELECT cp.id, cp.descricao AS titulo, cp.contract_id, cp.data_vencimento AS data,
+               cp.valor, 'cp' AS tipo,
+               f.nome AS fornecedor_nome
+        FROM contas_pagar cp
+        LEFT JOIN fornecedores f ON f.id = cp.fornecedor_id
+        WHERE cp.status = 'aberto'
+          AND cp.data_vencimento IS NOT NULL
+          AND cp.data_vencimento BETWEEN CURRENT_DATE AND CURRENT_DATE + $1
+        ORDER BY cp.data_vencimento
+      `, [days]),
+
+      // 3. Marcos de contrato não concluídos com prazo próximo
+      db.getMany(`
+        SELECT m.id, m.titulo, m.contract_id, m.prazo AS data,
+               c.name AS contract_name, 'marco' AS tipo
+        FROM contract_marcos m
+        JOIN contracts c ON c.id = m.contract_id
+        WHERE m.concluido = FALSE
+          AND m.prazo IS NOT NULL
+          AND m.prazo BETWEEN CURRENT_DATE AND CURRENT_DATE + $1
+        ORDER BY m.prazo
+      `, [days]),
+
+      // 4. Documentos de colaboradores com vencimento próximo (JSONB)
+      db.getMany(`
+        SELECT
+          r.id    AS recurso_id,
+          r.nome  AS recurso_nome,
+          r.contract_id,
+          d.val->>'tipo'           AS doc_tipo,
+          d.val->>'tipoLabel'      AS doc_label,
+          (d.val->>'dataVencimento')::date AS data,
+          'doc' AS tipo
+        FROM recursos r,
+             jsonb_array_elements(r.documentos) AS d(val)
+        WHERE r.status = 'funcionario'
+          AND (d.val->>'dataVencimento') IS NOT NULL
+          AND (d.val->>'dataVencimento') <> ''
+          AND (d.val->>'dataVencimento')::date BETWEEN CURRENT_DATE AND CURRENT_DATE + $1
+        ORDER BY (d.val->>'dataVencimento')::date
+      `, [days]),
+
+      // 5. Solicitações de compra com data_desejada_obra próxima (ainda abertas)
+      db.getMany(`
+        SELECT sc.id, sc.justificativa AS titulo, sc.contract_id,
+               sc.data_desejada_obra AS data,
+               sc.solicitante_nome,
+               c.name AS contract_name, 'compra' AS tipo
+        FROM solicitacoes_compra sc
+        LEFT JOIN contracts c ON c.id = sc.contract_id
+        WHERE sc.status NOT IN ('recebida','cancelada','rejeitada')
+          AND sc.data_desejada_obra IS NOT NULL
+          AND sc.data_desejada_obra BETWEEN CURRENT_DATE AND CURRENT_DATE + $1
+        ORDER BY sc.data_desejada_obra
+      `, [days]),
+
+      // 6. Solicitações de contratação com data_desejada_obra próxima (ainda abertas)
+      db.getMany(`
+        SELECT sc.id, sc.observacoes AS titulo, sc.contract_id,
+               sc.data_desejada_obra AS data,
+               sc.solicitante_nome,
+               c.name AS contract_name, 'contratacao' AS tipo
+        FROM solicitacoes_contratacao sc
+        LEFT JOIN contracts c ON c.id = sc.contract_id
+        WHERE sc.status = 'aberta'
+          AND sc.data_desejada_obra IS NOT NULL
+          AND sc.data_desejada_obra BETWEEN CURRENT_DATE AND CURRENT_DATE + $1
+        ORDER BY sc.data_desejada_obra
+      `, [days]),
+    ]);
+
+    const fmt = (row) => row.data
+      ? (row.data instanceof Date ? row.data.toISOString().slice(0, 10) : String(row.data).slice(0, 10))
+      : null;
+
+    const eventos = [
+      ...nfs.map(r => ({
+        tipo: 'nf', data: fmt(r), titulo: `NF ${r.titulo || r.id}`,
+        subtitulo: `Vence em ${fmt(r)}`,
+        href: '#/notas-fiscais', valor: r.valor,
+      })),
+      ...contas.map(r => ({
+        tipo: 'cp', data: fmt(r), titulo: r.titulo || 'Conta a pagar',
+        subtitulo: r.fornecedorNome ? `Fornecedor: ${r.fornecedorNome}` : `Vence em ${fmt(r)}`,
+        href: '#/contas-pagar', valor: r.valor,
+      })),
+      ...marcos.map(r => ({
+        tipo: 'marco', data: fmt(r), titulo: r.titulo,
+        subtitulo: r.contractName ? `Obra: ${r.contractName}` : '',
+        href: r.contractId ? `#/contratos/${r.contractId}` : '#/contratos',
+      })),
+      ...recursos.map(r => ({
+        tipo: 'doc', data: fmt(r), titulo: r.recursoNome || '—',
+        subtitulo: r.docLabel || r.docTipo || 'Documento',
+        href: '#/recursos',
+      })),
+      ...scs.map(r => ({
+        tipo: 'compra', data: fmt(r),
+        titulo: `SC: ${(r.titulo || 'Solicitação de compra').slice(0, 60)}`,
+        subtitulo: r.contractName ? `Obra: ${r.contractName}` : (r.solicitanteNome || ''),
+        href: '#/solicitacoes-compra',
+      })),
+      ...contratacoes.map(r => ({
+        tipo: 'contratacao', data: fmt(r),
+        titulo: `Contratação: ${(r.titulo || 'Solicitação').slice(0, 60) || '—'}`,
+        subtitulo: r.contractName ? `Obra: ${r.contractName}` : (r.solicitanteNome || ''),
+        href: '#/recrutamento',
+      })),
+    ]
+      .filter(e => e.data)
+      .sort((a, b) => a.data.localeCompare(b.data));
+
+    sendJson(res, { eventos });
+  } catch (e) { sendError(res, 500, e.message); }
 }
 
 // ============ F6: Anomaly Detection ============
