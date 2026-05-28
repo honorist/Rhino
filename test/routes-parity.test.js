@@ -129,13 +129,13 @@ test('routes/portal.js — pdf e docx recebem (req, id, res)', async () => {
 
 // ─── routes/platform.js ──────────────────────────────────────────────────────
 
-test('routes/platform.js — registra exatamente as 29 rotas de plataforma', () => {
+test('routes/platform.js — registra exatamente as 30 rotas de plataforma', () => {
   const router = createRouter();
   require('../routes/platform')(router, {});
   const rotas = router.list().map(r => `${r.method} ${r.pattern}`).sort();
   assert.deepEqual(rotas, [
     'DELETE /api/users/:id',
-    'GET /api/admin/arquivos', 'GET /api/ai-usage/stats', 'GET /api/anomalias',
+    'GET /api/admin/arquivos', 'GET /api/agenda/eventos', 'GET /api/ai-usage/stats', 'GET /api/anomalias',
     'GET /api/audit', 'GET /api/backup/download', 'GET /api/changelog', 'GET /api/dashboard',
     'GET /api/feature-flags', 'GET /api/health', 'GET /api/lgpd/export',
     'GET /api/metrics', 'GET /api/niveis-acesso', 'GET /api/online',
@@ -396,7 +396,7 @@ test('routes/comercial.js — proposta/:id não engole as sub-rotas (docx etc.)'
 // ─── routes/operacao.js (recursos, documentos, estoque, solicitações, ────────
 //     manutenções, frota, dashboard-layouts, doc-templates) ──────────────────
 
-test('routes/operacao.js — registra exatamente as 71 rotas de operação', () => {
+test('routes/operacao.js — registra exatamente as 72 rotas de operação', () => {
   const router = createRouter();
   require('../routes/operacao')(router, {});
   const rotas = router.list().map(r => `${r.method} ${r.pattern}`).sort();
@@ -409,6 +409,7 @@ test('routes/operacao.js — registra exatamente as 71 rotas de operação', () 
     'DELETE /api/solicitacoes-compra/:id', 'DELETE /api/veiculos/:id',
     'DELETE /api/veiculos/:id/abastecimentos/:abastecId',
     'DELETE /api/veiculos/:id/manutencoes/:manutId', 'DELETE /api/veiculos/:id/planos/:planoId',
+    'GET /api/cotacoes-historico',
     'GET /api/dashboard/layouts', 'GET /api/doc-templates', 'GET /api/documentos/status',
     'GET /api/estoque/almoxarifados', 'GET /api/estoque/itens', 'GET /api/estoque/movimentacoes',
     'GET /api/estoque/saldo', 'GET /api/estoque/visao-geral', 'GET /api/manutencoes',
