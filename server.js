@@ -4772,6 +4772,7 @@ registerOperacao(apiRouter, {
   handleListSolicitacoesCompra, handlePostSolicitacaoCompra, handlePutSolicitacaoCompra,
   handleDeleteSolicitacaoCompra, handleAvaliarSolicitacao, handleCancelarSolicitacao,
   handleAprovarSolicitacao, handleRejeitarSolicitacao, handleComprarSolicitacao, handleReceberSolicitacao,
+  handleCotacoesHistorico,
   handleListManutencoes, handlePostManutencao, handlePutManutencao, handleDeleteManutencao,
   handleRetornoManutencao, handleCancelarManutencao, handleAvaliarManutencao,
   handleAprovarManutencao, handleRejeitarManutencao,
@@ -6577,6 +6578,44 @@ async function handleDeleteSolicitacaoCompra(id, res) {
     await repos.solicitacoesCompra.removeById(id);
     sendJson(res, { ok: true });
   } catch (e) { sendError(res, 400, e.message); }
+}
+
+// ============ Histórico de Cotações ============
+
+async function handleCotacoesHistorico(query, res) {
+  try {
+    const params = [];
+    let itemFilter = '';
+    if (query.item) {
+      params.push(`%${query.item}%`);
+      itemFilter = `AND t1.item_v->>'descricao' ILIKE $${params.length}`;
+    }
+    const sql = `
+      SELECT
+        sc.numero::text           AS sc_numero,
+        sc.created_at,
+        sc.contract_id,
+        c.name                    AS contract_name,
+        t1.item_v->>'descricao'   AS item_descricao,
+        t2.cot_v->>'fornecedorNome' AS fornecedor,
+        t2.cot_v->>'fornecedorId'   AS fornecedor_id,
+        COALESCE((t2.cot_v->>'precoUnit')::numeric, 0) AS valor,
+        (t2.cot_ord - 1) = COALESCE((t1.item_v->>'cotacaoEscolhidaIdx')::int, -1) AS venceu
+      FROM solicitacoes_compra sc
+      LEFT JOIN contracts c ON c.id = sc.contract_id,
+        jsonb_array_elements(sc.itens) AS t1(item_v),
+        jsonb_array_elements(t1.item_v -> 'cotacoes') WITH ORDINALITY AS t2(cot_v, cot_ord)
+      WHERE sc.status NOT IN ('cancelada')
+        AND jsonb_typeof(t1.item_v -> 'cotacoes') = 'array'
+        AND jsonb_array_length(t1.item_v -> 'cotacoes') > 0
+        AND (t2.cot_v->>'fornecedorNome') IS NOT NULL
+        ${itemFilter}
+      ORDER BY sc.created_at DESC
+      LIMIT 1000
+    `;
+    const rows = await db.getMany(sql, params);
+    sendJson(res, { cotacoes: rows });
+  } catch (e) { sendError(res, 500, e.message); }
 }
 
 // ============ Manutenção de Equipamentos ============

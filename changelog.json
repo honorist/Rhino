@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.2.86",
+      "date": "2026-05-28",
+      "summary": "Histórico de Cotações: compare preços de fornecedores por item ao longo das SCs",
+      "changes": [
+        "Histórico de Cotações: compare preços de fornecedores por item ao longo das SCs"
+      ]
+    },
+    {
       "version": "1.2.85",
       "date": "2026-05-28",
       "summary": "Exportação de RDOs por período: gera PDF único com capa, sumário e todos os RDOs do intervalo",

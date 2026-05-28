@@ -55,6 +55,7 @@ module.exports = function registerOperacao(router, deps) {
   router.post('/api/solicitacoes-compra/:id/rejeitar', (ctx) => deps.handleRejeitarSolicitacao(ctx.req, ctx.params[0], ctx.body, ctx.res));
   router.post('/api/solicitacoes-compra/:id/comprar',  (ctx) => deps.handleComprarSolicitacao(ctx.req, ctx.params[0], ctx.body, ctx.res));
   router.post('/api/solicitacoes-compra/:id/receber',  (ctx) => deps.handleReceberSolicitacao(ctx.req, ctx.params[0], ctx.body, ctx.res));
+  router.get('/api/cotacoes-historico', (ctx) => deps.handleCotacoesHistorico(ctx.parsedUrl.query, ctx.res));
 
   // ── Manutenção de equipamentos ──
   router.get('/api/manutencoes',        (ctx) => deps.handleListManutencoes(ctx.parsedUrl.query, ctx.res));

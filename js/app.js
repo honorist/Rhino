@@ -34,6 +34,7 @@ const _lazyManifest = {
   '#/conciliacao':         { viewName: 'Conciliacao',        scripts: ['./js/views/Conciliacao.js'] },
   '#/usuarios':            { viewName: 'Usuarios',           scripts: ['./js/views/Usuarios.js'] },
   '#/solicitacoes-compra': { viewName: 'SolicitacoesCompra', scripts: ['./js/views/SolicitacoesCompra.js'] },
+  '#/cotacoes-historico':  { viewName: 'CotacoesHistorico',  scripts: ['./js/views/CotacoesHistorico.js'] },
   '#/manutencao':          { viewName: 'Manutencao',         scripts: ['./js/views/Manutencao.js'] },
   '#/frota':               { viewName: 'Frota',              scripts: ['./js/views/Frota.js'] },
   '#/estoque':             { viewName: 'Estoque',            scripts: ['./js/views/Estoque.js'] },
@@ -113,6 +114,7 @@ const routes = {
   '#/base':         { view: window.Base,           label: 'BASE',            icon: _ic('database'),    group: 'financeiro' },
   '#/estoque':      { view: window.Estoque,        label: 'Almoxarifado',    icon: _ic('package'),     group: 'obras' },
   '#/solicitacoes-compra': { view: window.SolicitacoesCompra, label: 'Solicitações de Compra', icon: _ic('shopping-cart'), group: 'obras' },
+  '#/cotacoes-historico':  { view: window.CotacoesHistorico,  label: 'Histórico de Cotações',  icon: _ic('bar-chart-2'),  group: 'obras' },
   '#/manutencao':   { view: window.Manutencao,      label: 'Manutenção',      icon: _ic('wrench'),      group: 'obras' },
   '#/frota':        { view: window.Frota,           label: 'Frota',           icon: _ic('truck'),       group: 'obras' },
   '#/cronograma-geral': { view: window.CronogramaGeral, label: 'Cronograma',  icon: _ic('calendar'),    group: 'obras' },
@@ -515,7 +517,7 @@ const perfil = {
     // (controle fino fica em cada tela, ex: ver/editar).
     // #/usuarios e #/auditoria NÃO são universais: exigem a permissão nas abas
     // — senão abririam vazias (dados barrados no servidor) para quem não tem acesso.
-    const universais = ['#/manual', '#/rdos', '#/estoque', '#/comparativo', '#/solicitacoes-compra', '#/manutencao', '#/frota', '#/proposta', '#/clausulas', '#/apresentacao', '#/recrutamento', '#/cronograma-geral'];
+    const universais = ['#/manual', '#/rdos', '#/estoque', '#/comparativo', '#/solicitacoes-compra', '#/cotacoes-historico', '#/manutencao', '#/frota', '#/proposta', '#/clausulas', '#/apresentacao', '#/recrutamento', '#/cronograma-geral'];
     if (universais.includes(base)) return true;
     return abas.includes(base);
   },
