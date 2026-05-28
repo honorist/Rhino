@@ -4831,20 +4831,26 @@ async function handleAgendaEventos(query, res) {
   try {
     const days = Math.min(Math.max(parseInt(query.days) || 30, 1), 365);
 
+    // Cada query é isolada: se uma falhar, retorna [] e loga o erro sem derrubar as demais.
+    async function safe(label, fn) {
+      try { return await fn(); }
+      catch (e) { console.error(`[agenda/${label}]`, e.message); return []; }
+    }
+
     const [nfs, contas, marcos, docsRec, scs, contratacoes] = await Promise.all([
       // 1. Notas Fiscais não emitidas com data_limite próxima
-      db.getMany(`
+      safe('nfs', () => db.getMany(`
         SELECT id, numero AS titulo, contract_id, data_limite AS data,
                valor, 'nf' AS tipo
         FROM notas_fiscais
         WHERE emitida = FALSE
           AND data_limite IS NOT NULL
-          AND data_limite BETWEEN CURRENT_DATE AND CURRENT_DATE + $1
+          AND data_limite BETWEEN CURRENT_DATE AND CURRENT_DATE + $1::integer
         ORDER BY data_limite
-      `, [days]),
+      `, [days])),
 
       // 2. Contas a pagar em aberto com vencimento próximo
-      db.getMany(`
+      safe('contas', () => db.getMany(`
         SELECT cp.id, cp.descricao AS titulo, cp.contract_id, cp.data_vencimento AS data,
                cp.valor, 'cp' AS tipo,
                f.nome AS fornecedor_nome
@@ -4852,26 +4858,26 @@ async function handleAgendaEventos(query, res) {
         LEFT JOIN fornecedores f ON f.id = cp.fornecedor_id
         WHERE cp.status = 'aberto'
           AND cp.data_vencimento IS NOT NULL
-          AND cp.data_vencimento BETWEEN CURRENT_DATE AND CURRENT_DATE + $1
+          AND cp.data_vencimento BETWEEN CURRENT_DATE AND CURRENT_DATE + $1::integer
         ORDER BY cp.data_vencimento
-      `, [days]),
+      `, [days])),
 
       // 3. Marcos de contrato não concluídos com prazo próximo
-      db.getMany(`
+      safe('marcos', () => db.getMany(`
         SELECT m.id, m.titulo, m.contract_id, m.prazo AS data,
                c.name AS contract_name, 'marco' AS tipo
         FROM contract_marcos m
         JOIN contracts c ON c.id = m.contract_id
         WHERE m.concluido = FALSE
           AND m.prazo IS NOT NULL
-          AND m.prazo BETWEEN CURRENT_DATE AND CURRENT_DATE + $1
+          AND m.prazo BETWEEN CURRENT_DATE AND CURRENT_DATE + $1::integer
         ORDER BY m.prazo
-      `, [days]),
+      `, [days])),
 
       // 4. Documentos de colaboradores com vencimento próximo (JSONB).
       // COALESCE protege contra documentos = NULL em linhas antigas.
-      // Subquery valida formato antes do ::date para evitar cast inválido.
-      db.getMany(`
+      // Subquery valida formato de data antes do cast para evitar erro no PostgreSQL.
+      safe('docs', () => db.getMany(`
         SELECT recurso_id, recurso_nome, doc_tipo, doc_label,
                data_venc::date AS data, 'doc' AS tipo
         FROM (
@@ -4887,12 +4893,12 @@ async function handleAgendaEventos(query, res) {
             AND (d.val->>'dataVencimento') IS NOT NULL
             AND (d.val->>'dataVencimento') ~ '^\\d{4}-\\d{2}-\\d{2}$'
         ) sub
-        WHERE sub.data_venc::date BETWEEN CURRENT_DATE AND CURRENT_DATE + $1
+        WHERE sub.data_venc::date BETWEEN CURRENT_DATE AND CURRENT_DATE + $1::integer
         ORDER BY sub.data_venc::date
-      `, [days]),
+      `, [days])),
 
-      // 5. Solicitações de compra com data_desejada_obra próxima (ainda abertas)
-      db.getMany(`
+      // 5. Solicitações de compra com data_desejada_obra próxima
+      safe('scs', () => db.getMany(`
         SELECT sc.id, sc.justificativa AS titulo, sc.contract_id,
                sc.data_desejada_obra AS data,
                sc.solicitante_nome,
@@ -4901,12 +4907,12 @@ async function handleAgendaEventos(query, res) {
         LEFT JOIN contracts c ON c.id = sc.contract_id
         WHERE sc.status NOT IN ('recebida','cancelada','rejeitada')
           AND sc.data_desejada_obra IS NOT NULL
-          AND sc.data_desejada_obra BETWEEN CURRENT_DATE AND CURRENT_DATE + $1
+          AND sc.data_desejada_obra BETWEEN CURRENT_DATE AND CURRENT_DATE + $1::integer
         ORDER BY sc.data_desejada_obra
-      `, [days]),
+      `, [days])),
 
-      // 6. Solicitações de contratação com data_desejada_obra próxima (ainda abertas)
-      db.getMany(`
+      // 6. Solicitações de contratação com data_desejada_obra próxima
+      safe('contratacoes', () => db.getMany(`
         SELECT sc.id, sc.observacoes AS titulo, sc.contract_id,
                sc.data_desejada_obra AS data,
                sc.solicitante_nome,
@@ -4915,9 +4921,9 @@ async function handleAgendaEventos(query, res) {
         LEFT JOIN contracts c ON c.id = sc.contract_id
         WHERE sc.status = 'aberta'
           AND sc.data_desejada_obra IS NOT NULL
-          AND sc.data_desejada_obra BETWEEN CURRENT_DATE AND CURRENT_DATE + $1
+          AND sc.data_desejada_obra BETWEEN CURRENT_DATE AND CURRENT_DATE + $1::integer
         ORDER BY sc.data_desejada_obra
-      `, [days]),
+      `, [days])),
     ]);
     const recursos = docsRec;
 
@@ -4963,7 +4969,7 @@ async function handleAgendaEventos(query, res) {
       .sort((a, b) => a.data.localeCompare(b.data));
 
     sendJson(res, { eventos });
-  } catch (e) { sendError(res, 500, e.message); }
+  } catch (e) { console.error('[agenda/eventos]', e); sendError(res, 500, e.message); }
 }
 
 // ============ F6: Anomaly Detection ============
