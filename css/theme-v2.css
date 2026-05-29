@@ -24,7 +24,7 @@
   /* Neutros — escala completa para hierarquia */
   --rh-ink-900: #0F172A;
   --rh-ink-700: #334155;
-  --rh-ink-500: #64748B;
+  --rh-ink-500: #5E6A7D;  /* a11y: 4.98:1 no fundo cinza (#64748B dava 4.32, falhava AA) */
   --rh-ink-300: #CBD5E1;
   --rh-ink-200: #E2E8F0;
   --rh-ink-100: #F1F5F9;

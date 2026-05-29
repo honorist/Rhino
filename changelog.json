@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.4.4",
+      "date": "2026-05-29",
+      "summary": "Acessibilidade: textos secundários em cinza mais legíveis (contraste AA)",
+      "changes": [
+        "Os textos secundários em cinza ficaram levemente mais escuros para passar no contraste mínimo de leitura (WCAG AA) sobre o fundo claro."
+      ]
+    },
+    {
       "version": "1.4.3",
       "date": "2026-05-29",
       "summary": "Acessibilidade: janelas (modais) e formulários melhores para teclado e leitor de tela",
