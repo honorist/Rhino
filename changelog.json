@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.4.6",
+      "date": "2026-05-29",
+      "summary": "Linha do tempo do contrato com ícones vetoriais (SVG) no lugar de emojis",
+      "changes": [
+        "A linha do tempo do contrato passou a usar ícones vetoriais (visual mais profissional e consistente); ocorrências mantêm a cor por severidade (vermelho/âmbar/verde)."
+      ]
+    },
+    {
       "version": "1.4.5",
       "date": "2026-05-29",
       "summary": "Tecla Esc fecha a janela (modal) aberta",

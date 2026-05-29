@@ -1234,30 +1234,30 @@ window.ContratoDetail = {
     const events = [];
 
     // Início e fim do contrato
-    if (contract.startDate) events.push({ date: contract.startDate, tipo: 'contrato', icon: '📋', label: 'Início do contrato', desc: contract.name });
-    if (contract.endDate)   events.push({ date: contract.endDate,   tipo: 'contrato', icon: '🏁', label: 'Fim do contrato',   desc: contract.name });
+    if (contract.startDate) events.push({ date: contract.startDate, tipo: 'contrato', icon: 'clipboard',    label: 'Início do contrato', desc: contract.name });
+    if (contract.endDate)   events.push({ date: contract.endDate,   tipo: 'contrato', icon: 'check-circle', label: 'Fim do contrato',   desc: contract.name });
 
     // Aditivos
     (contract.aditivos || []).forEach(a => {
-      if (a.data) events.push({ date: a.data, tipo: 'aditivo', icon: '➕', label: `Aditivo${a.numero ? ' #' + a.numero : ''}: ${a.tipo === 'valor' ? 'Valor' : a.tipo === 'prazo' ? 'Prazo' : 'Valor+Prazo'}`, desc: a.descricao });
+      if (a.data) events.push({ date: a.data, tipo: 'aditivo', icon: 'plus-circle', label: `Aditivo${a.numero ? ' #' + a.numero : ''}: ${a.tipo === 'valor' ? 'Valor' : a.tipo === 'prazo' ? 'Prazo' : 'Valor+Prazo'}`, desc: a.descricao });
     });
 
     // Marcos
     (contract.marcos || []).forEach(m => {
-      if (m.prazo) events.push({ date: m.prazo, tipo: 'marco', icon: m.concluido ? '✅' : '🎯', label: `Marco: ${m.titulo}`, desc: m.concluido ? `Concluído${m.concluidoEm ? ' em ' + fmtDate(m.concluidoEm) : ''}` : 'Pendente' });
+      if (m.prazo) events.push({ date: m.prazo, tipo: 'marco', icon: m.concluido ? 'check-circle' : 'circle', label: `Marco: ${m.titulo}`, desc: m.concluido ? `Concluído${m.concluidoEm ? ' em ' + fmtDate(m.concluidoEm) : ''}` : 'Pendente' });
     });
 
     // Ocorrências
     (contract.ocorrencias || []).forEach(o => {
       if (o.data) {
-        const sev = o.severidade === 'alta' ? '🔴' : o.severidade === 'media' ? '🟡' : '🟢';
-        events.push({ date: o.data, tipo: 'ocorrencia', icon: sev, label: `Ocorrência${o.encerrada ? ' (encerrada)' : ''}`, desc: o.descricao });
+        const sevCor = o.severidade === 'alta' ? '#DC2626' : o.severidade === 'media' ? '#D97706' : '#059669';
+        events.push({ date: o.data, tipo: 'ocorrencia', icon: 'alert-triangle', iconColor: sevCor, label: `Ocorrência${o.encerrada ? ' (encerrada)' : ''}`, desc: o.descricao });
       }
     });
 
     // RDOs
     (contract.rdos || []).forEach(r => {
-      if (r.date) events.push({ date: r.date, tipo: 'rdo', icon: '📝', label: `RDO — ${r.condition || ''}`, desc: null });
+      if (r.date) events.push({ date: r.date, tipo: 'rdo', icon: 'file-text', label: `RDO — ${r.condition || ''}`, desc: null });
     });
 
     // Medições (notas fiscais vinculadas)
@@ -1267,7 +1267,7 @@ window.ContratoDetail = {
       if (d) {
         const dateStr = d.length > 10 ? d.slice(0, 10) : d;
         const val = parseFloat(nf.valor) || 0;
-        events.push({ date: dateStr, tipo: 'medicao', icon: '💰', label: `Medição${nf.numero ? ' #' + nf.numero : ''}${nf.emitida ? ' ✓' : ''}`, desc: val ? `R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : null });
+        events.push({ date: dateStr, tipo: 'medicao', icon: 'dollar-sign', label: `Medição${nf.numero ? ' #' + nf.numero : ''}${nf.emitida ? ' ✓' : ''}`, desc: val ? `R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : null });
       }
     });
 
@@ -1306,10 +1306,13 @@ window.ContratoDetail = {
                     <span style="font-size:12px;color:var(--color-text-muted);">${fmtDate(ev.date) || ev.date}</span>
                     ${!isPast ? `<span style="font-size:10px;background:var(--color-surface-2);color:var(--color-text-muted);padding:1px 6px;border-radius:8px;">futuro</span>` : ''}
                   </div>
-                  <!-- label/desc derivam de dados editáveis (nome do contrato,
-                       título do marco, descrição da ocorrência...) → escapeHtml
-                       para evitar XSS armazenado. icon é sempre emoji literal. -->
-                  <div style="font-size:14px;font-weight:600;color:var(--color-text);">${ev.icon} ${escapeHtml(ev.label)}</div>
+                  <!-- label/desc vêm de dados editáveis → escapeHtml (anti-XSS).
+                       ev.icon é NOME de ícone (SVG via window.rhIcon), colorido
+                       por ev.iconColor (severidade) ou pela cor do tipo. -->
+                  <div style="font-size:14px;font-weight:600;color:var(--color-text);display:flex;align-items:center;gap:6px;">
+                    <span style="color:${ev.iconColor || color};display:inline-flex;flex:0 0 auto;">${window.rhIcon ? window.rhIcon(ev.icon, 15) : ''}</span>
+                    <span>${escapeHtml(ev.label)}</span>
+                  </div>
                   ${ev.desc ? `<div style="font-size:13px;color:var(--color-text-muted);margin-top:2px;">${escapeHtml(ev.desc)}</div>` : ''}
                 </div>
               </div>`;
