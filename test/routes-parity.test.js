@@ -156,7 +156,7 @@ test('routes/platform.js — :param e ordens de argumentos não-triviais', () =>
     handlePutUser:        (req, id, body, res) => { c.putUser = [req, id, body, res]; },
     handleDeleteUser:     (id, req, res)      => { c.delUser = [id, req, res]; },
     handleMetrics:        (res, req)          => { c.metrics = [res, req]; },
-    handleGetAudit:       (query, res)        => { c.audit = [query, res]; },
+    handleGetAudit:       (req, query, res)   => { c.audit = [req, query, res]; },
     handlePutFeatureFlag: (id, body, res)     => { c.ff = [id, body, res]; },
     handlePutNivelAcesso: (id, body, res)     => { c.nivel = [id, body, res]; },
   });
@@ -172,7 +172,7 @@ test('routes/platform.js — :param e ordens de argumentos não-triviais', () =>
   assert.deepEqual(c.metrics, ['RES', 'REQ']); // res vem primeiro
 
   router.dispatch({ ...base, method: 'GET', pathname: '/api/audit' });
-  assert.deepEqual(c.audit, ['QUERY', 'RES']); // parsedUrl.query
+  assert.deepEqual(c.audit, ['REQ', 'QUERY', 'RES']); // req (p/ perms.can) + parsedUrl.query + res
 
   router.dispatch({ ...base, method: 'PUT', pathname: '/api/feature-flags/F1' });
   assert.deepEqual(c.ff, ['F1', 'BODY', 'RES']);

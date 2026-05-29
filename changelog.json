@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.4.1",
+      "date": "2026-05-29",
+      "summary": "Acessibilidade: troca de página anunciada a leitores de tela e melhorias no menu lateral",
+      "changes": [
+        "Leitores de tela passam a anunciar a troca de página, e o foco do teclado vai direto para o conteúdo.",
+        "Menu lateral marca a página atual e expõe o estado (aberto/fechado) dos grupos para tecnologias assistivas."
+      ]
+    },
+    {
       "version": "1.4.0",
       "date": "2026-05-29",
       "summary": "Segurança e LGPD: CPF e documentos com criptografia, IA com limite e correções de proteção",

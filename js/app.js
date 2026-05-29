@@ -999,7 +999,7 @@ function renderSidebar(opts) {
     const open = g.key === grupoAbertoKey;
     return `
       <li class="nav-group-item">
-        <button class="nav-group-header" id="${g.btnId}" data-group="${g.key}" data-tooltip="${g.label}">
+        <button class="nav-group-header" id="${g.btnId}" data-group="${g.key}" data-tooltip="${g.label}" aria-expanded="${open}">
           <span class="nav-icon">${g.icon}</span>
           <span class="nav-group-label">${g.label}</span>
           ${!open && g.alertCount > 0 ? `<span class="nav-badge-alert" title="${g.alertCount} alerta(s) neste grupo">${g.alertCount > 9 ? '9+' : g.alertCount}</span>` : ''}
@@ -1104,12 +1104,15 @@ function renderSidebar(opts) {
       document.querySelectorAll('.nav-group-item').forEach(it => {
         it.querySelector('.nav-group-children')?.classList.remove('open');
         it.querySelector('.nav-group-arrow')?.classList.remove('open');
-        const k = it.querySelector('.nav-group-header[data-group]')?.dataset.group;
+        const hdr = it.querySelector('.nav-group-header[data-group]');
+        hdr?.setAttribute('aria-expanded', 'false'); // a11y: estado do acordeão
+        const k = hdr?.dataset.group;
         if (k) sidebarGroups.set(k, false);
       });
       if (!isOpen) {
         children.classList.add('open');
         arrow.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
         sidebarGroups.set(groupKey, true);
       }
     });
@@ -1173,8 +1176,10 @@ function updateSidebarActiveState(hash) {
     const href = link.getAttribute('href');
     if (href && hash.startsWith(href)) {
       link.classList.add('active');
+      link.setAttribute('aria-current', 'page'); // a11y: marca a página atual
     } else {
       link.classList.remove('active');
+      link.removeAttribute('aria-current');
     }
   });
 
@@ -1227,7 +1232,7 @@ async function navigate() {
   }
 
   const app = document.getElementById('app');
-  app.innerHTML = '<div class="loading-spinner">Carregando...</div>';
+  app.innerHTML = '<div class="loading-spinner" role="status">Carregando…</div>';
 
   // Lazy: carrega scripts da rota se ainda não tiver view resolvida
   if (!match.view && _lazyManifest[match.pattern]) {
@@ -1268,6 +1273,17 @@ async function navigate() {
     _appEl.classList.remove('rh-navigating');
     _appEl.offsetWidth; // reflow
     _appEl.classList.add('rh-navigating');
+    // a11y: navegação SPA não move o foco nem anuncia a página. Movemos o foco
+    // para o início do conteúdo (se a view não focou nada) e anunciamos o título
+    // na região aria-live existente — leitores de tela passam a "ver" a troca.
+    if (!_appEl.contains(document.activeElement)) {
+      _appEl.setAttribute('tabindex', '-1');
+      _appEl.focus({ preventScroll: true });
+    }
+    if (_titleLabel) {
+      const _live = document.getElementById('rh-aria-live');
+      if (_live) { _live.textContent = ''; setTimeout(() => { _live.textContent = _titleLabel; }, 60); }
+    }
   }
 }
 
