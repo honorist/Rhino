@@ -105,7 +105,7 @@ window.Estoque = {
 
     const headerHtml = window.UIKit?.pageHeader ? window.UIKit.pageHeader({
       title: 'Almoxarifado',
-      icon: '📦',
+      icon: window.rhIcon('package', 22),
       subtitle: 'Central + 1 almoxarifado por obra (auto)',
       actions: '<button class="btn btn-primary btn-lg" id="btnNovoItem">+ Novo item</button>',
     }) : '';
@@ -151,7 +151,7 @@ window.Estoque = {
   _renderGeral() {
     if (this._itens.length === 0) {
       return `<div class="card">${window.UIKit?.empty ? window.UIKit.empty({
-        icon: '📦',
+        icon: window.rhIcon('package', 40),
         title: 'Nenhum item cadastrado',
         desc: 'Comece cadastrando seu primeiro item de almoxarifado. Depois use os botões 🟢 Comprei / 🔵 Enviar / 🔴 Usei pra movimentar o estoque.',
         cta: '<button class="btn btn-primary" onclick="document.getElementById(\'btnNovoItem\')?.click()">+ Cadastrar primeiro item</button>',

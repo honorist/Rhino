@@ -383,7 +383,7 @@
     return `
       <div class="page-header">
         <div>
-          <h1 class="page-title">${icon ? icon + ' ' : ''}${esc(title || '')}</h1>
+          <h1 class="page-title">${icon ? `<span style="display:inline-flex;align-items:center;gap:10px;">${icon}${esc(title || '')}</span>` : esc(title || '')}</h1>
           ${subtitle ? `<p class="page-subtitle">${esc(subtitle)}</p>` : ''}
         </div>
         ${actions ? `<div class="page-header-actions">${actions}</div>` : ''}

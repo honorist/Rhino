@@ -188,7 +188,7 @@ window.Frota = {
             <tbody>
               ${lista.length === 0 ? `
                 <tr><td colspan="7" style="padding:0;">${window.UIKit?.empty ? window.UIKit.empty({
-                  icon: '🚛',
+                  icon: window.rhIcon('truck', 40),
                   title: 'Nenhum veículo cadastrado',
                   desc: 'Comece registrando os veículos da frota — carros, caminhões, máquinas. Você poderá acompanhar abastecimentos, manutenções e custos por veículo.',
                   cta: '<button class="btn btn-primary" onclick="document.getElementById(\'btnNovoVeic\')?.click()">+ Cadastrar primeiro veículo</button>',

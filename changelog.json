@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.4.11",
+      "date": "2026-05-29",
+      "summary": "Ícones vetoriais nos cabeçalhos e nas telas vazias (Almoxarifado, Frota, Propostas)",
+      "changes": [
+        "Cabeçalhos de página e as mensagens de \"tela vazia\" (Almoxarifado, Frota, Propostas) trocaram emojis por ícones vetoriais, com melhor alinhamento."
+      ]
+    },
+    {
       "version": "1.4.10",
       "date": "2026-05-29",
       "summary": "Ícones vetoriais em botões e títulos de Contratos, Propostas, RDOs e mais",

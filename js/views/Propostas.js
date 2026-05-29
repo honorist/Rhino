@@ -123,8 +123,8 @@ window.Propostas = {
                 ${propostas.length === 0 ? `
                   <tr><td colspan="9" style="padding:0;">${window.UIKit?.empty ? window.UIKit.empty(
                     (termo || this.currentFilter !== 'todos')
-                      ? { icon:'🔎', title:'Nenhuma proposta nesse filtro', desc:'Tente limpar os filtros ou ajustar a busca.' }
-                      : { icon:'📝', title:'Nenhuma proposta cadastrada',
+                      ? { icon:window.rhIcon('search', 40), title:'Nenhuma proposta nesse filtro', desc:'Tente limpar os filtros ou ajustar a busca.' }
+                      : { icon:window.rhIcon('file-text', 40), title:'Nenhuma proposta cadastrada',
                           desc:'Comece criando sua primeira proposta — gere PDF/DOCX em timbrado, anexe portfolio e envie ao cliente.',
                           cta:'<button class="btn btn-primary" onclick="document.getElementById(\'btnNovaProposta\')?.click()">+ Criar primeira proposta</button>' }
                   ) : 'Nenhuma proposta'}</td></tr>
