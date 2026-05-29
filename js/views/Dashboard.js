@@ -507,6 +507,53 @@ window.Dashboard = {
         ${this.renderAlertas(dash)}
 
         <!-- Saúde Financeira + Gráfico Histórico + Projeção -->
+        ${this._renderFluxoCaixaCard(dash, saudeScore, marginMedia, taxaDespesa)}
+
+        <!-- Entradas previstas das NFs -->
+        ${this._renderEntradasPrevistas(dash)}
+
+        <!-- Notas Fiscais -->
+        ${this._renderNfsSituacao(dash)}
+
+        <!-- Contas a Pagar — Situação -->
+        ${this._renderContasPagarSituacao(dash)}
+
+        <!-- Contratos a vencer + Margem -->
+        ${this._renderContratosVencerMargem(dash)}
+
+        <!-- Últimas movimentações -->
+        ${this._renderUltimasMovimentacoes(dash)}
+      `;
+
+      app.innerHTML = html;
+
+      // Customização: marca seções identificáveis e aplica preferências do usuário
+      this._marcarWidgets();
+      this._aplicarPreferenciasDash();
+      this._injetarBotaoCustomizar();
+
+      await this.renderChart(dash);
+      this._bindPeriodoCtrl();
+
+    } catch (e) {
+      console.error(e);
+      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar dashboard. Tente novamente.</p></div>';
+    }
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Seções do corpo do dashboard, extraídas de render() (Sprint 4: funções
+  // menores). Cada uma recebe `dash` (Store.state.dashboard) e devolve string
+  // HTML — sem estado próprio além de `this` (periodo/projDays/movFiltro), então
+  // o DOM gerado é idêntico ao inline anterior (importante p/ _marcarWidgets,
+  // que identifica os widgets pela ordem/título dos filhos de #app).
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // Card "Fluxo de Caixa": legenda, seletor de projeção (30/60/90d), canvas do
+  // gráfico e os 5 mini-KPIs do rodapé. `saudeScore`/`marginMedia`/`taxaDespesa`
+  // vêm calculados de render() (dependem de agregações locais).
+  _renderFluxoCaixaCard(dash, saudeScore, marginMedia, taxaDespesa) {
+    return `
         <div class="card mb-2xl">
           <div class="card-header">
             <h3 class="card-title">Fluxo de Caixa — ${this._periodoLabel()}</h3>
@@ -574,10 +621,14 @@ window.Dashboard = {
               <div class="rh-meta" style="margin-top:4px;">Saídas ÷ Faturamento</div>
             </div>
           </div>
-        </div>
+        </div>`;
+  },
 
-        <!-- Entradas previstas das NFs -->
-        ${dash.projecaoFutura.length > 0 ? `
+  // Tabela "Entradas Previstas" (recebimento de NFs projetado). Some quando não
+  // há projeção futura.
+  _renderEntradasPrevistas(dash) {
+    if (!(dash.projecaoFutura.length > 0)) return '';
+    return `
           <div class="card mb-2xl">
             <div class="card-header">
               <h3 class="card-title">Entradas Previstas — Recebimento de NFs</h3>
@@ -616,10 +667,12 @@ window.Dashboard = {
                 </tbody>
               </table>
             </div>
-          </div>
-        ` : ''}
+          </div>`;
+  },
 
-        <!-- Notas Fiscais -->
+  // Card "Notas Fiscais — Situação" (4 contadores por status).
+  _renderNfsSituacao(dash) {
+    return `
         <div class="card mb-2xl">
           <div class="card-header">
             <h3 class="card-title">Notas Fiscais — Situação</h3>
@@ -638,9 +691,13 @@ window.Dashboard = {
               </div>
             `).join('')}
           </div>
-        </div>
+        </div>`;
+  },
 
-        <!-- Contas a Pagar — Situação -->
+  // Card "Contas a Pagar — Situação" (3 contadores + total pendente).
+  _renderContasPagarSituacao(dash) {
+    const _icon = (name, size) => (window.rhIcon ? window.rhIcon(name, size || 16) : '');
+    return `
         <div class="card mb-2xl">
           <div class="card-header">
             <h3 class="card-title rh-h2">Contas a Pagar — Situação</h3>
@@ -662,9 +719,12 @@ window.Dashboard = {
               <div class="rh-pipeline-stage-count" style="font-size:22px;color:var(--rh-neg-strong);">${Store.formatBRL(dash.contasPagarStatus?.totalPendente || 0)}</div>
             </div>
           </div>
-        </div>
+        </div>`;
+  },
 
-        <!-- Contratos a vencer + Margem -->
+  // Grid de 2 cards: "Contratos a Vencer (30 dias)" + "Contratos por Margem".
+  _renderContratosVencerMargem(dash) {
+    return `
         <div class="grid-2">
           <div class="card">
             <div class="card-header">
@@ -729,14 +789,16 @@ window.Dashboard = {
               </table>
             </div>
           </div>
-        </div>
+        </div>`;
+  },
 
-        <!-- Últimas movimentações -->
-        ${(() => {
-          const filtradas = (dash.recentCaixaEntries || [])
-            .filter(e => this.movFiltro === 'ambos' ? true : e.type === this.movFiltro)
-            .slice(0, 20);
-          return `
+  // Card "Últimas Movimentações — Caixa" com filtro entrada/saída/ambos
+  // (estado em this.movFiltro; os botões são religados em _bindPeriodoCtrl).
+  _renderUltimasMovimentacoes(dash) {
+    const filtradas = (dash.recentCaixaEntries || [])
+      .filter(e => this.movFiltro === 'ambos' ? true : e.type === this.movFiltro)
+      .slice(0, 20);
+    return `
           <div class="card" style="margin-top:var(--sp-lg);">
             <div class="card-header">
               <h3 class="card-title">Últimas Movimentações — Caixa</h3>
@@ -782,23 +844,6 @@ window.Dashboard = {
               </div>
             `}
           </div>`;
-        })()}
-      `;
-
-      app.innerHTML = html;
-
-      // Customização: marca seções identificáveis e aplica preferências do usuário
-      this._marcarWidgets();
-      this._aplicarPreferenciasDash();
-      this._injetarBotaoCustomizar();
-
-      await this.renderChart(dash);
-      this._bindPeriodoCtrl();
-
-    } catch (e) {
-      console.error(e);
-      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar dashboard. Tente novamente.</p></div>';
-    }
   },
 
   _renderPeriodoCtrl() {
