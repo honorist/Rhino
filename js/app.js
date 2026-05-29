@@ -90,36 +90,36 @@ async function _loadLazyForPattern(pattern) {
 
 const routes = {
   '#/dashboard':    { view: window.Dashboard,      label: 'Dashboard',       icon: _ic('home') },
-  '#/proposta':     { view: null,                  label: 'Propostas',       icon: _ic('file-text') },
+  '#/proposta':     { view: null,                  label: 'Propostas',       icon: _ic('file-text'),   group: 'comercial' },
   '#/proposta/:id': { view: null,                  label: null,              icon: null },
   '#/clausulas':    { view: null,                  label: null,              icon: null },
   '#/apresentacao': { view: null,                  label: null,              icon: null },
-  '#/contratos':    { view: window.Contratos,      label: 'Contratos',       icon: _ic('briefcase') },
+  '#/contratos':    { view: window.Contratos,      label: 'Contratos',       icon: _ic('briefcase'),   group: 'comercial' },
   '#/contratos/:id':{ view: window.ContratoDetail, label: null,              icon: null },
   '#/comparativo':  { view: window.Comparativo,   label: null,              icon: null },
   '#/cronograma-geral': { view: window.CronogramaGeral, label: 'Cronograma Geral', icon: _ic('activity') },
+  '#/clientes':     { view: window.Clientes,       label: 'Clientes',        icon: _ic('users'),       group: 'comercial' },
   '#/rdos':         { view: window.RDOs,           label: 'RDOs',            icon: _ic('clipboard-check'), group: 'obras' },
   '#/obras':        { view: window.Obras,          label: 'Mapa de Obras',   icon: _ic('map-pin'),         group: 'obras' },
-  '#/clientes':     { view: window.Clientes,       label: 'Clientes',        icon: _ic('users'),       group: 'rh' },
-  '#/recursos':     { view: window.Recursos,       label: 'Recursos',        icon: _ic('user-plus'),   group: 'rh' },
-  '#/recrutamento': { view: window.Recrutamento,   label: 'Recrutamento',    icon: _ic('briefcase'),   group: 'rh' },
-  '#/folha-pagamento': { view: null,               label: 'Folha de Pagamento', icon: _ic('credit-card'), group: 'rh' },
-  '#/documentos':   { view: window.Documentos,     label: 'Documentação',    icon: _ic('file-text'),   group: 'rh' },
-  '#/fornecedores': { view: window.Fornecedores,   label: 'Fornecedores',    icon: _ic('truck'),       group: 'rh' },
-  '#/caixa':        { view: window.Caixa,          label: 'Caixa',           icon: _ic('wallet'),      group: 'financeiro' },
-  '#/contas-pagar': { view: window.ContasPagar,    label: 'Contas a Pagar',  icon: _ic('minus-circle'),group: 'financeiro' },
-  '#/conciliacao':  { view: window.Conciliacao,    label: 'Conciliação',     icon: _ic('arrow-left-right'), group: 'financeiro' },
-  '#/notas-fiscais':{ view: window.NotasFiscais,   label: 'Contas a Receber',icon: _ic('receipt'),     group: 'financeiro' },
-  '#/socios':       { view: window.Socios,         label: 'Sócios',          icon: _ic('users'),       group: 'financeiro' },
-  '#/investimentos':{ view: window.Investimentos,  label: 'Aportes',         icon: _ic('plus-circle'), group: 'financeiro' },
-  '#/base':         { view: window.Base,           label: 'BASE',            icon: _ic('database'),    group: 'financeiro' },
   '#/estoque':      { view: window.Estoque,        label: 'Almoxarifado',    icon: _ic('package'),     group: 'obras' },
   '#/solicitacoes-compra': { view: window.SolicitacoesCompra, label: 'Solicitações de Compra', icon: _ic('shopping-cart'), group: 'obras' },
   '#/cotacoes-historico':  { view: window.CotacoesHistorico,  label: 'Histórico de Cotações',  icon: _ic('bar-chart-2'),  group: 'obras' },
   '#/manutencao':   { view: window.Manutencao,      label: 'Manutenção',      icon: _ic('wrench'),      group: 'obras' },
   '#/frota':        { view: window.Frota,           label: 'Frota',           icon: _ic('truck'),       group: 'obras' },
+  '#/recursos':     { view: window.Recursos,       label: 'Recursos',        icon: _ic('user-plus'),   group: 'rh' },
+  '#/recrutamento': { view: window.Recrutamento,   label: 'Recrutamento',    icon: _ic('briefcase'),   group: 'rh' },
+  '#/folha-pagamento': { view: null,               label: 'Folha de Pagamento', icon: _ic('credit-card'), group: 'rh' },
+  '#/documentos':   { view: window.Documentos,     label: 'Documentação',    icon: _ic('file-text'),   group: 'rh' },
+  '#/caixa':        { view: window.Caixa,          label: 'Caixa',           icon: _ic('wallet'),      group: 'financeiro' },
+  '#/contas-pagar': { view: window.ContasPagar,    label: 'Contas a Pagar',  icon: _ic('minus-circle'),group: 'financeiro' },
+  '#/notas-fiscais':{ view: window.NotasFiscais,   label: 'Contas a Receber',icon: _ic('receipt'),     group: 'financeiro' },
+  '#/conciliacao':  { view: window.Conciliacao,    label: 'Conciliação',     icon: _ic('arrow-left-right'), group: 'financeiro' },
+  '#/investimentos':{ view: window.Investimentos,  label: 'Aportes',         icon: _ic('plus-circle'), group: 'financeiro' },
+  '#/socios':       { view: window.Socios,         label: 'Sócios',          icon: _ic('users'),       group: 'financeiro' },
   '#/previsao':     { view: window.Previsao,        label: 'Previsão',        icon: _ic('trending-up'),  group: 'financeiro' },
-  '#/ai-chat':      { view: window.AiChat,         label: 'Assistente IA',   icon: _ic('message-square'), group: 'financeiro' },
+  '#/fornecedores': { view: window.Fornecedores,   label: 'Fornecedores',    icon: _ic('truck'),       group: 'financeiro' },
+  '#/base':         { view: window.Base,           label: 'BASE',            icon: _ic('database'),    group: 'financeiro' },
+  '#/ai-chat':      { view: window.AiChat,         label: 'Assistente IA',   icon: _ic('message-square') },
   '#/configuracao': { view: window.Configuracao,   label: 'Configuração',    icon: _ic('settings') },
   '#/cobranca':     { view: window.CobrancaMensal, label: null,              icon: null },  // acessível via Configuração
   '#/usuarios':     { view: window.Usuarios,       label: null,              icon: null },  // acessível via Configuração
@@ -902,7 +902,7 @@ let _sidebarSig = null;
 function _sidebarSignature(alertasSig, perfilAtual) {
   const u = auth.user();
   // hash inclui alertas, perfil, usuário e estado dos grupos (que não dependem da rota)
-  const groupsState = ['obras','rh','financeiro'].map(k => sidebarGroups.get(k) ? '1' : '0').join('');
+  const groupsState = ['comercial','obras','rh','financeiro'].map(k => sidebarGroups.get(k) ? '1' : '0').join('');
   return [
     alertasSig,
     perfilAtual ? perfilAtual.id : '',
@@ -949,6 +949,7 @@ function renderSidebar(opts) {
 
   // Grupos da sidebar. alertCount é somado depois, a partir dos links de cada grupo.
   const groups = [
+    { key: 'comercial',  label: 'Comercial',  icon: _ic('briefcase'),   alertCount: 0, btnId: 'btnComercial' },
     { key: 'obras',      label: 'Obras',      icon: _ic('map-pin'),     alertCount: 0, btnId: 'btnObras' },
     { key: 'rh',         label: 'RH',         icon: _ic('users'),       alertCount: 0, btnId: 'btnRH' },
     { key: 'financeiro', label: 'Financeiro', icon: _ic('dollar-sign'), alertCount: 0, btnId: 'btnFinanceiro' },

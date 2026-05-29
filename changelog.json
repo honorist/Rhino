@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.3.9",
+      "date": "2026-05-29",
+      "summary": "Menu lateral reorganizado: novo grupo Comercial, IA no topo, Fornecedores no Financeiro",
+      "changes": [
+        "Novo grupo \"Comercial\" no menu reúne Propostas, Contratos e Clientes.",
+        "Assistente IA agora fica no topo do menu, junto do Cronograma Geral.",
+        "Clientes saiu de RH e Fornecedores passou para o Financeiro.",
+        "Financeiro reordenado: Caixa, Contas a Pagar, Contas a Receber, Conciliação, Aportes, Sócios, Previsão, Fornecedores, BASE."
+      ]
+    },
+    {
       "version": "1.3.8",
       "date": "2026-05-28",
       "summary": "Menu lateral reorganizado: novo grupo Comercial e Financeiro reordenado",
