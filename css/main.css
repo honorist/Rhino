@@ -136,18 +136,25 @@ body {
 }
 
 /* ═══ Texto segue a cor do tema — adapta a light e dark ═══ */
+/* Títulos e cabeçalhos de tabela: cor PRINCIPAL (escura). */
+.card-title,
+thead th {
+  color: var(--color-text) !important;
+  -webkit-text-fill-color: var(--color-text) !important;
+}
+/* Texto secundário/muted: CINZA do tema (#5E6A7D, AA) — cria hierarquia visual
+   em vez de tudo preto. (Antes estas classes eram forçadas a preto junto dos
+   títulos; separadas para o secundário ficar de fato secundário.) */
 .text-muted,
 .page-subtitle,
 .form-helper,
-.card-title,
 .stat-label,
-thead th,
 .filter-label,
 .sidebar-version,
 .text-secondary,
 [class*="text-muted"] {
-  color: var(--color-text) !important;
-  -webkit-text-fill-color: var(--color-text) !important;
+  color: var(--color-text-muted) !important;
+  -webkit-text-fill-color: var(--color-text-muted) !important;
 }
 
 /* Captura TODAS as cores cinzas claras usadas em style inline — adapta ao tema */

@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.4.13",
+      "date": "2026-05-29",
+      "summary": "Hierarquia de texto: rótulos e textos secundários (por classe) também em cinza",
+      "changes": [
+        "Rótulos de indicadores (KPI), subtítulos, textos de ajuda e secundários que ainda estavam pretos agora aparecem em cinza, completando a hierarquia visual. Títulos e cabeçalhos de tabela seguem escuros."
+      ]
+    },
+    {
       "version": "1.4.12",
       "date": "2026-05-29",
       "summary": "Texto secundário em cinza legível (hierarquia visual) no lugar de tudo preto",
