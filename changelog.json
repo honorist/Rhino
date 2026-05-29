@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.4.14",
+      "date": "2026-05-29",
+      "summary": "Centro de Custo trava tipo em Salário e Almoxarifado lista quantidade por obra",
+      "changes": [
+        "Na BASE (Centro de Custo), ao informar uma descrição que contenha \"salário\", o Tipo é definido automaticamente como Salário e fica bloqueado para evitar classificação errada.",
+        "No Almoxarifado, cada item agora tem uma setinha que abre a quantidade por obra direto na lista, sem precisar abrir uma janela separada."
+      ]
+    },
+    {
       "version": "1.4.13",
       "date": "2026-05-29",
       "summary": "Hierarquia de texto: rótulos e textos secundários (por classe) também em cinza",

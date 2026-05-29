@@ -336,16 +336,17 @@ window.Base = {
           <form id="formItem" class="modal-content">
             <div class="form-group">
               <label class="form-label">Descrição *</label>
-              <input class="form-control" name="description" value="${item?.description || ''}" required>
+              <input class="form-control" name="description" id="descItemBase" value="${item?.description || ''}" required>
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Tipo *</label>
-                <select class="form-control" name="type" required>
+                <select class="form-control" name="type" id="tipoItemBase" required>
                   ${(Store.state.tipos_base || []).map(t =>
                     `<option value="${t.key}" ${item?.type === t.key ? 'selected' : ''}>${t.icon} ${t.label}</option>`
                   ).join('')}
                 </select>
+                <div class="form-helper" id="tipoLockNote" style="display:none;color:var(--color-primary);font-weight:600;">🔒 Tipo travado em "Salário" porque a descrição contém "salário".</div>
                 <div class="form-helper">Não encontrou? Cadastre em <a href="#/configuracao" style="color:var(--color-primary);">Configuração → Tipos de Custo</a>.</div>
               </div>
               <div class="form-group">
@@ -426,10 +427,41 @@ window.Base = {
       });
     }
 
+    // Regra: descrição com "salário" ⇒ Tipo travado em "Salário"
+    const normTxt = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const salarioKey = (Store.state.tipos_base || []).find(
+      t => t.key === 'salario' || normTxt(t.label).includes('salario')
+    )?.key;
+    const descInput = document.getElementById('descItemBase');
+    const tipoSelect = document.getElementById('tipoItemBase');
+    const tipoLockNote = document.getElementById('tipoLockNote');
+    const aplicaRegraSalario = () => {
+      if (!salarioKey || !descInput || !tipoSelect) return;
+      const ehSalario = normTxt(descInput.value).includes('salario');
+      if (ehSalario) {
+        tipoSelect.value = salarioKey;
+        tipoSelect.disabled = true;
+        tipoSelect.style.opacity = '0.7';
+        if (tipoLockNote) tipoLockNote.style.display = '';
+      } else {
+        tipoSelect.disabled = false;
+        tipoSelect.style.opacity = '';
+        if (tipoLockNote) tipoLockNote.style.display = 'none';
+      }
+    };
+    if (descInput) descInput.addEventListener('input', aplicaRegraSalario);
+    aplicaRegraSalario(); // estado inicial (ex.: edição de item já chamado "Salário ...")
+
     document.getElementById('btnSalvar').addEventListener('click', async () => {
       const fd = new FormData(document.getElementById('formItem'));
       const data = Object.fromEntries(fd);
       data.value = window.BRLInput.parse(data.value);
+
+      // Reforço da regra: descrição com "salário" sempre grava tipo "Salário"
+      // (o select pode estar desabilitado e, nesse caso, não vem no FormData).
+      if (salarioKey && normTxt(data.description).includes('salario')) {
+        data.type = salarioKey;
+      }
 
       // Monta metadata.recurrence se ativo
       const recurrenceActive = !!data.recAtivo;
