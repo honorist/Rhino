@@ -522,7 +522,7 @@ window.Documentos = {
                     <div style="font-size:12px;color:var(--color-text-muted);">${this._formatBytes(doc.arquivo.sizeBytes)}</div>
                   </div>
                   <a href="/api/recursos/${recursoId}/documentos/${doc.id}/arquivo" target="_blank" class="btn btn-sm btn-secondary" style="text-decoration:none;">⬇️ Baixar</a>
-                  <button type="button" class="btn btn-sm btn-danger" id="btnRemoverArquivo" data-rid="${recursoId}" data-did="${doc.id}">🗑️ Remover</button>
+                  <button type="button" class="btn btn-sm btn-danger" id="btnRemoverArquivo" data-rid="${recursoId}" data-did="${doc.id}"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('trash-2', 15)}Remover</span></button>
                 </div>
               ` : ''}
               <input

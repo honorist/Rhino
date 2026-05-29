@@ -69,7 +69,7 @@ window.CotacoesHistorico = {
             </select>
           </div>
           <div style="padding-bottom:1px;">
-            <button class="btn btn-secondary" id="btnBuscarCotacoes">🔍 Buscar</button>
+            <button class="btn btn-secondary" id="btnBuscarCotacoes"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('search', 15)}Buscar</span></button>
             ${(this._filtroItem || this._filtroFornecedor) ? `<button class="btn btn-ghost" id="btnLimparCotacoes" style="margin-left:6px;">✕ Limpar</button>` : ''}
           </div>
         </div>

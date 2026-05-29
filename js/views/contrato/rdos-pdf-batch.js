@@ -32,7 +32,7 @@
           </div>
           <div class="modal-footer">
             <button class="btn btn-secondary" id="btnExportCancelar">Cancelar</button>
-            <button class="btn btn-primary" id="btnExportGerar">📄 Gerar PDF</button>
+            <button class="btn btn-primary" id="btnExportGerar"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('file-text', 15)}Gerar PDF</span></button>
           </div>
         </div>
       </div>

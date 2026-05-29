@@ -439,8 +439,8 @@
         <div style="display:flex;gap:var(--sp-sm);align-items:center;">
           <input type="text" class="form-control" id="rdoFotoLegenda" placeholder="Legenda (opcional)" style="max-width:280px;font-size:15px;">
           <input type="file" id="rdoFotoInput" accept="image/jpeg,image/png,image/webp" multiple style="display:none;">
-          <button type="button" class="btn btn-sm btn-secondary" id="rdoFotoCamBtn" title="Tirar foto com câmera + GPS">📍 Câmera + GPS</button>
-          <button type="button" class="btn btn-sm btn-primary" id="rdoFotoBtn">📷 Adicionar Fotos</button>
+          <button type="button" class="btn btn-sm btn-secondary" id="rdoFotoCamBtn" title="Tirar foto com câmera + GPS"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('map-pin', 15)}Câmera + GPS</span></button>
+          <button type="button" class="btn btn-sm btn-primary" id="rdoFotoBtn"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('image', 15)}Adicionar Fotos</span></button>
         </div>
       </div>
 

@@ -165,8 +165,8 @@ window.PropostaDetail = {
       actions.push(`<button class="btn btn-success" id="btnAceitar" style="background:#10b981;color:white;">✓ Marcar como Aceita</button>`);
       actions.push(`<button class="btn btn-secondary" id="btnRejeitar">✗ Rejeitar</button>`);
     }
-    actions.push(`<button class="btn btn-secondary" id="btnDuplicar" title="Cria nova revisão (Rev.+1)">📋 Nova Revisão</button>`);
-    actions.push(`<button class="btn btn-secondary" id="btnDocx" title="Baixar DOCX timbrado">📄 DOCX</button>`);
+    actions.push(`<button class="btn btn-secondary" id="btnDuplicar" title="Cria nova revisão (Rev.+1)"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('file-text', 15)}Nova Revisão</span></button>`);
+    actions.push(`<button class="btn btn-secondary" id="btnDocx" title="Baixar DOCX timbrado"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('file-text', 15)}DOCX</span></button>`);
     actions.push(`<button class="btn btn-secondary" id="btnPdf"  title="Baixar PDF">📑 PDF</button>`);
 
     container.innerHTML = actions.join('');

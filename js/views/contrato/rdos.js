@@ -100,7 +100,7 @@
                   <td>
                     <div class="actions-cell">
                       <button type="button" class="action-link btn-editar-rdo" data-id="${r.id}">Editar</button>
-                      <button type="button" class="action-link btn-pdf-rdo" data-id="${r.id}" style="color:var(--color-info);">📄 PDF</button>
+                      <button type="button" class="action-link btn-pdf-rdo" data-id="${r.id}" style="color:var(--color-info);"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('file-text', 15)}PDF</span></button>
                       <button type="button" class="action-link danger btn-excluir-rdo" data-id="${r.id}">Excluir</button>
                     </div>
                   </td>
@@ -120,7 +120,7 @@
         <div class="card-header">
           <h3 class="card-title">Relatórios Diários de Obra (RDO)</h3>
           <div style="display:flex;gap:8px;">
-            ${rdos.length > 0 ? `<button class="btn btn-secondary btn-sm" id="btnExportarPeriodo">📄 Exportar período</button>` : ''}
+            ${rdos.length > 0 ? `<button class="btn btn-secondary btn-sm" id="btnExportarPeriodo"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('file-text', 15)}Exportar período</span></button>` : ''}
             <button class="btn btn-primary btn-sm" id="btnNovoRdo">+ Novo RDO</button>
           </div>
         </div>
@@ -364,7 +364,7 @@
             <button class="btn btn-secondary" id="btnRdoClose">Fechar</button>
             ${contract ? `<button class="btn btn-secondary" id="btnRdoEdit">Editar</button>` : ''}
             ${contract ? `<button class="btn btn-secondary" id="btnRdoWhats" title="Enviar resumo via WhatsApp">💬 WhatsApp</button>` : ''}
-            ${contract ? `<button class="btn btn-primary" id="btnRdoPdf">📄 Exportar PDF</button>` : ''}
+            ${contract ? `<button class="btn btn-primary" id="btnRdoPdf"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('file-text', 15)}Exportar PDF</span></button>` : ''}
           </div>
         </div>
       </div>`;
@@ -421,7 +421,7 @@
             </div>
             <div class="modal-footer">
               <button class="btn btn-secondary" id="btnWhatsFechar">Fechar</button>
-              <button class="btn btn-primary" id="btnWhatsCopiar">📋 Copiar texto</button>
+              <button class="btn btn-primary" id="btnWhatsCopiar"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('file-text', 15)}Copiar texto</span></button>
             </div>
           </div>
         </div>`;
@@ -472,7 +472,7 @@
         <div style="background:var(--color-surface-2);border-radius:6px;padding:8px;border:1px solid var(--color-border);">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <div style="font-size:12px;font-weight:700;color:var(--color-text);">${papelLbl[a.papel] || a.papel}</div>
-            ${this._podeEditar() ? `<button class="btn-link-rdo-ass-del" data-aid="${a.id}" data-rid="${rdoId}" data-cid="${contract?.id || ''}" style="background:none;border:none;cursor:pointer;color:var(--color-danger);font-size:14px;" title="Remover">🗑️</button>` : ''}
+            ${this._podeEditar() ? `<button class="btn-link-rdo-ass-del" data-aid="${a.id}" data-rid="${rdoId}" data-cid="${contract?.id || ''}" style="background:none;border:none;cursor:pointer;color:var(--color-danger);font-size:14px;" title="Remover"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('trash-2', 15)}</span></button>` : ''}
           </div>
           <div style="background:#fff;border-radius:4px;padding:4px;margin-bottom:4px;">
             <img src="/api/contracts/${contract?.id || '_'}/rdos/${rdoId}/assinaturas/${a.id}" style="width:100%;height:80px;object-fit:contain;display:block;" alt="Assinatura">
@@ -538,13 +538,13 @@
               </div>
               <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
                 <span style="font-size:12px;color:var(--color-text-muted);">Use o mouse ou o dedo (touchscreen)</span>
-                <button type="button" class="btn btn-sm btn-secondary" id="assLimpar">🗑️ Limpar</button>
+                <button type="button" class="btn btn-sm btn-secondary" id="assLimpar"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('trash-2', 15)}Limpar</span></button>
               </div>
             </div>
           </div>
           <div class="modal-footer">
             <button class="btn btn-secondary" id="assCancelar">Cancelar</button>
-            <button class="btn btn-primary" id="assSalvar">💾 Salvar assinatura</button>
+            <button class="btn btn-primary" id="assSalvar"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('save', 15)}Salvar assinatura</span></button>
           </div>
         </div>
       </div>

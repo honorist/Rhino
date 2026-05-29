@@ -59,8 +59,8 @@ const Usuarios = {
                 <td>${u.isActive ? '<span style="color:#10b981;">Ativo</span>' : '<span style="color:#aaa;">Desativado</span>'}</td>
                 <td>${u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString('pt-BR') : '—'}</td>
                 <td>
-                  <button class="btn btn-sm btn-secondary btn-edit-user" data-id="${u.id}" title="Editar">✏️</button>
-                  ${ehVoce ? '' : `<button class="btn btn-sm btn-secondary btn-del-user" data-id="${u.id}" data-email="${escapeHtml(u.email)}" title="Excluir">🗑</button>`}
+                  <button class="btn btn-sm btn-secondary btn-edit-user" data-id="${u.id}" title="Editar"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('edit', 15)}</span></button>
+                  ${ehVoce ? '' : `<button class="btn btn-sm btn-secondary btn-del-user" data-id="${u.id}" data-email="${escapeHtml(u.email)}" title="Excluir"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('trash-2', 15)}</span></button>`}
                 </td>
               </tr>
             `;

@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.4.10",
+      "date": "2026-05-29",
+      "summary": "Ícones vetoriais em botões e títulos de Contratos, Propostas, RDOs e mais",
+      "changes": [
+        "Mais 31 botões e títulos (detalhe do contrato, propostas, RDOs, cronograma, cobrança, cotações, usuários, documentos) trocaram emojis por ícones vetoriais. Status, filtros e textos de ajuda foram mantidos."
+      ]
+    },
+    {
       "version": "1.4.9",
       "date": "2026-05-29",
       "summary": "Configurações, Aportes e Clientes com ícones vetoriais nos títulos e botões",

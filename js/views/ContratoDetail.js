@@ -231,10 +231,10 @@ window.ContratoDetail = {
               ${contract.contractNumber ? `<p class="text-muted font-sm">Contrato #${contract.contractNumber}</p>` : ''}
             </div>
             <div class="btn-group">
-              <button class="btn btn-secondary" id="btnExportarPDF" title="Exportar resumo em PDF">📄 PDF</button>
-              <button class="btn btn-secondary" id="btnGerarDocumento" title="Gerar documento a partir de template">📋 Template</button>
-              ${this._podeEditar() ? `<button class="btn btn-primary" id="btnEditarDados">✏️ Editar Dados</button>` : ''}
-              ${this._podeEditar() ? `<button class="btn btn-danger" id="btnExcluirContrato" title="Excluir contrato">🗑️ Excluir</button>` : ''}
+              <button class="btn btn-secondary" id="btnExportarPDF" title="Exportar resumo em PDF"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('file-text', 15)}PDF</span></button>
+              <button class="btn btn-secondary" id="btnGerarDocumento" title="Gerar documento a partir de template"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('file-text', 15)}Template</span></button>
+              ${this._podeEditar() ? `<button class="btn btn-primary" id="btnEditarDados"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('edit', 15)}Editar Dados</span></button>` : ''}
+              ${this._podeEditar() ? `<button class="btn btn-danger" id="btnExcluirContrato" title="Excluir contrato"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('trash-2', 15)}Excluir</span></button>` : ''}
               <a href="#/contratos" class="btn btn-secondary">← Voltar</a>
             </div>
           </div>
@@ -370,7 +370,7 @@ window.ContratoDetail = {
         ${this._tab === 'financeiro' && contract.value > 0 && contract.startDate && contract.endDate ? `
         <div class="card mb-2xl">
           <div class="card-header">
-            <h3 class="card-title">📈 Curva S — Planejado × Realizado</h3>
+            <h3 class="card-title"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('trending-up', 18)}Curva S — Planejado × Realizado</span></h3>
             <span class="text-muted font-sm" id="curvaSFonte">Acumulado mês a mês (carregando...)</span>
           </div>
           <div style="position:relative;height:320px;padding:var(--sp-md);">
@@ -552,8 +552,8 @@ window.ContratoDetail = {
                           <td><span class="badge" style="background:${cor}18;color:${cor};">${TIPOS_LABEL[b.type] || b.type}</span></td>
                           <td style="text-align:right;font-weight:600;font-family:'Nunito',sans-serif;">${Store.formatBRL(b.value)}</td>
                           <td style="text-align:center;white-space:nowrap;">
-                            <button class="btn btn-sm btn-secondary btn-editar-orc" data-id="${b.id}" title="Editar" style="margin-right:4px;">✏️ Editar</button>
-                            <button class="btn btn-sm btn-danger btn-excluir-orc" data-id="${b.id}" title="Excluir">🗑️</button>
+                            <button class="btn btn-sm btn-secondary btn-editar-orc" data-id="${b.id}" title="Editar" style="margin-right:4px;"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('edit', 15)}Editar</span></button>
+                            <button class="btn btn-sm btn-danger btn-excluir-orc" data-id="${b.id}" title="Excluir"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('trash-2', 15)}</span></button>
                           </td>
                         </tr>
                       `;

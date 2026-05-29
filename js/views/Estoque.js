@@ -1068,7 +1068,7 @@ window.Estoque = {
         <button class="pop-opt" data-act="voltou" style="width:100%;text-align:left;padding:10px 14px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--color-text);">🟡 Voltou da obra</button>
         <button class="pop-opt" data-act="ajuste" style="width:100%;text-align:left;padding:10px 14px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--color-text);">🟠 Corrigir saldo</button>
         <hr style="margin:0;border:0;border-top:1px solid var(--color-border);">
-        <button class="pop-opt" data-act="editar" style="width:100%;text-align:left;padding:10px 14px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--color-text);">✏️ Editar item</button>
+        <button class="pop-opt" data-act="editar" style="width:100%;text-align:left;padding:10px 14px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--color-text);"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('edit', 15)}Editar item</span></button>
       </div>
     `;
     document.body.insertAdjacentHTML('beforeend', html);

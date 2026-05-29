@@ -12,7 +12,7 @@
       <div class="card mb-2xl">
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div>
-            <h3 class="card-title">📅 Cronograma físico-financeiro</h3>
+            <h3 class="card-title"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('calendar', 18)}Cronograma físico-financeiro</span></h3>
             <span class="text-muted font-sm">Etapas com peso, datas planejadas e % executado</span>
           </div>
           <div style="display:flex;gap:8px;">
@@ -121,8 +121,8 @@
                 </td>
                 ${this._podeEditar() ? `
                 <td style="text-align:center;white-space:nowrap;">
-                  <button class="btn btn-sm btn-secondary btn-edit-ativ" data-id="${a.id}" title="Editar">✏️</button>
-                  <button class="btn btn-sm btn-danger btn-del-ativ" data-id="${a.id}" data-nome="${escapeHtml(a.nome)}" title="Excluir">🗑️</button>
+                  <button class="btn btn-sm btn-secondary btn-edit-ativ" data-id="${a.id}" title="Editar"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('edit', 15)}</span></button>
+                  <button class="btn btn-sm btn-danger btn-del-ativ" data-id="${a.id}" data-nome="${escapeHtml(a.nome)}" title="Excluir"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('trash-2', 15)}</span></button>
                 </td>` : ''}
               </tr>
             `;

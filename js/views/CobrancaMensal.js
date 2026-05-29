@@ -124,7 +124,7 @@ window.CobrancaMensal = {
 
         <!-- Tabela de preços -->
         <div class="card" style="padding:var(--sp-md);">
-          <h3 style="margin:0 0 var(--sp-sm);font-size:15px;">📊 Tabela de preços</h3>
+          <h3 style="margin:0 0 var(--sp-sm);font-size:15px;"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('bar-chart', 18)}Tabela de preços</span></h3>
           <div style="font-size:14px;line-height:1.6;">
             <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--color-border);">
               <span>Taxa fixa mensal</span>

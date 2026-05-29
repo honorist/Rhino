@@ -51,7 +51,7 @@
           </div>
           <div class="modal-footer">
             <button class="btn btn-secondary" id="btnCancelarExcluir">Cancelar</button>
-            <button class="btn btn-danger" id="btnConfirmarExcluir" disabled>🗑️ Excluir Contrato</button>
+            <button class="btn btn-danger" id="btnConfirmarExcluir" disabled><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('trash-2', 15)}Excluir Contrato</span></button>
           </div>
         </div>
       </div>
@@ -453,7 +453,7 @@
       <div class="modal-overlay" id="modalGerarDoc">
         <div class="modal" style="width:640px;">
           <div class="modal-header">
-            <h2 class="modal-title">📄 Gerar Documento do Contrato</h2>
+            <h2 class="modal-title"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('file-text', 18)}Gerar Documento do Contrato</span></h2>
             <button class="modal-close">✕</button>
           </div>
           <div class="modal-content">
@@ -473,7 +473,7 @@
           </div>
           <div class="modal-footer">
             <button class="btn btn-secondary" id="btnCancelarDoc">Cancelar</button>
-            <button class="btn btn-primary" id="btnGerarPdf">📄 Gerar PDF</button>
+            <button class="btn btn-primary" id="btnGerarPdf"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('file-text', 15)}Gerar PDF</span></button>
           </div>
         </div>
       </div>`;
