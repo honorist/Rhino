@@ -1306,8 +1306,11 @@ window.ContratoDetail = {
                     <span style="font-size:12px;color:var(--color-text-muted);">${fmtDate(ev.date) || ev.date}</span>
                     ${!isPast ? `<span style="font-size:10px;background:var(--color-surface-2);color:var(--color-text-muted);padding:1px 6px;border-radius:8px;">futuro</span>` : ''}
                   </div>
-                  <div style="font-size:14px;font-weight:600;color:var(--color-text);">${ev.icon} ${ev.label}</div>
-                  ${ev.desc ? `<div style="font-size:13px;color:var(--color-text-muted);margin-top:2px;">${ev.desc}</div>` : ''}
+                  <!-- label/desc derivam de dados editáveis (nome do contrato,
+                       título do marco, descrição da ocorrência...) → escapeHtml
+                       para evitar XSS armazenado. icon é sempre emoji literal. -->
+                  <div style="font-size:14px;font-weight:600;color:var(--color-text);">${ev.icon} ${escapeHtml(ev.label)}</div>
+                  ${ev.desc ? `<div style="font-size:13px;color:var(--color-text-muted);margin-top:2px;">${escapeHtml(ev.desc)}</div>` : ''}
                 </div>
               </div>`;
           }).join('')}

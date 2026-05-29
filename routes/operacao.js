@@ -11,7 +11,7 @@
  */
 module.exports = function registerOperacao(router, deps) {
   // ── Recursos (RH) ──
-  router.get('/api/recursos',        (ctx) => deps.handleGetRecursos(ctx.res));
+  router.get('/api/recursos',        (ctx) => deps.handleGetRecursos(ctx.req, ctx.res));
   router.post('/api/recursos',       (ctx) => deps.handlePostRecurso(ctx.body, ctx.res));
   router.put('/api/recursos/:id',    (ctx) => deps.handlePutRecurso(ctx.params[0], ctx.body, ctx.res));
   router.delete('/api/recursos/:id', (ctx) => deps.handleDeleteRecurso(ctx.params[0], ctx.res));

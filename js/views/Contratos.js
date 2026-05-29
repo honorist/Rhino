@@ -801,6 +801,10 @@ window.Contratos = {
       location.hash = `#/contratos/${contractId}`;
     });
     document.addEventListener('keydown', onEsc);
+    // Safety-net: se o usuário navegar para outra view com o drawer aberto, o
+    // close() não roda e o listener vazaria no document. O flush do lifecycle
+    // garante a remoção ao trocar de view. (removeEventListener é idempotente.)
+    window.viewLifecycle?.onCleanup(() => document.removeEventListener('keydown', onEsc));
   },
 
   showModal(contractId) {

@@ -13,7 +13,7 @@ module.exports = function registerPlatform(router, deps) {
   const { bus, sendJson } = deps;
 
   // ── Auditoria ──
-  router.get('/api/audit', (ctx) => deps.handleGetAudit(ctx.parsedUrl.query, ctx.res));
+  router.get('/api/audit', (ctx) => deps.handleGetAudit(ctx.req, ctx.parsedUrl.query, ctx.res));
 
   // ── Usuários (CRUD) ──
   router.get('/api/users',        (ctx) => deps.handleGetUsers(ctx.req, ctx.res));
@@ -31,8 +31,8 @@ module.exports = function registerPlatform(router, deps) {
   router.get('/api/admin/arquivos', (ctx) => deps.handleGetAdminArquivos(ctx.res));
 
   // ── IA ──
-  router.post('/api/ai/chat',             (ctx) => deps.handleAiChat(ctx.body, ctx.res));
-  router.post('/api/ai/classify-expense', (ctx) => deps.handleAiClassify(ctx.body, ctx.res));
+  router.post('/api/ai/chat',             (ctx) => deps.handleAiChat(ctx.req, ctx.body, ctx.res));
+  router.post('/api/ai/classify-expense', (ctx) => deps.handleAiClassify(ctx.req, ctx.body, ctx.res));
 
   // ── Feature flags ──
   router.get('/api/feature-flags',     (ctx) => deps.handleGetFeatureFlags(ctx.res));

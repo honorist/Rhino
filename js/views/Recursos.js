@@ -274,6 +274,16 @@ window.Recursos = {
       if (p) p.style.display = 'none';
     };
     document.addEventListener('click', this._cargoDocHandler);
+    // Safety-net: ao trocar de view, remove o handler global (o flush do
+    // lifecycle roda mesmo sem novo render). Registra só uma vez por sessão da
+    // view para não acumular callbacks a cada re-render.
+    if (!this._cargoCleanupRegistrado) {
+      this._cargoCleanupRegistrado = true;
+      window.viewLifecycle?.onCleanup(() => {
+        if (this._cargoDocHandler) document.removeEventListener('click', this._cargoDocHandler);
+        this._cargoCleanupRegistrado = false;
+      });
+    }
 
     if (busca) {
       busca.addEventListener('input', () => {

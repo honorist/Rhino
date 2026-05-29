@@ -376,10 +376,13 @@
         if (!r.ok) return;
         const j = await r.json();
         if (myToken !== searchToken) return; // outra busca já saiu
+        // Resultados remotos vêm de dados editáveis pelo usuário (nomes de
+        // contratos, clientes, recursos...) e são inseridos via innerHTML no
+        // render() → escapar aqui evita XSS. Itens locais são confiáveis.
         const remote = (j.results || []).map((res) => ({
           icon: '◇',
-          label: `${res.kind}: ${res.title}`,
-          hint: res.hint || '',
+          label: `${window.escapeHtml(res.kind)}: ${window.escapeHtml(res.title)}`,
+          hint: window.escapeHtml(res.hint || ''),
           run: () => { location.hash = res.hash; },
         }));
         filtered = [...localFiltered, ...remote];

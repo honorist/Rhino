@@ -598,22 +598,32 @@ async function showProfilePicker() {
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:var(--sp-md);">
-        ${niveis.map(n => `
-          <button class="perfil-card" data-id="${n.id}" style="
+        ${niveis.map(n => {
+          // Dados do nível de acesso são editáveis e este seletor de perfil
+          // aparece ANTES do login → sanitizar. `cor` entra em CSS e num handler
+          // JS inline (onmouseenter): restringir a hex puro impede injeção de
+          // aspas/JS. icon/label/id via escapeHtml previnem XSS no HTML.
+          const cor = /^#[0-9a-fA-F]{6}$/.test(n.cor || '') ? n.cor : null;
+          const id = window.escapeHtml(n.id);
+          const icon = window.escapeHtml(n.icon || '');
+          const label = window.escapeHtml(n.label || '');
+          return `
+          <button class="perfil-card" data-id="${id}" style="
             display:flex;align-items:center;gap:var(--sp-md);
             padding:var(--sp-lg);border-radius:10px;
             background:var(--color-surface);
             border:2px solid var(--color-border);
             cursor:pointer;text-align:left;transition:all .15s;
           "
-          onmouseenter="this.style.borderColor='${n.cor}';this.style.background='${n.cor}18';"
-          onmouseleave="this.style.borderColor='var(--color-border)';this.style.background='var(--color-surface)';">
-            <span style="font-size:36px;line-height:1;">${n.icon}</span>
+          ${cor ? `onmouseenter="this.style.borderColor='${cor}';this.style.background='${cor}18';"
+          onmouseleave="this.style.borderColor='var(--color-border)';this.style.background='var(--color-surface)';"` : ''}>
+            <span style="font-size:36px;line-height:1;">${icon}</span>
             <div>
-              <div style="font-size:16px;font-weight:700;color:${n.cor};">${n.label}</div>
+              <div style="font-size:16px;font-weight:700;${cor ? `color:${cor};` : ''}">${label}</div>
             </div>
           </button>
-        `).join('')}
+        `;
+        }).join('')}
       </div>
     </div>
   `;

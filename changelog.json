@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.4.0",
+      "date": "2026-05-29",
+      "summary": "Segurança e LGPD: CPF e documentos com criptografia, IA com limite e correções de proteção",
+      "changes": [
+        "LGPD: CPF e arquivos de documentos podem ser criptografados no banco; CPF aparece mascarado para quem não tem permissão de editar Recursos.",
+        "Assistente de IA agora respeita a permissão de acesso à tela e tem limite de uso por usuário (evita custos indevidos).",
+        "Correções de segurança: busca global, linha do tempo do contrato e seletor de perfil deixaram de aceitar conteúdo malicioso; a Auditoria passou a exigir permissão.",
+        "Telas mais rápidas com muitos dados (cobrança mensal e abastecimentos de frota).",
+        "Mais integridade nos dados financeiros (vínculos de aportes, folha de pagamento e caixa)."
+      ]
+    },
+    {
       "version": "1.3.9",
       "date": "2026-05-29",
       "summary": "Menu lateral reorganizado: novo grupo Comercial, IA no topo, Fornecedores no Financeiro",

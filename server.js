@@ -28,6 +28,7 @@ if (!process.env.DATABASE_URL) {
 }
 const repos = require('./db/repos');
 const db = require('./db');
+const piiCrypto = require('./lib/crypto-pii'); // cifra CPF/documentos em repouso (LGPD)
 const auth = require('./lib/auth');
 const feriados = require('./lib/feriados');
 const email = require('./lib/email');
@@ -80,7 +81,9 @@ if (!fs.existsSync(BACKUPS_DIR)) {
 const AUDIT_BEFORE_LOOKUP = {
   'clientes':       (id) => repos.clientes && repos.clientes.findById && repos.clientes.findById(id),
   'fornecedores':   (id) => repos.fornecedores && repos.fornecedores.findById && repos.fornecedores.findById(id),
-  'recursos':       (id) => repos.recursos && repos.recursos.findById && repos.recursos.findById(id),
+  // findByIdRaw: mantém o CPF cifrado no before_state da auditoria (LGPD — o
+  // log não deve guardar PII em texto puro).
+  'recursos':       (id) => repos.recursos && repos.recursos.findByIdRaw && repos.recursos.findByIdRaw(id),
   'contracts':      (id) => repos.contracts && repos.contracts.findById && repos.contracts.findById(id),
   'contas-pagar':   (id) => repos.contasPagar && repos.contasPagar.findById && repos.contasPagar.findById(id),
   'notas-fiscais':  (id) => repos.notasFiscais && repos.notasFiscais.findById && repos.notasFiscais.findById(id),
@@ -934,9 +937,9 @@ async function handleDashboard(res, query) {
     });
 
     let saldoAcumulado = caixaBalance - contasVencidasTotal;
-    // Agregação: até 60 dias semanal (7), 60-90 semanal, 90+ quinzenal
-    const stepAt = (i) => (projDays <= 30 ? 3 : projDays <= 60 ? 7 : 7);
-    const step = stepAt(projDays);
+    // Granularidade da projeção: pontos a cada 3 dias para janelas curtas
+    // (≤30d), a cada 7 dias para janelas maiores.
+    const step = projDays <= 30 ? 3 : 7;
     for (let i = 1; i <= projDays; i++) {
       const dia = new Date();
       dia.setDate(dia.getDate() + i);
@@ -1047,7 +1050,7 @@ async function handleBackupDownload(res) {
       fornecedores:        await safe(() => repos.fornecedores.findAll({}, { limit: null })),
       contas_pagar:        await safe(() => repos.contasPagar.findAll({}, { limit: null })),
       niveis_acesso:       await safe(() => repos.niveisAcesso.findAll()),
-      recursos:            await safe(() => repos.recursos.findAll({}, { limit: null })),
+      recursos:            await safe(() => repos.recursos.findAllRaw({}, { limit: null })), // CPF cifrado no backup (LGPD)
       doc_templates:       await safe(() => repos.docTemplates.findAll()),
       users:               await safe(() => (repos.users.findAll ? repos.users.findAll({}, { limit: null }) : [])),
     };
@@ -1119,7 +1122,14 @@ async function handleHealth(res) {
 // Handlers de autenticação → handlers/auth.js (Fase A do desmembramento).
 
 // ============ Auditoria ============
-async function handleGetAudit(query, res) {
+async function handleGetAudit(req, query, res) {
+  // Auditoria NÃO é tela universal: espelha o gate do frontend (podeAcessar).
+  // Sem isso, qualquer usuário logado lia o log inteiro (e-mails, IPs, estados)
+  // chamando /api/audit direto. Super admin passa; perfis restritos só com
+  // '#/auditoria' nas abas (perms.can resolve 'view' = abas.includes(rota)).
+  if (!(await perms.can(req.user, 'auditoria', 'view'))) {
+    return sendError(res, 403, 'Sem permissão para visualizar a auditoria.');
+  }
   try {
     const limit = Math.min(500, parseInt(query.limit) || 100);
     const offset = Math.max(0, parseInt(query.offset) || 0);
@@ -4573,6 +4583,27 @@ async function checkMutationPermission(req, res, pathname, method) {
   return true;
 }
 
+/**
+ * Espelha no servidor o gate de acesso a tela do frontend (`podeAcessar`):
+ * perfis restritos só acessam rotas NÃO-universais que estejam em suas `abas`.
+ * Para endpoints que não são mutação de dados nem admin-only mas pertencem a
+ * uma tela específica (ex.: IA). Super admin (abas = null) sempre passa.
+ *
+ * @param {object} req     `req` com `req.user` já resolvido.
+ * @param {import('http').ServerResponse} res
+ * @param {string} screen  Rota da tela, ex.: '#/ai-chat'.
+ * @returns {Promise<boolean>} true se BLOQUEOU (403 já enviado).
+ */
+async function blockIfNoScreenAccess(req, res, screen) {
+  if (perms.isSuperAdmin(req.user)) return false;
+  const abas = await perms.loadAbas(req.user);
+  if (abas && !abas.includes(screen)) {
+    sendError(res, 403, 'Você não tem acesso a esta tela.');
+    return true;
+  }
+  return false;
+}
+
 async function applyAuthMiddleware(req, res, pathname, method) {
   if (!pathname.startsWith('/api/')) return false;
 
@@ -4902,8 +4933,27 @@ async function handleLgpdDelete(req, res) {
   }
 }
 
+// Rate-limit por usuário nas rotas de IA: cada chamada custa créditos Anthropic.
+// Protege a fatura contra abuso/loop acidental do cliente (defesa que o gate de
+// acesso não cobre — um usuário autorizado ainda poderia disparar em excesso).
+const AI_RATE_LIMIT = { max: 20, windowMs: 5 * 60 * 1000 }; // 20 chamadas / 5 min
+function _checkAiRateLimit(req, res) {
+  const rl = rateLimit.check(`ai:${req.user?.id || 'anon'}`, AI_RATE_LIMIT);
+  if (!rl.ok) {
+    res.setHeader('Retry-After', rl.retryAfterSec);
+    sendError(res, 429, 'Muitas requisições à IA em pouco tempo. Aguarde um momento.');
+    return true;
+  }
+  return false;
+}
+
 // ============ F15: AI Chat ============
-async function handleAiChat(body, res) {
+async function handleAiChat(req, body, res) {
+  // IA não é tela universal e cada chamada custa créditos Anthropic + expõe um
+  // resumo financeiro (saldo, contratos, contas a pagar). Bloqueia perfis sem
+  // acesso à tela — mesmo critério do frontend (podeAcessar('#/ai-chat')).
+  if (await blockIfNoScreenAccess(req, res, '#/ai-chat')) return;
+  if (_checkAiRateLimit(req, res)) return;
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return sendError(res, 503, 'ANTHROPIC_API_KEY não configurada');
   const message = (body.message || '').trim();
@@ -4942,7 +4992,10 @@ Responda em português, de forma concisa e objetiva.`;
 }
 
 // ============ F16: AI Auto-Classify Expense ============
-async function handleAiClassify(body, res) {
+async function handleAiClassify(req, body, res) {
+  // Mesma proteção do handleAiChat: tela não-universal + custo por chamada.
+  if (await blockIfNoScreenAccess(req, res, '#/ai-chat')) return;
+  if (_checkAiRateLimit(req, res)) return;
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return sendError(res, 503, 'ANTHROPIC_API_KEY não configurada');
   const { descricao, valor, fornecedor } = body;
@@ -5130,10 +5183,36 @@ async function handlePutNivelAcesso(id, body, res) {
 }
 
 // ============ Recursos handlers ============
-async function handleGetRecursos(res) {
-  const data = await readCollection('recursos.json', 'recursos', 'recursos');
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
+/**
+ * Pode ver o CPF completo? LGPD — super admin ou quem tem permissão de EDIÇÃO
+ * em Recursos (#/recursos) vê o CPF inteiro; os demais veem mascarado. Quem
+ * edita precisa do valor real; quem só visualiza não precisa enxergar a PII.
+ */
+async function _podeVerCpf(user) {
+  if (perms.isSuperAdmin(user)) return true;
+  const abas = await perms.loadAbas(user);
+  if (!abas) return true; // admin sem perfil restritivo
+  return abas.includes('edit:#/recursos');
+}
+
+/** Mascara um CPF preservando só 3 dígitos: "•••.•••.789-••". */
+function _mascararCpf(cpf) {
+  const s = String(cpf || '').replace(/\D/g, '');
+  if (!s) return cpf || '';
+  if (s.length !== 11) return '•••••'; // formato inesperado → oculta tudo
+  return `•••.•••.${s.slice(6, 9)}-••`;
+}
+
+async function handleGetRecursos(req, res) {
+  try {
+    const { recursos } = await readCollection('recursos.json', 'recursos', 'recursos');
+    // LGPD: o repo já decifra o CPF; aqui mascaramos para quem não tem PII.
+    const verCpf = await _podeVerCpf(req.user);
+    const out = verCpf ? recursos : recursos.map((r) => ({ ...r, cpf: _mascararCpf(r.cpf) }));
+    sendJson(res, { recursos: out });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 async function handlePostRecurso(body, res) {
@@ -5180,6 +5259,9 @@ async function handlePutRecurso(id, body, res) {
     const fields = ['nome', 'cpf', 'genero', 'telefone', 'email', 'endereco', 'lat', 'lng',
       'status', 'profissao', 'cnh', 'pis', 'motivoDesligamento', 'obsDesligamento', 'notas', 'rdoCategoria'];
     for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    // LGPD: nunca grava um CPF mascarado — se a UI de um usuário sem permissão
+    // de PII ecoar a máscara (•••.•••.789-••), ignora e mantém o CPF real.
+    if (allowed.cpf !== undefined && /•/.test(String(allowed.cpf))) delete allowed.cpf;
     // Datas: '' → null
     for (const f of ['dataNascimento', 'dataAdmissao', 'dataDesligamento']) {
       if (body[f] !== undefined) allowed[f] = body[f] || null;
@@ -5608,7 +5690,7 @@ async function _validarDocBackground(recursoId, docId) {
     );
     if (!arq) return;
 
-    const validacao = await _validarDocComTemplate(arq.data, arq.mimeType, tpl);
+    const validacao = await _validarDocComTemplate(piiCrypto.decryptBuffer(arq.data), arq.mimeType, tpl);
 
     // Re-busca o recurso (pode ter mudado) e atualiza só o doc
     const recAtual = await repos.recursos.findById(recursoId);
@@ -5642,7 +5724,7 @@ async function handleValidarDocumento(recursoId, docId, res) {
     );
     if (!arq) return sendError(res, 400, 'Documento sem arquivo anexado');
 
-    const validacao = await _validarDocComTemplate(arq.data, arq.mimeType, tpl);
+    const validacao = await _validarDocComTemplate(piiCrypto.decryptBuffer(arq.data), arq.mimeType, tpl);
     docs[idx] = { ...doc, validacao, updatedAt: new Date().toISOString() };
     await repos.recursos.updateById(recursoId, {
       documentos: JSON.stringify(docs),
@@ -5700,13 +5782,16 @@ async function _calcularDiasAtivos(contractId, ano, mes) {
 
 async function _calcularCobrancaMensal(ano, mes) {
   const contracts = await repos.contracts.findAll();
-  const detalhes = [];
-  for (const c of contracts) {
-    const dias = await _calcularDiasAtivos(c.id, ano, mes);
-    if (dias >= 2) {
-      detalhes.push({ contractId: c.id, name: c.name, statusAtual: c.status, diasAtivos: dias });
-    }
-  }
+  // Calcula os dias-ativos de cada contrato em paralelo. Antes era um loop
+  // sequencial (1 query por contrato = N+1); aqui as N queries disparam juntas
+  // e o pool do pg serializa pela capacidade (PG_POOL_MAX). Resultado idêntico:
+  // mesmo filtro (>= 2 dias) e mesma ordenação por diasAtivos desc.
+  const comDias = await Promise.all(
+    contracts.map(async (c) => ({ c, dias: await _calcularDiasAtivos(c.id, ano, mes) }))
+  );
+  const detalhes = comDias
+    .filter(({ dias }) => dias >= 2)
+    .map(({ c, dias }) => ({ contractId: c.id, name: c.name, statusAtual: c.status, diasAtivos: dias }));
   detalhes.sort((a, b) => b.diasAtivos - a.diasAtivos);
   const n = detalhes.length;
   const valorPorContrato = _cobrancaPorContrato(n);
@@ -5801,7 +5886,18 @@ async function handlePutDocumento(recursoId, docId, body, res) {
     const docs = rec.documentos || [];
     const dIdx = docs.findIndex(d => d.id === docId);
     if (dIdx === -1) return sendError(res, 404, 'Documento não encontrado');
-    docs[dIdx] = { ...docs[dIdx], ...body, id: docId, updatedAt: new Date().toISOString() };
+    // Mescla os campos enviados, mas blinda os controlados pelo servidor para
+    // evitar mass-assignment: `id` é imutável; `validacao` só é escrita pelo
+    // fluxo de validação por IA (_validarDocComTemplate), nunca por este PUT;
+    // `createdAt` nunca muda. Sem isso, o cliente poderia forjar a validação.
+    docs[dIdx] = {
+      ...docs[dIdx],
+      ...body,
+      id: docId,
+      validacao: docs[dIdx].validacao,
+      createdAt: docs[dIdx].createdAt,
+      updatedAt: new Date().toISOString(),
+    };
     const { envelope } = await writeCollection('recursos', 'recursos',
       (repo) => repo.updateById(recursoId, { documentos: JSON.stringify(docs), updatedAt: new Date().toISOString() })
     );
@@ -5907,7 +6003,8 @@ function handlePostRecursoDocArquivo(recursoId, docId, req, res) {
         `INSERT INTO recurso_doc_arquivos
          (id, recurso_id, doc_id, filename, filename_original, mime_type, size_bytes, data)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [arqId, recursoId, docId, filename, arq.filename || null, arq.contentType || 'application/octet-stream', arq.data.length, arq.data]
+        // data cifrado em repouso (LGPD); size_bytes guarda o tamanho original.
+        [arqId, recursoId, docId, filename, arq.filename || null, arq.contentType || 'application/octet-stream', arq.data.length, piiCrypto.encryptBuffer(arq.data)]
       );
 
       // Atualiza JSONB do doc com referência ao arquivo (sem o BYTEA)
@@ -5950,13 +6047,14 @@ async function handleGetRecursoDocArquivo(recursoId, docId, res) {
       [recursoId, docId]
     );
     if (!row) return sendError(res, 404, 'Arquivo não encontrado');
+    const fileData = piiCrypto.decryptBuffer(row.data); // decifra o arquivo em repouso (LGPD)
     res.writeHead(200, {
       'Content-Type': row.mimeType || 'application/octet-stream',
       'Content-Disposition': `inline; filename="${encodeURIComponent(row.filename)}"`,
-      'Content-Length': row.data.length,
+      'Content-Length': fileData.length,
       'Cache-Control': 'private, max-age=300',
     });
-    res.end(row.data);
+    res.end(fileData);
   } catch (e) {
     sendError(res, 500, e.message);
   }
@@ -7138,8 +7236,10 @@ async function handleDeleteVeiculoManutencao(veiculoId, manId, res) {
 // ============ Abastecimentos ============
 async function handleListVeiculoAbastecimentos(veiculoId, res) {
   try {
-    const rows = await repos.veiculoAbastecimentos.findAll();
-    sendJson(res, { abastecimentos: rows.filter(a => a.veiculoId === veiculoId) });
+    // Filtra no SQL (WHERE veiculo_id = $1, com o ORDER BY do repo preservado)
+    // em vez de trazer a tabela inteira e filtrar em JS — o histórico cresce.
+    const rows = await repos.veiculoAbastecimentos.findAll({ veiculoId });
+    sendJson(res, { abastecimentos: rows });
   } catch (e) { sendError(res, 500, e.message); }
 }
 
@@ -7476,11 +7576,11 @@ async function handleGetDocumentosStatus(res) {
       })
     ).length;
 
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ totalAtivos: ativos.length, colaboradoresComVencidos, totalDocs, vigentes, vencidos, vencendo, pendentes }));
+    sendJson(res, { totalAtivos: ativos.length, colaboradoresComVencidos, totalDocs, vigentes, vencidos, vencendo, pendentes });
   } catch (e) {
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: e.message }));
+    // Via sendError (não res.end cru): redige a mensagem em 5xx, evitando vazar
+    // o texto de erro do Postgres ao cliente. Mantém o padrão do resto do app.
+    sendError(res, 500, e.message);
   }
 }
 
@@ -7490,6 +7590,12 @@ async function bootstrap() {
     const db = require('./db');
     await db.ping();
     console.log('[server] Postgres conectado');
+
+    // LGPD: avisa cedo se a chave de PII não estiver configurada — leitura de
+    // dados legados ainda funciona, mas escrita de CPF/documento vai falhar.
+    if (!piiCrypto.isConfigured()) {
+      console.warn('[pii] PII_ENCRYPTION_KEY ausente — gravação de CPF/documentos vai falhar. Ver docs/LGPD.md.');
+    }
 
     // Auto-aplicar schema.sql na primeira execução (cloud deploy: Railway/Render).
     // Idempotente — todos CREATE TABLE são "IF NOT EXISTS".
@@ -7609,7 +7715,7 @@ async function _runEmailBackup() {
       fornecedores:   await safe(() => repos.fornecedores.findAll()),
       contas_pagar:   await safe(() => repos.contasPagar.findAll()),
       niveis_acesso:  await safe(() => repos.niveisAcesso.findAll()),
-      recursos:       await safe(() => repos.recursos.findAll()),
+      recursos:       await safe(() => repos.recursos.findAllRaw()), // CPF cifrado no export (LGPD)
       doc_templates:  await safe(() => repos.docTemplates.findAll()),
     };
     const json = JSON.stringify(payload);
