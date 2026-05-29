@@ -1,16 +1,14 @@
 // @ts-check
 //
-// Smoke test do Rhino — versão pós-migração React (F5-2 + F5-2b).
+// Smoke test do Rhino (app legacy hash-based).
 //
-// Selectors atualizados:
-//  - Routing path-based (BrowserRouter) em vez de hash.
-//  - Modal: .modal-overlay em vez de #modalOverlay.
-//  - Botões: getByRole/getByText em vez de #btnNovoX (React usa texto/role).
-//  - Inputs: getByLabel em vez de [name="..."] (FormField liga via htmlFor).
+// Selectors:
+//  - Modal: .modal-overlay
+//  - Botões: getByRole/getByText
+//  - Inputs: getByLabel
 //
-// A UI de auth (Login.tsx, LgpdModal.tsx, ProfilePicker.tsx) preserva os IDs
-// do legacy (#loginForm, #btnAceitarTermos, #btnAceitar, .perfil-card) então freshApp()
-// funciona em ambos os modos (SERVE_REACT=0 ou 1).
+// O helper goto() detecta o modo de roteamento em runtime, então os testes
+// continuam válidos independente de mudanças futuras na navegação.
 
 const { test, expect } = require('@playwright/test');
 
