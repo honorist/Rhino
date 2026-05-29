@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.4.5",
+      "date": "2026-05-29",
+      "summary": "Tecla Esc fecha a janela (modal) aberta",
+      "changes": [
+        "Apertar Esc agora fecha o modal aberto (passa pelo botão de fechar do próprio modal, então o foco volta corretamente para onde estava)."
+      ]
+    },
+    {
       "version": "1.4.4",
       "date": "2026-05-29",
       "summary": "Acessibilidade: textos secundários em cinza mais legíveis (contraste AA)",

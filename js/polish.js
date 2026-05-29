@@ -595,6 +595,20 @@
     }
   });
   _modalObserver.observe(document.body, { childList: true });
+
+  // a11y: Esc fecha o modal mais de cima. Os modais de view têm
+  // <button class="modal-close"> ligado ao próprio close() — clicamos nele para
+  // reusar o cleanup + a restauração de foco. Modais que já tratam Esc sozinhos
+  // (confirm, atalhos) são pulados; o command palette usa .cmdk-overlay (não casa).
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || e.defaultPrevented) return;
+    const overlays = document.querySelectorAll('.modal-overlay');
+    if (!overlays.length) return;
+    const top = overlays[overlays.length - 1]; // último no DOM = mais de cima
+    if (top.closest('#rh-confirm-overlay, #rh-shortcuts-overlay')) return;
+    const closeBtn = top.querySelector('.modal-close');
+    if (closeBtn) { e.preventDefault(); closeBtn.click(); }
+  });
 })();
 
 // ── FAB contextual (mobile) ──────────────────────────────────
