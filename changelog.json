@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.4.3",
+      "date": "2026-05-29",
+      "summary": "Acessibilidade: janelas (modais) e formulários melhores para teclado e leitor de tela",
+      "changes": [
+        "Janelas/modais são anunciadas corretamente e devolvem o foco a quem as abriu ao fechar.",
+        "Campos de formulário ficam ligados aos seus rótulos: clicar no rótulo foca o campo e leitores de tela leem o par certo."
+      ]
+    },
+    {
       "version": "1.4.2",
       "date": "2026-05-29",
       "summary": "Acessibilidade: tabelas e botões de ação operáveis por teclado e leitor de tela",

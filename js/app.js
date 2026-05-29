@@ -1273,6 +1273,7 @@ async function navigate() {
     _appEl.classList.remove('rh-navigating');
     _appEl.offsetWidth; // reflow
     _appEl.classList.add('rh-navigating');
+    window.rhAssociateLabels?.(_appEl); // a11y: associa labels↔campos da página
     // a11y: navegação SPA não move o foco nem anuncia a página. Movemos o foco
     // para o início do conteúdo (se a view não focou nada) e anunciamos o título
     // na região aria-live existente — leitores de tela passam a "ver" a troca.

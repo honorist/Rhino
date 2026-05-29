@@ -536,19 +536,60 @@
   // 8. Modal autofocus helper (global delegate)
   // ───────────────────────────────────────────────
   document.addEventListener('focusin', () => {}, true); // keep listener active
+
+  // a11y: associa <label.form-label> ao seu campo via for/id. Corrige a maioria
+  // dos formulários (gerados à mão) de uma vez, sem editar cada um. Aditivo e
+  // idempotente — só toca em labels sem `for` e campos sem `id`.
+  let _fieldSeq = 0;
+  window.rhAssociateLabels = function(root) {
+    if (!root || !root.querySelectorAll) return;
+    root.querySelectorAll('label.form-label:not([for])').forEach((label) => {
+      const group = label.closest('.form-group') || label.parentElement;
+      const ctrl = group && group.querySelector('input:not([type="hidden"]), select, textarea');
+      if (!ctrl) return;
+      if (!ctrl.id) ctrl.id = 'rh-fld-' + (++_fieldSeq);
+      label.setAttribute('for', ctrl.id);
+    });
+  };
+
   const _modalObserver = new MutationObserver((mutations) => {
     for (const m of mutations) {
       for (const node of m.addedNodes) {
         if (node.nodeType !== 1) continue;
         const modal = node.matches?.('.modal-overlay') ? node : node.querySelector?.('.modal-overlay');
         if (!modal) continue;
+        const modalEl = modal.querySelector('.modal');
+        // a11y (centralizado): marca o diálogo uma vez. Aditivo — cobre todos os
+        // modais do app sem tocar nos ~30 call-sites. (inert no fundo NÃO é feito
+        // aqui de propósito: inert preso travaria o app — fica p/ passo testado.)
+        if (modalEl && !modalEl.getAttribute('role')) {
+          modalEl.setAttribute('role', 'dialog');
+          modalEl.setAttribute('aria-modal', 'true');
+          const title = modalEl.querySelector('.modal-title, .modal-header h2, .modal-header h3');
+          if (title) {
+            if (!title.id) title.id = 'rh-mtitle-' + Math.random().toString(36).slice(2, 8);
+            modalEl.setAttribute('aria-labelledby', title.id);
+          }
+        }
+        // Guarda quem tinha o foco, para devolvê-lo quando o modal fechar.
+        modal.__rhReturnFocus = document.activeElement;
         setTimeout(() => {
           const firstInput = modal.querySelector('input:not([type="hidden"]):not([readonly]), select:not([disabled]), textarea:not([disabled])');
           if (firstInput && !firstInput.closest('[id$="-overlay"]')) firstInput.focus();
         }, 60);
-        if (window.RhinoFocusTrap) {
-          const modalEl = modal.querySelector('.modal');
-          if (modalEl) window.RhinoFocusTrap(modalEl);
+        if (window.RhinoFocusTrap && modalEl) window.RhinoFocusTrap(modalEl);
+        window.rhAssociateLabels(modal); // associa labels↔campos do modal
+      }
+      // a11y: ao fechar o modal, devolve o foco a quem o abriu — só quando o
+      // fechamento deixou o foco "solto" no body. Guardado para nunca brigar com
+      // um close() que já moveu o foco, e nunca quebrar interatividade.
+      for (const node of m.removedNodes) {
+        if (node.nodeType !== 1) continue;
+        const modal = node.matches?.('.modal-overlay') ? node : node.querySelector?.('.modal-overlay');
+        const ret = modal && modal.__rhReturnFocus;
+        if (ret && ret.isConnected && typeof ret.focus === 'function' &&
+            (document.activeElement === document.body || !document.activeElement)) {
+          ret.focus();
         }
       }
     }
