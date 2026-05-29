@@ -102,8 +102,8 @@ window.Investimentos = {
         <div style="display:flex;gap:var(--sp-sm);margin-bottom:var(--sp-lg);align-items:center;">
           <span style="font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-right:4px;">Filtrar:</span>
           <button class="btn btn-sm btn-filtro-origem" data-origem="todos" style="${this.filtroOrigem === 'todos' ? 'background:var(--color-primary);color:#fff;' : 'background:transparent;color:var(--color-text-muted);border:1px solid var(--color-border);'}">Todos</button>
-          <button class="btn btn-sm btn-filtro-origem" data-origem="socio" style="${this.filtroOrigem === 'socio' ? 'background:var(--color-info);color:#fff;' : 'background:transparent;color:var(--color-text-muted);border:1px solid var(--color-border);'}">👥 Sócios</button>
-          <button class="btn btn-sm btn-filtro-origem" data-origem="caixa_empresa" style="${this.filtroOrigem === 'caixa_empresa' ? 'background:var(--color-warning);color:#fff;' : 'background:transparent;color:var(--color-text-muted);border:1px solid var(--color-border);'}">💰 Caixa Empresa</button>
+          <button class="btn btn-sm btn-filtro-origem" data-origem="socio" style="${this.filtroOrigem === 'socio' ? 'background:var(--color-info);color:#fff;' : 'background:transparent;color:var(--color-text-muted);border:1px solid var(--color-border);'}"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('users', 15)}Sócios</span></button>
+          <button class="btn btn-sm btn-filtro-origem" data-origem="caixa_empresa" style="${this.filtroOrigem === 'caixa_empresa' ? 'background:var(--color-warning);color:#fff;' : 'background:transparent;color:var(--color-text-muted);border:1px solid var(--color-border);'}"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('wallet', 15)}Caixa Empresa</span></button>
         </div>
 
         <!-- Lista de Aportes -->

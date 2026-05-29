@@ -107,7 +107,7 @@ window.Configuracao = {
     return `
       <div class="page-header" style="margin-bottom:var(--sp-lg);">
         <div>
-          <h2 style="font-size:20px;font-weight:700;margin:0;">🏷️ Tipos de Custo</h2>
+          <h2 style="font-size:20px;font-weight:700;margin:0;"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('tag', 18)}Tipos de Custo</span></h2>
           <p class="page-subtitle">Classificação de custos usados em BASE e Aportes</p>
         </div>
         <button class="btn btn-primary" id="btnNovoTipo">+ Novo Tipo</button>
@@ -241,7 +241,7 @@ window.Configuracao = {
     if (!niveis.length) {
       return `
         <div class="page-header" style="margin-bottom:var(--sp-lg);">
-          <div><h2 style="font-size:20px;font-weight:700;margin:0;">🔐 Níveis de Acesso</h2></div>
+          <div><h2 style="font-size:20px;font-weight:700;margin:0;"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('shield', 18)}Níveis de Acesso</span></h2></div>
         </div>
         <div class="card"><p style="color:var(--color-text-muted);">Nenhum perfil de acesso cadastrado.</p></div>
       `;
@@ -337,10 +337,10 @@ window.Configuracao = {
 
       <div class="page-header" style="margin-bottom:var(--sp-md);">
         <div>
-          <h2 style="font-size:20px;font-weight:700;margin:0;">🔐 Níveis de Acesso</h2>
+          <h2 style="font-size:20px;font-weight:700;margin:0;"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('shield', 18)}Níveis de Acesso</span></h2>
           <p class="page-subtitle">Matriz de permissões — uma linha por tela, uma coluna por perfil</p>
         </div>
-        <button class="btn btn-primary" id="btnSalvarNiveis">💾 Salvar alterações</button>
+        <button class="btn btn-primary" id="btnSalvarNiveis"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('save', 15)}Salvar alterações</span></button>
       </div>
 
       <div class="card" style="background:rgba(49,130,206,.05);border-left:4px solid var(--color-info);padding:var(--sp-sm) var(--sp-md);margin-bottom:var(--sp-md);">
@@ -625,7 +625,7 @@ window.Configuracao = {
     return `
       <div class="page-header" style="margin-bottom:var(--sp-lg);">
         <div>
-          <h2 style="font-size:20px;font-weight:700;margin:0;">📋 Templates de Documentação</h2>
+          <h2 style="font-size:20px;font-weight:700;margin:0;"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('file-text', 18)}Templates de Documentação</span></h2>
           <p class="page-subtitle">Checklists de validação por tipo de documento e empresa</p>
         </div>
         <button class="btn btn-primary" id="btnNovoTemplate">+ Novo Template</button>
@@ -975,7 +975,7 @@ window.Configuracao = {
     return `
       <div class="page-header" style="margin-bottom:var(--sp-lg);">
         <div>
-          <h2 style="font-size:20px;font-weight:700;margin:0;">💾 Backup do Sistema</h2>
+          <h2 style="font-size:20px;font-weight:700;margin:0;"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('save', 18)}Backup do Sistema</span></h2>
           <p class="page-subtitle" style="margin:4px 0 0 0;">Baixe um snapshot completo dos dados</p>
         </div>
       </div>
@@ -1050,7 +1050,7 @@ window.Configuracao = {
     ct.innerHTML = `
       <div class="page-header" style="margin-bottom:var(--sp-lg);">
         <div>
-          <h2 style="font-size:20px;font-weight:700;margin:0;">📁 Arquivos do Sistema</h2>
+          <h2 style="font-size:20px;font-weight:700;margin:0;"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('folder', 18)}Arquivos do Sistema</span></h2>
           <p class="page-subtitle" style="margin:4px 0 0 0;">
             ${count} arquivo${count !== 1 ? 's' : ''} · Total: <strong>${this._formatBytes(totalBytes)}</strong>
           </p>
@@ -1100,7 +1100,7 @@ window.Configuracao = {
                          class="btn btn-sm btn-secondary"
                          style="text-decoration:none;margin-right:4px;">⬇️ Baixar</a>
                       <button class="btn btn-sm btn-danger btn-excluir-arq"
-                        data-rid="${a.recursoId}" data-did="${a.docId}" data-fn="${escapeHtml(a.filename)}">🗑️</button>
+                        data-rid="${a.recursoId}" data-did="${a.docId}" data-fn="${escapeHtml(a.filename)}"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('trash-2', 15)}</span></button>
                     </td>
                   </tr>
                 `).join('')}
@@ -1146,7 +1146,7 @@ window.Configuracao = {
       const { flags } = await r.json();
       section.innerHTML = `
         <div class="page-header" style="margin-bottom:var(--sp-lg);">
-          <div><h2 style="font-size:20px;font-weight:700;">🚀 Feature Flags</h2>
+          <div><h2 style="font-size:20px;font-weight:700;"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('rocket', 18)}Feature Flags</span></h2>
           <p class="page-subtitle">Ative ou desative funcionalidades sem deploy</p></div>
         </div>
         <div class="card">
@@ -1201,7 +1201,7 @@ window.Configuracao = {
   renderLgpd() {
     return `
       <div class="page-header" style="margin-bottom:var(--sp-lg);">
-        <div><h2 style="font-size:20px;font-weight:700;">🔒 Privacidade (LGPD)</h2>
+        <div><h2 style="font-size:20px;font-weight:700;"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('lock', 18)}Privacidade (LGPD)</span></h2>
         <p class="page-subtitle">Seus direitos sobre os dados pessoais</p></div>
       </div>
       <div class="card" style="margin-bottom:var(--sp-md);">
@@ -1215,7 +1215,7 @@ window.Configuracao = {
           Anonimiza seus dados pessoais e encerra sua sessão. <strong>Esta ação é irreversível.</strong>
           Dados financeiros e contratos associados são preservados para fins legais.
         </p>
-        <button class="btn btn-danger" id="btnLgpdDelete">🗑️ Solicitar exclusão de dados</button>
+        <button class="btn btn-danger" id="btnLgpdDelete"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('trash-2', 15)}Solicitar exclusão de dados</span></button>
       </div>
     `;
   },
@@ -1224,14 +1224,14 @@ window.Configuracao = {
   renderTour() {
     return `
       <div class="page-header" style="margin-bottom:var(--sp-lg);">
-        <div><h2 style="font-size:20px;font-weight:700;">🗺️ Tour Guiado</h2>
+        <div><h2 style="font-size:20px;font-weight:700;"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('map-pin', 18)}Tour Guiado</span></h2>
         <p class="page-subtitle">Revisitar o tour de boas-vindas</p></div>
       </div>
       <div class="card">
         <p style="color:var(--color-text-muted);font-size:15px;margin-bottom:16px;">
           Relembre as principais funcionalidades do Rhino com o tour interativo de boas-vindas.
         </p>
-        <button class="btn btn-primary" id="btnRestarTour">🚀 Iniciar Tour</button>
+        <button class="btn btn-primary" id="btnRestarTour"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('rocket', 15)}Iniciar Tour</span></button>
       </div>
     `;
   },
@@ -1242,7 +1242,7 @@ window.Configuracao = {
     return `
       <div class="page-header" style="margin-bottom:var(--sp-lg);">
         <div>
-          <h2 style="font-size:20px;font-weight:700;margin:0;">🆕 Atualizações</h2>
+          <h2 style="font-size:20px;font-weight:700;margin:0;"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('star', 18)}Atualizações</span></h2>
           <p class="page-subtitle">O que mudou em cada versão do sistema</p>
         </div>
         <div style="font-size:13px;color:var(--color-text-muted);">
@@ -1305,7 +1305,7 @@ window.Configuracao = {
     return `
       <div class="page-header" style="margin-bottom:var(--sp-lg);">
         <div>
-          <h2 style="font-size:20px;font-weight:700;margin:0;">🔔 Notificações Push</h2>
+          <h2 style="font-size:20px;font-weight:700;margin:0;"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('bell', 18)}Notificações Push</span></h2>
           <p class="page-subtitle">Alertas proativos mesmo com o app fechado</p>
         </div>
       </div>

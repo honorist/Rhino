@@ -260,7 +260,7 @@ window.Clientes = {
           </div>
           <div class="modal-footer">
             <button class="btn btn-secondary" id="btnFechar">Fechar</button>
-            <button class="btn btn-secondary" id="btnGerarProposta" title="Cria nova proposta com este cliente já preenchido">📋 Gerar Proposta</button>
+            <button class="btn btn-secondary" id="btnGerarProposta" title="Cria nova proposta com este cliente já preenchido"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('file-text', 15)}Gerar Proposta</span></button>
             <button class="btn btn-primary" id="btnEditarDet">Editar</button>
           </div>
         </div>
