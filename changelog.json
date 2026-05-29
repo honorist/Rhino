@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.4.7",
+      "date": "2026-05-29",
+      "summary": "Dashboard: botões com ícones vetoriais no lugar de emojis (início da padronização)",
+      "changes": [
+        "Os botões do Dashboard (Personalizar, Relatório, Salvar) passaram a usar ícones vetoriais. Começo da troca gradual de emojis por ícones nas telas."
+      ]
+    },
+    {
       "version": "1.4.6",
       "date": "2026-05-29",
       "summary": "Linha do tempo do contrato com ícones vetoriais (SVG) no lugar de emojis",

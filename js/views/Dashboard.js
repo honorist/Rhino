@@ -1278,14 +1278,14 @@ window.Dashboard = {
     const btn = document.createElement('button');
     btn.id = 'btnCustomizarDash';
     btn.className = 'btn btn-secondary btn-sm';
-    btn.innerHTML = '🎨 Personalizar';
+    btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;">' + window.rhIcon('palette', 15) + 'Personalizar</span>';
     btn.title = 'Mostrar/ocultar seções do dashboard';
     btn.addEventListener('click', () => this._showModalCustomizar());
 
     const btnRel = document.createElement('button');
     btnRel.id = 'btnGerarRelatorio';
     btnRel.className = 'btn btn-secondary btn-sm';
-    btnRel.innerHTML = '📄 Relatório';
+    btnRel.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;">' + window.rhIcon('file-text', 15) + 'Relatório</span>';
     btnRel.title = 'Gerar relatório gerencial em PDF';
     btnRel.addEventListener('click', async () => {
       // FIX silent-failure: Relatorio.js é lazy (só carrega em #/relatorios).
@@ -1318,7 +1318,7 @@ window.Dashboard = {
       <div class="modal-overlay" id="modalDashCust">
         <div class="modal" style="width:560px;max-height:85vh;display:flex;flex-direction:column;">
           <div class="modal-header">
-            <h2 class="modal-title">🎨 Personalizar Dashboard</h2>
+            <h2 class="modal-title"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('palette', 18)}Personalizar Dashboard</span></h2>
             <button class="modal-close">✕</button>
           </div>
           <div class="modal-content" style="overflow-y:auto;flex:1;">
@@ -1338,7 +1338,7 @@ window.Dashboard = {
           </div>
           <div class="modal-footer">
             <button class="btn btn-secondary" id="btnDashCustReset">Restaurar padrão</button>
-            <button class="btn btn-primary" id="btnDashCustSave">💾 Salvar</button>
+            <button class="btn btn-primary" id="btnDashCustSave"><span style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('save', 15)}Salvar</span></button>
           </div>
         </div>
       </div>
