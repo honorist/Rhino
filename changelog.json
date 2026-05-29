@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.4.12",
+      "date": "2026-05-29",
+      "summary": "Texto secundário em cinza legível (hierarquia visual) no lugar de tudo preto",
+      "changes": [
+        "Textos secundários (datas, dicas, sub-rótulos) agora aparecem num cinza legível, criando hierarquia visual — antes eram forçados a preto. O contraste mínimo (AA) é mantido; cinzas claros demais continuam protegidos."
+      ]
+    },
+    {
       "version": "1.4.11",
       "date": "2026-05-29",
       "summary": "Ícones vetoriais nos cabeçalhos e nas telas vazias (Almoxarifado, Frota, Propostas)",

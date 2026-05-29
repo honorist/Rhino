@@ -28,7 +28,7 @@
   --color-surface-2:     #F9FAFB;
   --color-border:        #E5E7EB;
   --color-text:          #1F2937;
-  --color-text-muted:    #1F2937;  /* forçado para preto — requisito de legibilidade */
+  --color-text-muted:    #5E6A7D;  /* cinza secundário (contraste AA 4.98:1); theme-v2 pode refinar por tema */
 
   /* Status — Akaunting vibes */
   --color-success:       #6D9480;
@@ -168,11 +168,10 @@ thead th,
 [style*="color:#ccc"],
 [style*="color: #ccc"],
 [style*="color:rgba(75"],
-[style*="color: rgba(75"],
-[style*="color:var(--color-text-muted)"],
-[style*="color: var(--color-text-muted)"],
-[style*="color:var(--text-muted)"],
-[style*="color: var(--text-muted)"] {
+[style*="color: rgba(75"] {
+  /* Sledgehammer SÓ para grays inline genuinamente claros (#999/#aaa/#ccc etc.).
+     O token --color-text-muted foi removido daqui: agora é #5E6A7D (AA), então
+     pode renderizar como cinza secundário (hierarquia), sem forçar a preto. */
   color: var(--color-text) !important;
   -webkit-text-fill-color: var(--color-text) !important;
 }
