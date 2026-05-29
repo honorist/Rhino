@@ -51,7 +51,7 @@ window.Recursos = {
         ? `${filtrados.length} de ${total} pessoa${total !== 1 ? 's' : ''}`
         : `${total} pessoa${total !== 1 ? 's' : ''} cadastrada${total !== 1 ? 's' : ''}`,
       actions: `
-        <button class="btn btn-secondary" id="btnMapaGeral">🗺 Mapa Geral</button>
+        <button class="btn btn-secondary" id="btnMapaGeral" style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('map-pin', 15)}Mapa Geral</button>
         <button class="btn btn-primary btn-lg" id="btnNovoRecurso">+ Novo Cadastro</button>`,
     }) : '';
 

@@ -413,7 +413,7 @@ window.Documentos = {
           <div class="modal-content" id="valBody">${renderRel(v)}</div>
           <div class="modal-footer">
             <button class="btn btn-secondary" id="btnFecharVal">Fechar</button>
-            <button class="btn btn-primary" id="btnRevalidar">🔄 Validar agora</button>
+            <button class="btn btn-primary" id="btnRevalidar" style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('refresh-cw', 15)}Validar agora</button>
           </div>
         </div>
       </div>

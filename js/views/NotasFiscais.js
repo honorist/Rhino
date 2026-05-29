@@ -140,9 +140,9 @@ window.NotasFiscais = {
 
         <!-- Abas -->
         <div style="display:flex;gap:var(--sp-sm);margin-bottom:var(--sp-lg);">
-          <button class="btn btn-sm" id="tabLista"   style="${tabStyle('lista')}border-radius:6px;">📋 Lista Geral</button>
-          <button class="btn btn-sm" id="tabSemanal" style="${tabStyle('semanal')}border-radius:6px;">📅 Semanal</button>
-          <button class="btn btn-sm" id="tabMensal"  style="${tabStyle('mensal')}border-radius:6px;">📆 Mensal</button>
+          <button class="btn btn-sm" id="tabLista"   style="${tabStyle('lista')}border-radius:6px;display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('list', 14)}Lista Geral</button>
+          <button class="btn btn-sm" id="tabSemanal" style="${tabStyle('semanal')}border-radius:6px;display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('calendar', 14)}Semanal</button>
+          <button class="btn btn-sm" id="tabMensal"  style="${tabStyle('mensal')}border-radius:6px;display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('calendar', 14)}Mensal</button>
         </div>
 
         <!-- Conteúdo das abas -->

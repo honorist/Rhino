@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.4.8",
+      "date": "2026-05-29",
+      "summary": "Mais telas com ícones vetoriais nos botões/abas/títulos (no lugar de emojis)",
+      "changes": [
+        "Botões de ação, abas e títulos de janela em Contratos, Caixa, Notas Fiscais, Contas a Pagar, Documentos, Recursos e Estoque trocaram emojis por ícones vetoriais."
+      ]
+    },
+    {
       "version": "1.4.7",
       "date": "2026-05-29",
       "summary": "Dashboard: botões com ícones vetoriais no lugar de emojis (início da padronização)",

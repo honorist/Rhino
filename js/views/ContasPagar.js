@@ -286,7 +286,7 @@ window.ContasPagar = {
             <div class="form-group">
               <label class="form-label" style="display:flex;justify-content:space-between;align-items:center;">
                 <span>Descrição *</span>
-                ${!conta ? `<button type="button" class="btn btn-sm btn-ghost" id="btnAiClassify" title="Classificar com IA">🤖 Classificar com IA</button>` : ''}
+                ${!conta ? `<button type="button" class="btn btn-sm btn-ghost" id="btnAiClassify" title="Classificar com IA" style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('zap', 14)}Classificar com IA</button>` : ''}
               </label>
               <input class="form-control" name="descricao" id="inputDescricao" value="${conta?.descricao || ''}" required placeholder="Ex: Material elétrico, Serviço de transporte...">
             </div>

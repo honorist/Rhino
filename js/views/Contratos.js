@@ -159,8 +159,8 @@ window.Contratos = {
             <p class="page-subtitle">Gerenciar contratos de serviços</p>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <a href="#/comparativo" class="btn btn-secondary" style="text-decoration:none;">📊 Comparativo</a>
-            <button class="btn btn-secondary" id="btnExportCSV" title="Exportar lista em CSV">⬇ CSV</button>
+            <a href="#/comparativo" class="btn btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('bar-chart', 15)}Comparativo</a>
+            <button class="btn btn-secondary" id="btnExportCSV" title="Exportar lista em CSV" style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('download', 15)}CSV</button>
             ${_podeEditar ? `<button class="btn btn-primary btn-lg" id="btnNovoContrato">+ Novo Contrato</button>` : ''}
           </div>
         </div>
@@ -336,9 +336,9 @@ window.Contratos = {
           <span class="rh-bulk-bar__count">${this._selectedIds.size} selecionado${this._selectedIds.size !== 1 ? 's' : ''}</span>
           <div class="rh-bulk-bar__actions">
             <button class="btn rh-bulk-btn" id="bulkStatus">Mudar status</button>
-            <button class="btn rh-bulk-btn" id="bulkCSV">⬇ CSV</button>
-            <button class="btn rh-bulk-btn danger" id="bulkDelete">🗑 Excluir</button>
-            <button class="btn rh-bulk-btn" id="bulkClear">✕ Limpar</button>
+            <button class="btn rh-bulk-btn" id="bulkCSV" style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('download', 15)}CSV</button>
+            <button class="btn rh-bulk-btn danger" id="bulkDelete" style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('trash-2', 15)}Excluir</button>
+            <button class="btn rh-bulk-btn" id="bulkClear" style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('x', 15)}Limpar</button>
           </div>
         </div>
         ` : ''}
@@ -512,7 +512,7 @@ window.Contratos = {
             if (!tr.querySelector('.swipe-del-btn')) {
               const btn = document.createElement('button');
               btn.className = 'swipe-del-btn';
-              btn.textContent = '🗑';
+              btn.innerHTML = window.rhIcon('trash-2', 16);
               btn.style.cssText = 'position:absolute;right:0;top:0;bottom:0;width:80px;background:#dc2626;color:#fff;border:0;font-size:18px;cursor:pointer;';
               btn.addEventListener('click', () => { this.deleteContract(tr.dataset.id); });
               tr.style.position = 'relative';
@@ -893,7 +893,7 @@ window.Contratos = {
                     placeholder="Buscar endereço no mapa..."
                     autocomplete="off"
                     style="padding-right:36px;">
-                  <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">📍</span>
+                  <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;display:inline-flex;color:var(--color-text-muted);">${window.rhIcon('map-pin', 16)}</span>
                   <div id="nominatimDropdown" class="nominatim-dropdown" style="display:none;top:calc(100% + 4px);left:0;"></div>
                 </div>
                 <input type="hidden" id="enderecoLat" name="lat" value="${contract?.lat || ''}">

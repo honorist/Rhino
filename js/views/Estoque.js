@@ -342,7 +342,7 @@ window.Estoque = {
       <div class="modal-overlay" id="modalDistrib">
         <div class="modal" style="width:620px;max-height:90vh;display:flex;flex-direction:column;">
           <div class="modal-header" style="flex-shrink:0;">
-            <h2 class="modal-title">📍 Onde está este item</h2>
+            <h2 class="modal-title"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('map-pin', 18)}Onde está este item</span></h2>
             <button class="modal-close">✕</button>
           </div>
           <div class="modal-content" style="overflow-y:auto;flex:1;padding:0;">
@@ -467,7 +467,7 @@ window.Estoque = {
       <div class="modal-overlay" id="modalItem">
         <div class="modal" style="width:560px;max-height:90vh;display:flex;flex-direction:column;">
           <div class="modal-header" style="flex-shrink:0;">
-            <h2 class="modal-title">${editing ? '✏️ Editar' : '+ Novo'} item</h2>
+            <h2 class="modal-title"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon(editing ? 'edit' : 'plus', 18)}${editing ? 'Editar' : 'Novo'} item</span></h2>
             <button class="modal-close">✕</button>
           </div>
           <form id="formItem" class="modal-content" style="overflow-y:auto;flex:1;">

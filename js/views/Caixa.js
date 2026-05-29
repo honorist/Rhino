@@ -103,7 +103,7 @@ window.Caixa = {
           </div>
           <div style="display:flex;gap:8px;">
             <input type="file" id="ofxFileInput" accept=".ofx,.OFX" style="display:none;">
-            <button class="btn btn-secondary btn-sm" id="btnImportarOfx" title="Importar extrato bancário OFX">🏦 Importar OFX</button>
+            <button class="btn btn-secondary btn-sm" id="btnImportarOfx" title="Importar extrato bancário OFX" style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('landmark', 15)}Importar OFX</button>
           </div>
         </div>
 
@@ -507,7 +507,7 @@ window.Caixa = {
       <div class="modal-overlay" id="ofxModal">
         <div class="modal" style="width:860px;max-width:98vw;">
           <div class="modal-header">
-            <h2 class="modal-title">🏦 Resultado da importação OFX</h2>
+            <h2 class="modal-title"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('landmark', 18)}Resultado da importação OFX</span></h2>
             <button class="modal-close">✕</button>
           </div>
           <div class="modal-content" style="max-height:65vh;overflow-y:auto;">
