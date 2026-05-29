@@ -84,11 +84,11 @@
           <table>
             <thead>
               <tr>
-                <th>Categoria</th>
-                <th>Descrição</th>
-                <th style="width:160px;">Valor (R$)</th>
-                <th style="width:120px;">Percentual</th>
-                <th style="width:60px;">Ações</th>
+                <th scope="col">Categoria</th>
+                <th scope="col">Descrição</th>
+                <th scope="col" style="width:160px;">Valor (R$)</th>
+                <th scope="col" style="width:120px;">Percentual</th>
+                <th scope="col" style="width:60px;">Ações</th>
               </tr>
             </thead>
             <tbody>

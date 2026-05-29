@@ -140,14 +140,14 @@ window.Manutencao = {
           <table>
             <thead>
               <tr>
-                <th>Equipamento</th>
-                <th>Origem</th>
-                <th>Oficina</th>
-                <th>Enviado</th>
-                <th>Previsão</th>
-                <th>Retorno</th>
-                <th>Status</th>
-                <th>Ações</th>
+                <th scope="col">Equipamento</th>
+                <th scope="col">Origem</th>
+                <th scope="col">Oficina</th>
+                <th scope="col">Enviado</th>
+                <th scope="col">Previsão</th>
+                <th scope="col">Retorno</th>
+                <th scope="col">Status</th>
+                <th scope="col">Ações</th>
               </tr>
             </thead>
             <tbody id="manutTbody">
@@ -180,17 +180,17 @@ window.Manutencao = {
 
     const acoes = [];
     if (m.status === 'solicitada') {
-      if (podeAvaliar) acoes.push(`<a class="action-link btn-avaliar-man" data-id="${m.id}" style="color:#4F46E5;">Avaliar</a>`);
-      acoes.push(`<a class="action-link btn-editar-man" data-id="${m.id}">Editar</a>`);
-      acoes.push(`<a class="action-link btn-cancelar-man" data-id="${m.id}" style="color:#D97706;">Cancelar</a>`);
+      if (podeAvaliar) acoes.push(`<button type="button" class="action-link btn-avaliar-man" data-id="${m.id}" style="color:#4F46E5;">Avaliar</button>`);
+      acoes.push(`<button type="button" class="action-link btn-editar-man" data-id="${m.id}">Editar</button>`);
+      acoes.push(`<button type="button" class="action-link btn-cancelar-man" data-id="${m.id}" style="color:#D97706;">Cancelar</button>`);
     } else if (m.status === 'pendente_aprovacao') {
-      if (podeAprovar) acoes.push(`<a class="action-link btn-aprovar-man" data-id="${m.id}" style="color:#059669;">Aprovar / rejeitar</a>`);
-      acoes.push(`<a class="action-link btn-cancelar-man" data-id="${m.id}" style="color:#D97706;">Cancelar</a>`);
+      if (podeAprovar) acoes.push(`<button type="button" class="action-link btn-aprovar-man" data-id="${m.id}" style="color:#059669;">Aprovar / rejeitar</button>`);
+      acoes.push(`<button type="button" class="action-link btn-cancelar-man" data-id="${m.id}" style="color:#D97706;">Cancelar</button>`);
     } else if (m.status === 'aprovada') {
-      acoes.push(`<a class="action-link btn-retorno" data-id="${m.id}" style="color:#059669;">Registrar retorno</a>`);
-      acoes.push(`<a class="action-link btn-cancelar-man" data-id="${m.id}" style="color:#D97706;">Cancelar</a>`);
+      acoes.push(`<button type="button" class="action-link btn-retorno" data-id="${m.id}" style="color:#059669;">Registrar retorno</button>`);
+      acoes.push(`<button type="button" class="action-link btn-cancelar-man" data-id="${m.id}" style="color:#D97706;">Cancelar</button>`);
     }
-    acoes.push(`<a class="action-link danger btn-excluir-man" data-id="${m.id}">Excluir</a>`);
+    acoes.push(`<button type="button" class="action-link danger btn-excluir-man" data-id="${m.id}">Excluir</button>`);
 
     return `<tr>
       <td>

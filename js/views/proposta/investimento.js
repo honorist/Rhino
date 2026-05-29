@@ -72,14 +72,14 @@
             <table>
               <thead>
                 <tr>
-                  <th>Cargo / Função</th>
-                  <th style="width:80px;">Qtd</th>
-                  <th style="width:90px;">Horas</th>
-                  <th style="width:120px;">R$ / Hora</th>
-                  <th style="width:120px;" title="Valor-hora com acréscimo de 50% (referência)">HE 50%</th>
-                  <th style="width:120px;" title="Valor-hora com acréscimo de 100% (referência)">HE 100%</th>
-                  <th style="width:140px;">Total (normal)</th>
-                  <th style="width:40px;"></th>
+                  <th scope="col">Cargo / Função</th>
+                  <th scope="col" style="width:80px;">Qtd</th>
+                  <th scope="col" style="width:90px;">Horas</th>
+                  <th scope="col" style="width:120px;">R$ / Hora</th>
+                  <th scope="col" style="width:120px;" title="Valor-hora com acréscimo de 50% (referência)">HE 50%</th>
+                  <th scope="col" style="width:120px;" title="Valor-hora com acréscimo de 100% (referência)">HE 100%</th>
+                  <th scope="col" style="width:140px;">Total (normal)</th>
+                  <th scope="col" style="width:40px;"></th>
                 </tr>
               </thead>
               <tbody>
@@ -128,12 +128,12 @@
             <table>
               <thead>
                 <tr>
-                  <th>Item / Descrição</th>
-                  <th style="width:100px;">Qtd</th>
-                  <th style="width:80px;">Unid.</th>
-                  <th style="width:140px;">R$ Unit</th>
-                  <th style="width:160px;">Total</th>
-                  <th style="width:50px;"></th>
+                  <th scope="col">Item / Descrição</th>
+                  <th scope="col" style="width:100px;">Qtd</th>
+                  <th scope="col" style="width:80px;">Unid.</th>
+                  <th scope="col" style="width:140px;">R$ Unit</th>
+                  <th scope="col" style="width:160px;">Total</th>
+                  <th scope="col" style="width:50px;"></th>
                 </tr>
               </thead>
               <tbody>

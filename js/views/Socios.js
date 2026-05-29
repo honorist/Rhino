@@ -48,13 +48,13 @@ window.Socios = {
               <table>
                 <thead>
                   <tr>
-                    <th>Nome</th>
-                    <th>CPF/CNPJ</th>
-                    <th>Email</th>
-                    <th>Telefone</th>
-                    <th style="text-align: right;">Participação</th>
-                    <th style="text-align: right;">Total Investido</th>
-                    <th>Ações</th>
+                    <th scope="col">Nome</th>
+                    <th scope="col">CPF/CNPJ</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Telefone</th>
+                    <th scope="col" style="text-align: right;">Participação</th>
+                    <th scope="col" style="text-align: right;">Total Investido</th>
+                    <th scope="col">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -71,9 +71,9 @@ window.Socios = {
                         <td style="text-align: right; font-weight: 600;">${Store.formatBRL(totalInvestido)}</td>
                         <td>
                           <div class="actions-cell">
-                            <a class="action-link btn-investimentos" data-id="${s.id}">Investimentos</a>
-                            <a class="action-link btn-editar" data-id="${s.id}">Editar</a>
-                            <a class="action-link danger btn-excluir" data-id="${s.id}">Excluir</a>
+                            <button type="button" class="action-link btn-investimentos" data-id="${s.id}">Investimentos</button>
+                            <button type="button" class="action-link btn-editar" data-id="${s.id}">Editar</button>
+                            <button type="button" class="action-link danger btn-excluir" data-id="${s.id}">Excluir</button>
                           </div>
                         </td>
                       </tr>

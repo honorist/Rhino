@@ -105,9 +105,9 @@ window.CotacoesHistorico = {
             <table>
               <thead>
                 <tr>
-                  <th>Data SC</th><th>Item</th><th>Fornecedor</th>
-                  <th style="text-align:right;">Valor unit.</th>
-                  <th>Contrato</th><th>Status</th>
+                  <th scope="col">Data SC</th><th scope="col">Item</th><th scope="col">Fornecedor</th>
+                  <th scope="col" style="text-align:right;">Valor unit.</th>
+                  <th scope="col">Contrato</th><th scope="col">Status</th>
                 </tr>
               </thead>
               <tbody>

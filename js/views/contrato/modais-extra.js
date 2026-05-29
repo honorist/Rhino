@@ -395,10 +395,10 @@
                 <table>
                   <thead>
                     <tr>
-                      <th>Data</th>
-                      <th>Descrição</th>
-                      <th>Status</th>
-                      <th class="rh-text-right">Valor</th>
+                      <th scope="col">Data</th>
+                      <th scope="col">Descrição</th>
+                      <th scope="col">Status</th>
+                      <th scope="col" class="rh-text-right">Valor</th>
                     </tr>
                   </thead>
                   <tbody>

@@ -93,14 +93,14 @@
       <table class="data-table" style="margin-top:var(--sp-lg);">
         <thead>
           <tr>
-            <th>Etapa</th>
-            <th style="text-align:right;">Peso %</th>
-            <th>Início plan.</th>
-            <th>Fim plan.</th>
-            <th style="text-align:right;">Custo plan.</th>
-            <th style="text-align:right;">% Real</th>
-            <th>Progresso</th>
-            ${this._podeEditar() ? '<th style="text-align:center;">Ações</th>' : ''}
+            <th scope="col">Etapa</th>
+            <th scope="col" style="text-align:right;">Peso %</th>
+            <th scope="col">Início plan.</th>
+            <th scope="col">Fim plan.</th>
+            <th scope="col" style="text-align:right;">Custo plan.</th>
+            <th scope="col" style="text-align:right;">% Real</th>
+            <th scope="col">Progresso</th>
+            ${this._podeEditar() ? '<th scope="col" style="text-align:center;">Ações</th>' : ''}
           </tr>
         </thead>
         <tbody>

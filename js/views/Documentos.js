@@ -143,11 +143,11 @@ window.Documentos = {
           <table>
             <thead>
               <tr>
-                <th>Funcionário</th>
-                <th>Obra Atual</th>
-                <th>Conformidade</th>
-                <th>Documentos</th>
-                <th>Ações</th>
+                <th scope="col">Funcionário</th>
+                <th scope="col">Obra Atual</th>
+                <th scope="col">Conformidade</th>
+                <th scope="col">Documentos</th>
+                <th scope="col">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -218,7 +218,7 @@ window.Documentos = {
 
     return `<tr>
       <td>
-        <a class="action-link btn-nome-rec" data-id="${r.id}" style="font-weight:700;font-size:15px;">${escapeHtml(r.nome) || '—'}</a>
+        <button type="button" class="action-link btn-nome-rec" data-id="${r.id}" style="font-weight:700;font-size:15px;">${escapeHtml(r.nome) || '—'}</button>
         ${r.profissao ? `<div style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(r.profissao)}</div>` : ''}
       </td>
       <td><span style="font-size:15px;">${obraAtual}</span></td>
@@ -279,9 +279,9 @@ window.Documentos = {
             <td style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(d.responsavel || '—')}</td>
             <td>
               <div class="actions-cell">
-                ${d.templateId ? `<a class="action-link btn-validar-doc" data-rid="${r.id}" data-did="${d.id}">Ver validação</a>` : ''}
-                <a class="action-link btn-edit-doc" data-rid="${r.id}" data-did="${d.id}">Editar</a>
-                <a class="action-link danger btn-del-doc" data-rid="${r.id}" data-did="${d.id}">Excluir</a>
+                ${d.templateId ? `<button type="button" class="action-link btn-validar-doc" data-rid="${r.id}" data-did="${d.id}">Ver validação</button>` : ''}
+                <button type="button" class="action-link btn-edit-doc" data-rid="${r.id}" data-did="${d.id}">Editar</button>
+                <button type="button" class="action-link danger btn-del-doc" data-rid="${r.id}" data-did="${d.id}">Excluir</button>
               </div>
             </td>
           </tr>`;
@@ -305,13 +305,13 @@ window.Documentos = {
               <table>
                 <thead>
                   <tr>
-                    <th>Tipo</th>
-                    <th>Emissão</th>
-                    <th>Validade</th>
-                    <th>Status</th>
-                    <th>Validação IA</th>
-                    <th>Responsável</th>
-                    <th>Ações</th>
+                    <th scope="col">Tipo</th>
+                    <th scope="col">Emissão</th>
+                    <th scope="col">Validade</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Validação IA</th>
+                    <th scope="col">Responsável</th>
+                    <th scope="col">Ações</th>
                   </tr>
                 </thead>
                 <tbody>${rows}</tbody>

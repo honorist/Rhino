@@ -97,12 +97,12 @@ window.CobrancaMensal = {
             <table>
               <thead>
                 <tr>
-                  <th>Mês</th>
-                  <th style="text-align:right;">Contratos ativos</th>
-                  <th style="text-align:right;">Valor unitário</th>
-                  <th style="text-align:right;">Subtotal contratos</th>
-                  <th style="text-align:right;">Taxa fixa</th>
-                  <th style="text-align:right;">Total</th>
+                  <th scope="col">Mês</th>
+                  <th scope="col" style="text-align:right;">Contratos ativos</th>
+                  <th scope="col" style="text-align:right;">Valor unitário</th>
+                  <th scope="col" style="text-align:right;">Subtotal contratos</th>
+                  <th scope="col" style="text-align:right;">Taxa fixa</th>
+                  <th scope="col" style="text-align:right;">Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -220,9 +220,9 @@ window.CobrancaMensal = {
             ${det.length === 0 ? '<p class="text-muted">Nenhum contrato com 2+ dias ativos neste mês.</p>' : `
               <table style="width:100%;font-size:13px;">
                 <thead><tr style="background:var(--color-surface-2);">
-                  <th style="padding:6px;text-align:left;">Contrato</th>
-                  <th style="padding:6px;text-align:right;">Dias ativos no mês</th>
-                  <th style="padding:6px;text-align:left;">Status atual</th>
+                  <th scope="col" style="padding:6px;text-align:left;">Contrato</th>
+                  <th scope="col" style="padding:6px;text-align:right;">Dias ativos no mês</th>
+                  <th scope="col" style="padding:6px;text-align:left;">Status atual</th>
                 </tr></thead>
                 <tbody>
                   ${det.map(d => `

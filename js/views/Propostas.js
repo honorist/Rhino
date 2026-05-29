@@ -108,15 +108,15 @@ window.Propostas = {
             <table>
               <thead>
                 <tr>
-                  <th>Número</th>
-                  <th>Título</th>
-                  <th>Cliente</th>
-                  <th>Tipo</th>
-                  <th>Valor</th>
-                  <th>Emissão</th>
-                  <th>Status</th>
-                  <th>Contrato</th>
-                  <th>Ações</th>
+                  <th scope="col">Número</th>
+                  <th scope="col">Título</th>
+                  <th scope="col">Cliente</th>
+                  <th scope="col">Tipo</th>
+                  <th scope="col">Valor</th>
+                  <th scope="col">Emissão</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Contrato</th>
+                  <th scope="col">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -166,14 +166,14 @@ window.Propostas = {
         </td>
         <td>
           ${p.contratoId
-            ? `<a href="#/contratos/${p.contratoId}" class="action-link js-stop" title="Ver contrato vinculado">🔗 Ver</a>`
+            ? `<button type="button" href="#/contratos/${p.contratoId}" class="action-link js-stop" title="Ver contrato vinculado">🔗 Ver</button>`
             : '<span class="text-muted">—</span>'}
         </td>
         <td>
           <div class="actions-cell js-stop">
-            <a class="action-link" href="#/proposta/${p.id}">Editar</a>
-            <a class="action-link btn-duplicar" data-id="${p.id}" title="Nova revisão">Rev.+1</a>
-            <a class="action-link danger btn-excluir" data-id="${p.id}">Excluir</a>
+            <button type="button" class="action-link" href="#/proposta/${p.id}">Editar</button>
+            <button type="button" class="action-link btn-duplicar" data-id="${p.id}" title="Nova revisão">Rev.+1</button>
+            <button type="button" class="action-link danger btn-excluir" data-id="${p.id}">Excluir</button>
           </div>
         </td>
       </tr>

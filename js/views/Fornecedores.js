@@ -93,12 +93,12 @@ window.Fornecedores = {
             <table>
               <thead>
                 <tr>
-                  <th>Empresa</th>
-                  <th>CNPJ</th>
-                  <th>Contato</th>
-                  <th>Materiais</th>
-                  <th>Dados Bancários</th>
-                  <th>Ações</th>
+                  <th scope="col">Empresa</th>
+                  <th scope="col">CNPJ</th>
+                  <th scope="col">Contato</th>
+                  <th scope="col">Materiais</th>
+                  <th scope="col">Dados Bancários</th>
+                  <th scope="col">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -136,8 +136,8 @@ window.Fornecedores = {
                     </td>
                     <td>
                       <div class="actions-cell">
-                        <a class="action-link btn-editar" data-id="${f.id}">Editar</a>
-                        <a class="action-link danger btn-excluir" data-id="${f.id}">Excluir</a>
+                        <button type="button" class="action-link btn-editar" data-id="${f.id}">Editar</button>
+                        <button type="button" class="action-link danger btn-excluir" data-id="${f.id}">Excluir</button>
                       </div>
                     </td>
                   </tr>

@@ -33,12 +33,12 @@ const Usuarios = {
       <table class="data-table">
         <thead>
           <tr>
-            <th>Email</th>
-            <th>Nome</th>
-            <th>Nível de acesso</th>
-            <th>Status</th>
-            <th>Último login</th>
-            <th style="width:120px;">Ações</th>
+            <th scope="col">Email</th>
+            <th scope="col">Nome</th>
+            <th scope="col">Nível de acesso</th>
+            <th scope="col">Status</th>
+            <th scope="col">Último login</th>
+            <th scope="col" style="width:120px;">Ações</th>
           </tr>
         </thead>
         <tbody>

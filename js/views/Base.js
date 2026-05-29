@@ -167,13 +167,13 @@ window.Base = {
             <table>
               <thead>
                 <tr>
-                  <th>Descrição</th>
-                  <th>Tipo</th>
-                  <th>Data</th>
-                  <th style="text-align:right;">Valor</th>
-                  <th>Contratos Alocados</th>
-                  <th style="text-align:right;">Saldo</th>
-                  <th>Ações</th>
+                  <th scope="col">Descrição</th>
+                  <th scope="col">Tipo</th>
+                  <th scope="col">Data</th>
+                  <th scope="col" style="text-align:right;">Valor</th>
+                  <th scope="col">Contratos Alocados</th>
+                  <th scope="col" style="text-align:right;">Saldo</th>
+                  <th scope="col">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -233,9 +233,9 @@ window.Base = {
                       <td style="text-align:right;font-weight:700;color:${saldo > 0 ? 'var(--color-warning)' : saldo === 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${Store.formatBRL(saldo)}</td>
                       <td>
                         <div class="actions-cell">
-                          ${saldo > 0 ? `<a class="action-link btn-alocar" data-id="${item.id}">Alocar</a>` : `<a class="action-link btn-alocar" data-id="${item.id}">Ver Alocações</a>`}
-                          <a class="action-link btn-editar" data-id="${item.id}">Editar</a>
-                          <a class="action-link danger btn-excluir" data-id="${item.id}">Excluir</a>
+                          ${saldo > 0 ? `<button type="button" class="action-link btn-alocar" data-id="${item.id}">Alocar</button>` : `<button type="button" class="action-link btn-alocar" data-id="${item.id}">Ver Alocações</button>`}
+                          <button type="button" class="action-link btn-editar" data-id="${item.id}">Editar</button>
+                          <button type="button" class="action-link danger btn-excluir" data-id="${item.id}">Excluir</button>
                         </div>
                       </td>
                     </tr>

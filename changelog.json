@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.4.2",
+      "date": "2026-05-29",
+      "summary": "Acessibilidade: tabelas e botões de ação operáveis por teclado e leitor de tela",
+      "changes": [
+        "Botões de ação das listas (Editar, Excluir, Alocar…) agora funcionam por teclado e são anunciados como botões.",
+        "Cabeçalhos das tabelas passam a se associar corretamente às células para leitores de tela."
+      ]
+    },
+    {
       "version": "1.4.1",
       "date": "2026-05-29",
       "summary": "Acessibilidade: troca de página anunciada a leitores de tela e melhorias no menu lateral",

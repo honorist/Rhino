@@ -102,13 +102,13 @@ window.Clausulas = {
           <table>
             <thead>
               <tr>
-                <th style="width:240px;">Título</th>
-                <th style="width:180px;">Categoria</th>
-                <th>Texto</th>
-                <th style="width:160px;">Tags</th>
-                <th style="width:60px;text-align:center;">Uso</th>
-                <th style="width:80px;text-align:center;">Status</th>
-                <th style="width:160px;">Ações</th>
+                <th scope="col" style="width:240px;">Título</th>
+                <th scope="col" style="width:180px;">Categoria</th>
+                <th scope="col">Texto</th>
+                <th scope="col" style="width:160px;">Tags</th>
+                <th scope="col" style="width:60px;text-align:center;">Uso</th>
+                <th scope="col" style="width:80px;text-align:center;">Status</th>
+                <th scope="col" style="width:160px;">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -133,9 +133,9 @@ window.Clausulas = {
                     </td>
                     <td>
                       <div class="actions-cell">
-                        <a class="action-link btn-editar-cla" data-id="${c.id}">Editar</a>
-                        <a class="action-link btn-toggle-cla" data-id="${c.id}">${c.ativa ? 'Desativar' : 'Ativar'}</a>
-                        <a class="action-link danger btn-excluir-cla" data-id="${c.id}">×</a>
+                        <button type="button" class="action-link btn-editar-cla" data-id="${c.id}">Editar</button>
+                        <button type="button" class="action-link btn-toggle-cla" data-id="${c.id}">${c.ativa ? 'Desativar' : 'Ativar'}</button>
+                        <button type="button" class="action-link danger btn-excluir-cla" data-id="${c.id}">×</button>
                       </div>
                     </td>
                   </tr>
@@ -166,9 +166,9 @@ window.Clausulas = {
         ` : ''}
         ${c.usoCount > 0 ? `<div style="font-size:11px;color:#888;">Usada em ${c.usoCount} proposta(s)</div>` : ''}
         <div class="actions-cell" style="margin-top:auto;padding-top:8px;border-top:1px solid #eee;">
-          <a class="action-link btn-editar-cla" data-id="${c.id}">Editar</a>
-          <a class="action-link btn-toggle-cla" data-id="${c.id}">${c.ativa ? 'Desativar' : 'Ativar'}</a>
-          <a class="action-link danger btn-excluir-cla" data-id="${c.id}">Excluir</a>
+          <button type="button" class="action-link btn-editar-cla" data-id="${c.id}">Editar</button>
+          <button type="button" class="action-link btn-toggle-cla" data-id="${c.id}">${c.ativa ? 'Desativar' : 'Ativar'}</button>
+          <button type="button" class="action-link danger btn-excluir-cla" data-id="${c.id}">Excluir</button>
         </div>
       </div>
     `;

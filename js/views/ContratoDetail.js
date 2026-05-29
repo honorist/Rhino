@@ -537,10 +537,10 @@ window.ContratoDetail = {
                 <table>
                   <thead>
                     <tr>
-                      <th>Descrição</th>
-                      <th>Categoria</th>
-                      <th class="rh-text-right">Valor Orçado</th>
-                      <th style="text-align:center;width:140px;">Ações</th>
+                      <th scope="col">Descrição</th>
+                      <th scope="col">Categoria</th>
+                      <th scope="col" class="rh-text-right">Valor Orçado</th>
+                      <th scope="col" style="text-align:center;width:140px;">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -671,12 +671,12 @@ window.ContratoDetail = {
               <table>
                 <thead>
                   <tr>
-                    <th>Data</th>
-                    <th>Descrição</th>
-                    <th>Tipo</th>
-                    <th>Origem</th>
-                    <th style="text-align: right;">Valor</th>
-                    <th>Ações</th>
+                    <th scope="col">Data</th>
+                    <th scope="col">Descrição</th>
+                    <th scope="col">Tipo</th>
+                    <th scope="col">Origem</th>
+                    <th scope="col" style="text-align: right;">Valor</th>
+                    <th scope="col">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -794,11 +794,11 @@ window.ContratoDetail = {
             <table>
               <thead>
                 <tr>
-                  <th>Colaborador</th>
-                  <th>Descrição</th>
-                  <th>Vencimento</th>
-                  <th class="rh-text-right">Valor Previsto</th>
-                  <th>Status</th>
+                  <th scope="col">Colaborador</th>
+                  <th scope="col">Descrição</th>
+                  <th scope="col">Vencimento</th>
+                  <th scope="col" class="rh-text-right">Valor Previsto</th>
+                  <th scope="col">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -977,7 +977,7 @@ window.ContratoDetail = {
       ${aditivos.length === 0 ? `<div style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">Nenhum aditivo cadastrado</div>` : `
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Nº</th><th>Tipo</th><th>Descrição</th><th>Valor Δ</th><th>Prazo Δ</th><th>Data</th><th>Status</th>${this._podeEditar() ? '<th></th>' : ''}</tr></thead>
+          <thead><tr><th scope="col">Nº</th><th scope="col">Tipo</th><th scope="col">Descrição</th><th scope="col">Valor Δ</th><th scope="col">Prazo Δ</th><th scope="col">Data</th><th scope="col">Status</th>${this._podeEditar() ? '<th scope="col"></th>' : ''}</tr></thead>
           <tbody>
             ${aditivos.map(a => `
             <tr>
@@ -1160,7 +1160,7 @@ window.ContratoDetail = {
       ${ocorrencias.length === 0 ? `<div style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">Nenhuma ocorrência registrada</div>` : `
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Data</th><th>Tipo</th><th>Severidade</th><th>Descrição</th><th>Status</th>${this._podeEditar() ? '<th></th>' : ''}</tr></thead>
+          <thead><tr><th scope="col">Data</th><th scope="col">Tipo</th><th scope="col">Severidade</th><th scope="col">Descrição</th><th scope="col">Status</th>${this._podeEditar() ? '<th scope="col"></th>' : ''}</tr></thead>
           <tbody>
             ${ocorrencias.map(o => `
             <tr style="${o.encerrada ? 'opacity:.6;' : ''}">

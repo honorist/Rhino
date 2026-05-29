@@ -19,7 +19,7 @@
               Selecione cláusulas da biblioteca para cada lado. Você pode editar o texto após inserir — a alteração fica só nesta proposta.
             </p>
           </div>
-          <a href="#/clausulas" class="action-link" title="Gerenciar biblioteca de cláusulas">📖 Ir para biblioteca</a>
+          <button type="button" href="#/clausulas" class="action-link" title="Gerenciar biblioteca de cláusulas">📖 Ir para biblioteca</button>
         </div>
 
         ${renderLado('Obrigações da Contratada',  'contratada',  contratada,  clausulas.filter(c => c.categoria === 'obrigacoes_contratada'))}

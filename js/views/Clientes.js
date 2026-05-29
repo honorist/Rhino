@@ -97,12 +97,12 @@ window.Clientes = {
             <table>
               <thead>
                 <tr>
-                  <th>Nome</th>
-                  <th>Empresa</th>
-                  <th>Cargo / Setor</th>
-                  <th>Telefone</th>
-                  <th>Email</th>
-                  <th>Ações</th>
+                  <th scope="col">Nome</th>
+                  <th scope="col">Empresa</th>
+                  <th scope="col">Cargo / Setor</th>
+                  <th scope="col">Telefone</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -128,8 +128,8 @@ window.Clientes = {
                     <td>${c.email ? `<a href="mailto:${escapeHtml(c.email)}" class="js-stop" style="color:var(--color-primary);text-decoration:none;">${escapeHtml(c.email)}</a>` : '—'}</td>
                     <td>
                       <div class="actions-cell">
-                        <a class="action-link btn-editar" data-id="${c.id}">Editar</a>
-                        <a class="action-link danger btn-excluir" data-id="${c.id}">Excluir</a>
+                        <button type="button" class="action-link btn-editar" data-id="${c.id}">Editar</button>
+                        <button type="button" class="action-link danger btn-excluir" data-id="${c.id}">Excluir</button>
                       </div>
                     </td>
                   </tr>
@@ -171,7 +171,7 @@ window.Clientes = {
       // Click na linha → abre modal de detalhe (read-only)
       document.querySelectorAll('.row-cliente').forEach(tr => {
         tr.addEventListener('click', (e) => {
-          if (e.target.closest('.actions-cell') || e.target.tagName === 'A') return;
+          if (e.target.closest('.actions-cell') || e.target.closest('button, a')) return;
           this.showDetail(tr.dataset.id);
         });
       });

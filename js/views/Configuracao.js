@@ -130,13 +130,13 @@ window.Configuracao = {
           <table>
             <thead>
               <tr>
-                <th>Ícone</th>
-                <th>Nome</th>
-                <th>Chave</th>
-                <th>Cor</th>
-                <th>Origem</th>
-                <th style="text-align:right;">Em uso</th>
-                <th>Ações</th>
+                <th scope="col">Ícone</th>
+                <th scope="col">Nome</th>
+                <th scope="col">Chave</th>
+                <th scope="col">Cor</th>
+                <th scope="col">Origem</th>
+                <th scope="col" style="text-align:right;">Em uso</th>
+                <th scope="col">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -163,8 +163,8 @@ window.Configuracao = {
                     </td>
                     <td>
                       <div class="actions-cell">
-                        <a class="action-link btn-editar-tipo" data-id="${t.id}">Editar</a>
-                        ${!t.sistema ? `<a class="action-link danger btn-excluir-tipo" data-id="${t.id}">Excluir</a>` : ''}
+                        <button type="button" class="action-link btn-editar-tipo" data-id="${t.id}">Editar</button>
+                        ${!t.sistema ? `<button type="button" class="action-link danger btn-excluir-tipo" data-id="${t.id}">Excluir</button>` : ''}
                       </div>
                     </td>
                   </tr>
@@ -312,12 +312,12 @@ window.Configuracao = {
     });
 
     const headPerfil = niveis.map((n, i) => `
-      <th colspan="2" style="border-bottom:3px solid ${corOf(n)};${i > 0 ? 'border-left:2px solid var(--color-border);' : ''}">
+      <th scope="col" colspan="2" style="border-bottom:3px solid ${corOf(n)};${i > 0 ? 'border-left:2px solid var(--color-border);' : ''}">
         <span style="font-size:15px;margin-right:4px;">${escapeHtml(n.icon || '')}</span><span style="color:${corOf(n)};">${escapeHtml(n.label)}</span>
       </th>`).join('');
     const headVerEd = niveis.map((n, i) => `
-      <th style="${i > 0 ? 'border-left:2px solid var(--color-border);' : ''}width:46px;">Ver</th>
-      <th style="width:46px;">Ed.</th>`).join('');
+      <th scope="col" style="${i > 0 ? 'border-left:2px solid var(--color-border);' : ''}width:46px;">Ver</th>
+      <th scope="col" style="width:46px;">Ed.</th>`).join('');
 
     return `
       <style>
@@ -357,11 +357,11 @@ window.Configuracao = {
           <table class="nivel-matrix">
             <thead>
               <tr>
-                <th style="text-align:left;border-bottom:3px solid var(--color-border);">Tela / Permissão</th>
+                <th scope="col" style="text-align:left;border-bottom:3px solid var(--color-border);">Tela / Permissão</th>
                 ${headPerfil}
               </tr>
               <tr>
-                <th style="text-align:left;"></th>
+                <th scope="col" style="text-align:left;"></th>
                 ${headVerEd}
               </tr>
             </thead>
@@ -615,8 +615,8 @@ window.Configuracao = {
             <td style="font-size:15px;">${t.periodicidadeMeses || 12} meses</td>
             <td>
               <div class="actions-cell">
-                <a class="action-link btn-edit-tpl" data-id="${t.id}">Editar</a>
-                <a class="action-link danger btn-del-tpl" data-id="${t.id}">Excluir</a>
+                <button type="button" class="action-link btn-edit-tpl" data-id="${t.id}">Editar</button>
+                <button type="button" class="action-link danger btn-del-tpl" data-id="${t.id}">Excluir</button>
               </div>
             </td>
           </tr>`;
@@ -647,11 +647,11 @@ window.Configuracao = {
           <table>
             <thead>
               <tr>
-                <th>Nome</th>
-                <th>Tipo de Documento</th>
-                <th>Empresa / Contrato</th>
-                <th>Periodicidade</th>
-                <th>Ações</th>
+                <th scope="col">Nome</th>
+                <th scope="col">Tipo de Documento</th>
+                <th scope="col">Empresa / Contrato</th>
+                <th scope="col">Periodicidade</th>
+                <th scope="col">Ações</th>
               </tr>
             </thead>
             <tbody>${rows}</tbody>
@@ -1075,12 +1075,12 @@ window.Configuracao = {
             <table class="table" style="margin:0;">
               <thead>
                 <tr>
-                  <th>Arquivo</th>
-                  <th>Pessoa</th>
-                  <th>Tipo</th>
-                  <th style="text-align:right;">Tamanho</th>
-                  <th>Enviado em</th>
-                  <th style="text-align:center;width:200px;">Ações</th>
+                  <th scope="col">Arquivo</th>
+                  <th scope="col">Pessoa</th>
+                  <th scope="col">Tipo</th>
+                  <th scope="col" style="text-align:right;">Tamanho</th>
+                  <th scope="col">Enviado em</th>
+                  <th scope="col" style="text-align:center;width:200px;">Ações</th>
                 </tr>
               </thead>
               <tbody>

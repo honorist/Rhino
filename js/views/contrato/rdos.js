@@ -54,15 +54,15 @@
         <table>
           <thead>
             <tr>
-              <th style="width:60px;">Nº</th>
-              <th>Data</th>
-              <th>Clima</th>
-              <th class="rh-text-center">MO Total</th>
-              <th class="rh-text-center">Equip.</th>
-              <th class="rh-text-center">Atividades</th>
-              <th class="rh-text-center">Fotos</th>
-              <th>Segurança</th>
-              <th>Ações</th>
+              <th scope="col" style="width:60px;">Nº</th>
+              <th scope="col">Data</th>
+              <th scope="col">Clima</th>
+              <th scope="col" class="rh-text-center">MO Total</th>
+              <th scope="col" class="rh-text-center">Equip.</th>
+              <th scope="col" class="rh-text-center">Atividades</th>
+              <th scope="col" class="rh-text-center">Fotos</th>
+              <th scope="col">Segurança</th>
+              <th scope="col">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -99,9 +99,9 @@
                   <td>${segBadge}</td>
                   <td>
                     <div class="actions-cell">
-                      <a class="action-link btn-editar-rdo" data-id="${r.id}">Editar</a>
-                      <a class="action-link btn-pdf-rdo" data-id="${r.id}" style="color:var(--color-info);">📄 PDF</a>
-                      <a class="action-link danger btn-excluir-rdo" data-id="${r.id}">Excluir</a>
+                      <button type="button" class="action-link btn-editar-rdo" data-id="${r.id}">Editar</button>
+                      <button type="button" class="action-link btn-pdf-rdo" data-id="${r.id}" style="color:var(--color-info);">📄 PDF</button>
+                      <button type="button" class="action-link danger btn-excluir-rdo" data-id="${r.id}">Excluir</button>
                     </div>
                   </td>
                 </tr>
@@ -202,7 +202,7 @@
           <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:6px;">${titulo}</div>
           <table style="width:100%;font-size:13px;border-collapse:collapse;">
             <thead><tr style="border-bottom:1px solid var(--color-border);">
-              ${cols.map(c => `<th style="text-align:${c.align || 'left'};padding:6px 8px;color:var(--color-text-muted);font-weight:600;">${c.label}</th>`).join('')}
+              ${cols.map(c => `<th scope="col" style="text-align:${c.align || 'left'};padding:6px 8px;color:var(--color-text-muted);font-weight:600;">${c.label}</th>`).join('')}
             </tr></thead>
             <tbody>
               ${arr.map(r => `<tr style="border-bottom:1px solid var(--color-border);">

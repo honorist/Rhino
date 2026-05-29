@@ -176,13 +176,13 @@ window.Frota = {
           <table>
             <thead>
               <tr>
-                <th>Placa</th>
-                <th>Veículo</th>
-                <th>Contrato</th>
-                <th>Próx. manutenção</th>
-                <th>Localização</th>
-                <th>Status</th>
-                <th>Ações</th>
+                <th scope="col">Placa</th>
+                <th scope="col">Veículo</th>
+                <th scope="col">Contrato</th>
+                <th scope="col">Próx. manutenção</th>
+                <th scope="col">Localização</th>
+                <th scope="col">Status</th>
+                <th scope="col">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -212,12 +212,12 @@ window.Frota = {
                   }</td>
                   <td>
                     <div class="actions-cell" style="display:flex;gap:6px;flex-wrap:wrap;">
-                      <a class="action-link btn-plano" data-id="${v.id}">Plano</a>
-                      <a class="action-link btn-historico" data-id="${v.id}">Manutenção</a>
-                      <a class="action-link btn-abastec" data-id="${v.id}">Abastecimento</a>
-                      <a class="action-link btn-editar" data-id="${v.id}">Editar</a>
-                      <a class="action-link btn-distancia" data-id="${v.id}">Distâncias</a>
-                      <a class="action-link danger btn-excluir" data-id="${v.id}">Excluir</a>
+                      <button type="button" class="action-link btn-plano" data-id="${v.id}">Plano</button>
+                      <button type="button" class="action-link btn-historico" data-id="${v.id}">Manutenção</button>
+                      <button type="button" class="action-link btn-abastec" data-id="${v.id}">Abastecimento</button>
+                      <button type="button" class="action-link btn-editar" data-id="${v.id}">Editar</button>
+                      <button type="button" class="action-link btn-distancia" data-id="${v.id}">Distâncias</button>
+                      <button type="button" class="action-link danger btn-excluir" data-id="${v.id}">Excluir</button>
                     </div>
                   </td>
                 </tr>`;
@@ -428,7 +428,7 @@ window.Frota = {
             <td>${p.intervaloMeses ? p.intervaloMeses + ' meses' : '—'}</td>
             <td>${p.ultimoKm ? p.ultimoKm.toLocaleString('pt-BR') + ' km' : '—'}</td>
             <td>${p.ultimaData ? new Date(p.ultimaData + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
-            <td><a class="action-link btn-edit-plano" data-id="${p.id}">Editar</a> · <a class="action-link danger btn-del-plano" data-id="${p.id}">×</a></td>
+            <td><button type="button" class="action-link btn-edit-plano" data-id="${p.id}">Editar</button> · <button type="button" class="action-link danger btn-del-plano" data-id="${p.id}">×</button></td>
           </tr>
         `).join('');
 
@@ -443,7 +443,7 @@ window.Frota = {
             <td>${escapeHtml(m.descricao || (plano ? plano.descricao : ''))}</td>
             <td>${m.km ? m.km.toLocaleString('pt-BR') + ' km' : '—'}</td>
             <td>${m.custo ? Store.formatBRL(m.custo) : '—'}</td>
-            <td><a class="action-link danger btn-del-manut" data-id="${m.id}">×</a></td>
+            <td><button type="button" class="action-link danger btn-del-manut" data-id="${m.id}">×</button></td>
           </tr>
         `;}).join('');
 
@@ -469,7 +469,7 @@ window.Frota = {
             <td>${a.valorTotal ? Store.formatBRL(a.valorTotal) : '—'}</td>
             <td>${escapeHtml(a.tipoCombustivel || '—')}</td>
             <td style="font-size:12px;">${ct ? escapeHtml(ct.name) : '<span class="text-muted">—</span>'}</td>
-            <td><a class="action-link danger btn-del-abastec" data-id="${a.id}">×</a></td>
+            <td><button type="button" class="action-link danger btn-del-abastec" data-id="${a.id}">×</button></td>
           </tr>`;
         }).join('');
 
@@ -481,7 +481,7 @@ window.Frota = {
           <button class="btn btn-sm btn-primary" id="btnAddPlano">+ Adicionar plano</button>
         </div>
         <table style="width:100%;font-size:13px;">
-          <thead><tr style="background:var(--color-surface-2);"><th style="padding:8px;text-align:left;">Item</th><th style="padding:8px;">Intervalo KM</th><th style="padding:8px;">Intervalo</th><th style="padding:8px;">Último KM</th><th style="padding:8px;">Última data</th><th style="padding:8px;width:90px;"></th></tr></thead>
+          <thead><tr style="background:var(--color-surface-2);"><th scope="col" style="padding:8px;text-align:left;">Item</th><th scope="col" style="padding:8px;">Intervalo KM</th><th scope="col" style="padding:8px;">Intervalo</th><th scope="col" style="padding:8px;">Último KM</th><th scope="col" style="padding:8px;">Última data</th><th scope="col" style="padding:8px;width:90px;"></th></tr></thead>
           <tbody>${planosHtml}</tbody>
         </table>
       ` : abaAtual === 'historico' ? `
@@ -490,7 +490,7 @@ window.Frota = {
           <button class="btn btn-sm btn-primary" id="btnAddManut">+ Registrar manutenção</button>
         </div>
         <table style="width:100%;font-size:13px;">
-          <thead><tr style="background:var(--color-surface-2);"><th style="padding:8px;">Data</th><th style="padding:8px;">Tipo</th><th style="padding:8px;text-align:left;">Descrição</th><th style="padding:8px;">KM</th><th style="padding:8px;">Custo</th><th style="padding:8px;width:30px;"></th></tr></thead>
+          <thead><tr style="background:var(--color-surface-2);"><th scope="col" style="padding:8px;">Data</th><th scope="col" style="padding:8px;">Tipo</th><th scope="col" style="padding:8px;text-align:left;">Descrição</th><th scope="col" style="padding:8px;">KM</th><th scope="col" style="padding:8px;">Custo</th><th scope="col" style="padding:8px;width:30px;"></th></tr></thead>
           <tbody>${manutsHtml}</tbody>
         </table>
       ` : abaAtual === 'abastecimentos' ? `
@@ -515,14 +515,14 @@ window.Frota = {
         <div class="table-wrap">
           <table style="width:100%;font-size:13px;">
             <thead><tr style="background:var(--color-surface-2);">
-              <th style="padding:8px;">Data</th>
-              <th style="padding:8px;">KM</th>
-              <th style="padding:8px;">Litros</th>
-              <th style="padding:8px;">R$/L</th>
-              <th style="padding:8px;">Total</th>
-              <th style="padding:8px;">Combustível</th>
-              <th style="padding:8px;text-align:left;">Contrato</th>
-              <th style="padding:8px;width:30px;"></th>
+              <th scope="col" style="padding:8px;">Data</th>
+              <th scope="col" style="padding:8px;">KM</th>
+              <th scope="col" style="padding:8px;">Litros</th>
+              <th scope="col" style="padding:8px;">R$/L</th>
+              <th scope="col" style="padding:8px;">Total</th>
+              <th scope="col" style="padding:8px;">Combustível</th>
+              <th scope="col" style="padding:8px;text-align:left;">Contrato</th>
+              <th scope="col" style="padding:8px;width:30px;"></th>
             </tr></thead>
             <tbody>${abastecHtml}</tbody>
           </table>
@@ -914,7 +914,7 @@ window.Frota = {
                 <button class="btn btn-sm btn-secondary" id="btnRotaReal">Calcular rotas reais (OSRM)</button>
               </div>
               <table style="width:100%;font-size:14px;">
-                <thead><tr style="background:var(--color-surface-2);"><th style="padding:8px;text-align:left;">Obra</th><th style="padding:8px;text-align:right;">Linha reta</th><th style="padding:8px;text-align:right;" class="col-rota">Rota real</th><th style="padding:8px;text-align:right;" class="col-tempo">Tempo</th></tr></thead>
+                <thead><tr style="background:var(--color-surface-2);"><th scope="col" style="padding:8px;text-align:left;">Obra</th><th scope="col" style="padding:8px;text-align:right;">Linha reta</th><th scope="col" style="padding:8px;text-align:right;" class="col-rota">Rota real</th><th scope="col" style="padding:8px;text-align:right;" class="col-tempo">Tempo</th></tr></thead>
                 <tbody>
                   ${dists.map(d => `
                     <tr data-id="${d.obra.id}">

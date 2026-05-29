@@ -80,7 +80,7 @@ window.Previsao = {
       <div class="card" style="margin-bottom:var(--sp-lg);">
         <div style="font-weight:700;margin-bottom:var(--sp-md);">Entradas Previstas (NFs emitidas)</div>
         <table class="table">
-          <thead><tr><th>Data</th><th>NF</th><th>Valor</th></tr></thead>
+          <thead><tr><th scope="col">Data</th><th scope="col">NF</th><th scope="col">Valor</th></tr></thead>
           <tbody>
             ${projecaoFutura.flatMap(d => d.entradas.map(e => `
               <tr>
@@ -98,7 +98,7 @@ window.Previsao = {
       <div class="card">
         <div style="font-weight:700;margin-bottom:var(--sp-md);">Saídas Recorrentes Previstas</div>
         <table class="table">
-          <thead><tr><th>Data</th><th>Descrição</th><th>Valor</th></tr></thead>
+          <thead><tr><th scope="col">Data</th><th scope="col">Descrição</th><th scope="col">Valor</th></tr></thead>
           <tbody>
             ${ocorrenciasVirtuais.map(o => `
               <tr>

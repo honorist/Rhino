@@ -62,8 +62,8 @@
           <td>${m.area ? escapeHtml(m.area) : '—'}</td>
           <td>
             <div class="actions-cell">
-              <a class="action-link btn-editar-org" data-id="${m.id}">Editar</a>
-              <a class="action-link danger btn-excluir-org" data-id="${m.id}">Excluir</a>
+              <button type="button" class="action-link btn-editar-org" data-id="${m.id}">Editar</button>
+              <button type="button" class="action-link danger btn-excluir-org" data-id="${m.id}">Excluir</button>
             </div>
           </td>
         </tr>
@@ -75,12 +75,12 @@
         <table>
           <thead>
             <tr>
-              <th>Nome</th>
-              <th>Cargo</th>
-              <th>Nível</th>
-              <th>Supervisor</th>
-              <th>Área</th>
-              <th>Ações</th>
+              <th scope="col">Nome</th>
+              <th scope="col">Cargo</th>
+              <th scope="col">Nível</th>
+              <th scope="col">Supervisor</th>
+              <th scope="col">Área</th>
+              <th scope="col">Ações</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -851,10 +851,10 @@
           <table style="width:100%;font-size:15px;">
             <thead>
               <tr style="text-align:left;">
-                <th style="padding:6px 0;border-bottom:1px solid var(--color-border);">Início</th>
-                <th style="padding:6px 0;border-bottom:1px solid var(--color-border);">Fim</th>
-                <th style="padding:6px 0;border-bottom:1px solid var(--color-border);text-align:center;">Passagem Ida</th>
-                <th style="padding:6px 0;border-bottom:1px solid var(--color-border);text-align:center;">Volta</th>
+                <th scope="col" style="padding:6px 0;border-bottom:1px solid var(--color-border);">Início</th>
+                <th scope="col" style="padding:6px 0;border-bottom:1px solid var(--color-border);">Fim</th>
+                <th scope="col" style="padding:6px 0;border-bottom:1px solid var(--color-border);text-align:center;">Passagem Ida</th>
+                <th scope="col" style="padding:6px 0;border-bottom:1px solid var(--color-border);text-align:center;">Volta</th>
               </tr>
             </thead>
             <tbody>

@@ -184,13 +184,13 @@ window.NotasFiscais = {
           <table>
             <thead>
               <tr>
-                <th>NF</th>
-                <th>Contrato/Cliente</th>
-                <th style="text-align:right;">Valor</th>
-                <th>Data Limite</th>
-                <th>Recebimento</th>
-                <th>Situação</th>
-                <th>Ações</th>
+                <th scope="col">NF</th>
+                <th scope="col">Contrato/Cliente</th>
+                <th scope="col" style="text-align:right;">Valor</th>
+                <th scope="col">Data Limite</th>
+                <th scope="col">Recebimento</th>
+                <th scope="col">Situação</th>
+                <th scope="col">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -238,11 +238,11 @@ window.NotasFiscais = {
                     <td>
                       <div class="actions-cell" style="flex-wrap:wrap;">
                         ${!nf.emitida
-                          ? `<a class="action-link btn-emitir-nf" data-id="${nf.id}" style="color:var(--color-success);font-weight:600;">✓ Marcar Emitida</a>`
-                          : `<a class="action-link btn-cancelar-emissao" data-id="${nf.id}" style="color:var(--color-warning);">↶ Desfazer Emissão</a>`
+                          ? `<button type="button" class="action-link btn-emitir-nf" data-id="${nf.id}" style="color:var(--color-success);font-weight:600;">✓ Marcar Emitida</button>`
+                          : `<button type="button" class="action-link btn-cancelar-emissao" data-id="${nf.id}" style="color:var(--color-warning);">↶ Desfazer Emissão</button>`
                         }
-                        <a class="action-link btn-editar-nf" data-id="${nf.id}">Editar</a>
-                        <a class="action-link danger btn-excluir-nf" data-id="${nf.id}">Excluir</a>
+                        <button type="button" class="action-link btn-editar-nf" data-id="${nf.id}">Editar</button>
+                        <button type="button" class="action-link danger btn-excluir-nf" data-id="${nf.id}">Excluir</button>
                       </div>
                     </td>
                   </tr>
@@ -298,7 +298,7 @@ window.NotasFiscais = {
                 <div class="table-wrap">
                   <table>
                     <thead>
-                      <tr><th>NF</th><th>Cliente</th><th>Data Limite</th><th>Status</th></tr>
+                      <tr><th scope="col">NF</th><th scope="col">Cliente</th><th scope="col">Data Limite</th><th scope="col">Status</th></tr>
                     </thead>
                     <tbody>
                       ${nfsSem.map(nf => {
@@ -356,7 +356,7 @@ window.NotasFiscais = {
           <table style="width:100%;border-collapse:collapse;">
             <thead>
               <tr>
-                ${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d => `<th style="padding:var(--sp-sm);text-align:center;font-size:15px;color:var(--color-text-muted);text-transform:uppercase;">${d}</th>`).join('')}
+                ${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d => `<th scope="col" style="padding:var(--sp-sm);text-align:center;font-size:15px;color:var(--color-text-muted);text-transform:uppercase;">${d}</th>`).join('')}
               </tr>
             </thead>
             <tbody>

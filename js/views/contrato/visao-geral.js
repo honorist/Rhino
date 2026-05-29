@@ -77,13 +77,13 @@
             <table style="font-size:13px;">
               <thead>
                 <tr>
-                  <th>Pessoa</th>
-                  <th>Função</th>
-                  <th>Cat.</th>
-                  <th>Ciclo</th>
-                  <th>Próx. folga</th>
-                  <th>Doc.</th>
-                  <th>Status</th>
+                  <th scope="col">Pessoa</th>
+                  <th scope="col">Função</th>
+                  <th scope="col">Cat.</th>
+                  <th scope="col">Ciclo</th>
+                  <th scope="col">Próx. folga</th>
+                  <th scope="col">Doc.</th>
+                  <th scope="col">Status</th>
                 </tr>
               </thead>
               <tbody>

@@ -97,8 +97,8 @@ window.Apresentacao = {
                 <input type="text" class="form-control logo-nome" data-id="${lg.id}" value="${escapeHtml(lg.nome)}" style="font-size:12px;padding:3px 6px;" placeholder="Nome">
                 <input type="number" class="form-control logo-ordem" data-id="${lg.id}" value="${lg.ordem || 0}" style="font-size:12px;padding:3px 6px;" placeholder="Ordem" min="0">
                 <div style="display:flex;justify-content:space-between;font-size:11px;">
-                  <a class="action-link btn-logo-toggle" data-id="${lg.id}">${lg.ativo ? 'Desativar' : 'Ativar'}</a>
-                  <a class="action-link danger btn-logo-del" data-id="${lg.id}">Excluir</a>
+                  <button type="button" class="action-link btn-logo-toggle" data-id="${lg.id}">${lg.ativo ? 'Desativar' : 'Ativar'}</button>
+                  <button type="button" class="action-link danger btn-logo-del" data-id="${lg.id}">Excluir</button>
                 </div>
               </div>
             `).join('')}

@@ -586,11 +586,11 @@ window.Dashboard = {
               <table>
                 <thead>
                   <tr>
-                    <th>Data de Recebimento</th>
-                    <th>NF</th>
-                    <th>Contrato</th>
-                    <th>Prazo</th>
-                    <th style="text-align:right;">Valor Esperado</th>
+                    <th scope="col">Data de Recebimento</th>
+                    <th scope="col">NF</th>
+                    <th scope="col">Contrato</th>
+                    <th scope="col">Prazo</th>
+                    <th scope="col" style="text-align:right;">Valor Esperado</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -698,9 +698,9 @@ window.Dashboard = {
               <table>
                 <thead>
                   <tr>
-                    <th>Contrato</th>
-                    <th>Gasto</th>
-                    <th>Margem</th>
+                    <th scope="col">Contrato</th>
+                    <th scope="col">Gasto</th>
+                    <th scope="col">Margem</th>
                   </tr>
                 </thead>
                 <tbody>

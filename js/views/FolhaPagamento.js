@@ -57,8 +57,8 @@ window.FolhaPagamento = {
     const rows = folha.map(f => {
       const elegivel = !!f.elegivelVale && (parseFloat(f.valorVale) || 0) > 0;
       const acao = (parcela, pago) => pago
-        ? `<a class="action-link danger js-estornar" data-id="${f.id}" data-parcela="${parcela}">Estornar</a>`
-        : `<a class="action-link js-pagar" data-id="${f.id}" data-parcela="${parcela}">Pagar</a>`;
+        ? `<button type="button" class="action-link danger js-estornar" data-id="${f.id}" data-parcela="${parcela}">Estornar</button>`
+        : `<button type="button" class="action-link js-pagar" data-id="${f.id}" data-parcela="${parcela}">Pagar</button>`;
       const valeCell = elegivel
         ? `${fmt(f.valorVale)} &nbsp;${this._badge(f.valePago)} &nbsp;${acao('vale', f.valePago)}`
         : '<span class="text-muted">—</span>';
@@ -78,7 +78,7 @@ window.FolhaPagamento = {
         : '<span class="text-muted">—</span>';
       const liquido = (parseFloat(f.valorVale) || 0) + (parseFloat(f.valorSaldo) || 0);
       const liquidoCell = `<strong${liquido < 0 ? ' style="color:#991B1B;"' : ''}>${fmt(liquido)}</strong>`;
-      const lancCell = `<a class="action-link js-acertos" data-id="${f.id}">Lançamentos${itens.length ? ` (${itens.length})` : ''}</a>`;
+      const lancCell = `<button type="button" class="action-link js-acertos" data-id="${f.id}">Lançamentos${itens.length ? ` (${itens.length})` : ''}</button>`;
       return `<tr class="row-folha" data-id="${f.recursoId}" style="cursor:pointer;" title="Ver dados do colaborador">
         <td><strong>${esc(f.recursoNome) || '—'}</strong></td>
         <td>${esc(this._nomeLocal(f))}</td>
@@ -111,9 +111,9 @@ window.FolhaPagamento = {
         <div class="table-wrap">
           <table>
             <thead><tr>
-              <th>Colaborador</th><th>Local de custo</th><th>Salário</th>
-              <th>Vale (40%)</th><th>Proventos</th><th>Descontos</th>
-              <th>A pagar (5º dia útil)</th><th>Líquido</th><th>Lançamentos</th>
+              <th scope="col">Colaborador</th><th scope="col">Local de custo</th><th scope="col">Salário</th>
+              <th scope="col">Vale (40%)</th><th scope="col">Proventos</th><th scope="col">Descontos</th>
+              <th scope="col">A pagar (5º dia útil)</th><th scope="col">Líquido</th><th scope="col">Lançamentos</th>
             </tr></thead>
             <tbody>
               ${folha.length === 0
@@ -305,8 +305,8 @@ window.FolhaPagamento = {
           <span style="display:flex;gap:var(--sp-sm);align-items:center;">
             <input class="form-control" id="acEditValor" type="number" step="0.01" min="0"
                    value="${parseFloat(it.valor) || 0}" style="width:108px;padding:4px 8px;">
-            <a class="action-link js-ed-save" data-item="${it.id}" title="Salvar">✓</a>
-            <a class="action-link danger js-ed-cancel" title="Cancelar">✕</a>
+            <button type="button" class="action-link js-ed-save" data-item="${it.id}" title="Salvar">✓</button>
+            <button type="button" class="action-link danger js-ed-cancel" title="Cancelar">✕</button>
           </span>
         </div>`;
         }
@@ -315,7 +315,7 @@ window.FolhaPagamento = {
           <span>${esc(it.descricao)}</span>
           <span style="display:flex;gap:var(--sp-md);align-items:center;">
             <strong style="color:${cor};">${sinal}${fmt(it.valor)}</strong>
-            ${bloqueado ? '' : `<a class="action-link js-ed-item" data-item="${it.id}" title="Editar">✎</a><a class="action-link danger js-rm-item" data-item="${it.id}" title="Remover">✕</a>`}
+            ${bloqueado ? '' : `<button type="button" class="action-link js-ed-item" data-item="${it.id}" title="Editar">✎</button><button type="button" class="action-link danger js-rm-item" data-item="${it.id}" title="Remover">✕</button>`}
           </span>
         </div>`;
       };

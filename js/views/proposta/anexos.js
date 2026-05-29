@@ -83,7 +83,7 @@
             <div style="font-weight:600;font-size:14px;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(a.nome)}</div>
             <div style="font-size:11px;color:#64748b;">${sizeKb}</div>
           </div>
-          <a href="/api/propostas/${p.id}/anexos/${a.id}" target="_blank" class="action-link">Abrir</a>
+          <button type="button" href="/api/propostas/${p.id}/anexos/${a.id}" target="_blank" class="action-link">Abrir</button>
           <button class="btn-anexo-del" data-id="${a.id}" title="Remover" style="background:none;border:none;cursor:pointer;color:#dc2626;font-size:18px;">×</button>
         </div>
       `;

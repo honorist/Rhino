@@ -188,14 +188,14 @@ window.Estoque = {
           <table class="table" style="margin:0;">
             <thead>
               <tr style="background:var(--color-surface-2);">
-                <th style="min-width:260px;">Item</th>
-                <th>Categoria</th>
-                <th style="text-align:center;background:rgba(59,130,246,.08);" title="Saldo no almoxarifado Central">🏠 Central</th>
-                <th style="text-align:center;background:rgba(245,158,11,.08);" title="Soma do saldo distribuído nas obras">🏗️ Σ Obras</th>
-                <th style="text-align:center;" title="Em quantas obras o item tem saldo">Obras c/ item</th>
-                <th style="text-align:center;background:var(--color-surface-2);">Σ Total</th>
-                <th style="text-align:right;">Custo médio</th>
-                <th style="text-align:center;width:280px;">Ações</th>
+                <th scope="col" style="min-width:260px;">Item</th>
+                <th scope="col">Categoria</th>
+                <th scope="col" style="text-align:center;background:rgba(59,130,246,.08);" title="Saldo no almoxarifado Central">🏠 Central</th>
+                <th scope="col" style="text-align:center;background:rgba(245,158,11,.08);" title="Soma do saldo distribuído nas obras">🏗️ Σ Obras</th>
+                <th scope="col" style="text-align:center;" title="Em quantas obras o item tem saldo">Obras c/ item</th>
+                <th scope="col" style="text-align:center;background:var(--color-surface-2);">Σ Total</th>
+                <th scope="col" style="text-align:right;">Custo médio</th>
+                <th scope="col" style="text-align:center;width:280px;">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -420,7 +420,7 @@ window.Estoque = {
       <div class="card" style="padding:0;overflow:hidden;">
         <table class="table" style="margin:0;">
           <thead>
-            <tr><th style="width:120px;">Data</th><th>Movimentação</th><th style="text-align:center;width:80px;">Ação</th></tr>
+            <tr><th scope="col" style="width:120px;">Data</th><th scope="col">Movimentação</th><th scope="col" style="text-align:center;width:80px;">Ação</th></tr>
           </thead>
           <tbody>
             ${this._historico.map(m => `

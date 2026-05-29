@@ -202,7 +202,7 @@ window.Portal = {
               </div>
               <div class="table-wrap">
                 <table>
-                  <thead><tr><th>Número</th><th>Título</th><th>Valor</th><th>Emissão</th><th>Status</th><th>Baixar</th></tr></thead>
+                  <thead><tr><th scope="col">Número</th><th scope="col">Título</th><th scope="col">Valor</th><th scope="col">Emissão</th><th scope="col">Status</th><th scope="col">Baixar</th></tr></thead>
                   <tbody>
                     ${d.propostas.map(p => `
                       <tr>
@@ -212,8 +212,8 @@ window.Portal = {
                         <td>${fmtDate(p.dataEmissao || p.data_emissao)}</td>
                         <td><span style="font-weight:600;color:${p.status === 'aceita' ? '#10b981' : p.status === 'rejeitada' ? '#dc2626' : p.status === 'expirada' ? '#f59e0b' : '#3b82f6'};">${p.status}</span></td>
                         <td>
-                          <a href="/api/portal/propostas/${p.id}/pdf" target="_blank" class="action-link" style="margin-right:8px;">PDF</a>
-                          <a href="/api/portal/propostas/${p.id}/docx" target="_blank" class="action-link">DOCX</a>
+                          <button type="button" href="/api/portal/propostas/${p.id}/pdf" target="_blank" class="action-link" style="margin-right:8px;">PDF</button>
+                          <button type="button" href="/api/portal/propostas/${p.id}/docx" target="_blank" class="action-link">DOCX</button>
                         </td>
                       </tr>
                     `).join('')}
@@ -231,7 +231,7 @@ window.Portal = {
               </div>
               <div class="table-wrap">
                 <table>
-                  <thead><tr><th>Número</th><th>Data</th><th>Valor</th><th>Status</th></tr></thead>
+                  <thead><tr><th scope="col">Número</th><th scope="col">Data</th><th scope="col">Valor</th><th scope="col">Status</th></tr></thead>
                   <tbody>
                     ${d.nfs.map(n => `
                       <tr>

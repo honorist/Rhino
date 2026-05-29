@@ -107,13 +107,13 @@ window.ContasPagar = {
             <table>
               <thead>
                 <tr>
-                  <th>Descrição / NF</th>
-                  <th>Fornecedor</th>
-                  <th>Emissão</th>
-                  <th>Vencimento</th>
-                  <th style="text-align:right;">Valor</th>
-                  <th>Status</th>
-                  <th>Ações</th>
+                  <th scope="col">Descrição / NF</th>
+                  <th scope="col">Fornecedor</th>
+                  <th scope="col">Emissão</th>
+                  <th scope="col">Vencimento</th>
+                  <th scope="col" style="text-align:right;">Valor</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -167,11 +167,11 @@ window.ContasPagar = {
                       <td>
                         <div class="actions-cell">
                           ${c.status === 'pendente'
-                            ? `<a class="action-link btn-pagar" data-id="${c.id}" style="color:var(--color-success);">Pagar</a>`
-                            : `<a class="action-link btn-estornar" data-id="${c.id}" style="color:var(--color-text-muted);">Estornar</a>`
+                            ? `<button type="button" class="action-link btn-pagar" data-id="${c.id}" style="color:var(--color-success);">Pagar</button>`
+                            : `<button type="button" class="action-link btn-estornar" data-id="${c.id}" style="color:var(--color-text-muted);">Estornar</button>`
                           }
-                          <a class="action-link btn-editar-cp" data-id="${c.id}">Editar</a>
-                          <a class="action-link danger btn-excluir-cp" data-id="${c.id}">Excluir</a>
+                          <button type="button" class="action-link btn-editar-cp" data-id="${c.id}">Editar</button>
+                          <button type="button" class="action-link danger btn-excluir-cp" data-id="${c.id}">Excluir</button>
                         </div>
                       </td>
                     </tr>

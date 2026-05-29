@@ -118,8 +118,8 @@ window.Recrutamento = {
               <table class="table">
                 <thead>
                   <tr>
-                    <th>Solicitante</th><th>Data</th><th>Obra / Contrato</th>
-                    <th>Vagas</th><th>Obra em</th><th>Status</th><th></th>
+                    <th scope="col">Solicitante</th><th scope="col">Data</th><th scope="col">Obra / Contrato</th>
+                    <th scope="col">Vagas</th><th scope="col">Obra em</th><th scope="col">Status</th><th scope="col"></th>
                   </tr>
                 </thead>
                 <tbody>${lista.map(s => this._tr(s)).join('')}</tbody>
@@ -172,7 +172,7 @@ window.Recrutamento = {
         <td>${preenchidas}/${totalVagas} · <span class="text-muted" style="font-size:13px;">${cargos || '—'}</span></td>
         <td>${s.dataDesejadaObra ? `<span style="color:var(--color-warning-dark);font-weight:600;">🏁 ${fmtDate(s.dataDesejadaObra)}</span>` : '<span class="text-muted">—</span>'}</td>
         <td><span style="padding:2px 9px;border-radius:12px;font-size:11px;font-weight:700;background:${bg};color:${fg};">${label}</span></td>
-        <td><a class="action-link">Abrir</a></td>
+        <td><button type="button" class="action-link">Abrir</button></td>
       </tr>
     `;
   },
@@ -214,9 +214,9 @@ window.Recrutamento = {
               <table style="width:100%;font-size:14px;" id="recrutTabelaVagas">
                 <thead>
                   <tr>
-                    <th style="text-align:left;font-size:12px;color:#64748B;padding-bottom:4px;">Cargo</th>
-                    <th style="width:90px;text-align:left;font-size:12px;color:#64748B;padding-bottom:4px;">Qtd</th>
-                    <th style="width:32px;"></th>
+                    <th scope="col" style="text-align:left;font-size:12px;color:#64748B;padding-bottom:4px;">Cargo</th>
+                    <th scope="col" style="width:90px;text-align:left;font-size:12px;color:#64748B;padding-bottom:4px;">Qtd</th>
+                    <th scope="col" style="width:32px;"></th>
                   </tr>
                 </thead>
                 <tbody id="recrutVagasBody">
@@ -434,7 +434,7 @@ window.Recrutamento = {
           <td style="padding:8px 6px;">${antIco} ${c.antecedentesStatus}</td>
           <td style="padding:8px 6px;">${nDocs}/5 docs</td>
           <td style="padding:8px 6px;">
-            <a class="action-link btn-abrir-cand" style="cursor:pointer;" data-cand="${encoded}">Abrir</a>
+            <button type="button" class="action-link btn-abrir-cand" style="cursor:pointer;" data-cand="${encoded}">Abrir</button>
           </td>
         </tr>
       `;
@@ -444,12 +444,12 @@ window.Recrutamento = {
       <table style="width:100%;font-size:14px;">
         <thead>
           <tr style="border-bottom:1px solid var(--color-border);">
-            <th style="padding:6px;font-size:12px;font-weight:600;color:#64748B;text-transform:uppercase;">Nome</th>
-            <th style="padding:6px;font-size:12px;font-weight:600;color:#64748B;text-transform:uppercase;">Telefone</th>
-            <th style="padding:6px;font-size:12px;font-weight:600;color:#64748B;text-transform:uppercase;">Status</th>
-            <th style="padding:6px;font-size:12px;font-weight:600;color:#64748B;text-transform:uppercase;">Antecedentes</th>
-            <th style="padding:6px;font-size:12px;font-weight:600;color:#64748B;text-transform:uppercase;">Docs</th>
-            <th></th>
+            <th scope="col" style="padding:6px;font-size:12px;font-weight:600;color:#64748B;text-transform:uppercase;">Nome</th>
+            <th scope="col" style="padding:6px;font-size:12px;font-weight:600;color:#64748B;text-transform:uppercase;">Telefone</th>
+            <th scope="col" style="padding:6px;font-size:12px;font-weight:600;color:#64748B;text-transform:uppercase;">Status</th>
+            <th scope="col" style="padding:6px;font-size:12px;font-weight:600;color:#64748B;text-transform:uppercase;">Antecedentes</th>
+            <th scope="col" style="padding:6px;font-size:12px;font-weight:600;color:#64748B;text-transform:uppercase;">Docs</th>
+            <th scope="col"></th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>

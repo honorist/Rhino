@@ -256,11 +256,11 @@
           <table style="width:100%;border-collapse:collapse;">
             <thead>
               <tr style="background:var(--color-surface-2);">
-                <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Cargo</th>
-                <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Qtd</th>
-                <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Horas</th>
-                <th style="text-align:right;padding:8px;font-size:15px;font-weight:600;color:var(--color-text-muted);">H×H</th>
-                <th></th>
+                <th scope="col" class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Cargo</th>
+                <th scope="col" class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Qtd</th>
+                <th scope="col" class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Horas</th>
+                <th scope="col" style="text-align:right;padding:8px;font-size:15px;font-weight:600;color:var(--color-text-muted);">H×H</th>
+                <th scope="col"></th>
               </tr>
             </thead>
             <tbody data-rdo-mo-body="${sec.k}">
@@ -279,11 +279,11 @@
         <table style="width:100%;border-collapse:collapse;">
           <thead>
             <tr style="background:var(--color-surface-2);">
-              <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Empresa</th>
-              <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Cargo</th>
-              <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Qtd</th>
-              <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Horas</th>
-              <th></th>
+              <th scope="col" class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Empresa</th>
+              <th scope="col" class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Cargo</th>
+              <th scope="col" class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Qtd</th>
+              <th scope="col" class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Horas</th>
+              <th scope="col"></th>
             </tr>
           </thead>
           <tbody data-rdo-terc-body>
@@ -313,11 +313,11 @@
       <table style="width:100%;border-collapse:collapse;">
         <thead>
           <tr style="background:var(--color-surface-2);">
-            <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Equipamento</th>
-            <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Qtd</th>
-            <th class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Horas</th>
-            <th style="text-align:right;padding:8px;font-size:15px;font-weight:600;color:var(--color-text-muted);">Eqp×H</th>
-            <th></th>
+            <th scope="col" class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Equipamento</th>
+            <th scope="col" class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Qtd</th>
+            <th scope="col" class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Horas</th>
+            <th scope="col" style="text-align:right;padding:8px;font-size:15px;font-weight:600;color:var(--color-text-muted);">Eqp×H</th>
+            <th scope="col"></th>
           </tr>
         </thead>
         <tbody data-rdo-eqp-body>

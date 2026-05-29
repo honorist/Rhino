@@ -98,7 +98,7 @@ window.Comparativo = {
       : ' <span style="opacity:.3;">↕</span>';
 
     const th = (col, label, align = 'left') =>
-      `<th data-sort="${col}" style="cursor:pointer;text-align:${align};user-select:none;">${label}${arrow(col)}</th>`;
+      `<th scope="col" data-sort="${col}" style="cursor:pointer;text-align:${align};user-select:none;">${label}${arrow(col)}</th>`;
 
     app.innerHTML = `
       <div class="page-header">

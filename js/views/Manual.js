@@ -398,7 +398,7 @@ gantt
         <h2 class="man-h2">🎯 Score de saúde financeira (0–100)</h2>
         <p class="man-p">Pontuação consolidada da saúde do negócio. Começa em <strong>100 pontos</strong> e perde pontos conforme indicadores entram em zona de risco:</p>
         <table class="man-table">
-          <thead><tr><th>Condição</th><th>Penalidade</th></tr></thead>
+          <thead><tr><th scope="col">Condição</th><th scope="col">Penalidade</th></tr></thead>
           <tbody>
             <tr><td>Taxa de despesa &gt; 80%</td><td>−40 pontos</td></tr>
             <tr><td>Taxa de despesa entre 60% e 80%</td><td>−20 pontos</td></tr>
@@ -498,7 +498,7 @@ gantt
 
         <h2 class="man-h2">Estrutura de um contrato</h2>
         <table class="man-table">
-          <tr><th>Aba</th><th>O que contém</th></tr>
+          <tr><th scope="col">Aba</th><th scope="col">O que contém</th></tr>
           <tr><td><strong>Visão Geral</strong></td><td>Resumo financeiro, prazo, status, orçamento</td></tr>
           <tr><td><strong>Financeiro</strong></td><td>Saídas/medições mensais (BMs), valor medido vs valor do contrato, margem</td></tr>
           <tr><td><strong>Equipe</strong></td><td>Organograma: 1 encarregado, líderes de área, profissionais</td></tr>
@@ -579,7 +579,7 @@ gantt
 
         <h2 class="man-h2">Estados de uma NF</h2>
         <table class="man-table">
-          <tr><th>Status</th><th>Descrição</th></tr>
+          <tr><th scope="col">Status</th><th scope="col">Descrição</th></tr>
           <tr><td><strong>Pendente</strong></td><td>BM criado, aguardando emissão fiscal pelo cliente</td></tr>
           <tr><td><strong>Vencida</strong></td><td>Pendente cuja data limite já passou (alerta vermelho)</td></tr>
           <tr><td><strong>Emitida</strong></td><td>NF lançada, entrada de caixa agendada para data + prazo</td></tr>
@@ -622,7 +622,7 @@ gantt
 
         <h2 class="man-h2">Como entradas chegam ao caixa</h2>
         <table class="man-table">
-          <tr><th>Origem</th><th>Quando aparece</th></tr>
+          <tr><th scope="col">Origem</th><th scope="col">Quando aparece</th></tr>
           <tr><td>NF emitida</td><td>Em <code>data_emissão + prazo_recebimento</code> (entrada futura)</td></tr>
           <tr><td>Conta paga</td><td>Saída imediata na data informada</td></tr>
           <tr><td>Aporte (caixa empresa)</td><td>Saída automática no momento do aporte</td></tr>
@@ -695,7 +695,7 @@ gantt
 
         <h2 class="man-h2">Combinações possíveis</h2>
         <table class="man-table">
-          <tr><th>Origem × Destino</th><th>Efeito</th></tr>
+          <tr><th scope="col">Origem × Destino</th><th scope="col">Efeito</th></tr>
           <tr><td>Sócio → Contrato</td><td>Sócio injeta capital no contrato (sem mexer no caixa da empresa)</td></tr>
           <tr><td>Sócio → BASE</td><td>Sócio compra um item para a base (cria <strong>base_item</strong> rastreável)</td></tr>
           <tr><td>Caixa → Contrato</td><td>Empresa transfere capital pro contrato (cria saída no caixa)</td></tr>
@@ -769,7 +769,7 @@ gantt
 
         <h2 class="man-h2">Conceitos</h2>
         <table class="man-table">
-          <tr><th>Campo</th><th>O que significa</th></tr>
+          <tr><th scope="col">Campo</th><th scope="col">O que significa</th></tr>
           <tr><td><strong>Peso %</strong></td><td>Quanto essa etapa representa do total da obra. A soma das etapas deve dar 100%</td></tr>
           <tr><td><strong>Início / Fim planejado</strong></td><td>Datas do plano original — não muda mesmo se a obra atrasar</td></tr>
           <tr><td><strong>% Executado</strong></td><td>0 a 100. Quanto da etapa já foi feito (subjetivo, atualizado pela engenharia)</td></tr>
@@ -810,7 +810,7 @@ gantt
 
         <h2 class="man-h2">Papéis disponíveis</h2>
         <table class="man-table">
-          <tr><th>Papel</th><th>Quem usa</th></tr>
+          <tr><th scope="col">Papel</th><th scope="col">Quem usa</th></tr>
           <tr><td><strong>Encarregado</strong></td><td>Responsável pela equipe da empresa naquela obra</td></tr>
           <tr><td><strong>Cliente</strong></td><td>Representante do contratante (síndico, gerente, dono)</td></tr>
           <tr><td><strong>Fiscal</strong></td><td>Fiscal de contrato do cliente, em obras com fiscalização ativa</td></tr>
@@ -834,7 +834,7 @@ gantt
 
         <h2 class="man-h2">Os 4 botões que você vai usar 99% do tempo</h2>
         <table class="man-table">
-          <tr><th>Botão</th><th>Quando usar</th><th>O que acontece</th></tr>
+          <tr><th scope="col">Botão</th><th scope="col">Quando usar</th><th scope="col">O que acontece</th></tr>
           <tr>
             <td>🟢 <strong>Comprei / Recebi</strong></td>
             <td>Comprou material novo. Mercadoria chegando da nota fiscal.</td>
@@ -910,7 +910,7 @@ gantt
 
         <h2 class="man-h2">Quem faz cada etapa</h2>
         <table class="man-table">
-          <tr><th>Etapa</th><th>Quem</th></tr>
+          <tr><th scope="col">Etapa</th><th scope="col">Quem</th></tr>
           <tr><td>Solicitar</td><td>Qualquer usuário</td></tr>
           <tr><td>Avaliar e cotar</td><td>Equipe de compras (sub-permissão "Avaliar")</td></tr>
           <tr><td>Aprovar / rejeitar</td><td>Gerência (sub-permissão "Aprovar")</td></tr>
@@ -934,7 +934,7 @@ gantt
 
         <h2 class="man-h2">Status</h2>
         <table class="man-table">
-          <tr><th>Status</th><th>Significa</th></tr>
+          <tr><th scope="col">Status</th><th scope="col">Significa</th></tr>
           <tr><td>📋 A avaliar</td><td>Solicitada; aguarda a equipe de compras</td></tr>
           <tr><td>🟡 Aguardando aprovação</td><td>Avaliada; aguarda a gerência</td></tr>
           <tr><td>🔧 Em manutenção</td><td>Aprovada; equipamento no reparo</td></tr>
@@ -1027,7 +1027,7 @@ gantt
       glossario: `
         <h1 class="man-h1">📚 Glossário</h1>
         <table class="man-table">
-          <tr><th>Termo</th><th>Significado</th></tr>
+          <tr><th scope="col">Termo</th><th scope="col">Significado</th></tr>
           <tr><td><strong>BM</strong></td><td>Boletim de Medição — uma NF gerada pelas saídas (medições) do mês</td></tr>
           <tr><td><strong>MOI</strong></td><td>Mão de Obra Indireta (encarregado, técnico de segurança, almoxarife)</td></tr>
           <tr><td><strong>MOD</strong></td><td>Mão de Obra Direta (mecânico, soldador, eletricista)</td></tr>

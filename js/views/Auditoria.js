@@ -245,10 +245,10 @@ window.Auditoria = {
       <table class="data-table">
         <thead>
           <tr>
-            <th style="width:160px;">Quando</th>
-            <th>Quem</th>
-            <th>Fez o quê</th>
-            <th style="width:120px;text-align:center;">Resultado</th>
+            <th scope="col" style="width:160px;">Quando</th>
+            <th scope="col">Quem</th>
+            <th scope="col">Fez o quê</th>
+            <th scope="col" style="width:120px;text-align:center;">Resultado</th>
           </tr>
         </thead>
         <tbody>
@@ -446,7 +446,7 @@ window.Auditoria = {
           <div style="margin-bottom:var(--sp-md);">
             <h4 style="font-size:14px;font-weight:600;margin:0 0 var(--sp-sm) 0;">📝 O que mudou (${diffs.length} ${diffs.length === 1 ? 'campo' : 'campos'})</h4>
             <table class="data-table" style="margin:0;">
-              <thead><tr><th>Campo</th><th>Antes</th><th>Depois</th></tr></thead>
+              <thead><tr><th scope="col">Campo</th><th scope="col">Antes</th><th scope="col">Depois</th></tr></thead>
               <tbody>
                 ${diffs.map(d => `
                   <tr>

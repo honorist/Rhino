@@ -142,11 +142,11 @@ window.SolicitacoesCompra = {
       const isNova   = s.status === 'pendente_avaliacao' && !_temCotacao(s);
       const data = s.createdAt ? new Date(s.createdAt).toLocaleDateString('pt-BR') : '—';
       const actions = [
-        `<a class="action-link btn-detalhe" data-id="${s.id}">Ver</a>`,
-        s.status === 'pendente_avaliacao' && podeAvaliar ? `<a class="action-link btn-avaliar" data-id="${s.id}" style="color:#9A3412;font-weight:700;">Avaliar</a>` : '',
-        s.status === 'pendente_aprovacao' && podeAprovar ? `<a class="action-link btn-aprovar" data-id="${s.id}" style="color:#065F46;font-weight:700;">Aprovar</a>` : '',
-        s.status === 'aprovada' && podeAvaliar ? `<a class="action-link btn-comprar" data-id="${s.id}" style="color:#1E40AF;font-weight:700;">Comprar</a>` : '',
-        s.status === 'comprada' && podeReceber ? `<a class="action-link btn-receber" data-id="${s.id}" style="color:#3730A3;font-weight:700;">Receber</a>` : '',
+        `<button type="button" class="action-link btn-detalhe" data-id="${s.id}">Ver</button>`,
+        s.status === 'pendente_avaliacao' && podeAvaliar ? `<button type="button" class="action-link btn-avaliar" data-id="${s.id}" style="color:#9A3412;font-weight:700;">Avaliar</button>` : '',
+        s.status === 'pendente_aprovacao' && podeAprovar ? `<button type="button" class="action-link btn-aprovar" data-id="${s.id}" style="color:#065F46;font-weight:700;">Aprovar</button>` : '',
+        s.status === 'aprovada' && podeAvaliar ? `<button type="button" class="action-link btn-comprar" data-id="${s.id}" style="color:#1E40AF;font-weight:700;">Comprar</button>` : '',
+        s.status === 'comprada' && podeReceber ? `<button type="button" class="action-link btn-receber" data-id="${s.id}" style="color:#3730A3;font-weight:700;">Receber</button>` : '',
       ].filter(Boolean).join('');
       return `
         <div class="ui-kanban__card" data-id="${s.id}">
@@ -195,8 +195,8 @@ window.SolicitacoesCompra = {
             <table>
               <thead>
                 <tr>
-                  <th>Data</th><th>Solicitante</th><th>Destino</th>
-                  <th>Itens</th><th>Valor</th><th>Obra em</th><th>Etapa</th><th>Ações</th>
+                  <th scope="col">Data</th><th scope="col">Solicitante</th><th scope="col">Destino</th>
+                  <th scope="col">Itens</th><th scope="col">Valor</th><th scope="col">Obra em</th><th scope="col">Etapa</th><th scope="col">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -216,17 +216,17 @@ window.SolicitacoesCompra = {
                     <td>${this._badgeEtapa(s.status)}</td>
                     <td>
                       <div class="actions-cell" style="display:flex;gap:6px;flex-wrap:wrap;">
-                        <a class="action-link btn-detalhe" data-id="${s.id}">Ver</a>
+                        <button type="button" class="action-link btn-detalhe" data-id="${s.id}">Ver</button>
                         ${s.status === 'pendente_avaliacao' && podeAvaliar ? `
-                          <a class="action-link btn-avaliar"  data-id="${s.id}" style="color:#9A3412;font-weight:700;">Avaliar/Precificar</a>
-                          <a class="action-link btn-cancelar" data-id="${s.id}" style="color:#6B7280;">Cancelar</a>` : ''}
+                          <button type="button" class="action-link btn-avaliar"  data-id="${s.id}" style="color:#9A3412;font-weight:700;">Avaliar/Precificar</button>
+                          <button type="button" class="action-link btn-cancelar" data-id="${s.id}" style="color:#6B7280;">Cancelar</button>` : ''}
                         ${s.status === 'pendente_aprovacao' && podeAprovar ? `
-                          <a class="action-link btn-aprovar"  data-id="${s.id}" style="color:#065F46;font-weight:700;">Aprovar</a>
-                          <a class="action-link btn-rejeitar" data-id="${s.id}" style="color:#991B1B;">Rejeitar</a>` : ''}
-                        ${s.status === 'aprovada' && podeAvaliar ? `<a class="action-link btn-comprar"  data-id="${s.id}" style="color:#1E40AF;font-weight:700;">Registrar compra</a>` : ''}
-                        ${s.status === 'comprada' && podeReceber ? `<a class="action-link btn-receber"  data-id="${s.id}" style="color:#3730A3;font-weight:700;">Confirmar chegada</a>` : ''}
-                        ${s.status === 'pendente_avaliacao' ? `<a class="action-link btn-editar"  data-id="${s.id}">Editar</a>` : ''}
-                        ${s.status === 'pendente_avaliacao' ? `<a class="action-link danger btn-excluir" data-id="${s.id}">Excluir</a>` : ''}
+                          <button type="button" class="action-link btn-aprovar"  data-id="${s.id}" style="color:#065F46;font-weight:700;">Aprovar</button>
+                          <button type="button" class="action-link btn-rejeitar" data-id="${s.id}" style="color:#991B1B;">Rejeitar</button>` : ''}
+                        ${s.status === 'aprovada' && podeAvaliar ? `<button type="button" class="action-link btn-comprar"  data-id="${s.id}" style="color:#1E40AF;font-weight:700;">Registrar compra</button>` : ''}
+                        ${s.status === 'comprada' && podeReceber ? `<button type="button" class="action-link btn-receber"  data-id="${s.id}" style="color:#3730A3;font-weight:700;">Confirmar chegada</button>` : ''}
+                        ${s.status === 'pendente_avaliacao' ? `<button type="button" class="action-link btn-editar"  data-id="${s.id}">Editar</button>` : ''}
+                        ${s.status === 'pendente_avaliacao' ? `<button type="button" class="action-link danger btn-excluir" data-id="${s.id}">Excluir</button>` : ''}
                       </div>
                     </td>
                   </tr>`;
@@ -326,11 +326,11 @@ window.SolicitacoesCompra = {
               </div>
               <table style="width:100%;">
                 <thead><tr style="background:var(--color-surface-2);">
-                  <th style="padding:8px;text-align:left;">Descrição *</th>
-                  <th style="padding:8px;text-align:left;">Tipo</th>
-                  <th style="padding:8px;text-align:left;">Qtd *</th>
-                  <th style="padding:8px;text-align:left;">Observações</th>
-                  <th style="padding:8px;width:40px;"></th>
+                  <th scope="col" style="padding:8px;text-align:left;">Descrição *</th>
+                  <th scope="col" style="padding:8px;text-align:left;">Tipo</th>
+                  <th scope="col" style="padding:8px;text-align:left;">Qtd *</th>
+                  <th scope="col" style="padding:8px;text-align:left;">Observações</th>
+                  <th scope="col" style="padding:8px;width:40px;"></th>
                 </tr></thead>
                 <tbody id="tbodyItens">${itensIniciais.map((it, i) => renderLinha(it, i)).join('')}</tbody>
               </table>
@@ -433,12 +433,12 @@ window.SolicitacoesCompra = {
         </div>
         <table style="width:100%;font-size:14px;">
           <thead><tr style="background:var(--color-surface-2);">
-            <th style="padding:6px;width:30px;">✓</th>
-            <th style="padding:6px;text-align:left;">Fornecedor</th>
-            <th style="padding:6px;text-align:right;">Preço unit.</th>
-            <th style="padding:6px;text-align:left;">Link / observação</th>
-            <th style="padding:6px;text-align:right;">Subtotal</th>
-            <th style="padding:6px;width:30px;"></th>
+            <th scope="col" style="padding:6px;width:30px;">✓</th>
+            <th scope="col" style="padding:6px;text-align:left;">Fornecedor</th>
+            <th scope="col" style="padding:6px;text-align:right;">Preço unit.</th>
+            <th scope="col" style="padding:6px;text-align:left;">Link / observação</th>
+            <th scope="col" style="padding:6px;text-align:right;">Subtotal</th>
+            <th scope="col" style="padding:6px;width:30px;"></th>
           </tr></thead>
           <tbody>
             ${it.cotacoes.map((c, j) => `

@@ -149,12 +149,12 @@ window.Caixa = {
             <table>
               <thead>
                 <tr>
-                  <th style="width:36px;"></th>
-                  <th>Data</th>
-                  <th>Descrição</th>
-                  <th>Tipo</th>
-                  <th>Origem</th>
-                  <th style="text-align:right;">Valor</th>
+                  <th scope="col" style="width:36px;"></th>
+                  <th scope="col">Data</th>
+                  <th scope="col">Descrição</th>
+                  <th scope="col">Tipo</th>
+                  <th scope="col">Origem</th>
+                  <th scope="col" style="text-align:right;">Valor</th>
                 </tr>
               </thead>
               <tbody>
@@ -258,11 +258,11 @@ window.Caixa = {
               <table>
                 <thead>
                   <tr>
-                    <th>Mês</th>
-                    <th style="text-align:right;">Entradas</th>
-                    <th style="text-align:right;">Saídas</th>
-                    <th style="text-align:right;">Saldo</th>
-                    <th style="text-align:right;">Lançamentos</th>
+                    <th scope="col">Mês</th>
+                    <th scope="col" style="text-align:right;">Entradas</th>
+                    <th scope="col" style="text-align:right;">Saídas</th>
+                    <th scope="col" style="text-align:right;">Saldo</th>
+                    <th scope="col" style="text-align:right;">Lançamentos</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -294,13 +294,13 @@ window.Caixa = {
             <table>
               <thead>
                 <tr>
-                  <th>Data</th>
-                  <th>Descrição</th>
-                  <th>Tipo</th>
-                  <th>Projeto/Contrato</th>
-                  <th>Categoria</th>
-                  <th style="text-align:right;">Valor</th>
-                  <th>Ações</th>
+                  <th scope="col">Data</th>
+                  <th scope="col">Descrição</th>
+                  <th scope="col">Tipo</th>
+                  <th scope="col">Projeto/Contrato</th>
+                  <th scope="col">Categoria</th>
+                  <th scope="col" style="text-align:right;">Valor</th>
+                  <th scope="col">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -329,8 +329,8 @@ window.Caixa = {
                       </td>
                       <td>
                         <div class="actions-cell">
-                          <a class="action-link btn-editar" data-id="${e.id}">Editar</a>
-                          <a class="action-link danger btn-excluir" data-id="${e.id}">Excluir</a>
+                          <button type="button" class="action-link btn-editar" data-id="${e.id}">Editar</button>
+                          <button type="button" class="action-link danger btn-excluir" data-id="${e.id}">Excluir</button>
                         </div>
                       </td>
                     </tr>
@@ -517,7 +517,7 @@ window.Caixa = {
               <span style="color:#D69E2E;">${data.novos} novas</span>
             </p>
             <table class="table">
-              <thead><tr><th>Data</th><th>Descrição</th><th>Valor</th><th>Status</th><th>Lançamento Rhino</th></tr></thead>
+              <thead><tr><th scope="col">Data</th><th scope="col">Descrição</th><th scope="col">Valor</th><th scope="col">Status</th><th scope="col">Lançamento Rhino</th></tr></thead>
               <tbody>${rows}</tbody>
             </table>
           </div>

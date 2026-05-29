@@ -142,12 +142,12 @@ const RDOs = {
       <table class="data-table">
         <thead>
           <tr>
-            <th style="width:120px;">Data</th>
-            <th style="width:90px;">Nº</th>
-            <th>Contrato</th>
-            <th>Cliente</th>
-            <th style="width:120px;">OS</th>
-            <th style="width:140px;">Atualizado</th>
+            <th scope="col" style="width:120px;">Data</th>
+            <th scope="col" style="width:90px;">Nº</th>
+            <th scope="col">Contrato</th>
+            <th scope="col">Cliente</th>
+            <th scope="col" style="width:120px;">OS</th>
+            <th scope="col" style="width:140px;">Atualizado</th>
           </tr>
         </thead>
         <tbody>

@@ -60,11 +60,11 @@ window.Investimentos = {
               <table>
                 <thead>
                   <tr>
-                    <th>Sócio</th>
-                    <th>Participação</th>
-                    <th style="text-align:right;">Aporte Realizado</th>
-                    <th style="text-align:right;">Contribuição Esperada</th>
-                    <th style="text-align:right;">Diferença</th>
+                    <th scope="col">Sócio</th>
+                    <th scope="col">Participação</th>
+                    <th scope="col" style="text-align:right;">Aporte Realizado</th>
+                    <th scope="col" style="text-align:right;">Contribuição Esperada</th>
+                    <th scope="col" style="text-align:right;">Diferença</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -119,13 +119,13 @@ window.Investimentos = {
               <table>
                 <thead>
                   <tr>
-                    <th>Data</th>
-                    <th>Origem</th>
-                    <th>Sócio / Descrição</th>
-                    <th>Tipo de Custo</th>
-                    <th>Destino</th>
-                    <th style="text-align:right;">Valor</th>
-                    <th>Ações</th>
+                    <th scope="col">Data</th>
+                    <th scope="col">Origem</th>
+                    <th scope="col">Sócio / Descrição</th>
+                    <th scope="col">Tipo de Custo</th>
+                    <th scope="col">Destino</th>
+                    <th scope="col" style="text-align:right;">Valor</th>
+                    <th scope="col">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -163,7 +163,7 @@ window.Investimentos = {
                         <td style="text-align:right;font-weight:700;">${Store.formatBRL(num(ap.value))}</td>
                         <td>
                           <div class="actions-cell">
-                            <a class="action-link danger btn-excluir-aporte" data-id="${ap.id}">Excluir</a>
+                            <button type="button" class="action-link danger btn-excluir-aporte" data-id="${ap.id}">Excluir</button>
                           </div>
                         </td>
                       </tr>
@@ -490,7 +490,7 @@ window.Investimentos = {
             ${aportes.length === 0 ? `<p class="text-muted">Nenhum aporte registrado para este sócio</p>` : `
               <div class="table-wrap">
                 <table>
-                  <thead><tr><th>Data</th><th>Tipo</th><th>Descrição</th><th style="text-align:right;">Valor</th></tr></thead>
+                  <thead><tr><th scope="col">Data</th><th scope="col">Tipo</th><th scope="col">Descrição</th><th scope="col" style="text-align:right;">Valor</th></tr></thead>
                   <tbody>
                     ${aportes.map(a => `
                       <tr>

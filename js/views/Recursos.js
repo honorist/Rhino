@@ -102,12 +102,12 @@ window.Recursos = {
           <table>
             <thead>
               <tr>
-                <th>Nome</th>
-                <th>Profissão</th>
-                <th>Status</th>
-                <th>Obra Atual</th>
-                <th>Próxima Folga</th>
-                <th>Ações</th>
+                <th scope="col">Nome</th>
+                <th scope="col">Profissão</th>
+                <th scope="col">Status</th>
+                <th scope="col">Obra Atual</th>
+                <th scope="col">Próxima Folga</th>
+                <th scope="col">Ações</th>
               </tr>
             </thead>
             <tbody id="recursosTbody">
@@ -424,11 +424,11 @@ window.Recursos = {
       <td>${folgaCell}</td>
       <td>
         <div class="actions-cell">
-          ${r.status === 'funcionario' ? `<a class="action-link btn-folgas" data-id="${r.id}" style="color:#7C3AED;">Folgas</a>` : ''}
-          <a class="action-link btn-docs-rec" data-id="${r.id}" style="color:#2563EB;">Docs</a>
-          ${temCoordenadas ? `<a class="action-link btn-distancia" data-id="${r.id}">Distâncias</a>` : ''}
-          <a class="action-link btn-editar-rec" data-id="${r.id}">Editar</a>
-          <a class="action-link danger btn-excluir-rec" data-id="${r.id}">Excluir</a>
+          ${r.status === 'funcionario' ? `<button type="button" class="action-link btn-folgas" data-id="${r.id}" style="color:#7C3AED;">Folgas</button>` : ''}
+          <button type="button" class="action-link btn-docs-rec" data-id="${r.id}" style="color:#2563EB;">Docs</button>
+          ${temCoordenadas ? `<button type="button" class="action-link btn-distancia" data-id="${r.id}">Distâncias</button>` : ''}
+          <button type="button" class="action-link btn-editar-rec" data-id="${r.id}">Editar</button>
+          <button type="button" class="action-link danger btn-excluir-rec" data-id="${r.id}">Excluir</button>
         </div>
       </td>
     </tr>`;

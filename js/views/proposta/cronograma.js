@@ -44,12 +44,12 @@
           <table>
             <thead>
               <tr>
-                <th style="width:40px;">#</th>
-                <th>Fase</th>
-                <th style="width:160px;">Início</th>
-                <th style="width:160px;">Fim</th>
-                <th style="width:110px;">Duração (dias)</th>
-                <th style="width:80px;">Ações</th>
+                <th scope="col" style="width:40px;">#</th>
+                <th scope="col">Fase</th>
+                <th scope="col" style="width:160px;">Início</th>
+                <th scope="col" style="width:160px;">Fim</th>
+                <th scope="col" style="width:110px;">Duração (dias)</th>
+                <th scope="col" style="width:80px;">Ações</th>
               </tr>
             </thead>
             <tbody id="listaCronograma">

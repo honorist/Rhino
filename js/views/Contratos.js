@@ -230,14 +230,14 @@ window.Contratos = {
             <table class="rh-table--sticky ui-stick-col-2">
               <thead>
                 <tr>
-                  <th style="width:36px;padding-left:12px;"><input type="checkbox" id="chkAll" title="Selecionar todos na página" style="cursor:pointer;width:16px;height:16px;"></th>
-                  <th style="cursor:pointer;user-select:none;white-space:nowrap;" class="th-sort" data-col="name">Nome ${this._sortIcon('name')}</th>
-                  <th style="cursor:pointer;user-select:none;white-space:nowrap;" class="th-sort" data-col="client">Cliente ${this._sortIcon('client')}</th>
-                  <th style="cursor:pointer;user-select:none;white-space:nowrap;" class="th-sort" data-col="value">Valor ${this._sortIcon('value')}</th>
-                  <th style="cursor:pointer;user-select:none;white-space:nowrap;" class="th-sort" data-col="startDate">Período ${this._sortIcon('startDate')}</th>
-                  <th style="text-align:center;">Equipe</th>
-                  <th style="cursor:pointer;user-select:none;white-space:nowrap;" class="th-sort" data-col="status">Status ${this._sortIcon('status')}</th>
-                  <th>Ações</th>
+                  <th scope="col" style="width:36px;padding-left:12px;"><input type="checkbox" id="chkAll" title="Selecionar todos na página" style="cursor:pointer;width:16px;height:16px;"></th>
+                  <th scope="col" style="cursor:pointer;user-select:none;white-space:nowrap;" class="th-sort" data-col="name">Nome ${this._sortIcon('name')}</th>
+                  <th scope="col" style="cursor:pointer;user-select:none;white-space:nowrap;" class="th-sort" data-col="client">Cliente ${this._sortIcon('client')}</th>
+                  <th scope="col" style="cursor:pointer;user-select:none;white-space:nowrap;" class="th-sort" data-col="value">Valor ${this._sortIcon('value')}</th>
+                  <th scope="col" style="cursor:pointer;user-select:none;white-space:nowrap;" class="th-sort" data-col="startDate">Período ${this._sortIcon('startDate')}</th>
+                  <th scope="col" style="text-align:center;">Equipe</th>
+                  <th scope="col" style="cursor:pointer;user-select:none;white-space:nowrap;" class="th-sort" data-col="status">Status ${this._sortIcon('status')}</th>
+                  <th scope="col">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -293,11 +293,11 @@ window.Contratos = {
                     <td>
                       <div class="actions-cell">
                         <button class="btn-fav action-link" data-id="${c.id}" title="${this._favs.has(c.id) ? 'Remover dos favoritos' : 'Fixar no topo'}">${this._favs.has(c.id) ? '★' : '☆'}</button>
-                        <a class="action-link btn-abrir" data-id="${c.id}">Abrir</a>
+                        <button type="button" class="action-link btn-abrir" data-id="${c.id}">Abrir</button>
                         ${_podeEditar ? `
-                          <a class="action-link btn-editar" data-id="${c.id}">Editar</a>
-                          <a class="action-link btn-duplicar" data-id="${c.id}" title="Duplicar contrato">Duplicar</a>
-                          <a class="action-link danger btn-excluir" data-id="${c.id}">Excluir</a>
+                          <button type="button" class="action-link btn-editar" data-id="${c.id}">Editar</button>
+                          <button type="button" class="action-link btn-duplicar" data-id="${c.id}" title="Duplicar contrato">Duplicar</button>
+                          <button type="button" class="action-link danger btn-excluir" data-id="${c.id}">Excluir</button>
                         ` : ''}
                       </div>
                     </td>
