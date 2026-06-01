@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.6.0",
+      "date": "2026-06-01",
+      "summary": "Canal de Sugestões: envie ideias de melhoria e acompanhe o status",
+      "changes": [
+        "Novo Canal de Sugestões: qualquer usuário pode enviar ideias de melhoria pelo botão flutuante (balão) presente em qualquer tela, ou pelo menu Sugestões.",
+        "A sugestão tem título, descrição, área (opcional) e foto (opcional).",
+        "Gerentes acompanham todas as sugestões num painel e movem o status: Pendente → Em análise → Aprovada → Descartada (com comentário).",
+        "Descartar uma sugestão exige justificativa; o autor é notificado a cada mudança de status.",
+        "As sugestões aprovadas aparecem num backlog visível a todos — o que vem por aí."
+      ]
+    },
+    {
       "version": "1.5.0",
       "date": "2026-06-01",
       "summary": "Várias equipes por atividade no RDO, com horários e membros próprios",

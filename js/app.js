@@ -98,6 +98,7 @@ const routes = {
   '#/contratos/:id':{ view: window.ContratoDetail, label: null,              icon: null },
   '#/comparativo':  { view: window.Comparativo,   label: null,              icon: null },
   '#/cronograma-geral': { view: window.CronogramaGeral, label: 'Cronograma Geral', icon: _ic('activity') },
+  '#/sugestoes':    { view: window.Sugestoes,      label: 'Sugestões',       icon: _ic('message-square') },
   '#/clientes':     { view: window.Clientes,       label: 'Clientes',        icon: _ic('users'),       group: 'comercial' },
   '#/rdos':         { view: window.RDOs,           label: 'RDOs',            icon: _ic('clipboard-check'), group: 'obras' },
   '#/obras':        { view: window.Obras,          label: 'Mapa de Obras',   icon: _ic('map-pin'),         group: 'obras' },
@@ -517,7 +518,7 @@ const perfil = {
     // (controle fino fica em cada tela, ex: ver/editar).
     // #/usuarios e #/auditoria NÃO são universais: exigem a permissão nas abas
     // — senão abririam vazias (dados barrados no servidor) para quem não tem acesso.
-    const universais = ['#/manual', '#/rdos', '#/estoque', '#/comparativo', '#/solicitacoes-compra', '#/cotacoes-historico', '#/manutencao', '#/frota', '#/proposta', '#/clausulas', '#/apresentacao', '#/recrutamento', '#/cronograma-geral'];
+    const universais = ['#/manual', '#/rdos', '#/estoque', '#/comparativo', '#/solicitacoes-compra', '#/cotacoes-historico', '#/manutencao', '#/frota', '#/proposta', '#/clausulas', '#/apresentacao', '#/recrutamento', '#/cronograma-geral', '#/sugestoes'];
     if (universais.includes(base)) return true;
     return abas.includes(base);
   },
@@ -654,6 +655,9 @@ function iniciarApp() {
   } else {
     navigate();
   }
+
+  // FAB global de sugestões (qualquer tela). Idempotente.
+  if (window.Sugestoes?.mountFab) window.Sugestoes.mountFab();
 }
 
 // ─── Sidebar collapse ───
