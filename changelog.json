@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.4.19",
+      "date": "2026-06-01",
+      "summary": "Dinheiro arredondado a centavos ao salvar (lib/money)",
+      "changes": [
+        "Valores monetários passam a ser arredondados para centavos (2 casas) ao serem salvos — evita 'centavos fantasma' por erro de arredondamento em somas.",
+        "Aplicado nos principais lançamentos: caixa, contratos, itens da BASE, notas fiscais e custos de proposta.",
+        "Nova base de cálculo de dinheiro (lib/money) com testes, padrão para todo cálculo financeiro daqui pra frente."
+      ]
+    },
+    {
       "version": "1.4.18",
       "date": "2026-06-01",
       "summary": "Trava de leitura por perfil nas telas financeiras/RH",

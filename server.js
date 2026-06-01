@@ -36,6 +36,7 @@ const queue = require('./lib/queue');
 const rateLimit = require('./lib/rate-limit');
 const pgRateLimit = require('./lib/pg-rate-limit');
 const audit = require('./lib/audit');
+const money = require('./lib/money'); // dinheiro 2 casas — contém drift de float
 const bus = require('./lib/bus');
 const perms = require('./lib/permissions');
 const fluxoCompra = require('./lib/fluxo-compra');
@@ -200,7 +201,7 @@ async function handlePostContract(body, res) {
       clientDocument: body.clientDocument || '',
       clientEmail: body.clientEmail || '',
       clientPhone: body.clientPhone || '',
-      value: parseFloat(body.value) || 0,
+      value: money.parse(body.value),
       currency: body.currency || 'BRL',
       startDate: body.startDate || null,
       endDate: body.endDate || null,
@@ -581,7 +582,7 @@ async function handlePostCaixa(body, res) {
       id: generateId('cxa'),
       type: body.type || 'entrada',
       description: body.description || '',
-      value: parseFloat(body.value) || 0,
+      value: money.parse(body.value),
       date: body.date || new Date().toISOString().split('T')[0],
       contractId: body.contractId || null,
       baseItemId: body.baseItemId || null,
@@ -632,7 +633,7 @@ async function handlePostBase(body, res) {
       id: generateId('bas'),
       description: body.description || '',
       type: body.type || 'variavel',
-      value: parseFloat(body.value) || 0,
+      value: money.parse(body.value),
       date: body.date || new Date().toISOString().split('T')[0],
       allocations: '[]',
       notes: body.notes || '',
@@ -956,7 +957,7 @@ async function handleDashboard(res, query) {
         if (caixaPorBaseDate.has(`${item.id}|${ds}`)) continue; // já materializado
         ocorrenciasVirtuais.push({
           data: ds,
-          valor: parseFloat(item.value) || 0,
+          valor: money.parse(item.value),
           baseItemId: item.id,
           descricao: item.description || '',
         });
@@ -1996,7 +1997,7 @@ async function handlePostPropostaCusto(propostaId, body, res) {
       propostaId,
       categoria: body.categoria || 'outros',
       descricao: body.descricao || '',
-      valor: parseFloat(body.valor) || 0,
+      valor: money.parse(body.valor),
       percentual: body.percentual != null ? parseFloat(body.percentual) : null,
       ordem: parseInt(body.ordem, 10) || 0,
     };
@@ -3357,7 +3358,7 @@ async function handleEmitirNotaFiscal(id, body, res) {
         id: generateId('cxa'),
         type: 'entrada',
         description: descricao,
-        value: parseFloat(nf.valor) || 0,
+        value: money.parse(nf.valor),
         date: dataRecebimento,
         contractId: nf.contractId,
         baseItemId: null,
