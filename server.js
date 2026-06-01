@@ -59,6 +59,9 @@ const perms = require('./lib/permissions');
 const fluxoCompra = require('./lib/fluxo-compra');
 const recorrencia = require('./lib/recorrencia');
 const { sendJson, sendError } = require('./lib/http-respond');
+// multipart/form-data: parser + validação de imagem compartilhados por todos os uploads.
+// `_isAllowedImageMagic` é alias dos handlers de upload ainda inline (extração incremental).
+const { parseMultipart, isAllowedImageMagic: _isAllowedImageMagic } = require('./lib/multipart');
 const { createRouter } = require('./lib/router');
 const registerAuth = require('./routes/auth');
 const registerPortal = require('./routes/portal');
@@ -2196,39 +2199,7 @@ async function handleLimparFolha(body, res) {
 // ============ RDO (Relatório Diário de Obra) handlers ============
 const RDO_FOTOS_DIR = path.join(__dirname, 'data', 'rdo-fotos');
 
-// --- Upload de fotos: parser multipart nativo simples ---
-function parseMultipart(buffer, boundary) {
-  const boundaryBytes = Buffer.from('--' + boundary);
-  const parts = [];
-  let offset = 0;
-  while (offset < buffer.length) {
-    const start = buffer.indexOf(boundaryBytes, offset);
-    if (start === -1) break;
-    const end = buffer.indexOf(boundaryBytes, start + boundaryBytes.length);
-    if (end === -1) break;
-    const section = buffer.slice(start + boundaryBytes.length, end);
-    // section começa com \r\n headers \r\n\r\n content \r\n
-    const headerEnd = section.indexOf('\r\n\r\n');
-    if (headerEnd === -1) { offset = end; continue; }
-    const headersRaw = section.slice(2, headerEnd).toString('utf8');
-    const content = section.slice(headerEnd + 4, section.length - 2);
-    // Extrai name e filename com regexes separados (evita confusão de backtracking)
-    const nameMatch = headersRaw.match(/\bname="([^"]*)"/i);
-    const fileMatch = headersRaw.match(/\bfilename="([^"]*)"/i);
-    const typeMatch = headersRaw.match(/Content-Type:\s*([^\r\n]+)/i);
-    if (nameMatch) {
-      parts.push({
-        name: nameMatch[1],
-        filename: fileMatch ? fileMatch[1] : null,
-        contentType: typeMatch ? typeMatch[1].trim() : null,
-        data: content
-      });
-    }
-    offset = end;
-  }
-  return parts;
-}
-
+// parseMultipart movido → lib/multipart.js (importado no topo).
 const FOTO_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const FOTO_MAX_BYTES = 8 * 1024 * 1024;
 /**
@@ -2241,23 +2212,7 @@ const FOTO_EXT_FROM_MIME = {
   'image/png': '.png',
   'image/webp': '.webp',
 };
-/**
- * Verifica que os primeiros bytes de um Buffer correspondem a um magic-number de
- * imagem aceito (JPEG `FF D8`, PNG `89 50 4E 47`, RIFF/WEBP). Defesa contra
- * payloads disfarçados de imagem (ex: PHP/HTML com extensão e header forjados).
- *
- * @param {Buffer} buf
- * @returns {boolean}
- */
-function _isAllowedImageMagic(buf) {
-  if (!buf || buf.length < 12) return false;
-  if (buf[0] === 0xFF && buf[1] === 0xD8) return true; // JPEG
-  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return true; // PNG
-  // RIFF....WEBP
-  if (buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
-      buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50) return true;
-  return false;
-}
+// _isAllowedImageMagic movido → lib/multipart.js (importado no topo como alias).
 
 function handlePostRdoFoto(contractId, rdoId, req, res) {
   const contentType = req.headers['content-type'] || '';
