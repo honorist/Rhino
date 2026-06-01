@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.4.21",
+      "date": "2026-06-01",
+      "summary": "Historico mostra o que mudou (diff), agrupa repetidos e mascara sensiveis",
+      "changes": [
+        "Historico de Atividades agora mostra O QUE MUDOU: cada edicao vira \"alterou Execucao de 5% pra 10% e Data fim\" em vez de so \"editou o contrato\".",
+        "No detalhe do evento aparecem so os campos alterados (antes->depois), formatados certo (%, R$, datas) — nao o registro inteiro.",
+        "Acoes repetidas em sequencia sao agrupadas (\"criou 5 contas a pagar\").",
+        "Datas no historico mostram o dia certo (corrigido o erro de -1 dia por fuso horario).",
+        "Dados sensiveis (CPF, CNPJ, senhas, tokens) nunca aparecem em claro no historico — sao mascarados como ***."
+      ]
+    },
+    {
       "version": "1.4.20",
       "date": "2026-06-01",
       "summary": "Arredondamento a centavos estendido a todos os lancamentos financeiros",

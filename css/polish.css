@@ -866,6 +866,14 @@ button, .btn, [role="button"], a.nav-link, .nav-item a, input[type="checkbox"], 
 }
 .audit-chip-diff s { color: var(--color-text-muted); }
 .audit-chip-diff b { color: var(--color-primary); font-weight: 600; }
+/* Diff na timeline (US-2): resumo "alterou X (a→b)", contexto e contagem */
+.audit-ev__what strong { color: var(--color-text); font-weight: 700; }
+.audit-ctx { color: var(--color-text-muted); font-size: 12px; }
+.audit-more { color: var(--color-text-muted); font-size: 12px; font-style: italic; }
+.audit-ev__badge {
+  font-size: 11px; font-weight: 700; color: var(--color-primary);
+  background: var(--color-surface-2); border-radius: 999px; padding: 1px 7px;
+}
 
 .audit-pager { display: flex; justify-content: center; align-items: center; gap: var(--sp-sm); margin-top: var(--sp-md); color: var(--color-text-muted); }
 

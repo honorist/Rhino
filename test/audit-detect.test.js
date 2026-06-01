@@ -6,7 +6,7 @@
  */
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { detectEntity, sanitizeBody } = require('../lib/audit');
+const { detectEntity, sanitizeBody, maskSensitive } = require('../lib/audit');
 
 test('raiz: /api/clientes/:id', () => {
   assert.deepStrictEqual(detectEntity('/api/clientes/cli_123'), {
@@ -131,4 +131,27 @@ test('sanitizeBody trunca string longa', () => {
 test('sanitizeBody de não-objeto no topo retorna null', () => {
   assert.strictEqual(sanitizeBody('texto'), null);
   assert.strictEqual(sanitizeBody(null), null);
+});
+
+// ── maskSensitive (leitura da auditoria — nunca em claro) ──
+test('maskSensitive: cpf/cnpj/token viram *** (só não-nulos)', () => {
+  const out = maskSensitive({ nome: 'X', cpf: '12345678900', cnpj: null, token: 'abc', valor: 10 });
+  assert.strictEqual(out.cpf, '***');
+  assert.strictEqual(out.token, '***');
+  assert.strictEqual(out.cnpj, null);   // nulo permanece nulo
+  assert.strictEqual(out.nome, 'X');
+  assert.strictEqual(out.valor, 10);
+});
+
+test('maskSensitive recursivo (campo aninhado)', () => {
+  const out = maskSensitive({ user: { cpf: '111', email: 'a@b.com' } });
+  assert.strictEqual(out.user.cpf, '***');
+  assert.strictEqual(out.user.email, 'a@b.com');
+});
+
+test('sanitizeBody (gravação) também redacta cpf/cnpj', () => {
+  const out = sanitizeBody({ cpf: '12345678900', cnpj: '11222333000144', nome: 'Y' });
+  assert.strictEqual(out.cpf, '[REDACTED]');
+  assert.strictEqual(out.cnpj, '[REDACTED]');
+  assert.strictEqual(out.nome, 'Y');
 });

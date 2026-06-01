@@ -1077,6 +1077,12 @@ async function handleGetAudit(req, query, res) {
       errorsOnly: query.errors === '1',
       limit, offset,
     });
+    // Mascara PII/sensíveis ANTES de sair do servidor (nunca em claro no cliente).
+    data.rows = (data.rows || []).map((r) => ({
+      ...r,
+      beforeState: audit.maskSensitive(r.beforeState),
+      body: audit.maskSensitive(r.body),
+    }));
     sendJson(res, data);
   } catch (e) {
     sendError(res, 500, e.message);
