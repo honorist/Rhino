@@ -4615,6 +4615,37 @@ async function checkMutationPermission(req, res, pathname, method) {
   return true;
 }
 
+// ============ Enforcement de LEITURA (GET) para telas sensíveis ============
+// Mesmo problema do C-04, mas para leitura: sem isto, um perfil restrito lê via
+// API (curl/console) dados financeiros/RH de telas que a UI dele esconde.
+// Gateamos APENAS as telas sensíveis (caixa, sócios, investimentos, folha) —
+// telas de REFERÊNCIA (contratos, clientes, fornecedores, base) seguem legíveis
+// porque alimentam dropdowns/nomes em telas que o perfil PODE ver. O
+// `Store.loadAll` tolera 403 nessas rotas (vira vazio, sem quebrar o app).
+const VIEW_PERMISSION_RULES = [
+  { re: /^\/api\/caixa(\/|$)/,           screen: '#/caixa' },
+  { re: /^\/api\/socios(\/|$)/,          screen: '#/socios' },
+  { re: /^\/api\/investimentos(\/|$)/,   screen: '#/investimentos' },
+  { re: /^\/api\/folha-pagamento(\/|$)/, screen: '#/folha-pagamento' },
+];
+
+/**
+ * Bloqueia a LEITURA (GET) de uma tela sensível se o perfil não a inclui.
+ * @returns {Promise<boolean>} true se BLOQUEOU (403 já enviado).
+ */
+async function checkViewPermission(req, res, pathname, method) {
+  if (method !== 'GET') return false;
+  if (perms.isSuperAdmin(req.user)) return false;        // super admin passa
+  const rule = VIEW_PERMISSION_RULES.find(r => r.re.test(pathname));
+  if (!rule) return false;                               // rota não sensível
+  const abas = await perms.loadAbas(req.user);
+  if (!abas) return false;                               // null = sem restrição
+  if (abas.includes(rule.screen)) return false;          // tem a tela → libera
+  console.warn(`[view-gate] leitura bloqueada: user=${req.user?.id} GET ${pathname} — sem ${rule.screen}`);
+  sendError(res, 403, 'Você não tem acesso a esta tela.');
+  return true;
+}
+
 /**
  * Espelha no servidor o gate de acesso a tela do frontend (`podeAcessar`):
  * perfis restritos só acessam rotas NÃO-universais que estejam em suas `abas`.
@@ -4662,6 +4693,8 @@ async function applyAuthMiddleware(req, res, pathname, method) {
     }
     // FIX C-04: enforcement server-side de permissão para mutações.
     if (await checkMutationPermission(req, res, pathname, method)) return true;
+    // Enforcement de leitura para telas sensíveis (financeiro/RH/sócios).
+    if (await checkViewPermission(req, res, pathname, method)) return true;
     return false;
   } catch (e) {
     sendError(res, 500, e.message);

@@ -114,13 +114,18 @@ window.Store = {
       // Endpoints opcionais: a falha não derruba o loadAll, mas é REGISTRADA
       // (antes virava {} em silêncio → dado sumia sem ninguém saber).
       const failures = [];
-      const safe = (nome, p) => p.catch((e) => { failures.push(nome); console.warn(`[Store] ${nome} falhou:`, e.message); return {}; });
+      // 403 numa tela sensível = perfil sem acesso (esperado) → vira vazio, sem
+      // alarde. Outras falhas (rede/500) entram em `failures` e avisam o usuário.
+      const safe = (nome, p) => p.catch((e) => {
+        if (!/\b403\b/.test(String(e && e.message))) { failures.push(nome); console.warn(`[Store] ${nome} falhou:`, e.message); }
+        return {};
+      });
       const [contracts, caixa, base, socios, investimentos, notas_fiscais, tipos_base, clientes, fornecedores, contas_pagar, recursos, solicitacoes, manutencoes, veiculos] = await Promise.all([
         fetch('/api/contracts').then(okJson),
-        fetch('/api/caixa').then(okJson),
+        safe('Caixa', fetch('/api/caixa').then(okJson)),
         fetch('/api/base').then(okJson),
-        fetch('/api/socios').then(okJson),
-        fetch('/api/investimentos').then(okJson),
+        safe('Sócios', fetch('/api/socios').then(okJson)),
+        safe('Investimentos', fetch('/api/investimentos').then(okJson)),
         fetch('/api/notas-fiscais').then(okJson),
         fetch('/api/tipos-base').then(okJson),
         fetch('/api/clientes').then(okJson),
