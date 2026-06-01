@@ -40,6 +40,9 @@ const money = require('./lib/money'); // dinheiro 2 casas — contém drift de f
 const caixaHandlers = require('./handlers/caixa'); // domínio caixa extraído (desmembramento server.js)
 const sociosHandlers = require('./handlers/socios'); // domínio sócios extraído
 const baseHandlers = require('./handlers/base');     // domínio BASE (CRUD) extraído
+const fornecedoresHandlers = require('./handlers/fornecedores');
+const tiposBaseHandlers = require('./handlers/tipos-base');
+const docTemplatesHandlers = require('./handlers/doc-templates');
 const bus = require('./lib/bus');
 const perms = require('./lib/permissions');
 const fluxoCompra = require('./lib/fluxo-compra');
@@ -2349,147 +2352,9 @@ async function handleDeleteCaseLogo(id, res) {
 }
 
 // ============ Fornecedores ============
-async function handleGetFornecedores(res) {
-  const data = await readCollection('fornecedores.json', 'fornecedores', 'fornecedores');
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
-}
+// Fornecedores (CRUD) extraídos → handlers/fornecedores.js
 
-function normalizeMateriais(v) {
-  if (Array.isArray(v)) return v;
-  if (typeof v === 'string') return v.split(',').map(s => s.trim()).filter(Boolean);
-  return [];
-}
-
-async function handlePostFornecedor(body, res) {
-  try {
-    const fornecedor = {
-      id: generateId('for'),
-      nome: body.nome || '',
-      cnpj: body.cnpj || '',
-      endereco: body.endereco || '',
-      telefone: body.telefone || '',
-      email: body.email || '',
-      pessoaContato: body.pessoaContato || '',
-      materiais: JSON.stringify(normalizeMateriais(body.materiais)),
-      banco: body.banco || '',
-      agencia: body.agencia || '',
-      conta: body.conta || '',
-      chavePix: body.chavePix || '',
-      notas: body.notas || '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    const { envelope } = await writeCollection('fornecedores', 'fornecedores', (repo) => repo.create(fornecedor));
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handlePutFornecedor(id, body, res) {
-  try {
-    const allowed = {};
-    const fields = ['nome', 'cnpj', 'endereco', 'telefone', 'email', 'pessoaContato', 'banco', 'agencia', 'conta', 'chavePix', 'notas'];
-    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
-    if (body.materiais !== undefined) allowed.materiais = JSON.stringify(normalizeMateriais(body.materiais));
-    allowed.updatedAt = new Date().toISOString();
-
-    const { envelope, result } = await writeCollection('fornecedores', 'fornecedores', (repo) => repo.updateById(id, allowed));
-    if (!result) return sendError(res, 404, 'Fornecedor não encontrado');
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handleDeleteFornecedor(id, res) {
-  try {
-    const { envelope } = await writeCollection('fornecedores', 'fornecedores', (repo) => repo.removeById(id));
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-// ============ Tipos BASE (custos administrativos customizáveis) ============
-async function handleGetTiposBase(res) {
-  const data = await readCollection('tipos_base.json', 'tiposBase', 'tipos');
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
-}
-
-function slugify(texto) {
-  return (texto || '')
-    .toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .slice(0, 40) || ('tipo_' + Date.now().toString(36));
-}
-
-async function handlePostTipoBase(body, res) {
-  try {
-    const label = (body.label || '').trim();
-    if (!label) return sendError(res, 400, 'Nome do tipo é obrigatório');
-
-    const baseKey = slugify(body.key || label);
-    // Garantir chave única (consulta os já existentes)
-    const existentes = (await repos.tiposBase.findAll()).map(t => t.key);
-    let k = baseKey, n = 2;
-    while (existentes.includes(k)) { k = `${baseKey}_${n++}`; }
-
-    const tipo = {
-      id: generateId('tpb'),
-      key: k,
-      label,
-      icon: body.icon || '🔹',
-      cor: body.cor || '#718096',
-      sistema: false,
-    };
-    const { envelope } = await writeCollection('tiposBase', 'tipos', (repo) => repo.create(tipo));
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handlePutTipoBase(id, body, res) {
-  try {
-    const current = await repos.tiposBase.findById(id);
-    if (!current) return sendError(res, 404, 'Tipo não encontrado');
-
-    const allowed = {};
-    if (body.label) allowed.label = body.label.trim();
-    if (body.icon)  allowed.icon  = body.icon;
-    if (body.cor)   allowed.cor   = body.cor;
-    if (!current.sistema && body.key) allowed.key = slugify(body.key);
-
-    const { envelope } = await writeCollection('tiposBase', 'tipos', (repo) => repo.updateById(id, allowed));
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handleDeleteTipoBase(id, res) {
-  try {
-    const tipo = await repos.tiposBase.findById(id);
-    if (!tipo) return sendError(res, 404, 'Tipo não encontrado');
-    if (tipo.sistema) return sendError(res, 400, 'Não é possível excluir tipos do sistema');
-
-    // Verificar se está em uso (base_items ainda lê do JSON enquanto não migramos)
-    const baseItems = await repos.baseItems.findAll();
-    if (baseItems.some(b => b.type === tipo.key)) {
-      return sendError(res, 400, 'Tipo em uso por itens da BASE. Remova ou reclassifique os itens antes de excluir.');
-    }
-    const { envelope } = await writeCollection('tiposBase', 'tipos', (repo) => repo.removeById(id));
-    sendJson(res, envelope);
-    return;
-  } catch (e) {
-    return sendError(res, 400, e.message);
-  }
-}
+// Tipos da BASE (CRUD) extraídos → handlers/tipos-base.js
 
 // ============ Contas a Pagar handlers ============
 async function handleGetContasPagar(res) {
@@ -4646,7 +4511,7 @@ registerFinanceiro(apiRouter, {
   ...baseHandlers, handleAllocateBase, // base CRUD em handlers/base.js; allocate inline
   ...sociosHandlers, // handlers/socios.js
   handleGetInvestimentos, handlePostInvestimento, handleDeleteInvestimento,
-  handleGetTiposBase, handlePostTipoBase, handlePutTipoBase, handleDeleteTipoBase,
+  ...tiposBaseHandlers, // handlers/tipos-base.js
   handleGetContasPagar, handlePostContaPagar, handlePutContaPagar, handleDeleteContaPagar,
   handlePagarConta, handleEstornarConta, handleProcessarRecorrencias,
   handleGetFolha, handleGerarFolha, handleLimparFolha, handlePagarFolhaParcela,
@@ -4658,7 +4523,7 @@ registerFinanceiro(apiRouter, {
 });
 registerComercial(apiRouter, {
   handleGetClientes, handlePostCliente, handlePutCliente, handleDeleteCliente,
-  handleGetFornecedores, handlePostFornecedor, handlePutFornecedor, handleDeleteFornecedor,
+  ...fornecedoresHandlers, // handlers/fornecedores.js
   handleGetClausulas, handlePostClausula, handlePutClausula, handleDeleteClausula,
   handleGetPropostas, handlePostProposta, handleGetProposta, handlePutProposta, handleDeleteProposta,
   handleEnviarProposta, handleAceitarProposta, handleRejeitarProposta, handleDuplicarProposta,
@@ -4691,7 +4556,7 @@ registerOperacao(apiRouter, {
   handlePostVeiculoManutencao, handlePutVeiculoManutencao, handleDeleteVeiculoManutencao,
   handleListVeiculoAbastecimentos, handlePostVeiculoAbastecimento, handlePutVeiculoAbastecimento, handleDeleteVeiculoAbastecimento,
   handleListDashLayouts, handlePostDashLayout, handlePutDashLayout, handleDeleteDashLayout,
-  handleGetDocTemplates, handlePostDocTemplate, handlePutDocTemplate, handleDeleteDocTemplate,
+  ...docTemplatesHandlers, // handlers/doc-templates.js
 });
 registerContracts(apiRouter, {
   handleGetRdosGlobal, handleGetContracts, handlePostContract, handlePutContract, handleDeleteContract,
@@ -5333,66 +5198,7 @@ async function handleComprarPassagem(recursoId, folgaId, body, res) {
 }
 
 // ============ Doc Templates handlers ============
-async function handleGetDocTemplates(res) {
-  const data = await readCollection('doc_templates.json', 'docTemplates', 'templates');
-  if (!data.templates) data.templates = [];
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
-}
-
-async function handlePostDocTemplate(body, res) {
-  try {
-    const template = {
-      id: generateId('tpl'),
-      nome: body.nome || '',
-      tipoDocumento: body.tipoDocumento || '',
-      empresaId: body.empresaId || null,
-      checklist: JSON.stringify(Array.isArray(body.checklist) ? body.checklist : []),
-      periodicidadeMeses: Number.isFinite(parseInt(body.periodicidadeMeses)) ? parseInt(body.periodicidadeMeses) : 12,
-      metadata: JSON.stringify(body.metadata && typeof body.metadata === 'object' ? body.metadata : {}),
-      body: body.body || null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    const { envelope } = await writeCollection('docTemplates', 'templates', (repo) => repo.create(template));
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handlePutDocTemplate(id, body, res) {
-  try {
-    const allowed = {};
-    const fields = ['nome', 'tipoDocumento', 'empresaId', 'body'];
-    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
-    if (body.checklist !== undefined) {
-      allowed.checklist = JSON.stringify(Array.isArray(body.checklist) ? body.checklist : []);
-    }
-    if (body.metadata !== undefined) {
-      allowed.metadata = JSON.stringify(body.metadata && typeof body.metadata === 'object' ? body.metadata : {});
-    }
-    if (body.periodicidadeMeses !== undefined) {
-      allowed.periodicidadeMeses = Number.isFinite(parseInt(body.periodicidadeMeses)) ? parseInt(body.periodicidadeMeses) : 12;
-    }
-    allowed.updatedAt = new Date().toISOString();
-
-    const { envelope, result } = await writeCollection('docTemplates', 'templates', (repo) => repo.updateById(id, allowed));
-    if (!result) return sendError(res, 404, 'Não encontrado');
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handleDeleteDocTemplate(id, res) {
-  try {
-    const { envelope } = await writeCollection('docTemplates', 'templates', (repo) => repo.removeById(id));
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
+// Templates de documento (CRUD) extraídos → handlers/doc-templates.js
 
 // ============ Validação de documento contra template (Claude Vision) ============
 // Lê o BYTEA do arquivo, converte PDF→imagem se preciso, redimensiona com jimp,
