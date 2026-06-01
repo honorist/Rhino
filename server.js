@@ -37,6 +37,7 @@ const rateLimit = require('./lib/rate-limit');
 const pgRateLimit = require('./lib/pg-rate-limit');
 const audit = require('./lib/audit');
 const money = require('./lib/money'); // dinheiro 2 casas — contém drift de float
+const caixaHandlers = require('./handlers/caixa'); // domínio caixa extraído (desmembramento server.js)
 const bus = require('./lib/bus');
 const perms = require('./lib/permissions');
 const fluxoCompra = require('./lib/fluxo-compra');
@@ -570,56 +571,9 @@ async function handleDeleteSaida(id, res) {
   }
 }
 
-async function handleGetCaixa(res) {
-  const data = await readCollection('caixa.json', 'caixa', 'entries');
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
-}
-
-async function handlePostCaixa(body, res) {
-  try {
-    const entry = {
-      id: generateId('cxa'),
-      type: body.type || 'entrada',
-      description: body.description || '',
-      value: money.parse(body.value),
-      date: body.date || new Date().toISOString().split('T')[0],
-      contractId: body.contractId || null,
-      baseItemId: body.baseItemId || null,
-      category: body.category || 'geral',
-      notes: body.notes || '',
-      createdAt: new Date().toISOString(),
-    };
-    const { envelope } = await writeCollection('caixa', 'entries', (repo) => repo.create(entry));
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handlePutCaixa(id, body, res) {
-  try {
-    const allowed = {};
-    const fields = ['type', 'description', 'value', 'date', 'contractId', 'baseItemId', 'category', 'notes'];
-    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
-    if (allowed.value !== undefined) allowed.value = parseFloat(allowed.value) || 0;
-
-    const { envelope, result } = await writeCollection('caixa', 'entries', (repo) => repo.updateById(id, allowed));
-    if (!result) return sendError(res, 404, 'Entry not found');
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handleDeleteCaixa(id, res) {
-  try {
-    const { envelope } = await writeCollection('caixa', 'entries', (repo) => repo.removeById(id));
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
+// Handlers de Caixa (handleGetCaixa/Post/Put/Delete) extraídos → handlers/caixa.js
+// (continuação do desmembramento do server.js). Ligados via `...caixaHandlers`
+// no objeto de deps de registerFinanceiro.
 
 async function handleGetBase(res) {
   const data = await readCollection('base.json', 'baseItems', 'items');
@@ -4779,7 +4733,7 @@ registerPlatform(apiRouter, {
 });
 registerFinanceiro(apiRouter, {
   withIdempotency,
-  handleGetCaixa, handlePostCaixa, handlePutCaixa, handleDeleteCaixa,
+  ...caixaHandlers, // handleGetCaixa/Post/Put/Delete (handlers/caixa.js)
   handleGetBase, handlePostBase, handlePutBase, handleDeleteBase, handleAllocateBase,
   handleGetSocios, handlePostSocio, handlePutSocio, handleDeleteSocio,
   handleGetInvestimentos, handlePostInvestimento, handleDeleteInvestimento,
