@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.4.20",
+      "date": "2026-06-01",
+      "summary": "Arredondamento a centavos estendido a todos os lancamentos financeiros",
+      "changes": [
+        "Arredondamento de valores a centavos (2 casas) estendido a TODOS os lancamentos financeiros: salarios, contas a pagar, aditivos, manutencoes, passagens, orcamento de obra, investimentos e mais.",
+        "Valores com mais de 2 casas (ex: 50,999) passam a ser limpos para 51,00 ao salvar, em todas as telas."
+      ]
+    },
+    {
       "version": "1.4.19",
       "date": "2026-06-01",
       "summary": "Dinheiro arredondado a centavos ao salvar (lib/money)",

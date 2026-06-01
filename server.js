@@ -229,7 +229,7 @@ async function handlePutContract(id, body, res) {
     const allowed = {};
     const fields = ['name', 'client', 'clientId', 'clientDocument', 'clientEmail', 'clientPhone', 'currency', 'status', 'notes', 'lat', 'lng', 'endereco', 'contractNumber'];
     for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
-    if (body.value !== undefined) allowed.value = parseFloat(body.value) || 0;
+    if (body.value !== undefined) allowed.value = money.parse(body.value);
     if (body.retencaoPercent !== undefined) allowed.retencaoPercent = parseFloat(body.retencaoPercent) || 0;
     for (const f of ['startDate', 'endDate', 'tendencyDate']) {
       if (body[f] !== undefined) allowed[f] = body[f] || null;
@@ -606,7 +606,7 @@ async function handlePutBase(id, body, res) {
     const allowed = {};
     const fields = ['description', 'type', 'notes'];
     for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
-    if (body.value !== undefined) allowed.value = parseFloat(body.value) || 0;
+    if (body.value !== undefined) allowed.value = money.parse(body.value);
     if (body.date !== undefined) allowed.date = body.date || null;
     allowed.updatedAt = new Date().toISOString();
 
@@ -632,7 +632,7 @@ async function handleAllocateBase(id, body, res) {
     const baseItem = await repos.baseItems.findById(id);
     if (!baseItem) return sendError(res, 404, 'Base item not found');
 
-    const allocationValue = parseFloat(body.value) || 0;
+    const allocationValue = money.parse(body.value);
     const allocs = baseItem.allocations || [];
     const totalAllocated = allocs.reduce((sum, a) => sum + (parseFloat(a.value) || 0), 0);
     if (totalAllocated + allocationValue > parseFloat(baseItem.value)) {
@@ -1593,7 +1593,7 @@ async function handlePostInvestimento(body, res) {
   try {
     const origem  = body.origem  || 'socio';
     const destino = body.destino || 'contrato';
-    const valor   = parseFloat(body.value) || 0;
+    const valor   = money.parse(body.value);
     const dataDoc = body.date || new Date().toISOString().split('T')[0];
 
     const aporte = {
@@ -1844,7 +1844,7 @@ async function handlePutProposta(id, body, res) {
     ];
     for (const f of camelFields) { if (body[f] !== undefined) allowed[f] = body[f]; }
     // Campos numéricos
-    if (body.valorTotal !== undefined) allowed.valorTotal = parseFloat(body.valorTotal) || 0;
+    if (body.valorTotal !== undefined) allowed.valorTotal = money.parse(body.valorTotal);
     if (body.validadeDias !== undefined) allowed.validadeDias = parseInt(body.validadeDias, 10) || 15;
     if (body.garantiaMeses !== undefined) {
       allowed.garantiaMeses = body.garantiaMeses === null || body.garantiaMeses === ''
@@ -1968,7 +1968,7 @@ async function handlePutPropostaCusto(propostaId, custoId, body, res) {
     const allowed = {};
     if (body.categoria !== undefined)  allowed.categoria = body.categoria;
     if (body.descricao !== undefined)  allowed.descricao = body.descricao;
-    if (body.valor !== undefined)      allowed.valor = parseFloat(body.valor) || 0;
+    if (body.valor !== undefined)      allowed.valor = money.parse(body.valor);
     if (body.percentual !== undefined) allowed.percentual = body.percentual === null || body.percentual === '' ? null : parseFloat(body.percentual);
     if (body.ordem !== undefined)      allowed.ordem = parseInt(body.ordem, 10) || 0;
     const result = await repos.propostaCustos.updateById(custoId, allowed);
@@ -2624,7 +2624,7 @@ async function handlePutContaPagar(id, body, res) {
     const allowed = {};
     const fields = ['descricao', 'fornecedorId', 'numeroNF', 'contractId', 'category', 'observacoes', 'periodicidade'];
     for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
-    if (body.valor !== undefined) allowed.valor = parseFloat(body.valor) || 0;
+    if (body.valor !== undefined) allowed.valor = money.parse(body.valor);
     if (body.dataEmissao !== undefined) allowed.dataEmissao = body.dataEmissao || null;
     if (body.dataVencimento !== undefined) allowed.dataVencimento = body.dataVencimento || null;
     if (body.recorrente !== undefined) allowed.recorrente = !!body.recorrente;
@@ -3013,7 +3013,7 @@ async function handleAddFolhaItem(id, body, res) {
     }
     const descricao = String((body && body.descricao) || '').trim();
     if (!descricao) return sendError(res, 400, 'Informe a descrição do lançamento');
-    const valor = Math.round((parseFloat(body && body.valor) || 0) * 100) / 100;
+    const valor = money.parse(body && body.valor);
     if (!(valor > 0)) return sendError(res, 400, 'O valor deve ser maior que zero');
 
     const folha = await db.withTransaction(async (client) => {
@@ -3069,7 +3069,7 @@ async function handleRemoveFolhaItem(id, itemId, res) {
 // PUT /api/folha-pagamento/:id/itens/:itemId — edita o valor de um lançamento.
 async function handleUpdateFolhaItem(id, itemId, body, res) {
   try {
-    const valor = Math.round((parseFloat(body && body.valor) || 0) * 100) / 100;
+    const valor = money.parse(body && body.valor);
     if (!(valor > 0)) return sendError(res, 400, 'O valor deve ser maior que zero');
     const folha = await db.withTransaction(async (client) => {
       await client.query("SELECT pg_advisory_xact_lock(hashtext('folha:' || $1)::int)", [id]);
@@ -3368,7 +3368,7 @@ async function handlePostBudgetItem(contractId, body, res) {
     const contract = await repos.contracts.findById(contractId);
     if (!contract) return sendError(res, 404, 'Contrato não encontrado');
 
-    const novoValor = parseFloat(body.value) || 0;
+    const novoValor = money.parse(body.value);
     const budget = contract.budget || [];
     const totalAtual = budget.reduce((s, b) => s + (parseFloat(b.value) || 0), 0);
     if (contract.value > 0 && totalAtual + novoValor > parseFloat(contract.value) + 0.01) {
@@ -3400,7 +3400,7 @@ async function handlePutBudgetItem(contractId, itemId, body, res) {
     if (idx === -1) return sendError(res, 404, 'Item não encontrado');
 
     const patch = { ...body };
-    if (patch.value !== undefined) patch.value = parseFloat(patch.value) || 0;
+    if (patch.value !== undefined) patch.value = money.parse(patch.value);
     if (patch.value !== undefined && contract.value > 0) {
       const outros = budget.reduce((s, b, i) => i === idx ? s : s + (parseFloat(b.value) || 0), 0);
       if (outros + patch.value > parseFloat(contract.value) + 0.01) {
@@ -3862,7 +3862,7 @@ async function handlePostAditivo(contractId, body, res) {
       numero: body.numero || '',
       tipo: body.tipo || 'valor',
       descricao: body.descricao,
-      valorDelta: parseFloat(body.valorDelta) || 0,
+      valorDelta: money.parse(body.valorDelta),
       diasDelta: parseInt(body.diasDelta) || 0,
       data: body.data || null,
       aprovado: !!body.aprovado,
@@ -3878,7 +3878,7 @@ async function handlePutAditivo(contractId, id, body, res) {
     const allowed = {};
     const fields = ['numero', 'tipo', 'descricao', 'data'];
     for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
-    if (body.valorDelta !== undefined) allowed.valorDelta = parseFloat(body.valorDelta) || 0;
+    if (body.valorDelta !== undefined) allowed.valorDelta = money.parse(body.valorDelta);
     if (body.diasDelta !== undefined) allowed.diasDelta = parseInt(body.diasDelta) || 0;
     if (body.aprovado !== undefined) allowed.aprovado = !!body.aprovado;
     const result = await repos.aditivos.updateById(id, allowed);
@@ -5251,7 +5251,7 @@ async function handlePostRecurso(body, res) {
       status: body.status || 'candidato',
       profissao: body.profissao || '',
       dataAdmissao: body.dataAdmissao || null,
-      salario: parseFloat(body.salario) || 0,
+      salario: money.parse(body.salario),
       elegivelVale: !!body.elegivelVale,
       cnh: body.cnh || '',
       pis: body.pis || '',
@@ -5286,7 +5286,7 @@ async function handlePutRecurso(id, body, res) {
     for (const f of ['dataNascimento', 'dataAdmissao', 'dataDesligamento']) {
       if (body[f] !== undefined) allowed[f] = body[f] || null;
     }
-    if (body.salario !== undefined) allowed.salario = parseFloat(body.salario) || 0;
+    if (body.salario !== undefined) allowed.salario = money.parse(body.salario);
     if (body.elegivelVale !== undefined) allowed.elegivelVale = !!body.elegivelVale;
     if (body.alocacaoAtual !== undefined) {
       allowed.alocacaoAtual = body.alocacaoAtual ? JSON.stringify(body.alocacaoAtual) : null;
@@ -5354,7 +5354,7 @@ async function handleComprarPassagem(recursoId, folgaId, body, res) {
 
     const tipo      = body.tipo === 'ida' ? 'passagemIda' : 'passagemVolta';
     const tipoLabel = body.tipo === 'ida' ? 'Ida' : 'Volta';
-    const valor     = parseFloat(body.valor) || 0;
+    const valor     = money.parse(body.valor);
     const folga     = folgas[fIdx];
 
     const contractId = body.contractIdPagador || recurso.alocacaoAtual?.contractId || null;
@@ -6764,7 +6764,7 @@ async function handleAvaliarManutencao(req, id, body, res) {
     if (!oficina) return sendError(res, 400, 'Informe a oficina / empresa que vai reparar');
     const allowed = {
       oficina,
-      custoEstimado: parseFloat(body.custoEstimado) || 0,
+      custoEstimado: money.parse(body.custoEstimado),
       dataEnvio: body.dataEnvio || null,
       dataRetornoPrevista: body.dataRetornoPrevista || null,
       avaliadorUserId: req.user?.id || null,
@@ -6834,7 +6834,7 @@ async function handleRetornoManutencao(req, id, body, res) {
     const allowed = {
       status: 'retornado',
       dataRetorno: body.dataRetorno || new Date().toISOString().slice(0, 10),
-      custo: parseFloat(body.custo) || 0,
+      custo: money.parse(body.custo),
     };
     if (body.observacoes != null && String(body.observacoes).trim()) {
       allowed.observacoes = String(body.observacoes).trim();
@@ -7209,7 +7209,7 @@ async function handlePostVeiculoManutencao(req, veiculoId, body, res) {
       descricao: body.descricao || '',
       data: body.data,
       km: body.km ? parseInt(body.km) : null,
-      custo: body.custo ? parseFloat(body.custo) : null,
+      custo: body.custo ? money.parse(body.custo) : null,
       fornecedorId: body.fornecedorId || null,
       observacoes: body.observacoes || '',
       arquivo: body.arquivo ? JSON.stringify(body.arquivo) : null,
@@ -7241,7 +7241,7 @@ async function handlePutVeiculoManutencao(veiculoId, manId, body, res) {
     const fields = ['tipo','descricao','data','observacoes','planoId','fornecedorId'];
     for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f] || null; }
     if (body.km !== undefined) allowed.km = body.km ? parseInt(body.km) : null;
-    if (body.custo !== undefined) allowed.custo = body.custo ? parseFloat(body.custo) : null;
+    if (body.custo !== undefined) allowed.custo = body.custo ? money.parse(body.custo) : null;
     if (body.arquivo !== undefined) allowed.arquivo = body.arquivo ? JSON.stringify(body.arquivo) : null;
     await repos.veiculoManutencoes.updateById(manId, allowed);
     sendJson(res, await repos.veiculos.getEnvelope());
@@ -7275,7 +7275,7 @@ async function handlePostVeiculoAbastecimento(veiculoId, body, res) {
       data:            body.data,
       km:              body.km     ? parseInt(body.km)         : null,
       litros:          parseFloat(body.litros),
-      valorTotal:      body.valorTotal ? parseFloat(body.valorTotal) : null,
+      valorTotal:      body.valorTotal ? money.parse(body.valorTotal) : null,
       tipoCombustivel: body.tipoCombustivel || null,
       fornecedorId:    body.fornecedorId   || null,
       contractId:      body.contractId     || null,
@@ -7315,7 +7315,7 @@ async function handlePutVeiculoAbastecimento(veiculoId, abastecId, body, res) {
     for (const f of strFields) { if (body[f] !== undefined) allowed[f] = body[f] || null; }
     if (body.km         !== undefined) allowed.km         = body.km         ? parseInt(body.km)         : null;
     if (body.litros     !== undefined) allowed.litros     = body.litros     ? parseFloat(body.litros)   : null;
-    if (body.valorTotal !== undefined) allowed.valorTotal = body.valorTotal ? parseFloat(body.valorTotal) : null;
+    if (body.valorTotal !== undefined) allowed.valorTotal = body.valorTotal ? money.parse(body.valorTotal) : null;
     await repos.veiculoAbastecimentos.updateById(abastecId, allowed);
     sendJson(res, await repos.veiculos.getEnvelope());
   } catch (e) { sendError(res, 400, e.message); }
@@ -7356,7 +7356,7 @@ async function handlePostAtividade(contractId, body, res) {
         body.dataInicioPlan || null, body.dataFimPlan || null,
         body.dataInicioReal || null, body.dataFimReal || null,
         parseFloat(body.pesoPct) || 0, parseFloat(body.execPct) || 0,
-        parseFloat(body.custoPlan) || 0,
+        money.parse(body.custoPlan),
         Array.isArray(body.predecessoras) ? body.predecessoras : [],
         body.notas || null,
       ]
@@ -7382,7 +7382,7 @@ async function handlePutAtividade(contractId, atvId, body, res) {
       data_fim_real: body.dataFimReal || null,
       peso_pct: parseFloat(body.pesoPct) || 0,
       exec_pct: parseFloat(body.execPct) || 0,
-      custo_plan: parseFloat(body.custoPlan) || 0,
+      custo_plan: money.parse(body.custoPlan),
       predecessoras: Array.isArray(body.predecessoras) ? body.predecessoras : [],
       notas: body.notas ?? null,
     };
