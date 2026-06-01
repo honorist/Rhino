@@ -44,6 +44,7 @@ const fornecedoresHandlers = require('./handlers/fornecedores');
 const tiposBaseHandlers = require('./handlers/tipos-base');
 const docTemplatesHandlers = require('./handlers/doc-templates');
 const clientesHandlers = require('./handlers/clientes');
+const investimentosHandlers = require('./handlers/investimentos');
 const bus = require('./lib/bus');
 const perms = require('./lib/permissions');
 const fluxoCompra = require('./lib/fluxo-compra');
@@ -1496,109 +1497,7 @@ async function handleMetrics(res, req) {
 // Handlers de Sócios (CRUD) extraídos → handlers/socios.js.
 
 // ============ Investimentos handlers ============
-async function handleGetInvestimentos(res) {
-  const data = await readCollection('investimentos.json', 'investimentos', 'investimentos');
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
-}
-
-async function handlePostInvestimento(body, res) {
-  try {
-    const origem  = body.origem  || 'socio';
-    const destino = body.destino || 'contrato';
-    const valor   = money.parse(body.value);
-    const dataDoc = body.date || new Date().toISOString().split('T')[0];
-
-    const aporte = {
-      id: generateId('ap'),
-      socioId: body.socioId || null,
-      value: valor,
-      date: dataDoc,
-      description: body.description || '',
-      origem,
-      destino,
-      baseType: body.baseType || 'outros',
-      contractId: destino === 'contrato' ? (body.contractId || null) : null,
-      baseItemId: null,
-      caixaEntryId: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    if (destino === 'base') {
-      const baseItem = {
-        id: generateId('bas'),
-        description: body.description || 'Aporte',
-        type: body.baseType || 'outros',
-        value: valor,
-        date: dataDoc,
-        allocations: '[]',
-        notes: `Criado via Aporte (${origem === 'socio' ? 'sócio' : 'caixa da empresa'})`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      await repos.baseItems.create(baseItem);
-      aporte.baseItemId = baseItem.id;
-    }
-
-    if (origem === 'caixa_empresa') {
-      const destLabel = destino === 'base' ? 'BASE' : 'Contrato';
-      const entry = {
-        id: generateId('cxa'),
-        type: 'saida',
-        description: `[Aporte → ${destLabel}] ${body.description || 'Aquisição via caixa da empresa'}`,
-        value: valor,
-        date: dataDoc,
-        contractId: aporte.contractId,
-        baseItemId: aporte.baseItemId,
-        category: destino === 'base' ? 'aporte_base' : 'aporte_contrato',
-        notes: `Aporte via caixa da empresa - destino: ${destLabel}`,
-        createdAt: new Date().toISOString(),
-      };
-      await repos.caixa.create(entry);
-      aporte.caixaEntryId = entry.id;
-    }
-
-    const { envelope } = await writeCollection('investimentos', 'investimentos', (repo) => repo.create(aporte));
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-/**
- * Exclui um aporte de investimento + entrada de caixa + base item órfão.
- *
- * FIX P1-3: serializa via advisory lock para evitar que dois deletes
- * concorrentes apaguem o mesmo caixaEntry duas vezes ou o baseItem em race com
- * outra operação. Não é atomic-rollback completo (repos ainda usam pool), mas
- * garante ordering. Para rollback verdadeiro, ver TODO sobre passar `client`
- * aos repos.
- *
- * @param {string} id
- * @param {import('http').ServerResponse} res
- */
-async function handleDeleteInvestimento(id, res) {
-  try {
-    await db.withTransaction(async (client) => {
-      await client.query("SELECT pg_advisory_xact_lock(hashtext('investimentos:' || $1)::int)", [id]);
-      const aporte = await repos.investimentos.findById(id);
-      if (aporte && aporte.caixaEntryId) {
-        await repos.caixa.removeById(aporte.caixaEntryId);
-      }
-      if (aporte && aporte.baseItemId) {
-        const baseItem = await repos.baseItems.findById(aporte.baseItemId);
-        if (baseItem && (!baseItem.allocations || baseItem.allocations.length === 0)) {
-          await repos.baseItems.removeById(aporte.baseItemId);
-        }
-      }
-    });
-    const { envelope } = await writeCollection('investimentos', 'investimentos', (repo) => repo.removeById(id));
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
+// Investimentos (Get/Post/Delete, com BASE+caixa e transação) extraídos → handlers/investimentos.js
 
 // ============ Clientes ============
 // Clientes (CRUD, com portal + propagação de endereço) extraídos → handlers/clientes.js
@@ -4417,7 +4316,7 @@ registerFinanceiro(apiRouter, {
   ...caixaHandlers, // handleGetCaixa/Post/Put/Delete (handlers/caixa.js)
   ...baseHandlers, handleAllocateBase, // base CRUD em handlers/base.js; allocate inline
   ...sociosHandlers, // handlers/socios.js
-  handleGetInvestimentos, handlePostInvestimento, handleDeleteInvestimento,
+  ...investimentosHandlers, // handlers/investimentos.js
   ...tiposBaseHandlers, // handlers/tipos-base.js
   handleGetContasPagar, handlePostContaPagar, handlePutContaPagar, handleDeleteContaPagar,
   handlePagarConta, handleEstornarConta, handleProcessarRecorrencias,
