@@ -45,6 +45,7 @@ const tiposBaseHandlers = require('./handlers/tipos-base');
 const docTemplatesHandlers = require('./handlers/doc-templates');
 const clientesHandlers = require('./handlers/clientes');
 const investimentosHandlers = require('./handlers/investimentos');
+const contasPagarHandlers = require('./handlers/contas-pagar');
 const bus = require('./lib/bus');
 const perms = require('./lib/permissions');
 const fluxoCompra = require('./lib/fluxo-compra');
@@ -2163,164 +2164,7 @@ async function handleDeleteCaseLogo(id, res) {
 // Tipos da BASE (CRUD) extraídos → handlers/tipos-base.js
 
 // ============ Contas a Pagar handlers ============
-async function handleGetContasPagar(res) {
-  const data = await readCollection('contas_pagar.json', 'contasPagar', 'contas');
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
-}
-
-async function handlePostContaPagar(body, res) {
-  try {
-    const p = validateBody(schemas.contaPagarPost, body);
-    const conta = {
-      id: generateId('cp'),
-      descricao: p.descricao,
-      fornecedorId: p.fornecedorId,
-      numeroNF: p.numeroNF,
-      valor: p.valor,
-      dataEmissao: p.dataEmissao,
-      dataVencimento: p.dataVencimento,
-      status: 'pendente',
-      dataPagamento: null,
-      caixaEntryId: null,
-      contractId: p.contractId,
-      category: p.category,
-      observacoes: p.observacoes,
-      recorrente: p.recorrente,
-      periodicidade: p.periodicidade,
-      recorrenciaOrigemId: p.recorrenciaOrigemId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    const { envelope } = await writeCollection('contasPagar', 'contas', (repo) => repo.create(conta));
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handlePutContaPagar(id, body, res) {
-  try {
-    const allowed = {};
-    const fields = ['descricao', 'fornecedorId', 'numeroNF', 'contractId', 'category', 'observacoes', 'periodicidade'];
-    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
-    if (body.valor !== undefined) allowed.valor = money.parse(body.valor);
-    if (body.dataEmissao !== undefined) allowed.dataEmissao = body.dataEmissao || null;
-    if (body.dataVencimento !== undefined) allowed.dataVencimento = body.dataVencimento || null;
-    if (body.recorrente !== undefined) allowed.recorrente = !!body.recorrente;
-    allowed.updatedAt = new Date().toISOString();
-
-    const { envelope, result } = await writeCollection('contasPagar', 'contas', (repo) => repo.updateById(id, allowed));
-    if (!result) return sendError(res, 404, 'Conta não encontrada');
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handleDeleteContaPagar(id, res) {
-  try {
-    const conta = await repos.contasPagar.findById(id);
-    if (!conta) return sendError(res, 404, 'Conta não encontrada');
-    // Remove caixa entry vinculada (se houver)
-    if (conta.caixaEntryId) {
-      await repos.caixa.removeById(conta.caixaEntryId);
-    }
-    const { envelope } = await writeCollection('contasPagar', 'contas', (repo) => repo.removeById(id));
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-/**
- * Paga uma conta a pagar: cria entrada de caixa e atualiza status para 'pago'.
- *
- * FIX P1-3: serializa via advisory lock por conta — evita que dois pagamentos
- * simultâneos criem duas entradas de caixa duplicadas.
- *
- * @param {string} id
- * @param {{ dataPagamento?: string, valorPago?: number|string, formaPagamento?: string }} body
- * @param {import('http').ServerResponse} res
- */
-async function handlePagarConta(id, body, res) {
-  try {
-    const envelope = await db.withTransaction(async (client) => {
-      await client.query("SELECT pg_advisory_xact_lock(hashtext('conta:' || $1)::int)", [id]);
-      const conta = await repos.contasPagar.findById(id);
-      if (!conta) { const err = new Error('Conta não encontrada'); err.statusCode = 404; throw err; }
-      if (conta.status === 'pago') { const err = new Error('Conta já foi paga'); err.statusCode = 400; throw err; }
-
-      const dataPagamento = body.dataPagamento || new Date().toISOString().split('T')[0];
-      const valorPago = parseFloat(body.valorPago) || parseFloat(conta.valor) || 0;
-      const caixaEntry = {
-        id: generateId('cxa'),
-        type: 'saida',
-        description: conta.descricao + (conta.numeroNF ? ` — NF ${conta.numeroNF}` : '') + (body.formaPagamento ? ` [${body.formaPagamento}]` : ''),
-        value: valorPago,
-        date: dataPagamento,
-        contractId: conta.contractId || null,
-        baseItemId: null,
-        category: conta.category || 'fornecedor',
-        notes: `Pagamento de conta: ${conta.descricao}`,
-        formaPagamento: body.formaPagamento || null,
-        contaPagarId: conta.id,
-        createdAt: new Date().toISOString(),
-      };
-      await repos.caixa.create(caixaEntry);
-      const { envelope } = await writeCollection('contasPagar', 'contas', (repo) =>
-        repo.updateById(id, {
-          status: 'pago',
-          dataPagamento,
-          valorPago,
-          formaPagamento: body.formaPagamento || null,
-          caixaEntryId: caixaEntry.id,
-          updatedAt: new Date().toISOString(),
-        })
-      );
-      // Conta originada da Folha de Pagamento — marca a parcela como paga lá também.
-      if (conta.folhaPagamentoId && (conta.folhaParcela === 'vale' || conta.folhaParcela === 'saldo')) {
-        const fPatch = conta.folhaParcela === 'vale'
-          ? { valePago: true, valeDataPagamento: dataPagamento, valeCaixaEntryId: caixaEntry.id, updatedAt: new Date().toISOString() }
-          : { saldoPago: true, saldoDataPagamento: dataPagamento, saldoCaixaEntryId: caixaEntry.id, updatedAt: new Date().toISOString() };
-        await repos.folhaPagamento.updateById(conta.folhaPagamentoId, fPatch).catch(() => {});
-      }
-      return envelope;
-    });
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, e.statusCode || 400, e.message);
-  }
-}
-
-async function handleEstornarConta(id, res) {
-  try {
-    const conta = await repos.contasPagar.findById(id);
-    if (!conta) return sendError(res, 404, 'Conta não encontrada');
-    if (conta.caixaEntryId) {
-      await repos.caixa.removeById(conta.caixaEntryId);
-    }
-    const { envelope } = await writeCollection('contasPagar', 'contas', (repo) =>
-      repo.updateById(id, {
-        status: 'pendente',
-        dataPagamento: null,
-        valorPago: null,
-        caixaEntryId: null,
-        updatedAt: new Date().toISOString(),
-      })
-    );
-    // Conta originada da Folha de Pagamento — estorna a parcela lá também.
-    if (conta.folhaPagamentoId && (conta.folhaParcela === 'vale' || conta.folhaParcela === 'saldo')) {
-      const fPatch = conta.folhaParcela === 'vale'
-        ? { valePago: false, valeDataPagamento: null, valeCaixaEntryId: null, updatedAt: new Date().toISOString() }
-        : { saldoPago: false, saldoDataPagamento: null, saldoCaixaEntryId: null, updatedAt: new Date().toISOString() };
-      await repos.folhaPagamento.updateById(conta.folhaPagamentoId, fPatch).catch(() => {});
-    }
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
+// Contas a Pagar (CRUD + pagar/estornar) extraídos → handlers/contas-pagar.js
 
 // ============ Folha de Pagamento handlers ============
 const VALE_PCT = 0.40; // adiantamento (vale) = 40% do salário
@@ -4318,8 +4162,8 @@ registerFinanceiro(apiRouter, {
   ...sociosHandlers, // handlers/socios.js
   ...investimentosHandlers, // handlers/investimentos.js
   ...tiposBaseHandlers, // handlers/tipos-base.js
-  handleGetContasPagar, handlePostContaPagar, handlePutContaPagar, handleDeleteContaPagar,
-  handlePagarConta, handleEstornarConta, handleProcessarRecorrencias,
+  ...contasPagarHandlers, // CRUD + pagar/estornar (handlers/contas-pagar.js)
+  handleProcessarRecorrencias,
   handleGetFolha, handleGerarFolha, handleLimparFolha, handlePagarFolhaParcela,
   handleEstornarFolhaParcela, handleAddFolhaItem, handleRemoveFolhaItem, handleUpdateFolhaItem,
   handleGetNotasFiscais, handlePostNotaFiscal, handleEmitirNotaFiscal, handleCancelarEmissao,
