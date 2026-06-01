@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.4.22",
+      "date": "2026-06-01",
+      "summary": "Corrige travamento ao registrar a 1a medicao (BM) do dia",
+      "changes": [
+        "Corrigido um TRAVAMENTO ao registrar a primeira medicao (BM) do dia num contrato: o sistema entrava em deadlock e nao respondia. Agora a nota de medicao e criada normalmente.",
+        "As operacoes de saida/BM (criar, editar, excluir) passam a usar o mesmo tipo de trava, ficando consistentes e sem risco de travar entre si."
+      ]
+    },
+    {
       "version": "1.4.21",
       "date": "2026-06-01",
       "summary": "Historico mostra o que mudou (diff), agrupa repetidos e mascara sensiveis",
