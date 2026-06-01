@@ -57,6 +57,8 @@ const contractRdosHandlers = require('./handlers/contract-rdos'); // RDO: visão
 const rdoFotosHandlers = require('./handlers/rdo-fotos'); // RDO fotos: upload multipart + delete
 const recursoDocsHandlers = require('./handlers/recurso-documentos'); // docs de recurso: arquivo (BYTEA) + validação IA
 const rdoAssinaturasHandlers = require('./handlers/rdo-assinaturas'); // RDO assinaturas digitais: upload + list/get/delete
+const propostaAnexosHandlers = require('./handlers/proposta-anexos'); // anexos de proposta (PDF/imagem): upload + get/put/delete
+const caseLogosHandlers = require('./handlers/case-logos'); // case logos: list/get-image + upload + put/delete
 const bus = require('./lib/bus');
 const perms = require('./lib/permissions');
 const fluxoCompra = require('./lib/fluxo-compra');
@@ -1271,124 +1273,7 @@ async function handleDeletePropostaCusto(propostaId, custoId, res) {
   }
 }
 
-// ============ Anexos de Proposta (PDFs + Imagens) ============
-const PROPOSTA_ANEXO_MAX_BYTES = 8 * 1024 * 1024; // 8 MB por arquivo
-const PROPOSTA_IMG_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
-const PROPOSTA_PDF_MIME  = 'application/pdf';
-
-function handleUploadPropostaAnexo(propostaId, req, res) {
-  const contentType = req.headers['content-type'] || '';
-  const mBoundary = contentType.match(/boundary=(.+)$/);
-  if (!mBoundary) return sendError(res, 400, 'Content-Type multipart esperado');
-  const boundary = mBoundary[1].replace(/^"|"$/g, '');
-
-  const chunks = [];
-  let totalSize = 0;
-  const MAX_TOTAL = PROPOSTA_ANEXO_MAX_BYTES + 64 * 1024;
-
-  req.on('data', c => {
-    totalSize += c.length;
-    if (totalSize > MAX_TOTAL) {
-      sendError(res, 413, `Arquivo muito grande (limite ${PROPOSTA_ANEXO_MAX_BYTES/1024/1024} MB)`);
-      req.destroy();
-      return;
-    }
-    chunks.push(c);
-  });
-
-  req.on('end', async () => {
-    try {
-      const proposta = await repos.propostas.findById(propostaId);
-      if (!proposta) return sendError(res, 404, 'Proposta não encontrada');
-
-      const body = Buffer.concat(chunks);
-      const parts = parseMultipart(body, boundary);
-
-      const tipoPart  = parts.find(p => p.name === 'tipo');
-      const secaoPart = parts.find(p => p.name === 'secao');
-      const filePart  = parts.find(p => p.filename && p.data && p.data.length > 0);
-      if (!filePart) return sendError(res, 400, 'Nenhum arquivo enviado');
-
-      const tipo = (tipoPart && tipoPart.data.toString('utf8')) || (filePart.contentType?.startsWith('image/') ? 'imagem' : 'pdf');
-      const secao = (secaoPart && secaoPart.data.toString('utf8')) || (tipo === 'imagem' ? 'escopo' : 'anexo_final');
-
-      // Valida tipo
-      if (tipo === 'imagem') {
-        if (!filePart.contentType || !PROPOSTA_IMG_MIMES.includes(filePart.contentType))
-          return sendError(res, 400, 'Imagem precisa ser JPEG, PNG ou WebP');
-        if (!_isAllowedImageMagic(filePart.data))
-          return sendError(res, 400, 'Conteúdo do arquivo não bate com o tipo declarado');
-      } else if (tipo === 'pdf') {
-        if (filePart.contentType !== PROPOSTA_PDF_MIME)
-          return sendError(res, 400, 'Anexo precisa ser PDF');
-        // PDF magic: %PDF-
-        if (!(filePart.data[0] === 0x25 && filePart.data[1] === 0x50 && filePart.data[2] === 0x44 && filePart.data[3] === 0x46))
-          return sendError(res, 400, 'Arquivo não é um PDF válido');
-      } else {
-        return sendError(res, 400, 'Tipo inválido (use "imagem" ou "pdf")');
-      }
-
-      const anexoId = generateId('anx');
-      await repos.propostaAnexos.create({
-        id: anexoId,
-        propostaId,
-        tipo,
-        nome: filePart.filename,
-        dataBuffer: filePart.data,
-        mimeType: filePart.contentType,
-        sizeBytes: filePart.data.length,
-        secao,
-        ordem: 0,
-      });
-
-      const propostaAtualizada = await repos.propostas.findByIdWithChildren(propostaId);
-      sendJson(res, { proposta: propostaAtualizada, anexoId });
-    } catch (e) {
-      console.error('[propostas/anexos] erro upload:', e);
-      sendError(res, 400, e.message);
-    }
-  });
-}
-
-async function handleGetPropostaAnexo(propostaId, anexoId, res) {
-  try {
-    const a = await repos.propostaAnexos.findByIdWithData(anexoId);
-    if (!a || a.propostaId !== propostaId) return sendError(res, 404, 'Anexo não encontrado');
-    res.writeHead(200, {
-      'Content-Type': a.mimeType || 'application/octet-stream',
-      'Content-Length': a.data.length,
-      'Content-Disposition': `inline; filename="${a.nome.replace(/"/g, '')}"`,
-      'Cache-Control': 'private, max-age=3600',
-    });
-    res.end(a.data);
-  } catch (e) {
-    sendError(res, 500, e.message);
-  }
-}
-
-async function handlePutPropostaAnexo(propostaId, anexoId, body, res) {
-  try {
-    const allowed = {};
-    if (body.legenda !== undefined) allowed.legenda = body.legenda;
-    if (body.ordem !== undefined)   allowed.ordem = parseInt(body.ordem, 10) || 0;
-    if (body.secao !== undefined)   allowed.secao = body.secao;
-    await repos.propostaAnexos.updateById(anexoId, allowed);
-    const proposta = await repos.propostas.findByIdWithChildren(propostaId);
-    sendJson(res, { proposta });
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handleDeletePropostaAnexo(propostaId, anexoId, res) {
-  try {
-    await repos.propostaAnexos.removeById(anexoId);
-    const proposta = await repos.propostas.findByIdWithChildren(propostaId);
-    sendJson(res, { proposta });
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
+// Anexos de proposta extraídos → handlers/proposta-anexos.js
 
 // ============ Geração de DOCX/PDF/Preview de proposta ============
 async function _loadPropostaComAnexosBinarios(propostaId) {
@@ -1627,98 +1512,7 @@ async function handlePutApresentacao(body, res) {
   } catch (e) { sendError(res, 400, e.message); }
 }
 
-// ============ Case Logos ============
-const CASE_LOGO_MAX_BYTES = 2 * 1024 * 1024;
-const CASE_LOGO_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
-
-async function handleGetCaseLogos(res) {
-  try {
-    const logos = await repos.caseLogos.listMetadata();
-    sendJson(res, { logos });
-  } catch (e) { sendError(res, 500, e.message); }
-}
-
-async function handleGetCaseLogoImage(id, res) {
-  try {
-    const lg = await repos.caseLogos.findByIdWithData(id);
-    if (!lg) return sendError(res, 404, 'Logo não encontrada');
-    res.writeHead(200, {
-      'Content-Type': lg.mimeType || 'image/png',
-      'Content-Length': lg.data.length,
-      'Cache-Control': 'public, max-age=86400',
-    });
-    res.end(lg.data);
-  } catch (e) { sendError(res, 500, e.message); }
-}
-
-function handleUploadCaseLogo(req, res) {
-  const contentType = req.headers['content-type'] || '';
-  const mBoundary = contentType.match(/boundary=(.+)$/);
-  if (!mBoundary) return sendError(res, 400, 'Content-Type multipart esperado');
-  const boundary = mBoundary[1].replace(/^"|"$/g, '');
-  const chunks = [];
-  let total = 0;
-  req.on('data', c => {
-    total += c.length;
-    if (total > CASE_LOGO_MAX_BYTES + 64 * 1024) {
-      sendError(res, 413, `Logo muito grande (limite ${CASE_LOGO_MAX_BYTES / 1024 / 1024} MB)`);
-      req.destroy();
-      return;
-    }
-    chunks.push(c);
-  });
-  req.on('end', async () => {
-    try {
-      const body = Buffer.concat(chunks);
-      const parts = parseMultipart(body, boundary);
-      const nomePart = parts.find(p => p.name === 'nome');
-      const clienteIdPart = parts.find(p => p.name === 'clienteId');
-      const ordemPart = parts.find(p => p.name === 'ordem');
-      const filePart = parts.find(p => p.filename && p.data && p.data.length > 0);
-      if (!filePart) return sendError(res, 400, 'Nenhuma imagem enviada');
-      if (!filePart.contentType || !CASE_LOGO_MIMES.includes(filePart.contentType))
-        return sendError(res, 400, 'Imagem precisa ser JPEG, PNG ou WebP');
-      if (!_isAllowedImageMagic(filePart.data))
-        return sendError(res, 400, 'Conteúdo do arquivo não bate com o tipo declarado');
-      const nome = (nomePart ? nomePart.data.toString('utf8') : '') || filePart.filename.replace(/\.[^.]+$/, '');
-      const clienteId = clienteIdPart ? clienteIdPart.data.toString('utf8').trim() || null : null;
-      const ordem = ordemPart ? (parseInt(ordemPart.data.toString('utf8'), 10) || 0) : 0;
-      await repos.caseLogos.create({
-        id: generateId('clg'),
-        nome,
-        clienteId,
-        dataBuffer: filePart.data,
-        mimeType: filePart.contentType,
-        sizeBytes: filePart.data.length,
-        ordem,
-        ativo: true,
-      });
-      const logos = await repos.caseLogos.listMetadata();
-      sendJson(res, { logos });
-    } catch (e) {
-      console.error('[case-logos] upload erro:', e);
-      sendError(res, 400, e.message);
-    }
-  });
-}
-
-async function handlePutCaseLogo(id, body, res) {
-  try {
-    const allowed = {};
-    for (const f of ['nome', 'clienteId', 'ordem', 'ativo']) {
-      if (body[f] !== undefined) allowed[f] = body[f];
-    }
-    await repos.caseLogos.updateById(id, allowed);
-    sendJson(res, { logos: await repos.caseLogos.listMetadata() });
-  } catch (e) { sendError(res, 400, e.message); }
-}
-
-async function handleDeleteCaseLogo(id, res) {
-  try {
-    await repos.caseLogos.removeById(id);
-    sendJson(res, { logos: await repos.caseLogos.listMetadata() });
-  } catch (e) { sendError(res, 400, e.message); }
-}
+// Case Logos extraídos → handlers/case-logos.js
 
 // ============ Fornecedores ============
 // Fornecedores (CRUD) extraídos → handlers/fornecedores.js
@@ -2637,7 +2431,7 @@ const server = http.createServer((req, res) => {
   if (isPropostaAnexoUpload) {
     (async () => {
       if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
-      handleUploadPropostaAnexo(pathname.split('/')[3], req, res);
+      propostaAnexosHandlers.handleUploadPropostaAnexo(pathname.split('/')[3], req, res);
     })();
     return;
   }
@@ -2647,7 +2441,7 @@ const server = http.createServer((req, res) => {
   if (isCaseLogoUpload) {
     (async () => {
       if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
-      handleUploadCaseLogo(req, res);
+      caseLogosHandlers.handleUploadCaseLogo(req, res);
     })();
     return;
   }
@@ -2976,10 +2770,10 @@ registerComercial(apiRouter, {
   handleGetPropostas, handlePostProposta, handleGetProposta, handlePutProposta, handleDeleteProposta,
   handleEnviarProposta, handleAceitarProposta, handleRejeitarProposta, handleDuplicarProposta,
   handlePostPropostaCusto, handlePutPropostaCusto, handleDeletePropostaCusto,
-  handleUploadPropostaAnexo, handleGetPropostaAnexo, handlePutPropostaAnexo, handleDeletePropostaAnexo,
+  ...propostaAnexosHandlers, // anexos PDF/imagem: upload + get/put/delete (handlers/proposta-anexos.js)
   handleGetPropostaDocx, handleGetPropostaPdf, handleGetPropostaPreview,
   handleGetApresentacao, handlePutApresentacao,
-  handleGetCaseLogos, handleGetCaseLogoImage, handlePutCaseLogo, handleDeleteCaseLogo,
+  ...caseLogosHandlers, // case logos: list/get-image + upload + put/delete (handlers/case-logos.js)
 });
 registerOperacao(apiRouter, {
   ...recursosHandlers, // CRUD principal (handlers/recursos.js)
