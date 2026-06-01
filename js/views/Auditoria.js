@@ -1,65 +1,88 @@
-// Auditoria — quem fez o quê, quando.
+// Auditoria — quem fez o quê, quando. Linha do tempo legível por dia + frases
+// em linguagem natural. `escapeHtml` é global (window.escapeHtml, de store.js).
 window.Auditoria = {
-  _filters: { user: '', entity: '', action: '', from: '', to: '' },
+  _filters: { user: '', entity: '', action: '', from: '', to: '', errors: false },
   _page: 0,
   _pageSize: 50,
   _data: { rows: [], total: 0 },
-  _viewMode: (() => { try { return localStorage.getItem('rh-audit-view') || 'table'; } catch { return 'table'; } })(),
+  _showAdvanced: false,
+  _lastFocus: null,
+  _viewMode: (() => { try { return localStorage.getItem('rh-audit-view') || 'timeline'; } catch { return 'timeline'; } })(),
 
-  // Tradução de "entidade" técnica → nome amigável
-  _entityLabel(e) {
+  // ─────────────── Dicionários (entidade, artigo, verbo) ───────────────
+
+  // entity técnico → { label amigável, artigo p/ frase ("o cliente", "a conta") }
+  _entityInfo(e) {
     const map = {
-      'clientes':              'Cliente',
-      'fornecedores':          'Fornecedor',
-      'recursos':              'Colaborador',
-      'recursos.folgas':       'Folga do colaborador',
-      'recursos.documentos':   'Documento do colaborador',
-      'recursos.passagem':     'Passagem (folga)',
-      'contracts':             'Contrato',
-      'contracts.saidas':      'Medição (saída/BM)',
-      'contracts.budget':      'Item de orçamento',
-      'contracts.organograma': 'Membro da equipe',
-      'contracts.rdos':        'RDO',
-      'caixa':                 'Lançamento de caixa',
-      'contas-pagar':          'Conta a pagar',
-      'notas-fiscais':         'Nota fiscal (BM)',
-      'investimentos':         'Aporte',
-      'base':                  'Item da BASE',
-      'tipos-base':            'Tipo de custo',
-      'niveis-acesso':         'Nível de acesso',
-      'doc-templates':         'Template de documento',
-      'socios':                'Sócio',
-      'users':                 'Usuário (login)',
-      'saidas':                'Medição (saída)',
+      'clientes':                ['Cliente', 'o'],
+      'fornecedores':            ['Fornecedor', 'o'],
+      'recursos':                ['Colaborador', 'o'],
+      'recursos.folgas':         ['Folga', 'a'],
+      'recursos.documentos':     ['Documento', 'o'],
+      'contracts':               ['Contrato', 'o'],
+      'contracts.saidas':        ['Medição', 'a'],
+      'contracts.budget':        ['Item de orçamento', 'o'],
+      'contracts.organograma':   ['Membro da equipe', 'o'],
+      'contracts.rdos':          ['RDO', 'o'],
+      'contracts.aditivos':      ['Aditivo', 'o'],
+      'contracts.marcos':        ['Marco', 'o'],
+      'contracts.ocorrencias':   ['Ocorrência', 'a'],
+      'caixa':                   ['Lançamento de caixa', 'o'],
+      'contas-pagar':            ['Conta a pagar', 'a'],
+      'notas-fiscais':           ['Nota fiscal', 'a'],
+      'investimentos':           ['Aporte', 'o'],
+      'base':                    ['Item da BASE', 'o'],
+      'tipos-base':              ['Tipo de custo', 'o'],
+      'niveis-acesso':           ['Nível de acesso', 'o'],
+      'doc-templates':           ['Template de documento', 'o'],
+      'socios':                  ['Sócio', 'o'],
+      'users':                   ['Usuário (login)', 'o'],
+      'saidas':                  ['Medição', 'a'],
+      'propostas':               ['Proposta', 'a'],
+      'propostas.custos':        ['Custo da proposta', 'o'],
+      'propostas.anexos':        ['Anexo', 'o'],
+      'manutencoes':             ['Manutenção', 'a'],
+      'veiculos':                ['Veículo', 'o'],
+      'veiculos.planos':         ['Plano de manutenção', 'o'],
+      'veiculos.manutencoes':    ['Manutenção do veículo', 'a'],
+      'veiculos.abastecimentos': ['Abastecimento', 'o'],
+      'solicitacoes-compra':     ['Solicitação de compra', 'a'],
+      'clausulas':               ['Cláusula', 'a'],
+      'candidatos':              ['Candidato', 'o'],
+      'vagas':                   ['Vaga', 'a'],
+      'folha-pagamento':         ['Folha de pagamento', 'a'],
+      'folha-pagamento.itens':   ['Item da folha', 'o'],
     };
-    return map[e] || e || '—';
+    const v = map[e];
+    return v ? { label: v[0], artigo: v[1] } : { label: e || '—', artigo: 'o' };
   },
 
-  // Resolve entityId para um nome humano lendo do Store.
-  // Retorna string descritiva (ex: 'Veracel Celulose') ou '' se não encontrar.
+  _entityLabel(e) { return this._entityInfo(e).label; },
+
+  // Resolve entityId → nome humano lendo do Store. '' se não achar.
   _entityFriendlyName(entity, entityId) {
     if (!entityId) return '';
     const s = (window.Store && Store.state) || {};
-    const find = (arr, key) => Array.isArray(arr) ? (arr.find(x => x?.id === entityId) || {})[key] : '';
+    const find = (arr, key) => Array.isArray(arr) ? ((arr.find(x => x?.id === entityId) || {})[key] || '') : '';
     switch (entity) {
       case 'contracts':
       case 'contracts.saidas':
       case 'contracts.budget':
       case 'contracts.organograma':
       case 'contracts.rdos':
+      case 'contracts.aditivos':
+      case 'contracts.marcos':
+      case 'contracts.ocorrencias':
         return find(s.contracts, 'name');
-      case 'clientes':
-        return find(s.clientes, 'nome');
-      case 'fornecedores':
-        return find(s.fornecedores, 'nome');
+      case 'clientes':       return find(s.clientes, 'nome');
+      case 'fornecedores':   return find(s.fornecedores, 'nome');
       case 'recursos':
       case 'recursos.folgas':
       case 'recursos.documentos':
-      case 'recursos.passagem':
         return find(s.recursos, 'nome');
       case 'notas-fiscais': {
         const nf = (s.notas_fiscais || []).find(x => x?.id === entityId);
-        return nf ? `nº ${nf.numero || ''}` : '';
+        return nf && nf.numero ? `nº ${nf.numero}` : '';
       }
       case 'contas-pagar': {
         const cp = (s.contas_pagar || []).find(x => x?.id === entityId);
@@ -73,100 +96,222 @@ window.Auditoria = {
         const inv = (s.investimentos || []).find(x => x?.id === entityId);
         return inv ? (inv.description || `${inv.origem || ''} → ${inv.destino || ''}`).trim() : '';
       }
-      case 'socios':
-        return find(s.socios, 'name');
-      case 'base':
-        return find(s.base, 'description');
-      case 'tipos-base':
-        return find(s.tipos_base, 'label');
-      case 'niveis-acesso':
-        return find(s.niveis_acesso, 'label');
-      case 'doc-templates':
-        return find(s.doc_templates, 'nome');
+      case 'socios':        return find(s.socios, 'name');
+      case 'base':          return find(s.base, 'description');
+      case 'tipos-base':    return find(s.tipos_base, 'label');
+      case 'niveis-acesso': return find(s.niveis_acesso, 'label');
+      case 'doc-templates': return find(s.doc_templates, 'nome');
+      case 'propostas':     return find(s.propostas, 'titulo') || find(s.propostas, 'nome');
+      case 'clausulas':     return find(s.clausulas, 'titulo') || find(s.clausulas, 'nome');
+      case 'veiculos':      return find(s.veiculos, 'placa') || find(s.veiculos, 'nome');
       case 'users': {
         const u = (s.users || []).find(x => x?.id === entityId);
         return u ? (u.email || u.name || '') : '';
       }
-      default:
-        return '';
+      default: return '';
     }
   },
 
-  // Tradução de ação técnica → verbo amigável
+  // ação técnica → { verbo amigável, cor, bg }
   _actionVerb(a) {
+    const C = {
+      green:  ['#10b981', 'rgba(16,185,129,.15)'],
+      blue:   ['#3b82f6', 'rgba(59,130,246,.15)'],
+      red:    ['#dc2626', 'rgba(220,38,38,.15)'],
+      amber:  ['#f59e0b', 'rgba(245,158,11,.15)'],
+      indigo: ['#6366f1', 'rgba(99,102,241,.15)'],
+      purple: ['#a855f7', 'rgba(168,85,247,.15)'],
+      teal:   ['#0d9488', 'rgba(13,148,136,.15)'],
+      gray:   ['#64748b', 'rgba(100,116,139,.15)'],
+    };
+    const mk = (verbo, c) => ({ verbo, cor: C[c][0], bg: C[c][1] });
     const map = {
-      create:              { verbo: 'Criou',     cor: '#10b981', bg: 'rgba(16,185,129,.15)' },
-      update:              { verbo: 'Editou',    cor: '#3b82f6', bg: 'rgba(59,130,246,.15)' },
-      delete:              { verbo: 'Excluiu',   cor: '#dc2626', bg: 'rgba(220,38,38,.15)' },
-      pagar:               { verbo: 'Pagou',     cor: '#22c55e', bg: 'rgba(34,197,94,.15)' },
-      estornar:            { verbo: 'Estornou',  cor: '#f59e0b', bg: 'rgba(245,158,11,.15)' },
-      emitir:              { verbo: 'Emitiu',    cor: '#6366f1', bg: 'rgba(99,102,241,.15)' },
-      'cancelar-emissao':  { verbo: 'Cancelou emissão', cor: '#f59e0b', bg: 'rgba(245,158,11,.15)' },
-      passagem:            { verbo: 'Comprou passagem', cor: '#a855f7', bg: 'rgba(168,85,247,.15)' },
+      create:               mk('Criou', 'green'),
+      update:               mk('Editou', 'blue'),
+      delete:               mk('Excluiu', 'red'),
+      pagar:                mk('Pagou', 'green'),
+      estornar:             mk('Estornou', 'amber'),
+      emitir:               mk('Emitiu', 'indigo'),
+      'cancelar-emissao':   mk('Cancelou emissão', 'amber'),
+      passagem:             mk('Comprou passagem', 'purple'),
+      aprovar:              mk('Aprovou', 'green'),
+      rejeitar:             mk('Rejeitou', 'red'),
+      avaliar:              mk('Avaliou', 'indigo'),
+      comprar:              mk('Comprou', 'green'),
+      receber:              mk('Recebeu', 'teal'),
+      cancelar:             mk('Cancelou', 'amber'),
+      enviar:               mk('Enviou', 'blue'),
+      aceitar:              mk('Aceitou', 'green'),
+      duplicar:             mk('Duplicou', 'gray'),
+      retorno:              mk('Registrou retorno', 'teal'),
+      allocate:             mk('Alocou', 'blue'),
+      gerar:                mk('Gerou', 'green'),
+      limpar:               mk('Limpou', 'red'),
+      'processar-recorrencias': mk('Processou recorrências', 'blue'),
+      triagem:              mk('Fez triagem', 'indigo'),
+      antecedentes:         mk('Verificou antecedentes', 'indigo'),
     };
     return map[a] || { verbo: a || '—', cor: 'var(--color-text)', bg: 'var(--color-bg)' };
+  },
+
+  // ─────────────── Helpers de apresentação ───────────────
+
+  _userName(email) {
+    const h = (email || '').split('@')[0] || '';
+    if (!h) return '—';
+    return h.split(/[._\-]+/).filter(Boolean)
+      .map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ') || h;
+  },
+
+  // Avatar determinístico (iniciais + matiz a partir do email).
+  _avatar(email) {
+    const h = (email || '').split('@')[0] || '?';
+    const parts = h.split(/[._\- ]+/).filter(Boolean);
+    const initials = (parts.length >= 2 ? parts[0][0] + parts[1][0] : h.slice(0, 2)).toUpperCase();
+    let hash = 0;
+    for (let i = 0; i < (email || '').length; i++) hash = (hash * 31 + email.charCodeAt(i)) >>> 0;
+    return { initials, hue: hash % 360 };
   },
 
   _tempoRelativo(ts) {
     if (!ts) return '';
     const diff = Math.round((Date.now() - new Date(ts).getTime()) / 1000);
     if (diff < 60) return 'agora há pouco';
-    if (diff < 3600) return `há ${Math.floor(diff/60)} min`;
-    if (diff < 86400) return `há ${Math.floor(diff/3600)} h`;
-    if (diff < 604800) return `há ${Math.floor(diff/86400)} dias`;
+    if (diff < 3600) return `há ${Math.floor(diff / 60)} min`;
+    if (diff < 86400) return `há ${Math.floor(diff / 3600)} h`;
+    if (diff < 604800) return `há ${Math.floor(diff / 86400)} dias`;
     return new Date(ts).toLocaleDateString('pt-BR');
   },
 
   _statusLabel(s) {
-    if (s === 200) return { texto: 'Sucesso',         cor: '#10b981' };
+    if (s === 200 || s === 201) return { texto: 'Sucesso', cor: '#10b981' };
     if (s === 400) return { texto: 'Erro de validação', cor: '#dc2626' };
-    if (s === 401) return { texto: 'Sem permissão',    cor: '#dc2626' };
-    if (s === 404) return { texto: 'Não encontrado',   cor: '#f59e0b' };
-    if (s === 429) return { texto: 'Limite atingido',  cor: '#f59e0b' };
-    if (s >= 400)  return { texto: 'Erro',             cor: '#dc2626' };
-    if (s >= 300)  return { texto: 'Aviso',            cor: '#f59e0b' };
+    if (s === 401) return { texto: 'Sem permissão', cor: '#dc2626' };
+    if (s === 403) return { texto: 'Acesso negado', cor: '#dc2626' };
+    if (s === 404) return { texto: 'Não encontrado', cor: '#f59e0b' };
+    if (s === 409) return { texto: 'Conflito', cor: '#f59e0b' };
+    if (s === 429) return { texto: 'Limite atingido', cor: '#f59e0b' };
+    if (s >= 400) return { texto: 'Erro', cor: '#dc2626' };
+    if (s >= 300) return { texto: 'Aviso', cor: '#f59e0b' };
     return { texto: 'OK', cor: '#10b981' };
   },
+
+  // Rótulo do dia para o separador da linha do tempo.
+  _dayLabel(day) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const diff = Math.round((today.getTime() - day.getTime()) / 86400000);
+    if (diff === 0) return 'Hoje';
+    if (diff === 1) return 'Ontem';
+    if (diff > 1 && diff < 7) {
+      const w = day.toLocaleDateString('pt-BR', { weekday: 'long' });
+      return w.charAt(0).toUpperCase() + w.slice(1);
+    }
+    return day.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  },
+
+  // Agrupa as linhas (já ordenadas DESC) em blocos por dia local.
+  _groupByDay(rows) {
+    const groups = [];
+    let cur = null;
+    for (const r of rows) {
+      const d = new Date(r.ts); d.setHours(0, 0, 0, 0);
+      const key = d.getTime();
+      if (!cur || cur.key !== key) { cur = { key, label: this._dayLabel(d), rows: [] }; groups.push(cur); }
+      cur.rows.push(r);
+    }
+    return groups;
+  },
+
+  // Alvo do evento (entidade + nome em negrito), SEM o verbo — usado no modo
+  // tabela junto do selo colorido. Casos especiais cujo verbo já embute o
+  // objeto ("Comprou passagem") devolvem só o complemento.
+  _eventTarget(r) {
+    const info = this._entityInfo(r.entity);
+    const nome = r.entityLabel || this._entityFriendlyName(r.entity, r.entityId) || '';
+    const nameHtml = nome
+      ? `<strong class="audit-name">${escapeHtml(nome)}</strong>`
+      : (r.entityId && r.action !== 'create' ? '<span class="audit-removed">(removido)</span>' : '');
+
+    if (r.action === 'passagem') return nome ? `para ${nameHtml}` : '';
+    if (r.action === 'gerar' && r.entity === 'folha-pagamento') return 'a <strong>folha de pagamento</strong> do mês';
+    if (r.action === 'limpar' && r.entity === 'folha-pagamento') return 'a <strong>folha de pagamento</strong>';
+    if (r.action === 'processar-recorrencias') return '';
+
+    return `${info.artigo} <strong>${escapeHtml(info.label.toLowerCase())}</strong>${nameHtml ? ' ' + nameHtml : ''}`;
+  },
+
+  // Frase natural completa ("criou o cliente X") — usada na linha do tempo.
+  _eventSentence(r) {
+    return `${this._actionVerb(r.action).verbo.toLowerCase()} ${this._eventTarget(r)}`.trim();
+  },
+
+  // ─────────────── Datas (presets) ───────────────
+  _dateStr(d) {
+    const z = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+    return z.toISOString().slice(0, 10);
+  },
+  _today() { return this._dateStr(new Date()); },
+  _daysAgo(n) { const d = new Date(); d.setDate(d.getDate() - n); return this._dateStr(d); },
+
+  // ─────────────── Ciclo de vida ───────────────
 
   async render() {
     const root = document.getElementById('app');
     root.innerHTML = '<div class="loading-spinner">Carregando...</div>';
-    // Carrega entidades em paralelo para resolver nomes amigáveis
+    // Carrega entidades uma vez para resolver nomes amigáveis. Paginação e
+    // filtros depois usam _fetch()+_draw() (sem recarregar o Store).
     try { if (window.Store && Store.loadAll) await Store.loadAll(); }
-    catch (e) { console.warn('[Auditoria] Store.loadAll falhou — nomes amigáveis podem ficar como IDs:', e?.message || e); }
+    catch (e) { console.warn('[Auditoria] Store.loadAll falhou — nomes podem virar IDs:', e?.message || e); }
     await this._fetch();
     this._draw();
   },
 
   async _fetch() {
+    const f = this._filters;
     const params = new URLSearchParams();
-    for (const [k, v] of Object.entries(this._filters)) {
-      if (v) params.set(k, v);
-    }
+    if (f.user)   params.set('user', f.user);
+    if (f.entity) params.set('entity', f.entity);
+    if (f.action) params.set('action', f.action);
+    // Datas só têm dia → expande para o intervalo inclusivo do dia inteiro.
+    if (f.from)   params.set('from', f.from + 'T00:00:00');
+    if (f.to)     params.set('to', f.to + 'T23:59:59.999');
+    if (f.errors) params.set('errors', '1');
     params.set('limit', this._pageSize);
     params.set('offset', this._page * this._pageSize);
     try {
       const r = await fetch('/api/audit?' + params.toString());
+      if (!r.ok) throw new Error('HTTP ' + r.status);
       this._data = await r.json();
     } catch (e) {
+      console.warn('[Auditoria] fetch falhou:', e?.message || e);
       this._data = { rows: [], total: 0 };
     }
   },
 
+  async _reload() { this._page = 0; await this._fetch(); this._draw(); },
+
   _draw() {
     const root = document.getElementById('app');
     const { rows, total } = this._data;
+    const f = this._filters;
     const totalPages = Math.max(1, Math.ceil(total / this._pageSize));
-    const fmtDT = (s) => s ? new Date(s).toLocaleString('pt-BR') : '—';
 
-    // Lista de entidades + ações pra dropdowns (em português)
     const entidadesOpts = [
-      'clientes','fornecedores','recursos','contracts','contracts.saidas','contracts.budget',
-      'contracts.organograma','contracts.rdos','caixa','contas-pagar','notas-fiscais',
-      'investimentos','base','tipos-base','niveis-acesso','doc-templates','users',
-      'recursos.folgas','recursos.documentos','recursos.passagem','socios',
+      'clientes', 'fornecedores', 'recursos', 'contracts', 'contracts.saidas',
+      'contas-pagar', 'notas-fiscais', 'caixa', 'investimentos', 'base',
+      'propostas', 'solicitacoes-compra', 'manutencoes', 'veiculos', 'clausulas',
+      'candidatos', 'folha-pagamento', 'tipos-base', 'niveis-acesso', 'doc-templates',
+      'users', 'socios',
     ];
-    const acoesOpts = ['create','update','delete','pagar','estornar','emitir','cancelar-emissao','passagem'];
+    const acoesOpts = ['create', 'update', 'delete', 'pagar', 'estornar', 'emitir',
+      'aprovar', 'rejeitar', 'avaliar', 'comprar', 'receber', 'enviar', 'aceitar', 'passagem'];
+
+    // Presets ativos (para destaque dos chips)
+    const isHoje = f.from && f.from === this._today() && f.to === this._today();
+    const isSemana = f.from && f.from === this._daysAgo(6) && f.to === this._today();
+    const advActive = f.entity || f.action || f.from || f.to;
+    const showAdv = this._showAdvanced || !!advActive;
+    const chip = (active) => `chip${active ? ' chip--active' : ''}`;
 
     root.innerHTML = `
       <div class="page-header">
@@ -174,79 +319,110 @@ window.Auditoria = {
           <h1 class="page-title">Histórico de Atividades</h1>
           <p class="page-subtitle">Tudo que aconteceu no sistema — quem fez, o quê e quando</p>
         </div>
-        <div style="display:flex;gap:14px;align-items:center;font-size:14px;color:var(--color-text-muted);">
-          <div role="group" aria-label="Modo de visualização" style="display:inline-flex;border:1px solid var(--color-border);border-radius:999px;overflow:hidden;">
-            <button class="btn btn-sm" id="audViewTable"    style="border-radius:0;${this._viewMode==='table'?    'background:var(--color-primary);color:#fff;':'background:transparent;'}">Tabela</button>
-            <button class="btn btn-sm" id="audViewTimeline" style="border-radius:0;${this._viewMode==='timeline'? 'background:var(--color-primary);color:#fff;':'background:transparent;'}">Linha do tempo</button>
-          </div>
+        <div class="audit-headmeta">
           <span>${total} ${total === 1 ? 'atividade' : 'atividades'}</span>
+          <div role="group" aria-label="Modo de visualização" class="audit-viewtoggle">
+            <button class="btn btn-sm ${this._viewMode === 'timeline' ? 'is-on' : ''}" id="audViewTimeline">Linha do tempo</button>
+            <button class="btn btn-sm ${this._viewMode === 'table' ? 'is-on' : ''}" id="audViewTable">Tabela</button>
+          </div>
         </div>
       </div>
 
-      <!-- Filtros -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr auto;gap:var(--sp-md);margin-bottom:var(--sp-md);align-items:end;">
-        <div class="form-group" style="margin:0;">
-          <label class="form-label">Pesquisar por usuário</label>
-          <input class="form-control" id="fAuditUser" placeholder="digite um email" value="${escapeHtml(this._filters.user)}">
+      <!-- Barra: busca única + atalhos -->
+      <div class="audit-toolbar">
+        <input class="form-control audit-search" id="fAuditUser" placeholder="🔍  Buscar por pessoa (email)" value="${escapeHtml(f.user)}" autocomplete="off">
+        <div class="audit-presets" role="group" aria-label="Atalhos">
+          <button class="${chip(isHoje)}" data-preset="hoje">Hoje</button>
+          <button class="${chip(isSemana)}" data-preset="semana">7 dias</button>
+          <button class="${chip(f.action === 'delete')}" data-preset="exclusoes">Exclusões</button>
+          <button class="${chip(f.errors)}" data-preset="erros">Erros</button>
         </div>
+        <button class="btn btn-secondary btn-sm" id="fAuditMore" aria-expanded="${showAdv}">Filtros ${showAdv ? '▴' : '▾'}</button>
+        ${(advActive || f.user || f.errors) ? `<button class="btn btn-secondary btn-sm" id="fAuditClear">Limpar tudo</button>` : ''}
+      </div>
+
+      <!-- Filtros avançados (colapsável) -->
+      <div class="audit-advanced" style="display:${showAdv ? 'grid' : 'none'};">
         <div class="form-group" style="margin:0;">
           <label class="form-label">Em qual tela</label>
           <select class="form-control" id="fAuditEntity">
             <option value="">Todas as telas</option>
-            ${entidadesOpts.map(e => `<option value="${e}" ${this._filters.entity === e ? 'selected' : ''}>${this._entityLabel(e)}</option>`).join('')}
+            ${entidadesOpts.map(e => `<option value="${e}" ${f.entity === e ? 'selected' : ''}>${escapeHtml(this._entityLabel(e))}</option>`).join('')}
           </select>
         </div>
         <div class="form-group" style="margin:0;">
           <label class="form-label">Tipo de ação</label>
           <select class="form-control" id="fAuditAction">
             <option value="">Qualquer ação</option>
-            ${acoesOpts.map(a => `<option value="${a}" ${this._filters.action === a ? 'selected' : ''}>${this._actionVerb(a).verbo}</option>`).join('')}
+            ${acoesOpts.map(a => `<option value="${a}" ${f.action === a ? 'selected' : ''}>${escapeHtml(this._actionVerb(a).verbo)}</option>`).join('')}
           </select>
         </div>
         <div class="form-group" style="margin:0;">
           <label class="form-label">A partir de</label>
-          <input class="form-control" type="date" id="fAuditFrom" value="${escapeHtml(this._filters.from)}">
+          <input class="form-control" type="date" id="fAuditFrom" value="${escapeHtml(f.from)}">
         </div>
         <div class="form-group" style="margin:0;">
           <label class="form-label">Até</label>
-          <input class="form-control" type="date" id="fAuditTo" value="${escapeHtml(this._filters.to)}">
+          <input class="form-control" type="date" id="fAuditTo" value="${escapeHtml(f.to)}">
         </div>
-        <button class="btn btn-secondary" id="fAuditClear">Limpar</button>
       </div>
 
-      <!-- Tabela / Timeline -->
-      ${this._viewMode === 'timeline' ? `
-        <div class="audit-timeline">
-          ${rows.length === 0 ? `<div class="empty-state"><div class="empty-state__title">Sem atividades</div><div class="empty-state__msg">Ajuste os filtros para ver eventos.</div></div>` : rows.map(r => {
-            const verbInfo = this._actionVerb(r.action);
-            const entLabel = this._entityLabel(r.entity);
-            const friendly = r.entityLabel || this._entityFriendlyName(r.entity, r.entityId) || '';
-            const cls = ({ create: 'audit-event--insert', update: 'audit-event--update', delete: 'audit-event--delete' })[r.action] || '';
-            return `
-              <div class="audit-event ${cls}" data-id="${r.id}" style="cursor:pointer;">
-                <div class="audit-event__dot" aria-hidden="true"></div>
-                <div class="audit-event__head">
-                  <span class="audit-event__user">${escapeHtml((r.userEmail || '').split('@')[0] || '—')}</span>
-                  <span class="audit-event__action">${verbInfo.verbo} ${escapeHtml(entLabel.toLowerCase())}${friendly ? ' <strong>'+escapeHtml(friendly)+'</strong>' : ''}</span>
-                  <span class="audit-event__time">${this._tempoRelativo(r.ts)} · ${fmtDT(r.ts)}</span>
-                </div>
-                ${(() => {
-                  if (r.action !== 'update' || !r.beforeState || !r.body) return '';
-                  const diffs = this._computeDiff(r.beforeState, r.body).slice(0, 4);
-                  if (!diffs.length) return '';
-                  return '<div class="audit-event__detail">' + diffs.map(d =>
-                    `${escapeHtml(this._fieldLabel(d.key))}: ${escapeHtml(this._fmtVal(d.before))} → ${escapeHtml(this._fmtVal(d.after))}`
-                  ).join('<br>') + '</div>';
-                })()}
-              </div>`;
-          }).join('')}
+      ${this._viewMode === 'timeline' ? this._renderTimeline(rows) : this._renderTable(rows)}
+
+      ${totalPages > 1 ? `
+        <div class="audit-pager">
+          <button class="btn btn-secondary" id="auditPrev" ${this._page === 0 ? 'disabled' : ''}>← Anterior</button>
+          <span>Página ${this._page + 1} de ${totalPages}</span>
+          <button class="btn btn-secondary" id="auditNext" ${this._page >= totalPages - 1 ? 'disabled' : ''}>Próxima →</button>
+        </div>` : ''}
+    `;
+
+    this._wire(rows);
+  },
+
+  _renderTimeline(rows) {
+    if (!rows.length) {
+      return `<div class="empty-state"><div class="empty-state__title">Sem atividades</div><div class="empty-state__msg">Ajuste a busca ou os atalhos para ver eventos.</div></div>`;
+    }
+    const groups = this._groupByDay(rows);
+    return `<div class="audit-feed">${groups.map(g => `
+      <div class="audit-day">${escapeHtml(g.label)} <span class="audit-day__count">${g.rows.length}</span></div>
+      ${g.rows.map(r => this._eventRow(r)).join('')}
+    `).join('')}</div>`;
+  },
+
+  _eventRow(r) {
+    const av = this._avatar(r.userEmail || r.userId || '');
+    const isErr = r.status >= 400;
+    const hora = r.ts ? new Date(r.ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+    const diff = (r.action === 'update' && r.beforeState && r.body)
+      ? this._computeDiff(r.beforeState, r.body).slice(0, 3) : [];
+    const diffHtml = diff.length ? `<div class="audit-ev__diff">${diff.map(d =>
+      `<span class="audit-chip-diff">${escapeHtml(this._fieldLabel(d.key))}: <s>${escapeHtml(this._fmtVal(d.before, d.key))}</s> → <b>${escapeHtml(this._fmtVal(d.after, d.key))}</b></span>`
+    ).join('')}</div>` : '';
+    return `
+      <div class="audit-ev${isErr ? ' audit-ev--err' : ''}" data-id="${r.id}" tabindex="0" role="button" aria-label="Ver detalhe">
+        <div class="audit-ava" style="background:hsl(${av.hue},52%,42%);" aria-hidden="true">${escapeHtml(av.initials)}</div>
+        <div class="audit-ev__main">
+          <div class="audit-ev__line">
+            <span class="audit-ev__who">${escapeHtml(this._userName(r.userEmail))}</span>
+            <span class="audit-ev__what">${this._eventSentence(r)}</span>
+            ${isErr ? `<span class="audit-ev__err" title="${escapeHtml(this._statusLabel(r.status).texto)}">⚠ ${escapeHtml(this._statusLabel(r.status).texto)}</span>` : ''}
+          </div>
+          ${diffHtml}
         </div>
-      ` : `
+        <time class="audit-ev__time" title="${escapeHtml(this._tempoRelativo(r.ts))}">${hora}</time>
+      </div>`;
+  },
+
+  _renderTable(rows) {
+    const fmtDT = (s) => s ? new Date(s).toLocaleString('pt-BR') : '—';
+    return `
       <table class="data-table">
         <thead>
           <tr>
-            <th scope="col" style="width:160px;">Quando</th>
-            <th scope="col">Quem</th>
+            <th scope="col" style="width:170px;">Quando</th>
+            <th scope="col" style="width:200px;">Quem</th>
             <th scope="col">Fez o quê</th>
             <th scope="col" style="width:120px;text-align:center;">Resultado</th>
           </tr>
@@ -255,127 +431,124 @@ window.Auditoria = {
           ${rows.length === 0 ? `<tr><td colspan="4" style="text-align:center;color:var(--color-text-muted);padding:var(--sp-xl);">Nenhuma atividade no filtro selecionado</td></tr>` : ''}
           ${rows.map(r => {
             const verbInfo = this._actionVerb(r.action);
-            const entLabel = this._entityLabel(r.entity);
             const statusInfo = this._statusLabel(r.status);
+            const diffs = (r.action === 'update' && r.beforeState && r.body) ? this._computeDiff(r.beforeState, r.body) : [];
+            const preview = diffs.slice(0, 2).map(d =>
+              `<span style="font-size:12px;color:var(--color-text-muted);">${escapeHtml(this._fieldLabel(d.key))}: <strong>${escapeHtml(this._fmtVal(d.before, d.key))}</strong> → <strong style="color:var(--color-primary);">${escapeHtml(this._fmtVal(d.after, d.key))}</strong></span>`
+            ).join(' · ');
+            const extra = diffs.length > 2 ? ` <span style="font-size:11px;color:var(--color-text-muted);">+${diffs.length - 2} mudanças</span>` : '';
             return `
               <tr class="row-audit" data-id="${r.id}" style="cursor:pointer;">
+                <td><div style="font-weight:500;">${fmtDT(r.ts)}</div><div style="font-size:12px;color:var(--color-text-muted);">${this._tempoRelativo(r.ts)}</div></td>
+                <td><strong>${escapeHtml(this._userName(r.userEmail))}</strong><div style="font-size:12px;color:var(--color-text-muted);">${escapeHtml(r.userEmail || r.userId || '—')}</div></td>
                 <td>
-                  <div style="font-weight:500;">${fmtDT(r.ts)}</div>
-                  <div style="font-size:12px;color:var(--color-text-muted);">${this._tempoRelativo(r.ts)}</div>
+                  <span style="background:${verbInfo.bg};color:${verbInfo.cor};padding:2px 10px;border-radius:99px;font-weight:600;font-size:13px;margin-right:6px;">${escapeHtml(verbInfo.verbo)}</span>
+                  ${this._eventTarget(r)}
+                  ${preview ? `<div style="margin-top:4px;">${preview}${extra}</div>` : ''}
                 </td>
-                <td>
-                  <strong>${escapeHtml((r.userEmail || '').split('@')[0] || '—')}</strong>
-                  <div style="font-size:12px;color:var(--color-text-muted);">${escapeHtml(r.userEmail || r.userId || '—')}</div>
-                </td>
-                <td>
-                  <span style="background:${verbInfo.bg};color:${verbInfo.cor};padding:2px 10px;border-radius:99px;font-weight:600;font-size:13px;margin-right:6px;">${verbInfo.verbo}</span>
-                  <strong>${escapeHtml(entLabel.toLowerCase())}</strong>
-                  ${(() => {
-                    // Prioridade: label gravado no audit (mais confiável p/ deletados) > Store atual > "(removido)"
-                    const labelGravado = r.entityLabel;
-                    const friendly = labelGravado || this._entityFriendlyName(r.entity, r.entityId);
-                    if (friendly) return ` <strong>${escapeHtml(friendly)}</strong>`;
-                    if (r.entityId) return ` <span style="font-size:12px;color:var(--color-text-muted);font-style:italic;">(removido)</span>`;
-                    return '';
-                  })()}
-                  ${(() => {
-                    // Para UPDATE: mostra resumo do que mudou (até 2 campos)
-                    if (r.action !== 'update' || !r.beforeState || !r.body) return '';
-                    const diffs = this._computeDiff(r.beforeState, r.body);
-                    if (diffs.length === 0) return '';
-                    const preview = diffs.slice(0, 2).map(d =>
-                      `<span style="font-size:12px;color:var(--color-text-muted);">${escapeHtml(this._fieldLabel(d.key))}: <strong>${escapeHtml(this._fmtVal(d.before))}</strong> → <strong style="color:var(--color-primary);">${escapeHtml(this._fmtVal(d.after))}</strong></span>`
-                    ).join(' · ');
-                    const extra = diffs.length > 2 ? ` <span style="font-size:11px;color:var(--color-text-muted);">+${diffs.length - 2} mudanças</span>` : '';
-                    return `<div style="margin-top:4px;">${preview}${extra}</div>`;
-                  })()}
-                </td>
-                <td style="text-align:center;">
-                  <span style="color:${statusInfo.cor};font-weight:600;font-size:13px;">${statusInfo.texto}</span>
-                </td>
-              </tr>
-            `;
+                <td style="text-align:center;"><span style="color:${statusInfo.cor};font-weight:600;font-size:13px;">${statusInfo.texto}</span></td>
+              </tr>`;
           }).join('')}
         </tbody>
-      </table>
-      `}
+      </table>`;
+  },
 
-      ${totalPages > 1 ? `
-        <div style="display:flex;justify-content:center;gap:var(--sp-sm);margin-top:var(--sp-md);">
-          <button class="btn btn-secondary" id="auditPrev" ${this._page === 0 ? 'disabled' : ''}>← Anterior</button>
-          <span style="display:flex;align-items:center;color:var(--color-text-muted);">Página ${this._page + 1} de ${totalPages}</span>
-          <button class="btn btn-secondary" id="auditNext" ${this._page >= totalPages - 1 ? 'disabled' : ''}>Próxima →</button>
-        </div>
-      ` : ''}
-    `;
+  _wire(rows) {
+    const $ = (id) => document.getElementById(id);
 
-    // Filtros
-    const apply = () => {
-      this._filters.user = document.getElementById('fAuditUser').value.trim();
-      this._filters.entity = document.getElementById('fAuditEntity').value;
-      this._filters.action = document.getElementById('fAuditAction').value;
-      this._filters.from = document.getElementById('fAuditFrom').value;
-      this._filters.to = document.getElementById('fAuditTo').value;
-      this._page = 0;
-      this.render();
-    };
-    document.getElementById('fAuditUser').addEventListener('change', apply);
-    document.getElementById('fAuditEntity').addEventListener('change', apply);
-    document.getElementById('fAuditAction').addEventListener('change', apply);
-    document.getElementById('fAuditFrom').addEventListener('change', apply);
-    document.getElementById('fAuditTo').addEventListener('change', apply);
-    document.getElementById('fAuditClear').addEventListener('click', () => {
-      this._filters = { user: '', entity: '', action: '', from: '', to: '' };
-      this._page = 0;
-      this.render();
-    });
+    // Busca por pessoa — debounce no `input` (antes só reagia ao sair do campo).
+    const search = $('fAuditUser');
+    if (search) {
+      let t;
+      search.addEventListener('input', () => {
+        clearTimeout(t);
+        t = setTimeout(async () => {
+          this._filters.user = search.value.trim();
+          await this._reload();
+          // O _draw recria o input → devolve foco e leva o cursor ao fim.
+          const el = $('fAuditUser');
+          if (el) { el.focus(); const v = el.value; el.value = ''; el.value = v; }
+        }, 350);
+      });
+    }
 
-    // Click linha → mostra detalhe
-    document.querySelectorAll('.row-audit, .audit-event').forEach(tr => {
-      tr.addEventListener('click', () => {
-        const ev = rows.find(x => String(x.id) === tr.dataset.id);
-        if (ev) this._showDetail(ev);
+    // Atalhos (presets)
+    document.querySelectorAll('[data-preset]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = btn.dataset.preset;
+        const f = this._filters;
+        if (p === 'hoje') {
+          const on = f.from === this._today() && f.to === this._today();
+          f.from = on ? '' : this._today(); f.to = on ? '' : this._today();
+        } else if (p === 'semana') {
+          const on = f.from === this._daysAgo(6) && f.to === this._today();
+          f.from = on ? '' : this._daysAgo(6); f.to = on ? '' : this._today();
+        } else if (p === 'exclusoes') {
+          f.action = f.action === 'delete' ? '' : 'delete';
+        } else if (p === 'erros') {
+          f.errors = !f.errors;
+        }
+        this._reload();
       });
     });
 
-    // Toggle de modo de visualização (G2)
-    const setMode = (m) => {
-      this._viewMode = m;
-      try { localStorage.setItem('rh-audit-view', m); } catch {}
-      this._draw();
+    // Filtros avançados
+    const more = $('fAuditMore');
+    if (more) more.addEventListener('click', () => { this._showAdvanced = !this._showAdvanced; this._draw(); });
+    const onAdv = () => {
+      this._filters.entity = $('fAuditEntity') ? $('fAuditEntity').value : this._filters.entity;
+      this._filters.action = $('fAuditAction') ? $('fAuditAction').value : this._filters.action;
+      this._filters.from = $('fAuditFrom') ? $('fAuditFrom').value : this._filters.from;
+      this._filters.to = $('fAuditTo') ? $('fAuditTo').value : this._filters.to;
+      this._reload();
     };
-    const btT = document.getElementById('audViewTable');
-    const btL = document.getElementById('audViewTimeline');
-    if (btT) btT.addEventListener('click', () => setMode('table'));
-    if (btL) btL.addEventListener('click', () => setMode('timeline'));
+    ['fAuditEntity', 'fAuditAction', 'fAuditFrom', 'fAuditTo'].forEach(id => {
+      const el = $(id); if (el) el.addEventListener('change', onAdv);
+    });
+    const clear = $('fAuditClear');
+    if (clear) clear.addEventListener('click', () => {
+      this._filters = { user: '', entity: '', action: '', from: '', to: '', errors: false };
+      this._showAdvanced = false;
+      this._reload();
+    });
 
-    // Paginação
-    const prev = document.getElementById('auditPrev');
-    const next = document.getElementById('auditNext');
-    if (prev) prev.addEventListener('click', () => { this._page--; this.render(); });
-    if (next) next.addEventListener('click', () => { this._page++; this.render(); });
+    // Abrir detalhe (clique + teclado)
+    const open = (el) => {
+      const ev = rows.find(x => String(x.id) === el.dataset.id);
+      if (ev) { this._lastFocus = el; this._showDetail(ev); }
+    };
+    document.querySelectorAll('.row-audit, .audit-ev').forEach(el => {
+      el.addEventListener('click', () => open(el));
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(el); }
+      });
+    });
+
+    // Alternância de modo de visualização
+    const setMode = (m) => { this._viewMode = m; try { localStorage.setItem('rh-audit-view', m); } catch {} this._draw(); };
+    if ($('audViewTable')) $('audViewTable').addEventListener('click', () => setMode('table'));
+    if ($('audViewTimeline')) $('audViewTimeline').addEventListener('click', () => setMode('timeline'));
+
+    // Paginação — só busca a página (não recarrega o Store inteiro)
+    if ($('auditPrev')) $('auditPrev').addEventListener('click', async () => { this._page--; await this._fetch(); this._draw(); });
+    if ($('auditNext')) $('auditNext').addEventListener('click', async () => { this._page++; await this._fetch(); this._draw(); });
   },
 
-  // Calcula diff between before e after (after = body do PUT). Retorna [{key, before, after}].
-  // Ignora campos de timestamp e ids internos.
+  // ─────────────── Diff ───────────────
+
+  // Diferença entre before e after (after = body do PUT). Ignora timestamps/ids.
   _computeDiff(before, after) {
     if (!before || !after) return [];
     const skip = new Set(['id', 'createdAt', 'updatedAt', 'created_at', 'updated_at', 'metadata']);
     const diffs = [];
-    const keys = Object.keys(after);
-    for (const k of keys) {
+    for (const k of Object.keys(after)) {
       if (skip.has(k)) continue;
-      const a = after[k];
-      const b = before[k];
-      // Compara JSON pra cobrir objetos/arrays
-      if (JSON.stringify(a) !== JSON.stringify(b)) {
-        diffs.push({ key: k, before: b, after: a });
-      }
+      const a = after[k], b = before[k];
+      if (JSON.stringify(a) !== JSON.stringify(b)) diffs.push({ key: k, before: b, after: a });
     }
     return diffs;
   },
 
-  // Tradução de nomes técnicos de campo → português amigável
   _fieldLabel(k) {
     const map = {
       nome: 'Nome', name: 'Nome', email: 'Email', telefone: 'Telefone', phone: 'Telefone',
@@ -391,53 +564,49 @@ window.Auditoria = {
       contractId: 'Contrato', recursoId: 'Recurso', fornecedorId: 'Fornecedor',
       cargo: 'Cargo', nivel: 'Nível', area: 'Área',
       responsavel: 'Responsável', resultado: 'Resultado', emitida: 'Emitida',
-      formaPagamento: 'Forma pagamento', forma_pagamento: 'Forma pagamento',
+      formaPagamento: 'Forma pagamento', forma_pagamento: 'Forma pagamento', placa: 'Placa',
     };
     return map[k] || k.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').replace(/^\w/, c => c.toUpperCase()).trim();
   },
 
-  // Formata um valor pra exibir no diff (date, número, booleano, etc)
-  _fmtVal(v) {
+  // Formata um valor para exibição. `key` evita formatar tudo como moeda
+  // (antes "Nível: 3" virava "3,00" e ano "2025" virava "2.025,00").
+  _fmtVal(v, key = '') {
     if (v === null || v === undefined || v === '') return '—';
     if (typeof v === 'boolean') return v ? 'Sim' : 'Não';
     if (typeof v === 'number') {
-      // Detecta valor monetário (>100 e com casas decimais ou inteiro grande)
-      if (Number.isFinite(v) && Math.abs(v) >= 1) {
-        return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
-      }
-      return String(v);
+      if (!Number.isFinite(v)) return String(v);
+      const isCurrency = /^(value|valor|valorpago|preco|salario|saldo|total|montante|custo|retencao)$/i.test(key);
+      if (isCurrency) return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
+      return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(v);
     }
     if (typeof v === 'string') {
-      // Data ISO?
       if (/^\d{4}-\d{2}-\d{2}/.test(v)) {
-        try {
-          const d = new Date(v);
-          if (!isNaN(d.getTime())) return d.toLocaleDateString('pt-BR');
-        } catch {}
+        const d = new Date(v);
+        if (!isNaN(d.getTime())) return d.toLocaleDateString('pt-BR');
       }
-      // String muito longa?
-      if (v.length > 80) return v.slice(0, 77) + '...';
-      return v;
+      return v.length > 80 ? v.slice(0, 77) + '...' : v;
     }
-    if (Array.isArray(v)) return `[${v.length} item${v.length !== 1 ? 'ns' : ''}]`;
+    if (Array.isArray(v)) return `[${v.length} ${v.length !== 1 ? 'itens' : 'item'}]`;
     if (typeof v === 'object') return '{...}';
     return String(v);
   },
 
+  // ─────────────── Detalhe (modal) ───────────────
+
   _showDetail(ev) {
     const fmtDT = (s) => s ? new Date(s).toLocaleString('pt-BR') : '—';
     const verbInfo = this._actionVerb(ev.action);
-    const entLabel = this._entityLabel(ev.entity);
+    const info = this._entityInfo(ev.entity);
     const statusInfo = this._statusLabel(ev.status);
     const bodyJson = ev.body ? JSON.stringify(ev.body, null, 2) : '(sem dados enviados)';
 
-    const userName = (ev.userEmail || '').split('@')[0] || ev.userId || 'Desconhecido';
+    const userName = this._userName(ev.userEmail) || ev.userId || 'Desconhecido';
     const nomeAlvo = ev.entityLabel || this._entityFriendlyName(ev.entity, ev.entityId) || '';
     const frase = nomeAlvo
-      ? `${userName} ${verbInfo.verbo.toLowerCase()} ${entLabel.toLowerCase()} "${nomeAlvo}"`
-      : `${userName} ${verbInfo.verbo.toLowerCase()} ${entLabel.toLowerCase()}`;
+      ? `${userName} ${verbInfo.verbo.toLowerCase()} ${info.artigo} ${info.label.toLowerCase()} "${nomeAlvo}"`
+      : `${userName} ${verbInfo.verbo.toLowerCase()} ${info.artigo} ${info.label.toLowerCase()}`;
 
-    // Diff (só pra UPDATE) ou snapshot do que foi excluído (DELETE)
     let secaoMudancas = '';
     if (ev.action === 'update' && ev.beforeState && ev.body) {
       const diffs = this._computeDiff(ev.beforeState, ev.body);
@@ -451,111 +620,90 @@ window.Auditoria = {
                 ${diffs.map(d => `
                   <tr>
                     <td><strong>${escapeHtml(this._fieldLabel(d.key))}</strong></td>
-                    <td style="color:var(--color-text-muted);text-decoration:line-through;">${escapeHtml(this._fmtVal(d.before))}</td>
-                    <td style="color:var(--color-primary);font-weight:600;">${escapeHtml(this._fmtVal(d.after))}</td>
-                  </tr>
-                `).join('')}
+                    <td style="color:var(--color-text-muted);text-decoration:line-through;">${escapeHtml(this._fmtVal(d.before, d.key))}</td>
+                    <td style="color:var(--color-primary);font-weight:600;">${escapeHtml(this._fmtVal(d.after, d.key))}</td>
+                  </tr>`).join('')}
               </tbody>
             </table>
-          </div>
-        `;
+          </div>`;
       } else {
         secaoMudancas = `<div style="padding:var(--sp-md);background:var(--color-surface-2);border-radius:6px;color:var(--color-text-muted);font-size:13px;">Nenhum campo mudou (provavelmente um save sem alterações).</div>`;
       }
     } else if (ev.action === 'delete' && ev.beforeState) {
-      const camposVisiveis = Object.entries(ev.beforeState)
+      const campos = Object.entries(ev.beforeState)
         .filter(([k, v]) => !['id', 'createdAt', 'updatedAt', 'created_at', 'updated_at', 'metadata', 'documentos', 'folgas', 'budget'].includes(k))
-        .filter(([k, v]) => v !== null && v !== undefined && v !== '');
-      if (camposVisiveis.length > 0) {
+        .filter(([, v]) => v !== null && v !== undefined && v !== '');
+      if (campos.length > 0) {
         secaoMudancas = `
           <div style="margin-bottom:var(--sp-md);">
             <h4 style="font-size:14px;font-weight:600;margin:0 0 var(--sp-sm) 0;">🗑️ Dados que foram excluídos</h4>
             <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;font-size:13px;padding:var(--sp-md);background:var(--color-surface-2);border-radius:6px;border-left:3px solid var(--color-danger);">
-              ${camposVisiveis.map(([k, v]) => `
-                <div style="color:var(--color-text-muted);">${escapeHtml(this._fieldLabel(k))}</div>
-                <div style="font-weight:500;">${escapeHtml(this._fmtVal(v))}</div>
-              `).join('')}
+              ${campos.map(([k, v]) => `<div style="color:var(--color-text-muted);">${escapeHtml(this._fieldLabel(k))}</div><div style="font-weight:500;">${escapeHtml(this._fmtVal(v, k))}</div>`).join('')}
             </div>
-          </div>
-        `;
+          </div>`;
       }
-    } else if (ev.action === 'create' && ev.body) {
-      const camposVisiveis = Object.entries(ev.body)
+    } else if (ev.action !== 'delete' && ev.body) {
+      const campos = Object.entries(ev.body)
         .filter(([k, v]) => !['id', 'createdAt', 'updatedAt'].includes(k))
-        .filter(([k, v]) => v !== null && v !== undefined && v !== '');
-      if (camposVisiveis.length > 0) {
+        .filter(([, v]) => v !== null && v !== undefined && v !== '');
+      if (campos.length > 0) {
         secaoMudancas = `
           <div style="margin-bottom:var(--sp-md);">
-            <h4 style="font-size:14px;font-weight:600;margin:0 0 var(--sp-sm) 0;">✨ Dados informados na criação</h4>
+            <h4 style="font-size:14px;font-weight:600;margin:0 0 var(--sp-sm) 0;">✨ Dados informados</h4>
             <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;font-size:13px;padding:var(--sp-md);background:var(--color-surface-2);border-radius:6px;border-left:3px solid var(--color-success);">
-              ${camposVisiveis.map(([k, v]) => `
-                <div style="color:var(--color-text-muted);">${escapeHtml(this._fieldLabel(k))}</div>
-                <div style="font-weight:500;">${escapeHtml(this._fmtVal(v))}</div>
-              `).join('')}
+              ${campos.map(([k, v]) => `<div style="color:var(--color-text-muted);">${escapeHtml(this._fieldLabel(k))}</div><div style="font-weight:500;">${escapeHtml(this._fmtVal(v, k))}</div>`).join('')}
             </div>
-          </div>
-        `;
+          </div>`;
       }
     }
 
     const html = `
       <div class="modal-overlay" id="modalAudit">
-        <div class="modal" style="width:680px;max-width:95vw;max-height:90vh;overflow-y:auto;">
+        <div class="modal" style="width:680px;max-width:95vw;max-height:90vh;overflow-y:auto;" role="dialog" aria-modal="true" aria-label="${escapeHtml(frase)}">
           <div class="modal-header">
             <div>
               <h2 class="modal-title" style="margin:0;">${escapeHtml(frase)}</h2>
               <div style="font-size:13px;color:var(--color-text-muted);margin-top:4px;">${fmtDT(ev.ts)} (${this._tempoRelativo(ev.ts)})</div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
-            <!-- Resumo amigável -->
             <div style="padding:var(--sp-md);background:var(--color-surface-2);border-radius:8px;margin-bottom:var(--sp-md);">
               <div style="display:grid;grid-template-columns:120px 1fr;gap:10px;font-size:14px;line-height:1.7;">
                 <div style="color:var(--color-text-muted);">Quem fez</div>
                 <div><strong>${escapeHtml(ev.userEmail || '—')}</strong></div>
-
                 <div style="color:var(--color-text-muted);">O que fez</div>
-                <div>
-                  <span style="background:${verbInfo.bg};color:${verbInfo.cor};padding:2px 10px;border-radius:99px;font-weight:700;font-size:13px;">${verbInfo.verbo}</span>
-                  <strong style="margin-left:6px;">${escapeHtml(entLabel)}</strong>
-                </div>
-
-                ${ev.entityId ? `
-                  <div style="color:var(--color-text-muted);">Identificador</div>
-                  <div style="font-family:monospace;font-size:12px;">${escapeHtml(ev.entityId)}</div>
-                ` : ''}
-
+                <div><span style="background:${verbInfo.bg};color:${verbInfo.cor};padding:2px 10px;border-radius:99px;font-weight:700;font-size:13px;">${escapeHtml(verbInfo.verbo)}</span><strong style="margin-left:6px;">${escapeHtml(info.label)}</strong></div>
+                ${ev.entityId ? `<div style="color:var(--color-text-muted);">Identificador</div><div style="font-family:monospace;font-size:12px;">${escapeHtml(ev.entityId)}</div>` : ''}
                 <div style="color:var(--color-text-muted);">Resultado</div>
                 <div style="color:${statusInfo.cor};font-weight:600;">${statusInfo.texto}</div>
-
                 <div style="color:var(--color-text-muted);">De qual rede</div>
                 <div style="font-family:monospace;font-size:12px;">${escapeHtml(ev.ip || '—')}</div>
               </div>
             </div>
-
-            <!-- Mudanças amigáveis (diff / snapshot / dados criados) -->
             ${secaoMudancas}
-
-            <!-- Dados técnicos (recolhido por padrão) -->
             ${ev.body && Object.keys(ev.body || {}).length > 0 ? `
               <details style="margin-top:var(--sp-md);">
-                <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">
-                  Detalhes técnicos (JSON)
-                </summary>
+                <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;">Detalhes técnicos (JSON)</summary>
                 <pre style="background:var(--color-bg);border:1px solid var(--color-border);border-radius:6px;padding:var(--sp-md);font-size:12px;font-family:monospace;overflow:auto;max-height:300px;white-space:pre-wrap;margin-top:8px;">${escapeHtml(bodyJson)}</pre>
-              </details>
-            ` : ''}
+              </details>` : ''}
           </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" id="btnAuditClose">Fechar</button>
-          </div>
+          <div class="modal-footer"><button class="btn btn-secondary" id="btnAuditClose">Fechar</button></div>
         </div>
       </div>`;
     document.body.insertAdjacentHTML('beforeend', html);
     const overlay = document.getElementById('modalAudit');
-    const close = () => overlay.remove();
+    const close = () => {
+      document.removeEventListener('keydown', onKey);
+      overlay.remove();
+      if (this._lastFocus && document.contains(this._lastFocus)) { try { this._lastFocus.focus(); } catch {} }
+    };
+    const onKey = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnAuditClose').addEventListener('click', close);
+    const closeBtn = overlay.querySelector('.modal-close');
+    if (closeBtn) closeBtn.focus();
   },
 };

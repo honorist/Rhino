@@ -11,6 +11,7 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      PII_ENCRYPTION_KEY: ${PII_ENCRYPTION_KEY:-}
     volumes:
       # Persiste dados JSON (transição até migrar pro Postgres)
       - ./data:/app/data

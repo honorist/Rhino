@@ -1063,6 +1063,10 @@ window.Dashboard = {
   },
 
   renderAlertas(dash) {
+    // ⚠️ SEGURANÇA: `msg` é HTML (contém <a> intencionais) e é injetado via
+    // innerHTML sem escape no render (linha ~1118). Portanto QUALQUER dado de
+    // usuário/banco interpolado aqui DEVE ser escapado com escapeHtml() no push
+    // (ver `nomes` abaixo). Nunca interpole nome/descrição/observação cru.
     const alertas = [];
     if (dash.nfsStatus.vencidas > 0)
       alertas.push({ tipo: 'danger', msg: `🔴 ${dash.nfsStatus.vencidas} nota(s) fiscal(is) VENCIDA(S) — emita imediatamente!` });

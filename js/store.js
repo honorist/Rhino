@@ -111,7 +111,10 @@ window.Store = {
         if (!res.ok) throw new Error(`HTTP ${res.status} (${res.url})`);
         return res.json();
       };
-      const safe = fn => fn.catch(() => ({}));
+      // Endpoints opcionais: a falha não derruba o loadAll, mas é REGISTRADA
+      // (antes virava {} em silêncio → dado sumia sem ninguém saber).
+      const failures = [];
+      const safe = (nome, p) => p.catch((e) => { failures.push(nome); console.warn(`[Store] ${nome} falhou:`, e.message); return {}; });
       const [contracts, caixa, base, socios, investimentos, notas_fiscais, tipos_base, clientes, fornecedores, contas_pagar, recursos, solicitacoes, manutencoes, veiculos] = await Promise.all([
         fetch('/api/contracts').then(okJson),
         fetch('/api/caixa').then(okJson),
@@ -122,11 +125,11 @@ window.Store = {
         fetch('/api/tipos-base').then(okJson),
         fetch('/api/clientes').then(okJson),
         fetch('/api/fornecedores').then(okJson),
-        safe(fetch('/api/contas-pagar').then(okJson)),
-        safe(fetch('/api/recursos').then(okJson)),
-        safe(fetch('/api/solicitacoes-compra').then(okJson)),
-        safe(fetch('/api/manutencoes').then(okJson)),
-        safe(fetch('/api/veiculos').then(okJson))
+        safe('Contas a pagar', fetch('/api/contas-pagar').then(okJson)),
+        safe('Recursos', fetch('/api/recursos').then(okJson)),
+        safe('Solicitações de compra', fetch('/api/solicitacoes-compra').then(okJson)),
+        safe('Manutenções', fetch('/api/manutencoes').then(okJson)),
+        safe('Veículos', fetch('/api/veiculos').then(okJson))
       ]);
 
       this.state.contracts = contracts.contracts || [];
@@ -144,11 +147,20 @@ window.Store = {
       this.state.solicitacoes_compra = solicitacoes.solicitacoes || [];
       this.state.manutencoes = manutencoes.manutencoes || [];
       this.state.veiculos = veiculos.veiculos || [];
+      if (failures.length && typeof window !== 'undefined' && window.showToast) {
+        window.showToast(`Alguns dados não carregaram: ${failures.join(', ')}. Recarregue se persistir.`, 'warning');
+      }
       this.state.error = null;
       this._loadedAt = Date.now();
       this.notify();
     } catch (e) {
       this.state.error = e.message;
+      console.error('[Store] loadAll falhou:', e.message);
+      // Antes a falha ficava só em state.error (invisível) → tela vazia sem
+      // aviso. Agora notifica o usuário para distinguir "vazio" de "deu erro".
+      if (typeof window !== 'undefined' && window.showToast) {
+        window.showToast('Falha ao carregar dados. Verifique a conexão e recarregue.', 'error');
+      }
       this.notify();
     } finally {
       this.state.loading = false;

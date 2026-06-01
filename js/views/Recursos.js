@@ -472,11 +472,11 @@ window.Recursos = {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Nome completo *</label>
-                <input class="form-control" name="nome" value="${r?.nome || ''}" required>
+                <input class="form-control" name="nome" value="${escapeHtml(r?.nome || '')}" required>
               </div>
               <div class="form-group">
                 <label class="form-label">CPF</label>
-                <input class="form-control" name="cpf" value="${r?.cpf || ''}" placeholder="000.000.000-00">
+                <input class="form-control" name="cpf" value="${escapeHtml(r?.cpf || '')}" placeholder="000.000.000-00">
               </div>
             </div>
             <div class="form-row">
@@ -501,14 +501,14 @@ window.Recursos = {
               </div>
               <div class="form-group">
                 <label class="form-label">Email</label>
-                <input class="form-control" name="email" type="email" value="${r?.email || ''}">
+                <input class="form-control" name="email" type="email" value="${escapeHtml(r?.email || '')}">
               </div>
             </div>
             <div class="form-group">
               <label class="form-label">Endereço (para calcular distâncias)</label>
               <div style="position:relative;" id="enderecoWrapRec">
                 <input class="form-control" id="enderecoInputRec" name="endereco"
-                  value="${r?.endereco || ''}" placeholder="Buscar endereço no mapa..."
+                  value="${escapeHtml(r?.endereco || '')}" placeholder="Buscar endereço no mapa..."
                   autocomplete="off" style="padding-right:36px;">
                 <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none;">📍</span>
                 <div id="nominatimDropdownRec" class="nominatim-dropdown" style="display:none;top:calc(100% + 4px);left:0;"></div>
@@ -841,7 +841,7 @@ window.Recursos = {
       <div class="modal-overlay" id="modalNovaFolga">
         <div class="modal" style="width:480px;">
           <div class="modal-header">
-            <h2 class="modal-title">Registrar Folga — ${r?.nome}</h2>
+            <h2 class="modal-title">Registrar Folga — ${escapeHtml(r?.nome || '')}</h2>
             <button class="modal-close">✕</button>
           </div>
           <form id="formNovaFolga" class="modal-content">
@@ -898,7 +898,7 @@ window.Recursos = {
       <div class="modal-overlay" id="modalPassagem">
         <div class="modal" style="width:500px;">
           <div class="modal-header">
-            <h2 class="modal-title">Passagem de ${tipo === 'ida' ? 'Ida' : 'Volta'} — ${r?.nome}</h2>
+            <h2 class="modal-title">Passagem de ${tipo === 'ida' ? 'Ida' : 'Volta'} — ${escapeHtml(r?.nome || '')}</h2>
             <button class="modal-close">✕</button>
           </div>
           <form id="formPassagem" class="modal-content">

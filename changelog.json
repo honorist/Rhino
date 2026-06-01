@@ -1,6 +1,41 @@
 {
   "entries": [
     {
+      "version": "1.4.17",
+      "date": "2026-06-01",
+      "summary": "Cifragem de PII ativada (CPF de candidatos) e avisos de segurança",
+      "changes": [
+        "CPF de candidatos do recrutamento agora é gravado criptografado no banco (LGPD), igual ao dos colaboradores.",
+        "Criptografia de dados pessoais passou a ser obrigatória em produção — o sistema avisa de forma clara se a chave estiver ausente ou inválida, em vez de gravar em texto puro.",
+        "Aviso automático no início do sistema quando a senha de administrador é fraca ou padrão.",
+        "Quando algum dado opcional (recursos, veículos, etc.) não carrega, o usuário é avisado em vez de a informação sumir em silêncio."
+      ]
+    },
+    {
+      "version": "1.4.16",
+      "date": "2026-06-01",
+      "summary": "Correções de segurança e robustez (XSS, sessão do portal, integridade financeira)",
+      "changes": [
+        "Segurança: o nome do colaborador e os campos do cadastro deixam de permitir injeção de código (XSS) ao abrir telas e modais.",
+        "Portal do cliente mais seguro: senha de acesso exige no mínimo 8 caracteres e a sessão usa um token muito mais forte.",
+        "O sistema não trava mais a requisição quando um erro inesperado acontece no servidor — responde com erro claro em vez de ficar carregando para sempre.",
+        "Quando o carregamento de dados falha, agora aparece um aviso ('Falha ao carregar dados') em vez de a tela ficar vazia sem explicação.",
+        "Banco de dados: vínculos entre notas, contas, folha e caixa ganham integridade e índices (aplicado no próximo deploy)."
+      ]
+    },
+    {
+      "version": "1.4.15",
+      "date": "2026-05-31",
+      "summary": "Histórico de Atividades refeito: linha do tempo legível por dia e em linguagem natural",
+      "changes": [
+        "Tela de Auditoria refeita como linha do tempo: cada ação vira uma frase clara (ex: \"João aprovou a compra Cimento CP-II\"), agrupada por Hoje/Ontem/data, com foto colorida de quem fez.",
+        "Atalhos rápidos: filtre por Hoje, 7 dias, Exclusões ou Erros em um clique; busca por pessoa enquanto digita.",
+        "Agora o sistema registra com nome e verbo corretos ações que antes apareciam como \"Criou\" sem sentido: aprovar/rejeitar/comprar/receber, enviar/aceitar proposta, avaliar manutenção, gerar folha e mais.",
+        "Editar ou excluir proposta, manutenção, veículo, cláusula e solicitação de compra passa a guardar o antes→depois das mudanças.",
+        "Correções: valores que não são dinheiro deixam de aparecer como \"3,00\"; fechar o detalhe com Esc; paginação mais rápida."
+      ]
+    },
+    {
       "version": "1.4.14",
       "date": "2026-05-29",
       "summary": "Centro de Custo trava tipo em Salário e Almoxarifado lista quantidade por obra",

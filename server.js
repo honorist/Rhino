@@ -78,25 +78,48 @@ if (!fs.existsSync(BACKUPS_DIR)) {
 // ─── Auditoria detalhada: captura estado ANTES de PUT/DELETE ───
 // Mapa de prefixo de rota → função que busca a entidade pelo id.
 // Usado para registrar before_state em audit_log (mostrar "Excluiu cliente X" / "valor de A para B").
+// As CHAVES batem exatamente com o `entity` produzido por audit.detectEntity
+// (inclusive sub-recursos no formato `pai.sub`). `?.` deixa cada lookup
+// defensivo: se o repo/método não existir, retorna undefined (sem before).
 const AUDIT_BEFORE_LOOKUP = {
-  'clientes':       (id) => repos.clientes && repos.clientes.findById && repos.clientes.findById(id),
-  'fornecedores':   (id) => repos.fornecedores && repos.fornecedores.findById && repos.fornecedores.findById(id),
+  'clientes':       (id) => repos.clientes?.findById?.(id),
+  'fornecedores':   (id) => repos.fornecedores?.findById?.(id),
   // findByIdRaw: mantém o CPF cifrado no before_state da auditoria (LGPD — o
   // log não deve guardar PII em texto puro).
-  'recursos':       (id) => repos.recursos && repos.recursos.findByIdRaw && repos.recursos.findByIdRaw(id),
-  'contracts':      (id) => repos.contracts && repos.contracts.findById && repos.contracts.findById(id),
-  'contas-pagar':   (id) => repos.contasPagar && repos.contasPagar.findById && repos.contasPagar.findById(id),
-  'notas-fiscais':  (id) => repos.notasFiscais && repos.notasFiscais.findById && repos.notasFiscais.findById(id),
-  'caixa':          (id) => repos.caixa && repos.caixa.findById && repos.caixa.findById(id),
-  'base':           (id) => repos.baseItems && repos.baseItems.findById && repos.baseItems.findById(id),
-  'socios':         (id) => repos.socios && repos.socios.findById && repos.socios.findById(id),
-  'investimentos':  (id) => repos.investimentos && repos.investimentos.findById && repos.investimentos.findById(id),
-  'saidas':         (id) => repos.saidas && repos.saidas.findById && repos.saidas.findById(id),
-  'tipos-base':     (id) => repos.tiposBase && repos.tiposBase.findById && repos.tiposBase.findById(id),
-  'niveis-acesso':  (id) => repos.niveisAcesso && repos.niveisAcesso.findById && repos.niveisAcesso.findById(id),
-  'doc-templates':  (id) => repos.docTemplates && repos.docTemplates.findById && repos.docTemplates.findById(id),
-  'users':          (id) => repos.users && repos.users.findById && repos.users.findById(id),
-  'folha-pagamento':(id) => repos.folhaPagamento && repos.folhaPagamento.findById && repos.folhaPagamento.findById(id),
+  'recursos':       (id) => repos.recursos?.findByIdRaw?.(id),
+  'contracts':      (id) => repos.contracts?.findById?.(id),
+  'contas-pagar':   (id) => repos.contasPagar?.findById?.(id),
+  'notas-fiscais':  (id) => repos.notasFiscais?.findById?.(id),
+  'caixa':          (id) => repos.caixa?.findById?.(id),
+  'base':           (id) => repos.baseItems?.findById?.(id),
+  'socios':         (id) => repos.socios?.findById?.(id),
+  'investimentos':  (id) => repos.investimentos?.findById?.(id),
+  'saidas':         (id) => repos.saidas?.findById?.(id),
+  'tipos-base':     (id) => repos.tiposBase?.findById?.(id),
+  'niveis-acesso':  (id) => repos.niveisAcesso?.findById?.(id),
+  'doc-templates':  (id) => repos.docTemplates?.findById?.(id),
+  'users':          (id) => repos.users?.findById?.(id),
+  'folha-pagamento':(id) => repos.folhaPagamento?.findById?.(id),
+  // ── Cobertura ampliada (v1.4.15): edição/exclusão + ações especiais ──
+  'clausulas':           (id) => repos.clausulas?.findById?.(id),
+  'propostas':           (id) => repos.propostas?.findById?.(id),
+  'manutencoes':         (id) => repos.manutencoes?.findById?.(id),
+  'veiculos':            (id) => repos.veiculos?.findById?.(id),
+  'solicitacoes-compra': (id) => repos.solicitacoesCompra?.findById?.(id),
+  'candidatos':          (id) => repos.candidatos?.findById?.(id),
+  // Sub-recursos de maior valor (medições, equipe, RDO, aditivos, custos…)
+  'contracts.saidas':        (id) => repos.saidas?.findById?.(id),
+  'contracts.organograma':   (id) => repos.organograma?.findById?.(id),
+  'contracts.rdos':          (id) => repos.rdos?.findById?.(id),
+  'contracts.aditivos':      (id) => repos.aditivos?.findById?.(id),
+  'contracts.marcos':        (id) => repos.marcos?.findById?.(id),
+  'contracts.ocorrencias':   (id) => repos.ocorrencias?.findById?.(id),
+  'propostas.custos':        (id) => repos.propostaCustos?.findById?.(id),
+  'propostas.anexos':        (id) => repos.propostaAnexos?.findById?.(id),
+  'veiculos.planos':         (id) => repos.veiculoPlanos?.findById?.(id),
+  'veiculos.manutencoes':    (id) => repos.veiculoManutencoes?.findById?.(id),
+  'veiculos.abastecimentos': (id) => repos.veiculoAbastecimentos?.findById?.(id),
+  'folha-pagamento.itens':   (id) => repos.folhaPagamentoItens?.findById?.(id),
 };
 
 function _auditFriendlyLabel(obj) {
@@ -107,18 +130,22 @@ function _auditFriendlyLabel(obj) {
 
 async function captureAuditBefore(req, pathname) {
   try {
-    if (!['PUT', 'DELETE'].includes(req.method)) return;
-    // Match /api/{tipo}/{id}  (ignora sub-recursos por enquanto — só raiz)
-    const m = pathname.match(/^\/api\/([^/]+)\/([^/]+)$/);
-    if (!m) return;
-    const lookup = AUDIT_BEFORE_LOOKUP[m[1]];
+    if (!['PUT', 'PATCH', 'DELETE', 'POST'].includes(req.method)) return;
+    // Usa o MESMO detector do log (lib/audit) — cobre raiz, sub-recursos e
+    // ações especiais (ex: POST /api/contas-pagar/:id/pagar). POST de criação
+    // não tem id → não há "antes" a capturar.
+    const { entity, entityId } = audit.detectEntity(pathname);
+    if (!entity || !entityId) return;
+    const lookup = AUDIT_BEFORE_LOOKUP[entity];
     if (!lookup) return;
-    const before = await lookup(m[2]);
+    const before = await lookup(entityId);
     if (!before) return;
     req._auditBefore = before;
     req._auditEntityLabel = _auditFriendlyLabel(before);
-  } catch {
-    // silencioso — auditoria não pode quebrar a requisição
+  } catch (e) {
+    // Silencioso para não quebrar a request — mas LOGADO: sem isso, a perda de
+    // before_state (logo, do diff/nome na tela) é invisível em produção.
+    console.warn('[audit] captureAuditBefore falhou:', e?.message || e);
   }
 }
 
@@ -1139,6 +1166,7 @@ async function handleGetAudit(req, query, res) {
       action: query.action || null,
       from: query.from || null,
       to: query.to || null,
+      errorsOnly: query.errors === '1',
       limit, offset,
     });
     sendJson(res, data);
@@ -1193,7 +1221,9 @@ async function handlePortalLogin(req, body, res) {
     // Sucesso — devolve slot consumido
     await pgRateLimit.refund(rlKey);
 
-    const sid = generateId('pses');
+    // Token de 256 bits — generateId tinha ~32 bits de entropia, fraco demais
+    // para credencial de sessão (espaço de busca de ~4 bi era forçável).
+    const sid = 'pses_' + require('crypto').randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + PORTAL_SESSION_DAYS * 86400 * 1000);
     await db.query(
       'INSERT INTO portal_sessions (id, cliente_id, expires_at) VALUES ($1, $2, $3)',
@@ -1729,6 +1759,7 @@ async function handlePostCliente(body, res) {
     if (body.portalEmail) {
       cliente.portalEmail = body.portalEmail.trim().toLowerCase();
       if (body.portalSenha) {
+        if (String(body.portalSenha).length < 8) return sendError(res, 400, 'Senha do portal precisa ter no mínimo 8 caracteres');
         const bcrypt = require('bcryptjs');
         cliente.portalPasswordHash = await bcrypt.hash(body.portalSenha, 10);
       }
@@ -1749,6 +1780,7 @@ async function handlePutCliente(id, body, res) {
       allowed.portalEmail = body.portalEmail ? body.portalEmail.trim().toLowerCase() : null;
     }
     if (body.portalSenha) {
+      if (String(body.portalSenha).length < 8) return sendError(res, 400, 'Senha do portal precisa ter no mínimo 8 caracteres');
       const bcrypt = require('bcryptjs');
       allowed.portalPasswordHash = await bcrypt.hash(body.portalSenha, 10);
     }
@@ -6634,7 +6666,9 @@ async function handleCotacoesHistorico(query, res) {
     const params = [];
     let itemFilter = '';
     if (query.item) {
-      params.push(`%${query.item}%`);
+      // Escapa metacaracteres ILIKE (%, _, \) — senão `?item=%` retorna tudo
+      // e `?item=____` vira varredura cara (injeção de padrão ILIKE).
+      params.push(`%${String(query.item).replace(/[%_\\]/g, (c) => '\\' + c)}%`);
       itemFilter = `AND t1.item_v->>'descricao' ILIKE $${params.length}`;
     }
     const sql = `
