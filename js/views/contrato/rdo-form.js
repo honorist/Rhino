@@ -90,7 +90,7 @@
         <div style="font-size:13px;color:#55588B;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">📋 Dados do Contrato (preenchidos automaticamente)</div>
         <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;">
           ${infoBox('Projeto', escapeHtml(d.projeto || ''))}
-          ${infoBox('Ordem de Compra', escapeHtml(d.ordemCompra || ''))}
+          ${infoBox('Ordem de Compra / Serviço', escapeHtml(d.ordemCompra || ''))}
         </div>
       </div>
 
@@ -105,8 +105,8 @@
           <input class="form-control" data-rdo-field="diaSemana" value="${d.diaSemana || ''}" readonly style="background:var(--color-bg) !important;color:var(--color-text) !important;cursor:not-allowed;">
         </div>
         <div class="form-group">
-          <label class="form-label">Nº Ordem de Serviço</label>
-          <input class="form-control" data-rdo-field="osNumero" value="${escapeHtml(d.osNumero || '')}" placeholder="Ex: OS-2026-042">
+          <label class="form-label">Número do RDO</label>
+          <input class="form-control" type="text" inputmode="numeric" data-rdo-field="numero" value="${escapeHtml(d.numero || '')}" placeholder="Sequencial — pode editar">
         </div>
       </div>
 

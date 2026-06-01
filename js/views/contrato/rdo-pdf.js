@@ -137,7 +137,7 @@
     doc.setFontSize(9);
     doc.text(fitText(contract.name, col1W, 9), margin + 1, y + 5.8);
     doc.text(fitText(contract.contractNumber, col2W, 9), margin + col1W + 1, y + 5.8);
-    doc.text(fitText(rdo.osNumero, col3W, 9), margin + col1W + col2W + 1, y + 5.8);
+    doc.text(fitText(rdo.osNumero || rdo.ordemCompra, col3W, 9), margin + col1W + col2W + 1, y + 5.8);
     y += headerRowH;
 
     // Linha PROJETO / ORDEM DE COMPRA / DATA

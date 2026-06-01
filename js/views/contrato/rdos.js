@@ -233,12 +233,8 @@
                 <div style="font-weight:600;">${escapeHtml(rdo.diaSemana || '—')}</div>
               </div>
               <div style="padding:8px 10px;background:var(--color-surface-2);border-radius:6px;">
-                <div class="rh-label">OS</div>
-                <div style="font-weight:600;">${escapeHtml(rdo.osNumero || '—')}</div>
-              </div>
-              <div style="padding:8px 10px;background:var(--color-surface-2);border-radius:6px;">
-                <div class="rh-label">Ordem de compra</div>
-                <div style="font-weight:600;">${escapeHtml(rdo.ordemCompra || '—')}</div>
+                <div class="rh-label">Ordem de compra / serviço</div>
+                <div style="font-weight:600;">${escapeHtml(rdo.ordemCompra || rdo.osNumero || '—')}</div>
               </div>
               <div style="padding:8px 10px;background:var(--color-surface-2);border-radius:6px;">
                 <div class="rh-label">Período</div>
@@ -656,10 +652,21 @@
     const isNew = !rdo;
     const hoje = new Date().toISOString().split('T')[0];
 
+    // Próximo número de RDO (sequencial; sugerido no formulário, editável).
+    let _proxNum = 1;
+    try {
+      const _rdos = contract.rdos || [];
+      const _meta = typeof contract.metadata === 'string' ? JSON.parse(contract.metadata) : (contract.metadata || {});
+      const _seed = Number(_meta?.rdoSeed) || 0;
+      const _maior = _rdos.reduce((mx, r) => Math.max(mx, Number(r.numero) || 0), 0);
+      _proxNum = Math.max(_maior, _seed - 1) + 1;
+    } catch {}
+
     // valores iniciais
     const iniciais = rdo || {
       data: hoje,
       diaSemana: this._diaSemanaFromDate(hoje),
+      numero: String(_proxNum),
       osNumero: '',
       ordemCompra: contract.contractNumber || '',
       projeto: contract.name || '',

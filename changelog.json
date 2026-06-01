@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.7.0",
+      "date": "2026-06-01",
+      "summary": "Número do RDO editável e unificação OS/Ordem de Compra",
+      "changes": [
+        "O formulário do RDO agora mostra o Número do RDO no cabeçalho: vem sequencial automático, mas você pode editar (útil para RDO antigo de obra já em andamento).",
+        "Removido o campo \"Nº Ordem de Serviço\", que era a mesma coisa que a Ordem de Compra do contrato — agora há um único campo \"Ordem de Compra / Serviço\"."
+      ]
+    },
+    {
       "version": "1.6.2",
       "date": "2026-06-01",
       "summary": "Botão de excluir sugestão (gestor)",

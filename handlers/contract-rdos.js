@@ -166,7 +166,11 @@ async function handlePostRdo(contractId, body, res) {
     const rdo = {
       id: generateId('rdo'),
       contractId,
-      numero: String(proxNumeroRdo(contract.rdos || [], rdoSeed)),
+      // Número editável: usa o informado (ex.: RDO antigo de obra em andamento);
+      // senão, sequencial automático.
+      numero: (body.numero != null && String(body.numero).trim())
+        ? String(body.numero).trim()
+        : String(proxNumeroRdo(contract.rdos || [], rdoSeed)),
       data: body.data,
       diaSemana: body.diaSemana || '',
       osNumero: body.osNumero || '',
@@ -212,7 +216,7 @@ async function handlePutRdo(contractId, rdoId, body, res) {
     if (erro) return sendError(res, 400, erro);
 
     const allowed = {};
-    const stringFields = ['data', 'diaSemana', 'osNumero', 'ordemCompra', 'projeto', 'periodoTrabalho', 'fiscalizacaoComentarios'];
+    const stringFields = ['data', 'diaSemana', 'numero', 'osNumero', 'ordemCompra', 'projeto', 'periodoTrabalho', 'fiscalizacaoComentarios'];
     for (const f of stringFields) { if (body[f] !== undefined) allowed[f] = body[f]; }
     const jsonbFields = ['prazo', 'tempo', 'moi', 'mod', 'terc', 'equipamentos', 'atividades', 'seguranca', 'totais'];
     for (const f of jsonbFields) {
