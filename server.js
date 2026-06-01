@@ -47,6 +47,7 @@ const clientesHandlers = require('./handlers/clientes');
 const investimentosHandlers = require('./handlers/investimentos');
 const contasPagarHandlers = require('./handlers/contas-pagar');
 const notasFiscaisHandlers = require('./handlers/notas-fiscais');
+const contractsHandlers = require('./handlers/contracts'); // CRUD principal do contrato
 const bus = require('./lib/bus');
 const perms = require('./lib/permissions');
 const fluxoCompra = require('./lib/fluxo-compra');
@@ -188,82 +189,7 @@ async function writeCollection(repoName, arrayKey, fn) {
 // sendJson / sendError → lib/http-respond.js (Fase 1 do desmembramento).
 
 // ============ Route handlers ============
-async function handleGetContracts(res, query) {
-  try {
-    const lite = !!(query && (query.lite === '1' || query.lite === 'true'));
-    sendJson(res, await repos.contracts.getEnvelope({ lite }));
-  } catch (e) {
-    sendError(res, 500, e.message);
-  }
-}
-
-async function handlePostContract(body, res) {
-  try {
-    if (!body.name || !body.client) {
-      return sendError(res, 400, 'Nome e cliente são obrigatórios');
-    }
-    const contract = {
-      id: generateId('ctr'),
-      name: body.name,
-      contractNumber: body.contractNumber || '',
-      client: body.client,
-      clientId: body.clientId || null,
-      clientDocument: body.clientDocument || '',
-      clientEmail: body.clientEmail || '',
-      clientPhone: body.clientPhone || '',
-      value: money.parse(body.value),
-      currency: body.currency || 'BRL',
-      startDate: body.startDate || null,
-      endDate: body.endDate || null,
-      tendencyDate: body.tendencyDate || null,
-      status: body.status || 'ativo',
-      endereco: body.endereco || '',
-      lat: body.lat || '',
-      lng: body.lng || '',
-      notes: body.notes || '',
-      retencaoPercent: parseFloat(body.retencaoPercent) || 0,
-      budget: '[]',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    await repos.contracts.create(contract);
-    sendJson(res, await repos.contracts.getEnvelope());
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handlePutContract(id, body, res) {
-  try {
-    const allowed = {};
-    const fields = ['name', 'client', 'clientId', 'clientDocument', 'clientEmail', 'clientPhone', 'currency', 'status', 'notes', 'lat', 'lng', 'endereco', 'contractNumber'];
-    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
-    if (body.value !== undefined) allowed.value = money.parse(body.value);
-    if (body.retencaoPercent !== undefined) allowed.retencaoPercent = parseFloat(body.retencaoPercent) || 0;
-    for (const f of ['startDate', 'endDate', 'tendencyDate']) {
-      if (body[f] !== undefined) allowed[f] = body[f] || null;
-    }
-    allowed.updatedAt = new Date().toISOString();
-
-    const result = await repos.contracts.updateById(id, allowed);
-    if (!result) return sendError(res, 404, 'Contract not found');
-    sendJson(res, await repos.contracts.getEnvelope());
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handleDeleteContract(id, res) {
-  try {
-    // Apaga TUDO vinculado ao contrato (financeiro + operacional) numa transação:
-    // FK CASCADE remove saidas/organograma/rdos automaticamente; o cascade manual
-    // (no repo) limpa caixa, contas_pagar, notas_fiscais e investimentos do contrato.
-    await repos.contracts.removeByIdCascade(id);
-    sendJson(res, await repos.contracts.getEnvelope());
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
+// Contratos (CRUD principal) extraídos → handlers/contracts.js
 
 // ── Push Notification Handlers ──────────────────────────────────────────────
 async function handlePushSubscribe(body, userId, res) {
@@ -4054,7 +3980,7 @@ registerOperacao(apiRouter, {
   ...docTemplatesHandlers, // handlers/doc-templates.js
 });
 registerContracts(apiRouter, {
-  handleGetRdosGlobal, handleGetContracts, handlePostContract, handlePutContract, handleDeleteContract,
+  handleGetRdosGlobal, ...contractsHandlers, // CRUD do contrato (handlers/contracts.js)
   handlePostSaida, handlePostBudgetItem, handlePutBudgetItem, handleDeleteBudgetItem,
   handleListAtividades, handlePostAtividade, handlePutAtividade, handleDeleteAtividade, handleGetCurvaS,
   handlePostMembroOrganograma, handlePutMembroOrganograma, handleDeleteMembroOrganograma,
