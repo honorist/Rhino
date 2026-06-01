@@ -64,9 +64,8 @@ const perms = require('./lib/permissions');
 const fluxoCompra = require('./lib/fluxo-compra');
 const recorrencia = require('./lib/recorrencia');
 const { sendJson, sendError } = require('./lib/http-respond');
-// multipart/form-data: parser + validação de imagem compartilhados por todos os uploads.
-// `_isAllowedImageMagic` é alias dos handlers de upload ainda inline (extração incremental).
-const { parseMultipart, isAllowedImageMagic: _isAllowedImageMagic } = require('./lib/multipart');
+// multipart/form-data (parser + validação de imagem) agora vive em lib/multipart.js,
+// importado diretamente por cada módulo de upload (handlers/*). server.js não usa mais.
 const { createRouter } = require('./lib/router');
 const registerAuth = require('./routes/auth');
 const registerPortal = require('./routes/portal');
