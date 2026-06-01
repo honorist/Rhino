@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.6.2",
+      "date": "2026-06-01",
+      "summary": "Botão de excluir sugestão (gestor)",
+      "changes": [
+        "Gestores agora podem excluir uma sugestão: abra o card no Kanban e use o botão 🗑 Excluir (com confirmação).",
+        "Ao excluir, a foto anexada também é removida."
+      ]
+    },
+    {
       "version": "1.6.1",
       "date": "2026-06-01",
       "summary": "Painel de sugestões em Kanban e item no fim do menu",

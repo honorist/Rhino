@@ -196,8 +196,10 @@
               ${this._anexoLink(s, false) ? `<div style="margin-top:8px;">${this._anexoLink(s, false)}</div>` : ''}
               ${coment}${justif}
             </div>
-            <div class="modal-footer" style="flex-wrap:wrap;gap:6px;">
-              <span style="font-size:12px;color:var(--color-text-muted);align-self:center;margin-right:auto;">Mover para:</span>
+            <div class="modal-footer" style="flex-wrap:wrap;gap:6px;align-items:center;">
+              <button type="button" class="btn btn-sm" id="detExcluir" title="Excluir sugestão"
+                      style="color:var(--color-danger);background:transparent;border:1px solid var(--color-border);">🗑 Excluir</button>
+              <span style="font-size:12px;color:var(--color-text-muted);margin-left:auto;">Mover para:</span>
               ${botoes}
             </div>
           </div>
@@ -207,8 +209,23 @@
       const fechar = () => ov.remove();
       document.getElementById('detClose').onclick = fechar;
       ov.addEventListener('click', (e) => { if (e.target === ov) fechar(); });
+      ov.querySelector('#detExcluir')?.addEventListener('click', () => this._excluir(s, ov));
       ov.querySelectorAll('[data-det-novo]').forEach((b) =>
         b.addEventListener('click', () => { fechar(); this._abrirStatusModal(s.id, b.dataset.detNovo); }));
+    },
+
+    async _excluir(s, ov) {
+      if (!window.confirm(`Excluir a sugestão "${s.titulo}"? Esta ação não pode ser desfeita.`)) return;
+      try {
+        const r = await fetch(`/api/sugestoes/${s.id}`, { method: 'DELETE', credentials: 'same-origin' });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(j.error || 'Falha ao excluir');
+        ov.remove();
+        toast('Sugestão excluída.', 'success');
+        this.render();
+      } catch (e) {
+        toast(e.message || 'Erro', 'error');
+      }
     },
 
     // ── Modal: nova sugestão ──

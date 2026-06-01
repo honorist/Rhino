@@ -162,6 +162,20 @@ async function mudarStatus(req, body, res, id) {
   }
 }
 
+// ─── Excluir (apenas gerente) ───
+async function excluir(req, res, id) {
+  try {
+    if (!req.user) return sendError(res, 401, 'Não autenticado');
+    if (!(await _podeGerir(req.user))) return sendError(res, 403, 'Apenas gerentes podem excluir sugestões');
+    const sug = await repos.sugestoes.findById(id);
+    if (!sug) return sendError(res, 404, 'Sugestão não encontrada');
+    await repos.sugestoes.removeById(id); // anexo sai junto (FK ON DELETE CASCADE)
+    sendJson(res, { ok: true });
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
 // ─── Anexo (1 foto opcional) — upload multipart, despachado no createServer ───
 function uploadAnexo(sugestaoId, req, res) {
   const contentType = req.headers['content-type'] || '';
@@ -219,4 +233,4 @@ async function getAnexo(sugestaoId, res) {
   }
 }
 
-module.exports = { criar, listar, mudarStatus, uploadAnexo, getAnexo };
+module.exports = { criar, listar, mudarStatus, excluir, uploadAnexo, getAnexo };
