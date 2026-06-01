@@ -49,6 +49,7 @@ const contasPagarHandlers = require('./handlers/contas-pagar');
 const notasFiscaisHandlers = require('./handlers/notas-fiscais');
 const contractsHandlers = require('./handlers/contracts'); // CRUD principal do contrato
 const contractExtrasHandlers = require('./handlers/contract-extras'); // budget/aditivos/marcos/ocorrências
+const contractOrganogramaHandlers = require('./handlers/contract-organograma');
 const bus = require('./lib/bus');
 const perms = require('./lib/permissions');
 const fluxoCompra = require('./lib/fluxo-compra');
@@ -2563,149 +2564,7 @@ async function handleLimparFolha(body, res) {
 // Orçamento (budget) do contrato extraído → handlers/contract-extras.js
 
 // ============ Organograma (Equipe por Contrato) handlers ============
-const NIVEIS_VALIDOS = ['encarregado', 'lider_area', 'profissional'];
-
-function validarMembroOrganograma(body, organograma, membroIdAtual) {
-  const nivel = body.nivel;
-  if (!NIVEIS_VALIDOS.includes(nivel)) {
-    return 'Nível inválido';
-  }
-  if (!body.recursoId) return 'Recurso obrigatório';
-
-  // recurso duplicado no mesmo contrato
-  const jaExiste = organograma.some(m =>
-    m.recursoId === body.recursoId && m.id !== membroIdAtual
-  );
-  if (jaExiste) return 'Este recurso já faz parte do organograma deste contrato';
-
-  if (nivel === 'encarregado') {
-    const outroEnc = organograma.some(m =>
-      m.nivel === 'encarregado' && m.id !== membroIdAtual
-    );
-    if (outroEnc) return 'Já existe um encarregado neste contrato';
-  }
-
-  if (nivel === 'lider_area') {
-    if (!body.area || !String(body.area).trim()) return 'Área é obrigatória para líder';
-  }
-
-  if (nivel === 'profissional') {
-    if (!body.supervisorId) return 'Profissional precisa ter um supervisor';
-    const sup = organograma.find(m => m.id === body.supervisorId);
-    if (!sup) return 'Supervisor não encontrado';
-    if (sup.nivel !== 'lider_area') return 'Supervisor de profissional deve ser Líder de Área';
-  }
-
-  return null;
-}
-
-async function handlePostMembroOrganograma(contractId, body, res) {
-  try {
-    const contract = await repos.contracts.findByIdWithChildren(contractId);
-    if (!contract) return sendError(res, 404, 'Contrato não encontrado');
-
-    const erro = validarMembroOrganograma(body, contract.organograma || [], null);
-    if (erro) return sendError(res, 400, erro);
-
-    const membro = {
-      id: generateId('org'),
-      contractId,
-      recursoId: body.recursoId,
-      nivel: body.nivel,
-      cargo: body.cargo,
-      supervisorId: body.nivel === 'encarregado' ? null : (body.supervisorId || null),
-      area: body.nivel === 'lider_area' ? String(body.area).trim() : null,
-      createdAt: new Date().toISOString(),
-    };
-    await repos.organograma.create(membro);
-    sendJson(res, await repos.contracts.getEnvelope());
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handlePutMembroOrganograma(contractId, membroId, body, res) {
-  try {
-    const contract = await repos.contracts.findByIdWithChildren(contractId);
-    if (!contract) return sendError(res, 404, 'Contrato não encontrado');
-    const lista = contract.organograma || [];
-    const atual = lista.find(m => m.id === membroId);
-    if (!atual) return sendError(res, 404, 'Membro não encontrado');
-
-    const merged = {
-      recursoId:    body.recursoId    !== undefined ? body.recursoId    : atual.recursoId,
-      nivel:        body.nivel        !== undefined ? body.nivel        : atual.nivel,
-      cargo:        body.cargo        !== undefined ? body.cargo        : atual.cargo,
-      supervisorId: body.supervisorId !== undefined ? body.supervisorId : atual.supervisorId,
-      area:         body.area         !== undefined ? body.area         : atual.area,
-    };
-    const erro = validarMembroOrganograma(merged, lista, membroId);
-    if (erro) return sendError(res, 400, erro);
-
-    await repos.organograma.updateById(membroId, {
-      recursoId: merged.recursoId,
-      nivel: merged.nivel,
-      cargo: merged.cargo,
-      supervisorId: merged.nivel === 'encarregado' ? null : (merged.supervisorId || null),
-      area: merged.nivel === 'lider_area' ? String(merged.area).trim() : null,
-    });
-    sendJson(res, await repos.contracts.getEnvelope());
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handleDeleteMembroOrganograma(contractId, membroId, body, res, query) {
-  try {
-    const contract = await repos.contracts.findByIdWithChildren(contractId);
-    if (!contract) return sendError(res, 404, 'Contrato não encontrado');
-    const lista = contract.organograma || [];
-    const alvo = lista.find(m => m.id === membroId);
-    if (!alvo) return sendError(res, 404, 'Membro não encontrado');
-
-    const mode = (query && query.mode) || 'strict';
-    const reassignTo = query && query.reassignTo;
-
-    if (alvo.nivel === 'encarregado') {
-      if (lista.some(m => m.nivel === 'lider_area')) {
-        return sendError(res, 409, 'Não é possível remover o encarregado enquanto houver líderes no organograma');
-      }
-      await repos.organograma.removeById(membroId);
-    } else if (alvo.nivel === 'lider_area') {
-      const subordinados = lista.filter(m => m.supervisorId === membroId);
-      if (subordinados.length > 0 && mode === 'strict') {
-        res.writeHead(409, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          error: 'Líder possui profissionais vinculados. Informe mode=reassign&reassignTo=<liderId> ou mode=cascade',
-          subordinadosCount: subordinados.length,
-        }));
-        return;
-      }
-      if (mode === 'reassign') {
-        const novo = lista.find(m => m.id === reassignTo && m.nivel === 'lider_area' && m.id !== membroId);
-        if (!novo) return sendError(res, 400, 'Líder de destino inválido');
-        for (const s of subordinados) {
-          await repos.organograma.updateById(s.id, { supervisorId: novo.id });
-        }
-        await repos.organograma.removeById(membroId);
-      } else if (mode === 'cascade') {
-        for (const s of subordinados) await repos.organograma.removeById(s.id);
-        await repos.organograma.removeById(membroId);
-      } else {
-        await repos.organograma.removeById(membroId);
-      }
-    } else {
-      await repos.organograma.removeById(membroId);
-    }
-
-    sendJson(res, await repos.contracts.getEnvelope());
-    return;
-  } catch (e) {
-    sendError(res, 400, e.message);
-    return;
-    res.end(JSON.stringify({ error: e.message }));
-  }
-}
+// Organograma (equipe por contrato) extraído → handlers/contract-organograma.js
 
 // ============ RDO (Relatório Diário de Obra) handlers ============
 const RDO_FOTOS_DIR = path.join(__dirname, 'data', 'rdo-fotos');
@@ -3798,7 +3657,7 @@ registerContracts(apiRouter, {
   handleGetRdosGlobal, ...contractsHandlers, // CRUD do contrato (handlers/contracts.js)
   handlePostSaida, ...contractExtrasHandlers, // budget+aditivos+marcos+ocorrências (handlers/contract-extras.js)
   handleListAtividades, handlePostAtividade, handlePutAtividade, handleDeleteAtividade, handleGetCurvaS,
-  handlePostMembroOrganograma, handlePutMembroOrganograma, handleDeleteMembroOrganograma,
+  ...contractOrganogramaHandlers, // handlers/contract-organograma.js
   handlePostRdo, handlePutRdo, handleDeleteRdo, handlePostRdoFoto, handleDeleteRdoFoto,
   handleListRdoAssinaturas, handleGetRdoAssinatura, handleDeleteRdoAssinatura,
   handlePutSaida, handleDeleteSaida,
