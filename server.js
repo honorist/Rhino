@@ -54,6 +54,7 @@ const recursosHandlers = require('./handlers/recursos'); // CRUD principal de re
 const contractSaidasHandlers = require('./handlers/contract-saidas'); // saídas/BM (medições) — FIX deadlock
 const recursoFolgasHandlers = require('./handlers/recurso-folgas'); // folgas + passagens de recursos
 const contractRdosHandlers = require('./handlers/contract-rdos'); // RDO: visão global + CRUD (fotos/assinaturas seguem inline)
+const rdoFotosHandlers = require('./handlers/rdo-fotos'); // RDO fotos: upload multipart + delete
 const bus = require('./lib/bus');
 const perms = require('./lib/permissions');
 const fluxoCompra = require('./lib/fluxo-compra');
@@ -2196,122 +2197,6 @@ async function handleLimparFolha(body, res) {
 // ============ Organograma (Equipe por Contrato) handlers ============
 // Organograma (equipe por contrato) extraído → handlers/contract-organograma.js
 
-// ============ RDO (Relatório Diário de Obra) handlers ============
-const RDO_FOTOS_DIR = path.join(__dirname, 'data', 'rdo-fotos');
-
-// parseMultipart movido → lib/multipart.js (importado no topo).
-const FOTO_ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const FOTO_MAX_BYTES = 8 * 1024 * 1024;
-/**
- * Mapeia Content-Type → extensão segura. Usado para evitar que a extensão venha
- * do nome de arquivo do cliente (ex: `foto.jpg.svg` resultaria em SVG XSS).
- * Fixes A-05 e A-06.
- */
-const FOTO_EXT_FROM_MIME = {
-  'image/jpeg': '.jpg',
-  'image/png': '.png',
-  'image/webp': '.webp',
-};
-// _isAllowedImageMagic movido → lib/multipart.js (importado no topo como alias).
-
-function handlePostRdoFoto(contractId, rdoId, req, res) {
-  const contentType = req.headers['content-type'] || '';
-  const mBoundary = contentType.match(/boundary=(.+)$/);
-  if (!mBoundary) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Content-Type multipart esperado' }));
-    return;
-  }
-  const boundary = mBoundary[1].replace(/^"|"$/g, '');
-
-  const chunks = [];
-  let totalSize = 0;
-  const MAX_TOTAL = 25 * 1024 * 1024;
-
-  req.on('data', c => {
-    totalSize += c.length;
-    if (totalSize > MAX_TOTAL) {
-      res.writeHead(413, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Upload muito grande' }));
-      req.destroy();
-      return;
-    }
-    chunks.push(c);
-  });
-
-  req.on('end', async () => {
-    try {
-      const body = Buffer.concat(chunks);
-      const parts = parseMultipart(body, boundary);
-
-      const rdo = await repos.rdos.findById(rdoId);
-      if (!rdo) return sendError(res, 404, 'RDO não encontrado');
-
-      const legendaPart = parts.find(p => p.name === 'legenda');
-      const legenda = legendaPart ? legendaPart.data.toString('utf8') : '';
-
-      const arquivos = parts.filter(p => p.filename && p.data && p.data.length > 0);
-      if (arquivos.length === 0) return sendError(res, 400, 'Nenhum arquivo enviado');
-
-      const pastaRdo = path.join(RDO_FOTOS_DIR, rdoId);
-      if (!fs.existsSync(pastaRdo)) fs.mkdirSync(pastaRdo, { recursive: true });
-
-      const adicionadas = [];
-      for (const arq of arquivos) {
-        // FIX A-05: rejeita upload sem Content-Type ou com tipo não permitido.
-        // O `arq.contentType &&` original permitia bypass simplesmente omitindo o header.
-        if (!arq.contentType || !FOTO_ALLOWED_TYPES.includes(arq.contentType)) continue;
-        if (arq.data.length > FOTO_MAX_BYTES) continue;
-        // Defesa em profundidade: magic-bytes batem com o Content-Type declarado.
-        if (!_isAllowedImageMagic(arq.data)) continue;
-        // FIX A-06: extensão vem do MIME validado, nunca do filename do cliente
-        // (que pode ser `foto.jpg.svg` → XSS persistente quando servido depois).
-        const ext = FOTO_EXT_FROM_MIME[arq.contentType] || '.jpg';
-        const fotoId = generateId('foto');
-        const filename = fotoId + ext;
-        // FIX P1-2: writeFile assíncrono não bloqueia o event loop durante uploads grandes.
-        await fs.promises.writeFile(path.join(pastaRdo, filename), arq.data);
-        adicionadas.push({
-          id: fotoId, filename, legenda,
-          url: `/data/rdo-fotos/${rdoId}/${filename}`,
-          createdAt: new Date().toISOString(),
-        });
-      }
-
-      const fotos = (rdo.fotos || []).concat(adicionadas);
-      await repos.rdos.updateById(rdoId, {
-        fotos: JSON.stringify(fotos),
-        updatedAt: new Date().toISOString(),
-      });
-      const env = await repos.contracts.getEnvelope();
-      sendJson(res, { contracts: env.contracts, fotos: adicionadas });
-    } catch (e) {
-      sendError(res, 400, e.message);
-    }
-  });
-}
-
-async function handleDeleteRdoFoto(contractId, rdoId, fotoId, res) {
-  try {
-    const rdo = await repos.rdos.findById(rdoId);
-    if (!rdo) return sendError(res, 404, 'RDO não encontrado');
-    const fotos = rdo.fotos || [];
-    const foto = fotos.find(f => f.id === fotoId);
-    if (foto) {
-      const filepath = path.join(RDO_FOTOS_DIR, rdoId, foto.filename);
-      try { if (fs.existsSync(filepath)) fs.unlinkSync(filepath); } catch {}
-    }
-    const novasFotos = fotos.filter(f => f.id !== fotoId);
-    await repos.rdos.updateById(rdoId, {
-      fotos: JSON.stringify(novasFotos),
-      updatedAt: new Date().toISOString(),
-    });
-    sendJson(res, await repos.contracts.getEnvelope());
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
 // Aditivos / Marcos / Ocorrências do contrato extraídos → handlers/contract-extras.js
 
 // ============ Static file serving ============
@@ -2705,7 +2590,7 @@ const server = http.createServer((req, res) => {
     (async () => {
       if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
       const parts = pathname.split('/');
-      handlePostRdoFoto(parts[3], parts[5], req, res);
+      rdoFotosHandlers.handlePostRdoFoto(parts[3], parts[5], req, res);
     })();
     return;
   }
@@ -3124,7 +3009,7 @@ registerContracts(apiRouter, {
   ...contractSaidasHandlers, ...contractExtrasHandlers, // saídas/BM + budget/aditivos/marcos/ocorrências
   handleListAtividades, handlePostAtividade, handlePutAtividade, handleDeleteAtividade, handleGetCurvaS,
   ...contractOrganogramaHandlers, // handlers/contract-organograma.js
-  handlePostRdoFoto, handleDeleteRdoFoto, // fotos (upload multipart + delete) seguem inline
+  ...rdoFotosHandlers, // fotos: upload + delete (handlers/rdo-fotos.js)
   handleListRdoAssinaturas, handleGetRdoAssinatura, handleDeleteRdoAssinatura,
 });
 
