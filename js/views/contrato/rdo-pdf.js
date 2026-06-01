@@ -390,6 +390,48 @@
       y = doc.lastAutoTable.finalY + 2;
     }
 
+    // ═══════════ EQUIPES POR ATIVIDADE ═══════════
+    const _durEq = (eq) => {
+      const [hi, mi] = String(eq.horaInicio || '').split(':').map(Number);
+      const [hf, mf] = String(eq.horaFim || '').split(':').map(Number);
+      if ([hi, mi, hf, mf].some(n => Number.isNaN(n))) return 0;
+      const min = (hf * 60 + mf) - (hi * 60 + mi);
+      return min > 0 ? min / 60 : 0;
+    };
+    const _equipeRows = [];
+    (rdo.atividades || []).forEach(a => {
+      (a.equipes || []).forEach(eq => {
+        const hh = _durEq(eq) * ((eq.membros || []).length);
+        const membros = (eq.membros || [])
+          .map(mm => (mm.nome || '') + (mm.funcao ? ` (${mm.funcao})` : ''))
+          .filter(s => s.trim()).join(', ');
+        _equipeRows.push([
+          a.descricao || a.area || '—',
+          eq.nome || '—',
+          { content: `${eq.horaInicio || '--'}–${eq.horaFim || '--'}`, styles: { halign: 'center' } },
+          { content: hh.toFixed(1), styles: { halign: 'center', fontStyle: 'bold' } },
+          membros || '—',
+        ]);
+      });
+    });
+    if (_equipeRows.length > 0) {
+      autoTable({
+        startY: y, margin: { left: margin, right: margin },
+        head: [
+          [{ content: 'EQUIPES POR ATIVIDADE', colSpan: 5, styles: { halign: 'center', fillColor: [85, 88, 139], textColor: 255, fontSize: 8 } }],
+          [{ content: 'ATIVIDADE', styles: { fontStyle: 'bold', fontSize: 7, fillColor: [240, 240, 240] } },
+           { content: 'EQUIPE',    styles: { fontStyle: 'bold', fontSize: 7, fillColor: [240, 240, 240] } },
+           { content: 'HORÁRIO',   styles: { fontStyle: 'bold', fontSize: 7, fillColor: [240, 240, 240], halign: 'center' } },
+           { content: 'H-H',       styles: { fontStyle: 'bold', fontSize: 7, fillColor: [240, 240, 240], halign: 'center' } },
+           { content: 'MEMBROS',   styles: { fontStyle: 'bold', fontSize: 7, fillColor: [240, 240, 240] } }]
+        ],
+        body: _equipeRows,
+        styles: { fontSize: 7.5, cellPadding: 1.5, lineColor: [150, 150, 150], lineWidth: 0.2, valign: 'top' },
+        columnStyles: { 0: { cellWidth: 34 }, 1: { cellWidth: 26 }, 2: { cellWidth: 22 }, 3: { cellWidth: 12 } }
+      });
+      y = doc.lastAutoTable.finalY + 2;
+    }
+
     // ═══════════ SEGURANÇA — autoTable pra garantir altura dinâmica e wrap ═══════════
     blackText();
     const acid = rdo.seguranca?.acidente || 'nao_houve';

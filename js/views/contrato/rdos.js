@@ -315,6 +315,23 @@
               { key: 'descricao', label: 'Descrição' },
               { key: 'pct',       label: 'Executado', align: 'center' },
             ])}
+            ${atv.some(a => (a.equipes || []).length) ? `
+              <div style="margin-bottom:var(--sp-md);">
+                <div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--color-text-muted);margin-bottom:8px;">Equipes por atividade</div>
+                ${atv.filter(a => (a.equipes || []).length).map(a => `
+                  <div style="margin-bottom:8px;padding:8px var(--sp-md);background:var(--color-surface-2);border-radius:6px;">
+                    <div style="font-weight:600;font-size:13px;margin-bottom:4px;">${escapeHtml(a.descricao || a.area || 'Atividade')}</div>
+                    ${(a.equipes || []).map(eq => {
+                      const membros = (eq.membros || [])
+                        .map(mm => escapeHtml(mm.nome || '') + (mm.funcao ? ` (${escapeHtml(mm.funcao)})` : ''))
+                        .filter(s => s.trim()).join(', ');
+                      return `<div style="font-size:13px;line-height:1.7;">• <strong>${escapeHtml(eq.nome || 'Equipe')}</strong> ${escapeHtml(eq.horaInicio || '--')}–${escapeHtml(eq.horaFim || '--')} · ${this._rdoEquipeDuracaoHoras(eq).toFixed(1)}h · ${this._rdoEquipeHomensHora(eq).toFixed(1)} h-h${membros ? ` — ${membros}` : ''}</div>`;
+                    }).join('')}
+                    <div style="text-align:right;font-size:12px;color:var(--color-text-muted);font-weight:600;">Consolidado: ${this._rdoAtividadeConsolidado(a).toFixed(1)} h-h</div>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
 
             <!-- Segurança -->
             <div style="padding:var(--sp-md);background:var(--color-surface-2);border-radius:8px;border-left:3px solid ${acidenteCor};margin-bottom:var(--sp-md);">
@@ -664,7 +681,7 @@
       ...this._autoMoFromOrganograma(contract),
       terc: [],
       equipamentos: [],
-      atividades: [{ area: '', descricao: '', pctConcluida: 0, ocorrencias: '' }],
+      atividades: [{ area: '', descricao: '', pctConcluida: 0, ocorrencias: '', equipes: [{ nome: '', horaInicio: '', horaFim: '', membros: [{ nome: '', funcao: '' }] }] }],
       seguranca: { acidente: 'nao_houve', diagnostico: '', comentarios: '' },
       fiscalizacaoComentarios: ''
     };

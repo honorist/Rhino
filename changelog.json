@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.5.0",
+      "date": "2026-06-01",
+      "summary": "Várias equipes por atividade no RDO, com horários e membros próprios",
+      "changes": [
+        "No RDO, cada atividade agora aceita várias equipes — com nome, horário de início/término e lista de membros (com função) próprios.",
+        "Equipes da mesma atividade podem ter turnos diferentes (ex.: 7h–16h e 16h–22h), sem bloqueio de sobreposição.",
+        "O sistema calcula automaticamente a duração do turno e os homens-hora de cada equipe, além do consolidado da atividade.",
+        "O resumo do RDO e o PDF passam a mostrar as equipes de cada atividade com seus horários e totais.",
+        "Continua valendo a regra de 1 RDO por obra por dia."
+      ]
+    },
+    {
       "version": "1.4.22",
       "date": "2026-06-01",
       "summary": "Corrige travamento ao registrar a 1a medicao (BM) do dia",

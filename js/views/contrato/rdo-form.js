@@ -337,7 +337,12 @@
   },
 
   _rdoTabAtividades(d) {
+    const recursos = (window.Store?.state?.recursos) || [];
+    const membrosDatalist = `<datalist id="rdo-membros-list">${
+      recursos.map(r => `<option value="${escapeHtml(r.nome || '')}">`).join('')
+    }</datalist>`;
     return `
+      ${membrosDatalist}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-md);">
         <h4 style="font-size:16px;font-weight:700;margin:0;">Atividades do Dia</h4>
         <button type="button" class="btn btn-sm btn-primary" data-rdo-atv-add>+ Nova Atividade</button>
@@ -364,11 +369,82 @@
               <label class="form-label">Ocorrências / Alertas</label>
               <textarea class="form-control" data-rdo-atv="${i}.ocorrencias" rows="2">${escapeHtml(a.ocorrencias || '')}</textarea>
             </div>
+            ${this._rdoEquipesBlock(a, i)}
           </div>
         `).join('')}
         ${(d.atividades || []).length === 0 ? `<div style="text-align:center;padding:var(--sp-lg);color:var(--color-text-muted);font-size:15px;">Nenhuma atividade — clique em "+ Nova Atividade"</div>` : ''}
       </div>
     `;
+  },
+
+  // ── Equipes de uma atividade (N equipes, turnos/composições distintos) ──
+  _rdoEquipesBlock(a, i) {
+    const equipes = a.equipes || [];
+    return `
+      <div style="margin-top:var(--sp-md);border-top:1px dashed var(--color-border);padding-top:var(--sp-sm);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-sm);">
+          <span style="font-size:14px;font-weight:600;">👷 Equipes${equipes.length ? ` (${equipes.length})` : ''}</span>
+          <button type="button" class="btn btn-sm btn-secondary" data-rdo-eq-add="${i}">+ Equipe</button>
+        </div>
+        ${equipes.map((eq, j) => `
+          <div style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:6px;padding:var(--sp-sm);margin-bottom:var(--sp-sm);">
+            <div style="display:grid;grid-template-columns:2fr 110px 110px auto;gap:var(--sp-sm);align-items:flex-end;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Equipe</label>
+                <input class="form-control" data-rdo-eq="${i}.${j}.nome" value="${escapeHtml(eq.nome || '')}" placeholder="Ex: Turno A / Montagem">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Início</label>
+                <input class="form-control" type="time" data-rdo-eq="${i}.${j}.horaInicio" value="${escapeHtml(eq.horaInicio || '')}">
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Término</label>
+                <input class="form-control" type="time" data-rdo-eq="${i}.${j}.horaFim" value="${escapeHtml(eq.horaFim || '')}">
+              </div>
+              <button type="button" class="action-link danger" data-rdo-eq-remove="${i}.${j}" style="margin-bottom:8px;" title="Remover equipe">✕</button>
+            </div>
+            <div style="margin-top:var(--sp-sm);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <span style="font-size:13px;color:var(--color-text-muted);">Membros</span>
+                <button type="button" class="action-link" data-rdo-eqmem-add="${i}.${j}">+ Membro</button>
+              </div>
+              ${(eq.membros || []).map((mem, m) => `
+                <div style="display:grid;grid-template-columns:2fr 2fr 40px;gap:var(--sp-sm);margin-bottom:4px;">
+                  <input class="form-control" list="rdo-membros-list" data-rdo-eqmem="${i}.${j}.${m}.nome" value="${escapeHtml(mem.nome || '')}" placeholder="Nome">
+                  <input class="form-control" data-rdo-eqmem="${i}.${j}.${m}.funcao" value="${escapeHtml(mem.funcao || '')}" placeholder="Função">
+                  <button type="button" class="action-link danger" data-rdo-eqmem-remove="${i}.${j}.${m}" title="Remover membro">✕</button>
+                </div>
+              `).join('')}
+              ${(eq.membros || []).length === 0 ? `<div style="font-size:13px;color:var(--color-text-muted);padding:2px 0;">Nenhum membro — clique em "+ Membro"</div>` : ''}
+            </div>
+            <div style="margin-top:6px;font-size:13px;color:var(--color-text-muted);">
+              Duração do turno: <strong>${this._rdoEquipeDuracaoHoras(eq).toFixed(1)}h</strong>
+              · Homens-hora: <strong>${this._rdoEquipeHomensHora(eq).toFixed(1)}</strong>
+            </div>
+          </div>
+        `).join('')}
+        ${equipes.length ? `<div style="text-align:right;font-size:13px;font-weight:600;color:var(--color-text);">Consolidado da atividade: ${this._rdoAtividadeConsolidado(a).toFixed(1)} homens-hora</div>` : ''}
+      </div>
+    `;
+  },
+
+  /** Duração do turno de uma equipe em horas (>0; 0 se inválida ou término ≤ início). */
+  _rdoEquipeDuracaoHoras(eq) {
+    const [hi, mi] = String(eq.horaInicio || '').split(':').map(Number);
+    const [hf, mf] = String(eq.horaFim || '').split(':').map(Number);
+    if ([hi, mi, hf, mf].some(n => Number.isNaN(n))) return 0;
+    const min = (hf * 60 + mf) - (hi * 60 + mi);
+    return min > 0 ? min / 60 : 0;
+  },
+
+  /** Homens-hora de uma equipe = duração do turno × nº de membros. */
+  _rdoEquipeHomensHora(eq) {
+    return this._rdoEquipeDuracaoHoras(eq) * ((eq.membros || []).length);
+  },
+
+  /** Consolidado da atividade = soma de homens-hora de todas as equipes. */
+  _rdoAtividadeConsolidado(a) {
+    return (a.equipes || []).reduce((s, eq) => s + this._rdoEquipeHomensHora(eq), 0);
   },
 
   _rdoTabSeguranca(d) {
@@ -490,6 +566,15 @@
     document.getElementById('btnSaveRdo').addEventListener('click', async () => {
       try {
         if (!this._rdoData.data) { showToast('Data é obrigatória', 'warning'); return; }
+        // Valida equipes: término deve ser posterior ao início (quando ambos preenchidos).
+        for (const [ai, atv] of (this._rdoData.atividades || []).entries()) {
+          for (const eq of (atv.equipes || [])) {
+            if (eq.horaInicio && eq.horaFim && this._rdoEquipeDuracaoHoras(eq) <= 0) {
+              showToast(`Atividade ${ai + 1}, equipe "${eq.nome || 'sem nome'}": término deve ser após o início.`, 'warning');
+              return;
+            }
+          }
+        }
         this._rdoData.diaSemana = this._diaSemanaFromDate(this._rdoData.data);
         // Auto-calculado: totais
         const t = this._rdoData.totais = {
@@ -668,12 +753,81 @@
     });
     overlay.querySelector('[data-rdo-atv-add]')?.addEventListener('click', () => {
       if (!this._rdoData.atividades) this._rdoData.atividades = [];
-      this._rdoData.atividades.push({ area: '', descricao: '', pctConcluida: 0, ocorrencias: '' });
+      // Toda atividade nova nasce com 1 equipe (regra "≥1 equipe por atividade").
+      this._rdoData.atividades.push({
+        area: '', descricao: '', pctConcluida: 0, ocorrencias: '',
+        equipes: [{ nome: '', horaInicio: '', horaFim: '', membros: [{ nome: '', funcao: '' }] }],
+      });
       rerender();
     });
     overlay.querySelectorAll('[data-rdo-atv-remove]').forEach(btn => {
       btn.addEventListener('click', () => {
         this._rdoData.atividades.splice(parseInt(btn.dataset.rdoAtvRemove), 1);
+        rerender();
+      });
+    });
+
+    // ── Equipes (dentro de cada atividade) ──
+    const atvAt = (ai) => (this._rdoData.atividades || [])[ai];
+    overlay.querySelectorAll('[data-rdo-eq]').forEach(el => {
+      el.addEventListener('input', () => {
+        const [aStr, eStr, key] = el.dataset.rdoEq.split('.');
+        const atv = atvAt(parseInt(aStr));
+        if (!atv) return;
+        if (!atv.equipes) atv.equipes = [];
+        if (!atv.equipes[parseInt(eStr)]) atv.equipes[parseInt(eStr)] = { nome: '', horaInicio: '', horaFim: '', membros: [] };
+        atv.equipes[parseInt(eStr)][key] = el.value;
+      });
+      // Ao confirmar um horário, re-renderiza pra atualizar duração/homens-hora.
+      if (el.type === 'time') el.addEventListener('change', () => rerender());
+    });
+    overlay.querySelectorAll('[data-rdo-eq-add]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const atv = atvAt(parseInt(btn.dataset.rdoEqAdd));
+        if (!atv) return;
+        if (!atv.equipes) atv.equipes = [];
+        atv.equipes.push({ nome: '', horaInicio: '', horaFim: '', membros: [{ nome: '', funcao: '' }] });
+        rerender();
+      });
+    });
+    overlay.querySelectorAll('[data-rdo-eq-remove]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const [aStr, eStr] = btn.dataset.rdoEqRemove.split('.');
+        const atv = atvAt(parseInt(aStr));
+        if (atv && atv.equipes) atv.equipes.splice(parseInt(eStr), 1);
+        rerender();
+      });
+    });
+
+    // ── Membros de cada equipe ──
+    overlay.querySelectorAll('[data-rdo-eqmem]').forEach(el => {
+      el.addEventListener('input', () => {
+        const [aStr, eStr, mStr, key] = el.dataset.rdoEqmem.split('.');
+        const atv = atvAt(parseInt(aStr));
+        const eq = atv && atv.equipes && atv.equipes[parseInt(eStr)];
+        if (!eq) return;
+        if (!eq.membros) eq.membros = [];
+        if (!eq.membros[parseInt(mStr)]) eq.membros[parseInt(mStr)] = { nome: '', funcao: '' };
+        eq.membros[parseInt(mStr)][key] = el.value;
+      });
+    });
+    overlay.querySelectorAll('[data-rdo-eqmem-add]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const [aStr, eStr] = btn.dataset.rdoEqmemAdd.split('.');
+        const atv = atvAt(parseInt(aStr));
+        const eq = atv && atv.equipes && atv.equipes[parseInt(eStr)];
+        if (!eq) return;
+        if (!eq.membros) eq.membros = [];
+        eq.membros.push({ nome: '', funcao: '' });
+        rerender();
+      });
+    });
+    overlay.querySelectorAll('[data-rdo-eqmem-remove]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const [aStr, eStr, mStr] = btn.dataset.rdoEqmemRemove.split('.');
+        const atv = atvAt(parseInt(aStr));
+        const eq = atv && atv.equipes && atv.equipes[parseInt(eStr)];
+        if (eq && eq.membros) eq.membros.splice(parseInt(mStr), 1);
         rerender();
       });
     });
