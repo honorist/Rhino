@@ -98,7 +98,6 @@ const routes = {
   '#/contratos/:id':{ view: window.ContratoDetail, label: null,              icon: null },
   '#/comparativo':  { view: window.Comparativo,   label: null,              icon: null },
   '#/cronograma-geral': { view: window.CronogramaGeral, label: 'Cronograma Geral', icon: _ic('activity') },
-  '#/sugestoes':    { view: window.Sugestoes,      label: 'Sugestões',       icon: _ic('message-square') },
   '#/clientes':     { view: window.Clientes,       label: 'Clientes',        icon: _ic('users'),       group: 'comercial' },
   '#/rdos':         { view: window.RDOs,           label: 'RDOs',            icon: _ic('clipboard-check'), group: 'obras' },
   '#/obras':        { view: window.Obras,          label: 'Mapa de Obras',   icon: _ic('map-pin'),         group: 'obras' },
@@ -121,6 +120,7 @@ const routes = {
   '#/fornecedores': { view: window.Fornecedores,   label: 'Fornecedores',    icon: _ic('truck'),       group: 'financeiro' },
   '#/base':         { view: window.Base,           label: 'BASE',            icon: _ic('database'),    group: 'financeiro' },
   '#/ai-chat':      { view: window.AiChat,         label: 'Assistente IA',   icon: _ic('message-square') },
+  '#/sugestoes':    { view: window.Sugestoes,      label: 'Sugestões',       icon: _ic('zap') },
   '#/configuracao': { view: window.Configuracao,   label: 'Configuração',    icon: _ic('settings') },
   '#/cobranca':     { view: window.CobrancaMensal, label: null,              icon: null },  // acessível via Configuração
   '#/usuarios':     { view: window.Usuarios,       label: null,              icon: null },  // acessível via Configuração
@@ -970,7 +970,8 @@ function renderSidebar(opts) {
   ];
   const groupLinks = Object.fromEntries(groups.map(g => [g.key, []]));
   const topLinks = [];
-  let configLink = null; // Configuração é renderizada SEMPRE por último, não pela ordem
+  let configLink = null;    // Configuração é renderizada SEMPRE por último, não pela ordem
+  let sugestoesLink = null; // Sugestões vai logo acima de Configuração (após os grupos)
 
   for (const [pattern, config] of Object.entries(routes)) {
     if (!config.label || pattern.includes(':id')) continue;
@@ -978,6 +979,8 @@ function renderSidebar(opts) {
     const item = { href: pattern, label: config.label, icon: config.icon, soon: config.soon || false, alerta: alertas[pattern] || null };
     if (pattern === '#/configuracao') {
       configLink = item;
+    } else if (pattern === '#/sugestoes') {
+      sugestoesLink = item;
     } else if (config.group && groupLinks[config.group]) {
       groupLinks[config.group].push(item);
     } else {
@@ -1031,6 +1034,7 @@ function renderSidebar(opts) {
     <ul class="nav-links">
       ${topLinks.map(l => renderNavItem(l)).join('')}
       ${groupsHtml}
+      ${sugestoesLink ? renderNavItem(sugestoesLink) : ''}
       ${configLink ? renderNavItem(configLink) : ''}
     </ul>
     <div class="sidebar-footer">

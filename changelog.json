@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.6.1",
+      "date": "2026-06-01",
+      "summary": "Painel de sugestões em Kanban e item no fim do menu",
+      "changes": [
+        "O painel de Sugestões do gestor agora é um quadro Kanban com 4 colunas (Pendente, Em análise, Aprovada, Descartada).",
+        "Arraste um card entre as colunas para mudar o status — ou toque no card para ver os detalhes e mover (funciona no celular).",
+        "O item \"Sugestões\" foi movido para o fim do menu, logo acima de Configuração."
+      ]
+    },
+    {
       "version": "1.6.0",
       "date": "2026-06-01",
       "summary": "Canal de Sugestões: envie ideias de melhoria e acompanhe o status",

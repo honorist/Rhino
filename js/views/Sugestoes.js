@@ -1,5 +1,5 @@
 /* Rhino · view Sugestões (RaiaPro História 2) — canal de sugestões do colaborador.
-   Qualquer usuário envia; gerentes movem o status. FAB global em qualquer tela. */
+   Qualquer usuário envia; gerentes movem o status num Kanban. FAB global em qualquer tela. */
 (function () {
   const STATUS = {
     pendente:   { label: 'Pendente',   cor: '#6B7280', bg: '#6B728022' },
@@ -20,7 +20,6 @@
   window.Sugestoes = {
     _data: { sugestoes: [], podeGerir: false },
     _meuId: null,
-    _filtro: 'todas',
 
     async render() {
       const root = document.getElementById('app');
@@ -48,10 +47,19 @@
       return `<span style="font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;color:${s.cor};background:${s.bg};">${s.label}</span>`;
     },
 
-    _card(s, comControles) {
-      const anexo = s.temAnexo
-        ? `<a href="/api/sugestoes/${esc(s.id)}/anexo" target="_blank" rel="noopener" style="font-size:13px;color:var(--color-primary);">📎 ver foto</a>` : '';
-      const meta = [s.autorNome ? esc(s.autorNome) : null, s.area ? esc(s.area) : null, _fmtData(s.createdAt)].filter(Boolean).join(' · ');
+    _sugById(id) { return (this._data.sugestoes || []).find((s) => s.id === id) || null; },
+
+    _meta(s) {
+      return [s.autorNome ? esc(s.autorNome) : null, s.area ? esc(s.area) : null, _fmtData(s.createdAt)].filter(Boolean).join(' · ');
+    },
+    _anexoLink(s, small) {
+      if (!s.temAnexo) return '';
+      const sz = small ? '12px' : '13px';
+      return `<a href="/api/sugestoes/${esc(s.id)}/anexo" target="_blank" rel="noopener" data-sug-noopen style="font-size:${sz};color:var(--color-primary);">📎 ${small ? 'foto' : 'ver foto'}</a>`;
+    },
+
+    // ── Card de leitura (visão do colaborador) ──
+    _card(s) {
       const justif = s.status === 'descartada' && s.justificativaDescarte
         ? `<div style="font-size:13px;color:var(--color-text-muted);margin-top:6px;"><strong>Motivo do descarte:</strong> ${esc(s.justificativaDescarte)}</div>` : '';
       const coment = s.comentarioGestor && s.status !== 'descartada'
@@ -62,28 +70,50 @@
             <div style="font-weight:700;font-size:15px;">${esc(s.titulo)}</div>
             ${this._badge(s.status)}
           </div>
-          <div style="font-size:13px;color:var(--color-text-muted);margin:2px 0 8px;">${meta}</div>
+          <div style="font-size:13px;color:var(--color-text-muted);margin:2px 0 8px;">${this._meta(s)}</div>
           <div style="font-size:14px;line-height:1.6;white-space:pre-wrap;">${esc(s.descricao)}</div>
-          ${anexo ? `<div style="margin-top:6px;">${anexo}</div>` : ''}
+          ${this._anexoLink(s, false) ? `<div style="margin-top:6px;">${this._anexoLink(s, false)}</div>` : ''}
           ${coment}${justif}
-          ${comControles ? this._controles(s) : ''}
         </div>`;
     },
 
-    _controles(s) {
-      const botoes = ORDEM_STATUS
-        .filter(st => st !== s.status)
-        .map(st => `<button type="button" class="btn btn-sm btn-secondary" data-sug-status="${esc(s.id)}" data-novo="${st}">${STATUS[st].label}</button>`)
-        .join('');
-      return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:var(--sp-sm);border-top:1px dashed var(--color-border);padding-top:var(--sp-sm);">
-        <span style="font-size:12px;color:var(--color-text-muted);align-self:center;">Mover para:</span>${botoes}
-      </div>`;
+    // ── Kanban (visão do gestor): 4 colunas = 4 status ──
+    _kanban(sugestoes) {
+      const cols = ORDEM_STATUS.map((st) => {
+        const itens = sugestoes.filter((s) => s.status === st);
+        const c = STATUS[st];
+        return `
+          <div class="sug-col" data-sug-col="${st}" style="flex:1 1 0;min-width:230px;background:var(--color-surface-2);border-radius:10px;padding:var(--sp-sm);border-top:3px solid ${c.cor};">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-sm);padding:0 2px;">
+              <span style="font-weight:700;font-size:14px;color:${c.cor};">${c.label}</span>
+              <span style="font-size:12px;color:var(--color-text-muted);background:var(--color-surface);border-radius:999px;padding:1px 8px;">${itens.length}</span>
+            </div>
+            <div class="sug-col-body" style="min-height:48px;display:flex;flex-direction:column;gap:8px;">
+              ${itens.map((s) => this._kanbanCard(s)).join('') || `<div style="font-size:13px;color:var(--color-text-muted);text-align:center;padding:var(--sp-md);">—</div>`}
+            </div>
+          </div>`;
+      }).join('');
+      return `
+        <p style="font-size:13px;color:var(--color-text-muted);margin:0 0 var(--sp-sm);">Arraste um card entre as colunas, ou toque nele para ver os detalhes e mover.</p>
+        <div class="sug-kanban" style="display:flex;gap:var(--sp-md);overflow-x:auto;padding-bottom:var(--sp-sm);align-items:flex-start;">${cols}</div>`;
+    },
+
+    _kanbanCard(s) {
+      const meta = [s.autorNome ? esc(s.autorNome) : null, s.area ? esc(s.area) : null].filter(Boolean).join(' · ');
+      return `
+        <div class="sug-kcard" draggable="true" data-sug-id="${esc(s.id)}" tabindex="0" role="button"
+             style="background:var(--color-surface);border:1px solid var(--color-border);border-radius:8px;padding:8px 10px;cursor:grab;">
+          <div style="font-weight:600;font-size:14px;">${esc(s.titulo)}</div>
+          ${meta ? `<div style="font-size:12px;color:var(--color-text-muted);margin-top:2px;">${meta}</div>` : ''}
+          <div style="font-size:13px;color:var(--color-text-muted);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${esc(s.descricao)}</div>
+          ${s.temAnexo ? `<div style="margin-top:4px;">${this._anexoLink(s, true)}</div>` : ''}
+        </div>`;
     },
 
     _html() {
       const { sugestoes, podeGerir } = this._data;
       const header = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-lg);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-lg);gap:var(--sp-md);flex-wrap:wrap;">
           <div>
             <h1 style="margin:0;">Sugestões</h1>
             <p style="margin:0;color:var(--color-text-muted);font-size:14px;">Ideias de melhoria do dia a dia em campo.</p>
@@ -92,26 +122,17 @@
         </div>`;
 
       if (podeGerir) {
-        const filtroAtivo = this._filtro;
-        const filtros = ['todas', ...ORDEM_STATUS].map(f => {
-          const lbl = f === 'todas' ? 'Todas' : STATUS[f].label;
-          const on = filtroAtivo === f;
-          return `<button type="button" class="btn btn-sm ${on ? 'btn-primary' : 'btn-secondary'}" data-sug-filtro="${f}">${lbl}</button>`;
-        }).join('');
-        const lista = sugestoes.filter(s => filtroAtivo === 'todas' || s.status === filtroAtivo);
-        return `${header}
-          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:var(--sp-md);">${filtros}</div>
-          ${lista.length ? lista.map(s => this._card(s, true)).join('') : this._vazio('Nenhuma sugestão neste filtro.')}`;
+        return `${header}${this._kanban(sugestoes)}`;
       }
 
       // Colaborador: minhas + backlog público (aprovadas).
-      const minhas = sugestoes.filter(s => s.autorId === this._meuId);
-      const backlog = sugestoes.filter(s => s.status === 'aprovada');
+      const minhas = sugestoes.filter((s) => s.autorId === this._meuId);
+      const backlog = sugestoes.filter((s) => s.status === 'aprovada');
       return `${header}
         <h3 style="margin:0 0 var(--sp-sm);">Minhas sugestões</h3>
-        ${minhas.length ? minhas.map(s => this._card(s, false)).join('') : this._vazio('Você ainda não enviou sugestões. Clique em "+ Nova sugestão".')}
+        ${minhas.length ? minhas.map((s) => this._card(s)).join('') : this._vazio('Você ainda não enviou sugestões. Clique em "+ Nova sugestão".')}
         <h3 style="margin:var(--sp-lg) 0 var(--sp-sm);">Backlog — aprovadas (o que vem por aí)</h3>
-        ${backlog.length ? backlog.map(s => this._card(s, false)).join('') : this._vazio('Nenhuma sugestão aprovada ainda.')}`;
+        ${backlog.length ? backlog.map((s) => this._card(s)).join('') : this._vazio('Nenhuma sugestão aprovada ainda.')}`;
     },
 
     _vazio(msg) {
@@ -122,10 +143,72 @@
       const root = document.getElementById('app');
       if (!root) return;
       root.querySelector('#btnNovaSugestao')?.addEventListener('click', () => this._abrirNovaModal());
-      root.querySelectorAll('[data-sug-filtro]').forEach(b =>
-        b.addEventListener('click', () => { this._filtro = b.dataset.sugFiltro; const r = document.getElementById('app'); r.innerHTML = this._html(); this._bind(); }));
-      root.querySelectorAll('[data-sug-status]').forEach(b =>
-        b.addEventListener('click', () => this._abrirStatusModal(b.dataset.sugStatus, b.dataset.novo)));
+
+      // Kanban: cards (clique/Enter → detalhe; arrastar → mover) + colunas (drop).
+      root.querySelectorAll('.sug-kcard').forEach((card) => {
+        const abrir = (e) => {
+          if (e.target.closest('[data-sug-noopen]')) return;
+          const s = this._sugById(card.dataset.sugId);
+          if (s) this._abrirDetalheModal(s);
+        };
+        card.addEventListener('click', abrir);
+        card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(e); } });
+        card.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', card.dataset.sugId);
+          e.dataTransfer.effectAllowed = 'move';
+          card.style.opacity = '0.5';
+        });
+        card.addEventListener('dragend', () => { card.style.opacity = '1'; });
+      });
+      root.querySelectorAll('[data-sug-col]').forEach((col) => {
+        col.addEventListener('dragover', (e) => { e.preventDefault(); col.style.outline = '2px dashed var(--color-primary)'; col.style.outlineOffset = '-2px'; });
+        col.addEventListener('dragleave', () => { col.style.outline = 'none'; });
+        col.addEventListener('drop', (e) => {
+          e.preventDefault();
+          col.style.outline = 'none';
+          const id = e.dataTransfer.getData('text/plain');
+          const novo = col.dataset.sugCol;
+          const s = this._sugById(id);
+          if (s && s.status !== novo) this._abrirStatusModal(id, novo);
+        });
+      });
+    },
+
+    // ── Modal: detalhe do card + mover (gestor, mobile-friendly) ──
+    _abrirDetalheModal(s) {
+      document.getElementById('modalSugDetOverlay')?.remove();
+      const botoes = ORDEM_STATUS.filter((st) => st !== s.status)
+        .map((st) => `<button type="button" class="btn btn-sm btn-secondary" data-det-novo="${st}">${STATUS[st].label}</button>`).join('');
+      const justif = s.status === 'descartada' && s.justificativaDescarte
+        ? `<div style="font-size:13px;color:var(--color-text-muted);margin-top:8px;"><strong>Motivo do descarte:</strong> ${esc(s.justificativaDescarte)}</div>` : '';
+      const coment = s.comentarioGestor && s.status !== 'descartada'
+        ? `<div style="font-size:13px;color:var(--color-text-muted);margin-top:8px;"><strong>Comentário:</strong> ${esc(s.comentarioGestor)}</div>` : '';
+      const html = `
+        <div class="modal-overlay" id="modalSugDetOverlay">
+          <div class="modal" style="width:92vw;max-width:560px;">
+            <div class="modal-header">
+              <h2 class="modal-title" style="font-size:18px;">${esc(s.titulo)}</h2>
+              <button class="modal-close" id="detClose">✕</button>
+            </div>
+            <div style="padding:var(--sp-lg);">
+              <div style="display:flex;align-items:center;gap:var(--sp-sm);margin-bottom:8px;">${this._badge(s.status)}<span style="font-size:13px;color:var(--color-text-muted);">${this._meta(s)}</span></div>
+              <div style="font-size:14px;line-height:1.7;white-space:pre-wrap;">${esc(s.descricao)}</div>
+              ${this._anexoLink(s, false) ? `<div style="margin-top:8px;">${this._anexoLink(s, false)}</div>` : ''}
+              ${coment}${justif}
+            </div>
+            <div class="modal-footer" style="flex-wrap:wrap;gap:6px;">
+              <span style="font-size:12px;color:var(--color-text-muted);align-self:center;margin-right:auto;">Mover para:</span>
+              ${botoes}
+            </div>
+          </div>
+        </div>`;
+      document.body.insertAdjacentHTML('beforeend', html);
+      const ov = document.getElementById('modalSugDetOverlay');
+      const fechar = () => ov.remove();
+      document.getElementById('detClose').onclick = fechar;
+      ov.addEventListener('click', (e) => { if (e.target === ov) fechar(); });
+      ov.querySelectorAll('[data-det-novo]').forEach((b) =>
+        b.addEventListener('click', () => { fechar(); this._abrirStatusModal(s.id, b.dataset.detNovo); }));
     },
 
     // ── Modal: nova sugestão ──
@@ -142,7 +225,7 @@
                 <textarea class="form-control" id="sugDescricao" rows="4" placeholder="Explique a sua sugestão"></textarea></div>
               <div class="form-group"><label class="form-label">Área (opcional)</label>
                 <input class="form-control" id="sugArea" list="sugAreasList" placeholder="Ex.: RDO">
-                <datalist id="sugAreasList">${AREAS.map(a => `<option value="${a}">`).join('')}</datalist></div>
+                <datalist id="sugAreasList">${AREAS.map((a) => `<option value="${a}">`).join('')}</datalist></div>
               <div class="form-group"><label class="form-label">Foto (opcional)</label>
                 <input class="form-control" type="file" id="sugFoto" accept="image/jpeg,image/png,image/webp"></div>
             </div>
@@ -157,7 +240,7 @@
       const fechar = () => ov.remove();
       document.getElementById('sugClose').onclick = fechar;
       document.getElementById('sugCancel').onclick = fechar;
-      ov.addEventListener('click', e => { if (e.target === ov) fechar(); });
+      ov.addEventListener('click', (e) => { if (e.target === ov) fechar(); });
       document.getElementById('sugEnviar').onclick = () => this._enviarNova(ov);
     },
 
@@ -218,7 +301,7 @@
       const fechar = () => ov.remove();
       document.getElementById('stClose').onclick = fechar;
       document.getElementById('stCancel').onclick = fechar;
-      ov.addEventListener('click', e => { if (e.target === ov) fechar(); });
+      ov.addEventListener('click', (e) => { if (e.target === ov) fechar(); });
       document.getElementById('stConfirm').onclick = async () => {
         const comentario = document.getElementById('stComentario')?.value.trim() || '';
         const justificativa = document.getElementById('stJustificativa')?.value.trim() || '';
