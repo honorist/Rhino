@@ -51,4 +51,5 @@ module.exports = {
   vagas:                require('./vagas'),
   candidatos:           require('./candidatos'),
   notificacoes:         require('./notificacoes'),
+  sugestoes:            require('./sugestoes'),
 };

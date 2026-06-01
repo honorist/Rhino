@@ -75,6 +75,8 @@ const registerComercial = require('./routes/comercial');
 const registerOperacao = require('./routes/operacao');
 const registerContracts = require('./routes/contracts');
 const registerRecrutamento = require('./routes/recrutamento');
+const registerSugestoes = require('./routes/sugestoes');
+const sugestoesHandlers = require('./handlers/sugestoes'); // p/ dispatch multipart do anexo
 const { validateBody, schemas, ValidationError } = require('./lib/validate');
 
 // Web Push — inicializa só se VAPID keys estiverem presentes
@@ -2445,6 +2447,17 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Multipart (upload de foto de sugestão)
+  const isSugestaoAnexoUpload = req.method === 'POST'
+    && /^\/api\/sugestoes\/[^/]+\/anexo$/.test(pathname);
+  if (isSugestaoAnexoUpload) {
+    (async () => {
+      if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
+      sugestoesHandlers.uploadAnexo(pathname.split('/')[3], req, res);
+    })();
+    return;
+  }
+
   // Parse body for POST/PUT requests
   const MAX_BODY_BYTES = 1_000_000; // 1 MB
   let body = '';
@@ -2732,6 +2745,8 @@ const apiRouter = createRouter();
 registerAuth(apiRouter);
 // Recrutamento (US-05 a US-09) — handlers próprios, sem injeção de deps.
 registerRecrutamento(apiRouter);
+// Canal de Sugestões (RaiaPro H2) — handlers próprios. Upload de foto é multipart (abaixo).
+registerSugestoes(apiRouter);
 registerPortal(apiRouter, {
   handlePortalLogin, applyPortalAuth, handlePortalLogout,
   handlePortalDashboard, handlePortalListPropostas,
