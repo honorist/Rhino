@@ -38,6 +38,8 @@ const pgRateLimit = require('./lib/pg-rate-limit');
 const audit = require('./lib/audit');
 const money = require('./lib/money'); // dinheiro 2 casas — contém drift de float
 const caixaHandlers = require('./handlers/caixa'); // domínio caixa extraído (desmembramento server.js)
+const sociosHandlers = require('./handlers/socios'); // domínio sócios extraído
+const baseHandlers = require('./handlers/base');     // domínio BASE (CRUD) extraído
 const bus = require('./lib/bus');
 const perms = require('./lib/permissions');
 const fluxoCompra = require('./lib/fluxo-compra');
@@ -575,57 +577,8 @@ async function handleDeleteSaida(id, res) {
 // (continuação do desmembramento do server.js). Ligados via `...caixaHandlers`
 // no objeto de deps de registerFinanceiro.
 
-async function handleGetBase(res) {
-  const data = await readCollection('base.json', 'baseItems', 'items');
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
-}
-
-async function handlePostBase(body, res) {
-  try {
-    const item = {
-      id: generateId('bas'),
-      description: body.description || '',
-      type: body.type || 'variavel',
-      value: money.parse(body.value),
-      date: body.date || new Date().toISOString().split('T')[0],
-      allocations: '[]',
-      notes: body.notes || '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    const { envelope } = await writeCollection('baseItems', 'items', (repo) => repo.create(item));
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handlePutBase(id, body, res) {
-  try {
-    const allowed = {};
-    const fields = ['description', 'type', 'notes'];
-    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
-    if (body.value !== undefined) allowed.value = money.parse(body.value);
-    if (body.date !== undefined) allowed.date = body.date || null;
-    allowed.updatedAt = new Date().toISOString();
-
-    const { envelope, result } = await writeCollection('baseItems', 'items', (repo) => repo.updateById(id, allowed));
-    if (!result) return sendError(res, 404, 'Item not found');
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handleDeleteBase(id, res) {
-  try {
-    const { envelope } = await writeCollection('baseItems', 'items', (repo) => repo.removeById(id));
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
+// Handlers de BASE (CRUD) extraídos → handlers/base.js. handleAllocateBase
+// (lógica de alocação) permanece abaixo.
 
 async function handleAllocateBase(id, body, res) {
   try {
@@ -1530,57 +1483,7 @@ async function handleMetrics(res, req) {
 }
 
 // ============ Sócios handlers ============
-async function handleGetSocios(res) {
-  const data = await readCollection('socios.json', 'socios', 'socios');
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
-}
-
-async function handlePostSocio(body, res) {
-  try {
-    if (!body.name) return sendError(res, 400, 'Nome é obrigatório');
-    const socio = {
-      id: generateId('soc'),
-      name: body.name,
-      document: body.document || '',
-      email: body.email || '',
-      phone: body.phone || '',
-      participacao: parseFloat(body.participacao) || 0,
-      notes: body.notes || '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    const { envelope } = await writeCollection('socios', 'socios', (repo) => repo.create(socio));
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handlePutSocio(id, body, res) {
-  try {
-    const allowed = {};
-    const fields = ['name', 'document', 'email', 'phone', 'participacao', 'notes'];
-    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
-    if (allowed.participacao !== undefined) allowed.participacao = parseFloat(allowed.participacao) || 0;
-    allowed.updatedAt = new Date().toISOString();
-
-    const { envelope, result } = await writeCollection('socios', 'socios', (repo) => repo.updateById(id, allowed));
-    if (!result) return sendError(res, 404, 'Sócio não encontrado');
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handleDeleteSocio(id, res) {
-  try {
-    const { envelope } = await writeCollection('socios', 'socios', (repo) => repo.removeById(id));
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
+// Handlers de Sócios (CRUD) extraídos → handlers/socios.js.
 
 // ============ Investimentos handlers ============
 async function handleGetInvestimentos(res) {
@@ -4734,8 +4637,8 @@ registerPlatform(apiRouter, {
 registerFinanceiro(apiRouter, {
   withIdempotency,
   ...caixaHandlers, // handleGetCaixa/Post/Put/Delete (handlers/caixa.js)
-  handleGetBase, handlePostBase, handlePutBase, handleDeleteBase, handleAllocateBase,
-  handleGetSocios, handlePostSocio, handlePutSocio, handleDeleteSocio,
+  ...baseHandlers, handleAllocateBase, // base CRUD em handlers/base.js; allocate inline
+  ...sociosHandlers, // handlers/socios.js
   handleGetInvestimentos, handlePostInvestimento, handleDeleteInvestimento,
   handleGetTiposBase, handlePostTipoBase, handlePutTipoBase, handleDeleteTipoBase,
   handleGetContasPagar, handlePostContaPagar, handlePutContaPagar, handleDeleteContaPagar,
