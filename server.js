@@ -2031,10 +2031,23 @@ function _bootstrapInline(version) {
   return `(function(){
 window.__APP_VERSION__="${version}";
 var loaded="${version}";
+var UPG_KEY="rh:upgrade-attempt",UPG_MAX=3;
 function go(srv){
-  if(srv===loaded)return;
-  var key="rh:upgrade-attempt";
-  try{if(sessionStorage.getItem(key)===srv)return;sessionStorage.setItem(key,srv);}catch(e){}
+  if(srv===loaded){try{sessionStorage.removeItem(UPG_KEY);}catch(e){}return;}
+  // Anti reload-loop TOLERANTE: durante o deploy ha uma janela em que /api/health
+  // ja reporta a versao nova enquanto os assets ainda podem vir antigos. Desistir
+  // na 1a tentativa deixaria o cliente preso na versao velha (precisaria refresh
+  // manual). Conta as tentativas por versao (formato "versao@n") e so desiste apos
+  // UPG_MAX — o cliente converge sozinho. Formato compartilhado com polish.js.
+  try{
+    var raw=sessionStorage.getItem(UPG_KEY)||"";
+    var at=raw.indexOf("@");
+    var ver=at>=0?raw.slice(0,at):raw;
+    var cnt=at>=0?(parseInt(raw.slice(at+1),10)||0):0;
+    var n=(ver===srv)?cnt:0;
+    if(n>=UPG_MAX)return;
+    sessionStorage.setItem(UPG_KEY,srv+"@"+(n+1));
+  }catch(e){}
   Promise.resolve()
     .then(function(){
       if(!navigator.serviceWorker)return;

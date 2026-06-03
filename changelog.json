@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.8.2",
+      "date": "2026-06-03",
+      "summary": "Atualização automática mais confiável — não precisa mais recarregar nem limpar o cache",
+      "changes": [
+        "Quando uma nova versão do sistema é publicada, o app passa a se atualizar sozinho de forma confiável — você não precisa mais apertar F5, dar 'recarregar forçado' nem limpar o cache do navegador.",
+        "A atualização tolera o momento da publicação (antes, em alguns casos, o navegador podia ficar preso na versão anterior até um recarregamento manual)."
+      ]
+    },
+    {
       "version": "1.8.1",
       "date": "2026-06-03",
       "summary": "Correção: clicar numa linha da lista de RDOs volta a abrir o detalhe",

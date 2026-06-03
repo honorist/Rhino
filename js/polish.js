@@ -72,6 +72,7 @@
     if (!loadedVersion || loadedVersion === 'dev') return;
 
     const TENTATIVA_KEY = 'rh:upgrade-attempt';
+    const MAX_TENTATIVAS = 3; // reloads forçados por versão antes de desistir (anti-loop)
     let updating = false;
     let pendingServerVersion = null;
     let lastInputAt = Date.now();
@@ -93,14 +94,24 @@
       if (updating) return;
       updating = true;
       try {
-        // Anti-loop: se já tentei pra essa mesma versão e não funcionou, desiste
-        const tentativa = sessionStorage.getItem(TENTATIVA_KEY);
-        if (tentativa === serverVersion) {
-          console.warn('[autoUpdate] já tentei atualizar pra v' + serverVersion +
-            ' e a versão carregada continua sendo ' + loadedVersion + ' — desistindo');
+        // Anti reload-loop, mas TOLERANTE a falha transiente: durante um deploy
+        // (Railway) há uma janela curta em que /api/health já reporta a versão
+        // nova enquanto os assets ainda podem vir antigos. Se desistíssemos na
+        // 1ª tentativa, o cliente ficaria preso na versão velha e precisaria de
+        // refresh manual. Em vez disso, contamos as tentativas por versão e só
+        // desistimos após MAX_TENTATIVAS — o cliente converge sozinho.
+        const raw = sessionStorage.getItem(TENTATIVA_KEY) || '';
+        const sep = raw.indexOf('@');
+        const verAnt = sep >= 0 ? raw.slice(0, sep) : raw;
+        const cntAnt = sep >= 0 ? parseInt(raw.slice(sep + 1), 10) : 0;
+        const tentativas = (verAnt === serverVersion) ? (cntAnt || 0) : 0;
+        if (tentativas >= MAX_TENTATIVAS) {
+          console.warn('[autoUpdate] ' + MAX_TENTATIVAS + ' tentativas para v' + serverVersion +
+            ' e a versão carregada continua ' + loadedVersion + ' — desistindo até o próximo deploy');
+          updating = false; // NÃO trava o ciclo: um deploy mais novo ainda dispara
           return;
         }
-        sessionStorage.setItem(TENTATIVA_KEY, serverVersion);
+        sessionStorage.setItem(TENTATIVA_KEY, serverVersion + '@' + (tentativas + 1));
 
         // Desregistra todos os SWs
         if ('serviceWorker' in navigator) {
@@ -144,9 +155,10 @@
           return;
         }
         pendingServerVersion = data.version;
-        // Limpa marca se a versão divergente é DIFERENTE da última tentativa
-        // (significa que houve um novo deploy desde a tentativa fracassada)
-        if (sessionStorage.getItem(TENTATIVA_KEY) !== data.version) {
+        // Se a versão divergente é DIFERENTE da última tentada, houve um novo
+        // deploy desde então — zera o contador para tentar a versão nova.
+        const verTentado = (sessionStorage.getItem(TENTATIVA_KEY) || '').split('@')[0];
+        if (verTentado && verTentado !== data.version) {
           sessionStorage.removeItem(TENTATIVA_KEY);
         }
         tentarAplicar();
