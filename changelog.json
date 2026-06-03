@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.9.0",
+      "date": "2026-06-03",
+      "summary": "PDF do RDO no formato oficial Passarelli, com seções de prazo, equipamentos e segurança/DDS",
+      "changes": [
+        "O PDF do RDO foi refeito na identidade visual do formulário oficial Passarelli: cabeçalho, identificação, condições climáticas com legenda colorida, informe de efetivo de mão-de-obra (Indireta/Direta/Subcontratada), detalhamento de horário por função com total de homem-hora e blocos de assinatura.",
+        "Incluídas seções próprias do Rhino que o modelo não tinha: Prazo/Cronograma, Equipamentos e Segurança — esta com destaque para o Tema do DDS (Diálogo Diário de Segurança) e o Tema de Meio Ambiente.",
+        "As atividades do dia aparecem no bloco 'Serviços' e os comentários da fiscalização em 'Observações'."
+      ]
+    },
+    {
       "version": "1.8.2",
       "date": "2026-06-03",
       "summary": "Atualização automática mais confiável — não precisa mais recarregar nem limpar o cache",
