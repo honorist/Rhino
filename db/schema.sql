@@ -377,6 +377,7 @@ CREATE TABLE IF NOT EXISTS rdos (
   fiscalizacao_comentarios TEXT,
   totais                   JSONB DEFAULT '{}'::jsonb,
   fotos                    JSONB DEFAULT '[]'::jsonb,
+  passarelli               JSONB DEFAULT '{}'::jsonb,
   created_at               TIMESTAMPTZ DEFAULT NOW(),
   updated_at               TIMESTAMPTZ DEFAULT NOW()
 );

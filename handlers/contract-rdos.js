@@ -13,10 +13,38 @@ const path = require('path');
 const fs = require('fs');
 const repos = require('../db/repos');
 const feriados = require('../lib/feriados');
+const rdoHH = require('../lib/rdo-hh');
 const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
 
 const RDO_FOTOS_DIR = path.join(__dirname, '..', 'data', 'rdo-fotos');
+
+/**
+ * Normaliza o bloco `passarelli` do body (recalculando o detalhamento de
+ * horário e o HH no SERVIDOR — fonte da verdade) e devolve o objeto pronto
+ * para persistir + o total de homem-hora.
+ *
+ * @param {object} passarelliBody  body.passarelli (pode ser undefined)
+ * @returns {{ passarelli: object, totalHomemHora: number }}
+ */
+function normalizarPassarelli(passarelliBody) {
+  const p = passarelliBody && typeof passarelliBody === 'object' ? passarelliBody : {};
+  const detalhe = Array.isArray(p.detalhamentoHorario)
+    ? p.detalhamentoHorario.map(rdoHH.normalizarLinha)
+    : [];
+  const totalHomemHora = rdoHH.totalHomemHora(detalhe);
+  return {
+    passarelli: {
+      pedido: p.pedido || '',
+      localizacao: p.localizacao || '',
+      subcontratada: p.subcontratada || '',
+      fiscalizacaoNome: p.fiscalizacaoNome || '',
+      diasCorridos: p.diasCorridos != null ? Number(p.diasCorridos) || 0 : 0,
+      detalhamentoHorario: detalhe,
+    },
+    totalHomemHora,
+  };
+}
 
 function validarRdo(body, rdos, rdoIdAtual) {
   if (!body.data) return 'Data é obrigatória';
@@ -163,6 +191,8 @@ async function handlePostRdo(contractId, body, res) {
       rdoSeed = Number(meta.rdoSeed) || 0;
     } catch { /* metadata inválido — ignora */ }
 
+    const pass = normalizarPassarelli(body.passarelli);
+
     const rdo = {
       id: generateId('rdo'),
       contractId,
@@ -192,7 +222,12 @@ async function handlePostRdo(contractId, body, res) {
       atividades:   JSON.stringify(Array.isArray(body.atividades)   ? body.atividades   : []),
       seguranca: JSON.stringify(body.seguranca || { acidente: 'nao_houve', diagnostico: '', comentarios: '' }),
       fiscalizacaoComentarios: body.fiscalizacaoComentarios || '',
-      totais: JSON.stringify(body.totais || { moi: 0, mod: 0, terc: 0, eqp: 0, homensHora: 0, horasParadas: 0, equipamentoHora: 0 }),
+      totais: JSON.stringify({
+        moi: 0, mod: 0, terc: 0, eqp: 0, homensHora: 0, horasParadas: 0, equipamentoHora: 0,
+        ...(body.totais || {}),
+        totalHomemHora: pass.totalHomemHora,
+      }),
+      passarelli: JSON.stringify(pass.passarelli),
       fotos: '[]',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -222,6 +257,16 @@ async function handlePutRdo(contractId, rdoId, body, res) {
     for (const f of jsonbFields) {
       if (body[f] !== undefined) allowed[f] = JSON.stringify(body[f]);
     }
+    // Modelo Passarelli: recalcula detalhamento de horário + HH no servidor
+    // (fonte da verdade) e propaga totalHomemHora para `totais`.
+    if (body.passarelli !== undefined) {
+      const pass = normalizarPassarelli(body.passarelli);
+      allowed.passarelli = JSON.stringify(pass.passarelli);
+      const totaisBase = body.totais !== undefined
+        ? body.totais
+        : (typeof atual.totais === 'string' ? JSON.parse(atual.totais || '{}') : (atual.totais || {}));
+      allowed.totais = JSON.stringify({ ...totaisBase, totalHomemHora: pass.totalHomemHora });
+    }
     if (body.horaExtra !== undefined) allowed.horaExtra = !!body.horaExtra ? 'true' : 'false';
     allowed.updatedAt = new Date().toISOString();
 
@@ -229,6 +274,40 @@ async function handlePutRdo(contractId, rdoId, body, res) {
     sendJson(res, await repos.contracts.getEnvelope());
   } catch (e) {
     sendError(res, 400, e.message);
+  }
+}
+
+// Limita geração simultânea de PDFs (pdfkit é CPU-bound). Espelha o guard das
+// propostas no server.js, mas local a este módulo.
+let _rdoPdfInFlight = 0;
+const _RDO_PDF_MAX = 3;
+
+async function handleGetRdoPdf(contractId, rdoId, res) {
+  if (_rdoPdfInFlight >= _RDO_PDF_MAX) {
+    return sendError(res, 429, 'Servidor ocupado gerando documentos. Aguarde alguns segundos.');
+  }
+  _rdoPdfInFlight++;
+  try {
+    const { gerarRdoPdf, isPdfAvailable } = require('../lib/rdo-pdf');
+    if (!isPdfAvailable()) return sendError(res, 500, 'Lib `pdfkit` não instalada.');
+    const contract = await repos.contracts.findByIdWithChildren(contractId);
+    if (!contract) return sendError(res, 404, 'Contrato não encontrado');
+    const rdo = (contract.rdos || []).find(r => r.id === rdoId);
+    if (!rdo) return sendError(res, 404, 'RDO não encontrado');
+
+    const buf = await gerarRdoPdf(rdo, contract);
+    const fname = `RDO_${String(rdo.numero || rdoId).replace(/[^A-Za-z0-9_-]+/g, '_')}_${rdo.data || ''}.pdf`;
+    res.writeHead(200, {
+      'Content-Type': 'application/pdf',
+      'Content-Length': buf.length,
+      'Content-Disposition': `inline; filename="${fname}"`,
+    });
+    res.end(buf);
+  } catch (e) {
+    console.error('[rdo/pdf] erro:', e);
+    sendError(res, 500, e.message);
+  } finally {
+    _rdoPdfInFlight--;
   }
 }
 
@@ -246,4 +325,4 @@ async function handleDeleteRdo(contractId, rdoId, res) {
   }
 }
 
-module.exports = { handleGetRdosGlobal, handlePostRdo, handlePutRdo, handleDeleteRdo };
+module.exports = { handleGetRdosGlobal, handlePostRdo, handlePutRdo, handleDeleteRdo, handleGetRdoPdf };

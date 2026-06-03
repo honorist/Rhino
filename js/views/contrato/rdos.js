@@ -147,8 +147,9 @@
     document.querySelectorAll('.btn-pdf-rdo').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const rdo = (contract.rdos || []).find(r => r.id === e.currentTarget.dataset.id);
-        if (rdo) this.exportarRdoPdf(rdo, contract);
+        const rdoId = e.currentTarget.dataset.id;
+        // PDF no novo modelo (servidor): layout oficial + detalhamento de HH.
+        window.open(`/api/contracts/${contract.id}/rdos/${rdoId}/pdf`, '_blank');
       });
     });
     // Click na linha → abre resumo do RDO
@@ -389,7 +390,7 @@
     const bEdit = document.getElementById('btnRdoEdit');
     if (bEdit) bEdit.addEventListener('click', () => { close(); this.showModalRdo(contract.id, rdo); });
     const bPdf = document.getElementById('btnRdoPdf');
-    if (bPdf) bPdf.addEventListener('click', () => { close(); this.exportarRdoPdf(rdo, contract); });
+    if (bPdf) bPdf.addEventListener('click', () => { close(); window.open(`/api/contracts/${contract.id}/rdos/${rdo.id}/pdf`, '_blank'); });
     const bWhats = document.getElementById('btnRdoWhats');
     if (bWhats) bWhats.addEventListener('click', () => {
       // Texto-padrão do RDO para o grupo de WhatsApp da obra (modelo com emojis).
@@ -690,7 +691,15 @@
       equipamentos: [],
       atividades: [{ area: '', descricao: '', pctConcluida: 0, ocorrencias: '', equipes: [{ nome: '', horaInicio: '', horaFim: '', membros: [{ nome: '', funcao: '' }] }] }],
       seguranca: { acidente: 'nao_houve', diagnostico: '', comentarios: '' },
-      fiscalizacaoComentarios: ''
+      fiscalizacaoComentarios: '',
+      passarelli: {
+        pedido: contract.contractNumber || '',
+        localizacao: '',
+        subcontratada: '',
+        fiscalizacaoNome: '',
+        diasCorridos: 0,
+        detalhamentoHorario: []
+      }
     };
     // Recalcula prazo sempre (novo ou edição) com base no contrato + data do RDO.
     // Faltante considera a data de tendência (previsão atualizada).
@@ -718,6 +727,16 @@
     };
 
     this._rdoData = JSON.parse(JSON.stringify(iniciais));
+    // Garante o bloco `passarelli` (RDOs antigos podem não ter) e atualiza os
+    // dias corridos a partir do prazo recalculado.
+    const P = (this._rdoData.passarelli && typeof this._rdoData.passarelli === 'object')
+      ? this._rdoData.passarelli : (this._rdoData.passarelli = {});
+    if (P.pedido == null) P.pedido = contract.contractNumber || '';
+    if (P.localizacao == null) P.localizacao = '';
+    if (P.subcontratada == null) P.subcontratada = '';
+    if (P.fiscalizacaoNome == null) P.fiscalizacaoNome = '';
+    if (!Array.isArray(P.detalhamentoHorario)) P.detalhamentoHorario = [];
+    P.diasCorridos = decorrido;
     this._rdoTab = 'cabecalho';
     this._renderRdoModal(contractId, rdo);
   },

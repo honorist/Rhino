@@ -18,6 +18,7 @@
       { k:'cabecalho',    l:'Cabeçalho' },
       { k:'tempo',        l:'Tempo' },
       { k:'mo',           l:'Mão de Obra' },
+      { k:'horario',      l:'Efetivo / HH' },
       { k:'equipamentos', l:'Equipamentos' },
       { k:'atividades',   l:'Atividades' },
       { k:'seguranca',    l:'Segurança' },
@@ -66,6 +67,7 @@
       case 'cabecalho':    return this._rdoTabCabecalho(d);
       case 'tempo':        return this._rdoTabTempo(d);
       case 'mo':           return this._rdoTabMo(d);
+      case 'horario':      return this._rdoTabHorario(d);
       case 'equipamentos': return this._rdoTabEquipamentos(d);
       case 'atividades':   return this._rdoTabAtividades(d);
       case 'seguranca':    return this._rdoTabSeguranca(d);
@@ -91,6 +93,32 @@
         <div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;">
           ${infoBox('Projeto', escapeHtml(d.projeto || ''))}
           ${infoBox('Ordem de Compra / Serviço', escapeHtml(d.ordemCompra || ''))}
+        </div>
+      </div>
+
+      <!-- Identificação do contrato (modelo Passarelli) -->
+      <div class="form-row form-row-3" style="grid-template-columns:1fr 1fr 1fr;">
+        <div class="form-group">
+          <label class="form-label">Pedido / Nº do Contrato</label>
+          <input class="form-control" data-rdo-field="passarelli.pedido" value="${escapeHtml(d.passarelli?.pedido || '')}" placeholder="Ex: ETA_AR_069-2026">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Localização</label>
+          <input class="form-control" data-rdo-field="passarelli.localizacao" value="${escapeHtml(d.passarelli?.localizacao || '')}" placeholder="Ex: Inocência / MS">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Dias Corridos</label>
+          <input class="form-control" data-rdo-field="passarelli.diasCorridos" value="${d.passarelli?.diasCorridos || 0}" readonly style="background:var(--color-bg) !important;color:var(--color-text) !important;cursor:not-allowed;">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Subcontratada</label>
+          <input class="form-control" data-rdo-field="passarelli.subcontratada" value="${escapeHtml(d.passarelli?.subcontratada || '')}" placeholder="Ex: Rhino Construções e Montagens">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Fiscalização (nome)</label>
+          <input class="form-control" data-rdo-field="passarelli.fiscalizacaoNome" value="${escapeHtml(d.passarelli?.fiscalizacaoNome || '')}" placeholder="Nome do fiscal do contrato">
         </div>
       </div>
 
@@ -300,6 +328,82 @@
           </tbody>
         </table>
       </div>
+    `;
+  },
+
+  // ── Duração líquida (horas) tratando virada de madrugada (espelha lib/rdo-hh) ──
+  _hhDur(ini, fim) {
+    const p = (s) => { const m = String(s || '').match(/^(\d{1,2}):(\d{2})$/); return m ? (+m[1] + +m[2] / 60) : null; };
+    const a = p(ini), b = p(fim);
+    if (a == null || b == null) return 0;
+    let dur = b - a;
+    if (dur <= 0) dur += 24;
+    return dur;
+  },
+  // Qtd de horas e HH de uma linha de detalhamento (refeição em minutos descontada).
+  _hhLinha(l) {
+    const ref = (+l.refeicaoMin || 0) / 60;
+    let q;
+    if (l.horaIni && l.horaFim) q = Math.max(0, this._hhDur(l.horaIni, l.horaFim) - ref);
+    else q = +l.qtdHoras || 0;
+    q = Math.round(q * 100) / 100;
+    const hh = Math.round((+l.efetivo || 0) * q * 100) / 100;
+    return { qtdHoras: q, horaTotalHH: hh };
+  },
+
+  _rdoTabHorario(d) {
+    const FUNCOES = ['Armador', 'Bloqueiro', 'Carpinteiro', 'Montador de Andaime', 'Pedreiro', 'Servente', 'Líder de Equipe', 'Eletricista Montador', 'Soldador'];
+    const det = (d.passarelli && d.passarelli.detalhamentoHorario) || [];
+    let totalHH = 0;
+    const linhas = det.map((l, i) => {
+      const c = this._hhLinha(l);
+      totalHH += c.horaTotalHH;
+      return `
+        <tr data-rdo-hh-row="${i}">
+          <td><input class="form-control" list="rdo-hh-funcoes" data-rdo-hh="${i}.funcao" value="${escapeHtml(l.funcao || '')}" placeholder="Função"></td>
+          <td style="width:96px;"><input class="form-control" type="time" data-rdo-hh="${i}.horaIni" value="${escapeHtml(l.horaIni || '')}"></td>
+          <td style="width:96px;"><input class="form-control" type="time" data-rdo-hh="${i}.horaFim" value="${escapeHtml(l.horaFim || '')}"></td>
+          <td style="width:90px;"><input class="form-control" type="number" min="0" step="5" data-rdo-hh="${i}.refeicaoMin" value="${l.refeicaoMin || 0}" title="Refeição (min)"></td>
+          <td style="width:70px;text-align:right;" class="rdo-hh-qtd">${c.qtdHoras.toFixed(2)}</td>
+          <td style="width:90px;"><input class="form-control" type="number" min="0" data-rdo-hh="${i}.efetivo" value="${l.efetivo || 0}"></td>
+          <td style="width:80px;text-align:right;font-weight:600;" class="rdo-hh-total">${c.horaTotalHH.toFixed(2)}</td>
+          <td style="width:40px;"><button type="button" class="action-link danger" data-rdo-hh-remove="${i}">✕</button></td>
+        </tr>`;
+    }).join('');
+    return `
+      <datalist id="rdo-hh-funcoes">${FUNCOES.map(f => `<option value="${f}">`).join('')}</datalist>
+      <p style="font-size:15px;color:var(--color-text-muted);margin-bottom:var(--sp-md);">
+        Detalhamento de horário por função (modelo de fornecimento de HH). Informe <strong>início</strong>, <strong>término</strong> e a <strong>refeição (min)</strong> — as horas trabalhadas e o HH (efetivo × horas) são calculados. Turnos que viram a madrugada são suportados.
+      </p>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-sm);">
+        <h4 style="font-size:16px;font-weight:700;margin:0;">Detalhamento de Horário por Função</h4>
+        <button type="button" class="btn btn-sm btn-primary" data-rdo-hh-add>+ Adicionar linha</button>
+      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="background:var(--color-surface-2);">
+            <th scope="col" class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Função</th>
+            <th scope="col" class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Início</th>
+            <th scope="col" class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Término</th>
+            <th scope="col" class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Refeição</th>
+            <th scope="col" class="rh-meta" style="text-align:right;padding:8px;font-weight:600;">Qtd Horas</th>
+            <th scope="col" class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Efetivo</th>
+            <th scope="col" class="rh-meta" style="text-align:right;padding:8px;font-weight:600;">HH</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody data-rdo-hh-body>
+          ${linhas}
+          ${det.length === 0 ? `<tr><td colspan="8" style="text-align:center;padding:var(--sp-md);color:var(--color-text-muted);font-size:15px;">Nenhuma linha — clique em "+ Adicionar linha"</td></tr>` : ''}
+        </tbody>
+        <tfoot>
+          <tr style="background:var(--color-surface-2);font-weight:700;">
+            <td colspan="6" style="text-align:right;padding:8px;">TOTAL DE HOMEM-HORA (HH)</td>
+            <td style="text-align:right;padding:8px;" data-rdo-hh-grandtotal>${totalHH.toFixed(2)}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
     `;
   },
 
@@ -737,6 +841,45 @@
     overlay.querySelectorAll('[data-rdo-eqp-remove]').forEach(btn => {
       btn.addEventListener('click', () => {
         this._rdoData.equipamentos.splice(parseInt(btn.dataset.rdoEqpRemove), 1);
+        rerender();
+      });
+    });
+
+    // ── Detalhamento de Horário por Função (modelo HH) ──
+    const hhArr = () => {
+      if (!this._rdoData.passarelli) this._rdoData.passarelli = {};
+      if (!Array.isArray(this._rdoData.passarelli.detalhamentoHorario)) this._rdoData.passarelli.detalhamentoHorario = [];
+      return this._rdoData.passarelli.detalhamentoHorario;
+    };
+    const hhRecalcLinha = (idx) => {
+      const arr = hhArr();
+      const c = this._hhLinha(arr[idx] || {});
+      const row = overlay.querySelector(`[data-rdo-hh-row="${idx}"]`);
+      if (row) {
+        const q = row.querySelector('.rdo-hh-qtd'); if (q) q.textContent = c.qtdHoras.toFixed(2);
+        const t = row.querySelector('.rdo-hh-total'); if (t) t.textContent = c.horaTotalHH.toFixed(2);
+      }
+      const grand = arr.reduce((s, l) => s + this._hhLinha(l).horaTotalHH, 0);
+      const gt = overlay.querySelector('[data-rdo-hh-grandtotal]');
+      if (gt) gt.textContent = grand.toFixed(2);
+    };
+    overlay.querySelectorAll('[data-rdo-hh]').forEach(el => {
+      el.addEventListener('input', () => {
+        const [idxStr, key] = el.dataset.rdoHh.split('.');
+        const idx = parseInt(idxStr);
+        const arr = hhArr();
+        if (!arr[idx]) arr[idx] = { funcao: '', horaIni: '', horaFim: '', refeicaoMin: 0, efetivo: 0 };
+        arr[idx][key] = el.type === 'number' ? (parseFloat(el.value) || 0) : el.value;
+        hhRecalcLinha(idx);
+      });
+    });
+    overlay.querySelector('[data-rdo-hh-add]')?.addEventListener('click', () => {
+      hhArr().push({ funcao: '', horaIni: '07:00', horaFim: '16:00', refeicaoMin: 60, efetivo: 1 });
+      rerender();
+    });
+    overlay.querySelectorAll('[data-rdo-hh-remove]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        hhArr().splice(parseInt(btn.dataset.rdoHhRemove), 1);
         rerender();
       });
     });

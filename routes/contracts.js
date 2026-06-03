@@ -40,6 +40,7 @@ module.exports = function registerContracts(router, deps) {
 
   // ── RDO (diário de obra) ──
   router.post('/api/contracts/:id/rdos',          (ctx) => deps.handlePostRdo(ctx.params[0], ctx.body, ctx.res));
+  router.get('/api/contracts/:id/rdos/:rdoId/pdf', (ctx) => deps.handleGetRdoPdf(ctx.params[0], ctx.params[1], ctx.res));
   router.put('/api/contracts/:id/rdos/:rdoId',    (ctx) => deps.handlePutRdo(ctx.params[0], ctx.params[1], ctx.body, ctx.res));
   router.delete('/api/contracts/:id/rdos/:rdoId', (ctx) => deps.handleDeleteRdo(ctx.params[0], ctx.params[1], ctx.res));
   router.post('/api/contracts/:id/rdos/:rdoId/fotos',           (ctx) => deps.handlePostRdoFoto(ctx.params[0], ctx.params[1], ctx.req, ctx.res));

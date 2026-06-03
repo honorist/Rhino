@@ -1,0 +1,11 @@
+-- Migration 20260602000000 — novo modelo de RDO (formato Passarelli / fornecimento de HH).
+--
+-- Adiciona a coluna JSONB `passarelli` à tabela `rdos` para guardar os campos
+-- do novo layout que não têm casa nas colunas existentes:
+--   { pedido, localizacao, subcontratada, fiscalizacaoNome, diasCorridos,
+--     detalhamentoHorario: [{ funcao, horaTrabalho, qtdHoras, efetivo, horaTotalHH }] }
+--
+-- Aditivo e idempotente: RDOs antigos ficam com '{}'. Os demais campos do
+-- modelo (clima 1-4, presença/ausência por função, totalHomemHora) reaproveitam
+-- os JSONB existentes (tempo, terc, totais) de forma retrocompatível.
+ALTER TABLE rdos ADD COLUMN IF NOT EXISTS passarelli JSONB DEFAULT '{}'::jsonb;

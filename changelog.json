@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.8.0",
+      "date": "2026-06-02",
+      "summary": "Novo modelo de RDO (fornecimento de HH) com detalhamento de horário por função",
+      "changes": [
+        "Nova aba \"Efetivo / HH\" no RDO: lance cada função com início, término e refeição — o sistema calcula as horas trabalhadas e o total de homem-hora (HH) automaticamente, inclusive em turnos que viram a madrugada.",
+        "Cabeçalho do RDO ampliado para o modelo de fornecimento de HH: Pedido, Localização, Subcontratada, Fiscalização e Dias Corridos.",
+        "Novo PDF do RDO no layout oficial (gerado no servidor): cabeçalho, condições climáticas, tabela de horário por função com total de HH e blocos de assinatura.",
+        "O botão PDF do RDO agora abre esse novo documento."
+      ]
+    },
+    {
       "version": "1.7.0",
       "date": "2026-06-01",
       "summary": "Número do RDO editável e unificação OS/Ordem de Compra",
