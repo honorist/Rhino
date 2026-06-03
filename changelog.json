@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.11.1",
+      "date": "2026-06-03",
+      "summary": "Fotos do dia agora saem no PDF do RDO (formato oficial)",
+      "changes": [
+        "As fotos do dia voltam a aparecer no PDF do RDO no formato oficial Passarelli — até 4 fotos na área de FOTOS, reduzidas automaticamente para o arquivo não pesar."
+      ]
+    },
+    {
       "version": "1.11.0",
       "date": "2026-06-03",
       "summary": "PDF do RDO sai idêntico ao formulário oficial Passarelli",
