@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.8.1",
+      "date": "2026-06-03",
+      "summary": "Correção: clicar numa linha da lista de RDOs volta a abrir o detalhe",
+      "changes": [
+        "Na tela de RDOs, clicar em uma linha agora abre novamente o resumo daquele RDO — antes, quando nenhum filtro estava aplicado, o clique não fazia nada."
+      ]
+    },
+    {
       "version": "1.8.0",
       "date": "2026-06-02",
       "summary": "Novo modelo de RDO (fornecimento de HH) com detalhamento de horário por função",

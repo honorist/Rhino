@@ -174,18 +174,23 @@ const RDOs = {
       ` : ''}
     `;
 
-    document.getElementById('btnNovoRdoGlobal').addEventListener('click', () => this.showPickerContrato());
-    document.getElementById('fltContract').addEventListener('change', (e) => {
+    // Estes elementos são renderizados condicionalmente (toolbar via UIKit, e
+    // o "Limpar filtros" só aparece quando há filtro ativo). Sem o `?.`, quando
+    // o elemento não existe o getElementById(...) retorna null e o
+    // .addEventListener lança — abortando o resto do draw(), inclusive o bind
+    // de clique das linhas abaixo (a linha do RDO deixa de abrir o detalhe).
+    document.getElementById('btnNovoRdoGlobal')?.addEventListener('click', () => this.showPickerContrato());
+    document.getElementById('fltContract')?.addEventListener('change', (e) => {
       this._filterStore?.set('contractId', e.target.value);
       this._page = 0;
       this.draw();
     });
-    document.getElementById('fltMes').addEventListener('change', (e) => {
+    document.getElementById('fltMes')?.addEventListener('change', (e) => {
       this._filterStore?.set('mes', e.target.value);
       this._page = 0;
       this.draw();
     });
-    document.getElementById('btnLimparFiltros').addEventListener('click', () => {
+    document.getElementById('btnLimparFiltros')?.addEventListener('click', () => {
       this._filterStore?.clear();
       this._page = 0;
       this.draw();
