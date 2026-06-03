@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.10.0",
+      "date": "2026-06-03",
+      "summary": "PDF do RDO agora bate com o formulário oficial Passarelli (com fotos)",
+      "changes": [
+        "O PDF do RDO foi refeito para ficar igual ao formulário oficial Passarelli: cabeçalho com caixa de RDO Nº/Data/Dia, identificação no formato 'rótulo: valor', condições climáticas com legenda colorida e horários por período, efetivo de mão-de-obra em colunas, detalhamento de horário por função, efetivo por frente de serviço e assinaturas em 3 vias.",
+        "As fotos do dia agora saem embutidas no PDF (até 4, reduzidas automaticamente para não pesar).",
+        "O quadro de efetivo cresce conforme os cargos lançados (não fica preso a uma lista fixa).",
+        "Mantidas as seções próprias do Rhino: Prazo/Cronograma, Equipamentos e Segurança com Tema do DDS e de Meio Ambiente."
+      ]
+    },
+    {
       "version": "1.9.0",
       "date": "2026-06-03",
       "summary": "PDF do RDO no formato oficial Passarelli, com seções de prazo, equipamentos e segurança/DDS",
