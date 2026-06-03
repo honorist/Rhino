@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.11.0",
+      "date": "2026-06-03",
+      "summary": "PDF do RDO sai idêntico ao formulário oficial Passarelli",
+      "changes": [
+        "O PDF do RDO agora é gerado a partir do formulário oficial Passarelli (o mesmo modelo), preenchido automaticamente com os dados do RDO — ficou idêntico ao documento oficial.",
+        "Cabeçalho, identificação, condições climáticas, efetivo de mão-de-obra, detalhamento de horário por função (com total de homem-hora) e assinaturas no layout exato do modelo.",
+        "Datas no padrão brasileiro (DD/MM/AAAA) e o quadro de funções se ajusta à quantidade lançada."
+      ]
+    },
+    {
       "version": "1.10.0",
       "date": "2026-06-03",
       "summary": "PDF do RDO agora bate com o formulário oficial Passarelli (com fotos)",

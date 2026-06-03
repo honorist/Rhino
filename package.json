@@ -1,6 +1,6 @@
 {
   "name": "rhino",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "description": "Business management app",
   "main": "server.js",
   "scripts": {
@@ -20,6 +20,7 @@
     "bcryptjs": "^2.4.3",
     "chart.js": "^4.5.1",
     "docx": "^9.6.1",
+    "exceljs": "^4.4.0",
     "jimp": "^1.6.1",
     "pdf-lib": "^1.17.1",
     "pdf-to-img": "^6.0.0",

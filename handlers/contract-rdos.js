@@ -288,14 +288,30 @@ async function handleGetRdoPdf(contractId, rdoId, res) {
   }
   _rdoPdfInFlight++;
   try {
-    const { gerarRdoPdf, isPdfAvailable } = require('../lib/rdo-pdf');
-    if (!isPdfAvailable()) return sendError(res, 500, 'Lib `pdfkit` não instalada.');
     const contract = await repos.contracts.findByIdWithChildren(contractId);
     if (!contract) return sendError(res, 404, 'Contrato não encontrado');
     const rdo = (contract.rdos || []).find(r => r.id === rdoId);
     if (!rdo) return sendError(res, 404, 'RDO não encontrado');
 
-    const buf = await gerarRdoPdf(rdo, contract);
+    let buf;
+    const office = require('../lib/office-convert');
+    if (office.isAvailable()) {
+      // Caminho preferido: preenche o template OFICIAL Passarelli (.xlsx) e
+      // converte com LibreOffice → PDF IDÊNTICO ao modelo.
+      const { preencherRdoXlsx } = require('../lib/rdo-xlsx');
+      try {
+        const xlsx = await preencherRdoXlsx(rdo, contract);
+        buf = await office.xlsxToPdf(xlsx);
+      } catch (e) {
+        console.error('[rdo/pdf] template xlsx falhou, caindo no pdfkit:', e.message);
+      }
+    }
+    if (!buf) {
+      // Fallback: gerador PDFKit (dev local sem LibreOffice, ou erro acima).
+      const { gerarRdoPdf, isPdfAvailable } = require('../lib/rdo-pdf');
+      if (!isPdfAvailable()) return sendError(res, 500, 'Gerador de PDF indisponível.');
+      buf = await gerarRdoPdf(rdo, contract);
+    }
     const fname = `RDO_${String(rdo.numero || rdoId).replace(/[^A-Za-z0-9_-]+/g, '_')}_${rdo.data || ''}.pdf`;
     res.writeHead(200, {
       'Content-Type': 'application/pdf',
