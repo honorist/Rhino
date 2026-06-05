@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.11.2",
+      "date": "2026-06-05",
+      "summary": "Fotos do RDO agora ficam seguras (no banco) e entram no backup",
+      "changes": [
+        "As fotos anexadas aos RDOs passam a ser guardadas no banco de dados, junto com o resto das informações — antes ficavam em um armazenamento temporário e podiam se perder em manutenções do servidor.",
+        "Com isso, as fotos dos RDOs também passam a fazer parte do backup diário automático."
+      ]
+    },
+    {
       "version": "1.11.1",
       "date": "2026-06-03",
       "summary": "Fotos do dia agora saem no PDF do RDO (formato oficial)",

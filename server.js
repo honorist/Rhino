@@ -2835,6 +2835,39 @@ registerContracts(apiRouter, {
   ...rdoAssinaturasHandlers, // assinaturas digitais: upload + list/get/delete (handlers/rdo-assinaturas.js)
 });
 
+// Serve foto de RDO a partir do banco (BYTEA). Mantém a URL antiga
+// /data/rdo-fotos/<rdoId>/<fotoId>.<ext> — o fotoId é o nome do arquivo sem
+// extensão (handlers/rdo-fotos.js grava filename = fotoId + ext).
+async function serveRdoFotoFromDb(pathname, res) {
+  try {
+    const parts = pathname.split('/'); // ['', 'data', 'rdo-fotos', rdoId, filename]
+    const rdoId = parts[3];
+    const filename = parts[4] || '';
+    const fotoId = filename.replace(/\.[^.]+$/, '');
+    if (!rdoId || !fotoId) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('404 Not Found');
+      return;
+    }
+    const db = require('./db');
+    const row = await db.getOne('SELECT mime, data FROM rdo_fotos WHERE id = $1 AND rdo_id = $2', [fotoId, rdoId]);
+    if (!row || !row.data) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('404 Not Found');
+      return;
+    }
+    res.writeHead(200, {
+      'Content-Type': row.mime || 'image/jpeg',
+      'Content-Length': row.data.length,
+      'Cache-Control': 'private, max-age=3600',
+    });
+    res.end(row.data);
+  } catch (e) {
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end('Erro ao carregar foto');
+  }
+}
+
 function routeRequest(pathname, method, body, res, parsedUrl, req) {
   // Router modular — se o domínio já foi migrado, casa aqui e encerra.
   if (apiRouter.dispatch({ pathname, method, body, res, parsedUrl, req })) return;
@@ -2854,6 +2887,12 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   // Static files
   if (pathname === '/' || pathname === '') {
     return serveStaticFile('/index.html', res);
+  }
+
+  // Fotos de RDO: servidas do banco (BYTEA), não do disco.
+  if (pathname.startsWith('/data/rdo-fotos/')) {
+    serveRdoFotoFromDb(pathname, res);
+    return;
   }
 
   // No modo cutover, rotas SPA do React (ex.: /dashboard, /contratos/:id) caem
