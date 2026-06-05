@@ -4728,6 +4728,9 @@ async function handlePostVeiculoAbastecimento(veiculoId, body, res) {
       contractId:      body.contractId     || null,
       observacoes:     body.observacoes    || '',
     };
+    // Reserva o id do lançamento de caixa (se houver contrato + valor) e grava no
+    // abastecimento, pra permitir estorno/sincronização no editar/excluir.
+    data.caixaEntryId = (data.contractId && data.valorTotal) ? generateId('cxa') : null;
     await repos.veiculoAbastecimentos.create(data);
 
     // Atualiza KM atual do veículo se o hodômetro informado for maior
@@ -4738,10 +4741,10 @@ async function handlePostVeiculoAbastecimento(veiculoId, body, res) {
       }
     }
 
-    // Se vinculado a contrato, lança saída no caixa
-    if (data.contractId && data.valorTotal) {
+    // Se vinculado a contrato, lança saída no caixa (id já reservado acima).
+    if (data.caixaEntryId) {
       await repos.caixa.create({
-        id:          generateId('cxa'),
+        id:          data.caixaEntryId,
         type:        'saida',
         value:       data.valorTotal,
         date:        data.data,
@@ -4757,12 +4760,31 @@ async function handlePostVeiculoAbastecimento(veiculoId, body, res) {
 
 async function handlePutVeiculoAbastecimento(veiculoId, abastecId, body, res) {
   try {
+    const abast = await repos.veiculoAbastecimentos.findById(abastecId);
+    if (!abast) return sendError(res, 404, 'Abastecimento não encontrado');
     const allowed = {};
     const strFields = ['data', 'tipoCombustivel', 'fornecedorId', 'contractId', 'observacoes'];
     for (const f of strFields) { if (body[f] !== undefined) allowed[f] = body[f] || null; }
     if (body.km         !== undefined) allowed.km         = body.km         ? parseInt(body.km)         : null;
     if (body.litros     !== undefined) allowed.litros     = body.litros     ? parseFloat(body.litros)   : null;
     if (body.valorTotal !== undefined) allowed.valorTotal = body.valorTotal ? money.parse(body.valorTotal) : null;
+
+    // Re-sincroniza o lançamento de caixa: estorna o antigo e recria se ainda
+    // houver contrato + valor (evita saída de caixa órfã ou desatualizada).
+    const contractId = allowed.contractId !== undefined ? allowed.contractId : abast.contractId;
+    const valorTotal = allowed.valorTotal !== undefined ? allowed.valorTotal : abast.valorTotal;
+    const dataAb     = allowed.data       !== undefined ? allowed.data       : abast.data;
+    const litros     = allowed.litros     !== undefined ? allowed.litros     : abast.litros;
+    if (abast.caixaEntryId) await repos.caixa.removeById(abast.caixaEntryId);
+    let novoCaixaId = null;
+    if (contractId && valorTotal) {
+      novoCaixaId = generateId('cxa');
+      await repos.caixa.create({
+        id: novoCaixaId, type: 'saida', value: valorTotal, date: dataAb,
+        description: `Abastecimento veículo — ${litros}L`, category: 'abastecimento', contractId,
+      });
+    }
+    allowed.caixaEntryId = novoCaixaId;
     await repos.veiculoAbastecimentos.updateById(abastecId, allowed);
     sendJson(res, await repos.veiculos.getEnvelope());
   } catch (e) { sendError(res, 400, e.message); }
@@ -4770,7 +4792,10 @@ async function handlePutVeiculoAbastecimento(veiculoId, abastecId, body, res) {
 
 async function handleDeleteVeiculoAbastecimento(veiculoId, abastecId, res) {
   try {
+    const abast = await repos.veiculoAbastecimentos.findById(abastecId);
     await repos.veiculoAbastecimentos.removeById(abastecId);
+    // Estorna o lançamento de caixa gerado por este abastecimento (se houver).
+    if (abast && abast.caixaEntryId) await repos.caixa.removeById(abast.caixaEntryId);
     sendJson(res, await repos.veiculos.getEnvelope());
   } catch (e) { sendError(res, 400, e.message); }
 }

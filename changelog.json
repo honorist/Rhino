@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.13.1",
+      "date": "2026-06-05",
+      "summary": "Abastecimento de veículo: caixa sincronizado ao editar/excluir",
+      "changes": [
+        "Corrige um problema em que editar ou excluir um abastecimento vinculado a contrato não ajustava o lançamento correspondente no caixa — agora o caixa é estornado/atualizado automaticamente, sem sobras."
+      ]
+    },
+    {
       "version": "1.13.0",
       "date": "2026-06-05",
       "summary": "Recrutamento agora respeita permissões (não é mais aberto a todos)",
