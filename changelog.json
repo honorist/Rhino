@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.11.3",
+      "date": "2026-06-05",
+      "summary": "Fotos do RDO protegidas por login e mais robustez no upload",
+      "changes": [
+        "As fotos dos RDOs agora só são acessíveis para usuários logados no sistema.",
+        "Envio de fotos do RDO ficou mais robusto: se algo falhar no meio, nada é gravado pela metade."
+      ]
+    },
+    {
       "version": "1.11.2",
       "date": "2026-06-05",
       "summary": "Fotos do RDO agora ficam seguras (no banco) e entram no backup",

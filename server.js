@@ -2838,18 +2838,27 @@ registerContracts(apiRouter, {
 // Serve foto de RDO a partir do banco (BYTEA). Mantém a URL antiga
 // /data/rdo-fotos/<rdoId>/<fotoId>.<ext> — o fotoId é o nome do arquivo sem
 // extensão (handlers/rdo-fotos.js grava filename = fotoId + ext).
-async function serveRdoFotoFromDb(pathname, res) {
+async function serveRdoFotoFromDb(pathname, req, res) {
   try {
+    // Exige sessão válida (antes era estático público; fotos de obra podem ser
+    // sensíveis). <img> same-origin e download direto enviam o cookie httpOnly.
+    const sid = auth.parseCookies(req)[auth.COOKIE_NAME];
+    const sessionUser = await auth.getUserBySession(sid);
+    if (!sessionUser) {
+      res.writeHead(401, { 'Content-Type': 'text/plain' });
+      res.end('Não autenticado');
+      return;
+    }
     const parts = pathname.split('/'); // ['', 'data', 'rdo-fotos', rdoId, filename]
     const rdoId = parts[3];
     const filename = parts[4] || '';
     const fotoId = filename.replace(/\.[^.]+$/, '');
-    if (!rdoId || !fotoId) {
+    // Defesa em profundidade: IDs têm formato fixo (generateId) — rejeita ".." etc.
+    if (!/^rdo_[0-9a-z]+$/i.test(rdoId) || !/^foto_[0-9a-z]+$/i.test(fotoId)) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('404 Not Found');
       return;
     }
-    const db = require('./db');
     const row = await db.getOne('SELECT mime, data FROM rdo_fotos WHERE id = $1 AND rdo_id = $2', [fotoId, rdoId]);
     if (!row || !row.data) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -2891,7 +2900,7 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
 
   // Fotos de RDO: servidas do banco (BYTEA), não do disco.
   if (pathname.startsWith('/data/rdo-fotos/')) {
-    serveRdoFotoFromDb(pathname, res);
+    serveRdoFotoFromDb(pathname, req, res);
     return;
   }
 

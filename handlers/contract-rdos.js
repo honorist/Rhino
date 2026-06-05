@@ -3,21 +3,16 @@
  * @file RDO (Relatório Diário de Obra) — núcleo: visão global (dashboard de
  * aderência) + CRUD por contrato. Extraído do server.js.
  *
- * O cluster de mídia/filesystem do RDO (upload de fotos multipart, exclusão de
- * foto, assinaturas) permanece inline no server.js por compartilhar o caminho de
- * parsing multipart e o diretório RDO_FOTOS_DIR — extração separada e mais
- * arriscada. `handleDeleteRdo` aqui também remove a pasta de fotos do RDO, então
- * referencia o mesmo diretório (resolvido a partir de handlers/ → ../data).
+ * O cluster de mídia do RDO (upload de fotos multipart, assinaturas) permanece
+ * inline no server.js por compartilhar o caminho de parsing multipart. As fotos
+ * agora vivem em BYTEA na tabela `rdo_fotos` (não mais em disco), e são removidas
+ * em cascata quando o RDO é deletado (FK ON DELETE CASCADE).
  */
-const path = require('path');
-const fs = require('fs');
 const repos = require('../db/repos');
 const feriados = require('../lib/feriados');
 const rdoHH = require('../lib/rdo-hh');
 const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
-
-const RDO_FOTOS_DIR = path.join(__dirname, '..', 'data', 'rdo-fotos');
 
 /**
  * Normaliza o bloco `passarelli` do body (recalculando o detalhamento de
@@ -330,11 +325,7 @@ async function handleGetRdoPdf(contractId, rdoId, res) {
 async function handleDeleteRdo(contractId, rdoId, res) {
   try {
     await repos.rdos.removeById(rdoId);
-    // Remove pasta de fotos associada
-    const pastaFotos = path.join(RDO_FOTOS_DIR, rdoId);
-    try {
-      if (fs.existsSync(pastaFotos)) fs.rmSync(pastaFotos, { recursive: true, force: true });
-    } catch {}
+    // As fotos (rdo_fotos) são removidas em cascata pela FK ON DELETE CASCADE.
     sendJson(res, await repos.contracts.getEnvelope());
   } catch (e) {
     sendError(res, 400, e.message);

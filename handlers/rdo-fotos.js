@@ -61,40 +61,46 @@ function handlePostRdoFoto(contractId, rdoId, req, res) {
       const arquivos = parts.filter(p => p.filename && p.data && p.data.length > 0);
       if (arquivos.length === 0) return sendError(res, 400, 'Nenhum arquivo enviado');
 
+      // Tudo-ou-nada: insere os binários e atualiza o JSONB do RDO na MESMA
+      // transação. Se qualquer foto falhar, nada é gravado (evita binário órfão
+      // em rdo_fotos sem entrada no JSONB).
       const adicionadas = [];
-      for (const arq of arquivos) {
-        // FIX A-05: rejeita upload sem Content-Type ou com tipo não permitido.
-        if (!arq.contentType || !IMAGE_MIMES.includes(arq.contentType)) continue;
-        if (arq.data.length > FOTO_MAX_BYTES) continue;
-        // Defesa em profundidade: magic-bytes batem com o Content-Type declarado.
-        if (!isAllowedImageMagic(arq.data)) continue;
-        // FIX A-06: extensão vem do MIME validado, nunca do filename do cliente.
-        const ext = IMAGE_EXT_FROM_MIME[arq.contentType] || '.jpg';
-        const fotoId = generateId('foto');
-        const filename = fotoId + ext;
-        // Binário no banco (BYTEA) — durável e incluído no backup. O foto id é a
-        // chave; o filename embute o id, então a URL resolve para a row certa.
-        await db.query(
-          `INSERT INTO rdo_fotos (id, rdo_id, mime, data) VALUES ($1, $2, $3, $4)`,
-          [fotoId, rdoId, arq.contentType, arq.data]
+      await db.withTransaction(async (client) => {
+        for (const arq of arquivos) {
+          // FIX A-05: rejeita upload sem Content-Type ou com tipo não permitido.
+          if (!arq.contentType || !IMAGE_MIMES.includes(arq.contentType)) continue;
+          if (arq.data.length > FOTO_MAX_BYTES) continue;
+          // Defesa em profundidade: magic-bytes batem com o Content-Type declarado.
+          if (!isAllowedImageMagic(arq.data)) continue;
+          // FIX A-06: extensão vem do MIME validado, nunca do filename do cliente.
+          const ext = IMAGE_EXT_FROM_MIME[arq.contentType] || '.jpg';
+          const fotoId = generateId('foto');
+          const filename = fotoId + ext;
+          // Binário no banco (BYTEA) — durável e incluído no backup. O foto id é a
+          // chave; o filename embute o id, então a URL resolve para a row certa.
+          await client.query(
+            `INSERT INTO rdo_fotos (id, rdo_id, mime, data) VALUES ($1, $2, $3, $4)`,
+            [fotoId, rdoId, arq.contentType, arq.data]
+          );
+          adicionadas.push({
+            id: fotoId, filename, legenda, mime: arq.contentType,
+            url: `/data/rdo-fotos/${rdoId}/${filename}`,
+            createdAt: new Date().toISOString(),
+          });
+        }
+        if (adicionadas.length === 0) {
+          const err = new Error('Nenhuma imagem válida enviada'); err.status = 400; throw err;
+        }
+        const fotos = (rdo.fotos || []).concat(adicionadas);
+        await client.query(
+          `UPDATE rdos SET fotos = $1, updated_at = $2 WHERE id = $3`,
+          [JSON.stringify(fotos), new Date().toISOString(), rdoId]
         );
-        adicionadas.push({
-          id: fotoId, filename, legenda, mime: arq.contentType,
-          url: `/data/rdo-fotos/${rdoId}/${filename}`,
-          createdAt: new Date().toISOString(),
-        });
-      }
-      if (adicionadas.length === 0) return sendError(res, 400, 'Nenhuma imagem válida enviada');
-
-      const fotos = (rdo.fotos || []).concat(adicionadas);
-      await repos.rdos.updateById(rdoId, {
-        fotos: JSON.stringify(fotos),
-        updatedAt: new Date().toISOString(),
       });
       const env = await repos.contracts.getEnvelope();
       sendJson(res, { contracts: env.contracts, fotos: adicionadas });
     } catch (e) {
-      sendError(res, 400, e.message);
+      sendError(res, e.status || 400, e.message);
     }
   });
 }
@@ -104,8 +110,13 @@ async function handleDeleteRdoFoto(contractId, rdoId, fotoId, res) {
     const rdo = await repos.rdos.findById(rdoId);
     if (!rdo) return sendError(res, 404, 'RDO não encontrado');
     const fotos = rdo.fotos || [];
-    // Remove o binário do banco (idempotente — não falha se já não existir).
-    try { await db.query(`DELETE FROM rdo_fotos WHERE id = $1`, [fotoId]); } catch {}
+    // Remove o binário do banco. Loga (não silencia) falha real de banco —
+    // senão o metadado some do JSONB e o binário fica órfão em rdo_fotos.
+    try {
+      await db.query(`DELETE FROM rdo_fotos WHERE id = $1`, [fotoId]);
+    } catch (e) {
+      console.error('[rdo-fotos] falha ao remover binário', fotoId, e.message);
+    }
     const novasFotos = fotos.filter(f => f.id !== fotoId);
     await repos.rdos.updateById(rdoId, {
       fotos: JSON.stringify(novasFotos),
