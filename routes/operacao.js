@@ -86,6 +86,9 @@ module.exports = function registerOperacao(router, deps) {
   router.put('/api/veiculos/:id/abastecimentos/:abastecId',   (ctx) => deps.handlePutVeiculoAbastecimento(ctx.params[0], ctx.params[1], ctx.body, ctx.res));
   router.delete('/api/veiculos/:id/abastecimentos/:abastecId',(ctx) => deps.handleDeleteVeiculoAbastecimento(ctx.params[0], ctx.params[1], ctx.res));
 
+  // ── KPIs operacionais do dashboard (frota/compras/recrutamento/folha/estoque) ──
+  router.get('/api/dashboard/operacional',     (ctx) => deps.handleDashboardOperacional(ctx.res));
+
   // ── Layouts de dashboard (por usuário) ──
   router.get('/api/dashboard/layouts',         (ctx) => deps.handleListDashLayouts(ctx.req, ctx.res));
   router.post('/api/dashboard/layouts',        (ctx) => deps.handlePostDashLayout(ctx.req, ctx.body, ctx.res));

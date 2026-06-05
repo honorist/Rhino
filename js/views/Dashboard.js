@@ -48,7 +48,7 @@ window.Dashboard = {
       // (cada `await` esperava a anterior terminar) — ~6× a latência de rede.
       // loadAll, loadDashboard, /api/rdos, /api/anomalias e loadFor(propostas)
       // são independentes entre si; cada um trata o próprio erro (não bloqueia).
-      const [, , rdoJson, anomJson] = await Promise.all([
+      const [, , rdoJson, anomJson, , opJson] = await Promise.all([
         Store.loadAll(),
         Store.loadDashboard(this._buildParams()),
         fetch('/api/rdos')
@@ -59,6 +59,9 @@ window.Dashboard = {
           .catch(() => null),
         Store.loadFor(['propostas'])
           .catch(e => { console.warn('[Dashboard] Store.loadFor(propostas) falhou — KPIs de prospecção ficarão zerados:', e?.message || e); }),
+        fetch('/api/dashboard/operacional')
+          .then(r => (r.ok ? r.json() : null))
+          .catch(() => null),
       ]);
       const dash = Store.state.dashboard;
       // `rdoStats` local é usado mais abaixo na montagem do HTML (KPI de RDO,
@@ -521,6 +524,9 @@ window.Dashboard = {
         <!-- Contratos a vencer + Margem -->
         ${this._renderContratosVencerMargem(dash)}
 
+        <!-- Operação — visão do mês (frota/compras/recrutamento/folha/estoque) -->
+        ${this._renderOperacional(opJson)}
+
         <!-- Últimas movimentações -->
         ${this._renderUltimasMovimentacoes(dash)}
       `;
@@ -844,6 +850,65 @@ window.Dashboard = {
               </div>
             `}
           </div>`;
+  },
+
+  // Card "Operação — visão do mês": KPIs de frota/compras/recrutamento/folha/
+  // estoque com comparação mês atual × anterior. `op` vem de /api/dashboard/
+  // operacional (null-safe: se faltar, a seção some). Para CUSTOS, alta = vermelho.
+  _renderOperacional(op) {
+    if (!op) return '';
+    const brlk = (v) => Store.formatBRLk(v || 0);
+    const delta = (atual, anterior) => {
+      if (!anterior) return atual > 0 ? { pct: 100, up: true } : null;
+      const p = ((atual - anterior) / anterior) * 100;
+      return { pct: Math.abs(p), up: p >= 0 };
+    };
+    const custoCard = (label, atual, anterior, href, extra) => {
+      const d = delta(atual, anterior);
+      // Custo subindo é ruim (vermelho); caindo é bom (verde).
+      const cor = d ? (d.up ? 'var(--rh-neg-strong)' : 'var(--rh-pos-strong)') : 'var(--rh-ink-500)';
+      const meta = d ? `${d.up ? '↑' : '↓'} ${d.pct.toFixed(0)}% vs mês anterior` : 'sem comparativo';
+      return `<a href="${href}" class="rh-kpi" style="text-decoration:none;color:inherit;">
+        <div class="rh-kpi-label">${escapeHtml(label)}</div>
+        <div class="rh-kpi-value">${brlk(atual)}</div>
+        <div class="rh-kpi-meta"><span style="color:${cor};font-weight:600;">${meta}</span>${extra ? ' · ' + escapeHtml(extra) : ''}</div>
+      </a>`;
+    };
+    const numCard = (label, value, meta, href, warn) => `
+      <a href="${href}" class="rh-kpi" style="text-decoration:none;color:inherit;">
+        <div class="rh-kpi-label">${escapeHtml(label)}</div>
+        <div class="rh-kpi-value" style="${warn ? 'color:var(--rh-warn-strong);' : ''}">${value}</div>
+        <div class="rh-kpi-meta">${escapeHtml(meta || '')}</div>
+      </a>`;
+    const top = (op.topCombustivel || []);
+    const topFuel = top.length ? `
+      <div style="margin-top:var(--sp-md);border-top:1px solid var(--color-border);padding-top:var(--sp-md);">
+        <div class="rh-label" style="margin-bottom:8px;">🏆 Top combustível do mês (por carro)</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          ${top.map((c, i) => `<div class="rh-row" style="justify-content:space-between;">
+            <div class="rh-row-sm"><span style="font-weight:800;color:var(--rh-ink-500);min-width:22px;">${i + 1}º</span>
+              <div><div style="font-weight:600;">${escapeHtml(c.placa || '—')}</div><div class="rh-meta-xs">${escapeHtml(c.modelo || '')} · ${(c.litros || 0).toFixed(0)} L</div></div></div>
+            <div style="font-weight:700;">${Store.formatBRL(c.total)}</div>
+          </div>`).join('')}
+        </div>
+      </div>` : '';
+    return `
+      <div class="card mb-2xl" style="margin-top:var(--sp-lg);">
+        <div class="card-header">
+          <h3 class="card-title">Operação — visão do mês</h3>
+          <span class="rh-meta">comparado ao mês anterior</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--sp-md);">
+          ${custoCard('⛽ Combustível (mês)', op.combustivel.mesAtual, op.combustivel.mesAnterior, '#/frota', `${(op.combustivel.litrosAtual || 0).toFixed(0)} L`)}
+          ${custoCard('🔧 Manutenção (mês)', op.manutencao.mesAtual, op.manutencao.mesAnterior, '#/frota')}
+          ${custoCard('💰 Folha (mês)', op.folha.custoAtual, op.folha.custoAnterior, '#/folha-pagamento', op.folha.pendente > 0 ? `${brlk(op.folha.pendente)} pendente` : '')}
+          ${custoCard('🛒 Comprado (mês)', op.compras.compradoAtual, op.compras.compradoAnterior, '#/solicitacoes-compra')}
+          ${numCard('🛒 Compras em aberto', op.compras.abertas, op.compras.valorAberto > 0 ? `${brlk(op.compras.valorAberto)} parado` : 'aguardando avaliação/aprovação', '#/solicitacoes-compra', op.compras.abertas > 0)}
+          ${numCard('👥 Vagas abertas', op.recrutamento.vagasAbertas, `${op.recrutamento.candidatosEmAndamento} candidato(s) no funil`, '#/recrutamento', op.recrutamento.vagasAbertas > 0)}
+          ${numCard('📦 Estoque', brlk(op.estoque.valor), op.estoque.abaixoMinimo > 0 ? `${op.estoque.abaixoMinimo} item(ns) abaixo do mínimo` : 'em dia', '#/estoque', op.estoque.abaixoMinimo > 0)}
+        </div>
+        ${topFuel}
+      </div>`;
   },
 
   _renderPeriodoCtrl() {

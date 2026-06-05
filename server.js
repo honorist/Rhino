@@ -306,6 +306,63 @@ async function handleAllocateBase(id, body, res) {
   }
 }
 
+// KPIs operacionais (frota/combustível, compras, recrutamento, folha, estoque)
+// com comparação mês atual × mês anterior. Endpoint leve e dedicado — o Dashboard
+// carrega em paralelo (não infla o handleDashboard financeiro). Auth via /api/*.
+async function handleDashboardOperacional(res) {
+  const db = require('./db');
+  const safe = async (fn, fallback) => { try { return (await fn()) || fallback; } catch (e) { console.error('[dash-op]', e.message); return fallback; } };
+  const MES_ATUAL = `data >= date_trunc('month', CURRENT_DATE)`;
+  const MES_ANT = `data >= date_trunc('month', CURRENT_DATE - interval '1 month') AND data < date_trunc('month', CURRENT_DATE)`;
+
+  const comb = await safe(() => db.getOne(`
+    SELECT COALESCE(SUM(valor_total) FILTER (WHERE ${MES_ATUAL}),0)::float AS mes_atual,
+           COALESCE(SUM(valor_total) FILTER (WHERE ${MES_ANT}),0)::float AS mes_anterior,
+           COALESCE(SUM(litros) FILTER (WHERE ${MES_ATUAL}),0)::float AS litros_atual,
+           COALESCE(SUM(litros) FILTER (WHERE ${MES_ANT}),0)::float AS litros_anterior
+    FROM veiculo_abastecimentos`), { mesAtual: 0, mesAnterior: 0, litrosAtual: 0, litrosAnterior: 0 });
+  const topCombustivel = await safe(() => db.getMany(`
+    SELECT v.placa, v.modelo, COALESCE(SUM(a.valor_total),0)::float AS total, COALESCE(SUM(a.litros),0)::float AS litros
+    FROM veiculo_abastecimentos a JOIN veiculos v ON v.id = a.veiculo_id
+    WHERE a.data >= date_trunc('month', CURRENT_DATE)
+    GROUP BY v.id, v.placa, v.modelo ORDER BY total DESC LIMIT 5`), []);
+  const manut = await safe(() => db.getOne(`
+    SELECT COALESCE(SUM(custo) FILTER (WHERE ${MES_ATUAL}),0)::float AS mes_atual,
+           COALESCE(SUM(custo) FILTER (WHERE ${MES_ANT}),0)::float AS mes_anterior
+    FROM veiculo_manutencoes`), { mesAtual: 0, mesAnterior: 0 });
+  const compras = await safe(() => db.getOne(`
+    SELECT COUNT(*) FILTER (WHERE status IN ('pendente_avaliacao','pendente_aprovacao'))::int AS abertas,
+           COALESCE(SUM(valor_total) FILTER (WHERE status IN ('pendente_avaliacao','pendente_aprovacao')),0)::float AS valor_aberto,
+           COALESCE(SUM(valor_total) FILTER (WHERE status='aprovada' AND aprovado_em >= date_trunc('month', CURRENT_DATE)),0)::float AS comprado_atual,
+           COALESCE(SUM(valor_total) FILTER (WHERE status='aprovada' AND aprovado_em >= date_trunc('month', CURRENT_DATE - interval '1 month') AND aprovado_em < date_trunc('month', CURRENT_DATE)),0)::float AS comprado_anterior
+    FROM solicitacoes_compra`), { abertas: 0, valorAberto: 0, compradoAtual: 0, compradoAnterior: 0 });
+  const vagas = await safe(() => db.getOne(`SELECT COALESCE(SUM(GREATEST(qtd_total - qtd_preenchida,0)),0)::int AS abertas FROM vagas`), { abertas: 0 });
+  const candidatos = await safe(() => db.getOne(`
+    SELECT COUNT(*) FILTER (WHERE status IN ('contatado','interessado'))::int AS em_andamento,
+           COUNT(*) FILTER (WHERE status='aprovado')::int AS aprovados FROM candidatos`), { emAndamento: 0, aprovados: 0 });
+  const folha = await safe(() => db.getOne(`
+    SELECT COALESCE(SUM(valor_vale + valor_saldo) FILTER (WHERE competencia = to_char(CURRENT_DATE,'YYYY-MM')),0)::float AS custo_atual,
+           COALESCE(SUM(valor_vale + valor_saldo) FILTER (WHERE competencia = to_char(CURRENT_DATE - interval '1 month','YYYY-MM')),0)::float AS custo_anterior,
+           COALESCE(SUM((CASE WHEN NOT vale_pago THEN valor_vale ELSE 0 END) + (CASE WHEN NOT saldo_pago THEN valor_saldo ELSE 0 END)) FILTER (WHERE competencia = to_char(CURRENT_DATE,'YYYY-MM')),0)::float AS pendente_atual
+    FROM folha_pagamento`), { custoAtual: 0, custoAnterior: 0, pendenteAtual: 0 });
+  const estoqueValor = await safe(() => db.getOne(`SELECT COALESCE(SUM(s.quantidade * i.custo_medio),0)::float AS valor FROM estoque_saldo s JOIN itens_estoque i ON i.id = s.item_id`), { valor: 0 });
+  const estoqueMin = await safe(() => db.getOne(`
+    SELECT COUNT(*)::int AS abaixo FROM (
+      SELECT i.id FROM itens_estoque i LEFT JOIN estoque_saldo s ON s.item_id = i.id
+      WHERE i.ativo = TRUE AND i.estoque_minimo > 0
+      GROUP BY i.id, i.estoque_minimo HAVING COALESCE(SUM(s.quantidade),0) < i.estoque_minimo) t`), { abaixo: 0 });
+
+  sendJson(res, {
+    combustivel: { mesAtual: comb.mesAtual, mesAnterior: comb.mesAnterior, litrosAtual: comb.litrosAtual, litrosAnterior: comb.litrosAnterior },
+    topCombustivel,
+    manutencao: { mesAtual: manut.mesAtual, mesAnterior: manut.mesAnterior },
+    compras: { abertas: compras.abertas, valorAberto: compras.valorAberto, compradoAtual: compras.compradoAtual, compradoAnterior: compras.compradoAnterior },
+    recrutamento: { vagasAbertas: vagas.abertas, candidatosEmAndamento: candidatos.emAndamento, candidatosAprovados: candidatos.aprovados },
+    folha: { custoAtual: folha.custoAtual, custoAnterior: folha.custoAnterior, pendente: folha.pendenteAtual },
+    estoque: { valor: estoqueValor.valor, abaixoMinimo: estoqueMin.abaixo },
+  });
+}
+
 async function handleDashboard(res, query) {
   try {
     const contracts = await repos.contracts.getEnvelope();
@@ -2772,7 +2829,7 @@ registerPlatform(apiRouter, {
   handleAiChat, handleAiClassify, handleGetFeatureFlags, handlePutFeatureFlag,
   handleGlobalSearch, handleGetNiveisAcesso, handlePutNivelAcesso,
   handlePushSubscribe, handlePushUnsubscribe,
-  handleDashboard, handleBackup, handleBackupDownload, _runEmailBackup,
+  handleDashboard, handleDashboardOperacional, handleBackup, handleBackupDownload, _runEmailBackup,
   handleGetAnomalias, handleLgpdExport, handleLgpdDelete,
 });
 registerFinanceiro(apiRouter, {

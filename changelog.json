@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.12.0",
+      "date": "2026-06-05",
+      "summary": "Dashboard ganha painel de Operação do mês (combustível, compras, folha…)",
+      "changes": [
+        "Novo painel 'Operação — visão do mês' no Dashboard com custo de combustível, manutenção, folha e compras do mês — cada um comparado com o mês anterior (mostra se subiu ou caiu, em %).",
+        "Ranking 'Top combustível do mês por carro': veja rapidamente quais veículos mais gastam.",
+        "Indicadores de compras em aberto, vagas de recrutamento e valor/alertas de estoque, conectando esses módulos ao panorama geral."
+      ]
+    },
+    {
       "version": "1.11.3",
       "date": "2026-06-05",
       "summary": "Fotos do RDO protegidas por login e mais robustez no upload",
