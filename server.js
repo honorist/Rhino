@@ -4728,20 +4728,9 @@ async function handlePostVeiculoAbastecimento(veiculoId, body, res) {
       contractId:      body.contractId     || null,
       observacoes:     body.observacoes    || '',
     };
-    // Reserva o id do lançamento de caixa (se houver contrato + valor) e grava no
-    // abastecimento, pra permitir estorno/sincronização no editar/excluir.
+    // Reserva e CRIA o lançamento de caixa (se houver contrato + valor) ANTES do
+    // abastecimento — a FK caixa_entry_id exige que a row de caixa já exista.
     data.caixaEntryId = (data.contractId && data.valorTotal) ? generateId('cxa') : null;
-    await repos.veiculoAbastecimentos.create(data);
-
-    // Atualiza KM atual do veículo se o hodômetro informado for maior
-    if (data.km) {
-      const veic = await repos.veiculos.findById(veiculoId);
-      if (veic && data.km > (parseInt(veic.kmAtual) || 0)) {
-        await repos.veiculos.updateById(veiculoId, { kmAtual: data.km, kmAtualizadoEm: new Date() });
-      }
-    }
-
-    // Se vinculado a contrato, lança saída no caixa (id já reservado acima).
     if (data.caixaEntryId) {
       await repos.caixa.create({
         id:          data.caixaEntryId,
@@ -4752,6 +4741,15 @@ async function handlePostVeiculoAbastecimento(veiculoId, body, res) {
         category:    'abastecimento',
         contractId:  data.contractId,
       });
+    }
+    await repos.veiculoAbastecimentos.create(data);
+
+    // Atualiza KM atual do veículo se o hodômetro informado for maior
+    if (data.km) {
+      const veic = await repos.veiculos.findById(veiculoId);
+      if (veic && data.km > (parseInt(veic.kmAtual) || 0)) {
+        await repos.veiculos.updateById(veiculoId, { kmAtual: data.km, kmAtualizadoEm: new Date() });
+      }
     }
 
     sendJson(res, await repos.veiculos.getEnvelope());
