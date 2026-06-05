@@ -1,0 +1,59 @@
+name: Backup diário (Postgres → OneDrive)
+
+# Roda na NUVEM (não depende do PC do usuário estar ligado).
+# Gera um dump COMPLETO do Postgres de produção (todas as tabelas + anexos/fotos)
+# e envia pro OneDrive numa pasta com a data, mantendo só os últimos 7 dias.
+
+on:
+  schedule:
+    - cron: '0 6 * * *'      # 06:00 UTC = 03:00 (horário de Brasília), todo dia
+  workflow_dispatch: {}        # permite rodar manualmente pelo botão "Run workflow"
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar dependências
+        run: npm ci || npm install pg
+
+      - name: Gerar backup completo
+        env:
+          RHINO_PG_URL: ${{ secrets.RHINO_PG_URL }}     # URL pública do Postgres (Railway)
+          RHINO_BACKUP_DIR: ./out
+          RHINO_BACKUP_RETENTION: '3650'                 # retenção real é no OneDrive (passo abaixo)
+        run: node scripts/backup-prod-full.js
+
+      - name: Instalar rclone
+        run: curl -fsSL https://rclone.org/install.sh | sudo bash
+
+      - name: Configurar rclone (OneDrive)
+        run: |
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf <<EOF
+          [onedrive]
+          type = onedrive
+          token = ${{ secrets.RCLONE_ONEDRIVE_TOKEN }}
+          drive_id = ${{ secrets.RCLONE_ONEDRIVE_DRIVE_ID }}
+          drive_type = personal
+          EOF
+
+      - name: Enviar para o OneDrive (pasta com a data)
+        run: |
+          DAY=$(date -u +%F)
+          rclone copy "./out/$DAY" "onedrive:Backup_rhino/$DAY" --onedrive-no-versions -v
+
+      - name: Reter apenas os últimos 7 dias no OneDrive
+        run: |
+          CUTOFF=$(date -u -d '7 days ago' +%F)
+          rclone lsf onedrive:Backup_rhino --dirs-only | sed 's#/##' | while read -r d; do
+            if [[ "$d" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && [[ "$d" < "$CUTOFF" ]]; then
+              echo "Removendo backup antigo: $d"
+              rclone purge "onedrive:Backup_rhino/$d" || true
+            fi
+          done
