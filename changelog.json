@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.14.0",
+      "date": "2026-06-05",
+      "summary": "Sino de notificações no app",
+      "changes": [
+        "Novo sino de notificações no canto superior direito: avisa sobre novas solicitações de contratação (RH) e mudanças em sugestões, com contador de não lidas.",
+        "Clique numa notificação para ir direto à tela relacionada e marcá-la como lida."
+      ]
+    },
+    {
       "version": "1.13.2",
       "date": "2026-06-05",
       "summary": "Abastecimento de veículo: caixa sincronizado ao editar/excluir",
