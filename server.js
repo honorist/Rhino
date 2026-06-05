@@ -2880,6 +2880,7 @@ registerOperacao(apiRouter, {
   handlePostVeiculoPlano, handlePutVeiculoPlano, handleDeleteVeiculoPlano,
   handlePostVeiculoManutencao, handlePutVeiculoManutencao, handleDeleteVeiculoManutencao,
   handleListVeiculoAbastecimentos, handlePostVeiculoAbastecimento, handlePutVeiculoAbastecimento, handleDeleteVeiculoAbastecimento,
+  handleDashboardOperacional,
   handleListDashLayouts, handlePostDashLayout, handlePutDashLayout, handleDeleteDashLayout,
   ...docTemplatesHandlers, // handlers/doc-templates.js
 });
