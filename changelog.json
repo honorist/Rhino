@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.13.0",
+      "date": "2026-06-05",
+      "summary": "Recrutamento agora respeita permissões (não é mais aberto a todos)",
+      "changes": [
+        "O módulo de Recrutamento — que mostra CPF e cria colaboradores — deixou de ser acessível a qualquer usuário logado. Agora só administradores e perfis que gerenciam Recursos entram.",
+        "Já vêm liberados os perfis RH, Gerente, Coordenador e Encarregado; libere ou restrinja outros perfis na tela de Níveis de Acesso."
+      ]
+    },
+    {
       "version": "1.12.1",
       "date": "2026-06-05",
       "summary": "Correção: painel 'Operação — visão do mês' agora carrega",

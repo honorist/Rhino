@@ -2649,6 +2649,7 @@ const MUTATION_PERMISSION_RULES = [
   { re: /^\/api\/contas-pagar(\/|$)/,       screens: ['#/contas-pagar'] },
   { re: /^\/api\/recursos(\/|$)/,           screens: ['#/recursos'] },
   { re: /^\/api\/folha-pagamento(\/|$)/,    screens: ['#/folha-pagamento'] },
+  { re: /^\/api\/recrutamento(\/|$)/,       screens: ['#/recrutamento'] },
 ];
 
 /**
@@ -2681,6 +2682,9 @@ const VIEW_PERMISSION_RULES = [
   { re: /^\/api\/socios(\/|$)/,          screen: '#/socios' },
   { re: /^\/api\/investimentos(\/|$)/,   screen: '#/investimentos' },
   { re: /^\/api\/folha-pagamento(\/|$)/, screen: '#/folha-pagamento' },
+  // Recrutamento expõe CPF/antecedentes — leitura restrita a quem tem a tela.
+  // (/api/notificacoes NÃO casa este regex, segue aberto pro sino.)
+  { re: /^\/api\/recrutamento(\/|$)/,     screen: '#/recrutamento' },
 ];
 
 /**

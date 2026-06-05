@@ -518,7 +518,7 @@ const perfil = {
     // (controle fino fica em cada tela, ex: ver/editar).
     // #/usuarios e #/auditoria NÃO são universais: exigem a permissão nas abas
     // — senão abririam vazias (dados barrados no servidor) para quem não tem acesso.
-    const universais = ['#/manual', '#/rdos', '#/estoque', '#/comparativo', '#/solicitacoes-compra', '#/cotacoes-historico', '#/manutencao', '#/frota', '#/proposta', '#/clausulas', '#/apresentacao', '#/recrutamento', '#/cronograma-geral', '#/sugestoes'];
+    const universais = ['#/manual', '#/rdos', '#/estoque', '#/comparativo', '#/solicitacoes-compra', '#/cotacoes-historico', '#/manutencao', '#/frota', '#/proposta', '#/clausulas', '#/apresentacao', '#/cronograma-geral', '#/sugestoes'];
     if (universais.includes(base)) return true;
     return abas.includes(base);
   },
