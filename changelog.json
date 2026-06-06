@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.15.1",
+      "date": "2026-06-05",
+      "summary": "Dashboard mais compacto (etapa 1 de 3)",
+      "changes": [
+        "Dashboard ficou mais denso e gerencial: menos espaço entre as seções, gráfico de caixa mais baixo e indicadores mais justos — menos rolagem, com todas as informações."
+      ]
+    },
+    {
       "version": "1.15.0",
       "date": "2026-06-05",
       "summary": "Recursos: coluna Cidade/UF do colaborador (no lugar de Obra atual)",

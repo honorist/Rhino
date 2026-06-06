@@ -35,8 +35,8 @@ window.Dashboard = {
           <div class="skeleton skeleton--card"></div>
         </div>
         <div class="grid grid-2" style="margin-bottom:24px;">
-          <div class="skeleton" style="height:280px;border-radius:10px;"></div>
-          <div class="skeleton" style="height:280px;border-radius:10px;"></div>
+          <div class="skeleton" style="height:220px;border-radius:10px;"></div>
+          <div class="skeleton" style="height:220px;border-radius:10px;"></div>
         </div>
         <div style="background:var(--color-surface);padding:16px;border-radius:10px;border:1px solid var(--color-border);">
           ${(window.RhinoUI && window.RhinoUI.skeletonRows) ? window.RhinoUI.skeletonRows(6) : ''}
@@ -309,9 +309,9 @@ window.Dashboard = {
         </div>
 
         <!-- Hero: Score card + grid de KPIs com sparklines -->
-        <div style="display:grid;grid-template-columns:minmax(320px, 1fr) minmax(0, 2fr);gap:var(--sp-lg);margin-bottom:var(--sp-xl);">
+        <div style="display:grid;grid-template-columns:minmax(320px, 1fr) minmax(0, 2fr);gap:var(--sp-md);margin-bottom:var(--sp-md);">
           ${_scoreCard()}
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--sp-md);">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:var(--sp-md);">
             ${_kpi({
               href: '#/caixa',
               label: 'Saldo em caixa',
@@ -404,8 +404,8 @@ window.Dashboard = {
         </div>
 
         <!-- 2 colunas: ESQUERDA = Receivables/Pagar + Pipeline · DIREITA = RDO -->
-        <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:var(--sp-lg);margin-bottom:var(--sp-xl);align-items:stretch;">
-          <div style="display:flex;flex-direction:column;gap:var(--sp-lg);">
+        <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:var(--sp-md);margin-bottom:var(--sp-md);align-items:stretch;">
+          <div style="display:flex;flex-direction:column;gap:var(--sp-md);">
             <!-- Contas a Receber / Contas a Pagar -->
             ${this.renderReceivablesPayables()}
 
@@ -560,10 +560,10 @@ window.Dashboard = {
   // vêm calculados de render() (dependem de agregações locais).
   _renderFluxoCaixaCard(dash, saudeScore, marginMedia, taxaDespesa) {
     return `
-        <div class="card mb-2xl">
+        <div class="card mb-md">
           <div class="card-header">
             <h3 class="card-title">Fluxo de Caixa — ${this._periodoLabel()}</h3>
-            <div style="display:flex;align-items:center;gap:var(--sp-lg);flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:var(--sp-md);flex-wrap:wrap;">
               <div class="rh-row-sm">
                 <div style="width:24px;height:3px;background:#F0B429;border-radius:2px;"></div>
                 <span class="rh-meta">Realizado</span>
@@ -587,10 +587,10 @@ window.Dashboard = {
               <span style="font-weight:700;color:${saudeScore.color};font-size:15px;">${saudeScore.label}</span>
             </div>
           </div>
-          <div style="position:relative;height:300px;margin-bottom:var(--sp-lg);">
+          <div style="position:relative;height:220px;margin-bottom:var(--sp-lg);">
             <canvas id="chartSaude"></canvas>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--sp-lg);padding-top:var(--sp-lg);border-top:1px solid var(--color-border);">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--sp-md);padding-top:var(--sp-lg);border-top:1px solid var(--color-border);">
             <div>
               <div class="rh-label" style="margin-bottom:var(--sp-sm);">Saldo Atual</div>
               <div style="font-size:22px;font-weight:700;color:${dash.caixaBalance >= 0 ? 'var(--color-success)' : 'var(--color-danger)'}">
@@ -635,7 +635,7 @@ window.Dashboard = {
   _renderEntradasPrevistas(dash) {
     if (!(dash.projecaoFutura.length > 0)) return '';
     return `
-          <div class="card mb-2xl">
+          <div class="card mb-md">
             <div class="card-header">
               <h3 class="card-title">Entradas Previstas — Recebimento de NFs</h3>
             </div>
@@ -679,7 +679,7 @@ window.Dashboard = {
   // Card "Notas Fiscais — Situação" (4 contadores por status).
   _renderNfsSituacao(dash) {
     return `
-        <div class="card mb-2xl">
+        <div class="card mb-md">
           <div class="card-header">
             <h3 class="card-title">Notas Fiscais — Situação</h3>
             <a href="#/notas-fiscais" class="rh-link">Ver todas →</a>
@@ -704,7 +704,7 @@ window.Dashboard = {
   _renderContasPagarSituacao(dash) {
     const _icon = (name, size) => (window.rhIcon ? window.rhIcon(name, size || 16) : '');
     return `
-        <div class="card mb-2xl">
+        <div class="card mb-md">
           <div class="card-header">
             <h3 class="card-title rh-h2">Contas a Pagar — Situação</h3>
             <a href="#/contas-pagar" style="text-decoration:none;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:var(--rh-brand-500);">Ver todas ${_icon('arrow-right', 14)}</a>
@@ -893,12 +893,12 @@ window.Dashboard = {
         </div>
       </div>` : '';
     return `
-      <div class="card mb-2xl" style="margin-top:var(--sp-lg);">
+      <div class="card mb-md" style="margin-top:var(--sp-lg);">
         <div class="card-header">
           <h3 class="card-title">Operação — visão do mês</h3>
           <span class="rh-meta">comparado ao mês anterior</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--sp-md);">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:var(--sp-md);">
           ${custoCard('⛽ Combustível (mês)', op.combustivel.mesAtual, op.combustivel.mesAnterior, '#/frota', `${(op.combustivel.litrosAtual || 0).toFixed(0)} L`)}
           ${custoCard('🔧 Manutenção (mês)', op.manutencao.mesAtual, op.manutencao.mesAnterior, '#/frota')}
           ${custoCard('💰 Folha (mês)', op.folha.custoAtual, op.folha.custoAnterior, '#/folha-pagamento', op.folha.pendente > 0 ? `${brlk(op.folha.pendente)} pendente` : '')}
@@ -1106,7 +1106,7 @@ window.Dashboard = {
     `;
 
     return `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-lg);margin-bottom:var(--sp-xl);">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-md);margin-bottom:var(--sp-md);">
         ${card(
           'Contas a Receber',
           '#/notas-fiscais',
