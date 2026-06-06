@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.15.2",
+      "date": "2026-06-05",
+      "summary": "Dashboard mais compacto (etapa 2 de 3)",
+      "changes": [
+        "Fluxo de caixa e a situação de Notas Fiscais/Contas a Pagar agora ficam lado a lado, ocupando melhor a tela.",
+        "As tabelas de detalhe (entradas previstas e movimentações) foram para o fim do painel — números gerenciais primeiro, detalhes depois."
+      ]
+    },
+    {
       "version": "1.15.1",
       "date": "2026-06-05",
       "summary": "Dashboard mais compacto (etapa 1 de 3)",
