@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.15.0",
+      "date": "2026-06-05",
+      "summary": "Recursos: coluna Cidade/UF do colaborador (no lugar de Obra atual)",
+      "changes": [
+        "Na listagem de Recursos, a coluna 'Obra atual' foi substituída por 'Cidade/UF' (cidade e estado de residência do colaborador).",
+        "Novos campos Cidade e UF no cadastro do colaborador. Quem ainda não tiver preenchido aparece como '—'.",
+        "A obra/alocação continua disponível no detalhe e no cadastro — só saiu da listagem principal."
+      ]
+    },
+    {
       "version": "1.14.0",
       "date": "2026-06-05",
       "summary": "Sino de notificações no app",

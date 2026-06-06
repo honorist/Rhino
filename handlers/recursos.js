@@ -41,7 +41,7 @@ async function handlePostRecurso(body, res) {
       id: generateId('rec'),
       nome: body.nome || '', cpf: body.cpf || '', dataNascimento: body.dataNascimento || null,
       genero: body.genero || '', telefone: body.telefone || '', email: body.email || '',
-      endereco: body.endereco || '', lat: body.lat || '', lng: body.lng || '',
+      endereco: body.endereco || '', cidade: body.cidade || '', estado: body.estado || '', lat: body.lat || '', lng: body.lng || '',
       status: body.status || 'candidato', profissao: body.profissao || '', dataAdmissao: body.dataAdmissao || null,
       salario: money.parse(body.salario), elegivelVale: !!body.elegivelVale, cnh: body.cnh || '', pis: body.pis || '',
       dataDesligamento: body.dataDesligamento || null, motivoDesligamento: body.motivoDesligamento || '',
@@ -57,7 +57,7 @@ async function handlePostRecurso(body, res) {
 async function handlePutRecurso(id, body, res) {
   try {
     const allowed = {};
-    const fields = ['nome', 'cpf', 'genero', 'telefone', 'email', 'endereco', 'lat', 'lng',
+    const fields = ['nome', 'cpf', 'genero', 'telefone', 'email', 'endereco', 'cidade', 'estado', 'lat', 'lng',
       'status', 'profissao', 'cnh', 'pis', 'motivoDesligamento', 'obsDesligamento', 'notas', 'rdoCategoria'];
     for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
     // LGPD: nunca grava CPF mascarado — se a UI ecoar a máscara, ignora e mantém o real.

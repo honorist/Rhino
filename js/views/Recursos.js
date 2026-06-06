@@ -105,7 +105,7 @@ window.Recursos = {
                 <th scope="col">Nome</th>
                 <th scope="col">Profissão</th>
                 <th scope="col">Status</th>
-                <th scope="col">Obra Atual</th>
+                <th scope="col">Cidade/UF</th>
                 <th scope="col">Próxima Folga</th>
                 <th scope="col">Ações</th>
               </tr>
@@ -377,12 +377,10 @@ window.Recursos = {
       ex_funcionario: `<span class="badge" style="background:#E5E7EB;color:#374151;">Ex-Funcionário</span>`
     }[r.status] || '';
 
-    // Obra atual
-    let obraAtual = '—';
-    if (r.alocacaoAtual && r.alocacaoAtual.contractId) {
-      const c = Store.state.contracts.find(x => x.id === r.alocacaoAtual.contractId);
-      if (c) obraAtual = `<span style="font-size:15px;">${escapeHtml(c.name)}</span>`;
-    }
+    // Cidade/UF (residência do colaborador). "—" quando não cadastrado.
+    // (A obra/alocação continua no detalhe e no cadastro — só saiu da listagem.)
+    const _cidUf = [r.cidade, r.estado].map(x => (x || '').trim()).filter(Boolean).join(' / ');
+    const cidadeUf = _cidUf ? `<span style="font-size:15px;">${escapeHtml(_cidUf)}</span>` : '—';
 
     // Próxima folga
     let folgaCell = '—';
@@ -420,7 +418,7 @@ window.Recursos = {
       </td>
       <td>${escapeHtml(this._normalizeCargo(r.profissao)) || '—'}</td>
       <td>${statusBadge}</td>
-      <td>${obraAtual}</td>
+      <td>${cidadeUf}</td>
       <td>${folgaCell}</td>
       <td>
         <div class="actions-cell">
@@ -516,6 +514,17 @@ window.Recursos = {
               <input type="hidden" id="enderecoLatRec" name="lat" value="${r?.lat || ''}">
               <input type="hidden" id="enderecoLngRec" name="lng" value="${r?.lng || ''}">
               <div id="miniMapaRec" style="height:140px;border-radius:6px;margin-top:8px;overflow:hidden;border:1px solid var(--color-border);${r?.lat ? '' : 'display:none;'}"></div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Cidade</label>
+                <input class="form-control" name="cidade" value="${escapeHtml(r?.cidade || '')}" placeholder="Cidade de residência">
+              </div>
+              <div class="form-group" style="max-width:120px;">
+                <label class="form-label">UF</label>
+                <input class="form-control" name="estado" value="${escapeHtml(r?.estado || '')}" placeholder="UF" maxlength="2" style="text-transform:uppercase;">
+              </div>
             </div>
 
             <div style="border-top:1px solid var(--color-border);padding-top:var(--sp-lg);margin-top:var(--sp-lg);">
