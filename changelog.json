@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.16.0",
+      "date": "2026-06-05",
+      "summary": "Dashboard repaginado: mais compacto e gerencial (~3 telas, era ~9)",
+      "changes": [
+        "Topo enxuto com os 6 indicadores essenciais (Saldo, A receber, A pagar, Faturado, Margem, RDO).",
+        "Situação de Notas Fiscais e Contas a Pagar agora lado a lado, em vez de empilhadas.",
+        "Contratos a vencer e contratos por margem lado a lado (corrigido — antes ficavam empilhados).",
+        "Gráfico de caixa e tabelas mais enxutos, com 'ver todas' para abrir o detalhe completo."
+      ]
+    },
+    {
       "version": "1.15.3",
       "date": "2026-06-05",
       "summary": "Dashboard: revertido o layout em colunas",
