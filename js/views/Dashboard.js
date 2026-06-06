@@ -364,31 +364,8 @@ window.Dashboard = {
               spark: _spark45.saldo.map((v, i) => v - (_spark45.saidasAcum[i] || 0)),
               tooltip: 'Média aritmética simples das margens dos contratos ativos. Margem = (valor − saídas) ÷ valor × 100.',
             })}
-            ${_kpi({
-              href: '#/proposta',
-              label: 'Prospecção',
-              value: propostasProspeccao,
-              tone: propostasProspeccao > 0 ? 'warn' : '',
-              meta: `${propostasRascunho} rascunho · ${propostasEnviada} enviada${propostasAceita > 0 ? ' · ' + propostasAceita + ' aceita' : ''}`,
-              tooltip: `${propostasProspeccao} proposta${propostasProspeccao !== 1 ? 's' : ''} em prospecção (rascunho + enviadas aguardando resposta).${valorPropostasProspeccao > 0 ? ' Valor potencial: ' + Store.formatBRL(valorPropostasProspeccao) + '.' : ''} Clique para ver todas as propostas.`,
-            })}
-            ${_kpi({
-              href: '#/socios',
-              label: 'Aportes acumulados',
-              value: Store.formatBRLk(aportesTotal),
-              meta: 'sócios + empresa',
-              spark: _spark45.entradasAcum,
-              deltaTone: 'pos',
-              tooltip: `${Store.formatBRL(aportesTotal)} · Capital próprio injetado historicamente (sócios + empresa).`,
-            })}
-            ${_kpi({
-              href: '#/recursos',
-              label: 'Colaboradores',
-              value: colaboradoresAtivos,
-              tone: colaboradoresAtivos > 0 ? 'pos' : '',
-              meta: colaboradoresCandidatos > 0 ? `+ ${colaboradoresCandidatos} candidato${colaboradoresCandidatos !== 1 ? 's' : ''}` : 'ativos',
-              tooltip: `${colaboradoresAtivos} funcionário${colaboradoresAtivos !== 1 ? 's' : ''} ativo${colaboradoresAtivos !== 1 ? 's' : ''} cadastrado${colaboradoresAtivos !== 1 ? 's' : ''}.${colaboradoresCandidatos > 0 ? ` Mais ${colaboradoresCandidatos} candidato${colaboradoresCandidatos !== 1 ? 's' : ''} no pipeline.` : ''}`,
-            })}
+            <!-- Hero enxuto: 6 KPIs essenciais. Prospecção/Aportes/Colaboradores
+                 saíram daqui (continuam nas próprias páginas via menu). -->
             ${rdoStats ? _kpi({
               href: '#/rdos',
               label: `Aderência RDO ${rdoStats.diasUteisAvaliados}d`,
@@ -515,11 +492,11 @@ window.Dashboard = {
         <!-- Entradas previstas das NFs -->
         ${this._renderEntradasPrevistas(dash)}
 
-        <!-- Notas Fiscais -->
-        ${this._renderNfsSituacao(dash)}
-
-        <!-- Contas a Pagar — Situação -->
-        ${this._renderContasPagarSituacao(dash)}
+        <!-- Situação NF + Contas a Pagar lado a lado (denso) -->
+        <div class="grid grid-2">
+          ${this._renderNfsSituacao(dash)}
+          ${this._renderContasPagarSituacao(dash)}
+        </div>
 
         <!-- Contratos a vencer + Margem -->
         ${this._renderContratosVencerMargem(dash)}
@@ -587,45 +564,8 @@ window.Dashboard = {
               <span style="font-weight:700;color:${saudeScore.color};font-size:15px;">${saudeScore.label}</span>
             </div>
           </div>
-          <div style="position:relative;height:220px;margin-bottom:var(--sp-lg);">
+          <div style="position:relative;height:200px;">
             <canvas id="chartSaude"></canvas>
-          </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--sp-md);padding-top:var(--sp-lg);border-top:1px solid var(--color-border);">
-            <div>
-              <div class="rh-label" style="margin-bottom:var(--sp-sm);">Saldo Atual</div>
-              <div style="font-size:22px;font-weight:700;color:${dash.caixaBalance >= 0 ? 'var(--color-success)' : 'var(--color-danger)'}">
-                ${Store.formatBRL(dash.caixaBalance)}
-              </div>
-              <div class="rh-meta" style="margin-top:4px;">Caixa hoje</div>
-            </div>
-            <div>
-              <div class="rh-label" style="margin-bottom:var(--sp-sm);">Entradas Previstas</div>
-              <div style="font-size:22px;font-weight:700;color:var(--color-info)">
-                +${Store.formatBRL(dash.projecaoFutura.reduce((s, p) => s + p.totalEntradas, 0))}
-              </div>
-              <div class="rh-meta" style="margin-top:4px;">Via NFs (próx. ${this.projDays} dias)</div>
-            </div>
-            <div>
-              <div class="rh-label" style="margin-bottom:var(--sp-sm);">Saídas Previstas</div>
-              <div style="font-size:22px;font-weight:700;color:${dash.contasPagarStatus?.totalPendente > 0 ? 'var(--color-danger)' : 'var(--color-text-muted)'}">
-                -${Store.formatBRL(dash.contasPagarStatus?.totalPendente || 0)}
-              </div>
-              <div class="rh-meta" style="margin-top:4px;">${dash.contasPagarStatus?.pendentes || 0} conta(s) a pagar pendente(s)</div>
-            </div>
-            <div>
-              <div class="rh-label" style="margin-bottom:var(--sp-sm);">Margem Média</div>
-              <div style="font-size:22px;font-weight:700;color:${parseFloat(marginMedia) > 30 ? 'var(--color-success)' : parseFloat(marginMedia) > 10 ? 'var(--color-warning)' : 'var(--color-danger)'}">
-                ${marginMedia}%
-              </div>
-              <div class="rh-meta" style="margin-top:4px;">Lucro esperado médio</div>
-            </div>
-            <div>
-              <div class="rh-label" style="margin-bottom:var(--sp-sm);">Taxa de Despesa</div>
-              <div style="font-size:22px;font-weight:700;color:${parseFloat(taxaDespesa) > 80 ? 'var(--color-danger)' : parseFloat(taxaDespesa) > 60 ? 'var(--color-warning)' : 'var(--color-success)'}">
-                ${taxaDespesa}%
-              </div>
-              <div class="rh-meta" style="margin-top:4px;">Saídas ÷ Faturamento</div>
-            </div>
           </div>
         </div>`;
   },
@@ -634,10 +574,17 @@ window.Dashboard = {
   // há projeção futura.
   _renderEntradasPrevistas(dash) {
     if (!(dash.projecaoFutura.length > 0)) return '';
+    // Achata todas as entradas e mostra só as 6 mais próximas; o total agregado
+    // e "ver todas" cobrem o resto (gerencial primeiro, detalhe no módulo de NFs).
+    const todas = dash.projecaoFutura.flatMap(p => p.entradas.map(e => ({ ...e, _data: p.data })));
+    const total = dash.projecaoFutura.reduce((s, p) => s + p.totalEntradas, 0);
+    const linhas = todas.slice(0, 6);
+    const resto = todas.length - linhas.length;
     return `
           <div class="card mb-md">
             <div class="card-header">
               <h3 class="card-title">Entradas Previstas — Recebimento de NFs</h3>
+              <a href="#/notas-fiscais" class="rh-link">Ver todas →</a>
             </div>
             <div class="table-wrap">
               <table>
@@ -651,14 +598,14 @@ window.Dashboard = {
                   </tr>
                 </thead>
                 <tbody>
-                  ${dash.projecaoFutura.flatMap(p => p.entradas.map(e => {
+                  ${linhas.map(e => {
                     const contract = Store.getContractById(e.contractId);
-                    const diasAte  = Math.floor((new Date(p.data) - new Date()) / 86400000);
+                    const diasAte  = Math.floor((new Date(e._data) - new Date()) / 86400000);
                     const urgCor   = diasAte <= 7 ? 'var(--color-success)' : diasAte <= 30 ? 'var(--color-info)' : 'var(--color-text-muted)';
                     return `
                       <tr class="row-dash-fut" data-nf-id="${e.nfId}" style="cursor:pointer;">
                         <td>
-                          <strong style="color:${urgCor};">${new Date(p.data + 'T12:00:00').toLocaleDateString('pt-BR')}</strong>
+                          <strong style="color:${urgCor};">${new Date(e._data + 'T12:00:00').toLocaleDateString('pt-BR')}</strong>
                           <div class="rh-meta">em ${diasAte} dias</div>
                         </td>
                         <td><strong>NF ${escapeHtml(e.numero)}</strong></td>
@@ -669,8 +616,14 @@ window.Dashboard = {
                         </td>
                       </tr>
                     `;
-                  })).join('')}
+                  }).join('')}
                 </tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="4" style="color:var(--color-text-muted);">${resto > 0 ? `+ ${resto} recebimento(s) — <a href="#/notas-fiscais" class="rh-link">ver todas</a>` : 'Total previsto'}</td>
+                    <td style="text-align:right;font-weight:800;color:var(--color-success);">+${Store.formatBRL(total)}</td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
           </div>`;
@@ -684,7 +637,7 @@ window.Dashboard = {
             <h3 class="card-title">Notas Fiscais — Situação</h3>
             <a href="#/notas-fiscais" class="rh-link">Ver todas →</a>
           </div>
-          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-md);">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(105px,1fr)); gap:8px;">
             ${[
               { tone: 'neg',  label: 'Vencidas',     value: dash.nfsStatus.vencidas },
               { tone: 'warn', label: 'Próx. 7 dias', value: dash.nfsStatus.proximasVencer },
@@ -709,7 +662,7 @@ window.Dashboard = {
             <h3 class="card-title rh-h2">Contas a Pagar — Situação</h3>
             <a href="#/contas-pagar" style="text-decoration:none;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:var(--rh-brand-500);">Ver todas ${_icon('arrow-right', 14)}</a>
           </div>
-          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-md);">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(105px,1fr)); gap:8px;">
             ${[
               { tone: 'neg',  label: 'Vencidas',     value: dash.contasPagarStatus?.vencidas || 0 },
               { tone: 'warn', label: 'Próx. 7 dias', value: dash.contasPagarStatus?.proximasVencer || 0 },
@@ -731,7 +684,7 @@ window.Dashboard = {
   // Grid de 2 cards: "Contratos a Vencer (30 dias)" + "Contratos por Margem".
   _renderContratosVencerMargem(dash) {
     return `
-        <div class="grid-2">
+        <div class="grid grid-2">
           <div class="card">
             <div class="card-header">
               <h3 class="card-title">Contratos a Vencer (30 dias)</h3>
@@ -772,7 +725,7 @@ window.Dashboard = {
                 <tbody>
                   ${dash.contractsWithMargin.length === 0 ? `
                     <tr><td colspan="3" style="text-align:center; color:var(--color-text-muted); padding:var(--sp-xl);">Nenhum contrato</td></tr>
-                  ` : dash.contractsWithMargin.map(c => {
+                  ` : dash.contractsWithMargin.slice(0, 8).map(c => {
                     const pct = parseFloat(c.marginPct);
                     const cor = pct < 0 ? 'var(--color-danger)' : pct < 20 ? 'var(--color-warning)' : 'var(--color-success)';
                     return `
@@ -792,6 +745,7 @@ window.Dashboard = {
                     `;
                   }).join('')}
                 </tbody>
+                ${dash.contractsWithMargin.length > 8 ? `<tfoot><tr><td colspan="3" style="text-align:center;color:var(--color-text-muted);padding-top:8px;">+ ${dash.contractsWithMargin.length - 8} contratos — <a href="#/contratos" class="rh-link">ver todos</a></td></tr></tfoot>` : ''}
               </table>
             </div>
           </div>
@@ -801,9 +755,9 @@ window.Dashboard = {
   // Card "Últimas Movimentações — Caixa" com filtro entrada/saída/ambos
   // (estado em this.movFiltro; os botões são religados em _bindPeriodoCtrl).
   _renderUltimasMovimentacoes(dash) {
-    const filtradas = (dash.recentCaixaEntries || [])
-      .filter(e => this.movFiltro === 'ambos' ? true : e.type === this.movFiltro)
-      .slice(0, 20);
+    const todas = (dash.recentCaixaEntries || [])
+      .filter(e => this.movFiltro === 'ambos' ? true : e.type === this.movFiltro);
+    const filtradas = todas.slice(0, 6);
     return `
           <div class="card" style="margin-top:var(--sp-lg);">
             <div class="card-header">
@@ -831,7 +785,7 @@ window.Dashboard = {
             ` : `
               <div style="display:flex; flex-direction:column;">
                 ${filtradas.map(e => `
-                  <div class="row-dash-mov" data-id="${e.id}" style="display:flex; justify-content:space-between; align-items:center; padding:var(--sp-md) 0; border-bottom:1px solid var(--color-border); cursor:pointer;">
+                  <div class="row-dash-mov" data-id="${e.id}" style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--color-border); cursor:pointer;">
                     <div>
                       <div style="font-weight:500;">${escapeHtml(e.description)}</div>
                       <div class="rh-meta">${new Date(e.date).toLocaleDateString('pt-BR')}${e.formaPagamento ? ' · ' + escapeHtml(e.formaPagamento) : ''}${e.category ? ' · ' + escapeHtml(e.category) : ''}</div>
@@ -846,7 +800,7 @@ window.Dashboard = {
                 `).join('')}
               </div>
               <div style="padding:var(--sp-sm) 0 0;color:var(--color-text-muted);font-size:13px;text-align:center;">
-                ${filtradas.length} movimentaç${filtradas.length === 1 ? 'ão' : 'ões'} exibida${filtradas.length === 1 ? '' : 's'}
+                ${todas.length > filtradas.length ? `+ ${todas.length - filtradas.length} movimentações — <a href="#/caixa" class="rh-link">ver todas</a>` : `${todas.length} movimentaç${todas.length === 1 ? 'ão' : 'ões'}`}
               </div>
             `}
           </div>`;

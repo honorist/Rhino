@@ -12,3 +12,8 @@ deploy-backups/
 test-results/
 playwright-report/
 .obsidian/
+
+# temporários de screenshot (revisão visual de UI)
+_shot.js
+_shotd.js
+dash-*.png
