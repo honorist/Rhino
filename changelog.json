@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.15.3",
+      "date": "2026-06-05",
+      "summary": "Dashboard: revertido o layout em colunas",
+      "changes": [
+        "Desfeita a mudança que colocou seções lado a lado no dashboard (não ficou boa). O painel voltou ao formato compacto anterior, que estava ok."
+      ]
+    },
+    {
       "version": "1.15.2",
       "date": "2026-06-05",
       "summary": "Dashboard mais compacto (etapa 2 de 3)",

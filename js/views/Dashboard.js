@@ -509,23 +509,23 @@ window.Dashboard = {
         <!-- Alertas -->
         ${this.renderAlertas(dash)}
 
-        <!-- Caixa (gráfico) + Situação (NF/Contas a Pagar) lado a lado — denso -->
-        <div class="dash-grid" style="display:grid;grid-template-columns:minmax(0,1.8fr) minmax(0,1fr);gap:var(--sp-md);align-items:start;">
-          ${this._renderFluxoCaixaCard(dash, saudeScore, marginMedia, taxaDespesa)}
-          <div style="display:flex;flex-direction:column;gap:var(--sp-md);">
-            ${this._renderNfsSituacao(dash)}
-            ${this._renderContasPagarSituacao(dash)}
-          </div>
-        </div>
+        <!-- Saúde Financeira + Gráfico Histórico + Projeção -->
+        ${this._renderFluxoCaixaCard(dash, saudeScore, marginMedia, taxaDespesa)}
 
-        <!-- Contratos a vencer · Margem (já em 2 colunas) -->
+        <!-- Entradas previstas das NFs -->
+        ${this._renderEntradasPrevistas(dash)}
+
+        <!-- Notas Fiscais -->
+        ${this._renderNfsSituacao(dash)}
+
+        <!-- Contas a Pagar — Situação -->
+        ${this._renderContasPagarSituacao(dash)}
+
+        <!-- Contratos a vencer + Margem -->
         ${this._renderContratosVencerMargem(dash)}
 
         <!-- Operação — visão do mês (frota/compras/recrutamento/folha/estoque) -->
         ${this._renderOperacional(opJson)}
-
-        <!-- Detalhes (zona secundária, no fim) -->
-        ${this._renderEntradasPrevistas(dash)}
 
         <!-- Últimas movimentações -->
         ${this._renderUltimasMovimentacoes(dash)}
@@ -1344,19 +1344,8 @@ window.Dashboard = {
     if (!app) return;
     this._widgetsDetected = [];
     let idx = 0;
-    // Coleta as seções a marcar: filhos diretos de #app, mas descendo um nível
-    // nos wrappers de grid (.dash-grid) para marcar cada card individualmente —
-    // assim o "Personalizar" continua mostrando/ocultando por card.
-    const secoes = [];
     Array.from(app.children).forEach(el => {
-      if (el.classList && el.classList.contains('page-header')) return; // header sempre visível
-      if (el.classList && el.classList.contains('dash-grid')) {
-        el.querySelectorAll('.card').forEach(c => secoes.push(c));
-      } else {
-        secoes.push(el);
-      }
-    });
-    secoes.forEach(el => {
+      if (el.classList.contains('page-header')) return; // header sempre visível
       // Extrai título textual da seção (h1/h2/h3/.card-title/.rh-h2)
       const titleEl = el.querySelector('.card-title, .rh-h2, h2, h3');
       const fallbackText = el.textContent?.trim().split('\n')[0]?.slice(0, 50);
