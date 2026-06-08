@@ -49,6 +49,9 @@ jobs:
       - name: Apply schema to Postgres
         run: psql "$DATABASE_URL" < db/schema.sql
 
+      - name: Run migrations
+        run: npm run db:migrate
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
