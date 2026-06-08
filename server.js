@@ -1990,25 +1990,33 @@ async function handleEstornarFolhaParcela(id, body, res) {
     if (parcela !== 'vale' && parcela !== 'saldo') {
       return sendError(res, 400, "Campo 'parcela' deve ser 'vale' ou 'saldo'");
     }
-    const f = await repos.folhaPagamento.findById(id);
-    if (!f) return sendError(res, 404, 'Registro de folha não encontrado');
-    const caixaEntryId = parcela === 'vale' ? f.valeCaixaEntryId : f.saldoCaixaEntryId;
-    if (caixaEntryId) await repos.caixa.removeById(caixaEntryId);
-    const patch = parcela === 'vale'
-      ? { valePago: false, valeDataPagamento: null, valeCaixaEntryId: null, updatedAt: new Date().toISOString() }
-      : { saldoPago: false, saldoDataPagamento: null, saldoCaixaEntryId: null, updatedAt: new Date().toISOString() };
-    const folha = await repos.folhaPagamento.updateById(id, patch);
-    // Sincroniza a conta a pagar vinculada — volta a pendente.
-    const contaId = parcela === 'vale' ? f.valeContaPagarId : f.saldoContaPagarId;
-    if (contaId) {
-      await repos.contasPagar.updateById(contaId, {
-        status: 'pendente', dataPagamento: null, valorPago: null, caixaEntryId: null,
-        updatedAt: new Date().toISOString(),
-      }).catch(() => {});
-    }
+    // FIX: estorno agora usa transação + advisory lock (igual ao pagar) + guard "já pago"
+    // — antes era sem lock/transação, permitindo estorno duplo concorrente (caixa divergia da folha).
+    const folha = await db.withTransaction(async (client) => {
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('folha:' || $1)::int)", [id]);
+      const f = await repos.folhaPagamento.findById(id);
+      if (!f) { const e = new Error('Registro de folha não encontrado'); e.statusCode = 404; throw e; }
+      const jaPago = parcela === 'vale' ? f.valePago : f.saldoPago;
+      if (!jaPago) { const e = new Error('Esta parcela não está paga — nada a estornar'); e.statusCode = 400; throw e; }
+      const caixaEntryId = parcela === 'vale' ? f.valeCaixaEntryId : f.saldoCaixaEntryId;
+      if (caixaEntryId) await repos.caixa.removeById(caixaEntryId);
+      const patch = parcela === 'vale'
+        ? { valePago: false, valeDataPagamento: null, valeCaixaEntryId: null, updatedAt: new Date().toISOString() }
+        : { saldoPago: false, saldoDataPagamento: null, saldoCaixaEntryId: null, updatedAt: new Date().toISOString() };
+      const atualizada = await repos.folhaPagamento.updateById(id, patch);
+      // Sincroniza a conta a pagar vinculada — volta a pendente.
+      const contaId = parcela === 'vale' ? f.valeContaPagarId : f.saldoContaPagarId;
+      if (contaId) {
+        await repos.contasPagar.updateById(contaId, {
+          status: 'pendente', dataPagamento: null, valorPago: null, caixaEntryId: null,
+          updatedAt: new Date().toISOString(),
+        }).catch((e) => console.error('[folha-estorno] falha ao sincronizar conta a pagar', contaId, e && e.message));
+      }
+      return atualizada;
+    });
     sendJson(res, { folha });
   } catch (e) {
-    sendError(res, 400, e.message);
+    sendError(res, e.statusCode || 400, e.message);
   }
 }
 
@@ -2805,7 +2813,7 @@ async function withIdempotency(req, res, pathname, body, runHandler) {
         `INSERT INTO idempotency_keys (id, request_hash, status_code, response_body)
          VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO NOTHING`,
         [rowId, reqHash, capturedStatus, capturedBody]
-      ).catch(() => {});
+      ).catch((e) => console.error('[idempotency] falha ao gravar chave (retries podem duplicar lançamento):', e && e.message));
     }
     return ret;
   };
@@ -3332,9 +3340,14 @@ async function handleGlobalSearch(query, res) {
 }
 
 async function handleGetNiveisAcesso(res) {
-  const data = await readCollection('niveis_acesso.json', 'niveisAcesso', 'niveis');
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify(data));
+  try {
+    const data = await readCollection('niveis_acesso.json', 'niveisAcesso', 'niveis');
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(data));
+  } catch (e) {
+    console.error('[niveis-acesso] erro ao carregar:', e && e.message);
+    sendError(res, 500, 'Erro ao carregar níveis de acesso');
+  }
 }
 
 async function handlePutNivelAcesso(id, body, res) {

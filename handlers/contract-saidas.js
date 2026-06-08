@@ -97,45 +97,55 @@ async function handlePutSaida(id, body, res) {
         'SELECT pg_advisory_xact_lock(hashtext($1)::int)',
         [String(saida.contractId)]
       );
-      await _handlePutSaidaInner(id, body, saida, res);
+      await _handlePutSaidaInner(id, body, saida);
     });
+    // Resposta de sucesso só APÓS o commit (não dentro da transação).
+    const env = await repos.contracts.getEnvelope();
+    sendJson(res, { ...env, notas_fiscais: await repos.notasFiscais.findAll() });
   } catch (e) {
     if (!res.headersSent) sendError(res, e.statusCode || 400, e.message);
   }
 }
 
-/** Implementação interna de PUT /saida — roda dentro de db.withTransaction. */
-async function _handlePutSaidaInner(id, body, saida, res) {
-  try {
-    const allowedSaida = { ...validateBody(schemas.saidaPut, body) };
+/**
+ * Implementação interna de PUT /saida — roda dentro de db.withTransaction.
+ * NÃO responde ao cliente: lança `Error` com `statusCode` em erro de regra, para o
+ * caller abortar a transação e responder (evita commit de estado parcial + double-send).
+ */
+async function _handlePutSaidaInner(id, body, saida) {
+  const allowedSaida = { ...validateBody(schemas.saidaPut, body) };
 
-    if (saida.nfId) {
-      const nf = await repos.notasFiscais.findById(saida.nfId);
-      const dataMudou  = allowedSaida.date  !== undefined && allowedSaida.date  !== saida.date;
-      const valorMudou = allowedSaida.value !== undefined && allowedSaida.value !== parseFloat(saida.value);
+  if (saida.nfId) {
+    const nf = await repos.notasFiscais.findById(saida.nfId);
+    const dataMudou  = allowedSaida.date  !== undefined && allowedSaida.date  !== saida.date;
+    // À prova de float: drift de IEEE-754 não deve falsamente disparar "valor mudou".
+    const valorMudou = allowedSaida.value !== undefined && Math.abs(allowedSaida.value - (parseFloat(saida.value) || 0)) > 0.001;
 
-      if (nf && nf.emitida && (dataMudou || valorMudou)) {
-        return sendError(res, 400, 'Não é possível alterar valor ou data de saída com BM já emitido. Cancele a emissão antes.');
-      }
+    if (nf && nf.emitida && (dataMudou || valorMudou)) {
+      const err = new Error('Não é possível alterar valor ou data de saída com BM já emitido. Cancele a emissão antes.');
+      err.statusCode = 400;
+      throw err;
+    }
 
-      // Ajuste por delta de valor
-      if (valorMudou && nf) {
-        const delta = allowedSaida.value - (parseFloat(saida.value) || 0);
-        const contract = await repos.contracts.findById(saida.contractId);
-        if (contract && contract.value > 0) {
-          const allNFs = await repos.notasFiscais.findAll();
-          const totalMedidoOutros = allNFs.reduce((s, n) =>
-            n.contractId !== saida.contractId ? s : s + (parseFloat(n.valor) || 0), 0);
-          if (totalMedidoOutros + delta > parseFloat(contract.value) + 0.01) {
-            return sendError(res, 400,
-              `BM ultrapassa o valor do contrato. Disponível: R$ ${(parseFloat(contract.value) - totalMedidoOutros).toFixed(2).replace('.', ',')}`);
-          }
+    // Ajuste por delta de valor
+    if (valorMudou && nf) {
+      const delta = allowedSaida.value - (parseFloat(saida.value) || 0);
+      const contract = await repos.contracts.findById(saida.contractId);
+      if (contract && contract.value > 0) {
+        const allNFs = await repos.notasFiscais.findAll();
+        const totalMedidoOutros = allNFs.reduce((s, n) =>
+          n.contractId !== saida.contractId ? s : s + (parseFloat(n.valor) || 0), 0);
+        if (totalMedidoOutros + delta > parseFloat(contract.value) + 0.01) {
+          const err = new Error(`BM ultrapassa o valor do contrato. Disponível: R$ ${(parseFloat(contract.value) - totalMedidoOutros).toFixed(2).replace('.', ',')}`);
+          err.statusCode = 400;
+          throw err;
         }
-        await repos.notasFiscais.updateById(nf.id, {
-          valor: Math.max(0, (parseFloat(nf.valor) || 0) + delta),
-          updatedAt: new Date().toISOString(),
-        });
       }
+      await repos.notasFiscais.updateById(nf.id, {
+        valor: Math.max(0, (parseFloat(nf.valor) || 0) + delta),
+        updatedAt: new Date().toISOString(),
+      });
+    }
 
       // Se a data mudou, realoca entre NFs
       if (dataMudou && nf) {
@@ -197,11 +207,7 @@ async function _handlePutSaidaInner(id, body, saida, res) {
     }
 
     await repos.saidas.updateById(id, allowedSaida);
-    const env = await repos.contracts.getEnvelope();
-    sendJson(res, { ...env, notas_fiscais: await repos.notasFiscais.findAll() });
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
+    // Sem resposta aqui — handlePutSaida responde após o commit da transação.
 }
 
 async function handleDeleteSaida(id, res) {
