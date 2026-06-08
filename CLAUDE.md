@@ -1,5 +1,11 @@
 # CLAUDE.md — Rhino
 
+> **Manual de engenharia:** as regras de arquitetura, testes e processo deste projeto estão em
+> [`steering/engineering.md`](steering/engineering.md) — leia antes de mexer no código.
+> Princípios-chave: monólito modular (`handlers/` por capacidade), regra de negócio testável em
+> `lib/` (não na rota/view), **toda regra com teste** (`npm test` verde é obrigatório), migrations
+> forward-only donas do schema, aprovação antes de codar.
+
 ## Changelog obrigatório a cada bump de versão
 
 Sempre que houver bump de versão (via `node scripts/bump-version.js` ou manualmente), **antes do commit**:
