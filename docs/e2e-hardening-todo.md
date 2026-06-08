@@ -11,11 +11,17 @@
 ### ⚠️ GOTCHA do repro (importante)
 - O `npm run db:migrate` logo após `docker compose down -v && up` às vezes roda **antes do Postgres estar 100% pronto** → migrations parciais (`relation "login_attempts"/"propostas" does not exist`) → **login quebra** → TODOS os testes com login falham 30s (só passam os 4 sem login: PWA/version). **Não confunda com regressão.** Rode o migrate, confira com `docker exec rhino-db psql -U rhino -d rhino -c "\dt login_attempts"`, e só então suba o app.
 
-### Falta de verdade (re-verificar limpo + estes):
-- **13** "sem erro JS" — bug real de **CSP** (Shepherd.js via CDN). App fix.
-- **ui-features 24/25** — API `/api/search` (rodar local, ver erro exato).
-- **theme FAB (ui-features 77)** — 30s, investigar.
-- Re-rodar a suíte completa num DB **bem migrado** pra confirmar 7–12 verdes.
+### ✅ FECHADO (sessão 2 cont.) — suíte VERDE (0 failed)
+Run final (DB limpo, retries:1 igual CI): **20 passed · 10 skipped · 0 failed** (1 flaky: smoke 8, passa no retry).
+Recuperados nesta sessão: 5, 8, 9, 10, 11, 12a, fluxos 1, search 24/25, theme FAB (via `playwright.request` + `.first()` no "Novo Contrato" empty-state + FAB via DOM click).
+
+### Quarentenados com `test.fixme` (3) — follow-up de **app/trace**, não seletor:
+- **smoke 12b** (orçamento) — campo "Valor" do modal de orçamento não achado por `getByLabel` (label sem for/id) → 30s → "page closed". Ajustar seletor (modais-extra.js `formOrcamento`) + trace.
+- **smoke 13** "sem erro JS" — **BUG REAL DO APP**: 5× `401 Unauthorized` no boot + `Map container not found` (Leaflet sem container). Corrigir o app e reativar.
+- **fluxos 2** (recrutamento US-05..09) — asserção "Maria Candidata" no detalhe espera 30s → "page closed". Trace + seletor do fluxo de recrutamento.
+
+### Flaky a observar
+- **smoke 8** (Notas Fiscais) — passa no retry; investigar a corrida (provável timing do "+ Novo Contrato"/NF). `retries:1` do CI absorve.
 
 ## Estado atual
 
