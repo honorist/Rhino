@@ -410,13 +410,12 @@ test.describe('Rhino — smoke pós-React', () => {
     await modal.getByRole('button', { name: /^(Criar|Salvar)$/ }).click();
     await modal.waitFor({ state: 'detached' }).catch(() => {});
 
-    // Drill-in: clica na linha do contrato (<tr> com cursor:pointer)
-    await page.locator('#app').getByText('Contrato Saida', { exact: true }).first().click();
-    // Espera o cabeçalho do detalhe
+    // Drill-in: clicar na linha abre só o overview (painel); quem navega pro DETALHE é "Abrir".
+    await page.locator('.row-contrato', { hasText: 'Contrato Saida' }).getByRole('button', { name: /^Abrir$/ }).first().click();
     await expect(page.locator('h1.page-title')).toHaveText('Contrato Saida', { timeout: 5000 });
 
     // Aba Financeiro
-    await page.getByRole('button', { name: 'Financeiro' }).click();
+    await page.locator('.ctd-tab[data-ctd-tab="financeiro"]').click(); // aba do detalhe (não o "Financeiro" do sidebar)
     await page.getByRole('button', { name: /\+\s*Adicionar Saída/i }).click();
     modal = page.locator('.modal-overlay');
     await modal.waitFor({ state: 'visible' });
@@ -450,9 +449,9 @@ test.describe('Rhino — smoke pós-React', () => {
     await modal.getByRole('button', { name: /^(Criar|Salvar)$/ }).click();
     await modal.waitFor({ state: 'detached' }).catch(() => {});
 
-    await page.locator('#app').getByText('Contrato Orcamento', { exact: true }).first().click();
+    await page.locator('.row-contrato', { hasText: 'Contrato Orcamento' }).getByRole('button', { name: /^Abrir$/ }).first().click();
     await expect(page.locator('h1.page-title')).toHaveText('Contrato Orcamento');
-    await page.getByRole('button', { name: 'Financeiro' }).click();
+    await page.locator('.ctd-tab[data-ctd-tab="financeiro"]').click(); // aba do detalhe (não o "Financeiro" do sidebar)
 
     // Adiciona item 6k (cabe)
     await page.getByRole('button', { name: /\+\s*Novo Item.*Orçamento|Adicionar Item/i }).first().click();

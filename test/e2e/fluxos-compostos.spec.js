@@ -145,12 +145,12 @@ test.describe('Fluxo composto: Cliente → Contrato → BMs', () => {
     await modal.waitFor({ state: 'detached' }).catch(() => {});
     await expect(page.locator('#app')).toContainText('Contrato Fluxo');
 
-    // c) Drill-in no contrato → tab Financeiro → adicionar saída
-    await page.locator('#app').getByText('Contrato Fluxo', { exact: true }).first().click();
+    // c) Drill-in: clicar na linha abre só o overview; quem navega pro DETALHE é "Abrir".
+    await page.locator('.row-contrato', { hasText: 'Contrato Fluxo' }).getByRole('button', { name: /^Abrir$/ }).first().click();
     await expect(page.locator('h1.page-title')).toHaveText('Contrato Fluxo', {
       timeout: 5000,
     });
-    await page.getByRole('button', { name: 'Financeiro' }).click();
+    await page.locator('.ctd-tab[data-ctd-tab="financeiro"]').click(); // aba do detalhe (não o sidebar)
     await page.getByRole('button', { name: /\+\s*Adicionar Saída/i }).first().click();
     const modal2 = page.locator('.modal-overlay');
     await modal2.waitFor({ state: 'visible' });
