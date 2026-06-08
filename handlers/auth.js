@@ -134,7 +134,9 @@ async function handleLogout(req, res) {
 }
 
 async function handleMe(req, res) {
-  if (!req.user) return sendError(res, 401, 'Não autenticado');
+  // "Quem sou eu?" sem sessão NÃO é erro — retorna 200 {user:null} (o cliente mostra o login).
+  // Antes era 401, que o browser loga no console mesmo o JS tratando — ruído no boot deslogado.
+  if (!req.user) return sendJson(res, { user: null });
   const u = req.user;
   sendJson(res, {
     user: {

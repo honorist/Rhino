@@ -1398,6 +1398,9 @@ window.Recursos = {
       setTimeout(async () => {
         if (typeof L === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('leaflet');
         if (typeof L === 'undefined') return;
+        // Guard: a view pode ter sido trocada antes do timer (50ms) → mapaDiv fora do DOM
+        // ("Map container not found"). Só inicializa se o container ainda está montado.
+        if (!mapaDiv || !document.contains(mapaDiv)) return;
         if (this._miniMap) { this._miniMap.remove(); this._miniMap = null; }
         this._miniMap = L.map(mapaDiv, { zoomControl: true, scrollWheelZoom: false }).setView([la, lo], 14);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(this._miniMap);

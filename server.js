@@ -2161,7 +2161,7 @@ function buildCsp(scriptSrc) {
   return [
     "default-src 'self'",
     scriptSrc,
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openstreetmap.org",
     "connect-src 'self' https://*.openstreetmap.org https://nominatim.openstreetmap.org https://router.project-osrm.org https://cdn.jsdelivr.net",
@@ -2756,6 +2756,9 @@ async function applyAuthMiddleware(req, res, pathname, method) {
   try {
     const sid = auth.parseCookies(req)[auth.COOKIE_NAME];
     const user = await auth.getUserBySession(sid);
+    // /api/auth/me ("quem sou eu"): seta o user se houver sessão, mas NÃO 401 se ausente —
+    // deixa o handler responder 200 {user:null} (evita 401 no console no boot deslogado).
+    if (pathname === '/api/auth/me') { req.user = user || null; return false; }
     if (!user) {
       sendError(res, 401, 'Não autenticado');
       return true;

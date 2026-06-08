@@ -473,7 +473,9 @@ const perfil = {
 
   async load() {
     try {
-      const r = await fetch('/api/niveis-acesso').then(res => res.json());
+      const res = await fetch('/api/niveis-acesso');
+      if (!res.ok) { this._niveis = this._niveis || []; return; } // sessão não pronta/expirada — não tenta parsear erro
+      const r = await res.json();
       this._niveis = r.niveis || [];
       // Re-sincroniza o perfil ativo. O snapshot em sessionStorage é tirado
       // quando o usuário escolhe o perfil e fica desatualizado quando as
@@ -866,6 +868,9 @@ function getFrotaAlertCount() {
 let _rdoAlertCount = 0;
 function getRdosAlertCount() { return _rdoAlertCount; }
 async function refreshRdoAlertCount() {
+  // Não busca antes do login: o setTimeout/setInterval de módulo dispara no boot mesmo
+  // deslogado, e /api/rdos sem sessão gera 401 no console. Só roda autenticado.
+  if (!auth.user()) return;
   try {
     const r = await fetch('/api/rdos');
     if (!r.ok) return;

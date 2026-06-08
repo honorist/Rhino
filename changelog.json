@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.16.1",
+      "date": "2026-06-08",
+      "summary": "Corrige erros no console ao navegar (mapa e sessão) e libera o tour guiado",
+      "changes": [
+        "Corrige erros no console ao navegar (mapa e sessão) e libera o tour guiado"
+      ]
+    },
+    {
       "version": "1.16.0",
       "date": "2026-06-05",
       "summary": "Dashboard repaginado: mais compacto e gerencial (~3 telas, era ~9)",

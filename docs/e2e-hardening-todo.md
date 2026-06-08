@@ -15,10 +15,15 @@
 Run final (DB limpo, retries:1 igual CI): **20 passed · 10 skipped · 0 failed** (1 flaky: smoke 8, passa no retry).
 Recuperados nesta sessão: 5, 8, 9, 10, 11, 12a, fluxos 1, search 24/25, theme FAB (via `playwright.request` + `.first()` no "Novo Contrato" empty-state + FAB via DOM click).
 
-### Quarentenados com `test.fixme` (3) — follow-up de **app/trace**, não seletor:
+### Quarentenados com `test.fixme` (2 restantes) — follow-up de **app/trace**, não seletor:
 - **smoke 12b** (orçamento) — campo "Valor" do modal de orçamento não achado por `getByLabel` (label sem for/id) → 30s → "page closed". Ajustar seletor (modais-extra.js `formOrcamento`) + trace.
-- **smoke 13** "sem erro JS" — **BUG REAL DO APP**: 5× `401 Unauthorized` no boot + `Map container not found` (Leaflet sem container). Corrigir o app e reativar.
 - **fluxos 2** (recrutamento US-05..09) — asserção "Maria Candidata" no detalhe espera 30s → "page closed". Trace + seletor do fluxo de recrutamento.
+
+### ✅ RESOLVIDO (Tier 1 da auditoria do site):
+- **smoke 13** "sem erro JS" — **bugs reais do app consertados e teste REATIVADO**:
+  - `Map container not found` → guard `document.contains(mapaDiv)` antes de `L.map()` em `Recursos.js`/`Obras.js`.
+  - `401` no boot → `/api/auth/me` agora retorna **200 {user:null}** sem sessão (era 401); `refreshRdoAlertCount` só busca autenticado; `perfil.load` checa `res.ok`.
+  - CSP do Shepherd.js → `cdn.jsdelivr.net` adicionado ao `style-src`.
 
 ### Flaky a observar
 - **smoke 8** (Notas Fiscais) — passa no retry; investigar a corrida (provável timing do "+ Novo Contrato"/NF). `retries:1` do CI absorve.

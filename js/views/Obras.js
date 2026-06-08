@@ -145,9 +145,12 @@ window.Obras = {
     if (!mapaDiv) return;
     if (typeof L === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('leaflet');
     if (typeof L === 'undefined') return;
+    // Guard: o `await` acima cede controle; se a view foi trocada nesse meio-tempo, o container
+    // está detached → "Map container not found". Só inicializa se ainda está montado.
+    if (!document.body.contains(mapaDiv)) return;
 
     // Centro padrão: Brasil
-    this._map = L.map('mapaObras').setView([-15.7801, -47.9292], 5);
+    this._map = L.map(mapaDiv).setView([-15.7801, -47.9292], 5);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>'

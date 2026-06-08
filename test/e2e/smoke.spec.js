@@ -469,10 +469,7 @@ test.describe('Rhino — smoke pós-React', () => {
   });
 
   // -------------------------------------------------------------------
-  // QUARENTENA (follow-up = BUG REAL DO APP, não do teste): este teste pega 2 erros JS reais que
-  // devem ser corrigidos no app: (1) 5× "401 Unauthorized" — alguma chamada sem auth no boot;
-  // (2) "Map container not found" — init do Leaflet sem o container no DOM. Corrigir o app e reativar.
-  test.fixme('13. Navegação por todas as abas sem erro JS', async ({ page }) => {
+  test('13. Navegação por todas as abas sem erro JS', async ({ page }) => {
     const rotas = [
       '/dashboard',
       '/contratos',
@@ -492,6 +489,9 @@ test.describe('Rhino — smoke pós-React', () => {
     ];
     for (const r of rotas) {
       await goto(page, r);
+      // Espera a view terminar de carregar (Store.loadAll) antes de recarregar p/ a próxima rota —
+      // senão o reload aborta os fetches em voo, gerando "Failed to fetch"/401 transitório (não é bug do app).
+      await page.locator('.loading-spinner').waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
       await expectNoJsError(page, r);
     }
     expect(errors, `Erros JS acumulados: ${errors.join(' | ')}`).toEqual([]);
