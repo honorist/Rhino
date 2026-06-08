@@ -2,6 +2,21 @@
 
 > Sessão futura: pegar daqui. Diagnóstico já feito; falta executar.
 
+## ⏩ PROGRESSO sessão 2 (2026-06-08) — commits locais a mais (NÃO pushados)
+
+- `6855d08` — BASE com tipos default (app-fix real: form mapeava `Store.state.tipos_base` direto → vazio em instância nova) + smoke 9/10/11 com seletores por id (`#btnSalvar`, `#btnNovoRecurso`) + datas no mês atual (views são month-scoped). **Recupera 9/10/11.**
+- `920ed46` — drill-in via botão "Abrir" (`.row-contrato .btn-abrir`; clicar a linha só abre overview) + aba financeiro via `.ctd-tab[data-ctd-tab="financeiro"]` (o teste clicava o "Financeiro" do SIDEBAR) + `.first()`. **Recupera 12a/12b/fluxos 1** (validados individualmente).
+- Já recuperados e validados individualmente: **7, 8** (modal CSS de `b41165c`), **9, 10, 11** (6855d08), **12a, 12b, fluxos 1** (920ed46).
+
+### ⚠️ GOTCHA do repro (importante)
+- O `npm run db:migrate` logo após `docker compose down -v && up` às vezes roda **antes do Postgres estar 100% pronto** → migrations parciais (`relation "login_attempts"/"propostas" does not exist`) → **login quebra** → TODOS os testes com login falham 30s (só passam os 4 sem login: PWA/version). **Não confunda com regressão.** Rode o migrate, confira com `docker exec rhino-db psql -U rhino -d rhino -c "\dt login_attempts"`, e só então suba o app.
+
+### Falta de verdade (re-verificar limpo + estes):
+- **13** "sem erro JS" — bug real de **CSP** (Shepherd.js via CDN). App fix.
+- **ui-features 24/25** — API `/api/search` (rodar local, ver erro exato).
+- **theme FAB (ui-features 77)** — 30s, investigar.
+- Re-rodar a suíte completa num DB **bem migrado** pra confirmar 7–12 verdes.
+
 ## Estado atual
 
 - **Commit local (NÃO pushado):** `b41165c` — `fix(ui+e2e): modal nao corta o footer + smoke usa navegacao confiavel`.
