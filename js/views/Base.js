@@ -342,7 +342,13 @@ window.Base = {
               <div class="form-group">
                 <label class="form-label">Tipo *</label>
                 <select class="form-control" name="type" id="tipoItemBase" required>
-                  ${(Store.state.tipos_base || []).map(t =>
+                  ${((Store.state.tipos_base && Store.state.tipos_base.length) ? Store.state.tipos_base : [
+                    { key: 'material', label: 'Material', icon: '🔹' },
+                    { key: 'mao_de_obra', label: 'Mão de obra', icon: '🔹' },
+                    { key: 'equipamento', label: 'Equipamento', icon: '🔹' },
+                    { key: 'administrativo', label: 'Administrativo', icon: '🔹' },
+                    { key: 'outros', label: 'Outros', icon: '🔹' },
+                  ]).map(t =>
                     `<option value="${t.key}" ${item?.type === t.key ? 'selected' : ''}>${t.icon} ${t.label}</option>`
                   ).join('')}
                 </select>

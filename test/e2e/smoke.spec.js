@@ -137,10 +137,10 @@ async function submitModal(page, fields) {
   if ((await btnLegacy.count()) > 0) {
     await btnLegacy.first().evaluate((el) => (el).click());
   } else {
-    await modal
-      .getByRole('button', { name: /^(Criar|Salvar|Atualizar)$/i })
-      .first()
-      .click();
+    // Submit: prefere o id estável #btnSalvar (o texto varia — Criar/Salvar/Registrar Aporte/Cadastrar…).
+    const _submit = modal.locator('#btnSalvar');
+    if (await _submit.count()) await _submit.first().click();
+    else await modal.getByRole('button', { name: /^(Criar|Salvar|Atualizar|Adicionar|Registrar|Cadastrar)/i }).first().click();
   }
   // Modal fecha — aceita detached OU hidden
   await modal.waitFor({ state: 'detached', timeout: 5000 }).catch(async () => {
@@ -334,7 +334,8 @@ test.describe('Rhino — smoke pós-React', () => {
     await modal.getByLabel(/Descrição/i).fill('Item BASE teste');
     await modal.getByLabel(/^Tipo/i).selectOption({ index: 1 }).catch(() => {});
     await modal.getByLabel(/^Valor/i).fill('2000');
-    await modal.getByLabel(/^Data/i).first().fill('2026-04-01');
+    // Data no mês ATUAL — a view BASE filtra pelo mês corrente; data no passado some da lista.
+    await modal.getByLabel(/^Data/i).first().fill(new Date().toISOString().slice(0, 10));
     await modal.getByRole('button', { name: /^(Criar|Salvar)$/ }).click();
     await modal.waitFor({ state: 'detached' }).catch(() => {});
     await expect(page.locator('#app')).toContainText('Item BASE teste');
@@ -367,10 +368,10 @@ test.describe('Rhino — smoke pós-React', () => {
     await modal.locator('label', { hasText: /BASE/i }).first().click();
 
     await modal.getByLabel(/Valor/i).fill('30000');
-    await modal.getByLabel(/^Data/i).first().fill('2026-04-10');
+    await modal.getByLabel(/^Data/i).first().fill(new Date().toISOString().slice(0, 10));
     await modal.getByLabel(/Descrição/i).fill('Aporte inicial');
 
-    await modal.getByRole('button', { name: /^(Criar|Salvar)$/ }).click();
+    await modal.locator('#btnSalvar').click(); // texto é "Registrar Aporte" — usa o id estável
     await modal.waitFor({ state: 'detached' }).catch(() => {});
     await expect(page.locator('#app')).toContainText('Aporte inicial');
   });
@@ -378,7 +379,7 @@ test.describe('Rhino — smoke pós-React', () => {
   // -------------------------------------------------------------------
   test('11. Recursos — criar colaborador', async ({ page }) => {
     await goto(page, '/recursos');
-    await page.getByRole('button', { name: /\+\s*Novo (Recurso|Colaborador)/i }).click();
+    await page.locator('#btnNovoRecurso').click(); // texto é "+ Novo Cadastro" — usa o id estável
     await submitModal(page, {
       'Nome': 'João Silva',
       'CPF': '123.456.789-00',
