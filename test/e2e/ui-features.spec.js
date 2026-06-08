@@ -81,7 +81,7 @@ test.describe('Theme customizer', () => {
     // Legacy: mesmo FAB criado por themer.js.
     const fab = page.locator('.theme-customizer-fab');
     await expect(fab).toBeVisible({ timeout: 3000 });
-    await fab.click();
+    await fab.click({ force: true }); // FAB tem animação contínua → "not stable" p/ o Playwright; força o clique
     await expect(page.locator('.theme-customizer-panel')).toBeVisible({ timeout: 3000 });
     const swatches = await page.locator('.theme-swatch').count();
     expect(swatches).toBeGreaterThanOrEqual(8);
@@ -89,11 +89,11 @@ test.describe('Theme customizer', () => {
 });
 
 test.describe('Global search (M3)', () => {
-  test('GET /api/search?q=ab exige auth e retorna 200 com sessão', async ({ request }) => {
+  test('GET /api/search?q=ab exige auth e retorna 200 com sessão', async ({ request, playwright }) => {
     const r1 = await request.get(`${BASE_URL}/api/search?q=ab`);
     expect(r1.status()).toBe(401);
 
-    const ctx = await request.newContext({
+    const ctx = await playwright.request.newContext({
       baseURL: BASE_URL,
       extraHTTPHeaders: { 'Content-Type': 'application/json' },
     });
@@ -107,8 +107,8 @@ test.describe('Global search (M3)', () => {
     expect(Array.isArray(body.results)).toBe(true);
   });
 
-  test('busca com q vazia retorna sem resultados', async ({ request }) => {
-    const ctx = await request.newContext({
+  test('busca com q vazia retorna sem resultados', async ({ playwright }) => {
+    const ctx = await playwright.request.newContext({
       baseURL: BASE_URL,
       extraHTTPHeaders: { 'Content-Type': 'application/json' },
     });

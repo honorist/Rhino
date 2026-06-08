@@ -241,7 +241,7 @@ test.describe('Rhino — smoke pós-React', () => {
 
     // 5b) Cria contrato
     await goto(page, '/contratos');
-    await page.getByRole('button', { name: /\+\s*Novo Contrato/i }).click();
+    await page.getByRole('button', { name: /\+\s*Novo Contrato/i }).first().click(); // .first(): lista vazia tem header + CTA do empty-state
     const modal = page.locator('.modal-overlay');
     await modal.waitFor({ state: 'visible' });
 
@@ -292,7 +292,7 @@ test.describe('Rhino — smoke pós-React', () => {
     await submitModal(page, { 'Nome': 'Cli NF', 'Empresa': 'Cli NF Ltda' });
 
     await goto(page, '/contratos');
-    await page.getByRole('button', { name: /\+\s*Novo Contrato/i }).click();
+    await page.getByRole('button', { name: /\+\s*Novo Contrato/i }).first().click(); // .first(): lista vazia tem header + CTA do empty-state
     let modal = page.locator('.modal-overlay');
     await modal.waitFor({ state: 'visible' });
     const selClient = modal.getByLabel(/^Cliente/i);
@@ -398,7 +398,7 @@ test.describe('Rhino — smoke pós-React', () => {
     await submitModal(page, { 'Nome': 'Cli Saida', 'Empresa': 'Obra Saida' });
 
     await goto(page, '/contratos');
-    await page.getByRole('button', { name: /\+\s*Novo Contrato/i }).click();
+    await page.getByRole('button', { name: /\+\s*Novo Contrato/i }).first().click(); // .first(): lista vazia tem header + CTA do empty-state
     let modal = page.locator('.modal-overlay');
     await modal.waitFor({ state: 'visible' });
     const selCli = modal.getByLabel(/^Cliente/i);
@@ -437,7 +437,7 @@ test.describe('Rhino — smoke pós-React', () => {
     await submitModal(page, { 'Nome': 'Cli Orc', 'Empresa': 'Orc Ltda' });
 
     await goto(page, '/contratos');
-    await page.getByRole('button', { name: /\+\s*Novo Contrato/i }).click();
+    await page.getByRole('button', { name: /\+\s*Novo Contrato/i }).first().click(); // .first(): lista vazia tem header + CTA do empty-state
     let modal = page.locator('.modal-overlay');
     await modal.waitFor({ state: 'visible' });
     const selCli2 = modal.getByLabel(/^Cliente/i);
