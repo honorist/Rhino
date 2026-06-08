@@ -96,29 +96,12 @@ async function freshApp(page) {
 
 async function goto(page, route) {
   const path = route.startsWith('#/') ? route.slice(1) : route;
-  // Detecção robusta: window.routes existe → legacy (hash routing).
-  // Não confiar em location.hash porque tem uma race com o post-login (a
-  // navegação inicial do app.js demora para popular o hash).
-  const isLegacy = await page.evaluate(() => typeof window.routes !== 'undefined');
-  if (isLegacy) {
-    // Setar hash via location.hash não dispara hashchange se for o mesmo
-    // valor. Forçamos: dispara o event manualmente.
-    await page.evaluate((h) => {
-      if (location.hash === h) {
-        window.dispatchEvent(new HashChangeEvent('hashchange'));
-      } else {
-        location.hash = h;
-      }
-    }, '#' + path);
-  } else {
-    // React: path-based via history.pushState para evitar reload.
-    await page.evaluate((p) => {
-      window.history.pushState({}, '', p);
-      window.dispatchEvent(new PopStateEvent('popstate'));
-    }, path);
-  }
-  // `#app` sempre existe em ambos os modos; estado 'attached' basta — a
-  // visibilidade depende do CSS que pode estar em transição.
+  // Navega direto pra URL com hash (igual ao fluxos-compostos): setar `location.hash`
+  // logo após o login dá race com o boot pós-login (o app.js sobrescreve o hashchange
+  // → fica no dashboard → botão nunca aparece → 30s de timeout, sobretudo em CI lento).
+  // Recarregar na URL certa força a SPA a bootar JÁ na rota. Sessão+perfil (cookie/
+  // sessionStorage) persistem entre reloads, então não re-loga.
+  await page.goto(BASE_URL + '/#' + path, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#app', { state: 'attached', timeout: 15_000 });
 }
 

@@ -317,6 +317,7 @@ textarea.form-control {
   justify-content: center;
   z-index: 1000;
   padding: var(--sp-lg);
+  overflow-y: auto; /* modal alto centralizado clipa topo/rodapé → permite rolar a viewport */
   animation: fadeIn 0.18s;
 }
 
@@ -327,6 +328,8 @@ textarea.form-control {
   padding: var(--sp-xl);
   width: 560px;
   max-width: 100%;
+  max-height: calc(100vh - 2 * var(--sp-lg)); /* nunca excede a viewport (senão o footer/Criar fica cortado) */
+  overflow-y: auto; /* conteúdo longo rola DENTRO do modal → botão Criar sempre alcançável */
   box-shadow: 0 24px 48px rgba(17,24,39,.15), 0 8px 16px rgba(17,24,39,.08);
   animation: slideUp 0.25s cubic-bezier(.16,1,.3,1);
 }
