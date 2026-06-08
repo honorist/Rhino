@@ -25,6 +25,7 @@ async function freshApp(page) {
           .filter((k) => k.startsWith('rhino:') || k.startsWith('rhino-'))
           .forEach((k) => localStorage.removeItem(k));
         sessionStorage.clear();
+        localStorage.setItem('rhino-tour-v1', '1'); // pula o tour de onboarding (senão bloqueia cliques)
       } catch {}
     })
     .catch(() => {});
@@ -64,15 +65,25 @@ async function freshApp(page) {
       // LGPD já aceito ou indisponível — segue.
     });
 
-  // 3) Profile picker se aparecer (user SEM nivelAcessoId)
-  await page
-    .locator('.perfil-card')
-    .first()
-    .waitFor({ state: 'visible', timeout: 3_000 })
-    .then(() => page.locator('.perfil-card').first().click())
-    .catch(() => {
-      // user tem nivelAcessoId → picker pulado, sidebar monta direto.
-    });
+  // 3) Perfil: clicar num card seleciona um perfil RESTRITO (sem #/clientes etc.) → a SPA
+  //    redireciona pro dashboard e os testes de UI travam. Em vez disso, injeta um perfil
+  //    sintético de ACESSO TOTAL (abas = base de TODAS as rotas + variantes edit:) e recarrega —
+  //    o boot encontra o perfil, pula o picker, e o super-admin enxerga tudo.
+  await page.waitForFunction(() => typeof window.routes !== 'undefined', { timeout: 10_000 }).catch(() => {});
+  await page.evaluate(() => {
+    try {
+      localStorage.setItem('rhino-tour-v1', '1');
+      const rotas = typeof window.routes !== 'undefined' ? Object.keys(window.routes) : [];
+      const abas = new Set();
+      rotas.forEach((r) => {
+        const base = r.replace(/(#\/[^/]+).*/, '$1');
+        abas.add(base);
+        abas.add('edit:' + base);
+      });
+      sessionStorage.setItem('rhino-perfil', JSON.stringify({ id: '__e2e_full__', label: 'E2E (acesso total)', abas: [...abas] }));
+    } catch {}
+  });
+  await page.goto(BASE_URL);
 
   await page.waitForSelector('#sidebar', { state: 'attached', timeout: 10_000 });
   // Garante que nenhum overlay residual bloqueia cliques posteriores.

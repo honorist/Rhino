@@ -53,13 +53,25 @@ async function freshApp(page) {
     })
     .catch(() => {});
 
-  await page
-    .locator('.perfil-card')
-    .first()
-    .waitFor({ state: 'visible', timeout: 3_000 })
-    .then(() => page.locator('.perfil-card').first().click())
-    .catch(() => {});
-
+  // Clicar no 1º card do picker seleciona um perfil RESTRITO (ex.: Coordenador, sem #/clientes)
+  // → iniciarApp redireciona pro dashboard e os fluxos de UI travam. Em vez disso, injeta um
+  // perfil sintético de ACESSO TOTAL: abas = a base de TODAS as rotas da SPA (+ variantes edit:),
+  // e recarrega — o boot encontra o perfil, pula o picker, e o super-admin enxerga tudo.
+  await page.waitForFunction(() => typeof window.routes !== 'undefined', { timeout: 10_000 }).catch(() => {});
+  await page.evaluate(() => {
+    try {
+      localStorage.setItem('rhino-tour-v1', '1');
+      const rotas = typeof window.routes !== 'undefined' ? Object.keys(window.routes) : [];
+      const abas = new Set();
+      rotas.forEach((r) => {
+        const base = r.replace(/(#\/[^/]+).*/, '$1'); // '#/contratos/:id' → '#/contratos'
+        abas.add(base);
+        abas.add('edit:' + base);
+      });
+      sessionStorage.setItem('rhino-perfil', JSON.stringify({ id: '__e2e_full__', label: 'E2E (acesso total)', abas: [...abas] }));
+    } catch {}
+  });
+  await page.goto(BASE_URL);
   await page.waitForSelector('#sidebar', { state: 'attached', timeout: 10_000 });
 }
 
@@ -105,10 +117,7 @@ test.describe('Fluxo composto: Cliente → Contrato → BMs', () => {
     await freshApp(page);
   });
 
-  // QUARENTENA: a SPA, em sessão nova, assume um perfil restrito (Coordenador) p/ o super-admin
-  // → iniciarApp() faz `!perfil.podeAcessar('#/clientes')` → redireciona pro dashboard → o botão
-  // "+ Novo Cliente" nunca aparece (timeout 30s). Fix real = setup de perfil no teste (follow-up).
-  test.fixme('1. Cria cliente, contrato, saída e confere lista em /contratos', async ({ page }) => {
+  test('1. Cria cliente, contrato, saída e confere lista em /contratos', async ({ page }) => {
     // a) Cliente
     await goto(page, '/clientes');
     await page.getByRole('button', { name: /\+\s*Novo Cliente/i }).click();
@@ -120,7 +129,8 @@ test.describe('Fluxo composto: Cliente → Contrato → BMs', () => {
 
     // b) Contrato com esse cliente
     await goto(page, '/contratos');
-    await page.getByRole('button', { name: /\+\s*Novo Contrato/i }).click();
+    // .first(): em lista vazia há 2 botões "+ Novo Contrato" (header + CTA do empty-state); ambos abrem o mesmo modal.
+    await page.getByRole('button', { name: /\+\s*Novo Contrato/i }).first().click();
     const modal = page.locator('.modal-overlay');
     await modal.waitFor({ state: 'visible' });
     const selCli = modal.getByLabel(/^Cliente/i);
@@ -141,7 +151,7 @@ test.describe('Fluxo composto: Cliente → Contrato → BMs', () => {
       timeout: 5000,
     });
     await page.getByRole('button', { name: 'Financeiro' }).click();
-    await page.getByRole('button', { name: /\+\s*Adicionar Saída/i }).click();
+    await page.getByRole('button', { name: /\+\s*Adicionar Saída/i }).first().click();
     const modal2 = page.locator('.modal-overlay');
     await modal2.waitFor({ state: 'visible' });
     await modal2.getByLabel(/Descrição/i).fill('Compra material fluxo');
@@ -162,12 +172,11 @@ test.describe('Fluxo composto: Recrutamento (US-05 a US-09)', () => {
     await freshApp(page);
   });
 
-  // QUARENTENA: mesmo motivo do teste 1 (perfil restrito assumido bloqueia a navegação na SPA).
-  test.fixme('2. Abre solicitação, adiciona candidato, faz triagem', async ({ page }) => {
+  test('2. Abre solicitação, adiciona candidato, faz triagem', async ({ page }) => {
     await goto(page, '/recrutamento');
 
     // a) Nova solicitação
-    await page.getByRole('button', { name: /\+\s*Nova solicitação/i }).click();
+    await page.getByRole('button', { name: /\+\s*Nova solicitação/i }).first().click();
     const modal = page.locator('.modal-overlay');
     await modal.waitFor({ state: 'visible' });
     // Não preenche contrato (opcional)
