@@ -258,49 +258,56 @@ async function handlePushUnsubscribe(body, req, res) {
 
 async function handleAllocateBase(id, body, res) {
   try {
-    const baseItem = await repos.baseItems.findById(id);
-    if (!baseItem) return sendError(res, 404, 'Base item not found');
-
     const allocationValue = money.parse(body.value);
-    const allocs = baseItem.allocations || [];
-    const totalAllocated = allocs.reduce((sum, a) => sum + (parseFloat(a.value) || 0), 0);
-    if (totalAllocated + allocationValue > parseFloat(baseItem.value)) {
-      return sendError(res, 400, `Cannot allocate more than available. Available: ${parseFloat(baseItem.value) - totalAllocated}`);
-    }
+    // FIX: alocação sob transação + advisory lock — a checagem de limite e os 2 writes
+    // (base item + caixa) eram soltos, permitindo over-alocação concorrente e inconsistência.
+    const env = await db.withTransaction(async (client) => {
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('base:' || $1)::int)", [id]);
+      const baseItem = await repos.baseItems.findById(id);
+      if (!baseItem) { const e = new Error('Base item not found'); e.statusCode = 404; throw e; }
 
-    const allocation = {
-      id: generateId('alc'),
-      contractId: body.contractId,
-      value: allocationValue,
-      date: new Date().toISOString().split('T')[0],
-      createdAt: new Date().toISOString(),
-    };
-    const newAllocs = allocs.concat(allocation);
-    await repos.baseItems.updateById(id, {
-      allocations: JSON.stringify(newAllocs),
-      updatedAt: new Date().toISOString(),
-    });
+      const allocs = baseItem.allocations || [];
+      const totalAllocated = allocs.reduce((sum, a) => sum + (parseFloat(a.value) || 0), 0);
+      if (totalAllocated + allocationValue > parseFloat(baseItem.value) + 0.01) {
+        const e = new Error(`Cannot allocate more than available. Available: ${(parseFloat(baseItem.value) - totalAllocated).toFixed(2)}`);
+        e.statusCode = 400; throw e;
+      }
 
-    await repos.caixa.create({
-      id: generateId('cxa'),
-      type: 'saida',
-      description: `Alocação BASE: ${baseItem.description}`,
-      value: allocationValue,
-      date: allocation.date,
-      contractId: body.contractId,
-      baseItemId: id,
-      category: 'base',
-      notes: '',
-      createdAt: new Date().toISOString(),
-    });
+      const allocation = {
+        id: generateId('alc'),
+        contractId: body.contractId,
+        value: allocationValue,
+        date: new Date().toISOString().split('T')[0],
+        createdAt: new Date().toISOString(),
+      };
+      const newAllocs = allocs.concat(allocation);
+      await repos.baseItems.updateById(id, {
+        allocations: JSON.stringify(newAllocs),
+        updatedAt: new Date().toISOString(),
+      });
 
-    sendJson(res, {
-      base: { items: await repos.baseItems.findAll() },
-      caixa: { entries: await repos.caixa.findAll() },
-      contracts: await repos.contracts.getEnvelope(),
+      await repos.caixa.create({
+        id: generateId('cxa'),
+        type: 'saida',
+        description: `Alocação BASE: ${baseItem.description}`,
+        value: allocationValue,
+        date: allocation.date,
+        contractId: body.contractId,
+        baseItemId: id,
+        category: 'base',
+        notes: '',
+        createdAt: new Date().toISOString(),
+      });
+
+      return {
+        base: { items: await repos.baseItems.findAll() },
+        caixa: { entries: await repos.caixa.findAll() },
+        contracts: await repos.contracts.getEnvelope(),
+      };
     });
+    sendJson(res, env);
   } catch (e) {
-    sendError(res, 400, e.message);
+    sendError(res, e.statusCode || 400, e.message);
   }
 }
 
@@ -697,7 +704,7 @@ async function handleBackup(res) {
 async function handleBackupDownload(res) {
   try {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-    const safe = async (fn) => { try { return await fn(); } catch { return []; } };
+    const safe = async (fn) => { try { return await fn(); } catch (e) { console.warn('[dump] coleta falhou (resultado vazio):', e && e.message); return []; } };
 
     const payload = {
       _meta: {
@@ -1825,7 +1832,8 @@ async function recalcularSaldoFolha(folhaId) {
     else if (it.tipo === 'desconto') descontos += v;
   }
   const saldoBase = (parseFloat(f.salarioBase) || 0) - (parseFloat(f.valorVale) || 0);
-  const novoSaldo = Math.round((saldoBase + proventos - descontos) * 100) / 100;
+  // money.round2 trata casos que Math.round(*100)/100 erra (ex.: 2.005 → 2.01).
+  const novoSaldo = money.round2(saldoBase + proventos - descontos);
   const atualizada = await repos.folhaPagamento.updateById(folhaId, {
     valorSaldo: novoSaldo,
     updatedAt: new Date().toISOString(),
@@ -1835,7 +1843,7 @@ async function recalcularSaldoFolha(folhaId) {
     await repos.contasPagar.updateById(f.saldoContaPagarId, {
       valor: novoSaldo,
       updatedAt: new Date().toISOString(),
-    }).catch(() => {});
+    }).catch((e) => console.error('[folha] falha ao sincronizar conta do saldo', f.saldoContaPagarId, e && e.message));
   }
   return atualizada;
 }
@@ -5093,7 +5101,7 @@ async function _runEmailBackup() {
     return;
   }
   try {
-    const safe = async (fn) => { try { return await fn(); } catch { return []; } };
+    const safe = async (fn) => { try { return await fn(); } catch (e) { console.warn('[dump] coleta falhou (resultado vazio):', e && e.message); return []; } };
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     const payload = {
       _meta: { version: APP_VERSION, generatedAt: new Date().toISOString(), format: 'rhino-backup-v1' },
