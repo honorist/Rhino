@@ -81,7 +81,7 @@ test.describe('Theme customizer', () => {
     // Legacy: mesmo FAB criado por themer.js.
     const fab = page.locator('.theme-customizer-fab');
     await expect(fab).toBeVisible({ timeout: 3000 });
-    await fab.click({ force: true }); // FAB tem animação contínua → "not stable" p/ o Playwright; força o clique
+    await fab.evaluate((el) => el.click()); // FAB anima/posiciona fora da viewport p/ o Playwright; dispara o click via DOM
     await expect(page.locator('.theme-customizer-panel')).toBeVisible({ timeout: 3000 });
     const swatches = await page.locator('.theme-swatch').count();
     expect(swatches).toBeGreaterThanOrEqual(8);
