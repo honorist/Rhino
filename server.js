@@ -2042,11 +2042,13 @@ async function handleLimparFolha(body, res) {
       if (f.valePago || f.saldoPago) { mantidas++; continue; } // tem pagamento — preserva
       // Contas a pagar vinculadas (ainda pendentes) — removidas junto.
       for (const cpId of [f.valeContaPagarId, f.saldoContaPagarId]) {
-        if (cpId) await repos.contasPagar.removeById(cpId).catch(() => {});
+        if (cpId) await repos.contasPagar.removeById(cpId)
+          .catch((e) => console.error('[limpar-folha] falha ao remover conta', cpId, e && e.message));
       }
       // Ordem: folha_pagamento antes do base_item (FK base_item_id).
       await repos.folhaPagamento.removeById(f.id);
-      if (f.baseItemId) await repos.baseItems.removeById(f.baseItemId).catch(() => {});
+      if (f.baseItemId) await repos.baseItems.removeById(f.baseItemId)
+        .catch((e) => console.error('[limpar-folha] falha ao remover base item', f.baseItemId, e && e.message));
       removidas++;
     }
     const restante = await repos.folhaPagamento.findByCompetencia(competencia);
@@ -3157,6 +3159,7 @@ Responda em português, de forma concisa e objetiva.`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
+      signal: AbortSignal.timeout(30_000), // não pendura o worker se a API externa travar
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
@@ -3200,6 +3203,7 @@ Responda APENAS com JSON válido:
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
+      signal: AbortSignal.timeout(30_000), // não pendura o worker se a API externa travar
       headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 256, messages: [{ role: 'user', content: prompt }] }),
     });
