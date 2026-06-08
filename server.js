@@ -30,7 +30,6 @@ const repos = require('./db/repos');
 const db = require('./db');
 const piiCrypto = require('./lib/crypto-pii'); // cifra CPF/documentos em repouso (LGPD)
 const auth = require('./lib/auth');
-const feriados = require('./lib/feriados');
 const email = require('./lib/email');
 const queue = require('./lib/queue');
 const rateLimit = require('./lib/rate-limit');
@@ -77,7 +76,6 @@ const registerContracts = require('./routes/contracts');
 const registerRecrutamento = require('./routes/recrutamento');
 const registerSugestoes = require('./routes/sugestoes');
 const sugestoesHandlers = require('./handlers/sugestoes'); // p/ dispatch multipart do anexo
-const { validateBody, schemas, ValidationError } = require('./lib/validate');
 
 // Web Push — inicializa só se VAPID keys estiverem presentes
 let _webPush = null;
@@ -689,7 +687,7 @@ async function handleBackup(res) {
   try {
     await _runEmailBackup();
     sendJson(res, { message: 'Backup enviado por email' });
-  } catch (e) {
+  } catch (_e) {
     sendError(res, 500, 'Falha ao enviar backup');
   }
 }
@@ -780,7 +778,7 @@ async function handleHealth(res) {
     const db = require('./db');
     const ok = await db.ping();
     result.db = ok ? 'ok' : 'down';
-  } catch (e) {
+  } catch (_e) {
     result.db = 'down';
   }
   const status = result.db === 'ok' ? 200 : 503;
@@ -2557,7 +2555,7 @@ const server = http.createServer((req, res) => {
     req.on('end', async () => {
       try {
         body = body ? JSON.parse(body) : {};
-      } catch (e) {
+      } catch (_e) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'JSON inválido' }));
         return;
@@ -2933,7 +2931,7 @@ async function serveRdoFotoFromDb(pathname, req, res) {
       'Cache-Control': 'private, max-age=3600',
     });
     res.end(row.data);
-  } catch (e) {
+  } catch (_e) {
     res.writeHead(500, { 'Content-Type': 'text/plain' });
     res.end('Erro ao carregar foto');
   }
@@ -4562,7 +4560,7 @@ async function handlePostVeiculo(body, res) {
     const data = { id: generateId('veic'), ..._allowedVeiculoFields(body) };
     if (data.kmAtual) data.kmAtualizadoEm = new Date();
     if (data.lat && data.lng) data.localizadoEm = new Date();
-    const created = await repos.veiculos.create(data);
+    await repos.veiculos.create(data);
     sendJson(res, await repos.veiculos.getEnvelope());
   } catch (e) { sendError(res, 400, e.message); }
 }

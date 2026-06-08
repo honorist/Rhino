@@ -208,7 +208,7 @@ test.describe('NF — sync de Caixa ao emitir', () => {
     auth = await login(request);
   });
 
-  async function criarNFEmitida(request, authH, contratoId) {
+  async function _criarNFEmitida(request, authH, contratoId) {
     // Cria NF
     const nfRes = await api(request, 'POST', '/api/notas-fiscais', {
       numero: `NF-TEST-${Date.now()}`,

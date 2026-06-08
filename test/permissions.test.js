@@ -6,7 +6,7 @@
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const path = require('path');
+const _path = require('path');
 
 // Stub do repos antes de carregar permissions.js
 const reposPath = require.resolve('../db/repos');

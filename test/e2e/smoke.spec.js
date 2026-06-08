@@ -177,7 +177,7 @@ test.describe('Rhino — smoke pós-React', () => {
     await freshApp(page);
   });
 
-  test.afterEach(async ({ page }, testInfo) => {
+  test.afterEach(async ({ page: _page }, testInfo) => {
     if (errors.length && testInfo.status === 'passed') {
       console.warn(`\n⚠️  Erros JS em "${testInfo.title}":\n` + errors.join('\n'));
     }

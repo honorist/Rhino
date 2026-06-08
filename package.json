@@ -8,7 +8,7 @@
     "dev": "node server.js",
     "test": "node --test test/*.test.js",
     "test:coverage": "node --test --experimental-test-coverage test/*.test.js",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"{lib,handlers,routes,test,scripts}/**/*.js\" \"*.js\"",
     "format:check": "prettier --check \"{lib,handlers,routes,test,scripts}/**/*.js\" \"*.js\"",

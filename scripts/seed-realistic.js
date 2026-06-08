@@ -25,7 +25,7 @@
 const crypto = require('crypto');
 const db = require('../db');
 const repos = require('../db/repos');
-const auth = require('../lib/auth');
+const _auth = require('../lib/auth');
 
 const args = process.argv.slice(2);
 const RESET = args.includes('--reset');
@@ -48,7 +48,7 @@ function rid(prefix) {
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 function rand(min, max) { return Math.random() * (max - min) + min; }
 function randInt(min, max) { return Math.floor(rand(min, max + 1)); }
-function fmtDate(d) {
+function _fmtDate(d) {
   return (d instanceof Date ? d : new Date(d)).toISOString().split('T')[0];
 }
 function isWeekend(date) {
@@ -258,7 +258,7 @@ async function seedTiposBase() {
 }
 
 // ============ Base Items ============
-async function seedBaseItems(tipos) {
+async function seedBaseItems(_tipos) {
   const items = [
     { description: 'Aluguel sede administrativa Eunápolis',   type: 'aluguel',     value: 4500.00,  notes: 'Contrato 12 meses, reajuste IGPM' },
     { description: 'Salários equipe administrativa fixa',     type: 'salarios',    value: 28500.00, notes: '5 colaboradores administrativos' },
@@ -316,7 +316,7 @@ async function seedDocTemplates() {
 }
 
 // ============ Documentos por recurso ============
-async function seedDocumentos(recursos, templates) {
+async function seedDocumentos(recursos, _templates) {
   let count = 0;
   for (const rec of recursos) {
     if (rec.status !== 'funcionario') continue;
@@ -868,7 +868,7 @@ async function main() {
   console.log('Populando dados...\n');
   const socios       = await seedSocios();
   const tipos        = await seedTiposBase();
-  const baseItems    = await seedBaseItems(tipos);
+  const _baseItems   = await seedBaseItems(tipos);
   const templates    = await seedDocTemplates();
   const clientes     = await seedClientes();
   const fornecedores = await seedFornecedores();

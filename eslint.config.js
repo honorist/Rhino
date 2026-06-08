@@ -29,7 +29,7 @@ module.exports = [
     languageOptions: { ecmaVersion: 2023, sourceType: 'commonjs', globals: { ...globals.node } },
     rules: {
       ...js.configs.recommended.rules,
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', ignoreRestSiblings: true }],
       'no-empty': ['warn', { allowEmptyCatch: true }],
       'no-constant-condition': ['error', { checkLoops: false }],
     },
@@ -41,8 +41,8 @@ module.exports = [
     languageOptions: { ecmaVersion: 2023, sourceType: 'commonjs', globals: { ...globals.node } },
     rules: {
       ...js.configs.recommended.rules,
-      'no-unused-vars': 'warn',
-      'no-empty': 'warn',
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', ignoreRestSiblings: true }],
+      'no-empty': ['warn', { allowEmptyCatch: true }],
     },
   },
 
@@ -52,8 +52,8 @@ module.exports = [
     languageOptions: { ecmaVersion: 2023, sourceType: 'commonjs', globals: { ...globals.node, ...globals.browser } },
     rules: {
       ...js.configs.recommended.rules,
-      'no-unused-vars': 'warn',
-      'no-empty': 'warn',
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', ignoreRestSiblings: true }],
+      'no-empty': ['warn', { allowEmptyCatch: true }],
     },
   },
 

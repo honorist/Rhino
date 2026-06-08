@@ -145,9 +145,10 @@ Um futuro replace de framework deve ser rewrite **só do front**:
 
 Pipeline (CI em `.github/workflows/ci.yml`): `npm ci` → **`npm run lint`** → schema+migrations →
 sobe o app → **`npm test`** (236 testes) → (e2e em `e2e.yml`). Tudo verde é pré-condição de merge.
-- **ESLint — implementado** (`eslint.config.js`, flat v9): gate no CI, **0 errors** hoje. Bug real =
-  error (quebra o build); estilo/ruído = warning. Backend (`lib/`, `handlers/`) é o foco; o SPA
-  (`js/`) entra leniente por ora. `npm run lint` / `npm run lint:fix`.
+- **ESLint — implementado** (`eslint.config.js`, flat v9): gate no CI com **`--max-warnings 0`** —
+  hoje **0 errors / 0 warnings**; qualquer warning novo quebra o build. Bug real = error; backend
+  (`lib/`, `handlers/`, `server.js`) é o foco; o SPA (`js/`) entra leniente por ora.
+  `npm run lint` / `npm run lint:fix`.
 - **Prettier — configurado** (`.prettierrc.json`): `npm run format` / `format:check`. Ainda **não**
   aplicado em massa no legado (evita diff gigante) — rodar nos arquivos tocados, daqui pra frente.
 - **Cobertura — ligada** (nativa, sem dep): `npm run test:coverage`. Hoje **~90% de linhas** /
