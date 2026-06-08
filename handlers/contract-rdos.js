@@ -209,7 +209,7 @@ async function handlePostRdo(contractId, body, res) {
         precipitacao: 0,
       }),
       periodoTrabalho: body.periodoTrabalho || '7:00 às 17:00',
-      horaExtra: !!body.horaExtra ? 'true' : 'false',
+      horaExtra: body.horaExtra ? 'true' : 'false',
       moi:  JSON.stringify(Array.isArray(body.moi)  ? body.moi  : []),
       mod:  JSON.stringify(Array.isArray(body.mod)  ? body.mod  : []),
       terc: JSON.stringify(Array.isArray(body.terc) ? body.terc : []),
@@ -262,7 +262,7 @@ async function handlePutRdo(contractId, rdoId, body, res) {
         : (typeof atual.totais === 'string' ? JSON.parse(atual.totais || '{}') : (atual.totais || {}));
       allowed.totais = JSON.stringify({ ...totaisBase, totalHomemHora: pass.totalHomemHora });
     }
-    if (body.horaExtra !== undefined) allowed.horaExtra = !!body.horaExtra ? 'true' : 'false';
+    if (body.horaExtra !== undefined) allowed.horaExtra = body.horaExtra ? 'true' : 'false';
     allowed.updatedAt = new Date().toISOString();
 
     await repos.rdos.updateById(rdoId, allowed);

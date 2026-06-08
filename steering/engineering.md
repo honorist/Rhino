@@ -143,14 +143,15 @@ Um futuro replace de framework deve ser rewrite **só do front**:
 
 ## 9. Quality gates (CI verde, não-negociável)
 
-Pipeline: instalar → testes unit (`npm test`) → e2e (`npm run test:e2e`) → análise estática → artefato.
-- **Gate forte que já existe:** `npm test` (236 testes) verde é pré-condição de merge.
-- **A adotar (gaps):**
-  - **ESLint + Prettier** que **quebram o build** — o projeto ainda não tem; é o próximo gate natural.
-    Rodar o formatter antes de cada commit.
-  - **Cobertura:** o Node tem cobertura nativa (`node --test --experimental-test-coverage`) — ligar e
-    fixar um piso (ex.: 80% em `lib/`) sem dependência nova.
-- O `.github/` já existe — pendurar os gates ali (rodar `npm test` + e2e a cada push/PR).
+Pipeline (CI em `.github/workflows/ci.yml`): `npm ci` → **`npm run lint`** → schema+migrations →
+sobe o app → **`npm test`** (236 testes) → (e2e em `e2e.yml`). Tudo verde é pré-condição de merge.
+- **ESLint — implementado** (`eslint.config.js`, flat v9): gate no CI, **0 errors** hoje. Bug real =
+  error (quebra o build); estilo/ruído = warning. Backend (`lib/`, `handlers/`) é o foco; o SPA
+  (`js/`) entra leniente por ora. `npm run lint` / `npm run lint:fix`.
+- **Prettier — configurado** (`.prettierrc.json`): `npm run format` / `format:check`. Ainda **não**
+  aplicado em massa no legado (evita diff gigante) — rodar nos arquivos tocados, daqui pra frente.
+- **Cobertura — ligada** (nativa, sem dep): `npm run test:coverage`. Hoje **~90% de linhas** /
+  ~86% branch no `lib/`. Próximo: fixar um piso que falhe o build (`--test-coverage-lines`).
 
 ## 10. Processo de entrega
 

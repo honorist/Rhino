@@ -1,0 +1,12 @@
+node_modules
+java
+data
+db
+css
+assets
+docs
+scripts/shadow
+js/lib
+**/*.min.js
+package-lock.json
+changelog.json
