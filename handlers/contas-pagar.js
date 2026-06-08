@@ -53,12 +53,17 @@ async function handlePutContaPagar(id, body, res) {
 
 async function handleDeleteContaPagar(id, res) {
   try {
-    const conta = await repos.contasPagar.findById(id);
-    if (!conta) return sendError(res, 404, 'Conta não encontrada');
-    if (conta.caixaEntryId) await repos.caixa.removeById(conta.caixaEntryId);
-    await repos.contasPagar.removeById(id);
-    sendJson(res, await envelope());
-  } catch (e) { sendError(res, 400, e.message); }
+    // FIX: caixa + conta removidos sob transação + advisory lock (antes eram 2 writes soltos).
+    const env = await db.withTransaction(async (client) => {
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('conta:' || $1)::int)", [id]);
+      const conta = await repos.contasPagar.findById(id);
+      if (!conta) { const err = new Error('Conta não encontrada'); err.statusCode = 404; throw err; }
+      if (conta.caixaEntryId) await repos.caixa.removeById(conta.caixaEntryId);
+      await repos.contasPagar.removeById(id);
+      return await envelope();
+    });
+    sendJson(res, env);
+  } catch (e) { sendError(res, e.statusCode || 400, e.message); }
 }
 
 async function handlePagarConta(id, body, res) {
@@ -89,7 +94,8 @@ async function handlePagarConta(id, body, res) {
         const fPatch = conta.folhaParcela === 'vale'
           ? { valePago: true, valeDataPagamento: dataPagamento, valeCaixaEntryId: caixaEntry.id, updatedAt: new Date().toISOString() }
           : { saldoPago: true, saldoDataPagamento: dataPagamento, saldoCaixaEntryId: caixaEntry.id, updatedAt: new Date().toISOString() };
-        await repos.folhaPagamento.updateById(conta.folhaPagamentoId, fPatch).catch(() => {});
+        await repos.folhaPagamento.updateById(conta.folhaPagamentoId, fPatch)
+          .catch((e) => console.error('[conta-pagar] falha ao sincronizar folha', conta.folhaPagamentoId, e && e.message));
       }
       return await envelope();
     });
@@ -99,21 +105,29 @@ async function handlePagarConta(id, body, res) {
 
 async function handleEstornarConta(id, res) {
   try {
-    const conta = await repos.contasPagar.findById(id);
-    if (!conta) return sendError(res, 404, 'Conta não encontrada');
-    if (conta.caixaEntryId) await repos.caixa.removeById(conta.caixaEntryId);
-    await repos.contasPagar.updateById(id, {
-      status: 'pendente', dataPagamento: null, valorPago: null, caixaEntryId: null,
-      updatedAt: new Date().toISOString(),
+    // FIX: estorno sob transação + advisory lock + guard "está paga" (igual ao pagar) —
+    // antes era sem lock/transação/guard, permitindo estorno duplo concorrente.
+    const env = await db.withTransaction(async (client) => {
+      await client.query("SELECT pg_advisory_xact_lock(hashtext('conta:' || $1)::int)", [id]);
+      const conta = await repos.contasPagar.findById(id);
+      if (!conta) { const err = new Error('Conta não encontrada'); err.statusCode = 404; throw err; }
+      if (conta.status !== 'pago') { const err = new Error('Conta não está paga — nada a estornar'); err.statusCode = 400; throw err; }
+      if (conta.caixaEntryId) await repos.caixa.removeById(conta.caixaEntryId);
+      await repos.contasPagar.updateById(id, {
+        status: 'pendente', dataPagamento: null, valorPago: null, caixaEntryId: null,
+        updatedAt: new Date().toISOString(),
+      });
+      if (conta.folhaPagamentoId && (conta.folhaParcela === 'vale' || conta.folhaParcela === 'saldo')) {
+        const fPatch = conta.folhaParcela === 'vale'
+          ? { valePago: false, valeDataPagamento: null, valeCaixaEntryId: null, updatedAt: new Date().toISOString() }
+          : { saldoPago: false, saldoDataPagamento: null, saldoCaixaEntryId: null, updatedAt: new Date().toISOString() };
+        await repos.folhaPagamento.updateById(conta.folhaPagamentoId, fPatch)
+          .catch((e) => console.error('[conta-estorno] falha ao sincronizar folha', conta.folhaPagamentoId, e && e.message));
+      }
+      return await envelope();
     });
-    if (conta.folhaPagamentoId && (conta.folhaParcela === 'vale' || conta.folhaParcela === 'saldo')) {
-      const fPatch = conta.folhaParcela === 'vale'
-        ? { valePago: false, valeDataPagamento: null, valeCaixaEntryId: null, updatedAt: new Date().toISOString() }
-        : { saldoPago: false, saldoDataPagamento: null, saldoCaixaEntryId: null, updatedAt: new Date().toISOString() };
-      await repos.folhaPagamento.updateById(conta.folhaPagamentoId, fPatch).catch(() => {});
-    }
-    sendJson(res, await envelope());
-  } catch (e) { sendError(res, 400, e.message); }
+    sendJson(res, env);
+  } catch (e) { sendError(res, e.statusCode || 400, e.message); }
 }
 
 module.exports = {

@@ -82,8 +82,9 @@ async function handleDeleteInvestimento(id, res) {
           await repos.baseItems.removeById(aporte.baseItemId);
         }
       }
+      // FIX: remover o investimento DENTRO da transação (antes ficava fora → refs órfãs se falhasse).
+      await repos.investimentos.removeById(id);
     });
-    await repos.investimentos.removeById(id);
     sendJson(res, await envelope());
   } catch (e) { sendError(res, 400, e.message); }
 }
