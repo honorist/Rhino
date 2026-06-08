@@ -32,17 +32,25 @@ async function api(request, method, path, body, authHeaders) {
 // ─── Setup: cria cliente + contrato para cada suite ──────────────────────────
 
 async function criarContrato(request, auth, valorContrato = 100000) {
+  // Nomes únicos (Date.now + aleatório) para localizar EXATAMENTE o registro criado.
+  const uniq = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
   // Cria cliente
+  const cliNome = `Cli BM ${uniq}`;
   const cliRes = await api(request, 'POST', '/api/clientes', {
-    nome: `Cli BM ${Date.now()}`, empresa: 'BM Test Ltda',
+    nome: cliNome, empresa: 'BM Test Ltda',
   }, auth);
   expect(cliRes.status()).toBe(200);
   const cliData = await cliRes.json();
-  const cliente = cliData.clientes?.at(-1);
+  // A API devolve a lista ordenada (mais novo NÃO é necessariamente o último) —
+  // localiza pelo nome único em vez de `.at(-1)`, que pegava o contrato errado.
+  const cliente = (cliData.clientes || []).find((c) => c.nome === cliNome);
+  expect(cliente, 'cliente criado não encontrado na resposta').toBeTruthy();
 
   // Cria contrato
+  const ctrNome = `Contrato BM ${uniq}`;
   const ctrRes = await api(request, 'POST', '/api/contracts', {
-    name: `Contrato BM ${Date.now()}`,
+    name: ctrNome,
     client: cliente.nome,
     clientId: cliente.id,
     value: valorContrato,
@@ -51,7 +59,9 @@ async function criarContrato(request, auth, valorContrato = 100000) {
   }, auth);
   expect(ctrRes.status()).toBe(200);
   const ctrData = await ctrRes.json();
-  return ctrData.contracts?.at(-1);
+  const contrato = (ctrData.contracts || []).find((c) => c.name === ctrNome);
+  expect(contrato, 'contrato criado não encontrado na resposta').toBeTruthy();
+  return contrato;
 }
 
 // ─── Testes de regras de BM ───────────────────────────────────────────────────
