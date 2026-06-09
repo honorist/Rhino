@@ -69,7 +69,7 @@ test('routes/auth.js — cada rota despacha para o handler certo, com os args ce
 
 // ─── routes/portal.js ────────────────────────────────────────────────────────
 
-test('routes/portal.js — registra exatamente as 6 rotas de /api/portal', () => {
+test('routes/portal.js — registra exatamente as 7 rotas de /api/portal', () => {
   const router = createRouter();
   require('../routes/portal')(router, {});
   const rotas = router
@@ -81,6 +81,8 @@ test('routes/portal.js — registra exatamente as 6 rotas de /api/portal', () =>
     'GET /api/portal/propostas',
     'GET /api/portal/propostas/:id/docx',
     'GET /api/portal/propostas/:id/pdf',
+    'GET /api/portal/rdos/:id/pdf', // PDF oficial do RDO no portal
+
     'POST /api/portal/login',
     'POST /api/portal/logout',
   ]);
