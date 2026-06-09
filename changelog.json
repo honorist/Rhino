@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.16.3",
+      "date": "2026-06-09",
+      "summary": "Tabelas mais legíveis (zebra + destaque de linha) e campos desabilitados visíveis",
+      "changes": [
+        "Tabelas mais legíveis (zebra + destaque de linha) e campos desabilitados visíveis"
+      ]
+    },
+    {
       "version": "1.16.2",
       "date": "2026-06-09",
       "summary": "Campos de formulário com rótulos acessíveis (leitores de tela)",

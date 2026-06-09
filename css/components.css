@@ -116,13 +116,24 @@ tbody tr {
   transition: background 0.12s;
 }
 
-tbody tr:hover {
-  background: var(--color-surface-2);
+/* Zebra sutil — facilita escanear tabelas longas (linhas pares levemente tingidas). */
+tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--color-text) 3%, transparent);
+}
+
+/* Hover distinto do header (que usa --color-surface-2) — fica claro em qual linha você está. */
+tbody tr:hover,
+tbody tr:nth-child(even):hover {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
 }
 
 tbody tr:last-child td {
   border-bottom: none;
 }
+
+/* Célula numérica/monetária: alinhada à direita, dígitos tabulares (colunas de R$ alinham). */
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.num { font-weight: 600; }
 
 /* ─── Buttons ─── */
 .btn {
@@ -258,8 +269,13 @@ select.form-control option { background: #FFFFFF !important; color: #1F2937 !imp
   opacity: 0.7;
 }
 
-.form-control:disabled {
-  opacity: 0.4;
+.form-control:disabled,
+.form-control[disabled] {
+  /* Inputs são sempre claros (decisão de design acima). Disabled = cinza claro legível
+     em vez de opacity:0.4, que somia o campo — sobretudo sobre fundo escuro no dark mode. */
+  background: #F3F4F6 !important;
+  color: #9CA3AF !important;
+  -webkit-text-fill-color: #9CA3AF !important;
   cursor: not-allowed;
 }
 
