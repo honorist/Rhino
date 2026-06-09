@@ -1131,6 +1131,30 @@ async function handlePortalImpersonate(req, clienteId, res) {
   }
 }
 
+/**
+ * GET /api/portal/rdos/:id/pdf — PDF oficial do RDO para o cliente do portal.
+ * Segurança: o RDO precisa pertencer a um contrato do cliente da sessão
+ * (mesmo escopo do dashboard); caso contrário 404 — sem vazar existência.
+ * Reusa o gerador do admin (template xlsx → LibreOffice, fallback pdfkit),
+ * incluindo o guard de concorrência de handlers/contract-rdos.js.
+ */
+async function handlePortalRdoPdf(req, rdoId, res) {
+  try {
+    // db.getOne cameliza: contract_id → contractId, client_id → clientId.
+    const rdo = await db.getOne('SELECT id, contract_id FROM rdos WHERE id = $1', [rdoId]);
+    if (!rdo) return sendError(res, 404, 'RDO não encontrado');
+    const contrato = await db.getOne('SELECT id, client_id FROM contracts WHERE id = $1', [
+      rdo.contractId,
+    ]);
+    if (!contrato || contrato.clientId !== req.portalCliente.id) {
+      return sendError(res, 404, 'RDO não encontrado');
+    }
+    return contractRdosHandlers.handleGetRdoPdf(contrato.id, rdoId, res);
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
+}
+
 async function handlePortalDashboard(req, res) {
   try {
     const clienteId = req.portalCliente.id;
@@ -3341,6 +3365,7 @@ registerPortal(apiRouter, {
   handlePortalListPropostas,
   handlePortalPropostaPdf,
   handlePortalPropostaDocx,
+  handlePortalRdoPdf, // "ter acesso aos RDO da obra" — PDF oficial no portal
 });
 registerPlatform(apiRouter, {
   bus,

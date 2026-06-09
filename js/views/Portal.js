@@ -349,6 +349,7 @@ window.Portal = {
                       <span style="margin-left:8px;font-size:13px;color:var(--color-text-muted);">${r.data ? new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' }) : '—'}</span>
                       ${r.clima ? `<span style="margin-left:8px;font-size:13px;">🌤 ${escapeHtml(r.clima)}</span>` : ''}
                     </div>
+                    <a class="btn btn-secondary" style="font-size:12px;padding:4px 10px;" href="/api/portal/rdos/${escapeHtml(r.id)}/pdf" target="_blank" rel="noopener" title="Abrir o RDO oficial em PDF">📄 PDF</a>
                   </div>
                   ${r.atividades ? `<p style="margin:0 0 8px;font-size:14px;color:var(--color-text-muted);">${escapeHtml(r.atividades)}${r.atividades.length >= 200 ? '…' : ''}</p>` : ''}
                   ${

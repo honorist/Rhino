@@ -26,4 +26,7 @@ module.exports = function registerPortal(router, handlers) {
     comAuth((ctx) => handlers.handlePortalPropostaPdf(ctx.req, ctx.params[0], ctx.res)));
   router.get('/api/portal/propostas/:id/docx',
     comAuth((ctx) => handlers.handlePortalPropostaDocx(ctx.req, ctx.params[0], ctx.res)));
+  // PDF oficial do RDO — escopo: RDO de contrato do cliente da sessão.
+  router.get('/api/portal/rdos/:id/pdf',
+    comAuth((ctx) => handlers.handlePortalRdoPdf(ctx.req, ctx.params[0], ctx.res)));
 };
