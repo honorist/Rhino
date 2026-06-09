@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.16.2",
+      "date": "2026-06-09",
+      "summary": "Campos de formulário com rótulos acessíveis (leitores de tela)",
+      "changes": [
+        "Campos de formulário com rótulos acessíveis (leitores de tela)"
+      ]
+    },
+    {
       "version": "1.16.1",
       "date": "2026-06-08",
       "summary": "Corrige erros no console ao navegar (mapa e sessão) e libera o tour guiado",

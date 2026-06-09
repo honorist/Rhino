@@ -115,13 +115,13 @@
           </div>
           <form id="formSaida" class="modal-content">
             <div class="form-group">
-              <label class="form-label">Descrição *</label>
-              <input class="form-control" name="description" value="${escapeHtml(saida?.description || '')}" required>
+              <label class="form-label" for="saiDescricao">Descrição *</label>
+              <input class="form-control" id="saiDescricao" name="description" value="${escapeHtml(saida?.description || '')}" required>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Tipo *</label>
-                <select class="form-control" name="type" required>
+                <label class="form-label" for="saiTipo">Tipo *</label>
+                <select class="form-control" id="saiTipo" name="type" required>
                   <option value="mao_de_obra" ${saida?.type === 'mao_de_obra' ? 'selected' : ''}>Mão de Obra</option>
                   <option value="material" ${saida?.type === 'material' ? 'selected' : ''}>Material</option>
                   <option value="hospedagem" ${saida?.type === 'hospedagem' ? 'selected' : ''}>Hospedagem</option>
@@ -129,14 +129,14 @@
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">Valor (BRL) *</label>
-                <input class="form-control" name="value" type="text" data-currency inputmode="numeric" value="${saida?.value ? window.BRLInput.toDisplay(saida.value) : ''}" placeholder="0,00" required>
+                <label class="form-label" for="saiValor">Valor (BRL) *</label>
+                <input class="form-control" id="saiValor" name="value" type="text" data-currency inputmode="numeric" value="${saida?.value ? window.BRLInput.toDisplay(saida.value) : ''}" placeholder="0,00" required>
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Data</label>
-                <input class="form-control" name="date" type="date" value="${saida?.date || new Date().toISOString().split('T')[0]}">
+                <label class="form-label" for="saiData">Data</label>
+                <input class="form-control" id="saiData" name="date" type="date" value="${saida?.date || new Date().toISOString().split('T')[0]}">
               </div>
               <div class="form-group">
                 <label class="form-label">Prazo recebimento (dias)</label>
@@ -216,24 +216,24 @@
           </div>
           <form id="formOrcamento" class="modal-content">
             <div class="form-group">
-              <label class="form-label">Descrição *</label>
-              <input class="form-control" name="description" value="${item?.description || ''}" placeholder="Ex: Equipe de campo, aço, diárias..." required>
+              <label class="form-label" for="orcDescricao">Descrição *</label>
+              <input class="form-control" id="orcDescricao" name="description" value="${item?.description || ''}" placeholder="Ex: Equipe de campo, aço, diárias..." required>
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label class="form-label">Categoria *</label>
-                <select class="form-control" name="type" required>
+                <label class="form-label" for="orcCategoria">Categoria *</label>
+                <select class="form-control" id="orcCategoria" name="type" required>
                   ${TIPOS.map(t => `<option value="${t.key}" ${item?.type === t.key ? 'selected' : ''}>${t.label}</option>`).join('')}
                 </select>
               </div>
               <div class="form-group">
-                <label class="form-label">Valor Orçado (BRL) *</label>
-                <input class="form-control" name="value" type="text" data-currency inputmode="numeric" value="${item?.value ? window.BRLInput.toDisplay(item.value) : ''}" placeholder="0,00" required>
+                <label class="form-label" for="orcValor">Valor Orçado (BRL) *</label>
+                <input class="form-control" id="orcValor" name="value" type="text" data-currency inputmode="numeric" value="${item?.value ? window.BRLInput.toDisplay(item.value) : ''}" placeholder="0,00" required>
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Observações</label>
-              <textarea class="form-control" name="notes" style="min-height:60px;" placeholder="Detalhes adicionais...">${window.escapeHtml(item?.notes || '')}</textarea>
+              <label class="form-label" for="orcNotes">Observações</label>
+              <textarea class="form-control" id="orcNotes" name="notes" style="min-height:60px;" placeholder="Detalhes adicionais...">${window.escapeHtml(item?.notes || '')}</textarea>
             </div>
           </form>
           <div class="modal-footer">

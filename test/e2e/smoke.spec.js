@@ -430,10 +430,7 @@ test.describe('Rhino — smoke pós-React', () => {
   });
 
   // -------------------------------------------------------------------
-  // QUARENTENA (follow-up): o campo "Valor" do modal de Orçamento não é achado por getByLabel
-  // (label sem for/id) → fill espera 30s → "Target page closed". Precisa de trace + ajuste do seletor
-  // do modal de orçamento (modais-extra.js formOrcamento). 12a (saída) passa; só o orçamento falta.
-  test.fixme('12b. Contrato — orçamento respeita valor', async ({ page }) => {
+  test('12b. Contrato — orçamento respeita valor', async ({ page }) => {
     // Cria cliente + contrato curto (valor 10k pra disparar a regra)
     await goto(page, '/clientes');
     await page.getByRole('button', { name: /\+\s*Novo Cliente/i }).click();
@@ -461,9 +458,9 @@ test.describe('Rhino — smoke pós-React', () => {
     modal = page.locator('.modal-overlay');
     await modal.waitFor({ state: 'visible' });
     await modal.getByLabel(/Descrição/i).fill('Mão de obra');
-    await modal.getByLabel(/^Tipo/i).selectOption({ index: 1 }).catch(() => {});
+    await modal.getByLabel(/Categoria/i).selectOption({ index: 1 }).catch(() => {}); // modal de orçamento usa "Categoria", não "Tipo"
     await modal.getByLabel(/Valor/i).fill('6000');
-    await modal.getByRole('button', { name: /^(Criar|Salvar)$/ }).click();
+    await modal.locator('#btnSalvar').click(); // submit é "Adicionar" — usa o id estável
     await modal.waitFor({ state: 'detached' }).catch(() => {});
     await expect(page.locator('#app')).toContainText('Mão de obra');
   });
