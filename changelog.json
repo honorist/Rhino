@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.17.1",
+      "date": "2026-06-09",
+      "summary": "Atualização de segurança em dependências internas",
+      "changes": [
+        "Atualização de segurança em dependências internas"
+      ]
+    },
+    {
       "version": "1.17.0",
       "date": "2026-06-09",
       "summary": "Recrutamento: anexe os documentos do candidato e aprove para criar o colaborador",

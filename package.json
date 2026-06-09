@@ -1,6 +1,6 @@
 {
   "name": "rhino",
-  "version": "1.17.0",
+  "version": "1.17.1",
   "description": "Business management app",
   "main": "server.js",
   "scripts": {
@@ -36,6 +36,11 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "^11.1.1"
+    }
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
