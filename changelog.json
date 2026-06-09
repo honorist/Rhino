@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.18.1",
+      "date": "2026-06-09",
+      "summary": "Correcao ao abrir o portal do cliente pelo botao Portal",
+      "changes": [
+        "Correcao ao abrir o portal do cliente pelo botao Portal"
+      ]
+    },
+    {
       "version": "1.18.0",
       "date": "2026-06-09",
       "summary": "Admins agora podem visualizar o portal do cliente",

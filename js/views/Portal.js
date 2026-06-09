@@ -17,6 +17,18 @@ window.Portal = {
   },
 
   async render() {
+    // O router do app chama render() direto (init() só roda no fluxo do
+    // overlay de login). Hidrata _cliente do sessionStorage aqui para que
+    // navegação via hash (#/portal) — ex.: "Ver portal como cliente" —
+    // não caia na tela de login com sessão válida.
+    if (!this._cliente) {
+      const saved = sessionStorage.getItem('rhino-portal-cliente');
+      if (saved) {
+        try {
+          this._cliente = JSON.parse(saved);
+        } catch {}
+      }
+    }
     document.getElementById('shell').style.display = 'none';
     document.body.classList.add('portal-mode');
 
