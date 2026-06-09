@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.18.2",
+      "date": "2026-06-09",
+      "summary": "Botao Portal do cliente agora abre a Area do Cliente",
+      "changes": [
+        "Botao Portal do cliente agora abre a Area do Cliente"
+      ]
+    },
+    {
       "version": "1.18.1",
       "date": "2026-06-09",
       "summary": "Correcao ao abrir o portal do cliente pelo botao Portal",
