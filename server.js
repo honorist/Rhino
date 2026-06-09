@@ -1158,10 +1158,14 @@ async function handlePortalRdoPdf(req, rdoId, res) {
 async function handlePortalDashboard(req, res) {
   try {
     const clienteId = req.portalCliente.id;
-    const [allContracts, allNfs] = await Promise.all([
-      repos.contracts.findAll({ clientId: clienteId }),
+    // findAll (repo base) filtra por cliente mas NÃO carrega filhos — c.rdos
+    // vinha sempre undefined e o portal mostrava 0 diários. findAllWithChildren
+    // traz rdos/organograma/etc; o filtro por cliente fica em memória (n=~dezenas).
+    const [allContractsRaw, allNfs] = await Promise.all([
+      repos.contracts.findAllWithChildren(),
       repos.notasFiscais.findAll(),
     ]);
+    const allContracts = allContractsRaw.filter((c) => c.clientId === clienteId);
 
     const contratos = allContracts.map((c) => {
       const saidas = Array.isArray(c.saidas) ? c.saidas : [];

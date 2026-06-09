@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.19.1",
+      "date": "2026-06-09",
+      "summary": "Diarios de obra agora aparecem no portal do cliente",
+      "changes": [
+        "Diarios de obra agora aparecem no portal do cliente"
+      ]
+    },
+    {
       "version": "1.19.0",
       "date": "2026-06-09",
       "summary": "Diarios de obra (RDO) em PDF disponiveis no portal do cliente",
