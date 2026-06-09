@@ -3,9 +3,15 @@ const fs = require('fs');
 const path = require('path');
 
 // Versão do app: APP_VERSION env > package.json > 'dev'
-const APP_VERSION = process.env.APP_VERSION || (() => {
-  try { return require('./package.json').version || 'dev'; } catch { return 'dev'; }
-})();
+const APP_VERSION =
+  process.env.APP_VERSION ||
+  (() => {
+    try {
+      return require('./package.json').version || 'dev';
+    } catch {
+      return 'dev';
+    }
+  })();
 const url = require('url');
 const crypto = require('crypto');
 
@@ -38,7 +44,7 @@ const audit = require('./lib/audit');
 const money = require('./lib/money'); // dinheiro 2 casas — contém drift de float
 const caixaHandlers = require('./handlers/caixa'); // domínio caixa extraído (desmembramento server.js)
 const sociosHandlers = require('./handlers/socios'); // domínio sócios extraído
-const baseHandlers = require('./handlers/base');     // domínio BASE (CRUD) extraído
+const baseHandlers = require('./handlers/base'); // domínio BASE (CRUD) extraído
 const fornecedoresHandlers = require('./handlers/fornecedores');
 const tiposBaseHandlers = require('./handlers/tipos-base');
 const docTemplatesHandlers = require('./handlers/doc-templates');
@@ -109,50 +115,60 @@ if (!fs.existsSync(BACKUPS_DIR)) {
 // (inclusive sub-recursos no formato `pai.sub`). `?.` deixa cada lookup
 // defensivo: se o repo/método não existir, retorna undefined (sem before).
 const AUDIT_BEFORE_LOOKUP = {
-  'clientes':       (id) => repos.clientes?.findById?.(id),
-  'fornecedores':   (id) => repos.fornecedores?.findById?.(id),
+  clientes: (id) => repos.clientes?.findById?.(id),
+  fornecedores: (id) => repos.fornecedores?.findById?.(id),
   // findByIdRaw: mantém o CPF cifrado no before_state da auditoria (LGPD — o
   // log não deve guardar PII em texto puro).
-  'recursos':       (id) => repos.recursos?.findByIdRaw?.(id),
-  'contracts':      (id) => repos.contracts?.findById?.(id),
-  'contas-pagar':   (id) => repos.contasPagar?.findById?.(id),
-  'notas-fiscais':  (id) => repos.notasFiscais?.findById?.(id),
-  'caixa':          (id) => repos.caixa?.findById?.(id),
-  'base':           (id) => repos.baseItems?.findById?.(id),
-  'socios':         (id) => repos.socios?.findById?.(id),
-  'investimentos':  (id) => repos.investimentos?.findById?.(id),
-  'saidas':         (id) => repos.saidas?.findById?.(id),
-  'tipos-base':     (id) => repos.tiposBase?.findById?.(id),
-  'niveis-acesso':  (id) => repos.niveisAcesso?.findById?.(id),
-  'doc-templates':  (id) => repos.docTemplates?.findById?.(id),
-  'users':          (id) => repos.users?.findById?.(id),
-  'folha-pagamento':(id) => repos.folhaPagamento?.findById?.(id),
+  recursos: (id) => repos.recursos?.findByIdRaw?.(id),
+  contracts: (id) => repos.contracts?.findById?.(id),
+  'contas-pagar': (id) => repos.contasPagar?.findById?.(id),
+  'notas-fiscais': (id) => repos.notasFiscais?.findById?.(id),
+  caixa: (id) => repos.caixa?.findById?.(id),
+  base: (id) => repos.baseItems?.findById?.(id),
+  socios: (id) => repos.socios?.findById?.(id),
+  investimentos: (id) => repos.investimentos?.findById?.(id),
+  saidas: (id) => repos.saidas?.findById?.(id),
+  'tipos-base': (id) => repos.tiposBase?.findById?.(id),
+  'niveis-acesso': (id) => repos.niveisAcesso?.findById?.(id),
+  'doc-templates': (id) => repos.docTemplates?.findById?.(id),
+  users: (id) => repos.users?.findById?.(id),
+  'folha-pagamento': (id) => repos.folhaPagamento?.findById?.(id),
   // ── Cobertura ampliada (v1.4.15): edição/exclusão + ações especiais ──
-  'clausulas':           (id) => repos.clausulas?.findById?.(id),
-  'propostas':           (id) => repos.propostas?.findById?.(id),
-  'manutencoes':         (id) => repos.manutencoes?.findById?.(id),
-  'veiculos':            (id) => repos.veiculos?.findById?.(id),
+  clausulas: (id) => repos.clausulas?.findById?.(id),
+  propostas: (id) => repos.propostas?.findById?.(id),
+  manutencoes: (id) => repos.manutencoes?.findById?.(id),
+  veiculos: (id) => repos.veiculos?.findById?.(id),
   'solicitacoes-compra': (id) => repos.solicitacoesCompra?.findById?.(id),
-  'candidatos':          (id) => repos.candidatos?.findById?.(id),
+  candidatos: (id) => repos.candidatos?.findById?.(id),
   // Sub-recursos de maior valor (medições, equipe, RDO, aditivos, custos…)
-  'contracts.saidas':        (id) => repos.saidas?.findById?.(id),
-  'contracts.organograma':   (id) => repos.organograma?.findById?.(id),
-  'contracts.rdos':          (id) => repos.rdos?.findById?.(id),
-  'contracts.aditivos':      (id) => repos.aditivos?.findById?.(id),
-  'contracts.marcos':        (id) => repos.marcos?.findById?.(id),
-  'contracts.ocorrencias':   (id) => repos.ocorrencias?.findById?.(id),
-  'propostas.custos':        (id) => repos.propostaCustos?.findById?.(id),
-  'propostas.anexos':        (id) => repos.propostaAnexos?.findById?.(id),
-  'veiculos.planos':         (id) => repos.veiculoPlanos?.findById?.(id),
-  'veiculos.manutencoes':    (id) => repos.veiculoManutencoes?.findById?.(id),
+  'contracts.saidas': (id) => repos.saidas?.findById?.(id),
+  'contracts.organograma': (id) => repos.organograma?.findById?.(id),
+  'contracts.rdos': (id) => repos.rdos?.findById?.(id),
+  'contracts.aditivos': (id) => repos.aditivos?.findById?.(id),
+  'contracts.marcos': (id) => repos.marcos?.findById?.(id),
+  'contracts.ocorrencias': (id) => repos.ocorrencias?.findById?.(id),
+  'propostas.custos': (id) => repos.propostaCustos?.findById?.(id),
+  'propostas.anexos': (id) => repos.propostaAnexos?.findById?.(id),
+  'veiculos.planos': (id) => repos.veiculoPlanos?.findById?.(id),
+  'veiculos.manutencoes': (id) => repos.veiculoManutencoes?.findById?.(id),
   'veiculos.abastecimentos': (id) => repos.veiculoAbastecimentos?.findById?.(id),
-  'folha-pagamento.itens':   (id) => repos.folhaPagamentoItens?.findById?.(id),
+  'folha-pagamento.itens': (id) => repos.folhaPagamentoItens?.findById?.(id),
 };
 
 function _auditFriendlyLabel(obj) {
   if (!obj || typeof obj !== 'object') return null;
-  return obj.nome || obj.name || obj.label || obj.descricao || obj.description ||
-         obj.numero || obj.email || obj.tipoLabel || obj.tipo || null;
+  return (
+    obj.nome ||
+    obj.name ||
+    obj.label ||
+    obj.descricao ||
+    obj.description ||
+    obj.numero ||
+    obj.email ||
+    obj.tipoLabel ||
+    obj.tipo ||
+    null
+  );
 }
 
 async function captureAuditBefore(req, pathname) {
@@ -219,7 +235,9 @@ async function handlePushSubscribe(body, userId, res) {
       [id, userId || null, body.endpoint, body.keys.p256dh, body.keys.auth]
     );
     sendJson(res, { ok: true });
-  } catch (e) { sendError(res, 500, e.message); }
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 /**
@@ -235,21 +253,25 @@ async function handlePushSubscribe(body, userId, res) {
  */
 async function handlePushUnsubscribe(body, req, res) {
   try {
-    if (!body?.endpoint || typeof body.endpoint !== 'string' || !body.endpoint.startsWith('https://')) {
+    if (
+      !body?.endpoint ||
+      typeof body.endpoint !== 'string' ||
+      !body.endpoint.startsWith('https://')
+    ) {
       return sendError(res, 400, 'Endpoint inválido');
     }
     if (!req.user?.id) return sendError(res, 401, 'Não autenticado');
-    await db.query(
-      'DELETE FROM push_subscriptions WHERE endpoint=$1 AND user_id=$2',
-      [body.endpoint, req.user.id]
-    );
+    await db.query('DELETE FROM push_subscriptions WHERE endpoint=$1 AND user_id=$2', [
+      body.endpoint,
+      req.user.id,
+    ]);
     sendJson(res, { ok: true });
-  } catch (e) { sendError(res, 500, e.message); }
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 // Saídas/BM (Post/Put/Delete) extraídas → handlers/contract-saidas.js (com FIX de deadlock)
-
-
 
 // Handlers de Caixa (handleGetCaixa/Post/Put/Delete) extraídos → handlers/caixa.js
 // (continuação do desmembramento do server.js). Ligados via `...caixaHandlers`
@@ -266,13 +288,20 @@ async function handleAllocateBase(id, body, res) {
     const env = await db.withTransaction(async (client) => {
       await client.query("SELECT pg_advisory_xact_lock(hashtext('base:' || $1)::int)", [id]);
       const baseItem = await repos.baseItems.findById(id);
-      if (!baseItem) { const e = new Error('Base item not found'); e.statusCode = 404; throw e; }
+      if (!baseItem) {
+        const e = new Error('Base item not found');
+        e.statusCode = 404;
+        throw e;
+      }
 
       const allocs = baseItem.allocations || [];
       const totalAllocated = allocs.reduce((sum, a) => sum + (parseFloat(a.value) || 0), 0);
       if (totalAllocated + allocationValue > parseFloat(baseItem.value) + 0.01) {
-        const e = new Error(`Cannot allocate more than available. Available: ${(parseFloat(baseItem.value) - totalAllocated).toFixed(2)}`);
-        e.statusCode = 400; throw e;
+        const e = new Error(
+          `Cannot allocate more than available. Available: ${(parseFloat(baseItem.value) - totalAllocated).toFixed(2)}`
+        );
+        e.statusCode = 400;
+        throw e;
       }
 
       const allocation = {
@@ -318,54 +347,119 @@ async function handleAllocateBase(id, body, res) {
 // carrega em paralelo (não infla o handleDashboard financeiro). Auth via /api/*.
 async function handleDashboardOperacional(res) {
   const db = require('./db');
-  const safe = async (fn, fallback) => { try { return (await fn()) || fallback; } catch (e) { console.error('[dash-op]', e.message); return fallback; } };
+  const safe = async (fn, fallback) => {
+    try {
+      return (await fn()) || fallback;
+    } catch (e) {
+      console.error('[dash-op]', e.message);
+      return fallback;
+    }
+  };
   const MES_ATUAL = `data >= date_trunc('month', CURRENT_DATE)`;
   const MES_ANT = `data >= date_trunc('month', CURRENT_DATE - interval '1 month') AND data < date_trunc('month', CURRENT_DATE)`;
 
-  const comb = await safe(() => db.getOne(`
+  const comb = await safe(
+    () =>
+      db.getOne(`
     SELECT COALESCE(SUM(valor_total) FILTER (WHERE ${MES_ATUAL}),0)::float AS mes_atual,
            COALESCE(SUM(valor_total) FILTER (WHERE ${MES_ANT}),0)::float AS mes_anterior,
            COALESCE(SUM(litros) FILTER (WHERE ${MES_ATUAL}),0)::float AS litros_atual,
            COALESCE(SUM(litros) FILTER (WHERE ${MES_ANT}),0)::float AS litros_anterior
-    FROM veiculo_abastecimentos`), { mesAtual: 0, mesAnterior: 0, litrosAtual: 0, litrosAnterior: 0 });
-  const topCombustivel = await safe(() => db.getMany(`
+    FROM veiculo_abastecimentos`),
+    { mesAtual: 0, mesAnterior: 0, litrosAtual: 0, litrosAnterior: 0 }
+  );
+  const topCombustivel = await safe(
+    () =>
+      db.getMany(`
     SELECT v.placa, v.modelo, COALESCE(SUM(a.valor_total),0)::float AS total, COALESCE(SUM(a.litros),0)::float AS litros
     FROM veiculo_abastecimentos a JOIN veiculos v ON v.id = a.veiculo_id
     WHERE a.data >= date_trunc('month', CURRENT_DATE)
-    GROUP BY v.id, v.placa, v.modelo ORDER BY total DESC LIMIT 5`), []);
-  const manut = await safe(() => db.getOne(`
+    GROUP BY v.id, v.placa, v.modelo ORDER BY total DESC LIMIT 5`),
+    []
+  );
+  const manut = await safe(
+    () =>
+      db.getOne(`
     SELECT COALESCE(SUM(custo) FILTER (WHERE ${MES_ATUAL}),0)::float AS mes_atual,
            COALESCE(SUM(custo) FILTER (WHERE ${MES_ANT}),0)::float AS mes_anterior
-    FROM veiculo_manutencoes`), { mesAtual: 0, mesAnterior: 0 });
-  const compras = await safe(() => db.getOne(`
+    FROM veiculo_manutencoes`),
+    { mesAtual: 0, mesAnterior: 0 }
+  );
+  const compras = await safe(
+    () =>
+      db.getOne(`
     SELECT COUNT(*) FILTER (WHERE status IN ('pendente_avaliacao','pendente_aprovacao'))::int AS abertas,
            COALESCE(SUM(valor_total) FILTER (WHERE status IN ('pendente_avaliacao','pendente_aprovacao')),0)::float AS valor_aberto,
            COALESCE(SUM(valor_total) FILTER (WHERE status='aprovada' AND aprovado_em >= date_trunc('month', CURRENT_DATE)),0)::float AS comprado_atual,
            COALESCE(SUM(valor_total) FILTER (WHERE status='aprovada' AND aprovado_em >= date_trunc('month', CURRENT_DATE - interval '1 month') AND aprovado_em < date_trunc('month', CURRENT_DATE)),0)::float AS comprado_anterior
-    FROM solicitacoes_compra`), { abertas: 0, valorAberto: 0, compradoAtual: 0, compradoAnterior: 0 });
-  const vagas = await safe(() => db.getOne(`SELECT COALESCE(SUM(GREATEST(qtd_total - qtd_preenchida,0)),0)::int AS abertas FROM vagas`), { abertas: 0 });
-  const candidatos = await safe(() => db.getOne(`
+    FROM solicitacoes_compra`),
+    { abertas: 0, valorAberto: 0, compradoAtual: 0, compradoAnterior: 0 }
+  );
+  const vagas = await safe(
+    () =>
+      db.getOne(
+        `SELECT COALESCE(SUM(GREATEST(qtd_total - qtd_preenchida,0)),0)::int AS abertas FROM vagas`
+      ),
+    { abertas: 0 }
+  );
+  const candidatos = await safe(
+    () =>
+      db.getOne(`
     SELECT COUNT(*) FILTER (WHERE status IN ('contatado','interessado'))::int AS em_andamento,
-           COUNT(*) FILTER (WHERE status='aprovado')::int AS aprovados FROM candidatos`), { emAndamento: 0, aprovados: 0 });
-  const folha = await safe(() => db.getOne(`
+           COUNT(*) FILTER (WHERE status='aprovado')::int AS aprovados FROM candidatos`),
+    { emAndamento: 0, aprovados: 0 }
+  );
+  const folha = await safe(
+    () =>
+      db.getOne(`
     SELECT COALESCE(SUM(valor_vale + valor_saldo) FILTER (WHERE competencia = to_char(CURRENT_DATE,'YYYY-MM')),0)::float AS custo_atual,
            COALESCE(SUM(valor_vale + valor_saldo) FILTER (WHERE competencia = to_char(CURRENT_DATE - interval '1 month','YYYY-MM')),0)::float AS custo_anterior,
            COALESCE(SUM((CASE WHEN NOT vale_pago THEN valor_vale ELSE 0 END) + (CASE WHEN NOT saldo_pago THEN valor_saldo ELSE 0 END)) FILTER (WHERE competencia = to_char(CURRENT_DATE,'YYYY-MM')),0)::float AS pendente_atual
-    FROM folha_pagamento`), { custoAtual: 0, custoAnterior: 0, pendenteAtual: 0 });
-  const estoqueValor = await safe(() => db.getOne(`SELECT COALESCE(SUM(s.quantidade * i.custo_medio),0)::float AS valor FROM estoque_saldo s JOIN itens_estoque i ON i.id = s.item_id`), { valor: 0 });
-  const estoqueMin = await safe(() => db.getOne(`
+    FROM folha_pagamento`),
+    { custoAtual: 0, custoAnterior: 0, pendenteAtual: 0 }
+  );
+  const estoqueValor = await safe(
+    () =>
+      db.getOne(
+        `SELECT COALESCE(SUM(s.quantidade * i.custo_medio),0)::float AS valor FROM estoque_saldo s JOIN itens_estoque i ON i.id = s.item_id`
+      ),
+    { valor: 0 }
+  );
+  const estoqueMin = await safe(
+    () =>
+      db.getOne(`
     SELECT COUNT(*)::int AS abaixo FROM (
       SELECT i.id FROM itens_estoque i LEFT JOIN estoque_saldo s ON s.item_id = i.id
       WHERE i.ativo = TRUE AND i.estoque_minimo > 0
-      GROUP BY i.id, i.estoque_minimo HAVING COALESCE(SUM(s.quantidade),0) < i.estoque_minimo) t`), { abaixo: 0 });
+      GROUP BY i.id, i.estoque_minimo HAVING COALESCE(SUM(s.quantidade),0) < i.estoque_minimo) t`),
+    { abaixo: 0 }
+  );
 
   sendJson(res, {
-    combustivel: { mesAtual: comb.mesAtual, mesAnterior: comb.mesAnterior, litrosAtual: comb.litrosAtual, litrosAnterior: comb.litrosAnterior },
+    combustivel: {
+      mesAtual: comb.mesAtual,
+      mesAnterior: comb.mesAnterior,
+      litrosAtual: comb.litrosAtual,
+      litrosAnterior: comb.litrosAnterior,
+    },
     topCombustivel,
     manutencao: { mesAtual: manut.mesAtual, mesAnterior: manut.mesAnterior },
-    compras: { abertas: compras.abertas, valorAberto: compras.valorAberto, compradoAtual: compras.compradoAtual, compradoAnterior: compras.compradoAnterior },
-    recrutamento: { vagasAbertas: vagas.abertas, candidatosEmAndamento: candidatos.emAndamento, candidatosAprovados: candidatos.aprovados },
-    folha: { custoAtual: folha.custoAtual, custoAnterior: folha.custoAnterior, pendente: folha.pendenteAtual },
+    compras: {
+      abertas: compras.abertas,
+      valorAberto: compras.valorAberto,
+      compradoAtual: compras.compradoAtual,
+      compradoAnterior: compras.compradoAnterior,
+    },
+    recrutamento: {
+      vagasAbertas: vagas.abertas,
+      candidatosEmAndamento: candidatos.emAndamento,
+      candidatosAprovados: candidatos.aprovados,
+    },
+    folha: {
+      custoAtual: folha.custoAtual,
+      custoAnterior: folha.custoAnterior,
+      pendente: folha.pendenteAtual,
+    },
     estoque: { valor: estoqueValor.valor, abaixoMinimo: estoqueMin.abaixo },
   });
 }
@@ -398,9 +492,9 @@ async function handleDashboard(res, query) {
       periodoFim = new Date(filtroAno, 11, 31, 23, 59, 59, 999);
     }
 
-    const activeContracts = contracts.contracts.filter(c => c.status === 'ativo').length;
+    const activeContracts = contracts.contracts.filter((c) => c.status === 'ativo').length;
     const totalContractValue = contracts.contracts
-      .filter(c => c.status === 'ativo')
+      .filter((c) => c.status === 'ativo')
       .reduce((sum, c) => sum + c.value, 0);
 
     const totalSaidas = contracts.saidas.reduce((sum, s) => sum + s.value, 0);
@@ -419,9 +513,9 @@ async function handleDashboard(res, query) {
       .sort((a, b) => new Date(b.date) - new Date(a.date))
       .slice(0, 20);
 
-    const contractsWithMargin = contracts.contracts.map(c => {
+    const contractsWithMargin = contracts.contracts.map((c) => {
       const cSaidas = contracts.saidas
-        .filter(s => s.contractId === c.id)
+        .filter((s) => s.contractId === c.id)
         .reduce((sum, s) => sum + s.value, 0);
       const margin = c.value - cSaidas;
       return {
@@ -433,7 +527,7 @@ async function handleDashboard(res, query) {
         margin: margin,
         marginPct: c.value > 0 ? ((margin / c.value) * 100).toFixed(2) : 0,
         status: c.status,
-        endDate: c.endDate
+        endDate: c.endDate,
       };
     });
 
@@ -441,12 +535,12 @@ async function handleDashboard(res, query) {
     const em30dias = new Date(hoje);
     em30dias.setDate(em30dias.getDate() + 30);
     const contratosAVencer = contracts.contracts
-      .filter(c => c.status === 'ativo' && c.endDate)
-      .filter(c => {
+      .filter((c) => c.status === 'ativo' && c.endDate)
+      .filter((c) => {
         const fim = new Date(c.endDate);
         return fim >= hoje && fim <= em30dias;
       })
-      .map(c => {
+      .map((c) => {
         const diasRestantes = Math.floor((new Date(c.endDate) - hoje) / (1000 * 60 * 60 * 24));
         return { ...c, diasRestantes };
       })
@@ -460,39 +554,61 @@ async function handleDashboard(res, query) {
     if (periodoInicio && periodoFim) {
       if (modoAno) {
         // Month-by-month — running sum O(n + 12)
-        let rsSum = 0, rsIdx = 0;
+        let rsSum = 0,
+          rsIdx = 0;
         for (let m = 0; m < 12; m++) {
           const fimMes = new Date(filtroAno, m + 1, 0, 23, 59, 59, 999);
-          while (rsIdx < entriesOrdenadas.length && new Date(entriesOrdenadas[rsIdx].date) <= fimMes) {
+          while (
+            rsIdx < entriesOrdenadas.length &&
+            new Date(entriesOrdenadas[rsIdx].date) <= fimMes
+          ) {
             const e = entriesOrdenadas[rsIdx++];
             rsSum += e.type === 'entrada' ? e.value : -e.value;
           }
           historicoCaixa.push({
             data: `${filtroAno}-${String(m + 1).padStart(2, '0')}-01`,
             saldo: rsSum,
-            label: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][m]
+            label: [
+              'Jan',
+              'Fev',
+              'Mar',
+              'Abr',
+              'Mai',
+              'Jun',
+              'Jul',
+              'Ago',
+              'Set',
+              'Out',
+              'Nov',
+              'Dez',
+            ][m],
           });
         }
       } else {
         // Day-by-day — running sum O(n + dias)
         const diasNoMes = new Date(filtroAno, filtroMes, 0).getDate();
-        let rsSum = 0, rsIdx = 0;
+        let rsSum = 0,
+          rsIdx = 0;
         for (let d = 1; d <= diasNoMes; d++) {
           const diaEnd = new Date(filtroAno, filtroMes - 1, d, 23, 59, 59, 999);
-          while (rsIdx < entriesOrdenadas.length && new Date(entriesOrdenadas[rsIdx].date) <= diaEnd) {
+          while (
+            rsIdx < entriesOrdenadas.length &&
+            new Date(entriesOrdenadas[rsIdx].date) <= diaEnd
+          ) {
             const e = entriesOrdenadas[rsIdx++];
             rsSum += e.type === 'entrada' ? e.value : -e.value;
           }
           historicoCaixa.push({
             data: `${filtroAno}-${String(filtroMes).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
-            saldo: rsSum
+            saldo: rsSum,
           });
         }
       }
     } else {
       // Default: últimos N dias (N = projDays). Amostra a cada `histStep` dias
       const histStep = projDays <= 30 ? 1 : projDays <= 60 ? 2 : 3;
-      let rsSum = 0, rsIdx = 0;
+      let rsSum = 0,
+        rsIdx = 0;
       for (let i = projDays - 1; i >= 0; i -= histStep) {
         const dia = new Date();
         dia.setDate(dia.getDate() - i);
@@ -503,13 +619,20 @@ async function handleDashboard(res, query) {
         }
         historicoCaixa.push({
           data: dia.toISOString().split('T')[0],
-          saldo: rsSum
+          saldo: rsSum,
         });
       }
       // Garante que o último ponto seja exatamente HOJE (caso o passo pule)
-      if (historicoCaixa.length === 0 || historicoCaixa[historicoCaixa.length - 1].data !== new Date().toISOString().split('T')[0]) {
-        const hojeFim = new Date(); hojeFim.setHours(23, 59, 59, 999);
-        while (rsIdx < entriesOrdenadas.length && new Date(entriesOrdenadas[rsIdx].date) <= hojeFim) {
+      if (
+        historicoCaixa.length === 0 ||
+        historicoCaixa[historicoCaixa.length - 1].data !== new Date().toISOString().split('T')[0]
+      ) {
+        const hojeFim = new Date();
+        hojeFim.setHours(23, 59, 59, 999);
+        while (
+          rsIdx < entriesOrdenadas.length &&
+          new Date(entriesOrdenadas[rsIdx].date) <= hojeFim
+        ) {
           const e = entriesOrdenadas[rsIdx++];
           rsSum += e.type === 'entrada' ? e.value : -e.value;
         }
@@ -523,8 +646,11 @@ async function handleDashboard(res, query) {
     const em7Dias = new Date();
     em7Dias.setDate(em7Dias.getDate() + 7);
     const em7DiasStr = em7Dias.toISOString().split('T')[0];
-    notasFiscais.notas_fiscais.forEach(nf => {
-      if (nf.emitida) { nfsStatus.emitidas++; return; }
+    notasFiscais.notas_fiscais.forEach((nf) => {
+      if (nf.emitida) {
+        nfsStatus.emitidas++;
+        return;
+      }
       if (nf.dataLimite < hojeStr) nfsStatus.vencidas++;
       else if (nf.dataLimite <= em7DiasStr) nfsStatus.proximasVencer++;
       else nfsStatus.noPrazo++;
@@ -535,14 +661,20 @@ async function handleDashboard(res, query) {
     const _nfsProjMap = new Map();
     for (const nf of notasFiscais.notas_fiscais) {
       if (nf.emitida || !(nf.valor > 0) || !nf.dataLimite) continue;
-      const prazo = Number.isFinite(parseInt(nf.prazoRecebimento)) ? parseInt(nf.prazoRecebimento) : 30;
+      const prazo = Number.isFinite(parseInt(nf.prazoRecebimento))
+        ? parseInt(nf.prazoRecebimento)
+        : 30;
       const dtRec = new Date(nf.dataLimite + 'T12:00:00');
       dtRec.setDate(dtRec.getDate() + prazo);
       const diaStr = dtRec.toISOString().split('T')[0];
       if (!_nfsProjMap.has(diaStr)) _nfsProjMap.set(diaStr, []);
       _nfsProjMap.get(diaStr).push({
-        nfId: nf.id, numero: nf.numero, contractId: nf.contractId,
-        valor: nf.valor, dataEmissao: nf.dataLimite, prazoRecebimento: prazo
+        nfId: nf.id,
+        numero: nf.numero,
+        contractId: nf.contractId,
+        valor: nf.valor,
+        dataEmissao: nf.dataLimite,
+        prazoRecebimento: prazo,
       });
     }
 
@@ -556,7 +688,7 @@ async function handleDashboard(res, query) {
         projecaoFutura.push({
           data: diaStr,
           entradas: entradasEsperadas,
-          totalEntradas: entradasEsperadas.reduce((s, e) => s + e.valor, 0)
+          totalEntradas: entradasEsperadas.reduce((s, e) => s + e.valor, 0),
         });
       }
     }
@@ -564,39 +696,47 @@ async function handleDashboard(res, query) {
     // Contas a pagar status
     const contasPagar = { contas: await repos.contasPagar.findAll() };
     const hojeStrCP = new Date().toISOString().split('T')[0];
-    const em7DiasStrCP = (() => { const d = new Date(); d.setDate(d.getDate() + 7); return d.toISOString().split('T')[0]; })();
+    const em7DiasStrCP = (() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 7);
+      return d.toISOString().split('T')[0];
+    })();
     const contasPagarStatus = { vencidas: 0, proximasVencer: 0, pendentes: 0, totalPendente: 0 };
-    contasPagar.contas.filter(c => c.status === 'pendente').forEach(c => {
-      contasPagarStatus.pendentes++;
-      contasPagarStatus.totalPendente += parseFloat(c.valor) || 0;
-      if (c.dataVencimento && c.dataVencimento < hojeStrCP) contasPagarStatus.vencidas++;
-      else if (c.dataVencimento && c.dataVencimento <= em7DiasStrCP) contasPagarStatus.proximasVencer++;
-    });
+    contasPagar.contas
+      .filter((c) => c.status === 'pendente')
+      .forEach((c) => {
+        contasPagarStatus.pendentes++;
+        contasPagarStatus.totalPendente += parseFloat(c.valor) || 0;
+        if (c.dataVencimento && c.dataVencimento < hojeStrCP) contasPagarStatus.vencidas++;
+        else if (c.dataVencimento && c.dataVencimento <= em7DiasStrCP)
+          contasPagarStatus.proximasVencer++;
+      });
 
     const contasVencidasTotal = contasPagar.contas
-      .filter(c => c.status === 'pendente' && c.dataVencimento && c.dataVencimento <= hojeStrCP)
+      .filter((c) => c.status === 'pendente' && c.dataVencimento && c.dataVencimento <= hojeStrCP)
       .reduce((s, c) => s + (parseFloat(c.valor) || 0), 0);
     const saldoProjetado = [];
     // Recorrências virtuais (BASE items com metadata.recurrence) — ainda não materializadas
     // Idempotência: descarta ocorrências cujo (base_item_id, data) já existe no caixa
-    const baseItemsRecorrentes = base.items.filter(b => b.metadata?.recurrence?.active);
+    const baseItemsRecorrentes = base.items.filter((b) => b.metadata?.recurrence?.active);
     const caixaPorBaseDate = new Set(
-      caixa.entries.filter(e => e.baseItemId).map(e => `${e.baseItemId}|${e.date}`)
+      caixa.entries.filter((e) => e.baseItemId).map((e) => `${e.baseItemId}|${e.date}`)
     );
     const ocorrenciasVirtuais = []; // { data, valor, baseItemId, descricao }
     const addUnits = (d, n, freq) => {
       const x = new Date(d);
-      if (freq === 'weekly')         x.setDate(x.getDate() + 7 * n);
+      if (freq === 'weekly') x.setDate(x.getDate() + 7 * n);
       else if (freq === 'quarterly') x.setMonth(x.getMonth() + 3 * n);
-      else if (freq === 'yearly')    x.setFullYear(x.getFullYear() + n);
-      else                           x.setMonth(x.getMonth() + n);
+      else if (freq === 'yearly') x.setFullYear(x.getFullYear() + n);
+      else x.setMonth(x.getMonth() + n);
       return x;
     };
-    const hojeDt = new Date(); hojeDt.setHours(0,0,0,0);
-    baseItemsRecorrentes.forEach(item => {
+    const hojeDt = new Date();
+    hojeDt.setHours(0, 0, 0, 0);
+    baseItemsRecorrentes.forEach((item) => {
       const rec = item.metadata.recurrence;
       const startD = new Date(rec.startDate + 'T12:00:00');
-      const endD   = rec.endDate ? new Date(rec.endDate + 'T12:00:00') : null;
+      const endD = rec.endDate ? new Date(rec.endDate + 'T12:00:00') : null;
       for (let i = 0; i < 1000; i++) {
         const d = addUnits(startD, i, rec.frequency || 'monthly');
         if (endD && d > endD) break;
@@ -621,15 +761,15 @@ async function handleDashboard(res, query) {
       const dia = new Date();
       dia.setDate(dia.getDate() + i);
       const diaStr = dia.toISOString().split('T')[0];
-      const entradasDia = projecaoFutura.find(p => p.data === diaStr);
+      const entradasDia = projecaoFutura.find((p) => p.data === diaStr);
       if (entradasDia) saldoAcumulado += entradasDia.totalEntradas;
       const saidasCP = contasPagar.contas
-        .filter(c => c.status === 'pendente' && c.dataVencimento === diaStr)
+        .filter((c) => c.status === 'pendente' && c.dataVencimento === diaStr)
         .reduce((s, c) => s + (parseFloat(c.valor) || 0), 0);
       if (saidasCP > 0) saldoAcumulado -= saidasCP;
       // Saídas virtuais de recorrências BASE
       const saidasVirt = ocorrenciasVirtuais
-        .filter(o => o.data === diaStr)
+        .filter((o) => o.data === diaStr)
         .reduce((s, o) => s + o.valor, 0);
       if (saidasVirt > 0) saldoAcumulado -= saidasVirt;
       if (i === 1 || i % step === 0 || i === projDays) {
@@ -706,7 +846,14 @@ async function handleBackup(res) {
 async function handleBackupDownload(res) {
   try {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-    const safe = async (fn) => { try { return await fn(); } catch (e) { console.warn('[dump] coleta falhou (resultado vazio):', e && e.message); return []; } };
+    const safe = async (fn) => {
+      try {
+        return await fn();
+      } catch (e) {
+        console.warn('[dump] coleta falhou (resultado vazio):', e && e.message);
+        return [];
+      }
+    };
 
     const payload = {
       _meta: {
@@ -715,26 +862,28 @@ async function handleBackupDownload(res) {
         format: 'rhino-backup-v1',
       },
       // Backup: opt-out do cap defensivo de findAll — precisa dump completo
-      contracts:           await safe(() => repos.contracts.findAllWithChildren()),
-      saidas:              await safe(() => repos.saidas.findAll({}, { limit: null })),
-      caixa:               await safe(() => repos.caixa.findAll({}, { limit: null })),
-      base:                await safe(() => repos.baseItems.findAll({}, { limit: null })),
-      socios:              await safe(() => repos.socios.findAll({}, { limit: null })),
-      investimentos:       await safe(() => repos.investimentos.findAll({}, { limit: null })),
-      notas_fiscais:       await safe(() => repos.notasFiscais.findAll({}, { limit: null })),
-      tipos_base:          await safe(() => repos.tiposBase.findAll({}, { limit: null })),
-      clientes:            await safe(() => repos.clientes.findAll({}, { limit: null })),
-      fornecedores:        await safe(() => repos.fornecedores.findAll({}, { limit: null })),
-      contas_pagar:        await safe(() => repos.contasPagar.findAll({}, { limit: null })),
-      niveis_acesso:       await safe(() => repos.niveisAcesso.findAll()),
-      recursos:            await safe(() => repos.recursos.findAllRaw({}, { limit: null })), // CPF cifrado no backup (LGPD)
-      doc_templates:       await safe(() => repos.docTemplates.findAll()),
-      users:               await safe(() => (repos.users.findAll ? repos.users.findAll({}, { limit: null }) : [])),
+      contracts: await safe(() => repos.contracts.findAllWithChildren()),
+      saidas: await safe(() => repos.saidas.findAll({}, { limit: null })),
+      caixa: await safe(() => repos.caixa.findAll({}, { limit: null })),
+      base: await safe(() => repos.baseItems.findAll({}, { limit: null })),
+      socios: await safe(() => repos.socios.findAll({}, { limit: null })),
+      investimentos: await safe(() => repos.investimentos.findAll({}, { limit: null })),
+      notas_fiscais: await safe(() => repos.notasFiscais.findAll({}, { limit: null })),
+      tipos_base: await safe(() => repos.tiposBase.findAll({}, { limit: null })),
+      clientes: await safe(() => repos.clientes.findAll({}, { limit: null })),
+      fornecedores: await safe(() => repos.fornecedores.findAll({}, { limit: null })),
+      contas_pagar: await safe(() => repos.contasPagar.findAll({}, { limit: null })),
+      niveis_acesso: await safe(() => repos.niveisAcesso.findAll()),
+      recursos: await safe(() => repos.recursos.findAllRaw({}, { limit: null })), // CPF cifrado no backup (LGPD)
+      doc_templates: await safe(() => repos.docTemplates.findAll()),
+      users: await safe(() =>
+        repos.users.findAll ? repos.users.findAll({}, { limit: null }) : []
+      ),
     };
 
     // Remove campos sensíveis (hash de senha, tokens)
     if (Array.isArray(payload.users)) {
-      payload.users = payload.users.map(u => {
+      payload.users = payload.users.map((u) => {
         const { passwordHash, password_hash, resetToken, reset_token, ...safe } = u;
         return safe;
       });
@@ -817,7 +966,8 @@ async function handleGetAudit(req, query, res) {
       from: query.from || null,
       to: query.to || null,
       errorsOnly: query.errors === '1',
-      limit, offset,
+      limit,
+      offset,
     });
     // Mascara PII/sensíveis ANTES de sair do servidor (nunca em claro no cliente).
     data.rows = (data.rows || []).map((r) => ({
@@ -837,7 +987,10 @@ const PORTAL_SESSION_DAYS = 7;
 
 async function applyPortalAuth(req, res) {
   const sid = auth.parseCookies(req)[PORTAL_COOKIE];
-  if (!sid) { sendError(res, 401, 'Não autenticado no portal'); return true; }
+  if (!sid) {
+    sendError(res, 401, 'Não autenticado no portal');
+    return true;
+  }
   const row = await db.getOne(
     `SELECT ps.cliente_id, ps.impersonated_by, c.nome, c.empresa, c.email
      FROM portal_sessions ps
@@ -845,9 +998,15 @@ async function applyPortalAuth(req, res) {
      WHERE ps.id = $1 AND ps.expires_at > NOW()`,
     [sid]
   );
-  if (!row) { sendError(res, 401, 'Sessão do portal expirada'); return true; }
+  if (!row) {
+    sendError(res, 401, 'Sessão do portal expirada');
+    return true;
+  }
   req.portalCliente = {
-    id: row.cliente_id, nome: row.nome, empresa: row.empresa, email: row.email,
+    id: row.cliente_id,
+    nome: row.nome,
+    empresa: row.empresa,
+    email: row.email,
     // "Ver como": sessão criada por super admin (NULL = sessão real do cliente)
     impersonadoPor: row.impersonated_by || null,
   };
@@ -865,14 +1024,19 @@ async function handlePortalLogin(req, body, res) {
     const rl = await pgRateLimit.check(rlKey, { max: 5, windowMs: 15 * 60 * 1000 });
     if (!rl.ok) {
       res.setHeader('Retry-After', String(rl.retryAfterSec));
-      return sendError(res, 429, `Muitas tentativas. Tente novamente em ${rl.retryAfterSec} segundos.`);
+      return sendError(
+        res,
+        429,
+        `Muitas tentativas. Tente novamente em ${rl.retryAfterSec} segundos.`
+      );
     }
 
     const cliente = await db.getOne(
       'SELECT id, nome, empresa, portal_password_hash FROM clientes WHERE LOWER(portal_email) = $1',
       [emailRaw]
     );
-    if (!cliente || !cliente.portal_password_hash) return sendError(res, 401, 'Email ou senha incorretos');
+    if (!cliente || !cliente.portal_password_hash)
+      return sendError(res, 401, 'Email ou senha incorretos');
 
     const bcrypt = require('bcryptjs');
     const ok = await bcrypt.compare(senha, cliente.portal_password_hash);
@@ -885,19 +1049,28 @@ async function handlePortalLogin(req, body, res) {
     // para credencial de sessão (espaço de busca de ~4 bi era forçável).
     const sid = 'pses_' + require('crypto').randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + PORTAL_SESSION_DAYS * 86400 * 1000);
-    await db.query(
-      'INSERT INTO portal_sessions (id, cliente_id, expires_at) VALUES ($1, $2, $3)',
-      [sid, cliente.id, expiresAt.toISOString()]
-    );
+    await db.query('INSERT INTO portal_sessions (id, cliente_id, expires_at) VALUES ($1, $2, $3)', [
+      sid,
+      cliente.id,
+      expiresAt.toISOString(),
+    ]);
     const isProd = process.env.NODE_ENV === 'production';
     const cookieParts = [
-      `${PORTAL_COOKIE}=${sid}`, 'HttpOnly', 'Path=/', 'SameSite=Strict',
+      `${PORTAL_COOKIE}=${sid}`,
+      'HttpOnly',
+      'Path=/',
+      'SameSite=Strict',
       `Max-Age=${PORTAL_SESSION_DAYS * 86400}`,
     ];
     if (isProd) cookieParts.push('Secure');
     res.setHeader('Set-Cookie', cookieParts.join('; '));
-    sendJson(res, { ok: true, cliente: { id: cliente.id, nome: cliente.nome, empresa: cliente.empresa } });
-  } catch (e) { sendError(res, 500, e.message); }
+    sendJson(res, {
+      ok: true,
+      cliente: { id: cliente.id, nome: cliente.nome, empresa: cliente.empresa },
+    });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 async function handlePortalLogout(req, res) {
@@ -923,9 +1096,9 @@ async function handlePortalImpersonate(req, clienteId, res) {
     const erro = portalImpersonate.validarImpersonacao(req.user);
     if (erro) return sendError(res, req.user ? 403 : 401, erro);
 
-    const cliente = await db.getOne(
-      'SELECT id, nome, empresa, email FROM clientes WHERE id = $1', [clienteId]
-    );
+    const cliente = await db.getOne('SELECT id, nome, empresa, email FROM clientes WHERE id = $1', [
+      clienteId,
+    ]);
     if (!cliente) return sendError(res, 404, 'Cliente não encontrado');
 
     const sessao = portalImpersonate.criarSessaoImpersonada(req.user.id);
@@ -936,13 +1109,21 @@ async function handlePortalImpersonate(req, clienteId, res) {
 
     const isProd = process.env.NODE_ENV === 'production';
     const cookieParts = [
-      `${PORTAL_COOKIE}=${sessao.sid}`, 'HttpOnly', 'Path=/', 'SameSite=Strict',
+      `${PORTAL_COOKIE}=${sessao.sid}`,
+      'HttpOnly',
+      'Path=/',
+      'SameSite=Strict',
       `Max-Age=${portalImpersonate.IMPERSONATE_TTL_MIN * 60}`,
     ];
     if (isProd) cookieParts.push('Secure');
     res.setHeader('Set-Cookie', cookieParts.join('; '));
-    sendJson(res, { ok: true, cliente: { id: cliente.id, nome: cliente.nome, empresa: cliente.empresa } });
-  } catch (e) { sendError(res, 500, e.message); }
+    sendJson(res, {
+      ok: true,
+      cliente: { id: cliente.id, nome: cliente.nome, empresa: cliente.empresa },
+    });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 async function handlePortalDashboard(req, res) {
@@ -953,52 +1134,70 @@ async function handlePortalDashboard(req, res) {
       repos.notasFiscais.findAll(),
     ]);
 
-    const contratos = allContracts
-      .map(c => {
-        const saidas = Array.isArray(c.saidas) ? c.saidas : [];
-        const totalGasto = saidas.reduce((s, x) => s + (parseFloat(x.value) || 0), 0);
-        const pct = c.value > 0 ? Math.min(100, Math.round((totalGasto / c.value) * 100)) : 0;
-        const rdos = Array.isArray(c.rdos) ? c.rdos : [];
-        return {
-          id: c.id, name: c.name, status: c.status,
-          value: c.value, currency: c.currency || 'BRL',
-          startDate: c.startDate, endDate: c.endDate,
-          contractNumber: c.contractNumber,
-          progresso: pct,
-          totalRdos: rdos.length,
-          ultimoRdo: rdos.length > 0 ? rdos[rdos.length - 1]?.data : null,
-        };
-      });
+    const contratos = allContracts.map((c) => {
+      const saidas = Array.isArray(c.saidas) ? c.saidas : [];
+      const totalGasto = saidas.reduce((s, x) => s + (parseFloat(x.value) || 0), 0);
+      const pct = c.value > 0 ? Math.min(100, Math.round((totalGasto / c.value) * 100)) : 0;
+      const rdos = Array.isArray(c.rdos) ? c.rdos : [];
+      return {
+        id: c.id,
+        name: c.name,
+        status: c.status,
+        value: c.value,
+        currency: c.currency || 'BRL',
+        startDate: c.startDate,
+        endDate: c.endDate,
+        contractNumber: c.contractNumber,
+        progresso: pct,
+        totalRdos: rdos.length,
+        ultimoRdo: rdos.length > 0 ? rdos[rdos.length - 1]?.data : null,
+      };
+    });
 
-    const contratosIds = new Set(contratos.map(c => c.id));
+    const contratosIds = new Set(contratos.map((c) => c.id));
     const nfs = allNfs
-      .filter(n => contratosIds.has(n.contractId))
-      .map(n => ({ id: n.id, numero: n.numero, valor: n.valor, status: n.status, dataEmissao: n.dataEmissao, contractId: n.contractId }))
+      .filter((n) => contratosIds.has(n.contractId))
+      .map((n) => ({
+        id: n.id,
+        numero: n.numero,
+        valor: n.valor,
+        status: n.status,
+        dataEmissao: n.dataEmissao,
+        contractId: n.contractId,
+      }))
       .slice(-20);
 
     // Collect RDOs from the client's contracts (last 15 across all contracts, most recent first)
     const rdosAll = [];
-    allContracts.forEach(c => {
-        const rdos = Array.isArray(c.rdos) ? c.rdos : [];
-        rdos.forEach(r => {
-          const fotos = Array.isArray(r.fotos) ? r.fotos.slice(0, 4) : [];
-          rdosAll.push({
-            id: r.id,
-            contractId: c.id,
-            contractName: c.name,
-            data: r.data,
-            clima: r.clima,
-            atividades: (r.atividades || '').slice(0, 200),
-            fotos: fotos.map(f => ({ id: f.id, url: f.url || f.path, legenda: f.legenda || '' })),
-          });
+    allContracts.forEach((c) => {
+      const rdos = Array.isArray(c.rdos) ? c.rdos : [];
+      rdos.forEach((r) => {
+        const fotos = Array.isArray(r.fotos) ? r.fotos.slice(0, 4) : [];
+        rdosAll.push({
+          id: r.id,
+          contractId: c.id,
+          contractName: c.name,
+          data: r.data,
+          clima: r.clima,
+          atividades: (r.atividades || '').slice(0, 200),
+          fotos: fotos.map((f) => ({ id: f.id, url: f.url || f.path, legenda: f.legenda || '' })),
         });
       });
+    });
     rdosAll.sort((a, b) => (b.data || '').localeCompare(a.data || ''));
     const rdos = rdosAll.slice(0, 15);
 
     // `impersonado`: liga o banner "Visualizando como..." no portal (Ver como)
-    sendJson(res, { cliente: req.portalCliente, contratos, nfs, rdos, impersonado: !!req.portalCliente.impersonadoPor });
-  } catch (e) { sendError(res, 500, e.message); }
+    sendJson(res, {
+      cliente: req.portalCliente,
+      contratos,
+      nfs,
+      rdos,
+      impersonado: !!req.portalCliente.impersonadoPor,
+    });
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 // ============ Users CRUD (admin) ============
@@ -1047,7 +1246,10 @@ async function handlePostUser(req, body, res) {
       socioId: body.socioId || null,
     });
     const created = await repos.users.findById(id);
-    sendJson(res, { users: (await repos.users.findAll()).map(sanitizeUser), user: sanitizeUser(created) });
+    sendJson(res, {
+      users: (await repos.users.findAll()).map(sanitizeUser),
+      user: sanitizeUser(created),
+    });
   } catch (e) {
     sendError(res, 400, e.message);
   }
@@ -1077,7 +1279,8 @@ async function handlePutUser(req, id, body, res) {
     if (body.socioId !== undefined) allowed.socioId = body.socioId || null;
     if (body.isActive !== undefined) allowed.isActive = !!body.isActive;
     if (body.password) {
-      if (String(body.password).length < 8) return sendError(res, 400, 'Senha precisa ter no mínimo 8 caracteres');
+      if (String(body.password).length < 8)
+        return sendError(res, 400, 'Senha precisa ter no mínimo 8 caracteres');
       allowed.passwordHash = await auth.hash(body.password);
     }
     allowed.updatedAt = new Date().toISOString();
@@ -1151,7 +1354,15 @@ async function handleMetrics(res, req) {
   try {
     const db = require('./db');
     const counts = {};
-    for (const t of ['contracts', 'clientes', 'recursos', 'caixa', 'notas_fiscais', 'contas_pagar', 'rdos']) {
+    for (const t of [
+      'contracts',
+      'clientes',
+      'recursos',
+      'caixa',
+      'notas_fiscais',
+      'contas_pagar',
+      'rdos',
+    ]) {
       const row = await db.getOne(`SELECT COUNT(*)::int AS n FROM ${t}`);
       counts[t] = row ? row.n : 0;
     }
@@ -1203,13 +1414,13 @@ async function handlePostProposta(body, res) {
     if (body.clienteId) {
       const cli = await repos.clientes.findById(body.clienteId);
       if (cli) {
-        body.clienteNome      = body.clienteNome      || cli.nome || null;
-        body.clienteEmpresa   = body.clienteEmpresa   || cli.empresa || cli.nome || null;
-        body.clienteContato   = body.clienteContato   || cli.nome || null;
-        body.clienteCargo     = body.clienteCargo     || cli.cargo || null;
-        body.clienteEmail     = body.clienteEmail     || cli.email || null;
-        body.clienteTelefone  = body.clienteTelefone  || cli.telefone || null;
-        body.clienteEndereco  = body.clienteEndereco  || cli.endereco || null;
+        body.clienteNome = body.clienteNome || cli.nome || null;
+        body.clienteEmpresa = body.clienteEmpresa || cli.empresa || cli.nome || null;
+        body.clienteContato = body.clienteContato || cli.nome || null;
+        body.clienteCargo = body.clienteCargo || cli.cargo || null;
+        body.clienteEmail = body.clienteEmail || cli.email || null;
+        body.clienteTelefone = body.clienteTelefone || cli.telefone || null;
+        body.clienteEndereco = body.clienteEndereco || cli.endereco || null;
       }
     }
     const { proposta, contract } = await repos.propostas.createWithContract(body);
@@ -1224,22 +1435,50 @@ async function handlePutProposta(id, body, res) {
   try {
     const allowed = {};
     const camelFields = [
-      'tipo','clienteId','clienteNome','clienteEmpresa','clienteContato','clienteCargo',
-      'clienteEmail','clienteTelefone','clienteDocumento','clienteEndereco',
-      'referencia','titulo','objetivo','saudacao',
-      'condicoesPagamento','prazoExecucao','observacoes',
-      'signatario','signatarioCargo','status',
+      'tipo',
+      'clienteId',
+      'clienteNome',
+      'clienteEmpresa',
+      'clienteContato',
+      'clienteCargo',
+      'clienteEmail',
+      'clienteTelefone',
+      'clienteDocumento',
+      'clienteEndereco',
+      'referencia',
+      'titulo',
+      'objetivo',
+      'saudacao',
+      'condicoesPagamento',
+      'prazoExecucao',
+      'observacoes',
+      'signatario',
+      'signatarioCargo',
+      'status',
     ];
-    for (const f of camelFields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    for (const f of camelFields) {
+      if (body[f] !== undefined) allowed[f] = body[f];
+    }
     // Campos numéricos
     if (body.valorTotal !== undefined) allowed.valorTotal = money.parse(body.valorTotal);
-    if (body.validadeDias !== undefined) allowed.validadeDias = parseInt(body.validadeDias, 10) || 15;
+    if (body.validadeDias !== undefined)
+      allowed.validadeDias = parseInt(body.validadeDias, 10) || 15;
     if (body.garantiaMeses !== undefined) {
-      allowed.garantiaMeses = body.garantiaMeses === null || body.garantiaMeses === ''
-        ? null : parseInt(body.garantiaMeses, 10);
+      allowed.garantiaMeses =
+        body.garantiaMeses === null || body.garantiaMeses === ''
+          ? null
+          : parseInt(body.garantiaMeses, 10);
     }
     // JSONB
-    for (const f of ['escopo','obrigacoesContratada','obrigacoesContratante','cronograma','investimentoHh','investimentoMat','metadata']) {
+    for (const f of [
+      'escopo',
+      'obrigacoesContratada',
+      'obrigacoesContratante',
+      'cronograma',
+      'investimentoHh',
+      'investimentoMat',
+      'metadata',
+    ]) {
       if (body[f] !== undefined) allowed[f] = JSON.stringify(body[f]);
     }
     if (body.dataEmissao !== undefined) allowed.dataEmissao = body.dataEmissao || null;
@@ -1354,11 +1593,13 @@ async function handlePostPropostaCusto(propostaId, body, res) {
 async function handlePutPropostaCusto(propostaId, custoId, body, res) {
   try {
     const allowed = {};
-    if (body.categoria !== undefined)  allowed.categoria = body.categoria;
-    if (body.descricao !== undefined)  allowed.descricao = body.descricao;
-    if (body.valor !== undefined)      allowed.valor = money.parse(body.valor);
-    if (body.percentual !== undefined) allowed.percentual = body.percentual === null || body.percentual === '' ? null : parseFloat(body.percentual);
-    if (body.ordem !== undefined)      allowed.ordem = parseInt(body.ordem, 10) || 0;
+    if (body.categoria !== undefined) allowed.categoria = body.categoria;
+    if (body.descricao !== undefined) allowed.descricao = body.descricao;
+    if (body.valor !== undefined) allowed.valor = money.parse(body.valor);
+    if (body.percentual !== undefined)
+      allowed.percentual =
+        body.percentual === null || body.percentual === '' ? null : parseFloat(body.percentual);
+    if (body.ordem !== undefined) allowed.ordem = parseInt(body.ordem, 10) || 0;
     const result = await repos.propostaCustos.updateById(custoId, allowed);
     if (!result) return sendError(res, 404, 'Custo não encontrado');
     const proposta = await repos.propostas.findByIdWithChildren(propostaId);
@@ -1388,10 +1629,12 @@ async function _loadPropostaComAnexosBinarios(propostaId) {
   // (concatenação na sequência via pdf-lib). Sem isso, o concatenador filtra
   // por `a.data` e pula os PDFs anexos.
   const anexosMeta = proposta.anexos || [];
-  const anexosComData = await Promise.all(anexosMeta.map(async (a) => {
-    const full = await repos.propostaAnexos.findByIdWithData(a.id);
-    return full || a;
-  }));
+  const anexosComData = await Promise.all(
+    anexosMeta.map(async (a) => {
+      const full = await repos.propostaAnexos.findByIdWithData(a.id);
+      return full || a;
+    })
+  );
   // Apresentação global + logos de cases (centralizado, não duplicado por proposta)
   let apresentacao = {};
   let caseLogos = [];
@@ -1399,10 +1642,12 @@ async function _loadPropostaComAnexosBinarios(propostaId) {
     apresentacao = (await repos.appSettings.get('proposta_apresentacao')) || {};
     const logosMeta = await repos.caseLogos.listMetadata({ ativo: true });
     // Carrega binário de cada logo para embed em PDF/DOCX
-    caseLogos = await Promise.all(logosMeta.map(async (lg) => {
-      const full = await repos.caseLogos.findByIdWithData(lg.id);
-      return full || lg;
-    }));
+    caseLogos = await Promise.all(
+      logosMeta.map(async (lg) => {
+        const full = await repos.caseLogos.findByIdWithData(lg.id);
+        return full || lg;
+      })
+    );
   } catch (e) {
     console.warn('[propostas] não pude carregar apresentação global:', e.message);
   }
@@ -1457,7 +1702,11 @@ async function handleGetPropostaPdf(propostaId, res) {
   try {
     const { gerarPdf, isPdfAvailable } = require('./lib/proposta-pdf');
     if (!isPdfAvailable()) {
-      return sendError(res, 500, 'Lib `puppeteer` não instalada. Rode `npm install puppeteer` no servidor.');
+      return sendError(
+        res,
+        500,
+        'Lib `puppeteer` não instalada. Rode `npm install puppeteer` no servidor.'
+      );
     }
     const proposta = await _loadPropostaComAnexosBinarios(propostaId);
     if (!proposta) return sendError(res, 404, 'Proposta não encontrada');
@@ -1522,7 +1771,9 @@ async function handlePortalPropostaPdf(req, propostaId, res) {
       return sendError(res, 403, 'Proposta ainda em rascunho — aguarde o envio');
     }
     return handleGetPropostaPdf(propostaId, res);
-  } catch (e) { sendError(res, 500, e.message); }
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 async function handlePortalPropostaDocx(req, propostaId, res) {
@@ -1535,7 +1786,9 @@ async function handlePortalPropostaDocx(req, propostaId, res) {
       return sendError(res, 403, 'Proposta ainda em rascunho — aguarde o envio');
     }
     return handleGetPropostaDocx(propostaId, res);
-  } catch (e) { sendError(res, 500, e.message); }
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 // ============ Cláusulas (biblioteca reusável) ============
@@ -1544,8 +1797,12 @@ async function handleGetClausulas(res, query) {
     const filtros = {
       categoria: query?.categoria || undefined,
       termo: query?.termo || undefined,
-      ativa: query?.ativa === '0' || query?.ativa === 'false' ? false :
-             query?.ativa === '1' || query?.ativa === 'true' ? true : undefined,
+      ativa:
+        query?.ativa === '0' || query?.ativa === 'false'
+          ? false
+          : query?.ativa === '1' || query?.ativa === 'true'
+            ? true
+            : undefined,
     };
     const clausulas = await repos.clausulas.buscar(filtros);
     sendJson(res, { clausulas });
@@ -1577,7 +1834,7 @@ async function handlePostClausula(body, res) {
 async function handlePutClausula(id, body, res) {
   try {
     const allowed = {};
-    for (const f of ['titulo','texto','categoria','ativa']) {
+    for (const f of ['titulo', 'texto', 'categoria', 'ativa']) {
       if (body[f] !== undefined) allowed[f] = body[f];
     }
     if (Array.isArray(body.tags)) allowed.tags = body.tags;
@@ -1601,9 +1858,11 @@ async function handleDeleteClausula(id, res) {
 // ============ Apresentação Global (configuração) ============
 async function handleGetApresentacao(res) {
   try {
-    const value = await repos.appSettings.get('proposta_apresentacao') || {};
+    const value = (await repos.appSettings.get('proposta_apresentacao')) || {};
     sendJson(res, { apresentacao: value });
-  } catch (e) { sendError(res, 500, e.message); }
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 async function handlePutApresentacao(body, res) {
@@ -1614,7 +1873,9 @@ async function handlePutApresentacao(body, res) {
     }
     const novo = await repos.appSettings.patch('proposta_apresentacao', allowed);
     sendJson(res, { apresentacao: novo });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 // Case Logos extraídos → handlers/case-logos.js
@@ -1628,7 +1889,7 @@ async function handlePutApresentacao(body, res) {
 // Contas a Pagar (CRUD + pagar/estornar) extraídos → handlers/contas-pagar.js
 
 // ============ Folha de Pagamento handlers ============
-const VALE_PCT = 0.40; // adiantamento (vale) = 40% do salário
+const VALE_PCT = 0.4; // adiantamento (vale) = 40% do salário
 
 // Data da Páscoa (algoritmo de Computus / Gauss) — base dos feriados móveis.
 function dataPascoa(ano) {
@@ -1653,10 +1914,22 @@ function dataPascoa(ano) {
 // Sexta-feira Santa (móvel). NÃO inclui pontos facultativos (Carnaval,
 // Corpus Christi) nem feriados estaduais/municipais.
 function feriadosNacionais(ano) {
-  const set = new Set(['01-01', '04-21', '05-01', '09-07', '10-12', '11-02', '11-15', '11-20', '12-25']);
+  const set = new Set([
+    '01-01',
+    '04-21',
+    '05-01',
+    '09-07',
+    '10-12',
+    '11-02',
+    '11-15',
+    '11-20',
+    '12-25',
+  ]);
   const sexta = dataPascoa(ano);
   sexta.setDate(sexta.getDate() - 2); // Sexta-feira Santa = Páscoa − 2 dias
-  set.add(String(sexta.getMonth() + 1).padStart(2, '0') + '-' + String(sexta.getDate()).padStart(2, '0'));
+  set.add(
+    String(sexta.getMonth() + 1).padStart(2, '0') + '-' + String(sexta.getDate()).padStart(2, '0')
+  );
   return set;
 }
 
@@ -1669,8 +1942,10 @@ function quintoDiaUtil(competencia) {
   const feriados = feriadosNacionais(d.getFullYear());
   let uteis = 0;
   while (true) {
-    const mmdd = String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    if (d.getDay() !== 0 && !feriados.has(mmdd)) { // domingo (0) e feriados não contam
+    const mmdd =
+      String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    if (d.getDay() !== 0 && !feriados.has(mmdd)) {
+      // domingo (0) e feriados não contam
       uteis++;
       if (uteis === 5) break;
     }
@@ -1687,8 +1962,8 @@ function quintoDiaUtil(competencia) {
 function calcInss(salario) {
   const s = Math.min(parseFloat(salario) || 0, 8475.55); // teto INSS 2026
   if (s <= 0) return 0;
-  let inss = Math.min(s, 1621.00) * 0.075;
-  if (s > 1621.00) inss += (Math.min(s, 2902.84) - 1621.00) * 0.09;
+  let inss = Math.min(s, 1621.0) * 0.075;
+  if (s > 1621.0) inss += (Math.min(s, 2902.84) - 1621.0) * 0.09;
   if (s > 2902.84) inss += (Math.min(s, 4354.27) - 2902.84) * 0.12;
   if (s > 4354.27) inss += (s - 4354.27) * 0.14;
   return Math.round(inss * 100) / 100;
@@ -1707,8 +1982,10 @@ async function handleGerarFolha(body, res) {
     const vencimentoSaldo = quintoDiaUtil(competencia); // saldo vence no 5º dia útil
 
     const recursos = await repos.recursos.findAll();
-    const funcs = recursos.filter(r => r.status === 'funcionario' && parseFloat(r.salario) > 0);
-    const jaTem = new Set((await repos.folhaPagamento.findByCompetencia(competencia)).map(f => f.recursoId));
+    const funcs = recursos.filter((r) => r.status === 'funcionario' && parseFloat(r.salario) > 0);
+    const jaTem = new Set(
+      (await repos.folhaPagamento.findByCompetencia(competencia)).map((f) => f.recursoId)
+    );
 
     let criadas = 0;
     for (const r of funcs) {
@@ -1847,7 +2124,7 @@ async function handleGetFolha(query, res) {
     const folha = await repos.folhaPagamento.findByCompetencia(competencia);
     // Anexa os lançamentos (descontos/proventos) de cada linha, em lote (sem N+1).
     if (folha.length) {
-      const itens = await repos.folhaPagamentoItens.findByFolhaIds(folha.map(f => f.id));
+      const itens = await repos.folhaPagamentoItens.findByFolhaIds(folha.map((f) => f.id));
       const porFolha = new Map();
       for (const it of itens) {
         if (!porFolha.has(it.folhaPagamentoId)) porFolha.set(it.folhaPagamentoId, []);
@@ -1867,7 +2144,8 @@ async function recalcularSaldoFolha(folhaId) {
   const f = await repos.folhaPagamento.findById(folhaId);
   if (!f) return null;
   const itens = await repos.folhaPagamentoItens.findByFolha(folhaId);
-  let proventos = 0, descontos = 0;
+  let proventos = 0,
+    descontos = 0;
   for (const it of itens) {
     const v = parseFloat(it.valor) || 0;
     if (it.tipo === 'provento') proventos += v;
@@ -1882,10 +2160,18 @@ async function recalcularSaldoFolha(folhaId) {
   });
   // Mantém a conta a pagar do Saldo coerente com o novo valor.
   if (f.saldoContaPagarId) {
-    await repos.contasPagar.updateById(f.saldoContaPagarId, {
-      valor: novoSaldo,
-      updatedAt: new Date().toISOString(),
-    }).catch((e) => console.error('[folha] falha ao sincronizar conta do saldo', f.saldoContaPagarId, e && e.message));
+    await repos.contasPagar
+      .updateById(f.saldoContaPagarId, {
+        valor: novoSaldo,
+        updatedAt: new Date().toISOString(),
+      })
+      .catch((e) =>
+        console.error(
+          '[folha] falha ao sincronizar conta do saldo',
+          f.saldoContaPagarId,
+          e && e.message
+        )
+      );
   }
   return atualizada;
 }
@@ -1905,10 +2191,15 @@ async function handleAddFolhaItem(id, body, res) {
     const folha = await db.withTransaction(async (client) => {
       await client.query("SELECT pg_advisory_xact_lock(hashtext('folha:' || $1)::int)", [id]);
       const f = await repos.folhaPagamento.findById(id);
-      if (!f) { const e = new Error('Registro de folha não encontrado'); e.statusCode = 404; throw e; }
+      if (!f) {
+        const e = new Error('Registro de folha não encontrado');
+        e.statusCode = 404;
+        throw e;
+      }
       if (f.saldoPago) {
         const e = new Error('Saldo já pago — estorne o saldo antes de lançar descontos/proventos');
-        e.statusCode = 400; throw e;
+        e.statusCode = 400;
+        throw e;
       }
       await repos.folhaPagamentoItens.create({
         id: generateId('fli'),
@@ -1933,14 +2224,21 @@ async function handleRemoveFolhaItem(id, itemId, res) {
     const folha = await db.withTransaction(async (client) => {
       await client.query("SELECT pg_advisory_xact_lock(hashtext('folha:' || $1)::int)", [id]);
       const f = await repos.folhaPagamento.findById(id);
-      if (!f) { const e = new Error('Registro de folha não encontrado'); e.statusCode = 404; throw e; }
+      if (!f) {
+        const e = new Error('Registro de folha não encontrado');
+        e.statusCode = 404;
+        throw e;
+      }
       if (f.saldoPago) {
         const e = new Error('Saldo já pago — estorne o saldo antes de alterar os lançamentos');
-        e.statusCode = 400; throw e;
+        e.statusCode = 400;
+        throw e;
       }
       const item = await repos.folhaPagamentoItens.findById(itemId);
       if (!item || item.folhaPagamentoId !== id) {
-        const e = new Error('Lançamento não encontrado'); e.statusCode = 404; throw e;
+        const e = new Error('Lançamento não encontrado');
+        e.statusCode = 404;
+        throw e;
       }
       await repos.folhaPagamentoItens.removeById(itemId);
       return recalcularSaldoFolha(id);
@@ -1960,14 +2258,21 @@ async function handleUpdateFolhaItem(id, itemId, body, res) {
     const folha = await db.withTransaction(async (client) => {
       await client.query("SELECT pg_advisory_xact_lock(hashtext('folha:' || $1)::int)", [id]);
       const f = await repos.folhaPagamento.findById(id);
-      if (!f) { const e = new Error('Registro de folha não encontrado'); e.statusCode = 404; throw e; }
+      if (!f) {
+        const e = new Error('Registro de folha não encontrado');
+        e.statusCode = 404;
+        throw e;
+      }
       if (f.saldoPago) {
         const e = new Error('Saldo já pago — estorne o saldo antes de alterar os lançamentos');
-        e.statusCode = 400; throw e;
+        e.statusCode = 400;
+        throw e;
       }
       const item = await repos.folhaPagamentoItens.findById(itemId);
       if (!item || item.folhaPagamentoId !== id) {
-        const e = new Error('Lançamento não encontrado'); e.statusCode = 404; throw e;
+        const e = new Error('Lançamento não encontrado');
+        e.statusCode = 404;
+        throw e;
       }
       await repos.folhaPagamentoItens.updateById(itemId, { valor });
       return recalcularSaldoFolha(id);
@@ -1989,18 +2294,35 @@ async function handlePagarFolhaParcela(id, body, res) {
     const folha = await db.withTransaction(async (client) => {
       await client.query("SELECT pg_advisory_xact_lock(hashtext('folha:' || $1)::int)", [id]);
       const f = await repos.folhaPagamento.findById(id);
-      if (!f) { const e = new Error('Registro de folha não encontrado'); e.statusCode = 404; throw e; }
-      if (parcela === 'vale' && f.valePago)   { const e = new Error('Vale já foi pago');  e.statusCode = 400; throw e; }
-      if (parcela === 'saldo' && f.saldoPago) { const e = new Error('Saldo já foi pago'); e.statusCode = 400; throw e; }
+      if (!f) {
+        const e = new Error('Registro de folha não encontrado');
+        e.statusCode = 404;
+        throw e;
+      }
+      if (parcela === 'vale' && f.valePago) {
+        const e = new Error('Vale já foi pago');
+        e.statusCode = 400;
+        throw e;
+      }
+      if (parcela === 'saldo' && f.saldoPago) {
+        const e = new Error('Saldo já foi pago');
+        e.statusCode = 400;
+        throw e;
+      }
       const valor = parcela === 'vale' ? parseFloat(f.valorVale) : parseFloat(f.valorSaldo);
-      if (!(valor > 0)) { const e = new Error('Esta parcela não tem valor a pagar'); e.statusCode = 400; throw e; }
+      if (!(valor > 0)) {
+        const e = new Error('Esta parcela não tem valor a pagar');
+        e.statusCode = 400;
+        throw e;
+      }
 
       const dataPagamento = (body && body.dataPagamento) || new Date().toISOString().split('T')[0];
       const label = parcela === 'vale' ? 'Vale' : 'Saldo';
       const caixaEntry = {
         id: generateId('cxa'),
         type: 'saida',
-        description: `${label} salário ${f.recursoNome} — ${f.competencia}` +
+        description:
+          `${label} salário ${f.recursoNome} — ${f.competencia}` +
           (body && body.formaPagamento ? ` [${body.formaPagamento}]` : ''),
         value: valor,
         date: dataPagamento,
@@ -2013,17 +2335,34 @@ async function handlePagarFolhaParcela(id, body, res) {
         createdAt: new Date().toISOString(),
       };
       await repos.caixa.create(caixaEntry);
-      const patch = parcela === 'vale'
-        ? { valePago: true, valeDataPagamento: dataPagamento, valeCaixaEntryId: caixaEntry.id, updatedAt: new Date().toISOString() }
-        : { saldoPago: true, saldoDataPagamento: dataPagamento, saldoCaixaEntryId: caixaEntry.id, updatedAt: new Date().toISOString() };
+      const patch =
+        parcela === 'vale'
+          ? {
+              valePago: true,
+              valeDataPagamento: dataPagamento,
+              valeCaixaEntryId: caixaEntry.id,
+              updatedAt: new Date().toISOString(),
+            }
+          : {
+              saldoPago: true,
+              saldoDataPagamento: dataPagamento,
+              saldoCaixaEntryId: caixaEntry.id,
+              updatedAt: new Date().toISOString(),
+            };
       const atualizada = await repos.folhaPagamento.updateById(id, patch);
       // Sincroniza a conta a pagar vinculada — paga junto, mesmo lançamento de caixa.
       const contaId = parcela === 'vale' ? f.valeContaPagarId : f.saldoContaPagarId;
       if (contaId) {
-        await repos.contasPagar.updateById(contaId, {
-          status: 'pago', dataPagamento, valorPago: valor, caixaEntryId: caixaEntry.id,
-          formaPagamento: (body && body.formaPagamento) || null, updatedAt: new Date().toISOString(),
-        }).catch(() => {});
+        await repos.contasPagar
+          .updateById(contaId, {
+            status: 'pago',
+            dataPagamento,
+            valorPago: valor,
+            caixaEntryId: caixaEntry.id,
+            formaPagamento: (body && body.formaPagamento) || null,
+            updatedAt: new Date().toISOString(),
+          })
+          .catch(() => {});
       }
       return atualizada;
     });
@@ -2045,22 +2384,52 @@ async function handleEstornarFolhaParcela(id, body, res) {
     const folha = await db.withTransaction(async (client) => {
       await client.query("SELECT pg_advisory_xact_lock(hashtext('folha:' || $1)::int)", [id]);
       const f = await repos.folhaPagamento.findById(id);
-      if (!f) { const e = new Error('Registro de folha não encontrado'); e.statusCode = 404; throw e; }
+      if (!f) {
+        const e = new Error('Registro de folha não encontrado');
+        e.statusCode = 404;
+        throw e;
+      }
       const jaPago = parcela === 'vale' ? f.valePago : f.saldoPago;
-      if (!jaPago) { const e = new Error('Esta parcela não está paga — nada a estornar'); e.statusCode = 400; throw e; }
+      if (!jaPago) {
+        const e = new Error('Esta parcela não está paga — nada a estornar');
+        e.statusCode = 400;
+        throw e;
+      }
       const caixaEntryId = parcela === 'vale' ? f.valeCaixaEntryId : f.saldoCaixaEntryId;
       if (caixaEntryId) await repos.caixa.removeById(caixaEntryId);
-      const patch = parcela === 'vale'
-        ? { valePago: false, valeDataPagamento: null, valeCaixaEntryId: null, updatedAt: new Date().toISOString() }
-        : { saldoPago: false, saldoDataPagamento: null, saldoCaixaEntryId: null, updatedAt: new Date().toISOString() };
+      const patch =
+        parcela === 'vale'
+          ? {
+              valePago: false,
+              valeDataPagamento: null,
+              valeCaixaEntryId: null,
+              updatedAt: new Date().toISOString(),
+            }
+          : {
+              saldoPago: false,
+              saldoDataPagamento: null,
+              saldoCaixaEntryId: null,
+              updatedAt: new Date().toISOString(),
+            };
       const atualizada = await repos.folhaPagamento.updateById(id, patch);
       // Sincroniza a conta a pagar vinculada — volta a pendente.
       const contaId = parcela === 'vale' ? f.valeContaPagarId : f.saldoContaPagarId;
       if (contaId) {
-        await repos.contasPagar.updateById(contaId, {
-          status: 'pendente', dataPagamento: null, valorPago: null, caixaEntryId: null,
-          updatedAt: new Date().toISOString(),
-        }).catch((e) => console.error('[folha-estorno] falha ao sincronizar conta a pagar', contaId, e && e.message));
+        await repos.contasPagar
+          .updateById(contaId, {
+            status: 'pendente',
+            dataPagamento: null,
+            valorPago: null,
+            caixaEntryId: null,
+            updatedAt: new Date().toISOString(),
+          })
+          .catch((e) =>
+            console.error(
+              '[folha-estorno] falha ao sincronizar conta a pagar',
+              contaId,
+              e && e.message
+            )
+          );
       }
       return atualizada;
     });
@@ -2079,18 +2448,30 @@ async function handleLimparFolha(body, res) {
       return sendError(res, 400, 'Competência inválida (use YYYY-MM)');
     }
     const folha = await repos.folhaPagamento.findByCompetencia(competencia);
-    let removidas = 0, mantidas = 0;
+    let removidas = 0,
+      mantidas = 0;
     for (const f of folha) {
-      if (f.valePago || f.saldoPago) { mantidas++; continue; } // tem pagamento — preserva
+      if (f.valePago || f.saldoPago) {
+        mantidas++;
+        continue;
+      } // tem pagamento — preserva
       // Contas a pagar vinculadas (ainda pendentes) — removidas junto.
       for (const cpId of [f.valeContaPagarId, f.saldoContaPagarId]) {
-        if (cpId) await repos.contasPagar.removeById(cpId)
-          .catch((e) => console.error('[limpar-folha] falha ao remover conta', cpId, e && e.message));
+        if (cpId)
+          await repos.contasPagar
+            .removeById(cpId)
+            .catch((e) =>
+              console.error('[limpar-folha] falha ao remover conta', cpId, e && e.message)
+            );
       }
       // Ordem: folha_pagamento antes do base_item (FK base_item_id).
       await repos.folhaPagamento.removeById(f.id);
-      if (f.baseItemId) await repos.baseItems.removeById(f.baseItemId)
-        .catch((e) => console.error('[limpar-folha] falha ao remover base item', f.baseItemId, e && e.message));
+      if (f.baseItemId)
+        await repos.baseItems
+          .removeById(f.baseItemId)
+          .catch((e) =>
+            console.error('[limpar-folha] falha ao remover base item', f.baseItemId, e && e.message)
+          );
       removidas++;
     }
     const restante = await repos.folhaPagamento.findByCompetencia(competencia);
@@ -2130,8 +2511,8 @@ const _contentTypeMap = {
   '.gif': 'image/gif',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
-  '.woff':  'font/woff',
-  '.woff2': 'font/woff2'
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
 };
 
 // HTML inline bootstrap: injetado em cada response HTML com nonce CSP único.
@@ -2213,7 +2594,7 @@ function buildCsp(scriptSrc) {
 }
 
 function _serveHtmlWithBootstrap(pathname, res) {
-  const filename = (pathname === '/' || pathname === '') ? '/index.html' : pathname;
+  const filename = pathname === '/' || pathname === '' ? '/index.html' : pathname;
   const filepath = path.resolve(__dirname, '.' + filename);
   if (!fs.existsSync(filepath)) {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -2223,25 +2604,20 @@ function _serveHtmlWithBootstrap(pathname, res) {
   // Nonce único por request — libera APENAS o nosso bootstrap inline na CSP.
   const nonce = crypto.randomBytes(16).toString('base64');
   const bootstrap = _bootstrapInline(APP_VERSION);
-  const html = fs.readFileSync(filepath, 'utf8')
-    .replace(
-      '</head>',
-      `<script nonce="${nonce}">${bootstrap}</script></head>`
-    )
+  const html = fs
+    .readFileSync(filepath, 'utf8')
+    .replace('</head>', `<script nonce="${nonce}">${bootstrap}</script></head>`)
     // Cache-busting dos JS/CSS eager: anexa ?v=APP_VERSION. Sem isso o sw.js
     // (stale-while-revalidate) serve o JS antigo cacheado e o usuário fica uma
     // versão atrás a cada deploy. Os scripts lazy já versionam em app.js.
-    .replace(
-      /(src|href)="(\.\/(?:js|css)\/[^"]+\.(?:js|css))"/g,
-      `$1="$2?v=${APP_VERSION}"`
-    );
+    .replace(/(src|href)="(\.\/(?:js|css)\/[^"]+\.(?:js|css))"/g, `$1="$2?v=${APP_VERSION}"`);
   // CSP com nonce — só o script-src difere; resto vem de buildCsp().
   const csp = buildCsp(`script-src 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net`);
   res.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
-    'Pragma': 'no-cache',
-    'Expires': '0',
+    Pragma: 'no-cache',
+    Expires: '0',
     'Content-Security-Policy': csp,
   });
   res.end(html);
@@ -2308,8 +2684,16 @@ function serveStaticFile(pathname, res) {
     headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0';
   } else if (ext === '.js' || ext === '.css') {
     headers['Cache-Control'] = 'public, max-age=3600, stale-while-revalidate=86400';
-  } else if (ext === '.svg' || ext === '.png' || ext === '.jpg' || ext === '.jpeg' ||
-             ext === '.webp' || ext === '.woff2' || ext === '.woff' || ext === '.ico') {
+  } else if (
+    ext === '.svg' ||
+    ext === '.png' ||
+    ext === '.jpg' ||
+    ext === '.jpeg' ||
+    ext === '.webp' ||
+    ext === '.woff2' ||
+    ext === '.woff' ||
+    ext === '.ico'
+  ) {
     headers['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800';
   }
 
@@ -2317,18 +2701,14 @@ function serveStaticFile(pathname, res) {
   if (ext === '.html') {
     // Injeta versão do app para que a sidebar mostre v1.x.y dinâmico
     body = Buffer.from(
-      fs.readFileSync(filepath, 'utf8').replace(
-        '</head>',
-        `<script>window.__APP_VERSION__="${APP_VERSION}";</script></head>`
-      )
+      fs
+        .readFileSync(filepath, 'utf8')
+        .replace('</head>', `<script>window.__APP_VERSION__="${APP_VERSION}";</script></head>`)
     );
   } else if (pathname === '/sw.js') {
     // Injeta a versão no Service Worker para que o cache seja invalidado a cada deploy
     body = Buffer.from(
-      fs.readFileSync(filepath, 'utf8').replace(
-        "'__RHINO_VERSION__'",
-        `'rhino-v${APP_VERSION}'`
-      )
+      fs.readFileSync(filepath, 'utf8').replace("'__RHINO_VERSION__'", `'rhino-v${APP_VERSION}'`)
     );
   } else {
     body = fs.readFileSync(filepath);
@@ -2380,8 +2760,16 @@ const server = http.createServer((req, res) => {
       logEvent({ rid: requestId, m: req.method, p: pathname, s: status, ms });
     }
     // Auditoria — salva no PG em background (não bloqueia o response)
-    if (['POST', 'PUT', 'DELETE'].includes(req.method) && pathname.startsWith('/api/') && status < 500) {
-      setImmediate(() => audit.log({ req, res, body: req._auditBody, status, durationMs: ms, requestId }).catch(() => {}));
+    if (
+      ['POST', 'PUT', 'DELETE'].includes(req.method) &&
+      pathname.startsWith('/api/') &&
+      status < 500
+    ) {
+      setImmediate(() =>
+        audit
+          .log({ req, res, body: req._auditBody, status, durationMs: ms, requestId })
+          .catch(() => {})
+      );
 
       // Real-time bus (G1) — publica para clientes conectados via /api/stream
       if (status >= 200 && status < 300) {
@@ -2390,9 +2778,12 @@ const server = http.createServer((req, res) => {
         if (m) {
           const entity = m[1];
           const id = m[2] || null;
-          const action = req.method === 'POST' ? 'create' : req.method === 'PUT' ? 'update' : 'delete';
+          const action =
+            req.method === 'POST' ? 'create' : req.method === 'PUT' ? 'update' : 'delete';
           // Skip endpoints internos que não representam mutação de entidade
-          if (!['auth', 'stream', 'metrics', 'health', 'audit', 'search', 'backup'].includes(entity)) {
+          if (
+            !['auth', 'stream', 'metrics', 'health', 'audit', 'search', 'backup'].includes(entity)
+          ) {
             bus.publish({ entity, action, id, by: req.user?.email || null });
           }
         }
@@ -2442,7 +2833,8 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
-      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'",
+      'Content-Security-Policy':
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'",
     });
     res.end(`<!doctype html>
 <html lang="pt-br"><head><meta charset="utf-8"><title>Rhino — Reset</title>
@@ -2494,10 +2886,17 @@ const server = http.createServer((req, res) => {
   // /healthz e /readyz — sem autenticação, sem logging de auditoria
   if (pathname === '/healthz' || pathname === '/readyz') {
     (async () => {
-      const result = { status: 'ok', db: 'unknown', uptime_s: Math.round((Date.now() - APP_START) / 1000), version: APP_VERSION };
+      const result = {
+        status: 'ok',
+        db: 'unknown',
+        uptime_s: Math.round((Date.now() - APP_START) / 1000),
+        version: APP_VERSION,
+      };
       try {
         result.db = (await require('./db').ping()) ? 'ok' : 'down';
-      } catch { result.db = 'down'; }
+      } catch {
+        result.db = 'down';
+      }
       if (result.db !== 'ok') {
         res.writeHead(503, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ ...result, status: 'error' }));
@@ -2509,8 +2908,8 @@ const server = http.createServer((req, res) => {
   }
 
   // Multipart (upload de fotos RDO) — não passa pelo body parser JSON
-  const isRdoFotoUpload = req.method === 'POST'
-    && /^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/fotos$/.test(pathname);
+  const isRdoFotoUpload =
+    req.method === 'POST' && /^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/fotos$/.test(pathname);
   if (isRdoFotoUpload) {
     (async () => {
       if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
@@ -2521,8 +2920,8 @@ const server = http.createServer((req, res) => {
   }
 
   // Multipart (upload de arquivo de documento de recurso) — também precisa pular body parser
-  const isRecursoDocArqUpload = req.method === 'POST'
-    && /^\/api\/recursos\/[^/]+\/documentos\/[^/]+\/arquivo$/.test(pathname);
+  const isRecursoDocArqUpload =
+    req.method === 'POST' && /^\/api\/recursos\/[^/]+\/documentos\/[^/]+\/arquivo$/.test(pathname);
   if (isRecursoDocArqUpload) {
     (async () => {
       if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
@@ -2533,8 +2932,9 @@ const server = http.createServer((req, res) => {
   }
 
   // Multipart (upload de arquivo de documento de candidato, Etapa 4.3) — pula o body parser
-  const isCandidatoDocArqUpload = req.method === 'POST'
-    && /^\/api\/recrutamento\/candidatos\/[^/]+\/documentos\/[^/]+\/arquivo$/.test(pathname);
+  const isCandidatoDocArqUpload =
+    req.method === 'POST' &&
+    /^\/api\/recrutamento\/candidatos\/[^/]+\/documentos\/[^/]+\/arquivo$/.test(pathname);
   if (isCandidatoDocArqUpload) {
     (async () => {
       if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
@@ -2556,8 +2956,8 @@ const server = http.createServer((req, res) => {
   }
 
   // Multipart (upload de assinatura digital no RDO)
-  const isRdoAssinaturaUpload = req.method === 'POST'
-    && /^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/assinaturas$/.test(pathname);
+  const isRdoAssinaturaUpload =
+    req.method === 'POST' && /^\/api\/contracts\/[^/]+\/rdos\/[^/]+\/assinaturas$/.test(pathname);
   if (isRdoAssinaturaUpload) {
     (async () => {
       if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
@@ -2568,8 +2968,8 @@ const server = http.createServer((req, res) => {
   }
 
   // Multipart (upload de anexo de proposta)
-  const isPropostaAnexoUpload = req.method === 'POST'
-    && /^\/api\/propostas\/[^/]+\/anexos$/.test(pathname);
+  const isPropostaAnexoUpload =
+    req.method === 'POST' && /^\/api\/propostas\/[^/]+\/anexos$/.test(pathname);
   if (isPropostaAnexoUpload) {
     (async () => {
       if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
@@ -2589,8 +2989,8 @@ const server = http.createServer((req, res) => {
   }
 
   // Multipart (upload de foto de sugestão)
-  const isSugestaoAnexoUpload = req.method === 'POST'
-    && /^\/api\/sugestoes\/[^/]+\/anexo$/.test(pathname);
+  const isSugestaoAnexoUpload =
+    req.method === 'POST' && /^\/api\/sugestoes\/[^/]+\/anexo$/.test(pathname);
   if (isSugestaoAnexoUpload) {
     (async () => {
       if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
@@ -2608,15 +3008,21 @@ const server = http.createServer((req, res) => {
     // Enforce Content-Type for JSON API routes (only when body is present)
     if (pathname.startsWith('/api/')) {
       const ct = req.headers['content-type'] || '';
-      const hasBody = (req.headers['content-length'] && req.headers['content-length'] !== '0')
-        || req.headers['transfer-encoding'];
-      if (hasBody && !ct.includes('application/json') && !ct.includes('multipart/form-data') && !ct.includes('text/')) {
+      const hasBody =
+        (req.headers['content-length'] && req.headers['content-length'] !== '0') ||
+        req.headers['transfer-encoding'];
+      if (
+        hasBody &&
+        !ct.includes('application/json') &&
+        !ct.includes('multipart/form-data') &&
+        !ct.includes('text/')
+      ) {
         res.writeHead(415, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Content-Type deve ser application/json' }));
         return;
       }
     }
-    req.on('data', chunk => {
+    req.on('data', (chunk) => {
       bodySize += chunk.length;
       if (bodySize > MAX_BODY_BYTES) {
         res.writeHead(413, { 'Content-Type': 'application/json' });
@@ -2675,12 +3081,15 @@ function isAdminRoute(pathname, method) {
   // GET /api/niveis-acesso é necessário pra exibir perfis no login → liberar leitura
   if (pathname === '/api/niveis-acesso' && method === 'GET') return false;
   // Match exato OU prefixo de path-segment (evita falso match como /api/users-foo)
-  return ADMIN_PATH_PREFIXES.some(p =>
-    pathname === p || pathname.startsWith(p.endsWith('/') ? p : p + '/')
+  return ADMIN_PATH_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(p.endsWith('/') ? p : p + '/')
   );
 }
 function requireAdmin(req, res) {
-  if (!req.user) { sendError(res, 401, 'Não autenticado'); return false; }
+  if (!req.user) {
+    sendError(res, 401, 'Não autenticado');
+    return false;
+  }
   // Convenção do projeto (delega para perms.isSuperAdmin — fonte única):
   //   - nivelAcessoId = null    → super admin (pode escolher qualquer perfil na UI)
   //   - nivelAcessoId = 'admin' → admin explícito
@@ -2709,19 +3118,22 @@ const MUTATION_METHODS = new Set(['POST', 'PUT', 'DELETE', 'PATCH']);
 // O OR cobre recursos criados a partir de outra tela — ex.: um cliente novo
 // criado de dentro do formulário de contrato (gate do frontend = #/contratos).
 const MUTATION_PERMISSION_RULES = [
-  { re: /^\/api\/base\/[^/]+\/allocate$/,   screens: ['#/base', '#/contratos'] },
+  { re: /^\/api\/base\/[^/]+\/allocate$/, screens: ['#/base', '#/contratos'] },
   { re: /^\/api\/(contracts|saidas)(\/|$)/, screens: ['#/contratos'] },
-  { re: /^\/api\/(base|tipos-base)(\/|$)/,  screens: ['#/base'] },
-  { re: /^\/api\/caixa(\/|$)/,              screens: ['#/caixa'] },
-  { re: /^\/api\/socios(\/|$)/,             screens: ['#/socios'] },
-  { re: /^\/api\/investimentos(\/|$)/,      screens: ['#/investimentos'] },
-  { re: /^\/api\/clientes(\/|$)/,           screens: ['#/clientes', '#/contratos'] },
-  { re: /^\/api\/fornecedores(\/|$)/,       screens: ['#/fornecedores', '#/contratos', '#/contas-pagar'] },
-  { re: /^\/api\/notas-fiscais(\/|$)/,      screens: ['#/notas-fiscais', '#/contratos'] },
-  { re: /^\/api\/contas-pagar(\/|$)/,       screens: ['#/contas-pagar'] },
-  { re: /^\/api\/recursos(\/|$)/,           screens: ['#/recursos'] },
-  { re: /^\/api\/folha-pagamento(\/|$)/,    screens: ['#/folha-pagamento'] },
-  { re: /^\/api\/recrutamento(\/|$)/,       screens: ['#/recrutamento'] },
+  { re: /^\/api\/(base|tipos-base)(\/|$)/, screens: ['#/base'] },
+  { re: /^\/api\/caixa(\/|$)/, screens: ['#/caixa'] },
+  { re: /^\/api\/socios(\/|$)/, screens: ['#/socios'] },
+  { re: /^\/api\/investimentos(\/|$)/, screens: ['#/investimentos'] },
+  { re: /^\/api\/clientes(\/|$)/, screens: ['#/clientes', '#/contratos'] },
+  {
+    re: /^\/api\/fornecedores(\/|$)/,
+    screens: ['#/fornecedores', '#/contratos', '#/contas-pagar'],
+  },
+  { re: /^\/api\/notas-fiscais(\/|$)/, screens: ['#/notas-fiscais', '#/contratos'] },
+  { re: /^\/api\/contas-pagar(\/|$)/, screens: ['#/contas-pagar'] },
+  { re: /^\/api\/recursos(\/|$)/, screens: ['#/recursos'] },
+  { re: /^\/api\/folha-pagamento(\/|$)/, screens: ['#/folha-pagamento'] },
+  { re: /^\/api\/recrutamento(\/|$)/, screens: ['#/recrutamento'] },
 ];
 
 /**
@@ -2729,15 +3141,17 @@ const MUTATION_PERMISSION_RULES = [
  * @returns {Promise<boolean>} true se bloqueou (resposta 403 já enviada).
  */
 async function checkMutationPermission(req, res, pathname, method) {
-  if (!MUTATION_METHODS.has(method)) return false;        // não é mutação
-  if (perms.isSuperAdmin(req.user)) return false;         // admin / super admin passam
-  const rule = MUTATION_PERMISSION_RULES.find(r => r.re.test(pathname));
-  if (!rule) return false;                                // rota não mapeada → não bloqueia
+  if (!MUTATION_METHODS.has(method)) return false; // não é mutação
+  if (perms.isSuperAdmin(req.user)) return false; // admin / super admin passam
+  const rule = MUTATION_PERMISSION_RULES.find((r) => r.re.test(pathname));
+  if (!rule) return false; // rota não mapeada → não bloqueia
   const abas = await perms.loadAbas(req.user);
-  if (!abas) return false;                                // null = sem restrição
+  if (!abas) return false; // null = sem restrição
   // Exige permissão de EDIÇÃO (edit:#/rota). O OR cobre cross-invocações.
-  if (rule.screens.some(s => abas.includes('edit:' + s))) return false;
-  console.warn(`[C-04] mutação bloqueada: user=${req.user?.id} ${method} ${pathname} — precisa de permissão de edição em uma de: ${rule.screens.join(', ')}`);
+  if (rule.screens.some((s) => abas.includes('edit:' + s))) return false;
+  console.warn(
+    `[C-04] mutação bloqueada: user=${req.user?.id} ${method} ${pathname} — precisa de permissão de edição em uma de: ${rule.screens.join(', ')}`
+  );
   sendError(res, 403, 'Você não tem permissão para esta operação.');
   return true;
 }
@@ -2750,13 +3164,13 @@ async function checkMutationPermission(req, res, pathname, method) {
 // porque alimentam dropdowns/nomes em telas que o perfil PODE ver. O
 // `Store.loadAll` tolera 403 nessas rotas (vira vazio, sem quebrar o app).
 const VIEW_PERMISSION_RULES = [
-  { re: /^\/api\/caixa(\/|$)/,           screen: '#/caixa' },
-  { re: /^\/api\/socios(\/|$)/,          screen: '#/socios' },
-  { re: /^\/api\/investimentos(\/|$)/,   screen: '#/investimentos' },
+  { re: /^\/api\/caixa(\/|$)/, screen: '#/caixa' },
+  { re: /^\/api\/socios(\/|$)/, screen: '#/socios' },
+  { re: /^\/api\/investimentos(\/|$)/, screen: '#/investimentos' },
   { re: /^\/api\/folha-pagamento(\/|$)/, screen: '#/folha-pagamento' },
   // Recrutamento expõe CPF/antecedentes — leitura restrita a quem tem a tela.
   // (/api/notificacoes NÃO casa este regex, segue aberto pro sino.)
-  { re: /^\/api\/recrutamento(\/|$)/,     screen: '#/recrutamento' },
+  { re: /^\/api\/recrutamento(\/|$)/, screen: '#/recrutamento' },
 ];
 
 /**
@@ -2765,13 +3179,15 @@ const VIEW_PERMISSION_RULES = [
  */
 async function checkViewPermission(req, res, pathname, method) {
   if (method !== 'GET') return false;
-  if (perms.isSuperAdmin(req.user)) return false;        // super admin passa
-  const rule = VIEW_PERMISSION_RULES.find(r => r.re.test(pathname));
-  if (!rule) return false;                               // rota não sensível
+  if (perms.isSuperAdmin(req.user)) return false; // super admin passa
+  const rule = VIEW_PERMISSION_RULES.find((r) => r.re.test(pathname));
+  if (!rule) return false; // rota não sensível
   const abas = await perms.loadAbas(req.user);
-  if (!abas) return false;                               // null = sem restrição
-  if (abas.includes(rule.screen)) return false;          // tem a tela → libera
-  console.warn(`[view-gate] leitura bloqueada: user=${req.user?.id} GET ${pathname} — sem ${rule.screen}`);
+  if (!abas) return false; // null = sem restrição
+  if (abas.includes(rule.screen)) return false; // tem a tela → libera
+  console.warn(
+    `[view-gate] leitura bloqueada: user=${req.user?.id} GET ${pathname} — sem ${rule.screen}`
+  );
   sendError(res, 403, 'Você não tem acesso a esta tela.');
   return true;
 }
@@ -2801,7 +3217,10 @@ async function applyAuthMiddleware(req, res, pathname, method) {
   if (!pathname.startsWith('/api/')) return false;
 
   // Rate limit global pra /api/* — 1000 req / min por IP (anti-DDoS / abuso)
-  const rlGlobal = rateLimit.check(rateLimit.clientKey(req, 'global'), { max: 1000, windowMs: 60 * 1000 });
+  const rlGlobal = rateLimit.check(rateLimit.clientKey(req, 'global'), {
+    max: 1000,
+    windowMs: 60 * 1000,
+  });
   if (!rlGlobal.ok) {
     res.setHeader('Retry-After', rlGlobal.retryAfterSec);
     sendError(res, 429, 'Limite de requisições atingido. Aguarde um momento.');
@@ -2814,7 +3233,10 @@ async function applyAuthMiddleware(req, res, pathname, method) {
     const user = await auth.getUserBySession(sid);
     // /api/auth/me ("quem sou eu"): seta o user se houver sessão, mas NÃO 401 se ausente —
     // deixa o handler responder 200 {user:null} (evita 401 no console no boot deslogado).
-    if (pathname === '/api/auth/me') { req.user = user || null; return false; }
+    if (pathname === '/api/auth/me') {
+      req.user = user || null;
+      return false;
+    }
     if (!user) {
       sendError(res, 401, 'Não autenticado');
       return true;
@@ -2845,8 +3267,10 @@ async function withIdempotency(req, res, pathname, body, runHandler) {
 
   const method = req.method || 'POST';
   const rowId = crypto.createHash('sha256').update(`${method} ${pathname} ${key}`).digest('hex');
-  const reqHash = crypto.createHash('sha256')
-    .update(typeof body === 'string' ? body : JSON.stringify(body || {})).digest('hex');
+  const reqHash = crypto
+    .createHash('sha256')
+    .update(typeof body === 'string' ? body : JSON.stringify(body || {}))
+    .digest('hex');
 
   let existing;
   try {
@@ -2872,7 +3296,10 @@ async function withIdempotency(req, res, pathname, body, runHandler) {
   let capturedBody = '';
   const origWriteHead = res.writeHead.bind(res);
   const origEnd = res.end.bind(res);
-  res.writeHead = (status, ...rest) => { capturedStatus = status; return origWriteHead(status, ...rest); };
+  res.writeHead = (status, ...rest) => {
+    capturedStatus = status;
+    return origWriteHead(status, ...rest);
+  };
   res.end = (chunk, ...rest) => {
     if (chunk) capturedBody += chunk.toString();
     const ret = origEnd(chunk, ...rest);
@@ -2882,7 +3309,12 @@ async function withIdempotency(req, res, pathname, body, runHandler) {
         `INSERT INTO idempotency_keys (id, request_hash, status_code, response_body)
          VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO NOTHING`,
         [rowId, reqHash, capturedStatus, capturedBody]
-      ).catch((e) => console.error('[idempotency] falha ao gravar chave (retries podem duplicar lançamento):', e && e.message));
+      ).catch((e) =>
+        console.error(
+          '[idempotency] falha ao gravar chave (retries podem duplicar lançamento):',
+          e && e.message
+        )
+      );
     }
     return ret;
   };
@@ -2897,77 +3329,171 @@ registerRecrutamento(apiRouter);
 // Canal de Sugestões (RaiaPro H2) — handlers próprios. Upload de foto é multipart (abaixo).
 registerSugestoes(apiRouter);
 registerPortal(apiRouter, {
-  handlePortalLogin, applyPortalAuth, handlePortalLogout,
-  handlePortalDashboard, handlePortalListPropostas,
-  handlePortalPropostaPdf, handlePortalPropostaDocx,
+  handlePortalLogin,
+  applyPortalAuth,
+  handlePortalLogout,
+  handlePortalDashboard,
+  handlePortalListPropostas,
+  handlePortalPropostaPdf,
+  handlePortalPropostaDocx,
 });
 registerPlatform(apiRouter, {
-  bus, sendJson,
-  handleGetAudit, handleGetUsers, handlePostUser, handlePutUser, handleDeleteUser,
-  handleAiUsageStats, handleHealth, handleChangelog, handleMetrics, handleGetAdminArquivos,
-  handleAiChat, handleAiClassify, handleGetFeatureFlags, handlePutFeatureFlag,
-  handleGlobalSearch, handleGetNiveisAcesso, handlePutNivelAcesso,
-  handlePushSubscribe, handlePushUnsubscribe,
-  handleDashboard, handleDashboardOperacional, handleBackup, handleBackupDownload, _runEmailBackup,
-  handleGetAnomalias, handleLgpdExport, handleLgpdDelete,
+  bus,
+  sendJson,
+  handleGetAudit,
+  handleGetUsers,
+  handlePostUser,
+  handlePutUser,
+  handleDeleteUser,
+  handleAiUsageStats,
+  handleHealth,
+  handleChangelog,
+  handleMetrics,
+  handleGetAdminArquivos,
+  handleAiChat,
+  handleAiClassify,
+  handleGetFeatureFlags,
+  handlePutFeatureFlag,
+  handleGlobalSearch,
+  handleGetNiveisAcesso,
+  handlePutNivelAcesso,
+  handlePushSubscribe,
+  handlePushUnsubscribe,
+  handleDashboard,
+  handleDashboardOperacional,
+  handleBackup,
+  handleBackupDownload,
+  _runEmailBackup,
+  handleGetAnomalias,
+  handleLgpdExport,
+  handleLgpdDelete,
 });
 registerFinanceiro(apiRouter, {
   withIdempotency,
   ...caixaHandlers, // handleGetCaixa/Post/Put/Delete (handlers/caixa.js)
-  ...baseHandlers, handleAllocateBase, // base CRUD em handlers/base.js; allocate inline
+  ...baseHandlers,
+  handleAllocateBase, // base CRUD em handlers/base.js; allocate inline
   ...sociosHandlers, // handlers/socios.js
   ...investimentosHandlers, // handlers/investimentos.js
   ...tiposBaseHandlers, // handlers/tipos-base.js
   ...contasPagarHandlers, // CRUD + pagar/estornar (handlers/contas-pagar.js)
   handleProcessarRecorrencias,
-  handleGetFolha, handleGerarFolha, handleLimparFolha, handlePagarFolhaParcela,
-  handleEstornarFolhaParcela, handleAddFolhaItem, handleRemoveFolhaItem, handleUpdateFolhaItem,
+  handleGetFolha,
+  handleGerarFolha,
+  handleLimparFolha,
+  handlePagarFolhaParcela,
+  handleEstornarFolhaParcela,
+  handleAddFolhaItem,
+  handleRemoveFolhaItem,
+  handleUpdateFolhaItem,
   ...notasFiscaisHandlers, // CRUD + emitir/cancelar-emissão (handlers/notas-fiscais.js)
-  handleCobrancaHistorico, handleCobrancaProjecaoAtual, handleCobrancaMensal,
+  handleCobrancaHistorico,
+  handleCobrancaProjecaoAtual,
+  handleCobrancaMensal,
   handleImportarOfx,
 });
 registerComercial(apiRouter, {
   ...clientesHandlers, // handlers/clientes.js
   handlePortalImpersonate, // "Ver portal como cliente" (super admin) — server.js seção Portal
   ...fornecedoresHandlers, // handlers/fornecedores.js
-  handleGetClausulas, handlePostClausula, handlePutClausula, handleDeleteClausula,
-  handleGetPropostas, handlePostProposta, handleGetProposta, handlePutProposta, handleDeleteProposta,
-  handleEnviarProposta, handleAceitarProposta, handleRejeitarProposta, handleDuplicarProposta,
-  handlePostPropostaCusto, handlePutPropostaCusto, handleDeletePropostaCusto,
+  handleGetClausulas,
+  handlePostClausula,
+  handlePutClausula,
+  handleDeleteClausula,
+  handleGetPropostas,
+  handlePostProposta,
+  handleGetProposta,
+  handlePutProposta,
+  handleDeleteProposta,
+  handleEnviarProposta,
+  handleAceitarProposta,
+  handleRejeitarProposta,
+  handleDuplicarProposta,
+  handlePostPropostaCusto,
+  handlePutPropostaCusto,
+  handleDeletePropostaCusto,
   ...propostaAnexosHandlers, // anexos PDF/imagem: upload + get/put/delete (handlers/proposta-anexos.js)
-  handleGetPropostaDocx, handleGetPropostaPdf, handleGetPropostaPreview,
-  handleGetApresentacao, handlePutApresentacao,
+  handleGetPropostaDocx,
+  handleGetPropostaPdf,
+  handleGetPropostaPreview,
+  handleGetApresentacao,
+  handlePutApresentacao,
   ...caseLogosHandlers, // case logos: list/get-image + upload + put/delete (handlers/case-logos.js)
 });
 registerOperacao(apiRouter, {
   ...recursosHandlers, // CRUD principal (handlers/recursos.js)
   ...recursoFolgasHandlers, // folgas + passagens (handlers/recurso-folgas.js)
-  handleGetDocumentosStatus, handleAddDocumento, handlePutDocumento, handleDeleteDocumento,
+  handleGetDocumentosStatus,
+  handleAddDocumento,
+  handlePutDocumento,
+  handleDeleteDocumento,
   ...recursoDocsHandlers, // arquivo (BYTEA) + validação IA (handlers/recurso-documentos.js)
-  handleListItensEstoque, handlePostItemEstoque, handlePutItemEstoque, handleDeleteItemEstoque,
-  handleListAlmoxarifados, handlePostAlmoxarifado, handlePutAlmoxarifado, handleDeleteAlmoxarifado,
-  handleListMovimentacoes, handlePostMovimentacao, handleDeleteMovimentacao,
-  handleGetSaldoEstoque, handleGetVisaoGeral,
-  handleListSolicitacoesCompra, handlePostSolicitacaoCompra, handlePutSolicitacaoCompra,
-  handleDeleteSolicitacaoCompra, handleAvaliarSolicitacao, handleCancelarSolicitacao,
-  handleAprovarSolicitacao, handleRejeitarSolicitacao, handleComprarSolicitacao, handleReceberSolicitacao,
+  handleListItensEstoque,
+  handlePostItemEstoque,
+  handlePutItemEstoque,
+  handleDeleteItemEstoque,
+  handleListAlmoxarifados,
+  handlePostAlmoxarifado,
+  handlePutAlmoxarifado,
+  handleDeleteAlmoxarifado,
+  handleListMovimentacoes,
+  handlePostMovimentacao,
+  handleDeleteMovimentacao,
+  handleGetSaldoEstoque,
+  handleGetVisaoGeral,
+  handleListSolicitacoesCompra,
+  handlePostSolicitacaoCompra,
+  handlePutSolicitacaoCompra,
+  handleDeleteSolicitacaoCompra,
+  handleAvaliarSolicitacao,
+  handleCancelarSolicitacao,
+  handleAprovarSolicitacao,
+  handleRejeitarSolicitacao,
+  handleComprarSolicitacao,
+  handleReceberSolicitacao,
   handleCotacoesHistorico,
-  handleListManutencoes, handlePostManutencao, handlePutManutencao, handleDeleteManutencao,
-  handleRetornoManutencao, handleCancelarManutencao, handleAvaliarManutencao,
-  handleAprovarManutencao, handleRejeitarManutencao,
-  handleListVeiculos, handlePostVeiculo, handlePutVeiculo, handleDeleteVeiculo,
-  handlePutVeiculoKm, handlePutVeiculoLocalizacao,
-  handlePostVeiculoPlano, handlePutVeiculoPlano, handleDeleteVeiculoPlano,
-  handlePostVeiculoManutencao, handlePutVeiculoManutencao, handleDeleteVeiculoManutencao,
-  handleListVeiculoAbastecimentos, handlePostVeiculoAbastecimento, handlePutVeiculoAbastecimento, handleDeleteVeiculoAbastecimento,
+  handleListManutencoes,
+  handlePostManutencao,
+  handlePutManutencao,
+  handleDeleteManutencao,
+  handleRetornoManutencao,
+  handleCancelarManutencao,
+  handleAvaliarManutencao,
+  handleAprovarManutencao,
+  handleRejeitarManutencao,
+  handleListVeiculos,
+  handlePostVeiculo,
+  handlePutVeiculo,
+  handleDeleteVeiculo,
+  handlePutVeiculoKm,
+  handlePutVeiculoLocalizacao,
+  handlePostVeiculoPlano,
+  handlePutVeiculoPlano,
+  handleDeleteVeiculoPlano,
+  handlePostVeiculoManutencao,
+  handlePutVeiculoManutencao,
+  handleDeleteVeiculoManutencao,
+  handleListVeiculoAbastecimentos,
+  handlePostVeiculoAbastecimento,
+  handlePutVeiculoAbastecimento,
+  handleDeleteVeiculoAbastecimento,
   handleDashboardOperacional,
-  handleListDashLayouts, handlePostDashLayout, handlePutDashLayout, handleDeleteDashLayout,
+  handleListDashLayouts,
+  handlePostDashLayout,
+  handlePutDashLayout,
+  handleDeleteDashLayout,
   ...docTemplatesHandlers, // handlers/doc-templates.js
 });
 registerContracts(apiRouter, {
-  ...contractRdosHandlers, ...contractsHandlers, // RDO global+CRUD (handlers/contract-rdos.js) + CRUD do contrato (handlers/contracts.js)
-  ...contractSaidasHandlers, ...contractExtrasHandlers, // saídas/BM + budget/aditivos/marcos/ocorrências
-  handleListAtividades, handlePostAtividade, handlePutAtividade, handleDeleteAtividade, handleGetCurvaS,
+  ...contractRdosHandlers,
+  ...contractsHandlers, // RDO global+CRUD (handlers/contract-rdos.js) + CRUD do contrato (handlers/contracts.js)
+  ...contractSaidasHandlers,
+  ...contractExtrasHandlers, // saídas/BM + budget/aditivos/marcos/ocorrências
+  handleListAtividades,
+  handlePostAtividade,
+  handlePutAtividade,
+  handleDeleteAtividade,
+  handleGetCurvaS,
   ...contractOrganogramaHandlers, // handlers/contract-organograma.js
   ...rdoFotosHandlers, // fotos: upload + delete (handlers/rdo-fotos.js)
   ...rdoAssinaturasHandlers, // assinaturas digitais: upload + list/get/delete (handlers/rdo-assinaturas.js)
@@ -2997,7 +3523,10 @@ async function serveRdoFotoFromDb(pathname, req, res) {
       res.end('404 Not Found');
       return;
     }
-    const row = await db.getOne('SELECT mime, data FROM rdo_fotos WHERE id = $1 AND rdo_id = $2', [fotoId, rdoId]);
+    const row = await db.getOne('SELECT mime, data FROM rdo_fotos WHERE id = $1 AND rdo_id = $2', [
+      fotoId,
+      rdoId,
+    ]);
     if (!row || !row.data) {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       res.end('404 Not Found');
@@ -3052,7 +3581,7 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
 async function handleGetAnomalias(res) {
   try {
     const caixaAll = await repos.caixa.findAll();
-    const saidas = caixaAll.filter(e => e.type === 'saida');
+    const saidas = caixaAll.filter((e) => e.type === 'saida');
 
     const byCat = {};
     for (const s of saidas) {
@@ -3064,7 +3593,7 @@ async function handleGetAnomalias(res) {
     const anomalias = [];
     for (const [cat, items] of Object.entries(byCat)) {
       if (items.length < 4) continue;
-      const values = items.map(i => i.v);
+      const values = items.map((i) => i.v);
       const n = values.length;
       const mean = values.reduce((s, v) => s + v, 0) / n;
       const sigma = Math.sqrt(values.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / n);
@@ -3098,7 +3627,10 @@ async function handleProcessarRecorrencias(res) {
   try {
     const hojeStr = new Date().toISOString().split('T')[0];
     const contas = await repos.contasPagar.findAll();
-    const recorrentes = contas.filter(c => c.recorrente && c.status === 'pendente' && c.dataVencimento && c.dataVencimento <= hojeStr);
+    const recorrentes = contas.filter(
+      (c) =>
+        c.recorrente && c.status === 'pendente' && c.dataVencimento && c.dataVencimento <= hojeStr
+    );
 
     const criadas = [];
     for (const conta of recorrentes) {
@@ -3107,7 +3639,9 @@ async function handleProcessarRecorrencias(res) {
       while (nextDate <= hojeStr) {
         nextDate = _calcProximaData(nextDate, conta.periodicidade || 'mensal');
       }
-      const jaExiste = contas.some(c => c.recorrenciaOrigemId === conta.id && c.dataVencimento === nextDate);
+      const jaExiste = contas.some(
+        (c) => c.recorrenciaOrigemId === conta.id && c.dataVencimento === nextDate
+      );
       if (jaExiste) continue;
       const nova = {
         id: generateId('cp'),
@@ -3141,10 +3675,23 @@ async function handleLgpdExport(req, res) {
   try {
     const userId = req.user.id;
     const user = await repos.users.findById(userId);
-    const sessions = await db.getMany('SELECT id, created_at, expires_at FROM sessions WHERE user_id = $1', [userId]);
-    const auditRows = await db.getMany('SELECT ts, method, path, entity, action FROM audit_log WHERE user_id = $1 ORDER BY ts DESC LIMIT 200', [userId]);
+    const sessions = await db.getMany(
+      'SELECT id, created_at, expires_at FROM sessions WHERE user_id = $1',
+      [userId]
+    );
+    const auditRows = await db.getMany(
+      'SELECT ts, method, path, entity, action FROM audit_log WHERE user_id = $1 ORDER BY ts DESC LIMIT 200',
+      [userId]
+    );
     const data = {
-      usuario: { id: user.id, email: user.email, name: user.name, createdAt: user.createdAt, lastLoginAt: user.lastLoginAt, acceptedTermsAt: user.acceptedTermsAt },
+      usuario: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        createdAt: user.createdAt,
+        lastLoginAt: user.lastLoginAt,
+        acceptedTermsAt: user.acceptedTermsAt,
+      },
       sessoes: sessions,
       historico_auditoria: auditRows,
       exportado_em: new Date().toISOString(),
@@ -3166,8 +3713,11 @@ async function handleLgpdDelete(req, res) {
     const anonEmail = `deleted_${userId}@lgpd.rhino`;
     const anonHash = await auth.hash(crypto.randomBytes(32).toString('hex'));
     await repos.users.updateById(userId, {
-      email: anonEmail, name: '[Dados excluídos]', passwordHash: anonHash,
-      isActive: false, updatedAt: new Date().toISOString(),
+      email: anonEmail,
+      name: '[Dados excluídos]',
+      passwordHash: anonHash,
+      isActive: false,
+      updatedAt: new Date().toISOString(),
     });
     await db.query('DELETE FROM sessions WHERE user_id = $1', [userId]);
     auth.clearSessionCookie(res);
@@ -3204,14 +3754,19 @@ async function handleAiChat(req, body, res) {
   if (!message) return sendError(res, 400, 'message é obrigatório');
   try {
     const [allContracts, caixaAll, contas] = await Promise.all([
-      repos.contracts.findAll(), repos.caixa.findAll(), repos.contasPagar.findAll(),
+      repos.contracts.findAll(),
+      repos.caixa.findAll(),
+      repos.contasPagar.findAll(),
     ]);
-    const saldo = caixaAll.reduce((s, e) => s + (e.type === 'entrada' ? 1 : -1) * (parseFloat(e.value) || 0), 0);
-    const pendentes = contas.filter(c => c.status === 'pendente');
+    const saldo = caixaAll.reduce(
+      (s, e) => s + (e.type === 'entrada' ? 1 : -1) * (parseFloat(e.value) || 0),
+      0
+    );
+    const pendentes = contas.filter((c) => c.status === 'pendente');
     const systemPrompt = `Você é o assistente financeiro do Rhino, sistema de gestão de contratos de construção civil.
 
 Contexto atual:
-- Contratos: ${allContracts.length} total, ${allContracts.filter(c => c.status === 'ativo').length} ativos
+- Contratos: ${allContracts.length} total, ${allContracts.filter((c) => c.status === 'ativo').length} ativos
 - Saldo do caixa: R$ ${saldo.toFixed(2)}
 - Contas a pagar: ${pendentes.length} pendentes, total R$ ${pendentes.reduce((s, c) => s + (parseFloat(c.valor) || 0), 0).toFixed(2)}
 
@@ -3220,7 +3775,11 @@ Responda em português, de forma concisa e objetiva.`;
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       signal: AbortSignal.timeout(30_000), // não pendura o worker se a API externa travar
-      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
@@ -3246,9 +3805,18 @@ async function handleAiClassify(req, body, res) {
   const { descricao, valor, fornecedor } = body;
   if (!descricao) return sendError(res, 400, 'descricao é obrigatório');
   try {
-    const [tiposBase, allContracts] = await Promise.all([repos.tiposBase.findAll(), repos.contracts.findAll()]);
-    const cats = tiposBase.map(t => t.label || t.key).join(', ') || 'material, mão-de-obra, equipamento, administrativo, outros';
-    const ctrs = allContracts.filter(c => c.status === 'ativo').map(c => `${c.id}: ${c.name}`).join('\n') || 'nenhum';
+    const [tiposBase, allContracts] = await Promise.all([
+      repos.tiposBase.findAll(),
+      repos.contracts.findAll(),
+    ]);
+    const cats =
+      tiposBase.map((t) => t.label || t.key).join(', ') ||
+      'material, mão-de-obra, equipamento, administrativo, outros';
+    const ctrs =
+      allContracts
+        .filter((c) => c.status === 'ativo')
+        .map((c) => `${c.id}: ${c.name}`)
+        .join('\n') || 'nenhum';
     const prompt = `Classifique esta despesa:
 Descrição: ${descricao}
 Valor: R$ ${valor || '?'}
@@ -3264,8 +3832,16 @@ Responda APENAS com JSON válido:
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       signal: AbortSignal.timeout(30_000), // não pendura o worker se a API externa travar
-      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 256, messages: [{ role: 'user', content: prompt }] }),
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 256,
+        messages: [{ role: 'user', content: prompt }],
+      }),
     });
     if (!response.ok) return sendError(res, 502, 'Erro na API de IA');
     const apiData = await response.json();
@@ -3283,7 +3859,10 @@ function _parseOFX(content) {
   const transacoes = [];
   const blocks = content.match(/<STMTTRN>[\s\S]*?<\/STMTTRN>/gi) || [];
   for (const block of blocks) {
-    const get = (tag) => { const m = block.match(new RegExp(`<${tag}>([^<\n\r]+)`, 'i')); return m ? m[1].trim() : ''; };
+    const get = (tag) => {
+      const m = block.match(new RegExp(`<${tag}>([^<\n\r]+)`, 'i'));
+      return m ? m[1].trim() : '';
+    };
     const dtStr = get('DTPOSTED');
     if (!dtStr || dtStr.length < 8) continue;
     const data = `${dtStr.slice(0, 4)}-${dtStr.slice(4, 6)}-${dtStr.slice(6, 8)}`;
@@ -3301,7 +3880,7 @@ async function handleImportarOfx(req, res) {
     const MAX_OFX_BYTES = 5 * 1024 * 1024; // 5 MB
     let totalSize = 0;
     await new Promise((resolve, reject) => {
-      req.on('data', d => {
+      req.on('data', (d) => {
         totalSize += d.length;
         if (totalSize > MAX_OFX_BYTES) {
           req.destroy();
@@ -3314,18 +3893,27 @@ async function handleImportarOfx(req, res) {
     });
     const ofxContent = Buffer.concat(chunks).toString('utf8');
     const transacoes = _parseOFX(ofxContent);
-    if (transacoes.length === 0) return sendError(res, 400, 'Nenhuma transação encontrada no arquivo OFX');
+    if (transacoes.length === 0)
+      return sendError(res, 400, 'Nenhuma transação encontrada no arquivo OFX');
 
     const caixaAll = await repos.caixa.findAll();
-    const sugestoes = transacoes.map(t => {
-      const match = caixaAll.find(e => {
+    const sugestoes = transacoes.map((t) => {
+      const match = caixaAll.find((e) => {
         const vMatch = Math.abs((parseFloat(e.value) || 0) - Math.abs(t.valor)) < 0.02;
         const dMatch = Math.abs(new Date(e.date) - new Date(t.data)) <= 86400000;
         return vMatch && dMatch;
       });
-      return { ...t, match: match ? { id: match.id, description: match.description, date: match.date } : null, status: match ? 'conciliado' : 'novo' };
+      return {
+        ...t,
+        match: match ? { id: match.id, description: match.description, date: match.date } : null,
+        status: match ? 'conciliado' : 'novo',
+      };
     });
-    sendJson(res, { transacoes: sugestoes, total: transacoes.length, novos: sugestoes.filter(t => t.status === 'novo').length });
+    sendJson(res, {
+      transacoes: sugestoes,
+      total: transacoes.length,
+      novos: sugestoes.filter((t) => t.status === 'novo').length,
+    });
   } catch (e) {
     sendError(res, 400, 'Erro ao processar OFX: ' + e.message);
   }
@@ -3359,14 +3947,22 @@ async function handlePutFeatureFlag(key, body, res) {
 // ============ Níveis de Acesso handlers ============
 // ============ Global search (M3) ============
 async function handleGlobalSearch(query, res) {
-  const q = String(query.q || '').trim().toLowerCase();
+  const q = String(query.q || '')
+    .trim()
+    .toLowerCase();
   if (!q || q.length < 2) {
     return sendJson(res, { results: [], q });
   }
   const norm = (s) => String(s || '').toLowerCase();
   const matches = (s) => norm(s).includes(q);
   const results = [];
-  const safe = async (fn) => { try { return await fn(); } catch { return []; } };
+  const safe = async (fn) => {
+    try {
+      return await fn();
+    } catch {
+      return [];
+    }
+  };
 
   const [contracts, clientes, fornecedores, contas, nfs, recursos] = await Promise.all([
     safe(() => repos.contracts.findAll()),
@@ -3379,32 +3975,68 @@ async function handleGlobalSearch(query, res) {
 
   contracts.forEach((c) => {
     if (matches(c.name) || matches(c.client) || matches(c.contractNumber) || matches(c.id)) {
-      results.push({ kind: 'Contrato', id: c.id, title: c.name || c.id, hint: c.client || '', hash: `#/contratos/${c.id}` });
+      results.push({
+        kind: 'Contrato',
+        id: c.id,
+        title: c.name || c.id,
+        hint: c.client || '',
+        hash: `#/contratos/${c.id}`,
+      });
     }
   });
   clientes.forEach((c) => {
     if (matches(c.nome) || matches(c.email) || matches(c.empresa)) {
-      results.push({ kind: 'Cliente', id: c.id, title: c.nome, hint: c.email || c.empresa || '', hash: '#/clientes' });
+      results.push({
+        kind: 'Cliente',
+        id: c.id,
+        title: c.nome,
+        hint: c.email || c.empresa || '',
+        hash: '#/clientes',
+      });
     }
   });
   fornecedores.forEach((f) => {
     if (matches(f.nome) || matches(f.cnpj)) {
-      results.push({ kind: 'Fornecedor', id: f.id, title: f.nome, hint: f.cnpj || '', hash: '#/fornecedores' });
+      results.push({
+        kind: 'Fornecedor',
+        id: f.id,
+        title: f.nome,
+        hint: f.cnpj || '',
+        hash: '#/fornecedores',
+      });
     }
   });
   contas.forEach((c) => {
     if (matches(c.descricao) || matches(c.fornecedor) || matches(c.numero)) {
-      results.push({ kind: 'Conta a Pagar', id: c.id, title: c.descricao || c.fornecedor || c.numero, hint: c.dataVencimento || '', hash: '#/contas-pagar' });
+      results.push({
+        kind: 'Conta a Pagar',
+        id: c.id,
+        title: c.descricao || c.fornecedor || c.numero,
+        hint: c.dataVencimento || '',
+        hash: '#/contas-pagar',
+      });
     }
   });
   nfs.forEach((n) => {
     if (matches(n.numero) || matches(n.descricao) || matches(n.cliente)) {
-      results.push({ kind: 'Nota Fiscal', id: n.id, title: n.numero || n.descricao || n.cliente, hint: n.dataVencimento || '', hash: '#/notas-fiscais' });
+      results.push({
+        kind: 'Nota Fiscal',
+        id: n.id,
+        title: n.numero || n.descricao || n.cliente,
+        hint: n.dataVencimento || '',
+        hash: '#/notas-fiscais',
+      });
     }
   });
   recursos.forEach((r) => {
     if (matches(r.name) || matches(r.cpf) || matches(r.role)) {
-      results.push({ kind: 'Recurso', id: r.id, title: r.name, hint: r.role || '', hash: '#/recursos' });
+      results.push({
+        kind: 'Recurso',
+        id: r.id,
+        title: r.name,
+        hint: r.role || '',
+        hash: '#/recursos',
+      });
     }
   });
 
@@ -3425,7 +4057,9 @@ async function handleGetNiveisAcesso(res) {
 async function handlePutNivelAcesso(id, body, res) {
   try {
     const abas = JSON.stringify(body.abas || []);
-    const { envelope, result } = await writeCollection('niveisAcesso', 'niveis', (repo) => repo.updateById(id, { abas }));
+    const { envelope, result } = await writeCollection('niveisAcesso', 'niveis', (repo) =>
+      repo.updateById(id, { abas })
+    );
     if (!result) return sendError(res, 404, 'Nível não encontrado');
     sendJson(res, envelope);
   } catch (e) {
@@ -3502,14 +4136,20 @@ async function _calcularCobrancaMensal(ano, mes) {
   );
   const detalhes = comDias
     .filter(({ dias }) => dias >= 2)
-    .map(({ c, dias }) => ({ contractId: c.id, name: c.name, statusAtual: c.status, diasAtivos: dias }));
+    .map(({ c, dias }) => ({
+      contractId: c.id,
+      name: c.name,
+      statusAtual: c.status,
+      diasAtivos: dias,
+    }));
   detalhes.sort((a, b) => b.diasAtivos - a.diasAtivos);
   const n = detalhes.length;
   const valorPorContrato = _cobrancaPorContrato(n);
   const valorContratos = n * valorPorContrato;
   const total = COBRANCA_TAXA_FIXA + valorContratos;
   return {
-    ano, mes,
+    ano,
+    mes,
     contratosAtivos: n,
     faixa: _cobrancaFaixaLabel(n),
     valorPorContrato,
@@ -3522,7 +4162,7 @@ async function _calcularCobrancaMensal(ano, mes) {
 
 async function handleCobrancaMensal(req, ano, mes, res) {
   try {
-    if (!await _eAdmin(req)) return sendError(res, 403, 'Apenas admin pode acessar cobrança');
+    if (!(await _eAdmin(req))) return sendError(res, 403, 'Apenas admin pode acessar cobrança');
     if (!(ano >= 2020 && ano <= 2100) || !(mes >= 1 && mes <= 12)) {
       return sendError(res, 400, 'Ano/mês inválidos');
     }
@@ -3535,7 +4175,7 @@ async function handleCobrancaMensal(req, ano, mes, res) {
 
 async function handleCobrancaHistorico(req, res) {
   try {
-    if (!await _eAdmin(req)) return sendError(res, 403, 'Apenas admin pode acessar cobrança');
+    if (!(await _eAdmin(req))) return sendError(res, 403, 'Apenas admin pode acessar cobrança');
     const hoje = new Date();
     const meses = [];
     // 12 meses anteriores ao corrente (não inclui o atual)
@@ -3552,7 +4192,7 @@ async function handleCobrancaHistorico(req, res) {
 
 async function handleCobrancaProjecaoAtual(req, res) {
   try {
-    if (!await _eAdmin(req)) return sendError(res, 403, 'Apenas admin pode acessar cobrança');
+    if (!(await _eAdmin(req))) return sendError(res, 403, 'Apenas admin pode acessar cobrança');
     const hoje = new Date();
     const r = await _calcularCobrancaMensal(hoje.getFullYear(), hoje.getMonth() + 1);
     sendJson(res, { ...r, parcial: true, geradoEm: new Date().toISOString() });
@@ -3569,25 +4209,30 @@ async function handleAddDocumento(recursoId, body, res) {
     if (!rec) return sendError(res, 404, 'Recurso não encontrado');
     const doc = {
       id: generateId('doc'),
-      tipo:           body.tipo || '',
-      tipoLabel:      body.tipoLabel || body.tipo || '',
-      templateId:     body.templateId || null,
-      dataEmissao:    body.dataEmissao || '',
+      tipo: body.tipo || '',
+      tipoLabel: body.tipoLabel || body.tipo || '',
+      templateId: body.templateId || null,
+      dataEmissao: body.dataEmissao || '',
       dataVencimento: body.dataVencimento || '',
-      responsavel:    body.responsavel || '',
-      resultado:      body.resultado || '',
-      observacoes:    body.observacoes || '',
-      nomeArquivo:    body.nomeArquivo || null,
-      validacao:      null,  // preenchido após validação por IA quando há arquivo + template
-      createdAt:  new Date().toISOString(),
-      updatedAt:  new Date().toISOString(),
+      responsavel: body.responsavel || '',
+      resultado: body.resultado || '',
+      observacoes: body.observacoes || '',
+      nomeArquivo: body.nomeArquivo || null,
+      validacao: null, // preenchido após validação por IA quando há arquivo + template
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     const documentos = (rec.documentos || []).concat(doc);
-    const { envelope } = await writeCollection('recursos', 'recursos',
-      (repo) => repo.updateById(recursoId, { documentos: JSON.stringify(documentos), updatedAt: new Date().toISOString() })
+    const { envelope } = await writeCollection('recursos', 'recursos', (repo) =>
+      repo.updateById(recursoId, {
+        documentos: JSON.stringify(documentos),
+        updatedAt: new Date().toISOString(),
+      })
     );
     sendJson(res, envelope);
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handlePutDocumento(recursoId, docId, body, res) {
@@ -3595,7 +4240,7 @@ async function handlePutDocumento(recursoId, docId, body, res) {
     const rec = await repos.recursos.findById(recursoId);
     if (!rec) return sendError(res, 404, 'Recurso não encontrado');
     const docs = rec.documentos || [];
-    const dIdx = docs.findIndex(d => d.id === docId);
+    const dIdx = docs.findIndex((d) => d.id === docId);
     if (dIdx === -1) return sendError(res, 404, 'Documento não encontrado');
     // Mescla os campos enviados, mas blinda os controlados pelo servidor para
     // evitar mass-assignment: `id` é imutável; `validacao` só é escrita pelo
@@ -3609,25 +4254,38 @@ async function handlePutDocumento(recursoId, docId, body, res) {
       createdAt: docs[dIdx].createdAt,
       updatedAt: new Date().toISOString(),
     };
-    const { envelope } = await writeCollection('recursos', 'recursos',
-      (repo) => repo.updateById(recursoId, { documentos: JSON.stringify(docs), updatedAt: new Date().toISOString() })
+    const { envelope } = await writeCollection('recursos', 'recursos', (repo) =>
+      repo.updateById(recursoId, {
+        documentos: JSON.stringify(docs),
+        updatedAt: new Date().toISOString(),
+      })
     );
     sendJson(res, envelope);
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handleDeleteDocumento(recursoId, docId, res) {
   try {
     const rec = await repos.recursos.findById(recursoId);
     if (!rec) return sendError(res, 404, 'Recurso não encontrado');
-    const docs = (rec.documentos || []).filter(d => d.id !== docId);
+    const docs = (rec.documentos || []).filter((d) => d.id !== docId);
     // Apaga também o arquivo físico (BYTEA) vinculado, se houver
-    await db.query('DELETE FROM recurso_doc_arquivos WHERE recurso_id = $1 AND doc_id = $2', [recursoId, docId]);
-    const { envelope } = await writeCollection('recursos', 'recursos',
-      (repo) => repo.updateById(recursoId, { documentos: JSON.stringify(docs), updatedAt: new Date().toISOString() })
+    await db.query('DELETE FROM recurso_doc_arquivos WHERE recurso_id = $1 AND doc_id = $2', [
+      recursoId,
+      docId,
+    ]);
+    const { envelope } = await writeCollection('recursos', 'recursos', (repo) =>
+      repo.updateById(recursoId, {
+        documentos: JSON.stringify(docs),
+        updatedAt: new Date().toISOString(),
+      })
     );
     sendJson(res, envelope);
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 // Arquivos de documentos de recurso extraídos → handlers/recurso-documentos.js
@@ -3642,7 +4300,9 @@ async function handleListDashLayouts(req, res) {
       [userId]
     );
     sendJson(res, { layouts: rows });
-  } catch (e) { sendError(res, 500, e.message); }
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 async function handlePostDashLayout(req, body, res) {
@@ -3654,7 +4314,13 @@ async function handlePostDashLayout(req, body, res) {
     const row = await db.getOne(
       `INSERT INTO dashboard_layouts (id, user_id, nome, widgets, is_default)
        VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [id, userId, String(body.nome || 'Layout').slice(0, 60), JSON.stringify(widgets), body.isDefault === true]
+      [
+        id,
+        userId,
+        String(body.nome || 'Layout').slice(0, 60),
+        JSON.stringify(widgets),
+        body.isDefault === true,
+      ]
     );
     if (body.isDefault === true) {
       await db.query(
@@ -3663,7 +4329,9 @@ async function handlePostDashLayout(req, body, res) {
       );
     }
     sendJson(res, row);
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handlePutDashLayout(req, id, body, res) {
@@ -3674,7 +4342,13 @@ async function handlePutDashLayout(req, id, body, res) {
     const row = await db.getOne(
       `UPDATE dashboard_layouts SET nome = $3, widgets = $4, is_default = $5, updated_at = NOW()
        WHERE id = $1 AND user_id = $2 RETURNING *`,
-      [id, userId, String(body.nome || 'Layout').slice(0, 60), JSON.stringify(widgets), body.isDefault === true]
+      [
+        id,
+        userId,
+        String(body.nome || 'Layout').slice(0, 60),
+        JSON.stringify(widgets),
+        body.isDefault === true,
+      ]
     );
     if (!row) return sendError(res, 404, 'Layout não encontrado');
     if (body.isDefault === true) {
@@ -3684,7 +4358,9 @@ async function handlePutDashLayout(req, id, body, res) {
       );
     }
     sendJson(res, row);
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handleDeleteDashLayout(req, id, res) {
@@ -3693,7 +4369,9 @@ async function handleDeleteDashLayout(req, id, res) {
     if (!userId) return sendError(res, 401, 'Não autenticado');
     await db.query('DELETE FROM dashboard_layouts WHERE id = $1 AND user_id = $2', [id, userId]);
     sendJson(res, { ok: true });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 // ============ Almoxarifado / Estoque ============
@@ -3723,7 +4401,9 @@ async function ensureAlmoxarifadoObra(contractId) {
     [contractId]
   );
   if (existe) return existe.id;
-  const contract = await db.getOne('SELECT name, endereco FROM contracts WHERE id = $1', [contractId]);
+  const contract = await db.getOne('SELECT name, endereco FROM contracts WHERE id = $1', [
+    contractId,
+  ]);
   if (!contract) return null;
   const id = generateId('almox');
   await db.query(
@@ -3781,7 +4461,9 @@ async function handleListItensEstoque(res) {
       `SELECT * FROM itens_estoque WHERE ativo = TRUE ORDER BY descricao ASC`
     );
     sendJson(res, { itens: rows });
-  } catch (e) { sendError(res, 500, e.message); }
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 async function handlePostItemEstoque(body, res) {
@@ -3790,13 +4472,21 @@ async function handlePostItemEstoque(body, res) {
     const row = await db.getOne(
       `INSERT INTO itens_estoque (id, codigo, descricao, unidade, categoria, estoque_minimo, custo_medio, notas, ativo)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,TRUE) RETURNING *`,
-      [id, body.codigo || null, String(body.descricao || '').slice(0, 200),
-       body.unidade || null, body.categoria || null,
-       parseFloat(body.estoqueMinimo) || 0, parseFloat(body.custoMedio) || 0,
-       body.notas || null]
+      [
+        id,
+        body.codigo || null,
+        String(body.descricao || '').slice(0, 200),
+        body.unidade || null,
+        body.categoria || null,
+        parseFloat(body.estoqueMinimo) || 0,
+        parseFloat(body.custoMedio) || 0,
+        body.notas || null,
+      ]
     );
     sendJson(res, row);
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handlePutItemEstoque(id, body, res) {
@@ -3806,14 +4496,22 @@ async function handlePutItemEstoque(id, body, res) {
          codigo=$2, descricao=$3, unidade=$4, categoria=$5,
          estoque_minimo=$6, notas=$7, ativo=$8, updated_at=NOW()
        WHERE id=$1 RETURNING *`,
-      [id, body.codigo || null, String(body.descricao || '').slice(0, 200),
-       body.unidade || null, body.categoria || null,
-       parseFloat(body.estoqueMinimo) || 0,
-       body.notas || null, body.ativo !== false]
+      [
+        id,
+        body.codigo || null,
+        String(body.descricao || '').slice(0, 200),
+        body.unidade || null,
+        body.categoria || null,
+        parseFloat(body.estoqueMinimo) || 0,
+        body.notas || null,
+        body.ativo !== false,
+      ]
     );
     if (!row) return sendError(res, 404, 'Item não encontrado');
     sendJson(res, row);
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handleDeleteItemEstoque(id, res) {
@@ -3821,7 +4519,9 @@ async function handleDeleteItemEstoque(id, res) {
     // Soft delete (preserva histórico de movimentações)
     await db.query('UPDATE itens_estoque SET ativo=FALSE, updated_at=NOW() WHERE id=$1', [id]);
     sendJson(res, { ok: true });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 // ── Almoxarifados ──
@@ -3833,7 +4533,9 @@ async function handleListAlmoxarifados(res) {
        WHERE a.ativo = TRUE ORDER BY a.nome ASC`
     );
     sendJson(res, { almoxarifados: rows });
-  } catch (e) { sendError(res, 500, e.message); }
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 async function handlePostAlmoxarifado(body, res) {
@@ -3845,7 +4547,9 @@ async function handlePostAlmoxarifado(body, res) {
       [id, String(body.nome || '').slice(0, 100), body.contractId || null, body.endereco || null]
     );
     sendJson(res, row);
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handlePutAlmoxarifado(id, body, res) {
@@ -3853,19 +4557,28 @@ async function handlePutAlmoxarifado(id, body, res) {
     const row = await db.getOne(
       `UPDATE almoxarifados SET nome=$2, contract_id=$3, endereco=$4, ativo=$5
        WHERE id=$1 RETURNING *`,
-      [id, String(body.nome || '').slice(0, 100), body.contractId || null,
-       body.endereco || null, body.ativo !== false]
+      [
+        id,
+        String(body.nome || '').slice(0, 100),
+        body.contractId || null,
+        body.endereco || null,
+        body.ativo !== false,
+      ]
     );
     if (!row) return sendError(res, 404, 'Almoxarifado não encontrado');
     sendJson(res, row);
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handleDeleteAlmoxarifado(id, res) {
   try {
     await db.query('UPDATE almoxarifados SET ativo=FALSE WHERE id=$1', [id]);
     sendJson(res, { ok: true });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 // ── Movimentações (núcleo do módulo) ──
@@ -3873,12 +4586,32 @@ async function handleListMovimentacoes(query, res) {
   try {
     const conds = [];
     const vals = [];
-    if (query.itemId)    { vals.push(query.itemId);    conds.push(`m.item_id = $${vals.length}`); }
-    if (query.almoxId)   { vals.push(query.almoxId);   conds.push(`(m.almoxarifado_origem_id = $${vals.length} OR m.almoxarifado_destino_id = $${vals.length})`); }
-    if (query.contractId){ vals.push(query.contractId);conds.push(`m.contract_id = $${vals.length}`); }
-    if (query.tipo)      { vals.push(query.tipo);      conds.push(`m.tipo = $${vals.length}`); }
-    if (query.from)      { vals.push(query.from);      conds.push(`m.data >= $${vals.length}`); }
-    if (query.to)        { vals.push(query.to);        conds.push(`m.data <= $${vals.length}`); }
+    if (query.itemId) {
+      vals.push(query.itemId);
+      conds.push(`m.item_id = $${vals.length}`);
+    }
+    if (query.almoxId) {
+      vals.push(query.almoxId);
+      conds.push(
+        `(m.almoxarifado_origem_id = $${vals.length} OR m.almoxarifado_destino_id = $${vals.length})`
+      );
+    }
+    if (query.contractId) {
+      vals.push(query.contractId);
+      conds.push(`m.contract_id = $${vals.length}`);
+    }
+    if (query.tipo) {
+      vals.push(query.tipo);
+      conds.push(`m.tipo = $${vals.length}`);
+    }
+    if (query.from) {
+      vals.push(query.from);
+      conds.push(`m.data >= $${vals.length}`);
+    }
+    if (query.to) {
+      vals.push(query.to);
+      conds.push(`m.data <= $${vals.length}`);
+    }
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
     const lim = Math.min(parseInt(query.limit) || 200, 1000);
     vals.push(lim);
@@ -3895,7 +4628,9 @@ async function handleListMovimentacoes(query, res) {
       vals
     );
     sendJson(res, { movimentacoes: rows });
-  } catch (e) { sendError(res, 500, e.message); }
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 // Ajusta saldo (insere ou atualiza UPSERT)
@@ -3922,49 +4657,74 @@ async function handlePostMovimentacao(body, res) {
     if (!itemId || !(qtd > 0)) return sendError(res, 400, 'Item e quantidade são obrigatórios');
 
     // Resolve "auto-obra:<contractId>" e "auto-central" antes de prosseguir
-    const origemId  = await _resolveAlmoxId(body.almoxarifadoOrigemId);
+    const origemId = await _resolveAlmoxId(body.almoxarifadoOrigemId);
     const destinoId = await _resolveAlmoxId(body.almoxarifadoDestinoId);
-    if (tipo === 'entrada' && !destinoId) return sendError(res, 400, 'Entrada precisa almoxarifado destino');
-    if (tipo === 'saida'   && !origemId)  return sendError(res, 400, 'Saída precisa almoxarifado origem');
-    if (tipo === 'transferencia' && (!origemId || !destinoId)) return sendError(res, 400, 'Transferência precisa origem e destino');
-    if (tipo === 'transferencia' && origemId === destinoId) return sendError(res, 400, 'Origem e destino não podem ser iguais');
+    if (tipo === 'entrada' && !destinoId)
+      return sendError(res, 400, 'Entrada precisa almoxarifado destino');
+    if (tipo === 'saida' && !origemId)
+      return sendError(res, 400, 'Saída precisa almoxarifado origem');
+    if (tipo === 'transferencia' && (!origemId || !destinoId))
+      return sendError(res, 400, 'Transferência precisa origem e destino');
+    if (tipo === 'transferencia' && origemId === destinoId)
+      return sendError(res, 400, 'Origem e destino não podem ser iguais');
 
     const result = await db.withTransaction(async (client) => {
       const id = generateId('mov');
-      const movRow = (await client.query(
-        `INSERT INTO estoque_movimentacoes
+      const movRow = (
+        await client.query(
+          `INSERT INTO estoque_movimentacoes
           (id, item_id, almoxarifado_origem_id, almoxarifado_destino_id, tipo,
            quantidade, custo_unit, contract_id, data, documento, user_id, notas)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
-        [id, itemId, origemId, destinoId, tipo, qtd, custo,
-         body.contractId || null, body.data || new Date().toISOString().split('T')[0],
-         body.documento || null, body.userId || null, body.notas || null]
-      )).rows[0];
+          [
+            id,
+            itemId,
+            origemId,
+            destinoId,
+            tipo,
+            qtd,
+            custo,
+            body.contractId || null,
+            body.data || new Date().toISOString().split('T')[0],
+            body.documento || null,
+            body.userId || null,
+            body.notas || null,
+          ]
+        )
+      ).rows[0];
 
       // Atualiza saldos por tipo
-      if (tipo === 'entrada')        await _ajustarSaldo(client, itemId, destinoId, qtd);
-      else if (tipo === 'saida')     await _ajustarSaldo(client, itemId, origemId, -qtd);
+      if (tipo === 'entrada') await _ajustarSaldo(client, itemId, destinoId, qtd);
+      else if (tipo === 'saida') await _ajustarSaldo(client, itemId, origemId, -qtd);
       else if (tipo === 'transferencia') {
         await _ajustarSaldo(client, itemId, origemId, -qtd);
         await _ajustarSaldo(client, itemId, destinoId, qtd);
       } else if (tipo === 'ajuste') {
         // ajuste: quantidade pode ser negativa (perda) ou positiva (encontrou)
-        await _ajustarSaldo(client, itemId, destinoId || origemId, qtd * (body.sinal === '-' ? -1 : 1));
+        await _ajustarSaldo(
+          client,
+          itemId,
+          destinoId || origemId,
+          qtd * (body.sinal === '-' ? -1 : 1)
+        );
       }
 
       // Atualiza custo médio ponderado em entradas (CMV)
       if (tipo === 'entrada' && custo > 0) {
-        const item = (await client.query('SELECT custo_medio FROM itens_estoque WHERE id = $1', [itemId])).rows[0];
-        const saldoTotal = (await client.query(
-          'SELECT COALESCE(SUM(quantidade), 0) AS s FROM estoque_saldo WHERE item_id = $1',
-          [itemId]
-        )).rows[0].s;
+        const item = (
+          await client.query('SELECT custo_medio FROM itens_estoque WHERE id = $1', [itemId])
+        ).rows[0];
+        const saldoTotal = (
+          await client.query(
+            'SELECT COALESCE(SUM(quantidade), 0) AS s FROM estoque_saldo WHERE item_id = $1',
+            [itemId]
+          )
+        ).rows[0].s;
         // Saldo já foi atualizado acima — saldoAnterior = saldoTotal - qtd
         const saldoAnt = parseFloat(saldoTotal) - qtd;
         const custoMedAnt = parseFloat(item?.custo_medio) || 0;
-        const novoCustoMedio = saldoTotal > 0
-          ? ((saldoAnt * custoMedAnt) + (qtd * custo)) / parseFloat(saldoTotal)
-          : custo;
+        const novoCustoMedio =
+          saldoTotal > 0 ? (saldoAnt * custoMedAnt + qtd * custo) / parseFloat(saldoTotal) : custo;
         await client.query(
           'UPDATE itens_estoque SET custo_medio = $2, updated_at = NOW() WHERE id = $1',
           [itemId, novoCustoMedio]
@@ -3974,28 +4734,40 @@ async function handlePostMovimentacao(body, res) {
     });
 
     sendJson(res, db.rowToCamel(result));
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handleDeleteMovimentacao(id, res) {
   try {
     // Reverte o saldo antes de apagar (transação)
     await db.withTransaction(async (client) => {
-      const m = (await client.query('SELECT * FROM estoque_movimentacoes WHERE id = $1', [id])).rows[0];
+      const m = (await client.query('SELECT * FROM estoque_movimentacoes WHERE id = $1', [id]))
+        .rows[0];
       if (!m) return;
       const qtd = parseFloat(m.quantidade);
-      if (m.tipo === 'entrada')              await _ajustarSaldo(client, m.item_id, m.almoxarifado_destino_id, -qtd);
-      else if (m.tipo === 'saida')           await _ajustarSaldo(client, m.item_id, m.almoxarifado_origem_id, qtd);
+      if (m.tipo === 'entrada')
+        await _ajustarSaldo(client, m.item_id, m.almoxarifado_destino_id, -qtd);
+      else if (m.tipo === 'saida')
+        await _ajustarSaldo(client, m.item_id, m.almoxarifado_origem_id, qtd);
       else if (m.tipo === 'transferencia') {
         await _ajustarSaldo(client, m.item_id, m.almoxarifado_origem_id, qtd);
         await _ajustarSaldo(client, m.item_id, m.almoxarifado_destino_id, -qtd);
       } else if (m.tipo === 'ajuste') {
-        await _ajustarSaldo(client, m.item_id, m.almoxarifado_destino_id || m.almoxarifado_origem_id, -qtd);
+        await _ajustarSaldo(
+          client,
+          m.item_id,
+          m.almoxarifado_destino_id || m.almoxarifado_origem_id,
+          -qtd
+        );
       }
       await client.query('DELETE FROM estoque_movimentacoes WHERE id = $1', [id]);
     });
     sendJson(res, { ok: true });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 // Saldo: matriz item × almoxarifado
@@ -4025,7 +4797,7 @@ async function handleGetSaldoEstoque(query, res) {
       });
     }
     // 4. Monta lista final — todos os itens ativos, com seus saldos (ou vazio se nunca houve movimentação)
-    const itens = itensAtivos.map(i => {
+    const itens = itensAtivos.map((i) => {
       const porAlmox = saldosPorItem.get(i.id) || [];
       const totalQtd = porAlmox.reduce((s, a) => s + a.quantidade, 0);
       const custoMedio = parseFloat(i.custoMedio) || 0;
@@ -4046,23 +4818,27 @@ async function handleGetSaldoEstoque(query, res) {
       };
     });
     sendJson(res, { itens, total: itens.length });
-  } catch (e) { sendError(res, 500, e.message); }
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 // ============ Solicitações de Compra ============
 // Normaliza itens na criação (encarregado): só descrição + qtd + observações (sem preço/cotações).
 function _normalizaItensInicial(arr) {
   if (!Array.isArray(arr)) return [];
-  return arr.map((it) => ({
-    itemEstoqueId: it.itemEstoqueId || null,
-    descricao: (it.descricao || '').trim(),
-    qtd: parseFloat(it.qtd) || 0,
-    observacoes: it.observacoes || '',
-    tipo: it.tipo === 'aluguel' ? 'aluguel' : 'compra',
-    cotacoes: [],
-    cotacaoEscolhidaIdx: null,
-    precoUnit: 0,
-  })).filter((it) => it.descricao && it.qtd > 0);
+  return arr
+    .map((it) => ({
+      itemEstoqueId: it.itemEstoqueId || null,
+      descricao: (it.descricao || '').trim(),
+      qtd: parseFloat(it.qtd) || 0,
+      observacoes: it.observacoes || '',
+      tipo: it.tipo === 'aluguel' ? 'aluguel' : 'compra',
+      cotacoes: [],
+      cotacaoEscolhidaIdx: null,
+      precoUnit: 0,
+    }))
+    .filter((it) => it.descricao && it.qtd > 0);
 }
 
 // Normaliza itens na avaliação (financeiro): cada item com cotações + cotacaoEscolhidaIdx.
@@ -4071,29 +4847,37 @@ function _normalizaItensInicial(arr) {
 function _normalizaItensComCotacoes(arr) {
   if (!Array.isArray(arr)) return { itens: [], total: 0, fornecedorIdEscolhido: null };
   let fornecedorIdEscolhido = null;
-  const itens = arr.map((it) => {
-    const cotacoes = Array.isArray(it.cotacoes) ? it.cotacoes.map((c) => ({
-      fornecedorId: c.fornecedorId || null,
-      fornecedorNome: (c.fornecedorNome || '').trim(),
-      precoUnit: parseFloat(c.precoUnit) || 0,
-      link: c.link || '',
-      observacoes: c.observacoes || '',
-    })) : [];
-    const idx = (it.cotacaoEscolhidaIdx != null && cotacoes[it.cotacaoEscolhidaIdx])
-      ? it.cotacaoEscolhidaIdx : (cotacoes.length > 0 ? 0 : null);
-    const precoUnit = idx != null ? cotacoes[idx].precoUnit : 0;
-    if (idx != null && !fornecedorIdEscolhido) fornecedorIdEscolhido = cotacoes[idx].fornecedorId;
-    return {
-      itemEstoqueId: it.itemEstoqueId || null,
-      descricao: (it.descricao || '').trim(),
-      qtd: parseFloat(it.qtd) || 0,
-      observacoes: it.observacoes || '',
-      tipo: it.tipo === 'aluguel' ? 'aluguel' : 'compra',
-      cotacoes,
-      cotacaoEscolhidaIdx: idx,
-      precoUnit,
-    };
-  }).filter((it) => it.descricao && it.qtd > 0);
+  const itens = arr
+    .map((it) => {
+      const cotacoes = Array.isArray(it.cotacoes)
+        ? it.cotacoes.map((c) => ({
+            fornecedorId: c.fornecedorId || null,
+            fornecedorNome: (c.fornecedorNome || '').trim(),
+            precoUnit: parseFloat(c.precoUnit) || 0,
+            link: c.link || '',
+            observacoes: c.observacoes || '',
+          }))
+        : [];
+      const idx =
+        it.cotacaoEscolhidaIdx != null && cotacoes[it.cotacaoEscolhidaIdx]
+          ? it.cotacaoEscolhidaIdx
+          : cotacoes.length > 0
+            ? 0
+            : null;
+      const precoUnit = idx != null ? cotacoes[idx].precoUnit : 0;
+      if (idx != null && !fornecedorIdEscolhido) fornecedorIdEscolhido = cotacoes[idx].fornecedorId;
+      return {
+        itemEstoqueId: it.itemEstoqueId || null,
+        descricao: (it.descricao || '').trim(),
+        qtd: parseFloat(it.qtd) || 0,
+        observacoes: it.observacoes || '',
+        tipo: it.tipo === 'aluguel' ? 'aluguel' : 'compra',
+        cotacoes,
+        cotacaoEscolhidaIdx: idx,
+        precoUnit,
+      };
+    })
+    .filter((it) => it.descricao && it.qtd > 0);
   const total = itens.reduce((s, i) => s + i.qtd * i.precoUnit, 0);
   return { itens, total, fornecedorIdEscolhido };
 }
@@ -4111,13 +4895,24 @@ async function handleListSolicitacoesCompra(query, res) {
   try {
     const where = [];
     const params = [];
-    if (query.status) { params.push(query.status); where.push(`status = $${params.length}`); }
-    if (query.contractId) { params.push(query.contractId); where.push(`contract_id = $${params.length}`); }
-    if (query.solicitanteUserId) { params.push(query.solicitanteUserId); where.push(`solicitante_user_id = $${params.length}`); }
+    if (query.status) {
+      params.push(query.status);
+      where.push(`status = $${params.length}`);
+    }
+    if (query.contractId) {
+      params.push(query.contractId);
+      where.push(`contract_id = $${params.length}`);
+    }
+    if (query.solicitanteUserId) {
+      params.push(query.solicitanteUserId);
+      where.push(`solicitante_user_id = $${params.length}`);
+    }
     const sql = `SELECT * FROM solicitacoes_compra ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY created_at DESC LIMIT 500`;
     const rows = await db.getMany(sql, params);
     sendJson(res, { solicitacoes: rows });
-  } catch (e) { sendError(res, 500, e.message); }
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 async function handlePostSolicitacaoCompra(req, body, res) {
@@ -4142,7 +4937,9 @@ async function handlePostSolicitacaoCompra(req, body, res) {
     };
     const created = await repos.solicitacoesCompra.create(data);
     sendJson(res, { solicitacao: created });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handlePutSolicitacaoCompra(id, body, res) {
@@ -4161,20 +4958,26 @@ async function handlePutSolicitacaoCompra(id, body, res) {
     if (body.itens !== undefined) {
       allowed.itens = JSON.stringify(_normalizaItensInicial(body.itens));
     }
-    if (body.dataDesejadaObra !== undefined) allowed.dataDesejadaObra = body.dataDesejadaObra || null;
+    if (body.dataDesejadaObra !== undefined)
+      allowed.dataDesejadaObra = body.dataDesejadaObra || null;
     const result = await repos.solicitacoesCompra.updateById(id, allowed);
     sendJson(res, { solicitacao: result });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handleDeleteSolicitacaoCompra(id, res) {
   try {
     const atual = await repos.solicitacoesCompra.findById(id);
     if (!atual) return sendError(res, 404, 'Solicitação não encontrada');
-    if (atual.status === 'aprovada') return sendError(res, 400, 'Solicitação aprovada não pode ser excluída');
+    if (atual.status === 'aprovada')
+      return sendError(res, 400, 'Solicitação aprovada não pode ser excluída');
     await repos.solicitacoesCompra.removeById(id);
     sendJson(res, { ok: true });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 // ============ Histórico de Cotações ============
@@ -4214,7 +5017,9 @@ async function handleCotacoesHistorico(query, res) {
     `;
     const rows = await db.getMany(sql, params);
     sendJson(res, { cotacoes: rows });
-  } catch (e) { sendError(res, 500, e.message); }
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 // ============ Manutenção de Equipamentos ============
@@ -4227,12 +5032,20 @@ async function handleListManutencoes(query, res) {
   try {
     const where = [];
     const params = [];
-    if (query.status)     { params.push(query.status);     where.push(`status = $${params.length}`); }
-    if (query.contractId) { params.push(query.contractId); where.push(`contract_id = $${params.length}`); }
+    if (query.status) {
+      params.push(query.status);
+      where.push(`status = $${params.length}`);
+    }
+    if (query.contractId) {
+      params.push(query.contractId);
+      where.push(`contract_id = $${params.length}`);
+    }
     const sql = `SELECT * FROM manutencoes ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY created_at DESC LIMIT 500`;
     const rows = await db.getMany(sql, params);
     sendJson(res, { manutencoes: rows });
-  } catch (e) { sendError(res, 500, e.message); }
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 // 1ª etapa — solicitante: apenas o equipamento e o problema.
@@ -4254,7 +5067,9 @@ async function handlePostManutencao(req, body, res) {
     };
     const created = await repos.manutencoes.create(data);
     sendJson(res, { manutencao: created });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 // Solicitante edita enquanto ainda está 'solicitada'.
@@ -4271,18 +5086,20 @@ async function handlePutManutencao(id, body, res) {
       if (!eq) return sendError(res, 400, 'Informe o equipamento');
       allowed.equipamento = eq;
     }
-    if (body.contractId !== undefined)  allowed.contractId = body.contractId || null;
-    if (body.problema !== undefined)    allowed.problema = (body.problema || '').trim();
+    if (body.contractId !== undefined) allowed.contractId = body.contractId || null;
+    if (body.problema !== undefined) allowed.problema = (body.problema || '').trim();
     if (body.observacoes !== undefined) allowed.observacoes = (body.observacoes || '').trim();
     const result = await repos.manutencoes.updateById(id, allowed);
     sendJson(res, { manutencao: result });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 // 2ª etapa — equipe de compras: define oficina, prazo e custo estimado.
 async function handleAvaliarManutencao(req, id, body, res) {
   try {
-    if (!await _temPermissao(req, 'manutencao:avaliar')) {
+    if (!(await _temPermissao(req, 'manutencao:avaliar'))) {
       return sendError(res, 403, 'Sem permissão para avaliar manutenções');
     }
     const atual = await repos.manutencoes.findById(id);
@@ -4307,13 +5124,15 @@ async function handleAvaliarManutencao(req, id, body, res) {
     }
     const result = await repos.manutencoes.updateById(id, allowed);
     sendJson(res, { manutencao: result });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 // 3ª etapa — gerência aprova.
 async function handleAprovarManutencao(req, id, body, res) {
   try {
-    if (!await _temPermissao(req, 'manutencao:aprovar')) {
+    if (!(await _temPermissao(req, 'manutencao:aprovar'))) {
       return sendError(res, 403, 'Sem permissão para aprovar manutenções');
     }
     const atual = await repos.manutencoes.findById(id);
@@ -4328,13 +5147,15 @@ async function handleAprovarManutencao(req, id, body, res) {
       aprovadoEm: new Date(),
     });
     sendJson(res, { manutencao: result });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 // 3ª etapa — gerência rejeita.
 async function handleRejeitarManutencao(req, id, body, res) {
   try {
-    if (!await _temPermissao(req, 'manutencao:aprovar')) {
+    if (!(await _temPermissao(req, 'manutencao:aprovar'))) {
       return sendError(res, 403, 'Sem permissão para rejeitar manutenções');
     }
     const atual = await repos.manutencoes.findById(id);
@@ -4350,7 +5171,9 @@ async function handleRejeitarManutencao(req, id, body, res) {
       aprovadoEm: new Date(),
     });
     sendJson(res, { manutencao: result });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 // Encerramento — registra o retorno do equipamento.
@@ -4371,18 +5194,23 @@ async function handleRetornoManutencao(req, id, body, res) {
     }
     const result = await repos.manutencoes.updateById(id, allowed);
     sendJson(res, { manutencao: result });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handleCancelarManutencao(req, id, body, res) {
   try {
     const atual = await repos.manutencoes.findById(id);
     if (!atual) return sendError(res, 404, 'Manutenção não encontrada');
-    if (atual.status === 'retornado') return sendError(res, 400, 'Manutenção concluída não pode ser cancelada');
+    if (atual.status === 'retornado')
+      return sendError(res, 400, 'Manutenção concluída não pode ser cancelada');
     if (atual.status === 'cancelada') return sendError(res, 400, 'Manutenção já cancelada');
     const result = await repos.manutencoes.updateById(id, { status: 'cancelada' });
     sendJson(res, { manutencao: result });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handleDeleteManutencao(id, res) {
@@ -4391,12 +5219,14 @@ async function handleDeleteManutencao(id, res) {
     if (!atual) return sendError(res, 404, 'Manutenção não encontrada');
     await repos.manutencoes.removeById(id);
     sendJson(res, { ok: true });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handleAvaliarSolicitacao(req, id, body, res) {
   try {
-    if (!await _temPermissao(req, 'solicitacoes-compra:avaliar')) {
+    if (!(await _temPermissao(req, 'solicitacoes-compra:avaliar'))) {
       return sendError(res, 403, 'Sem permissão para avaliar solicitações');
     }
     const atual = await repos.solicitacoesCompra.findById(id);
@@ -4430,7 +5260,7 @@ async function handleAvaliarSolicitacao(req, id, body, res) {
 
 async function handleCancelarSolicitacao(req, id, body, res) {
   try {
-    if (!await _temPermissao(req, 'solicitacoes-compra:avaliar')) {
+    if (!(await _temPermissao(req, 'solicitacoes-compra:avaliar'))) {
       return sendError(res, 403, 'Sem permissão para cancelar solicitações');
     }
     const atual = await repos.solicitacoesCompra.findById(id);
@@ -4449,21 +5279,28 @@ async function handleCancelarSolicitacao(req, id, body, res) {
       avaliadorNome: req.user?.name || req.user?.email || null,
     });
     sendJson(res, { solicitacao: result });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handleAprovarSolicitacao(req, id, body, res) {
   try {
-    if (!await _temPermissao(req, 'solicitacoes-compra:aprovar')) {
+    if (!(await _temPermissao(req, 'solicitacoes-compra:aprovar'))) {
       return sendError(res, 403, 'Sem permissão para aprovar solicitações');
     }
 
     const sol = await repos.solicitacoesCompra.findById(id);
     if (!sol) return sendError(res, 404, 'Solicitação não encontrada');
     if (sol.status === 'pendente_avaliacao') {
-      return sendError(res, 400, 'Solicitação aguarda avaliação do financeiro antes de poder ser aprovada');
+      return sendError(
+        res,
+        400,
+        'Solicitação aguarda avaliação do financeiro antes de poder ser aprovada'
+      );
     }
-    if (!fluxoCompra.podeTransicionar(sol.status, 'aprovar')) return sendError(res, 400, `Solicitação já está ${sol.status}`);
+    if (!fluxoCompra.podeTransicionar(sol.status, 'aprovar'))
+      return sendError(res, 400, `Solicitação já está ${sol.status}`);
 
     // Aprovação só autoriza — a Conta a Pagar nasce no /comprar (financeiro registra a compra),
     // e a entrada de estoque nasce no /receber (quando o material chega).
@@ -4484,16 +5321,21 @@ async function handleAprovarSolicitacao(req, id, body, res) {
 // Cria a Conta a Pagar e marca a solicitação como 'comprada'.
 async function handleComprarSolicitacao(req, id, body, res) {
   try {
-    if (!await _temPermissao(req, 'solicitacoes-compra:avaliar')) {
+    if (!(await _temPermissao(req, 'solicitacoes-compra:avaliar'))) {
       return sendError(res, 403, 'Sem permissão para registrar compras');
     }
     const sol = await repos.solicitacoesCompra.findById(id);
     if (!sol) return sendError(res, 404, 'Solicitação não encontrada');
     if (!fluxoCompra.podeTransicionar(sol.status, 'comprar')) {
-      return sendError(res, 400, `Só é possível registrar compra de solicitações aprovadas (atual: ${sol.status})`);
+      return sendError(
+        res,
+        400,
+        `Só é possível registrar compra de solicitações aprovadas (atual: ${sol.status})`
+      );
     }
 
-    const venc = body.dataVencimento || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+    const venc =
+      body.dataVencimento || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
     const fornecedorId = body.fornecedorId || sol.fornecedorId || null;
     const numeroPedido = (body.numeroPedido || '').trim();
     const dataPrevistaEntrega = body.dataPrevistaEntrega || null;
@@ -4505,10 +5347,16 @@ async function handleComprarSolicitacao(req, id, body, res) {
         `INSERT INTO contas_pagar
           (id, descricao, valor, data_vencimento, fornecedor_id, contract_id, status, observacoes, category)
          VALUES ($1,$2,$3,$4,$5,$6,'aberto',$7,$8)`,
-        [cpId,
-         `Solicitação de compra #${sol.numero || id.slice(-6)}${numeroPedido ? ' · pedido ' + numeroPedido : ''}`,
-         sol.valorTotal, venc, fornecedorId, sol.contractId,
-         sol.justificativa || '', 'Estoque']
+        [
+          cpId,
+          `Solicitação de compra #${sol.numero || id.slice(-6)}${numeroPedido ? ' · pedido ' + numeroPedido : ''}`,
+          sol.valorTotal,
+          venc,
+          fornecedorId,
+          sol.contractId,
+          sol.justificativa || '',
+          'Estoque',
+        ]
       );
 
       const upd = await client.query(
@@ -4518,8 +5366,15 @@ async function handleComprarSolicitacao(req, id, body, res) {
              numero_pedido = $4, data_prevista_entrega = $5,
              conta_pagar_id = $6, fornecedor_id = COALESCE($7, fornecedor_id), updated_at = NOW()
          WHERE id = $1 RETURNING *`,
-        [id, req.user?.id || null, req.user?.name || req.user?.email || null,
-         numeroPedido || null, dataPrevistaEntrega, cpId, fornecedorId]
+        [
+          id,
+          req.user?.id || null,
+          req.user?.name || req.user?.email || null,
+          numeroPedido || null,
+          dataPrevistaEntrega,
+          cpId,
+          fornecedorId,
+        ]
       );
       return db.rowToCamel(upd.rows[0]);
     });
@@ -4534,18 +5389,26 @@ async function handleComprarSolicitacao(req, id, body, res) {
 // Almoxarife / financeiro confirma chegada do material — gera entrada de estoque.
 async function handleReceberSolicitacao(req, id, body, res) {
   try {
-    if (!await _temPermissao(req, 'solicitacoes-compra:receber')) {
+    if (!(await _temPermissao(req, 'solicitacoes-compra:receber'))) {
       return sendError(res, 403, 'Sem permissão para confirmar recebimento');
     }
     const sol = await repos.solicitacoesCompra.findById(id);
     if (!sol) return sendError(res, 404, 'Solicitação não encontrada');
     if (!fluxoCompra.podeTransicionar(sol.status, 'receber')) {
-      return sendError(res, 400, `Só é possível receber solicitações compradas (atual: ${sol.status})`);
+      return sendError(
+        res,
+        400,
+        `Só é possível receber solicitações compradas (atual: ${sol.status})`
+      );
     }
 
-    const itensSol = Array.isArray(sol.itens) ? sol.itens : (typeof sol.itens === 'string' ? JSON.parse(sol.itens) : []);
+    const itensSol = Array.isArray(sol.itens)
+      ? sol.itens
+      : typeof sol.itens === 'string'
+        ? JSON.parse(sol.itens)
+        : [];
     if (!itensSol.length) return sendError(res, 400, 'Solicitação sem itens');
-    const destinoId = sol.almoxarifadoDestinoId || await ensureAlmoxarifadoCentral();
+    const destinoId = sol.almoxarifadoDestinoId || (await ensureAlmoxarifadoCentral());
     const dataReceb = body.dataRecebimento || new Date().toISOString().split('T')[0];
     const nfReceb = (body.nfRecebimento || '').trim();
     const obsReceb = (body.obsRecebimento || '').trim();
@@ -4559,24 +5422,47 @@ async function handleReceberSolicitacao(req, id, body, res) {
           `INSERT INTO estoque_movimentacoes
             (id, item_id, almoxarifado_destino_id, tipo, quantidade, custo_unit, contract_id, data, documento, user_id, notas)
            VALUES ($1,$2,$3,'entrada',$4,$5,$6,$7,$8,$9,$10)`,
-          [movId, it.itemEstoqueId, destinoId, it.qtd, it.precoUnit || 0, sol.contractId,
-           dataReceb, nfReceb || `Solicitação ${id}`, req.user?.id || null,
-           `Recebida por ${req.user?.name || ''}`.trim()]
+          [
+            movId,
+            it.itemEstoqueId,
+            destinoId,
+            it.qtd,
+            it.precoUnit || 0,
+            sol.contractId,
+            dataReceb,
+            nfReceb || `Solicitação ${id}`,
+            req.user?.id || null,
+            `Recebida por ${req.user?.name || ''}`.trim(),
+          ]
         );
         await _ajustarSaldo(client, it.itemEstoqueId, destinoId, parseFloat(it.qtd));
         // Recalcula custo médio ponderado
         if ((parseFloat(it.precoUnit) || 0) > 0) {
-          const item = (await client.query('SELECT custo_medio FROM itens_estoque WHERE id = $1', [it.itemEstoqueId])).rows[0];
-          const saldoTotal = parseFloat((await client.query(
-            'SELECT COALESCE(SUM(quantidade), 0) AS s FROM estoque_saldo WHERE item_id = $1',
-            [it.itemEstoqueId]
-          )).rows[0].s) || 0;
+          const item = (
+            await client.query('SELECT custo_medio FROM itens_estoque WHERE id = $1', [
+              it.itemEstoqueId,
+            ])
+          ).rows[0];
+          const saldoTotal =
+            parseFloat(
+              (
+                await client.query(
+                  'SELECT COALESCE(SUM(quantidade), 0) AS s FROM estoque_saldo WHERE item_id = $1',
+                  [it.itemEstoqueId]
+                )
+              ).rows[0].s
+            ) || 0;
           const saldoAnt = saldoTotal - parseFloat(it.qtd);
           const custoMedAnt = parseFloat(item?.custo_medio) || 0;
-          const novoCustoMedio = saldoTotal > 0
-            ? ((saldoAnt * custoMedAnt) + (parseFloat(it.qtd) * parseFloat(it.precoUnit))) / saldoTotal
-            : parseFloat(it.precoUnit);
-          await client.query('UPDATE itens_estoque SET custo_medio = $2, updated_at = NOW() WHERE id = $1', [it.itemEstoqueId, novoCustoMedio]);
+          const novoCustoMedio =
+            saldoTotal > 0
+              ? (saldoAnt * custoMedAnt + parseFloat(it.qtd) * parseFloat(it.precoUnit)) /
+                saldoTotal
+              : parseFloat(it.precoUnit);
+          await client.query(
+            'UPDATE itens_estoque SET custo_medio = $2, updated_at = NOW() WHERE id = $1',
+            [it.itemEstoqueId, novoCustoMedio]
+          );
         }
         movIds.push(movId);
       }
@@ -4588,8 +5474,15 @@ async function handleReceberSolicitacao(req, id, body, res) {
              data_recebimento = $4, nf_recebimento = $5, obs_recebimento = $6,
              movimentacao_ids = $7, updated_at = NOW()
          WHERE id = $1 RETURNING *`,
-        [id, req.user?.id || null, req.user?.name || req.user?.email || null,
-         dataReceb, nfReceb || null, obsReceb || null, JSON.stringify(movIds)]
+        [
+          id,
+          req.user?.id || null,
+          req.user?.name || req.user?.email || null,
+          dataReceb,
+          nfReceb || null,
+          obsReceb || null,
+          JSON.stringify(movIds),
+        ]
       );
       return db.rowToCamel(upd.rows[0]);
     });
@@ -4603,13 +5496,14 @@ async function handleReceberSolicitacao(req, id, body, res) {
 
 async function handleRejeitarSolicitacao(req, id, body, res) {
   try {
-    if (!await _temPermissao(req, 'solicitacoes-compra:aprovar')) {
+    if (!(await _temPermissao(req, 'solicitacoes-compra:aprovar'))) {
       return sendError(res, 403, 'Sem permissão para rejeitar solicitações');
     }
 
     const sol = await repos.solicitacoesCompra.findById(id);
     if (!sol) return sendError(res, 404, 'Solicitação não encontrada');
-    if (!fluxoCompra.podeTransicionar(sol.status, 'rejeitar')) return sendError(res, 400, `Solicitação já está ${sol.status}`);
+    if (!fluxoCompra.podeTransicionar(sol.status, 'rejeitar'))
+      return sendError(res, 400, `Solicitação já está ${sol.status}`);
 
     const result = await repos.solicitacoesCompra.updateById(id, {
       status: 'rejeitada',
@@ -4619,19 +5513,35 @@ async function handleRejeitarSolicitacao(req, id, body, res) {
       motivoRejeicao: body.motivo || '',
     });
     sendJson(res, { solicitacao: result });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 // ============ Frota / Veículos ============
 async function handleListVeiculos(res) {
-  try { sendJson(res, await repos.veiculos.getEnvelope()); }
-  catch (e) { sendError(res, 500, e.message); }
+  try {
+    sendJson(res, await repos.veiculos.getEnvelope());
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 function _allowedVeiculoFields(body) {
   const allowed = {};
-  const fields = ['placa','modelo','marca','tipo','observacoes','status','contractId','endereco'];
-  for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f] || null; }
+  const fields = [
+    'placa',
+    'modelo',
+    'marca',
+    'tipo',
+    'observacoes',
+    'status',
+    'contractId',
+    'endereco',
+  ];
+  for (const f of fields) {
+    if (body[f] !== undefined) allowed[f] = body[f] || null;
+  }
   if (body.ano !== undefined) allowed.ano = parseInt(body.ano) || null;
   if (body.kmAtual !== undefined) allowed.kmAtual = parseInt(body.kmAtual) || 0;
   if (body.lat !== undefined) allowed.lat = body.lat ? parseFloat(body.lat) : null;
@@ -4647,7 +5557,9 @@ async function handlePostVeiculo(body, res) {
     if (data.lat && data.lng) data.localizadoEm = new Date();
     await repos.veiculos.create(data);
     sendJson(res, await repos.veiculos.getEnvelope());
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handlePutVeiculo(id, body, res) {
@@ -4656,14 +5568,18 @@ async function handlePutVeiculo(id, body, res) {
     const result = await repos.veiculos.updateById(id, allowed);
     if (!result) return sendError(res, 404, 'Veículo não encontrado');
     sendJson(res, await repos.veiculos.getEnvelope());
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handleDeleteVeiculo(id, res) {
   try {
     await repos.veiculos.removeById(id);
     sendJson(res, await repos.veiculos.getEnvelope());
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handlePutVeiculoKm(id, body, res) {
@@ -4673,7 +5589,9 @@ async function handlePutVeiculoKm(id, body, res) {
     const result = await repos.veiculos.updateById(id, { kmAtual: km, kmAtualizadoEm: new Date() });
     if (!result) return sendError(res, 404, 'Veículo não encontrado');
     sendJson(res, { veiculo: result });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handlePutVeiculoLocalizacao(id, body, res) {
@@ -4681,17 +5599,23 @@ async function handlePutVeiculoLocalizacao(id, body, res) {
     const lat = body.lat ? parseFloat(body.lat) : null;
     const lng = body.lng ? parseFloat(body.lng) : null;
     const result = await repos.veiculos.updateById(id, {
-      lat, lng, endereco: body.endereco || null, localizadoEm: new Date(),
+      lat,
+      lng,
+      endereco: body.endereco || null,
+      localizadoEm: new Date(),
     });
     if (!result) return sendError(res, 404, 'Veículo não encontrado');
     sendJson(res, { veiculo: result });
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handlePostVeiculoPlano(veiculoId, body, res) {
   try {
     if (!body.descricao) return sendError(res, 400, 'Descrição obrigatória');
-    if (!body.intervaloKm && !body.intervaloMeses) return sendError(res, 400, 'Informe intervaloKm e/ou intervaloMeses');
+    if (!body.intervaloKm && !body.intervaloMeses)
+      return sendError(res, 400, 'Informe intervaloKm e/ou intervaloMeses');
     const data = {
       id: generateId('plano'),
       veiculoId,
@@ -4704,28 +5628,37 @@ async function handlePostVeiculoPlano(veiculoId, body, res) {
     };
     await repos.veiculoPlanos.create(data);
     sendJson(res, await repos.veiculos.getEnvelope());
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handlePutVeiculoPlano(veiculoId, planoId, body, res) {
   try {
     const allowed = {};
     if (body.descricao !== undefined) allowed.descricao = body.descricao;
-    if (body.intervaloKm !== undefined) allowed.intervaloKm = body.intervaloKm ? parseInt(body.intervaloKm) : null;
-    if (body.intervaloMeses !== undefined) allowed.intervaloMeses = body.intervaloMeses ? parseInt(body.intervaloMeses) : null;
-    if (body.ultimoKm !== undefined) allowed.ultimoKm = body.ultimoKm ? parseInt(body.ultimoKm) : null;
+    if (body.intervaloKm !== undefined)
+      allowed.intervaloKm = body.intervaloKm ? parseInt(body.intervaloKm) : null;
+    if (body.intervaloMeses !== undefined)
+      allowed.intervaloMeses = body.intervaloMeses ? parseInt(body.intervaloMeses) : null;
+    if (body.ultimoKm !== undefined)
+      allowed.ultimoKm = body.ultimoKm ? parseInt(body.ultimoKm) : null;
     if (body.ultimaData !== undefined) allowed.ultimaData = body.ultimaData || null;
     if (body.ativo !== undefined) allowed.ativo = !!body.ativo;
     await repos.veiculoPlanos.updateById(planoId, allowed);
     sendJson(res, await repos.veiculos.getEnvelope());
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handleDeleteVeiculoPlano(veiculoId, planoId, res) {
   try {
     await repos.veiculoPlanos.removeById(planoId);
     sendJson(res, await repos.veiculos.getEnvelope());
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handlePostVeiculoManutencao(req, veiculoId, body, res) {
@@ -4751,38 +5684,51 @@ async function handlePostVeiculoManutencao(req, veiculoId, body, res) {
       const planoUpd = {};
       if (data.km) planoUpd.ultimoKm = data.km;
       if (data.data) planoUpd.ultimaData = data.data;
-      if (Object.keys(planoUpd).length) await repos.veiculoPlanos.updateById(body.planoId, planoUpd);
+      if (Object.keys(planoUpd).length)
+        await repos.veiculoPlanos.updateById(body.planoId, planoUpd);
     }
     // Atualiza KM atual do veículo se a manutenção informou KM maior
     if (data.km) {
       const veic = await repos.veiculos.findById(veiculoId);
       if (veic && data.km > (parseInt(veic.kmAtual) || 0)) {
-        await repos.veiculos.updateById(veiculoId, { kmAtual: data.km, kmAtualizadoEm: new Date() });
+        await repos.veiculos.updateById(veiculoId, {
+          kmAtual: data.km,
+          kmAtualizadoEm: new Date(),
+        });
       }
     }
 
     sendJson(res, await repos.veiculos.getEnvelope());
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handlePutVeiculoManutencao(veiculoId, manId, body, res) {
   try {
     const allowed = {};
-    const fields = ['tipo','descricao','data','observacoes','planoId','fornecedorId'];
-    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f] || null; }
+    const fields = ['tipo', 'descricao', 'data', 'observacoes', 'planoId', 'fornecedorId'];
+    for (const f of fields) {
+      if (body[f] !== undefined) allowed[f] = body[f] || null;
+    }
     if (body.km !== undefined) allowed.km = body.km ? parseInt(body.km) : null;
     if (body.custo !== undefined) allowed.custo = body.custo ? money.parse(body.custo) : null;
-    if (body.arquivo !== undefined) allowed.arquivo = body.arquivo ? JSON.stringify(body.arquivo) : null;
+    if (body.arquivo !== undefined)
+      allowed.arquivo = body.arquivo ? JSON.stringify(body.arquivo) : null;
     await repos.veiculoManutencoes.updateById(manId, allowed);
     sendJson(res, await repos.veiculos.getEnvelope());
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handleDeleteVeiculoManutencao(veiculoId, manId, res) {
   try {
     await repos.veiculoManutencoes.removeById(manId);
     sendJson(res, await repos.veiculos.getEnvelope());
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 // ============ Abastecimentos ============
@@ -4792,37 +5738,39 @@ async function handleListVeiculoAbastecimentos(veiculoId, res) {
     // em vez de trazer a tabela inteira e filtrar em JS — o histórico cresce.
     const rows = await repos.veiculoAbastecimentos.findAll({ veiculoId });
     sendJson(res, { abastecimentos: rows });
-  } catch (e) { sendError(res, 500, e.message); }
+  } catch (e) {
+    sendError(res, 500, e.message);
+  }
 }
 
 async function handlePostVeiculoAbastecimento(veiculoId, body, res) {
   try {
-    if (!body.data)   return sendError(res, 400, 'Data obrigatória');
+    if (!body.data) return sendError(res, 400, 'Data obrigatória');
     if (!body.litros) return sendError(res, 400, 'Litros obrigatório');
     const data = {
-      id:              generateId('abst'),
+      id: generateId('abst'),
       veiculoId,
-      data:            body.data,
-      km:              body.km     ? parseInt(body.km)         : null,
-      litros:          parseFloat(body.litros),
-      valorTotal:      body.valorTotal ? money.parse(body.valorTotal) : null,
+      data: body.data,
+      km: body.km ? parseInt(body.km) : null,
+      litros: parseFloat(body.litros),
+      valorTotal: body.valorTotal ? money.parse(body.valorTotal) : null,
       tipoCombustivel: body.tipoCombustivel || null,
-      fornecedorId:    body.fornecedorId   || null,
-      contractId:      body.contractId     || null,
-      observacoes:     body.observacoes    || '',
+      fornecedorId: body.fornecedorId || null,
+      contractId: body.contractId || null,
+      observacoes: body.observacoes || '',
     };
     // Reserva e CRIA o lançamento de caixa (se houver contrato + valor) ANTES do
     // abastecimento — a FK caixa_entry_id exige que a row de caixa já exista.
-    data.caixaEntryId = (data.contractId && data.valorTotal) ? generateId('cxa') : null;
+    data.caixaEntryId = data.contractId && data.valorTotal ? generateId('cxa') : null;
     if (data.caixaEntryId) {
       await repos.caixa.create({
-        id:          data.caixaEntryId,
-        type:        'saida',
-        value:       data.valorTotal,
-        date:        data.data,
+        id: data.caixaEntryId,
+        type: 'saida',
+        value: data.valorTotal,
+        date: data.data,
         description: `Abastecimento veículo — ${data.litros}L`,
-        category:    'abastecimento',
-        contractId:  data.contractId,
+        category: 'abastecimento',
+        contractId: data.contractId,
       });
     }
     await repos.veiculoAbastecimentos.create(data);
@@ -4831,12 +5779,17 @@ async function handlePostVeiculoAbastecimento(veiculoId, body, res) {
     if (data.km) {
       const veic = await repos.veiculos.findById(veiculoId);
       if (veic && data.km > (parseInt(veic.kmAtual) || 0)) {
-        await repos.veiculos.updateById(veiculoId, { kmAtual: data.km, kmAtualizadoEm: new Date() });
+        await repos.veiculos.updateById(veiculoId, {
+          kmAtual: data.km,
+          kmAtualizadoEm: new Date(),
+        });
       }
     }
 
     sendJson(res, await repos.veiculos.getEnvelope());
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handlePutVeiculoAbastecimento(veiculoId, abastecId, body, res) {
@@ -4845,30 +5798,40 @@ async function handlePutVeiculoAbastecimento(veiculoId, abastecId, body, res) {
     if (!abast) return sendError(res, 404, 'Abastecimento não encontrado');
     const allowed = {};
     const strFields = ['data', 'tipoCombustivel', 'fornecedorId', 'contractId', 'observacoes'];
-    for (const f of strFields) { if (body[f] !== undefined) allowed[f] = body[f] || null; }
-    if (body.km         !== undefined) allowed.km         = body.km         ? parseInt(body.km)         : null;
-    if (body.litros     !== undefined) allowed.litros     = body.litros     ? parseFloat(body.litros)   : null;
-    if (body.valorTotal !== undefined) allowed.valorTotal = body.valorTotal ? money.parse(body.valorTotal) : null;
+    for (const f of strFields) {
+      if (body[f] !== undefined) allowed[f] = body[f] || null;
+    }
+    if (body.km !== undefined) allowed.km = body.km ? parseInt(body.km) : null;
+    if (body.litros !== undefined) allowed.litros = body.litros ? parseFloat(body.litros) : null;
+    if (body.valorTotal !== undefined)
+      allowed.valorTotal = body.valorTotal ? money.parse(body.valorTotal) : null;
 
     // Re-sincroniza o lançamento de caixa: estorna o antigo e recria se ainda
     // houver contrato + valor (evita saída de caixa órfã ou desatualizada).
     const contractId = allowed.contractId !== undefined ? allowed.contractId : abast.contractId;
     const valorTotal = allowed.valorTotal !== undefined ? allowed.valorTotal : abast.valorTotal;
-    const dataAb     = allowed.data       !== undefined ? allowed.data       : abast.data;
-    const litros     = allowed.litros     !== undefined ? allowed.litros     : abast.litros;
+    const dataAb = allowed.data !== undefined ? allowed.data : abast.data;
+    const litros = allowed.litros !== undefined ? allowed.litros : abast.litros;
     if (abast.caixaEntryId) await repos.caixa.removeById(abast.caixaEntryId);
     let novoCaixaId = null;
     if (contractId && valorTotal) {
       novoCaixaId = generateId('cxa');
       await repos.caixa.create({
-        id: novoCaixaId, type: 'saida', value: valorTotal, date: dataAb,
-        description: `Abastecimento veículo — ${litros}L`, category: 'abastecimento', contractId,
+        id: novoCaixaId,
+        type: 'saida',
+        value: valorTotal,
+        date: dataAb,
+        description: `Abastecimento veículo — ${litros}L`,
+        category: 'abastecimento',
+        contractId,
       });
     }
     allowed.caixaEntryId = novoCaixaId;
     await repos.veiculoAbastecimentos.updateById(abastecId, allowed);
     sendJson(res, await repos.veiculos.getEnvelope());
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 async function handleDeleteVeiculoAbastecimento(veiculoId, abastecId, res) {
@@ -4878,7 +5841,9 @@ async function handleDeleteVeiculoAbastecimento(veiculoId, abastecId, res) {
     // Estorna o lançamento de caixa gerado por este abastecimento (se houver).
     if (abast && abast.caixaEntryId) await repos.caixa.removeById(abast.caixaEntryId);
     sendJson(res, await repos.veiculos.getEnvelope());
-  } catch (e) { sendError(res, 400, e.message); }
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
 }
 
 // ============ Cronograma físico-financeiro (atividades) ============
@@ -4904,11 +5869,17 @@ async function handlePostAtividade(contractId, body, res) {
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
        RETURNING *`,
       [
-        id, contractId, body.parentId || null, parseInt(body.ordem) || 0,
+        id,
+        contractId,
+        body.parentId || null,
+        parseInt(body.ordem) || 0,
         String(body.nome || '').slice(0, 200),
-        body.dataInicioPlan || null, body.dataFimPlan || null,
-        body.dataInicioReal || null, body.dataFimReal || null,
-        parseFloat(body.pesoPct) || 0, parseFloat(body.execPct) || 0,
+        body.dataInicioPlan || null,
+        body.dataFimPlan || null,
+        body.dataInicioReal || null,
+        body.dataFimReal || null,
+        parseFloat(body.pesoPct) || 0,
+        parseFloat(body.execPct) || 0,
         money.parse(body.custoPlan),
         Array.isArray(body.predecessoras) ? body.predecessoras : [],
         body.notas || null,
@@ -4922,9 +5893,20 @@ async function handlePostAtividade(contractId, body, res) {
 
 async function handlePutAtividade(contractId, atvId, body, res) {
   try {
-    const fields = ['parent_id', 'ordem', 'nome', 'data_inicio_plan', 'data_fim_plan',
-      'data_inicio_real', 'data_fim_real', 'peso_pct', 'exec_pct', 'custo_plan',
-      'predecessoras', 'notas'];
+    const fields = [
+      'parent_id',
+      'ordem',
+      'nome',
+      'data_inicio_plan',
+      'data_fim_plan',
+      'data_inicio_real',
+      'data_fim_real',
+      'peso_pct',
+      'exec_pct',
+      'custo_plan',
+      'predecessoras',
+      'notas',
+    ];
     const map = {
       parent_id: body.parentId ?? null,
       ordem: parseInt(body.ordem) || 0,
@@ -4940,7 +5922,7 @@ async function handlePutAtividade(contractId, atvId, body, res) {
       notas: body.notas ?? null,
     };
     const set = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
-    const vals = fields.map(f => map[f]);
+    const vals = fields.map((f) => map[f]);
     vals.push(atvId, contractId);
     const row = await db.getOne(
       `UPDATE atividades SET ${set}, updated_at = NOW()
@@ -4957,7 +5939,10 @@ async function handlePutAtividade(contractId, atvId, body, res) {
 
 async function handleDeleteAtividade(contractId, atvId, res) {
   try {
-    await db.query('DELETE FROM atividades WHERE id = $1 AND contract_id = $2', [atvId, contractId]);
+    await db.query('DELETE FROM atividades WHERE id = $1 AND contract_id = $2', [
+      atvId,
+      contractId,
+    ]);
     sendJson(res, { ok: true });
   } catch (e) {
     sendError(res, 400, e.message);
@@ -4994,20 +5979,23 @@ async function handleGetAdminArquivos(res) {
        ORDER BY a.created_at DESC`
     );
     // Resolve tipoDoc a partir do JSONB documentos do recurso
-    const recursosIds = [...new Set(rows.map(r => r.recursoId).filter(Boolean))];
+    const recursosIds = [...new Set(rows.map((r) => r.recursoId).filter(Boolean))];
     const tipoPorDocId = new Map();
     if (recursosIds.length > 0) {
       const ph = recursosIds.map((_, i) => `$${i + 1}`).join(', ');
-      const recs = await db.getMany(`SELECT id, documentos FROM recursos WHERE id IN (${ph})`, recursosIds);
+      const recs = await db.getMany(
+        `SELECT id, documentos FROM recursos WHERE id IN (${ph})`,
+        recursosIds
+      );
       for (const rec of recs) {
-        for (const d of (rec.documentos || [])) {
+        for (const d of rec.documentos || []) {
           tipoPorDocId.set(d.id, d.tipoLabel || d.tipo || '—');
         }
       }
     }
     const total = rows.reduce((s, r) => s + (r.sizeBytes || 0), 0);
     sendJson(res, {
-      arquivos: rows.map(r => ({ ...r, tipoDoc: tipoPorDocId.get(r.docId) || '—' })),
+      arquivos: rows.map((r) => ({ ...r, tipoDoc: tipoPorDocId.get(r.docId) || '—' })),
       totalBytes: total,
       count: rows.length,
     });
@@ -5019,14 +6007,22 @@ async function handleGetAdminArquivos(res) {
 async function handleGetDocumentosStatus(res) {
   try {
     const recursos = await repos.recursos.findAll();
-    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-    const ativos = recursos.filter(r => r.status === 'funcionario');
-    let totalDocs = 0, vigentes = 0, vencidos = 0, vencendo = 0, pendentes = 0;
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const ativos = recursos.filter((r) => r.status === 'funcionario');
+    let totalDocs = 0,
+      vigentes = 0,
+      vencidos = 0,
+      vencendo = 0,
+      pendentes = 0;
 
-    ativos.forEach(r => {
-      (r.documentos || []).forEach(doc => {
+    ativos.forEach((r) => {
+      (r.documentos || []).forEach((doc) => {
         totalDocs++;
-        if (!doc.dataVencimento) { pendentes++; return; }
+        if (!doc.dataVencimento) {
+          pendentes++;
+          return;
+        }
         const venc = new Date(doc.dataVencimento + 'T12:00:00');
         const dias = Math.ceil((venc - hoje) / 86400000);
         if (dias < 0) vencidos++;
@@ -5035,14 +6031,22 @@ async function handleGetDocumentosStatus(res) {
       });
     });
 
-    const colaboradoresComVencidos = ativos.filter(r =>
-      (r.documentos || []).some(doc => {
+    const colaboradoresComVencidos = ativos.filter((r) =>
+      (r.documentos || []).some((doc) => {
         if (!doc.dataVencimento) return false;
         return Math.ceil((new Date(doc.dataVencimento + 'T12:00:00') - hoje) / 86400000) < 0;
       })
     ).length;
 
-    sendJson(res, { totalAtivos: ativos.length, colaboradoresComVencidos, totalDocs, vigentes, vencidos, vencendo, pendentes });
+    sendJson(res, {
+      totalAtivos: ativos.length,
+      colaboradoresComVencidos,
+      totalDocs,
+      vigentes,
+      vencidos,
+      vencendo,
+      pendentes,
+    });
   } catch (e) {
     // Via sendError (não res.end cru): redige a mensagem em 5xx, evitando vazar
     // o texto de erro do Postgres ao cliente. Mantém o padrão do resto do app.
@@ -5060,7 +6064,9 @@ async function bootstrap() {
     // LGPD: avisa cedo se a chave de PII não estiver configurada — leitura de
     // dados legados ainda funciona, mas escrita de CPF/documento vai falhar.
     if (!piiCrypto.isConfigured()) {
-      console.warn('[pii] PII_ENCRYPTION_KEY ausente — gravação de CPF/documentos vai falhar. Ver docs/LGPD.md.');
+      console.warn(
+        '[pii] PII_ENCRYPTION_KEY ausente — gravação de CPF/documentos vai falhar. Ver docs/LGPD.md.'
+      );
     }
 
     // Auto-aplicar schema.sql na primeira execução (cloud deploy: Railway/Render).
@@ -5082,13 +6088,20 @@ async function bootstrap() {
     await auth.bootstrapAdmin();
     await auth.purgeExpiredSessions();
     // Garante que o almoxarifado Central exista (idempotente)
-    try { await ensureAlmoxarifadoCentral(); } catch (e) { console.warn('[server] Aviso ao criar almox central:', e.message); }
+    try {
+      await ensureAlmoxarifadoCentral();
+    } catch (e) {
+      console.warn('[server] Aviso ao criar almox central:', e.message);
+    }
     // Limpa sessões expiradas a cada hora
     setInterval(() => auth.purgeExpiredSessions().catch(() => {}), 60 * 60 * 1000);
 
     // Cleanup do rate-limit persistente — diário, mantém últimos 7 dias.
     // Roda 1x no boot pra limpar acúmulo de deploys anteriores, depois a cada 24h.
-    pgRateLimit.cleanup(7).then(n => n > 0 && console.log(`[pg-rate-limit] cleanup inicial: ${n} rows`)).catch(() => {});
+    pgRateLimit
+      .cleanup(7)
+      .then((n) => n > 0 && console.log(`[pg-rate-limit] cleanup inicial: ${n} rows`))
+      .catch(() => {});
     setInterval(() => pgRateLimit.cleanup(7).catch(() => {}), 24 * 60 * 60 * 1000);
 
     // Push notifications — verifica contratos e contas a pagar a cada hora
@@ -5105,48 +6118,61 @@ async function bootstrap() {
             } catch (e) {
               // Subscription expirada → remove
               if (e.statusCode === 410 || e.statusCode === 404) {
-                await db.query('DELETE FROM push_subscriptions WHERE endpoint=$1', [sub.endpoint]).catch(() => {});
+                await db
+                  .query('DELETE FROM push_subscriptions WHERE endpoint=$1', [sub.endpoint])
+                  .catch(() => {});
               }
             }
           }
-        } catch (e) { console.warn('[push] Erro ao enviar:', e.message); }
+        } catch (e) {
+          console.warn('[push] Erro ao enviar:', e.message);
+        }
       };
 
-      setInterval(async () => {
-        try {
-          const hoje = new Date().toISOString().split('T')[0];
-          const em7 = new Date(); em7.setDate(em7.getDate() + 7); const em7str = em7.toISOString().split('T')[0];
-          const em3 = new Date(); em3.setDate(em3.getDate() + 3); const em3str = em3.toISOString().split('T')[0];
+      setInterval(
+        async () => {
+          try {
+            const hoje = new Date().toISOString().split('T')[0];
+            const em7 = new Date();
+            em7.setDate(em7.getDate() + 7);
+            const em7str = em7.toISOString().split('T')[0];
+            const em3 = new Date();
+            em3.setDate(em3.getDate() + 3);
+            const em3str = em3.toISOString().split('T')[0];
 
-          // Contratos vencendo em 7 dias
-          const { rows: vencendo } = await db.query(
-            `SELECT name FROM contracts WHERE status='ativo' AND end_date BETWEEN $1 AND $2`,
-            [hoje, em7str]
-          );
-          if (vencendo.length > 0) {
-            await _sendPushAll({
-              title: 'Contratos vencendo',
-              body: `${vencendo.length} contrato(s) vencem nos próximos 7 dias`,
-              icon: '/assets/logo.png',
-              data: { url: '/#/contratos' }
-            });
-          }
+            // Contratos vencendo em 7 dias
+            const { rows: vencendo } = await db.query(
+              `SELECT name FROM contracts WHERE status='ativo' AND end_date BETWEEN $1 AND $2`,
+              [hoje, em7str]
+            );
+            if (vencendo.length > 0) {
+              await _sendPushAll({
+                title: 'Contratos vencendo',
+                body: `${vencendo.length} contrato(s) vencem nos próximos 7 dias`,
+                icon: '/assets/logo.png',
+                data: { url: '/#/contratos' },
+              });
+            }
 
-          // Contas a pagar vencendo em 3 dias
-          const { rows: cpVenc } = await db.query(
-            `SELECT COUNT(*) as n, SUM(valor::numeric) as total FROM contas_pagar WHERE status='pendente' AND data_vencimento BETWEEN $1 AND $2`,
-            [hoje, em3str]
-          );
-          if (parseInt(cpVenc[0]?.n || 0) > 0) {
-            await _sendPushAll({
-              title: 'Contas a pagar',
-              body: `${cpVenc[0].n} conta(s) vencem em até 3 dias`,
-              icon: '/assets/logo.png',
-              data: { url: '/#/contas-pagar' }
-            });
+            // Contas a pagar vencendo em 3 dias
+            const { rows: cpVenc } = await db.query(
+              `SELECT COUNT(*) as n, SUM(valor::numeric) as total FROM contas_pagar WHERE status='pendente' AND data_vencimento BETWEEN $1 AND $2`,
+              [hoje, em3str]
+            );
+            if (parseInt(cpVenc[0]?.n || 0) > 0) {
+              await _sendPushAll({
+                title: 'Contas a pagar',
+                body: `${cpVenc[0].n} conta(s) vencem em até 3 dias`,
+                icon: '/assets/logo.png',
+                data: { url: '/#/contas-pagar' },
+              });
+            }
+          } catch (e) {
+            console.warn('[push] Erro no scheduler:', e.message);
           }
-        } catch (e) { console.warn('[push] Erro no scheduler:', e.message); }
-      }, 60 * 60 * 1000); // a cada 1 hora
+        },
+        60 * 60 * 1000
+      ); // a cada 1 hora
     }
   } catch (e) {
     console.error('[server] Falha ao conectar no Postgres:', e.message);
@@ -5156,7 +6182,7 @@ async function bootstrap() {
 
 // ── Backup automático diário por email ─────────────────────────────────────
 const BACKUP_EMAIL = process.env.BACKUP_EMAIL || process.env.ADMIN_EMAIL || '';
-const BACKUP_HOUR  = parseInt(process.env.BACKUP_HOUR || '3', 10); // 3h da manhã (UTC)
+const BACKUP_HOUR = parseInt(process.env.BACKUP_HOUR || '3', 10); // 3h da manhã (UTC)
 
 async function _runEmailBackup() {
   const email = require('./lib/email');
@@ -5165,24 +6191,35 @@ async function _runEmailBackup() {
     return;
   }
   try {
-    const safe = async (fn) => { try { return await fn(); } catch (e) { console.warn('[dump] coleta falhou (resultado vazio):', e && e.message); return []; } };
+    const safe = async (fn) => {
+      try {
+        return await fn();
+      } catch (e) {
+        console.warn('[dump] coleta falhou (resultado vazio):', e && e.message);
+        return [];
+      }
+    };
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
     const payload = {
-      _meta: { version: APP_VERSION, generatedAt: new Date().toISOString(), format: 'rhino-backup-v1' },
-      contracts:      await safe(() => repos.contracts.findAllWithChildren()),
-      saidas:         await safe(() => repos.saidas.findAll()),
-      caixa:          await safe(() => repos.caixa.findAll()),
-      base:           await safe(() => repos.baseItems.findAll()),
-      socios:         await safe(() => repos.socios.findAll()),
-      investimentos:  await safe(() => repos.investimentos.findAll()),
-      notas_fiscais:  await safe(() => repos.notasFiscais.findAll()),
-      tipos_base:     await safe(() => repos.tiposBase.findAll()),
-      clientes:       await safe(() => repos.clientes.findAll()),
-      fornecedores:   await safe(() => repos.fornecedores.findAll()),
-      contas_pagar:   await safe(() => repos.contasPagar.findAll()),
-      niveis_acesso:  await safe(() => repos.niveisAcesso.findAll()),
-      recursos:       await safe(() => repos.recursos.findAllRaw()), // CPF cifrado no export (LGPD)
-      doc_templates:  await safe(() => repos.docTemplates.findAll()),
+      _meta: {
+        version: APP_VERSION,
+        generatedAt: new Date().toISOString(),
+        format: 'rhino-backup-v1',
+      },
+      contracts: await safe(() => repos.contracts.findAllWithChildren()),
+      saidas: await safe(() => repos.saidas.findAll()),
+      caixa: await safe(() => repos.caixa.findAll()),
+      base: await safe(() => repos.baseItems.findAll()),
+      socios: await safe(() => repos.socios.findAll()),
+      investimentos: await safe(() => repos.investimentos.findAll()),
+      notas_fiscais: await safe(() => repos.notasFiscais.findAll()),
+      tipos_base: await safe(() => repos.tiposBase.findAll()),
+      clientes: await safe(() => repos.clientes.findAll()),
+      fornecedores: await safe(() => repos.fornecedores.findAll()),
+      contas_pagar: await safe(() => repos.contasPagar.findAll()),
+      niveis_acesso: await safe(() => repos.niveisAcesso.findAll()),
+      recursos: await safe(() => repos.recursos.findAllRaw()), // CPF cifrado no export (LGPD)
+      doc_templates: await safe(() => repos.docTemplates.findAll()),
     };
     const json = JSON.stringify(payload);
     const sizeMB = (Buffer.byteLength(json) / 1024 / 1024).toFixed(2);
@@ -5191,7 +6228,10 @@ async function _runEmailBackup() {
 
     const tableRows = Object.entries(payload)
       .filter(([k]) => k !== '_meta')
-      .map(([k, v]) => `<tr><td style="padding:4px 12px 4px 0;color:#6b7280;">${k}</td><td style="padding:4px 0;font-weight:600;">${Array.isArray(v) ? v.length : '—'} registros</td></tr>`)
+      .map(
+        ([k, v]) =>
+          `<tr><td style="padding:4px 12px 4px 0;color:#6b7280;">${k}</td><td style="padding:4px 0;font-weight:600;">${Array.isArray(v) ? v.length : '—'} registros</td></tr>`
+      )
       .join('');
 
     const html = `
@@ -5211,7 +6251,9 @@ async function _runEmailBackup() {
       subject: `Rhino Backup ${new Date().toLocaleDateString('pt-BR')} — ${sizeMB} MB`,
       html,
       text: `Backup Rhino gerado em ${new Date().toISOString()}. Tamanho: ${sizeMB} MB.`,
-      attachments: [{ filename, content: base64, type: 'application/json', disposition: 'attachment' }],
+      attachments: [
+        { filename, content: base64, type: 'application/json', disposition: 'attachment' },
+      ],
     });
 
     if (result.ok) console.log(`[backup] Email enviado para ${BACKUP_EMAIL} (${sizeMB} MB)`);
@@ -5225,7 +6267,9 @@ function _scheduleBackup() {
   if (process.env.NODE_ENV === 'test') return; // skip in CI/test environment
   function msUntilNextRun() {
     const now = new Date();
-    const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), BACKUP_HOUR, 0, 0, 0));
+    const next = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), BACKUP_HOUR, 0, 0, 0)
+    );
     if (next <= now) next.setUTCDate(next.getUTCDate() + 1);
     return next - now;
   }
@@ -5242,14 +6286,22 @@ function _scheduleBackup() {
 
 // ── Workers de jobs assíncronos (pg-boss) ──────────────────────────────────
 async function _emailWorker(data) {
-  const r = await email.send({ to: data.to, subject: data.subject, html: data.html, text: data.text });
+  const r = await email.send({
+    to: data.to,
+    subject: data.subject,
+    html: data.html,
+    text: data.text,
+  });
   if (!r.ok && !r.dev) throw new Error(r.error || 'falha ao enviar e-mail'); // throw → pg-boss reprocessa
 }
 
 function _registerWorkers() {
   if (process.env.NODE_ENV === 'test') return; // sem fila em CI/test
-  queue.work('email', _emailWorker)
-    .then((ok) => { if (ok) console.log('[queue] worker de e-mail registrado'); })
+  queue
+    .work('email', _emailWorker)
+    .then((ok) => {
+      if (ok) console.log('[queue] worker de e-mail registrado');
+    })
     .catch((e) => console.error('[queue] erro ao registrar workers:', e && e.message));
 }
 
@@ -5262,7 +6314,7 @@ if (require.main === module) {
         _registerWorkers();
       });
     })
-    .catch(err => {
+    .catch((err) => {
       console.error('[server] Falha no bootstrap:', err);
       process.exit(1);
     });
@@ -5273,7 +6325,7 @@ if (require.main === module) {
       _scheduleBackup();
       _registerWorkers();
     })
-    .catch(err => {
+    .catch((err) => {
       console.error('[server] Falha no bootstrap:', err);
       process.exit(1);
     });

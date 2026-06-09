@@ -1,10 +1,18 @@
 window.Clientes = {
   // Filtros persistidos (sobrevivem reload)
-  _filterStore: (window.UIKit?.persistFilter?.('clientes', { busca: '', empresa: '' })) || null,
-  get busca()    { return this._filterStore?.get('busca')   ?? ''; },
-  set busca(v)   { this._filterStore?.set('busca', v); },
-  get empresa()  { return this._filterStore?.get('empresa') ?? ''; },
-  set empresa(v) { this._filterStore?.set('empresa', v); },
+  _filterStore: window.UIKit?.persistFilter?.('clientes', { busca: '', empresa: '' }) || null,
+  get busca() {
+    return this._filterStore?.get('busca') ?? '';
+  },
+  set busca(v) {
+    this._filterStore?.set('busca', v);
+  },
+  get empresa() {
+    return this._filterStore?.get('empresa') ?? '';
+  },
+  set empresa(v) {
+    this._filterStore?.set('empresa', v);
+  },
 
   async render() {
     const app = document.getElementById('app');
@@ -14,77 +22,111 @@ window.Clientes = {
       await Store.loadFor(['clientes']);
 
       // Empresas distintas (para o filtro)
-      const empresasUnicas = [...new Set((Store.state.clientes || [])
-        .map(c => (c.empresa || '').trim())
-        .filter(Boolean))]
-        .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+      const empresasUnicas = [
+        ...new Set(
+          (Store.state.clientes || []).map((c) => (c.empresa || '').trim()).filter(Boolean)
+        ),
+      ].sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
       const termo = (this.busca || '').toLowerCase().trim();
       const filtroEmp = this.empresa || '';
-      const filtrados = (Store.state.clientes || []).filter(c => {
+      const filtrados = (Store.state.clientes || []).filter((c) => {
         if (filtroEmp && (c.empresa || '') !== filtroEmp) return false;
         if (termo) {
-          return (c.nome || '').toLowerCase().includes(termo) ||
-                 (c.empresa || '').toLowerCase().includes(termo) ||
-                 (c.email || '').toLowerCase().includes(termo) ||
-                 (c.telefone || '').includes(termo) ||
-                 (c.cargo || '').toLowerCase().includes(termo) ||
-                 (c.setor || '').toLowerCase().includes(termo);
+          return (
+            (c.nome || '').toLowerCase().includes(termo) ||
+            (c.empresa || '').toLowerCase().includes(termo) ||
+            (c.email || '').toLowerCase().includes(termo) ||
+            (c.telefone || '').includes(termo) ||
+            (c.cargo || '').toLowerCase().includes(termo) ||
+            (c.setor || '').toLowerCase().includes(termo)
+          );
         }
         return true;
       });
 
       const totalCli = Store.state.clientes.length;
       const filtroAtivo = !!(termo || filtroEmp);
-      const comEmail = (Store.state.clientes || []).filter(c => c.email).length;
-      const comTel   = (Store.state.clientes || []).filter(c => c.telefone).length;
+      const comEmail = (Store.state.clientes || []).filter((c) => c.email).length;
+      const comTel = (Store.state.clientes || []).filter((c) => c.telefone).length;
 
       // Padrão B: pageHeader + kpiGrid + toolbar
-      const headerHtml = window.UIKit?.pageHeader ? window.UIKit.pageHeader({
-        title: 'Clientes',
-        subtitle: filtroAtivo
-          ? `${filtrados.length} de ${totalCli} cliente${totalCli !== 1 ? 's' : ''}`
-          : `${totalCli} cliente${totalCli !== 1 ? 's' : ''} cadastrado${totalCli !== 1 ? 's' : ''}`,
-        actions: '<button class="btn btn-primary btn-lg" id="btnNovoCliente">+ Novo Cliente</button>',
-      }) : `<div class="page-header"><div><h1 class="page-title">Clientes</h1></div><button class="btn btn-primary btn-lg" id="btnNovoCliente">+ Novo Cliente</button></div>`;
+      const headerHtml = window.UIKit?.pageHeader
+        ? window.UIKit.pageHeader({
+            title: 'Clientes',
+            subtitle: filtroAtivo
+              ? `${filtrados.length} de ${totalCli} cliente${totalCli !== 1 ? 's' : ''}`
+              : `${totalCli} cliente${totalCli !== 1 ? 's' : ''} cadastrado${totalCli !== 1 ? 's' : ''}`,
+            actions:
+              '<button class="btn btn-primary btn-lg" id="btnNovoCliente">+ Novo Cliente</button>',
+          })
+        : `<div class="page-header"><div><h1 class="page-title">Clientes</h1></div><button class="btn btn-primary btn-lg" id="btnNovoCliente">+ Novo Cliente</button></div>`;
 
-      const kpisHtml = window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
-        { label: 'Total',         value: totalCli,            color: 'var(--color-primary)' },
-        { label: 'Empresas',      value: empresasUnicas.length, color: 'var(--color-violet)' },
-        { label: 'Com email',     value: comEmail,            color: 'var(--color-info)', hint: `${Math.round(comEmail/Math.max(totalCli,1)*100)}% do total` },
-        { label: 'Com telefone',  value: comTel,              color: 'var(--color-success)', hint: `${Math.round(comTel/Math.max(totalCli,1)*100)}% do total` },
-      ]) : '';
+      const kpisHtml = window.UIKit?.kpiGrid
+        ? window.UIKit.kpiGrid([
+            { label: 'Total', value: totalCli, color: 'var(--color-primary)' },
+            { label: 'Empresas', value: empresasUnicas.length, color: 'var(--color-violet)' },
+            {
+              label: 'Com email',
+              value: comEmail,
+              color: 'var(--color-info)',
+              hint: `${Math.round((comEmail / Math.max(totalCli, 1)) * 100)}% do total`,
+            },
+            {
+              label: 'Com telefone',
+              value: comTel,
+              color: 'var(--color-success)',
+              hint: `${Math.round((comTel / Math.max(totalCli, 1)) * 100)}% do total`,
+            },
+          ])
+        : '';
 
-      const toolbarHtml = window.UIKit?.toolbar ? window.UIKit.toolbar({
-        search: {
-          id: 'inputBusca', value: this.busca, label: 'Buscar',
-          placeholder: 'Nome, empresa, email ou telefone...',
-        },
-        selects: [{
-          id: 'filtroEmpresa',
-          label: 'Empresa',
-          options: [
-            { value: '', label: `Todas (${empresasUnicas.length})`, selected: !filtroEmp },
-            ...empresasUnicas.map(e => ({ value: e, label: e, selected: filtroEmp === e })),
-          ],
-        }],
-        showClear: filtroAtivo,
-        clearId: 'btnLimparFiltrosCli',
-      }) : '';
+      const toolbarHtml = window.UIKit?.toolbar
+        ? window.UIKit.toolbar({
+            search: {
+              id: 'inputBusca',
+              value: this.busca,
+              label: 'Buscar',
+              placeholder: 'Nome, empresa, email ou telefone...',
+            },
+            selects: [
+              {
+                id: 'filtroEmpresa',
+                label: 'Empresa',
+                options: [
+                  { value: '', label: `Todas (${empresasUnicas.length})`, selected: !filtroEmp },
+                  ...empresasUnicas.map((e) => ({ value: e, label: e, selected: filtroEmp === e })),
+                ],
+              },
+            ],
+            showClear: filtroAtivo,
+            clearId: 'btnLimparFiltrosCli',
+          })
+        : '';
 
       // Chips: top empresas por frequência + "Todos"
       const empContagem = {};
-      (Store.state.clientes || []).forEach(c => {
+      (Store.state.clientes || []).forEach((c) => {
         const e = (c.empresa || '').trim();
         if (e) empContagem[e] = (empContagem[e] || 0) + 1;
       });
       const topEmpresas = Object.entries(empContagem)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 6);
-      const chipsHtml = window.UIKit?.chips ? window.UIKit.chips([
-        { value: '', label: 'Todos', count: totalCli, active: !filtroEmp },
-        ...topEmpresas.map(([nome, n]) => ({ value: nome, label: nome, count: n, active: filtroEmp === nome })),
-      ], { name: 'empresa', inCard: true }) : '';
+      const chipsHtml = window.UIKit?.chips
+        ? window.UIKit.chips(
+            [
+              { value: '', label: 'Todos', count: totalCli, active: !filtroEmp },
+              ...topEmpresas.map(([nome, n]) => ({
+                value: nome,
+                label: nome,
+                count: n,
+                active: filtroEmp === nome,
+              })),
+            ],
+            { name: 'empresa', inCard: true }
+          )
+        : '';
 
       const html = `
         ${headerHtml}
@@ -106,11 +148,16 @@ window.Clientes = {
                 </tr>
               </thead>
               <tbody>
-                ${filtrados.length === 0 ? `
+                ${
+                  filtrados.length === 0
+                    ? `
                   <tr><td colspan="6" class="text-center text-muted" style="padding:var(--sp-xl);">
                     ${termo ? 'Nenhum cliente encontrado para a busca' : 'Nenhum cliente cadastrado'}
                   </td></tr>
-                ` : filtrados.map(c => `
+                `
+                    : filtrados
+                        .map(
+                          (c) => `
                   <tr class="row-cliente" data-id="${c.id}" style="cursor:pointer;" title="Clique para ver detalhes">
                     <td>
                       <div style="display:flex;align-items:center;gap:10px;">
@@ -134,7 +181,10 @@ window.Clientes = {
                       </div>
                     </td>
                   </tr>
-                `).join('')}
+                `
+                        )
+                        .join('')
+                }
               </tbody>
             </table>
           </div>
@@ -144,13 +194,13 @@ window.Clientes = {
       app.innerHTML = html;
 
       document.getElementById('btnNovoCliente').addEventListener('click', () => this.showModal());
-      document.getElementById('inputBusca').addEventListener('input', e => {
+      document.getElementById('inputBusca').addEventListener('input', (e) => {
         this.busca = e.target.value;
         // Re-renderiza apenas a tabela (debounce simples: só a cada 250ms)
         clearTimeout(this._tBusca);
         this._tBusca = setTimeout(() => this.render(), 250);
       });
-      document.getElementById('filtroEmpresa').addEventListener('change', e => {
+      document.getElementById('filtroEmpresa').addEventListener('change', (e) => {
         this.empresa = e.target.value;
         this.render();
       });
@@ -159,19 +209,34 @@ window.Clientes = {
         this.render();
       });
       // Chips de empresa
-      document.querySelectorAll('[data-chips="empresa"] .rh-chip').forEach(b => {
+      document.querySelectorAll('[data-chips="empresa"] .rh-chip').forEach((b) => {
         b.addEventListener('click', () => {
           this.empresa = b.dataset.value || '';
           this.render();
         });
       });
 
-      document.querySelectorAll('.btn-ver-portal').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); this.verPortalComoCliente(e.target.dataset.id); }));
-      document.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); this.showModal(e.target.dataset.id); }));
-      document.querySelectorAll('.btn-excluir').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); this.deleteCliente(e.target.dataset.id); }));
+      document.querySelectorAll('.btn-ver-portal').forEach((b) =>
+        b.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.verPortalComoCliente(e.target.dataset.id);
+        })
+      );
+      document.querySelectorAll('.btn-editar').forEach((b) =>
+        b.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.showModal(e.target.dataset.id);
+        })
+      );
+      document.querySelectorAll('.btn-excluir').forEach((b) =>
+        b.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.deleteCliente(e.target.dataset.id);
+        })
+      );
 
       // Click na linha → abre modal de detalhe (read-only)
-      document.querySelectorAll('.row-cliente').forEach(tr => {
+      document.querySelectorAll('.row-cliente').forEach((tr) => {
         tr.addEventListener('click', (e) => {
           if (e.target.closest('.actions-cell') || e.target.closest('button, a')) return;
           this.showDetail(tr.dataset.id);
@@ -179,27 +244,35 @@ window.Clientes = {
       });
     } catch (e) {
       console.error(e);
-      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar clientes. Tente novamente.</p></div>';
+      app.innerHTML =
+        '<div class="card"><p class="text-danger">Erro ao carregar clientes. Tente novamente.</p></div>';
     }
   },
 
   // Modal de detalhe do cliente (read-only). Mesmo estilo do detalhe de colaborador.
   showDetail(clienteId) {
-    const c = Store.state.clientes.find(x => x.id === clienteId);
+    const c = Store.state.clientes.find((x) => x.id === clienteId);
     if (!c) return;
 
     // Busca contratos vinculados a este cliente
-    const contratosCliente = (Store.state.contracts || []).filter(ct => ct.clientId === clienteId || ct.client === c.nome || ct.client === c.empresa);
+    const contratosCliente = (Store.state.contracts || []).filter(
+      (ct) => ct.clientId === clienteId || ct.client === c.nome || ct.client === c.empresa
+    );
     const totalCarteira = contratosCliente.reduce((s, ct) => s + (parseFloat(ct.value) || 0), 0);
-    const ativos = contratosCliente.filter(ct => ct.status === 'ativo').length;
+    const ativos = contratosCliente.filter((ct) => ct.status === 'ativo').length;
 
-    const fmtPhone = window.formatPhoneBR ? window.formatPhoneBR(c.telefone || '') : (c.telefone || '');
-    const linha = (label, value, link) => value ? `
+    const fmtPhone = window.formatPhoneBR
+      ? window.formatPhoneBR(c.telefone || '')
+      : c.telefone || '';
+    const linha = (label, value, link) =>
+      value
+        ? `
       <div style="padding:10px 0;border-bottom:1px solid var(--rh-ink-200);display:flex;justify-content:space-between;gap:12px;">
         <span class="rh-meta" style="flex-shrink:0;">${escapeHtml(label)}</span>
         <span style="text-align:right;font-weight:600;">${link ? `<a href="${link}" style="color:var(--rh-brand-500);text-decoration:none;">${escapeHtml(value)}</a>` : escapeHtml(value)}</span>
       </div>
-    ` : '';
+    `
+        : '';
 
     const html = `
       <div class="modal-overlay" id="modalOverlay">
@@ -240,15 +313,23 @@ window.Clientes = {
             ${linha('Telefone', fmtPhone, c.telefone ? 'tel:' + c.telefone : null)}
             ${linha('Email', c.email, c.email ? 'mailto:' + c.email : null)}
             ${linha('Endereço', c.endereco)}
-            ${c.notas ? `
+            ${
+              c.notas
+                ? `
               <h3 class="rh-h3" style="margin:var(--sp-md) 0 8px;">Notas</h3>
               <div style="padding:10px;background:var(--rh-ink-100);border-radius:6px;font-size:14px;white-space:pre-wrap;">${escapeHtml(c.notas)}</div>
-            ` : ''}
+            `
+                : ''
+            }
 
-            ${contratosCliente.length > 0 ? `
+            ${
+              contratosCliente.length > 0
+                ? `
               <h3 class="rh-h3" style="margin:var(--sp-md) 0 8px;">Contratos</h3>
               <div style="display:flex;flex-direction:column;gap:6px;">
-                ${contratosCliente.map(ct => `
+                ${contratosCliente
+                  .map(
+                    (ct) => `
                   <a href="#/contratos/${ct.id}" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--rh-ink-200);border-radius:var(--rh-r-sm);text-decoration:none;color:inherit;background:var(--rh-paper);">
                     <div style="min-width:0;">
                       <div style="font-weight:600;font-size:14px;">${escapeHtml(ct.name || '—')}</div>
@@ -256,9 +337,13 @@ window.Clientes = {
                     </div>
                     <div style="font-weight:700;text-align:right;">${Store.formatBRL(parseFloat(ct.value) || 0)}</div>
                   </a>
-                `).join('')}
+                `
+                  )
+                  .join('')}
               </div>
-            ` : ''}
+            `
+                : ''
+            }
           </div>
           <div class="modal-footer">
             <button class="btn btn-secondary" id="btnFechar">Fechar</button>
@@ -273,8 +358,13 @@ window.Clientes = {
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnFechar').addEventListener('click', close);
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-    document.getElementById('btnEditarDet').addEventListener('click', () => { close(); this.showModal(clienteId); });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
+    document.getElementById('btnEditarDet').addEventListener('click', () => {
+      close();
+      this.showModal(clienteId);
+    });
     document.getElementById('btnGerarProposta')?.addEventListener('click', () => {
       close();
       // Navega para Propostas e abre modal "Nova" pré-preenchido com este cliente
@@ -288,7 +378,7 @@ window.Clientes = {
   },
 
   showModal(clienteId) {
-    const cliente = clienteId ? Store.state.clientes.find(c => c.id === clienteId) : null;
+    const cliente = clienteId ? Store.state.clientes.find((c) => c.id === clienteId) : null;
     const title = cliente ? 'Editar Cliente' : 'Novo Cliente';
 
     const html = `
@@ -311,11 +401,16 @@ window.Clientes = {
                   placeholder="Escolha uma cadastrada ou digite nova..."
                   autocomplete="off">
                 <datalist id="empresasJaCadastradas">
-                  ${[...new Set((Store.state.clientes || [])
-                    .map(c => (c.empresa || '').trim())
-                    .filter(Boolean))]
+                  ${[
+                    ...new Set(
+                      (Store.state.clientes || [])
+                        .map((c) => (c.empresa || '').trim())
+                        .filter(Boolean)
+                    ),
+                  ]
                     .sort((a, b) => a.localeCompare(b, 'pt-BR'))
-                    .map(e => `<option value="${escapeHtml(e)}"></option>`).join('')}
+                    .map((e) => `<option value="${escapeHtml(e)}"></option>`)
+                    .join('')}
                 </datalist>
                 <span style="font-size:11px;color:var(--color-text-muted);">Clique pra ver empresas já usadas ou digite uma nova</span>
               </div>
@@ -373,12 +468,16 @@ window.Clientes = {
                 <label class="form-label">${cliente?.portalEmail ? 'Nova senha (vazio = manter)' : 'Senha de acesso'}</label>
                 <input class="form-control" name="portalSenha" type="password" autocomplete="new-password" placeholder="${cliente?.portalEmail ? 'Deixe vazio para manter a senha atual' : 'Definir senha de acesso ao portal'}">
               </div>
-              ${cliente?.portalEmail ? `
+              ${
+                cliente?.portalEmail
+                  ? `
                 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#c33;">
                   <input type="checkbox" name="removerPortalAcesso" value="1">
                   Remover acesso ao portal
                 </label>
-              ` : ''}
+              `
+                  : ''
+              }
             </div>
           </form>
           <div class="modal-footer">
@@ -392,19 +491,27 @@ window.Clientes = {
     document.body.insertAdjacentHTML('beforeend', html);
     const overlay = document.getElementById('modalOverlay');
     const close = () => {
-      if (window.Clientes._miniMap) { window.Clientes._miniMap.remove(); window.Clientes._miniMap = null; }
+      if (window.Clientes._miniMap) {
+        window.Clientes._miniMap.remove();
+        window.Clientes._miniMap = null;
+      }
       overlay.remove();
     };
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnCancelar').addEventListener('click', close);
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
 
     this._initEnderecoSearch(cliente?.lat, cliente?.lng, cliente?.endereco);
 
     document.getElementById('btnSalvar').addEventListener('click', async () => {
       const fd = new FormData(document.getElementById('formCliente'));
       const data = Object.fromEntries(fd);
-      if (!data.nome || !data.nome.trim()) { window.showToast('Nome é obrigatório', 'error'); return; }
+      if (!data.nome || !data.nome.trim()) {
+        window.showToast('Nome é obrigatório', 'error');
+        return;
+      }
 
       // Usa o email do cliente como email de acesso ao portal
       if (data.portalSenha && data.email) data.portalEmail = data.email;
@@ -416,18 +523,20 @@ window.Clientes = {
         window.showToast(cliente ? 'Cliente atualizado' : 'Cliente criado', 'success');
         close();
         this.render();
-      } catch (e) { window.showToast(e.message, 'error'); }
+      } catch (e) {
+        window.showToast(e.message, 'error');
+      }
     });
   },
 
   _miniMap: null,
 
   _initEnderecoSearch(lat, lng, enderecoSalvo) {
-    const input    = document.getElementById('enderecoInput');
+    const input = document.getElementById('enderecoInput');
     const dropdown = document.getElementById('nominatimDropdown');
     const latInput = document.getElementById('enderecoLat');
     const lngInput = document.getElementById('enderecoLng');
-    const mapaDiv  = document.getElementById('miniMapa');
+    const mapaDiv = document.getElementById('miniMapa');
     if (!input) return;
 
     const mostrarMiniMapa = async (la, lo, label) => {
@@ -436,11 +545,16 @@ window.Clientes = {
       if (typeof L === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('leaflet');
       if (typeof L === 'undefined') return;
       setTimeout(() => {
-        if (this._miniMap) { this._miniMap.remove(); this._miniMap = null; }
-        this._miniMap = L.map(mapaDiv, { zoomControl: true, scrollWheelZoom: false })
-          .setView([la, lo], 15);
+        if (this._miniMap) {
+          this._miniMap.remove();
+          this._miniMap = null;
+        }
+        this._miniMap = L.map(mapaDiv, { zoomControl: true, scrollWheelZoom: false }).setView(
+          [la, lo],
+          15
+        );
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap'
+          attribution: '© OpenStreetMap',
         }).addTo(this._miniMap);
         L.marker([la, lo]).addTo(this._miniMap).bindPopup(label).openPopup();
       }, 50);
@@ -452,7 +566,10 @@ window.Clientes = {
     input.addEventListener('input', () => {
       clearTimeout(debounce);
       const q = input.value.trim();
-      if (q.length < 4) { dropdown.style.display = 'none'; return; }
+      if (q.length < 4) {
+        dropdown.style.display = 'none';
+        return;
+      }
       debounce = setTimeout(async () => {
         try {
           const res = await fetch(
@@ -460,21 +577,26 @@ window.Clientes = {
             { headers: { 'Accept-Language': 'pt-BR,pt;q=0.9' } }
           );
           const results = await res.json();
-          if (!results.length) { dropdown.style.display = 'none'; return; }
+          if (!results.length) {
+            dropdown.style.display = 'none';
+            return;
+          }
 
           // FIX P0-2: escapa retorno do Nominatim (terceiro, não confiável) antes
           // de inserir em innerHTML. Sem isso, um resultado com `<img onerror=...>`
           // resulta em XSS no contexto autenticado da aplicação.
-          dropdown.innerHTML = results.map(r => {
-            const name   = r.display_name.split(',').slice(0, 3).join(',');
-            const detail = r.display_name.split(',').slice(3).join(',').trim();
-            return `<div class="nominatim-item" data-lat="${window.escapeHtml(r.lat)}" data-lng="${window.escapeHtml(r.lon)}" data-name="${window.escapeHtml(r.display_name)}">
+          dropdown.innerHTML = results
+            .map((r) => {
+              const name = r.display_name.split(',').slice(0, 3).join(',');
+              const detail = r.display_name.split(',').slice(3).join(',').trim();
+              return `<div class="nominatim-item" data-lat="${window.escapeHtml(r.lat)}" data-lng="${window.escapeHtml(r.lon)}" data-name="${window.escapeHtml(r.display_name)}">
               <strong>${window.escapeHtml(name)}</strong><span>${window.escapeHtml(detail)}</span>
             </div>`;
-          }).join('');
+            })
+            .join('');
           dropdown.style.display = 'block';
 
-          dropdown.querySelectorAll('.nominatim-item').forEach(el => {
+          dropdown.querySelectorAll('.nominatim-item').forEach((el) => {
             el.addEventListener('click', () => {
               const la = parseFloat(el.dataset.lat);
               const lo = parseFloat(el.dataset.lng);
@@ -486,16 +608,19 @@ window.Clientes = {
               mostrarMiniMapa(la, lo, nome);
             });
           });
-        } catch { dropdown.style.display = 'none'; }
+        } catch {
+          dropdown.style.display = 'none';
+        }
       }, 450);
     });
 
-    const _onDocClick = e => {
+    const _onDocClick = (e) => {
       if (!document.getElementById('enderecoWrap')?.contains(e.target))
         dropdown.style.display = 'none';
     };
     document.addEventListener('click', _onDocClick);
-    window.viewLifecycle && window.viewLifecycle.onCleanup(() => document.removeEventListener('click', _onDocClick));
+    window.viewLifecycle &&
+      window.viewLifecycle.onCleanup(() => document.removeEventListener('click', _onDocClick));
   },
 
   /** Espelha o gate do backend: super admin = sem perfil (null) ou 'admin'. */
@@ -528,7 +653,7 @@ window.Clientes = {
   async deleteCliente(id) {
     // Padrão otimista: some da UI imediatamente; toast com Desfazer (5s).
     // Sem UIKit, cai pro confirm() nativo legado.
-    const cliente = (Store.state.clientes || []).find(c => c.id === id);
+    const cliente = (Store.state.clientes || []).find((c) => c.id === id);
     if (!cliente) return;
     if (!window.UIKit?.deleteWithUndo) {
       if (!confirm('Excluir este cliente?')) return;
@@ -536,16 +661,20 @@ window.Clientes = {
         await Store.deleteCliente(id);
         window.showToast('Cliente removido', 'success');
         this.render();
-      } catch (e) { window.showToast(e.message, 'error'); }
+      } catch (e) {
+        window.showToast(e.message, 'error');
+      }
       return;
     }
     // Remoção otimista do cache local; re-render esconde o item.
     const arr = Store.state.clientes;
-    const idx = arr.findIndex(c => c.id === id);
+    const idx = arr.findIndex((c) => c.id === id);
     if (idx < 0) return;
     const removed = arr.splice(idx, 1)[0];
     this.render();
-    const r = await window.UIKit.deleteWithUndo({ msg: `Cliente "${removed.nome || removed.empresa || '—'}" removido` });
+    const r = await window.UIKit.deleteWithUndo({
+      msg: `Cliente "${removed.nome || removed.empresa || '—'}" removido`,
+    });
     if (r === 'undo') {
       arr.splice(idx, 0, removed);
       this.render();
@@ -559,5 +688,5 @@ window.Clientes = {
       this.render();
       window.showToast('Erro ao remover: ' + e.message, 'error');
     }
-  }
+  },
 };

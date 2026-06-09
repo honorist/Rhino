@@ -9,7 +9,9 @@ window.Portal = {
   async init() {
     const saved = sessionStorage.getItem('rhino-portal-cliente');
     if (saved) {
-      try { this._cliente = JSON.parse(saved); } catch {}
+      try {
+        this._cliente = JSON.parse(saved);
+      } catch {}
     }
     await this.render();
   },
@@ -18,32 +20,39 @@ window.Portal = {
     document.getElementById('shell').style.display = 'none';
     document.body.classList.add('portal-mode');
 
-    const wrap = document.getElementById('portal-root') || (() => {
-      const d = document.createElement('div');
-      d.id = 'portal-root';
-      document.body.appendChild(d);
-      return d;
-    })();
+    const wrap =
+      document.getElementById('portal-root') ||
+      (() => {
+        const d = document.createElement('div');
+        d.id = 'portal-root';
+        document.body.appendChild(d);
+        return d;
+      })();
 
     if (!this._cliente) {
       this._renderLogin(wrap);
       return;
     }
 
-    wrap.innerHTML = '<div style="text-align:center;padding:60px;color:var(--color-text-muted);">Carregando…</div>';
+    wrap.innerHTML =
+      '<div style="text-align:center;padding:60px;color:var(--color-text-muted);">Carregando…</div>';
     try {
       const [resDash, resPropostas] = await Promise.all([
         fetch('/api/portal/dashboard'),
-        fetch('/api/portal/propostas').catch(e => {
+        fetch('/api/portal/propostas').catch((e) => {
           console.warn('[Portal] /api/portal/propostas falhou:', e?.message || e);
           return { ok: false, _failed: true };
         }),
       ]);
-      if (resDash.status === 401) { this._logout(wrap); return; }
+      if (resDash.status === 401) {
+        this._logout(wrap);
+        return;
+      }
       this._data = await resDash.json();
       if (resPropostas && resPropostas.ok) {
-        try { this._data.propostas = (await resPropostas.json()).propostas || []; }
-        catch (e) {
+        try {
+          this._data.propostas = (await resPropostas.json()).propostas || [];
+        } catch (e) {
           console.warn('[Portal] parse de propostas falhou:', e?.message || e);
           this._data.propostas = [];
           this._data._propostasErro = true;
@@ -54,7 +63,8 @@ window.Portal = {
       }
       this._renderDashboard(wrap);
     } catch {
-      wrap.innerHTML = '<div style="text-align:center;padding:60px;color:#c33;">Erro ao carregar dados. Recarregue a página.</div>';
+      wrap.innerHTML =
+        '<div style="text-align:center;padding:60px;color:#c33;">Erro ao carregar dados. Recarregue a página.</div>';
     }
   },
 
@@ -96,7 +106,8 @@ window.Portal = {
       err.style.display = 'none';
       const fd = new FormData(form);
       const btn = form.querySelector('button[type=submit]');
-      btn.disabled = true; btn.textContent = 'Entrando…';
+      btn.disabled = true;
+      btn.textContent = 'Entrando…';
       try {
         const res = await fetch('/api/portal/login', {
           method: 'POST',
@@ -111,26 +122,46 @@ window.Portal = {
       } catch (ex) {
         err.textContent = ex.message;
         err.style.display = 'block';
-        btn.disabled = false; btn.textContent = 'Entrar';
+        btn.disabled = false;
+        btn.textContent = 'Entrar';
       }
     });
   },
 
   _renderDashboard(wrap) {
     const d = this._data;
-    const fmt = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
-    const fmtDate = (s) => s ? new Date(s + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
-    const statusLabel = { ativo: 'Em andamento', concluido: 'Concluído', pausado: 'Pausado', cancelado: 'Cancelado' };
-    const statusColor = { ativo: '#38A169', concluido: '#3182CE', pausado: '#D69E2E', cancelado: '#E53E3E' };
+    const fmt = (v) =>
+      Number(v || 0).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        minimumFractionDigits: 0,
+      });
+    const fmtDate = (s) => (s ? new Date(s + 'T12:00:00').toLocaleDateString('pt-BR') : '—');
+    const statusLabel = {
+      ativo: 'Em andamento',
+      concluido: 'Concluído',
+      pausado: 'Pausado',
+      cancelado: 'Cancelado',
+    };
+    const statusColor = {
+      ativo: '#38A169',
+      concluido: '#3182CE',
+      pausado: '#D69E2E',
+      cancelado: '#E53E3E',
+    };
 
     wrap.innerHTML = `
       <div style="min-height:100vh;background:var(--color-bg);">
-        ${d.impersonado ? `
+        ${
+          d.impersonado
+            ? `
         <!-- Banner "Ver como" — sessão de visualização criada por super admin -->
         <div style="background:#B7791F;color:#fff;padding:8px 16px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;font-size:14px;">
           <span>👁 Você está visualizando o portal como <strong>${escapeHtml(d.cliente.nome)}</strong> (sessão de administrador, expira em 30 min)</span>
           <button id="btnSairImpersonacao" class="btn btn-secondary" style="font-size:13px;padding:4px 12px;">Voltar ao Rhino</button>
-        </div>` : ''}
+        </div>`
+            : ''
+        }
         <!-- Header -->
         <header style="background:var(--sidebar-bg);border-bottom:1px solid var(--color-border);padding:var(--sp-md) var(--sp-xl);display:flex;align-items:center;justify-content:space-between;gap:var(--sp-md);">
           <div style="display:flex;align-items:center;gap:var(--sp-md);">
@@ -149,16 +180,26 @@ window.Portal = {
           <!-- KPIs -->
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--sp-md);margin-bottom:var(--sp-xl);">
             ${[
-              { label: 'Contratos ativos', value: d.contratos.filter(c => c.status === 'ativo').length },
-              { label: 'Valor total', value: fmt(d.contratos.reduce((s, c) => s + (parseFloat(c.value) || 0), 0)) },
-              { label: 'NFs emitidas', value: d.nfs.filter(n => n.status === 'emitida').length },
+              {
+                label: 'Contratos ativos',
+                value: d.contratos.filter((c) => c.status === 'ativo').length,
+              },
+              {
+                label: 'Valor total',
+                value: fmt(d.contratos.reduce((s, c) => s + (parseFloat(c.value) || 0), 0)),
+              },
+              { label: 'NFs emitidas', value: d.nfs.filter((n) => n.status === 'emitida').length },
               { label: 'Diários de obra', value: (d.rdos || []).length },
-            ].map(k => `
+            ]
+              .map(
+                (k) => `
               <div class="card" style="padding:var(--sp-lg);text-align:center;">
                 <div style="font-size:22px;font-weight:700;color:var(--color-primary);">${k.value}</div>
                 <div style="font-size:13px;color:var(--color-text-muted);margin-top:4px;">${k.label}</div>
               </div>
-            `).join('')}
+            `
+              )
+              .join('')}
           </div>
 
           <!-- Contratos -->
@@ -166,9 +207,14 @@ window.Portal = {
             <div style="padding:var(--sp-lg);border-bottom:1px solid var(--color-border);">
               <h2 style="margin:0;font-size:16px;font-weight:700;">Meus Contratos</h2>
             </div>
-            ${d.contratos.length === 0 ? `
+            ${
+              d.contratos.length === 0
+                ? `
               <div style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">Nenhum contrato vinculado</div>
-            ` : d.contratos.map(c => `
+            `
+                : d.contratos
+                    .map(
+                      (c) => `
               <div style="padding:var(--sp-lg);border-bottom:1px solid var(--color-border);">
                 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:var(--sp-md);flex-wrap:wrap;">
                   <div>
@@ -196,11 +242,16 @@ window.Portal = {
                   </div>
                 </div>
               </div>
-            `).join('')}
+            `
+                    )
+                    .join('')
+            }
           </div>
 
           <!-- Propostas Comerciais -->
-          ${(d.propostas && d.propostas.length > 0) ? `
+          ${
+            d.propostas && d.propostas.length > 0
+              ? `
             <div class="card" style="margin-bottom:var(--sp-xl);">
               <div style="padding:var(--sp-lg);border-bottom:1px solid var(--color-border);">
                 <h2 style="margin:0;font-size:16px;font-weight:700;">Minhas Propostas</h2>
@@ -210,9 +261,11 @@ window.Portal = {
                 <table>
                   <thead><tr><th scope="col">Número</th><th scope="col">Título</th><th scope="col">Valor</th><th scope="col">Emissão</th><th scope="col">Status</th><th scope="col">Baixar</th></tr></thead>
                   <tbody>
-                    ${d.propostas.map(p => `
+                    ${d.propostas
+                      .map(
+                        (p) => `
                       <tr>
-                        <td><strong>PC_${escapeHtml(p.numero)}-${String(p.ano).padStart(2,'0')}${p.revisao > 0 ? ' Rev.' + String(p.revisao).padStart(2,'0') : ''}</strong></td>
+                        <td><strong>PC_${escapeHtml(p.numero)}-${String(p.ano).padStart(2, '0')}${p.revisao > 0 ? ' Rev.' + String(p.revisao).padStart(2, '0') : ''}</strong></td>
                         <td>${escapeHtml(p.titulo)}</td>
                         <td>${fmt(p.valorTotal || p.valor_total)}</td>
                         <td>${fmtDate(p.dataEmissao || p.data_emissao)}</td>
@@ -222,15 +275,21 @@ window.Portal = {
                           <button type="button" href="/api/portal/propostas/${p.id}/docx" target="_blank" class="action-link">DOCX</button>
                         </td>
                       </tr>
-                    `).join('')}
+                    `
+                      )
+                      .join('')}
                   </tbody>
                 </table>
               </div>
             </div>
-          ` : ''}
+          `
+              : ''
+          }
 
           <!-- Notas Fiscais -->
-          ${d.nfs.length > 0 ? `
+          ${
+            d.nfs.length > 0
+              ? `
             <div class="card">
               <div style="padding:var(--sp-lg);border-bottom:1px solid var(--color-border);">
                 <h2 style="margin:0;font-size:16px;font-weight:700;">Notas Fiscais</h2>
@@ -239,50 +298,72 @@ window.Portal = {
                 <table>
                   <thead><tr><th scope="col">Número</th><th scope="col">Data</th><th scope="col">Valor</th><th scope="col">Status</th></tr></thead>
                   <tbody>
-                    ${d.nfs.map(n => `
+                    ${d.nfs
+                      .map(
+                        (n) => `
                       <tr>
                         <td><strong>${escapeHtml(n.numero || '—')}</strong></td>
                         <td>${fmtDate(n.dataEmissao)}</td>
                         <td>${fmt(n.valor)}</td>
                         <td><span style="color:${n.status === 'emitida' ? '#38A169' : '#D69E2E'};font-weight:600;">${n.status === 'emitida' ? 'Emitida' : 'Pendente'}</span></td>
                       </tr>
-                    `).join('')}
+                    `
+                      )
+                      .join('')}
                   </tbody>
                 </table>
               </div>
             </div>
-          ` : ''}
+          `
+              : ''
+          }
 
           <!-- RDOs recentes -->
-          ${d.rdos && d.rdos.length > 0 ? `
+          ${
+            d.rdos && d.rdos.length > 0
+              ? `
             <div class="card" style="margin-top:var(--sp-xl);">
               <div style="padding:var(--sp-lg);border-bottom:1px solid var(--color-border);">
                 <h2 style="margin:0;font-size:16px;font-weight:700;">Diários de Obra (RDOs)</h2>
                 <p style="margin:4px 0 0;font-size:13px;color:var(--color-text-muted);">Últimas ${d.rdos.length} entradas</p>
               </div>
-              ${d.rdos.map(r => `
+              ${d.rdos
+                .map(
+                  (r) => `
                 <div style="padding:var(--sp-lg);border-bottom:1px solid var(--color-border);">
                   <div style="display:flex;justify-content:space-between;align-items:center;gap:var(--sp-md);flex-wrap:wrap;margin-bottom:8px;">
                     <div>
                       <strong style="font-size:14px;">${escapeHtml(r.contractName)}</strong>
-                      <span style="margin-left:8px;font-size:13px;color:var(--color-text-muted);">${r.data ? new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'short' }) : '—'}</span>
+                      <span style="margin-left:8px;font-size:13px;color:var(--color-text-muted);">${r.data ? new Date(r.data + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' }) : '—'}</span>
                       ${r.clima ? `<span style="margin-left:8px;font-size:13px;">🌤 ${escapeHtml(r.clima)}</span>` : ''}
                     </div>
                   </div>
                   ${r.atividades ? `<p style="margin:0 0 8px;font-size:14px;color:var(--color-text-muted);">${escapeHtml(r.atividades)}${r.atividades.length >= 200 ? '…' : ''}</p>` : ''}
-                  ${r.fotos && r.fotos.length > 0 ? `
+                  ${
+                    r.fotos && r.fotos.length > 0
+                      ? `
                     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-                      ${r.fotos.map(f => `
+                      ${r.fotos
+                        .map(
+                          (f) => `
                         <a href="${escapeHtml(f.url || '')}" target="_blank" rel="noopener" style="display:block;width:80px;height:60px;border-radius:6px;overflow:hidden;flex-shrink:0;background:var(--color-surface-2);">
                           <img src="${escapeHtml(f.url || '')}" alt="${escapeHtml(f.legenda || 'Foto')}" class="js-hide-on-error" style="width:100%;height:100%;object-fit:cover;" loading="lazy">
                         </a>
-                      `).join('')}
+                      `
+                        )
+                        .join('')}
                     </div>
-                  ` : ''}
+                  `
+                      : ''
+                  }
                 </div>
-              `).join('')}
+              `
+                )
+                .join('')}
             </div>
-          ` : ''}
+          `
+              : ''
+          }
         </main>
       </div>
     `;
@@ -292,8 +373,12 @@ window.Portal = {
       // estado local mesmo que o server não confirme, pra não deixar usuário
       // "preso" se houver problema de rede). Sessão no PG é purgada por
       // expiração eventualmente.
-      await fetch('/api/portal/logout', { method: 'POST' })
-        .catch(e => console.warn('[Portal] logout server-side falhou — sessão local removida mesmo assim:', e?.message || e));
+      await fetch('/api/portal/logout', { method: 'POST' }).catch((e) =>
+        console.warn(
+          '[Portal] logout server-side falhou — sessão local removida mesmo assim:',
+          e?.message || e
+        )
+      );
       sessionStorage.removeItem('rhino-portal-cliente');
       this._cliente = null;
       this._data = null;
@@ -304,8 +389,12 @@ window.Portal = {
     // rhino_portal) — a sessão admin (rhino_sid) fica intacta — e devolve
     // o shell do Rhino. Botão só existe quando d.impersonado.
     document.getElementById('btnSairImpersonacao')?.addEventListener('click', async () => {
-      await fetch('/api/portal/logout', { method: 'POST' })
-        .catch(e => console.warn('[Portal] logout da impersonação falhou — saindo mesmo assim:', e?.message || e));
+      await fetch('/api/portal/logout', { method: 'POST' }).catch((e) =>
+        console.warn(
+          '[Portal] logout da impersonação falhou — saindo mesmo assim:',
+          e?.message || e
+        )
+      );
       sessionStorage.removeItem('rhino-portal-cliente');
       this._cliente = null;
       this._data = null;
