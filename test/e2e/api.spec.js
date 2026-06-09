@@ -42,7 +42,9 @@ test.describe('Auth', () => {
     const logout = await ctx.post('/api/auth/logout');
     expect(logout.status()).toBe(200);
     const meAfter = await ctx.get('/api/auth/me');
-    expect(meAfter.status()).toBe(401);
+    // /api/auth/me agora retorna 200 {user:null} sem sessão (era 401) — "quem sou eu" não é erro.
+    expect(meAfter.status()).toBe(200);
+    expect((await meAfter.json()).user).toBeNull();
   });
 
   test('/api/health não exige login', async () => {
