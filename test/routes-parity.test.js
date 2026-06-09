@@ -304,7 +304,7 @@ test('routes/financeiro.js — sub-recurso aninhado folha/:id/itens/:itemId', ()
 // ─── routes/comercial.js (clientes, fornecedores, cláusulas, propostas, ──────
 //     apresentação, case-logos) ─────────────────────────────────────────────
 
-test('routes/comercial.js — registra exatamente as 38 rotas comerciais', () => {
+test('routes/comercial.js — registra exatamente as 39 rotas comerciais', () => {
   const router = createRouter();
   require('../routes/comercial')(router, {});
   const rotas = router.list().map(r => `${r.method} ${r.pattern}`).sort();
@@ -318,7 +318,9 @@ test('routes/comercial.js — registra exatamente as 38 rotas comerciais', () =>
     'GET /api/propostas/:id/anexos/:anexoId', 'GET /api/propostas/:id/docx',
     'GET /api/propostas/:id/pdf', 'GET /api/propostas/:id/preview',
     'PATCH /api/propostas/:id',
-    'POST /api/clausulas', 'POST /api/clientes', 'POST /api/fornecedores', 'POST /api/propostas',
+    'POST /api/clausulas', 'POST /api/clientes',
+    'POST /api/clientes/:id/portal-impersonate', // "Ver portal como cliente" (super admin)
+    'POST /api/fornecedores', 'POST /api/propostas',
     'POST /api/propostas/:id/aceitar', 'POST /api/propostas/:id/anexos',
     'POST /api/propostas/:id/custos', 'POST /api/propostas/:id/duplicar',
     'POST /api/propostas/:id/enviar', 'POST /api/propostas/:id/rejeitar',

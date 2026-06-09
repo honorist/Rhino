@@ -128,6 +128,7 @@ window.Clientes = {
                     <td>${c.email ? `<a href="mailto:${escapeHtml(c.email)}" class="js-stop" style="color:var(--color-primary);text-decoration:none;">${escapeHtml(c.email)}</a>` : '—'}</td>
                     <td>
                       <div class="actions-cell">
+                        ${this._isSuperAdmin() ? `<button type="button" class="action-link btn-ver-portal" data-id="${c.id}" title="Ver o portal como este cliente (sessão de 30 min)">Portal</button>` : ''}
                         <button type="button" class="action-link btn-editar" data-id="${c.id}">Editar</button>
                         <button type="button" class="action-link danger btn-excluir" data-id="${c.id}">Excluir</button>
                       </div>
@@ -165,6 +166,7 @@ window.Clientes = {
         });
       });
 
+      document.querySelectorAll('.btn-ver-portal').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); this.verPortalComoCliente(e.target.dataset.id); }));
       document.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); this.showModal(e.target.dataset.id); }));
       document.querySelectorAll('.btn-excluir').forEach(b => b.addEventListener('click', e => { e.stopPropagation(); this.deleteCliente(e.target.dataset.id); }));
 
@@ -494,6 +496,33 @@ window.Clientes = {
     };
     document.addEventListener('click', _onDocClick);
     window.viewLifecycle && window.viewLifecycle.onCleanup(() => document.removeEventListener('click', _onDocClick));
+  },
+
+  /** Espelha o gate do backend: super admin = sem perfil (null) ou 'admin'. */
+  _isSuperAdmin() {
+    const u = window.auth && typeof window.auth.user === 'function' ? window.auth.user() : null;
+    return !!u && (u.nivelAcessoId == null || u.nivelAcessoId === 'admin');
+  },
+
+  /**
+   * "Ver portal como cliente": pede ao servidor uma sessão de portal
+   * impersonada (cookie rhino_portal) e navega para #/portal. A sessão admin
+   * (rhino_sid) continua intacta — o banner do portal oferece a volta.
+   */
+  async verPortalComoCliente(id) {
+    try {
+      const res = await fetch(`/api/clientes/${id}/portal-impersonate`, { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        window.showToast(data.error || 'Não foi possível abrir o portal deste cliente', 'error');
+        return;
+      }
+      // Mesmo formato que o login real do portal grava (Portal.js lê daqui).
+      sessionStorage.setItem('rhino-portal-cliente', JSON.stringify(data.cliente));
+      location.hash = '#/portal';
+    } catch (e) {
+      window.showToast('Erro ao abrir portal: ' + e.message, 'error');
+    }
   },
 
   async deleteCliente(id) {

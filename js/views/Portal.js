@@ -125,6 +125,12 @@ window.Portal = {
 
     wrap.innerHTML = `
       <div style="min-height:100vh;background:var(--color-bg);">
+        ${d.impersonado ? `
+        <!-- Banner "Ver como" — sessão de visualização criada por super admin -->
+        <div style="background:#B7791F;color:#fff;padding:8px 16px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;font-size:14px;">
+          <span>👁 Você está visualizando o portal como <strong>${escapeHtml(d.cliente.nome)}</strong> (sessão de administrador, expira em 30 min)</span>
+          <button id="btnSairImpersonacao" class="btn btn-secondary" style="font-size:13px;padding:4px 12px;">Voltar ao Rhino</button>
+        </div>` : ''}
         <!-- Header -->
         <header style="background:var(--sidebar-bg);border-bottom:1px solid var(--color-border);padding:var(--sp-md) var(--sp-xl);display:flex;align-items:center;justify-content:space-between;gap:var(--sp-md);">
           <div style="display:flex;align-items:center;gap:var(--sp-md);">
@@ -292,6 +298,19 @@ window.Portal = {
       this._cliente = null;
       this._data = null;
       this._renderLogin(wrap);
+    });
+
+    // "Ver como" (super admin): encerra só a sessão do portal (cookie
+    // rhino_portal) — a sessão admin (rhino_sid) fica intacta — e devolve
+    // o shell do Rhino. Botão só existe quando d.impersonado.
+    document.getElementById('btnSairImpersonacao')?.addEventListener('click', async () => {
+      await fetch('/api/portal/logout', { method: 'POST' })
+        .catch(e => console.warn('[Portal] logout da impersonação falhou — saindo mesmo assim:', e?.message || e));
+      sessionStorage.removeItem('rhino-portal-cliente');
+      this._cliente = null;
+      this._data = null;
+      this.exit();
+      location.hash = '#/clientes';
     });
   },
 

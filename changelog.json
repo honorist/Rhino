@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.18.0",
+      "date": "2026-06-09",
+      "summary": "Admins agora podem visualizar o portal do cliente",
+      "changes": [
+        "Novo botão \"Portal\" na lista de clientes (somente super admin) abre o portal exatamente como o cliente vê",
+        "Banner no portal indica o modo de visualização, com botão \"Voltar ao Rhino\"",
+        "Sessão de visualização expira em 30 minutos e fica registrada na auditoria"
+      ]
+    },
+    {
       "version": "1.17.1",
       "date": "2026-06-09",
       "summary": "Atualização de segurança em dependências internas",

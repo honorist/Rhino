@@ -61,6 +61,7 @@ const propostaAnexosHandlers = require('./handlers/proposta-anexos'); // anexos 
 const caseLogosHandlers = require('./handlers/case-logos'); // case logos: list/get-image + upload + put/delete
 const bus = require('./lib/bus');
 const perms = require('./lib/permissions');
+const portalImpersonate = require('./lib/portal-impersonate'); // "Ver portal como cliente" (super admin)
 const fluxoCompra = require('./lib/fluxo-compra');
 const recorrencia = require('./lib/recorrencia');
 const { sendJson, sendError } = require('./lib/http-respond');
@@ -838,14 +839,18 @@ async function applyPortalAuth(req, res) {
   const sid = auth.parseCookies(req)[PORTAL_COOKIE];
   if (!sid) { sendError(res, 401, 'Não autenticado no portal'); return true; }
   const row = await db.getOne(
-    `SELECT ps.cliente_id, c.nome, c.empresa, c.email
+    `SELECT ps.cliente_id, ps.impersonated_by, c.nome, c.empresa, c.email
      FROM portal_sessions ps
      JOIN clientes c ON ps.cliente_id = c.id
      WHERE ps.id = $1 AND ps.expires_at > NOW()`,
     [sid]
   );
   if (!row) { sendError(res, 401, 'Sessão do portal expirada'); return true; }
-  req.portalCliente = { id: row.cliente_id, nome: row.nome, empresa: row.empresa, email: row.email };
+  req.portalCliente = {
+    id: row.cliente_id, nome: row.nome, empresa: row.empresa, email: row.email,
+    // "Ver como": sessão criada por super admin (NULL = sessão real do cliente)
+    impersonadoPor: row.impersonated_by || null,
+  };
   return false;
 }
 
@@ -905,6 +910,41 @@ async function handlePortalLogout(req, res) {
   sendJson(res, { ok: true });
 }
 
+/**
+ * POST /api/clientes/:id/portal-impersonate — "Ver portal como cliente".
+ * Somente super admin (regra em lib/portal-impersonate.js). Cria sessão de
+ * portal de 30 min marcada com `impersonated_by` e seta o cookie
+ * `rhino_portal`; o cookie admin (`rhino_sid`) fica intacto — sair da
+ * visualização é só o logout do portal. Auditoria: o middleware de audit já
+ * captura POST /api/* (usuário, path, IP).
+ */
+async function handlePortalImpersonate(req, clienteId, res) {
+  try {
+    const erro = portalImpersonate.validarImpersonacao(req.user);
+    if (erro) return sendError(res, req.user ? 403 : 401, erro);
+
+    const cliente = await db.getOne(
+      'SELECT id, nome, empresa, email FROM clientes WHERE id = $1', [clienteId]
+    );
+    if (!cliente) return sendError(res, 404, 'Cliente não encontrado');
+
+    const sessao = portalImpersonate.criarSessaoImpersonada(req.user.id);
+    await db.query(
+      'INSERT INTO portal_sessions (id, cliente_id, expires_at, impersonated_by) VALUES ($1, $2, $3, $4)',
+      [sessao.sid, cliente.id, sessao.expiresAt.toISOString(), sessao.impersonatedBy]
+    );
+
+    const isProd = process.env.NODE_ENV === 'production';
+    const cookieParts = [
+      `${PORTAL_COOKIE}=${sessao.sid}`, 'HttpOnly', 'Path=/', 'SameSite=Strict',
+      `Max-Age=${portalImpersonate.IMPERSONATE_TTL_MIN * 60}`,
+    ];
+    if (isProd) cookieParts.push('Secure');
+    res.setHeader('Set-Cookie', cookieParts.join('; '));
+    sendJson(res, { ok: true, cliente: { id: cliente.id, nome: cliente.nome, empresa: cliente.empresa } });
+  } catch (e) { sendError(res, 500, e.message); }
+}
+
 async function handlePortalDashboard(req, res) {
   try {
     const clienteId = req.portalCliente.id;
@@ -956,7 +996,8 @@ async function handlePortalDashboard(req, res) {
     rdosAll.sort((a, b) => (b.data || '').localeCompare(a.data || ''));
     const rdos = rdosAll.slice(0, 15);
 
-    sendJson(res, { cliente: req.portalCliente, contratos, nfs, rdos });
+    // `impersonado`: liga o banner "Visualizando como..." no portal (Ver como)
+    sendJson(res, { cliente: req.portalCliente, contratos, nfs, rdos, impersonado: !!req.portalCliente.impersonadoPor });
   } catch (e) { sendError(res, 500, e.message); }
 }
 
@@ -2887,6 +2928,7 @@ registerFinanceiro(apiRouter, {
 });
 registerComercial(apiRouter, {
   ...clientesHandlers, // handlers/clientes.js
+  handlePortalImpersonate, // "Ver portal como cliente" (super admin) — server.js seção Portal
   ...fornecedoresHandlers, // handlers/fornecedores.js
   handleGetClausulas, handlePostClausula, handlePutClausula, handleDeleteClausula,
   handleGetPropostas, handlePostProposta, handleGetProposta, handlePutProposta, handleDeleteProposta,

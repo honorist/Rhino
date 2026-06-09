@@ -409,6 +409,13 @@ CREATE TABLE IF NOT EXISTS sessions (
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions (user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions (expires_at);
 
+-- "Ver portal como cliente" (depois de users existir — portal_sessions é
+-- criada lá em cima, antes de users): NULL = sessão real do cliente;
+-- preenchido = id do super admin visualizando (TTL 30 min).
+-- Ver migration 20260609160000.
+ALTER TABLE portal_sessions
+  ADD COLUMN IF NOT EXISTS impersonated_by TEXT REFERENCES users(id) ON DELETE CASCADE;
+
 -- ============ Password reset tokens ============
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
   token       TEXT PRIMARY KEY,

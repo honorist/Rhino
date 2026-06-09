@@ -15,6 +15,9 @@ module.exports = function registerComercial(router, deps) {
   router.post('/api/clientes',       (ctx) => deps.handlePostCliente(ctx.body, ctx.res));
   router.put('/api/clientes/:id',    (ctx) => deps.handlePutCliente(ctx.params[0], ctx.body, ctx.res));
   router.delete('/api/clientes/:id', (ctx) => deps.handleDeleteCliente(ctx.params[0], ctx.res));
+  // "Ver portal como cliente" — super admin only (gate dentro do handler)
+  router.post('/api/clientes/:id/portal-impersonate',
+    (ctx) => deps.handlePortalImpersonate(ctx.req, ctx.params[0], ctx.res));
 
   // ── Fornecedores ──
   router.get('/api/fornecedores',        (ctx) => deps.handleGetFornecedores(ctx.res));
