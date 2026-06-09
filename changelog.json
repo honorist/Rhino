@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.17.0",
+      "date": "2026-06-09",
+      "summary": "Recrutamento: anexe os documentos do candidato e aprove para criar o colaborador",
+      "changes": [
+        "No recrutamento, agora dá para anexar os documentos do candidato (RG, CPF, comprovante de residência e CTPS) direto na tela de triagem.",
+        "Os documentos ficam guardados com segurança no sistema e entram no backup automático — não se perdem mais.",
+        "Botão Aprovar candidato: cria o colaborador automaticamente e leva os documentos junto para a ficha dele.",
+        "A aprovação só libera quando os antecedentes estão OK e os quatro documentos foram enviados."
+      ]
+    },
+    {
       "version": "1.16.3",
       "date": "2026-06-09",
       "summary": "Tabelas mais legíveis (zebra + destaque de linha) e campos desabilitados visíveis",

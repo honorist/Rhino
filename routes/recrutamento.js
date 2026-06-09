@@ -7,7 +7,12 @@
  * @param {object} [handlers]  Override de handlers (testes).
  */
 module.exports = function registerRecrutamento(router, handlers) {
-  const h = handlers || require('../handlers/recrutamento');
+  // Junta os handlers do fluxo (handlers/recrutamento) com os de arquivo de
+  // documento de candidato (handlers/candidato-documentos). Sem colisão de nome.
+  const h = handlers || {
+    ...require('../handlers/recrutamento'),
+    ...require('../handlers/candidato-documentos'),
+  };
 
   // Solicitações de contratação (US-05)
   router.get('/api/recrutamento/solicitacoes', (ctx) => h.listarSolicitacoes(ctx.req, ctx.res));
@@ -27,6 +32,14 @@ module.exports = function registerRecrutamento(router, handlers) {
     h.atualizarAntecedentes(ctx.req, ctx.body, ctx.res, ctx.params[0]));
   router.post('/api/recrutamento/candidatos/:id/documentos/:tipo', (ctx) =>
     h.anexarDocumento(ctx.req, ctx.body, ctx.res, ctx.params[0], ctx.params[1]));
+  // Arquivo (BYTEA) do documento — Etapa 4.3. O POST é interceptado no
+  // createServer (multipart, pula o body parser); registrado aqui por simetria.
+  router.post('/api/recrutamento/candidatos/:id/documentos/:tipo/arquivo', (ctx) =>
+    h.handlePostCandidatoDocArquivo(ctx.params[0], ctx.params[1], ctx.req, ctx.res));
+  router.get('/api/recrutamento/candidatos/:id/documentos/:tipo/arquivo', (ctx) =>
+    h.handleGetCandidatoDocArquivo(ctx.params[0], ctx.params[1], ctx.res));
+  router.delete('/api/recrutamento/candidatos/:id/documentos/:tipo/arquivo', (ctx) =>
+    h.handleDeleteCandidatoDocArquivo(ctx.params[0], ctx.params[1], ctx.res));
   router.post('/api/recrutamento/candidatos/:id/aprovar', (ctx) =>
     h.aprovarCandidato(ctx.req, ctx.body, ctx.res, ctx.params[0]));
 

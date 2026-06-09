@@ -521,3 +521,46 @@ test('routes/contracts.js — organograma DELETE (5 args), assinaturas, fotos, s
   router.dispatch({ method: 'PUT', pathname: '/api/saidas/S9', body: 'B', res: 'R' });
   assert.deepEqual(c.putSaida, ['S9', 'B', 'R']);
 });
+
+// ─── routes/recrutamento.js (solicitações, candidatos, docs/arquivo, sino) ───
+
+test('routes/recrutamento.js — registra exatamente as 14 rotas de recrutamento', () => {
+  const router = createRouter();
+  require('../routes/recrutamento')(router, {});
+  const rotas = router.list().map(r => `${r.method} ${r.pattern}`).sort();
+  assert.deepEqual(rotas, [
+    'DELETE /api/recrutamento/candidatos/:id/documentos/:tipo/arquivo',
+    'GET /api/notificacoes',
+    'GET /api/recrutamento/candidatos/:id/documentos/:tipo/arquivo',
+    'GET /api/recrutamento/solicitacoes',
+    'GET /api/recrutamento/solicitacoes/:id',
+    'PATCH /api/recrutamento/candidatos/:id/antecedentes',
+    'PATCH /api/recrutamento/candidatos/:id/triagem',
+    'POST /api/notificacoes/:id/marcar-lida',
+    'POST /api/recrutamento/candidatos/:id/aprovar',
+    'POST /api/recrutamento/candidatos/:id/documentos/:tipo',
+    'POST /api/recrutamento/candidatos/:id/documentos/:tipo/arquivo',
+    'POST /api/recrutamento/solicitacoes',
+    'POST /api/recrutamento/solicitacoes/:id/cancelar',
+    'POST /api/recrutamento/vagas/:id/candidatos',
+  ].sort());
+});
+
+test('routes/recrutamento.js — arquivo de documento: POST/GET/DELETE recebem (id, tipo, …)', () => {
+  const c = {};
+  const router = createRouter();
+  require('../routes/recrutamento')(router, {
+    handlePostCandidatoDocArquivo:   (id, tipo, req, res) => { c.post = [id, tipo, req, res]; },
+    handleGetCandidatoDocArquivo:    (id, tipo, res)      => { c.get  = [id, tipo, res]; },
+    handleDeleteCandidatoDocArquivo: (id, tipo, res)      => { c.del  = [id, tipo, res]; },
+  });
+  // a sub-rota /arquivo (7 segmentos) não é engolida pela /documentos/:tipo (6)
+  router.dispatch({ method: 'POST', pathname: '/api/recrutamento/candidatos/C1/documentos/rg/arquivo', req: 'REQ', res: 'RES' });
+  assert.deepEqual(c.post, ['C1', 'rg', 'REQ', 'RES']);
+
+  router.dispatch({ method: 'GET', pathname: '/api/recrutamento/candidatos/C1/documentos/cpf/arquivo', res: 'RES' });
+  assert.deepEqual(c.get, ['C1', 'cpf', 'RES']);
+
+  router.dispatch({ method: 'DELETE', pathname: '/api/recrutamento/candidatos/C1/documentos/ctps/arquivo', res: 'RES' });
+  assert.deepEqual(c.del, ['C1', 'ctps', 'RES']);
+});

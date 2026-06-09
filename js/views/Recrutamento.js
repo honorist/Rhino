@@ -558,24 +558,47 @@ window.Recrutamento = {
       { t: 'antecedentes',l: 'Antecedentes criminais' },
     ];
 
+    const docsObj = cand.documentos || {};
+    const antOk = cand.antecedentesStatus === 'ok';
+    // "Tem arquivo real" = referência com arquivoId (upload binário do BYTEA),
+    // não o metadado-fantasma legado ({filename, storagePath} sem binário).
+    const temArquivo = (t) => !!(docsObj[t] && docsObj[t].arquivoId);
+
     const docsHtml = DOCS.map(d => {
-      const doc = (cand.documentos || {})[d.t];
+      const tem = temArquivo(d.t);
+      const ref = docsObj[d.t] || {};
+      // Upload de doc (menos antecedentes) só libera com antecedentes OK.
+      const bloqueado = d.t !== 'antecedentes' && !antOk;
+      const verLink = tem
+        ? `<a href="/api/recrutamento/candidatos/${cand.id}/documentos/${d.t}/arquivo" target="_blank" class="btn btn-sm btn-secondary" style="text-decoration:none;">Ver</a>`
+        : '';
+      const acao = bloqueado
+        ? `<span class="text-muted" style="font-size:12px;">requer antecedentes OK</span>`
+        : `<input type="file" id="recrutDocFile_${d.t}" accept="application/pdf,image/jpeg,image/png,image/webp" style="display:none;">
+           <button type="button" class="btn btn-sm btn-ghost" data-up="${d.t}">${tem ? 'Substituir' : 'Enviar'}</button>`;
       return `
         <tr>
-          <td style="padding:6px 0;">${d.l}</td>
-          <td style="padding:6px 0;">
-            ${doc
-              ? `<span style="color:#16A34A;font-weight:600;">✅ Enviado</span>
-                 <span class="text-muted" style="font-size:12px;"> ${escapeHtml(doc.filename || '')}</span>`
+          <td style="padding:8px 0;vertical-align:middle;">${d.l}</td>
+          <td style="padding:8px 0;vertical-align:middle;">
+            ${tem
+              ? `<span style="color:#16A34A;font-weight:600;">Enviado</span>
+                 <span class="text-muted" style="font-size:12px;"> ${escapeHtml(ref.filename || '')}</span>`
               : `<span class="text-muted">—</span>`}
           </td>
+          <td style="padding:8px 0;text-align:right;white-space:nowrap;">${verLink} ${acao}</td>
         </tr>
       `;
     }).join('');
 
+    // Gate de aprovação (espelha o backend podeAprovar): antecedentes OK + os 4
+    // documentos obrigatórios com arquivo de fato armazenado.
+    const OBRIGATORIOS = ['rg', 'cpf', 'residencia', 'ctps'];
+    const jaAprovado = cand.status === 'aprovado';
+    const podeAprovar = antOk && OBRIGATORIOS.every(temArquivo) && !jaAprovado;
+
     const html = `
       <div class="modal-overlay" id="recrutTriagemOverlay">
-        <div class="modal" style="width:620px;max-width:95vw;">
+        <div class="modal" style="width:640px;max-width:95vw;">
           <div class="modal-header">
             <h2 class="modal-title">${escapeHtml(cand.nome)}</h2>
             <button class="modal-close" id="recrutTriBtnFechar">✕</button>
@@ -596,13 +619,21 @@ window.Recrutamento = {
               </div>
             </div>
 
-            <h3 style="font-size:14px;font-weight:600;margin-bottom:var(--sp-sm);">Documentos</h3>
+            <h3 style="font-size:14px;font-weight:600;margin-bottom:var(--sp-xs);">Documentos</h3>
+            <p class="text-muted" style="font-size:12px;margin:0 0 var(--sp-sm);">
+              ${antOk
+                ? 'PDF, JPG ou PNG (até 10 MB). Os 4 documentos são obrigatórios para aprovar.'
+                : 'Marque os antecedentes como Aprovado e salve a triagem para liberar o envio dos documentos.'}
+            </p>
             <table style="width:100%;font-size:14px;margin-bottom:var(--sp-md);">
               <tbody>${docsHtml}</tbody>
             </table>
           </div>
           <div class="modal-footer">
             <button class="btn btn-secondary" id="recrutTriBtnFechar2">Fechar</button>
+            ${jaAprovado
+              ? ''
+              : `<button class="btn btn-success" id="recrutTriBtnAprovar"${podeAprovar ? '' : ' disabled'} title="${podeAprovar ? 'Aprovar e criar o colaborador' : 'Requer antecedentes OK + os 4 documentos enviados'}">Aprovar candidato</button>`}
             <button class="btn btn-primary" id="recrutTriBtnSalvar">Salvar triagem</button>
           </div>
         </div>
@@ -618,6 +649,58 @@ window.Recrutamento = {
     document.getElementById('recrutTriBtnFechar').addEventListener('click', close);
     document.getElementById('recrutTriBtnFechar2').addEventListener('click', close);
 
+    // Upload por documento: o botão dispara o <input file> escondido; ao escolher
+    // o arquivo, sobe na hora (multipart) e reabre o modal já atualizado.
+    DOCS.forEach(d => {
+      const btn = document.querySelector(`#recrutTriagemOverlay [data-up="${d.t}"]`);
+      const input = document.getElementById(`recrutDocFile_${d.t}`);
+      if (!btn || !input) return;
+      btn.addEventListener('click', () => input.click());
+      input.addEventListener('change', async () => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const rotulo = btn.textContent;
+        btn.disabled = true; btn.textContent = 'Enviando…';
+        try {
+          const fd = new FormData();
+          fd.append('file', file);
+          const resp = await fetch(`/api/recrutamento/candidatos/${cand.id}/documentos/${d.t}/arquivo`, {
+            method: 'POST', body: fd, credentials: 'same-origin',
+          });
+          if (!resp.ok) { const er = await resp.json().catch(() => ({})); throw new Error(er.error || `HTTP ${resp.status}`); }
+          window.showToast('Documento enviado.', 'success');
+          await this._reabrirTriagem(cand.id, solId);
+        } catch (e) {
+          window.showToast(e.message, 'danger');
+          btn.disabled = false; btn.textContent = rotulo;
+        }
+      });
+    });
+
+    // Aprovar candidato (US-09): cria o colaborador e migra os documentos.
+    const btnAprovar = document.getElementById('recrutTriBtnAprovar');
+    if (btnAprovar) {
+      btnAprovar.addEventListener('click', async () => {
+        if (!window.confirm(`Aprovar ${cand.nome} e criar o colaborador?`)) return;
+        btnAprovar.disabled = true; btnAprovar.textContent = 'Aprovando…';
+        try {
+          const resp = await fetch(`/api/recrutamento/candidatos/${cand.id}/aprovar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: '{}',
+          });
+          if (!resp.ok) { const er = await resp.json().catch(() => ({})); throw new Error(er.error || `HTTP ${resp.status}`); }
+          window.showToast('Candidato aprovado — colaborador criado.', 'success');
+          document.getElementById('recrutTriagemOverlay')?.remove();
+          this._showDetalhe(solId);
+        } catch (e) {
+          window.showToast(e.message, 'danger');
+          btnAprovar.disabled = false; btnAprovar.textContent = 'Aprovar candidato';
+        }
+      });
+    }
+
     document.getElementById('recrutTriBtnSalvar').addEventListener('click', async () => {
       const status           = document.getElementById('recrutTriStatus').value;
       const antecedentesStatus = document.getElementById('recrutTriAnt').value;
@@ -625,21 +708,23 @@ window.Recrutamento = {
       btn.disabled = true; btn.textContent = 'Salvando…';
 
       try {
-        const [r1, r2] = await Promise.all([
-          fetch(`/api/recrutamento/candidatos/${cand.id}/triagem`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'same-origin',
-            body: JSON.stringify({ status }),
-          }),
-          fetch(`/api/recrutamento/candidatos/${cand.id}/antecedentes`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'same-origin',
-            body: JSON.stringify({ antecedentesStatus }),
-          }),
-        ]);
-        if (!r1.ok || !r2.ok) throw new Error('Erro ao salvar');
+        // Sequencial (não paralelo): a regra de antecedentes exige que o
+        // candidato já esteja "interessado", então o status precisa gravar antes.
+        const r1 = await fetch(`/api/recrutamento/candidatos/${cand.id}/triagem`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ status }),
+        });
+        if (!r1.ok) { const er = await r1.json().catch(() => ({})); throw new Error(er.error || 'Erro ao salvar status'); }
+        // O endpoint de antecedentes espera o campo `resultado`.
+        const r2 = await fetch(`/api/recrutamento/candidatos/${cand.id}/antecedentes`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ resultado: antecedentesStatus }),
+        });
+        if (!r2.ok) { const er = await r2.json().catch(() => ({})); throw new Error(er.error || 'Erro ao salvar antecedentes'); }
         window.showToast('Triagem atualizada.', 'success');
         document.getElementById('recrutTriagemOverlay')?.remove();
         this._showDetalhe(solId);
@@ -648,6 +733,26 @@ window.Recrutamento = {
         btn.disabled = false; btn.textContent = 'Salvar triagem';
       }
     });
+  },
+
+  // Reabre o modal de triagem com os dados frescos (após um upload de documento).
+  async _reabrirTriagem(candId, solId) {
+    try {
+      const resp = await fetch(`/api/recrutamento/solicitacoes/${solId}`, { credentials: 'same-origin' });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const { solicitacao } = await resp.json();
+      let cand = null;
+      for (const v of (solicitacao.vagas || [])) {
+        const achado = (v.candidatos || []).find(c => c.id === candId);
+        if (achado) { cand = achado; break; }
+      }
+      document.getElementById('recrutTriagemOverlay')?.remove();
+      if (cand) this._showModalTriagem(cand, solId, solicitacao);
+      else this._showDetalhe(solId);
+    } catch {
+      document.getElementById('recrutTriagemOverlay')?.remove();
+      this._showDetalhe(solId);
+    }
   },
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────

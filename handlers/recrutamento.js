@@ -17,6 +17,8 @@ const repos = require('../db/repos');
 const db = require('../db');
 const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
+const { podeAprovar } = require('../lib/recrutamento-docs');
+const candidatoDocs = require('./candidato-documentos'); // tiposComArquivo (sem ciclo: não requer este módulo)
 
 const STATUS_CANDIDATO_VALIDOS = [
   'contatado', 'interessado', 'sem_interesse',
@@ -300,24 +302,53 @@ async function aprovarCandidato(req, body, res, candidatoId) {
   try {
     const cand = await repos.candidatos.findById(candidatoId);
     if (!cand) return sendError(res, 404, 'Candidato não encontrado');
-    if (cand.status === 'aprovado')
-      return sendError(res, 400, 'Candidato já está aprovado.');
-    if (cand.antecedentesStatus !== 'ok')
-      return sendError(res, 400, 'Antecedentes precisam estar OK para aprovar.');
 
-    const docs = cand.documentos || {};
-    const faltando = ['rg', 'cpf', 'residencia', 'ctps'].filter((k) => !docs[k]);
-    if (faltando.length > 0)
-      return sendError(
-        res,
-        400,
-        `Documentos faltando: ${faltando.join(', ')}. Anexe antes de aprovar.`,
-      );
+    // Gate (regra pura, testada): antecedentes OK + os 4 docs obrigatórios com
+    // ARQUIVO de fato armazenado (não só metadado fantasma no JSONB).
+    const tiposArmazenados = await candidatoDocs.tiposComArquivo(candidatoId);
+    const veredito = podeAprovar(cand, tiposArmazenados);
+    if (!veredito.ok) return sendError(res, 400, veredito.motivo);
 
     const vaga = await repos.vagas.findById(cand.vagaId);
     if (!vaga) return sendError(res, 404, 'Vaga não encontrada');
     if (vaga.qtdPreenchida >= vaga.qtdTotal)
       return sendError(res, 400, 'Vaga já está totalmente preenchida.');
+
+    // Lê os arquivos (BYTEA já cifrado) do candidato p/ copiar pro recurso.
+    const arquivos = await db.getMany(
+      `SELECT id, tipo, filename, filename_original, mime_type, size_bytes, data
+         FROM candidato_doc_arquivos WHERE candidato_id = $1`,
+      [candidatoId],
+    );
+    const arqByTipo = new Map(arquivos.map((a) => [a.tipo, a]));
+    const docsJsonb = cand.documentos || {};
+
+    // Monta os documentos do recurso (cada um com docId próprio + ref ao arquivo)
+    // e a lista de cópias de BYTEA a inserir depois que o recurso existir.
+    const ORDEM_DOCS = ['rg', 'cpf', 'residencia', 'ctps', 'antecedentes'];
+    const recursoDocs = [];
+    const copias = [];
+    for (const tipo of ORDEM_DOCS) {
+      const a = arqByTipo.get(tipo);
+      if (!a) continue;
+      const docId = generateId('doc');
+      const arqId = generateId('arq');
+      recursoDocs.push({
+        id: docId,
+        tipo: tipo.toUpperCase(),
+        tipoLabel: tipo.toUpperCase(),
+        arquivo: {
+          id: arqId,
+          filename: a.filename,
+          filenameOriginal: a.filenameOriginal || null,
+          mimeType: a.mimeType,
+          sizeBytes: a.sizeBytes,
+          uploadedAt: docsJsonb[tipo]?.uploadedAt || new Date().toISOString(),
+        },
+        nomeArquivo: a.filename,
+      });
+      copias.push({ docId, arqId, a });
+    }
 
     // Cria o recurso (funcionário) — função vem da vaga (US-09 question #7).
     const recurso = await repos.recursos.create({
@@ -328,16 +359,20 @@ async function aprovarCandidato(req, body, res, candidatoId) {
       email: cand.email || null,
       profissao: vaga.cargo,
       status: 'funcionario',
-      // Documentos do candidato migram pro recurso
-      documentos: [
-        ...['rg', 'cpf', 'residencia', 'ctps', 'antecedentes']
-          .filter((k) => docs[k])
-          .map((k) => ({
-            tipo: k.toUpperCase(),
-            ...docs[k],
-          })),
-      ],
+      // JSONB exige string (pg serializa array JS como array Postgres, não JSON).
+      documentos: JSON.stringify(recursoDocs),
     });
+
+    // Copia os BYTEA p/ recurso_doc_arquivos (keyed por recurso_id + doc_id).
+    // O buffer já está cifrado em repouso — copia-se como está (mesma chave LGPD).
+    for (const { docId, arqId, a } of copias) {
+      await db.query(
+        `INSERT INTO recurso_doc_arquivos
+         (id, recurso_id, doc_id, filename, filename_original, mime_type, size_bytes, data)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [arqId, recurso.id, docId, a.filename, a.filenameOriginal || null, a.mimeType, a.sizeBytes, a.data],
+      );
+    }
 
     // Marca candidato como aprovado + linka recurso
     await repos.candidatos.updateById(candidatoId, {

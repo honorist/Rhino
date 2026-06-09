@@ -55,6 +55,7 @@ const recursoFolgasHandlers = require('./handlers/recurso-folgas'); // folgas + 
 const contractRdosHandlers = require('./handlers/contract-rdos'); // RDO: visão global + CRUD (fotos/assinaturas seguem inline)
 const rdoFotosHandlers = require('./handlers/rdo-fotos'); // RDO fotos: upload multipart + delete
 const recursoDocsHandlers = require('./handlers/recurso-documentos'); // docs de recurso: arquivo (BYTEA) + validação IA
+const candidatoDocsHandlers = require('./handlers/candidato-documentos'); // docs de candidato: arquivo (BYTEA), Etapa 4.3
 const rdoAssinaturasHandlers = require('./handlers/rdo-assinaturas'); // RDO assinaturas digitais: upload + list/get/delete
 const propostaAnexosHandlers = require('./handlers/proposta-anexos'); // anexos de proposta (PDF/imagem): upload + get/put/delete
 const caseLogosHandlers = require('./handlers/case-logos'); // case logos: list/get-image + upload + put/delete
@@ -2490,6 +2491,19 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Multipart (upload de arquivo de documento de candidato, Etapa 4.3) — pula o body parser
+  const isCandidatoDocArqUpload = req.method === 'POST'
+    && /^\/api\/recrutamento\/candidatos\/[^/]+\/documentos\/[^/]+\/arquivo$/.test(pathname);
+  if (isCandidatoDocArqUpload) {
+    (async () => {
+      if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
+      // /api/recrutamento/candidatos/:id/documentos/:tipo/arquivo
+      const parts = pathname.split('/');
+      candidatoDocsHandlers.handlePostCandidatoDocArquivo(parts[4], parts[6], req, res);
+    })();
+    return;
+  }
+
   // OFX import — lê o corpo raw (não é JSON), precisa pular o body parser
   const isOfxImport = req.method === 'POST' && pathname === '/api/caixa/importar-ofx';
   if (isOfxImport) {
@@ -2544,11 +2558,12 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Parse body for POST/PUT requests
+  // Parse body for POST/PUT/PATCH requests (PATCH faltava: triagem/antecedentes
+  // de recrutamento e PATCH de propostas/contratos recebiam body null → 500).
   const MAX_BODY_BYTES = 1_000_000; // 1 MB
   let body = '';
   let bodySize = 0;
-  if (['POST', 'PUT'].includes(req.method)) {
+  if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
     // Enforce Content-Type for JSON API routes (only when body is present)
     if (pathname.startsWith('/api/')) {
       const ct = req.headers['content-type'] || '';
