@@ -1002,13 +1002,17 @@ async function applyPortalAuth(req, res) {
     sendError(res, 401, 'Sessão do portal expirada');
     return true;
   }
+  // db.getOne converte colunas snake_case → camelCase (db/index.js):
+  // ps.cliente_id chega como row.clienteId, ps.impersonated_by como
+  // row.impersonatedBy. Ler em snake_case retorna undefined silencioso
+  // (portal sem contratos e sem banner de impersonação).
   req.portalCliente = {
-    id: row.cliente_id,
+    id: row.clienteId,
     nome: row.nome,
     empresa: row.empresa,
     email: row.email,
     // "Ver como": sessão criada por super admin (NULL = sessão real do cliente)
-    impersonadoPor: row.impersonated_by || null,
+    impersonadoPor: row.impersonatedBy || null,
   };
   return false;
 }
@@ -1035,11 +1039,12 @@ async function handlePortalLogin(req, body, res) {
       'SELECT id, nome, empresa, portal_password_hash FROM clientes WHERE LOWER(portal_email) = $1',
       [emailRaw]
     );
-    if (!cliente || !cliente.portal_password_hash)
+    // db.getOne cameliza: portal_password_hash → portalPasswordHash.
+    if (!cliente || !cliente.portalPasswordHash)
       return sendError(res, 401, 'Email ou senha incorretos');
 
     const bcrypt = require('bcryptjs');
-    const ok = await bcrypt.compare(senha, cliente.portal_password_hash);
+    const ok = await bcrypt.compare(senha, cliente.portalPasswordHash);
     if (!ok) return sendError(res, 401, 'Email ou senha incorretos');
 
     // Sucesso — devolve slot consumido
