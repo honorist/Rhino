@@ -24,30 +24,19 @@ window.Investimentos = {
         ? todosAportes
         : todosAportes.filter(a => (a.origem || 'socio') === this.filtroOrigem);
 
+      // Padrão B (UIKit) — mesma moldura das demais telas financeiras.
       const html = `
-        <div class="page-header">
-          <div>
-            <h1 class="page-title">Aportes dos Sócios</h1>
-            <p class="page-subtitle">Aportes de capital por sócio ou via caixa da empresa</p>
-          </div>
-          <button class="btn btn-primary btn-lg" id="btnNovoAporte">+ Novo Aporte</button>
-        </div>
+        ${window.UIKit?.pageHeader ? window.UIKit.pageHeader({
+          title: 'Aportes dos Sócios',
+          subtitle: 'Aportes de capital por sócio ou via caixa da empresa',
+          actions: '<button class="btn btn-primary btn-lg" id="btnNovoAporte">+ Novo Aporte</button>',
+        }) : ''}
 
-        <!-- KPIs -->
-        <div class="grid-3 mb-2xl">
-          <div class="card stat-card" style="border-left:4px solid var(--color-primary);">
-            <div class="stat-value">${Store.formatBRL(totalGeral)}</div>
-            <div class="stat-label">Capital Total Aportado</div>
-          </div>
-          <div class="card stat-card" style="border-left:4px solid var(--color-info);">
-            <div class="stat-value" style="color:var(--color-info);">${Store.formatBRL(totalSocios)}</div>
-            <div class="stat-label">👥 Aportes dos Sócios</div>
-          </div>
-          <div class="card stat-card" style="border-left:4px solid var(--color-warning);">
-            <div class="stat-value" style="color:var(--color-warning);">${Store.formatBRL(totalCaixa)}</div>
-            <div class="stat-label">💰 Via Caixa da Empresa</div>
-          </div>
-        </div>
+        ${window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
+          { label: 'Capital Total Aportado', value: Store.formatBRL(totalGeral), color: 'var(--color-primary)' },
+          { icon: '👥', label: 'Aportes dos Sócios', value: Store.formatBRL(totalSocios), color: 'var(--color-info)' },
+          { icon: '💰', label: 'Via Caixa da Empresa', value: Store.formatBRL(totalCaixa), color: 'var(--color-warning)' },
+        ]) : ''}
 
         <!-- Resumo por Sócio (apenas aportes de sócios) -->
         ${Store.state.socios.length > 0 && aportesDosSocios.length > 0 ? `
@@ -62,9 +51,9 @@ window.Investimentos = {
                   <tr>
                     <th scope="col">Sócio</th>
                     <th scope="col">Participação</th>
-                    <th scope="col" style="text-align:right;">Aporte Realizado</th>
-                    <th scope="col" style="text-align:right;">Contribuição Esperada</th>
-                    <th scope="col" style="text-align:right;">Diferença</th>
+                    <th scope="col" class="num">Aporte Realizado</th>
+                    <th scope="col" class="num">Contribuição Esperada</th>
+                    <th scope="col" class="num">Diferença</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -77,8 +66,8 @@ window.Investimentos = {
                       <tr>
                         <td><strong>${escapeHtml(socio.name)}</strong></td>
                         <td>${num(socio.participacao).toFixed(2)}%</td>
-                        <td style="text-align:right;font-weight:600;">${Store.formatBRL(aportado)}</td>
-                        <td style="text-align:right;color:var(--color-text-muted);">${Store.formatBRL(esperado)}</td>
+                        <td class="num">${Store.formatBRL(aportado)}</td>
+                        <td class="num" style="color:var(--color-text-muted);">${Store.formatBRL(esperado)}</td>
                         <td style="text-align:right;font-weight:700;color:${diff >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">
                           ${diff >= 0 ? '+' : ''}${Store.formatBRL(diff)}
                         </td>
@@ -88,9 +77,9 @@ window.Investimentos = {
                   <tr style="background:var(--color-bg);font-weight:700;">
                     <td>TOTAL</td>
                     <td>100,00%</td>
-                    <td style="text-align:right;">${Store.formatBRL(totalSocios)}</td>
-                    <td style="text-align:right;">${Store.formatBRL(totalSocios)}</td>
-                    <td style="text-align:right;">—</td>
+                    <td class="num">${Store.formatBRL(totalSocios)}</td>
+                    <td class="num">${Store.formatBRL(totalSocios)}</td>
+                    <td class="num">—</td>
                   </tr>
                 </tbody>
               </table>
@@ -124,7 +113,7 @@ window.Investimentos = {
                     <th scope="col">Sócio / Descrição</th>
                     <th scope="col">Tipo de Custo</th>
                     <th scope="col">Destino</th>
-                    <th scope="col" style="text-align:right;">Valor</th>
+                    <th scope="col" class="num">Valor</th>
                     <th scope="col">Ações</th>
                   </tr>
                 </thead>
@@ -160,7 +149,7 @@ window.Investimentos = {
                         </td>
                         <td>${tipoBadge}</td>
                         <td>${destinoBadge}</td>
-                        <td style="text-align:right;font-weight:700;">${Store.formatBRL(num(ap.value))}</td>
+                        <td class="num">${Store.formatBRL(num(ap.value))}</td>
                         <td>
                           <div class="actions-cell">
                             <button type="button" class="action-link danger btn-excluir-aporte" data-id="${ap.id}">Excluir</button>
@@ -490,14 +479,14 @@ window.Investimentos = {
             ${aportes.length === 0 ? `<p class="text-muted">Nenhum aporte registrado para este sócio</p>` : `
               <div class="table-wrap">
                 <table>
-                  <thead><tr><th scope="col">Data</th><th scope="col">Tipo</th><th scope="col">Descrição</th><th scope="col" style="text-align:right;">Valor</th></tr></thead>
+                  <thead><tr><th scope="col">Data</th><th scope="col">Tipo</th><th scope="col">Descrição</th><th scope="col" class="num">Valor</th></tr></thead>
                   <tbody>
                     ${aportes.map(a => `
                       <tr>
                         <td>${new Date(a.date + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                         <td><span class="badge ${a.type === 'inicial' ? 'badge-entrada' : 'badge-warning'}">${a.type === 'inicial' ? 'Inicial' : a.type === 'aquisicao' ? 'Aquisição' : 'Adicional'}</span></td>
                         <td>${escapeHtml(a.description) || '—'}</td>
-                        <td style="text-align:right;font-weight:700;">${Store.formatBRL(num(a.value))}</td>
+                        <td class="num">${Store.formatBRL(num(a.value))}</td>
                       </tr>
                     `).join('')}
                   </tbody>
