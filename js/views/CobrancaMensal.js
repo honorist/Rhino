@@ -46,43 +46,34 @@ window.CobrancaMensal = {
 
     const totalAnual = this._meses.reduce((s, m) => s + (m.total || 0), 0);
 
+    // Padrão B (UIKit) — mesma moldura das demais telas financeiras.
     const html = `
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Cobrança do app</h1>
-          <p class="page-subtitle">Valor a pagar mensalmente — apenas administradores enxergam esta tela</p>
-        </div>
-      </div>
+      ${window.UIKit?.pageHeader ? window.UIKit.pageHeader({
+        title: 'Cobrança do app',
+        subtitle: 'Valor a pagar mensalmente — apenas administradores enxergam esta tela',
+      }) : ''}
 
-      <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:var(--sp-md);margin-bottom:var(--sp-lg);">
-        <!-- Projeção mês atual -->
-        <div class="card" style="padding:var(--sp-md);background:linear-gradient(135deg,rgba(99,102,241,.06),rgba(99,102,241,.02));border-left:4px solid #6366F1;">
-          <div style="font-size:13px;color:#4338CA;text-transform:uppercase;font-weight:700;letter-spacing:.05em;">Projeção · ${proj ? this._mesNome(proj.mes) + '/' + proj.ano : '—'}</div>
-          ${proj ? `
-            <div style="font-size:32px;font-weight:800;color:#1E1B4B;">${Store.formatBRL(proj.total)}</div>
-            <div style="font-size:13px;color:var(--color-text-muted);margin-top:4px;">
-              ${proj.contratosAtivos} contrato${proj.contratosAtivos !== 1 ? 's' : ''} ativos · faixa ${proj.faixa} · ${Store.formatBRL(proj.valorPorContrato)}/contrato + ${Store.formatBRL(proj.taxaFixa)} fixa
-            </div>
-            <div style="font-size:12px;color:var(--color-text-muted);margin-top:6px;font-style:italic;">⚠ Valor parcial — atualizado em tempo real até o fim do mês</div>
-          ` : '<div class="text-muted">Indisponível</div>'}
-        </div>
-
-        <!-- Último mês fechado -->
-        <div class="card" style="padding:var(--sp-md);">
-          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">Último mês fechado</div>
-          ${ultimoFechado ? `
-            <div style="font-size:28px;font-weight:800;">${Store.formatBRL(ultimoFechado.total)}</div>
-            <div style="font-size:13px;color:var(--color-text-muted);">${this._mesNome(ultimoFechado.mes)}/${ultimoFechado.ano} · ${ultimoFechado.contratosAtivos} contratos</div>
-          ` : '<div class="text-muted">Sem histórico ainda</div>'}
-        </div>
-
-        <!-- Total acumulado 12m -->
-        <div class="card" style="padding:var(--sp-md);">
-          <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">Acumulado 12 meses</div>
-          <div style="font-size:28px;font-weight:800;">${Store.formatBRL(totalAnual)}</div>
-          <div style="font-size:13px;color:var(--color-text-muted);">soma dos últimos meses</div>
-        </div>
-      </div>
+      ${window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
+        {
+          label: `Projeção · ${proj ? this._mesNome(proj.mes) + '/' + proj.ano : '—'}`,
+          value: proj ? Store.formatBRL(proj.total) : '—',
+          color: 'var(--color-violet)',
+          hint: proj ? `${proj.contratosAtivos} contrato${proj.contratosAtivos !== 1 ? 's' : ''} · faixa ${proj.faixa} · parcial até o fim do mês` : 'Indisponível',
+          title: proj ? `${Store.formatBRL(proj.valorPorContrato)}/contrato + ${Store.formatBRL(proj.taxaFixa)} de taxa fixa` : '',
+        },
+        {
+          label: 'Último mês fechado',
+          value: ultimoFechado ? Store.formatBRL(ultimoFechado.total) : '—',
+          color: 'var(--color-primary)',
+          hint: ultimoFechado ? `${this._mesNome(ultimoFechado.mes)}/${ultimoFechado.ano} · ${ultimoFechado.contratosAtivos} contratos` : 'Sem histórico ainda',
+        },
+        {
+          label: 'Acumulado 12 meses',
+          value: Store.formatBRL(totalAnual),
+          color: 'var(--color-info)',
+          hint: 'soma dos últimos meses',
+        },
+      ]) : ''}
 
       ${this._renderAiUsage()}
 
@@ -98,11 +89,11 @@ window.CobrancaMensal = {
               <thead>
                 <tr>
                   <th scope="col">Mês</th>
-                  <th scope="col" style="text-align:right;">Contratos ativos</th>
-                  <th scope="col" style="text-align:right;">Valor unitário</th>
-                  <th scope="col" style="text-align:right;">Subtotal contratos</th>
-                  <th scope="col" style="text-align:right;">Taxa fixa</th>
-                  <th scope="col" style="text-align:right;">Total</th>
+                  <th scope="col" class="num">Contratos ativos</th>
+                  <th scope="col" class="num">Valor unitário</th>
+                  <th scope="col" class="num">Subtotal contratos</th>
+                  <th scope="col" class="num">Taxa fixa</th>
+                  <th scope="col" class="num">Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -110,11 +101,11 @@ window.CobrancaMensal = {
                   this._meses.map(m => `
                     <tr class="row-mes" data-ano="${m.ano}" data-mes="${m.mes}" style="cursor:pointer;" title="Click para ver detalhes">
                       <td><strong>${this._mesNome(m.mes)}/${m.ano}</strong></td>
-                      <td style="text-align:right;">${m.contratosAtivos}</td>
-                      <td style="text-align:right;">${Store.formatBRL(m.valorPorContrato)}</td>
-                      <td style="text-align:right;">${Store.formatBRL(m.valorContratos)}</td>
-                      <td style="text-align:right;">${Store.formatBRL(m.taxaFixa)}</td>
-                      <td style="text-align:right;font-weight:800;color:#065F46;">${Store.formatBRL(m.total)}</td>
+                      <td class="num">${m.contratosAtivos}</td>
+                      <td class="num">${Store.formatBRL(m.valorPorContrato)}</td>
+                      <td class="num">${Store.formatBRL(m.valorContratos)}</td>
+                      <td class="num">${Store.formatBRL(m.taxaFixa)}</td>
+                      <td class="num" style="color:var(--color-success);">${Store.formatBRL(m.total)}</td>
                     </tr>
                   `).join('')}
               </tbody>
