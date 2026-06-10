@@ -98,46 +98,28 @@ window.Comparativo = {
       : ' <span style="opacity:.3;">↕</span>';
 
     const th = (col, label, align = 'left') =>
-      `<th scope="col" data-sort="${col}" style="cursor:pointer;text-align:${align};user-select:none;">${label}${arrow(col)}</th>`;
+      `<th scope="col" data-sort="${col}" class="${align === 'right' ? 'num' : ''}" style="cursor:pointer;user-select:none;">${label}${arrow(col)}</th>`;
 
+    // Padrão B (UIKit) — mesma moldura das demais telas financeiras.
     app.innerHTML = `
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">📊 Comparativo de Contratos</h1>
-          <p class="page-subtitle">Ranking por margem, atraso, execução e mais — clique nas colunas para ordenar</p>
-        </div>
-        <a href="#/contratos" class="btn btn-secondary">← Voltar para Contratos</a>
-      </div>
+      ${window.UIKit?.pageHeader ? window.UIKit.pageHeader({
+        title: '📊 Comparativo de Contratos',
+        subtitle: 'Ranking por margem, atraso, execução e mais — clique nas colunas para ordenar',
+        actions: '<a href="#/contratos" class="btn btn-secondary">← Voltar para Contratos</a>',
+      }) : ''}
 
-      <!-- Resumo agregado -->
-      <div class="card mb-lg" style="padding:0;overflow:hidden;">
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);">
-          <div style="padding:var(--sp-lg);border-right:1px solid var(--color-border);border-top:3px solid var(--color-primary);">
-            <div class="text-muted font-sm">Total em contratos</div>
-            <div style="font-size:20px;font-weight:800;">${fmt(totalValor)}</div>
-            <div class="text-muted font-sm">${metrics.length} contrato${metrics.length !== 1 ? 's' : ''}</div>
-          </div>
-          <div style="padding:var(--sp-lg);border-right:1px solid var(--color-border);border-top:3px solid var(--color-success);">
-            <div class="text-muted font-sm">Total medido (BMs)</div>
-            <div style="font-size:20px;font-weight:800;color:var(--color-success);">${fmt(totalMedido)}</div>
-          </div>
-          <div style="padding:var(--sp-lg);border-right:1px solid var(--color-border);border-top:3px solid #F59E0B;">
-            <div class="text-muted font-sm">Total custo</div>
-            <div style="font-size:20px;font-weight:800;color:#F59E0B;">${fmt(totalCusto)}</div>
-          </div>
-          <div style="padding:var(--sp-lg);border-top:3px solid ${corPct(pctMargemAgregado, 20)};">
-            <div class="text-muted font-sm">Margem agregada</div>
-            <div style="font-size:20px;font-weight:800;color:${corPct(pctMargemAgregado, 20)};">${fmt(totalMargem)}</div>
-            <div class="text-muted font-sm">${pctMargemAgregado.toFixed(1)}% (meta ≥20%)</div>
-          </div>
-        </div>
-      </div>
+      ${window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
+        { label: 'Total em contratos', value: fmt(totalValor), color: 'var(--color-primary)', hint: `${metrics.length} contrato${metrics.length !== 1 ? 's' : ''}` },
+        { label: 'Total medido (BMs)', value: fmt(totalMedido), color: 'var(--color-success)' },
+        { label: 'Total custo', value: fmt(totalCusto), color: 'var(--color-warning)' },
+        { label: 'Margem agregada', value: fmt(totalMargem), color: corPct(pctMargemAgregado, 20), hint: `${pctMargemAgregado.toFixed(1)}% (meta ≥20%)` },
+      ]) : ''}
 
-      <div style="display:flex;gap:8px;margin-bottom:var(--sp-md);">
-        <button class="btn ${this._filtroStatus === 'ativos' ? 'btn-primary' : 'btn-secondary'}" data-filtro="ativos">Ativos</button>
-        <button class="btn ${this._filtroStatus === 'concluidos' ? 'btn-primary' : 'btn-secondary'}" data-filtro="concluidos">Concluídos</button>
-        <button class="btn ${this._filtroStatus === 'todos' ? 'btn-primary' : 'btn-secondary'}" data-filtro="todos">Todos</button>
-      </div>
+      ${window.UIKit?.chips ? window.UIKit.chips([
+        { value: 'ativos', label: 'Ativos', active: this._filtroStatus === 'ativos' },
+        { value: 'concluidos', label: 'Concluídos', active: this._filtroStatus === 'concluidos' },
+        { value: 'todos', label: 'Todos', active: this._filtroStatus === 'todos' },
+      ], { name: 'comp-status' }) : ''}
 
       <div class="card" style="padding:0;overflow:hidden;">
         <div style="overflow-x:auto;">
@@ -165,18 +147,18 @@ window.Comparativo = {
                     ${m.contractNumber ? `<div class="text-muted font-sm">#${escapeHtml(m.contractNumber)}</div>` : ''}
                   </td>
                   <td>${escapeHtml(m.cliente || '—')}</td>
-                  <td style="text-align:right;font-weight:600;">${fmt(m.valor)}</td>
-                  <td style="text-align:right;color:${corPct(m.pctMedido, 100)};">${m.pctMedido.toFixed(1)}%</td>
-                  <td style="text-align:right;color:${corPct(m.pctMargem, 20)};font-weight:700;">${m.pctMargem.toFixed(1)}%</td>
-                  <td style="text-align:right;color:${m.margemReais >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${fmt(m.margemReais)}</td>
-                  <td style="text-align:right;color:${m.desvioOrcado <= 5 ? 'var(--color-success)' : (m.desvioOrcado <= 15 ? '#F59E0B' : 'var(--color-danger)')};">
+                  <td class="num">${fmt(m.valor)}</td>
+                  <td class="num" style="color:${corPct(m.pctMedido, 100)};">${m.pctMedido.toFixed(1)}%</td>
+                  <td class="num" style="color:${corPct(m.pctMargem, 20)};font-weight:700;">${m.pctMargem.toFixed(1)}%</td>
+                  <td class="num" style="color:${m.margemReais >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${fmt(m.margemReais)}</td>
+                  <td class="num" style="color:${m.desvioOrcado <= 5 ? 'var(--color-success)' : (m.desvioOrcado <= 15 ? '#F59E0B' : 'var(--color-danger)')};">
                     ${m.orcado > 0 ? (m.desvioOrcado >= 0 ? '+' : '') + m.desvioOrcado.toFixed(1) + '%' : '<span class="text-muted">—</span>'}
                   </td>
-                  <td style="text-align:right;color:${m.atrasoDias > 0 ? 'var(--color-danger)' : 'var(--color-success)'};">
+                  <td class="num" style="color:${m.atrasoDias > 0 ? 'var(--color-danger)' : 'var(--color-success)'};">
                     ${m.atrasoDias === 0 ? '—' : (m.atrasoDias > 0 ? `+${m.atrasoDias}d` : `${m.atrasoDias}d`)}
                   </td>
-                  <td style="text-align:right;">${m.equipeAtual}</td>
-                  <td style="text-align:right;">${m.rdosUltimos30}</td>
+                  <td class="num">${m.equipeAtual}</td>
+                  <td class="num">${m.rdosUltimos30}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -201,6 +183,9 @@ window.Comparativo = {
         else { this._sortBy = col; this._sortDir = 'desc'; }
         this._draw();
       });
+    });
+    document.querySelectorAll('[data-chips="comp-status"] .rh-chip').forEach(b => {
+      b.addEventListener('click', () => { this._filtroStatus = b.dataset.value; this._draw(); });
     });
     document.querySelectorAll('button[data-filtro]').forEach(b => {
       b.addEventListener('click', () => { this._filtroStatus = b.dataset.filtro; this._draw(); });
