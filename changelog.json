@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.20.0",
+      "date": "2026-06-10",
+      "summary": "Perfil gerente tambem pode visualizar o portal do cliente",
+      "changes": [
+        "Perfil gerente tambem pode visualizar o portal do cliente"
+      ]
+    },
+    {
       "version": "1.19.1",
       "date": "2026-06-09",
       "summary": "Diarios de obra agora aparecem no portal do cliente",

@@ -22,9 +22,19 @@ test('nega quando não há usuário autenticado', () => {
   assert.equal(validarImpersonacao(undefined), 'Não autenticado');
 });
 
-test('nega usuário com perfil comum (não super admin)', () => {
+test('nega usuário com perfil comum (não autorizado)', () => {
   const erro = validarImpersonacao({ id: 'user_1', nivelAcessoId: 'operacional' });
-  assert.match(erro, /super admin/i);
+  assert.match(erro, /super admin|gerente/i);
+});
+
+test('permite perfil gerente', () => {
+  assert.equal(validarImpersonacao({ id: 'user_1', nivelAcessoId: 'gerente' }), null);
+});
+
+test('nega outros perfis nomeados (coordenador, financeiro, rh)', () => {
+  for (const perfil of ['coordenador', 'financeiro', 'rh', 'encarregado']) {
+    assert.ok(validarImpersonacao({ id: 'u', nivelAcessoId: perfil }), `${perfil} deveria ser negado`);
+  }
 });
 
 test('permite super admin sem perfil (nivelAcessoId null)', () => {

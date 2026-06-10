@@ -175,7 +175,7 @@ window.Clientes = {
                     <td>${c.email ? `<a href="mailto:${escapeHtml(c.email)}" class="js-stop" style="color:var(--color-primary);text-decoration:none;">${escapeHtml(c.email)}</a>` : '—'}</td>
                     <td>
                       <div class="actions-cell">
-                        ${this._isSuperAdmin() ? `<button type="button" class="action-link btn-ver-portal" data-id="${c.id}" title="Ver o portal como este cliente (sessão de 30 min)">Portal</button>` : ''}
+                        ${this._podeVerPortal() ? `<button type="button" class="action-link btn-ver-portal" data-id="${c.id}" title="Ver o portal como este cliente (sessão de 30 min)">Portal</button>` : ''}
                         <button type="button" class="action-link btn-editar" data-id="${c.id}">Editar</button>
                         <button type="button" class="action-link danger btn-excluir" data-id="${c.id}">Excluir</button>
                       </div>
@@ -623,10 +623,14 @@ window.Clientes = {
       window.viewLifecycle.onCleanup(() => document.removeEventListener('click', _onDocClick));
   },
 
-  /** Espelha o gate do backend: super admin = sem perfil (null) ou 'admin'. */
-  _isSuperAdmin() {
+  /**
+   * Espelha o gate do backend (lib/portal-impersonate.js): super admin
+   * (perfil null ou 'admin') ou perfil 'gerente'.
+   */
+  _podeVerPortal() {
     const u = window.auth && typeof window.auth.user === 'function' ? window.auth.user() : null;
-    return !!u && (u.nivelAcessoId == null || u.nivelAcessoId === 'admin');
+    if (!u) return false;
+    return u.nivelAcessoId == null || u.nivelAcessoId === 'admin' || u.nivelAcessoId === 'gerente';
   },
 
   /**
