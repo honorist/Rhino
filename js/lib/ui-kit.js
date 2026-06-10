@@ -45,6 +45,8 @@
     vencida:      { variant: 'danger',  label: 'Vencida' },
     conciliado:   { variant: 'success', label: 'Conciliado' },
     novo:         { variant: 'info',    label: 'Novo' },
+    proximo_vencer: { variant: 'warning', label: 'Próxima' },
+    no_prazo:     { variant: 'success', label: 'No prazo' },
   };
 
   function statusPill(status, customLabel) {

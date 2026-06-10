@@ -34,70 +34,22 @@ window.NotasFiscais = {
         .sort((a, b) => new Date(a.dataLimite) - new Date(b.dataLimite))
         .slice(0, 5);
 
-      const tabStyle = (nome) =>
-        this.currentView === nome
-          ? 'background:var(--color-primary);color:#fff;border:none;'
-          : 'background:transparent;color:var(--color-text-muted);border:1px solid var(--color-border);';
-
       const html = `
-        <!-- Header -->
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--sp-xl);">
-          <div>
-            <h1 class="page-title">Contas a Receber</h1>
-            <p class="page-subtitle">Notas fiscais e recebimentos previstos · ${total} nota${total !== 1 ? 's' : ''} registrada${total !== 1 ? 's' : ''}</p>
-          </div>
-          <button class="btn btn-primary btn-lg" id="btnNovoNF">+ Nova Conta a Receber</button>
-        </div>
+        <!-- Header (UIKit — padrão B) -->
+        ${window.UIKit?.pageHeader ? window.UIKit.pageHeader({
+          title: 'Contas a Receber',
+          subtitle: `Notas fiscais e recebimentos previstos · ${total} nota${total !== 1 ? 's' : ''} registrada${total !== 1 ? 's' : ''}`,
+          actions: '<button class="btn btn-primary btn-lg" id="btnNovoNF">+ Nova Conta a Receber</button>',
+        }) : ''}
 
-        <!-- Painel de status (faixa compacta) -->
-        <div style="background:${statusGeral.bg};border:1px solid ${statusGeral.cor}30;border-radius:8px;padding:var(--sp-sm) var(--sp-md);margin-bottom:var(--sp-lg);display:flex;align-items:center;gap:var(--sp-lg);flex-wrap:wrap;">
-
-          <!-- Vencidas -->
-          <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-            <span style="font-size:15px;">🔴</span>
-            <span style="font-size:18px;font-weight:800;color:#E53E3E;line-height:1;">${nfsVencidas.length}</span>
-            <span style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Vencidas</span>
-          </div>
-
-          <div style="width:1px;height:20px;background:${statusGeral.cor}25;"></div>
-
-          <!-- Próximas -->
-          <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-            <span style="font-size:15px;">⚠️</span>
-            <span style="font-size:18px;font-weight:800;color:#D69E2E;line-height:1;">${nfsProximas.length}</span>
-            <span style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Próx. 7d</span>
-          </div>
-
-          <div style="width:1px;height:20px;background:${statusGeral.cor}25;"></div>
-
-          <!-- No prazo -->
-          <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-            <span style="font-size:15px;">✅</span>
-            <span style="font-size:18px;font-weight:800;color:#38A169;line-height:1;">${nfsPrazo.length}</span>
-            <span style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">No prazo</span>
-          </div>
-
-          <div style="width:1px;height:20px;background:${statusGeral.cor}25;"></div>
-
-          <!-- Emitidas -->
-          <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-            <span style="font-size:15px;">📤</span>
-            <span style="font-size:18px;font-weight:800;color:#3182CE;line-height:1;">${emitidas.length}</span>
-            <span style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.04em;">Emitidas</span>
-          </div>
-
-          <!-- Separador flex -->
-          <div style="flex:1;"></div>
-
-          <!-- Score -->
-          <div style="display:flex;align-items:center;gap:var(--sp-sm);">
-            <span style="font-size:15px;font-weight:700;color:${statusGeral.cor};">${statusGeral.icone} ${statusGeral.texto}</span>
-            <div style="width:80px;height:6px;background:rgba(0,0,0,.08);border-radius:99px;overflow:hidden;">
-              <div style="height:100%;width:${pctOk}%;background:${statusGeral.cor};border-radius:99px;transition:width .5s;"></div>
-            </div>
-            <span style="font-size:15px;font-weight:800;color:${statusGeral.cor};">${pctOk}%</span>
-          </div>
-        </div>
+        <!-- KPIs (UIKit — padrão B) -->
+        ${window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
+          { icon: '🔴', label: 'Vencidas', value: nfsVencidas.length, color: 'var(--color-danger)' },
+          { icon: '⚠️', label: 'Próx. 7d', value: nfsProximas.length, color: 'var(--color-warning)' },
+          { icon: '✅', label: 'No prazo', value: nfsPrazo.length, color: 'var(--color-success)' },
+          { icon: '📤', label: 'Emitidas', value: emitidas.length, color: 'var(--color-info)' },
+          { icon: statusGeral.icone, label: 'Saúde dos prazos', value: `${pctOk}%`, color: statusGeral.cor, hint: statusGeral.texto },
+        ]) : ''}
 
         <!-- Timeline de próximos vencimentos -->
         ${proximasTimeline.length > 0 ? `
@@ -138,11 +90,16 @@ window.NotasFiscais = {
           </div>
         ` : ''}
 
-        <!-- Abas -->
-        <div style="display:flex;gap:var(--sp-sm);margin-bottom:var(--sp-lg);">
-          <button class="btn btn-sm" id="tabLista"   style="${tabStyle('lista')}border-radius:6px;display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('list', 14)}Lista Geral</button>
-          <button class="btn btn-sm" id="tabSemanal" style="${tabStyle('semanal')}border-radius:6px;display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('calendar', 14)}Semanal</button>
-          <button class="btn btn-sm" id="tabMensal"  style="${tabStyle('mensal')}border-radius:6px;display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('calendar', 14)}Mensal</button>
+        <!-- Abas (UIKit.viewToggle — padrão B) -->
+        <div style="margin-bottom:var(--sp-lg);">
+          ${window.UIKit?.viewToggle ? window.UIKit.viewToggle({
+            current: this.currentView,
+            options: [
+              { value: 'lista', label: '☰ Lista Geral' },
+              { value: 'semanal', label: '🗓 Semanal' },
+              { value: 'mensal', label: '📅 Mensal' },
+            ],
+          }) : ''}
         </div>
 
         <!-- Conteúdo das abas -->
@@ -156,9 +113,9 @@ window.NotasFiscais = {
       app.innerHTML = html;
 
       document.getElementById('btnNovoNF').addEventListener('click', () => this.showModal());
-      document.getElementById('tabLista').addEventListener('click',   () => { this.currentView = 'lista';   this.render(); });
-      document.getElementById('tabSemanal').addEventListener('click', () => { this.currentView = 'semanal'; this.render(); });
-      document.getElementById('tabMensal').addEventListener('click',  () => { this.currentView = 'mensal';  this.render(); });
+      document.querySelectorAll('.ui-view-toggle button[data-view]').forEach(b => {
+        b.addEventListener('click', () => { this.currentView = b.dataset.view; this.render(); });
+      });
 
       this.attachListeners();
     } catch (e) {
@@ -186,7 +143,7 @@ window.NotasFiscais = {
               <tr>
                 <th scope="col">NF</th>
                 <th scope="col">Contrato/Cliente</th>
-                <th scope="col" style="text-align:right;">Valor</th>
+                <th scope="col" class="num">Valor</th>
                 <th scope="col">Data Limite</th>
                 <th scope="col">Recebimento</th>
                 <th scope="col">Situação</th>
@@ -209,14 +166,13 @@ window.NotasFiscais = {
                 let situacaoHTML;
                 if (nf.emitida) {
                   situacaoHTML = `
-                    <span class="badge" style="background:rgba(56,161,105,.15);color:#38A169;">✓ EMITIDA</span>
+                    ${window.UIKit?.statusPill ? window.UIKit.statusPill('emitida') : 'Emitida'}
                     <div style="font-size:15px;color:var(--color-text-muted);margin-top:2px;">em ${new Date(nf.dataEmissaoReal + 'T12:00:00').toLocaleDateString('pt-BR')}</div>
                   `;
                 } else {
-                  const label = st.status === 'vencida' ? '🔴 Vencida' : st.status === 'proximo_vencer' ? '⚠️ Próxima' : '🟢 No prazo';
                   const diasTxt = st.status === 'vencida' ? `${Math.abs(Math.floor((new Date(nf.dataLimite) - new Date()) / 86400000))}d atrás` : `em ${st.dias}d`;
                   situacaoHTML = `
-                    <span class="badge badge-${st.classe}">${label}</span>
+                    ${window.UIKit?.statusPill ? window.UIKit.statusPill(st.status) : st.status}
                     <div style="font-size:15px;color:var(--color-text-muted);margin-top:2px;">${diasTxt}</div>
                   `;
                 }
@@ -228,7 +184,7 @@ window.NotasFiscais = {
                       ${escapeHtml(contract?.name) || '—'}
                       <div style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(contract?.client) || '—'}</div>
                     </td>
-                    <td style="text-align:right;font-weight:700;">${Store.formatBRL(nf.valor || 0)}</td>
+                    <td class="num">${Store.formatBRL(nf.valor || 0)}</td>
                     <td>${new Date(nf.dataLimite + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                     <td>
                       <div style="font-size:15px;font-weight:600;color:${nf.emitida ? 'var(--color-info)' : 'var(--color-text-muted)'};">${dtRecebimento.toLocaleDateString('pt-BR')}</div>
@@ -304,13 +260,12 @@ window.NotasFiscais = {
                       ${nfsSem.map(nf => {
                         const contract = Store.getContractById(nf.contractId);
                         const st = Store.getNotaFiscalStatus(nf.dataLimite);
-                        const icon = st.status === 'vencida' ? '🔴' : st.status === 'proximo_vencer' ? '⚠️' : '🟢';
                         return `
                           <tr>
                             <td><strong>${escapeHtml(nf.numero)}</strong></td>
                             <td>${escapeHtml(contract?.client || '—')}</td>
                             <td>${new Date(nf.dataLimite + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                            <td><span class="badge badge-${st.classe}">${icon} ${st.dias >= 0 ? st.dias + 'd' : 'Vencida'}</span></td>
+                            <td>${window.UIKit?.statusPill ? window.UIKit.statusPill(st.status, st.dias >= 0 ? `${st.dias}d` : 'Vencida') : st.status}</td>
                           </tr>
                         `;
                       }).join('')}
@@ -581,7 +536,7 @@ window.NotasFiscais = {
             <div>
               <h2 class="modal-title">NF ${escapeHtml(nf.numero)}</h2>
               <div style="margin-top:6px;">
-                <span class="badge" style="background:${nf.emitida ? 'rgba(56,161,105,.15)' : 'rgba(214,158,46,.12)'};color:${nf.emitida ? 'var(--color-success)' : 'var(--color-warning)'};">${nf.emitida ? '✓ Emitida' : 'Pendente'}</span>
+                ${window.UIKit?.statusPill ? window.UIKit.statusPill(nf.emitida ? 'emitida' : 'pendente') : (nf.emitida ? 'Emitida' : 'Pendente')}
                 <span style="font-size:22px;font-weight:700;color:var(--color-success);margin-left:12px;">${Store.formatBRL(nf.valor || 0)}</span>
               </div>
             </div>
