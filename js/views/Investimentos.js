@@ -68,7 +68,7 @@ window.Investimentos = {
                         <td>${num(socio.participacao).toFixed(2)}%</td>
                         <td class="num">${Store.formatBRL(aportado)}</td>
                         <td class="num" style="color:var(--color-text-muted);">${Store.formatBRL(esperado)}</td>
-                        <td style="text-align:right;font-weight:700;color:${diff >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">
+                        <td class="num" style="color:${diff >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">
                           ${diff >= 0 ? '+' : ''}${Store.formatBRL(diff)}
                         </td>
                       </tr>
@@ -162,7 +162,7 @@ window.Investimentos = {
                 <tfoot>
                   <tr style="background:var(--color-bg);font-weight:700;">
                     <td colspan="5" style="padding:var(--sp-md);">Total filtrado</td>
-                    <td style="text-align:right;padding:var(--sp-md);">${Store.formatBRL(aportesFiltrados.reduce((s, a) => s + num(a.value), 0))}</td>
+                    <td class="num" style="padding:var(--sp-md);">${Store.formatBRL(aportesFiltrados.reduce((s, a) => s + num(a.value), 0))}</td>
                     <td></td>
                   </tr>
                 </tfoot>

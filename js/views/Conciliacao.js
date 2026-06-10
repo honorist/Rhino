@@ -372,41 +372,34 @@ window.Conciliacao = {
       rows += this._renderTxRow(this._transactions[i]);
     }
 
+    // Padrão B (UIKit) — mesma moldura das demais telas financeiras.
+    var headerHtml = window.UIKit && window.UIKit.pageHeader
+      ? window.UIKit.pageHeader({
+          title: 'Conciliação Bancária',
+          subtitle: total + ' transaç' + (total === 1 ? 'ão' : 'ões') +
+            ' · ' + confirmed + ' confirmada' + (confirmed === 1 ? '' : 's'),
+          actions:
+            '<button class="btn btn-secondary btn-sm" id="btnNovoArquivo">&#8592; Novo arquivo</button>' +
+            '<button class="btn btn-primary" id="btnLancarConfirmados"' + (confirmed === 0 ? ' disabled' : '') + '>' +
+              '&#10003; Lancar ' + confirmed + ' confirmado' + (confirmed === 1 ? '' : 's') +
+            '</button>',
+        })
+      : '';
+
+    var kpisHtml = window.UIKit && window.UIKit.kpiGrid
+      ? window.UIKit.kpiGrid([
+          { label: 'Total', value: total, color: 'var(--color-primary)' },
+          { label: 'Confirmadas', value: confirmed, color: 'var(--color-success)' },
+          { label: 'Pendentes', value: pending, color: 'var(--color-warning)' },
+          { label: 'Ignoradas', value: skipped, color: 'var(--color-text-muted)' },
+        ])
+      : '';
+
     return (
-      '<div class="page-header">' +
-        '<div>' +
-          '<h1 class="page-title">Conciliação Bancária</h1>' +
-          '<p class="page-subtitle">' +
-            total + ' transaç' + (total === 1 ? 'ão' : 'ões') +
-            ' · ' + confirmed + ' confirmada' + (confirmed === 1 ? '' : 's') +
-          '</p>' +
-        '</div>' +
-        '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
-          '<button class="btn btn-secondary btn-sm" id="btnNovoArquivo">&#8592; Novo arquivo</button>' +
-          '<button class="btn btn-primary" id="btnLancarConfirmados"' + (confirmed === 0 ? ' disabled' : '') + '>' +
-            '&#10003; Lancar ' + confirmed + ' confirmado' + (confirmed === 1 ? '' : 's') +
-          '</button>' +
-        '</div>' +
-      '</div>' +
-
-      '<div style="display:flex;gap:var(--sp-md);flex-wrap:wrap;margin-bottom:var(--sp-lg);">' +
-        this._statPill('Total', total, 'var(--color-text-muted)') +
-        this._statPill('Confirmadas', confirmed, 'var(--color-success)') +
-        this._statPill('Pendentes', pending, 'var(--color-warning)') +
-        this._statPill('Ignoradas', skipped, 'var(--color-text-muted)') +
-      '</div>' +
-
+      headerHtml +
+      kpisHtml +
       '<div id="txListContainer">' +
         rows +
-      '</div>'
-    );
-  },
-
-  _statPill: function(label, count, color) {
-    return (
-      '<div class="card" style="padding:var(--sp-sm) var(--sp-md);display:flex;align-items:center;gap:8px;">' +
-        '<span style="font-size:18px;font-weight:700;color:' + color + ';">' + count + '</span>' +
-        '<span style="font-size:13px;color:var(--color-text-muted);">' + escapeHtml(label) + '</span>' +
       '</div>'
     );
   },
