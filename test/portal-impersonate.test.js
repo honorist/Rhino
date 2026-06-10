@@ -33,7 +33,10 @@ test('permite perfil gerente', () => {
 
 test('nega outros perfis nomeados (coordenador, financeiro, rh)', () => {
   for (const perfil of ['coordenador', 'financeiro', 'rh', 'encarregado']) {
-    assert.ok(validarImpersonacao({ id: 'u', nivelAcessoId: perfil }), `${perfil} deveria ser negado`);
+    assert.ok(
+      validarImpersonacao({ id: 'u', nivelAcessoId: perfil }),
+      `${perfil} deveria ser negado`
+    );
   }
 });
 

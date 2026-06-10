@@ -19,14 +19,29 @@ module.exports = function registerPortal(router, handlers) {
     return fn(ctx);
   };
 
-  router.post('/api/portal/logout',   comAuth((ctx) => handlers.handlePortalLogout(ctx.req, ctx.res)));
-  router.get('/api/portal/dashboard', comAuth((ctx) => handlers.handlePortalDashboard(ctx.req, ctx.res)));
-  router.get('/api/portal/propostas', comAuth((ctx) => handlers.handlePortalListPropostas(ctx.req, ctx.res)));
-  router.get('/api/portal/propostas/:id/pdf',
-    comAuth((ctx) => handlers.handlePortalPropostaPdf(ctx.req, ctx.params[0], ctx.res)));
-  router.get('/api/portal/propostas/:id/docx',
-    comAuth((ctx) => handlers.handlePortalPropostaDocx(ctx.req, ctx.params[0], ctx.res)));
+  router.post(
+    '/api/portal/logout',
+    comAuth((ctx) => handlers.handlePortalLogout(ctx.req, ctx.res))
+  );
+  router.get(
+    '/api/portal/dashboard',
+    comAuth((ctx) => handlers.handlePortalDashboard(ctx.req, ctx.res))
+  );
+  router.get(
+    '/api/portal/propostas',
+    comAuth((ctx) => handlers.handlePortalListPropostas(ctx.req, ctx.res))
+  );
+  router.get(
+    '/api/portal/propostas/:id/pdf',
+    comAuth((ctx) => handlers.handlePortalPropostaPdf(ctx.req, ctx.params[0], ctx.res))
+  );
+  router.get(
+    '/api/portal/propostas/:id/docx',
+    comAuth((ctx) => handlers.handlePortalPropostaDocx(ctx.req, ctx.params[0], ctx.res))
+  );
   // PDF oficial do RDO — escopo: RDO de contrato do cliente da sessão.
-  router.get('/api/portal/rdos/:id/pdf',
-    comAuth((ctx) => handlers.handlePortalRdoPdf(ctx.req, ctx.params[0], ctx.res)));
+  router.get(
+    '/api/portal/rdos/:id/pdf',
+    comAuth((ctx) => handlers.handlePortalRdoPdf(ctx.req, ctx.params[0], ctx.res))
+  );
 };
