@@ -8,34 +8,19 @@ window.Socios = {
 
       const totalParticipacao = Store.state.socios.reduce((sum, s) => sum + s.participacao, 0);
 
+      // Padrão B (UIKit) — mesma moldura das demais telas financeiras.
       const html = `
-        <div class="page-header">
-          <div>
-            <h1 class="page-title">Sócios</h1>
-            <p class="page-subtitle">Gerenciar sócios e participações</p>
-          </div>
-          <button class="btn btn-primary btn-lg" id="btnNovoSocio">+ Novo Sócio</button>
-        </div>
+        ${window.UIKit?.pageHeader ? window.UIKit.pageHeader({
+          title: 'Sócios',
+          subtitle: 'Gerenciar sócios e participações',
+          actions: '<button class="btn btn-primary btn-lg" id="btnNovoSocio">+ Novo Sócio</button>',
+        }) : ''}
 
-        <div class="card mb-2xl">
-          <div class="card-header">
-            <h3 class="card-title">Participação Total</h3>
-          </div>
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-lg);">
-            <div>
-              <div class="text-muted font-sm mb-sm">Total Sócios</div>
-              <div class="font-xl font-bold">${Store.state.socios.length}</div>
-            </div>
-            <div>
-              <div class="text-muted font-sm mb-sm">Participação Registrada</div>
-              <div class="font-xl font-bold" style="color: ${totalParticipacao === 100 ? 'var(--color-success)' : 'var(--color-warning)'};">${totalParticipacao.toFixed(2)}%</div>
-            </div>
-            <div>
-              <div class="text-muted font-sm mb-sm">Participação Faltante</div>
-              <div class="font-xl font-bold" style="color: var(--color-info);">${(100 - totalParticipacao).toFixed(2)}%</div>
-            </div>
-          </div>
-        </div>
+        ${window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
+          { label: 'Total Sócios', value: Store.state.socios.length, color: 'var(--color-primary)' },
+          { label: 'Participação Registrada', value: `${totalParticipacao.toFixed(2)}%`, color: totalParticipacao === 100 ? 'var(--color-success)' : 'var(--color-warning)' },
+          { label: 'Participação Faltante', value: `${(100 - totalParticipacao).toFixed(2)}%`, color: 'var(--color-info)' },
+        ]) : ''}
 
         <div class="card">
           <div class="card-header">
@@ -52,8 +37,8 @@ window.Socios = {
                     <th scope="col">CPF/CNPJ</th>
                     <th scope="col">Email</th>
                     <th scope="col">Telefone</th>
-                    <th scope="col" style="text-align: right;">Participação</th>
-                    <th scope="col" style="text-align: right;">Total Investido</th>
+                    <th scope="col" class="num">Participação</th>
+                    <th scope="col" class="num">Total Investido</th>
                     <th scope="col">Ações</th>
                   </tr>
                 </thead>
@@ -67,8 +52,8 @@ window.Socios = {
                         <td>${escapeHtml(s.document) || '-'}</td>
                         <td>${escapeHtml(s.email) || '-'}</td>
                         <td>${escapeHtml(s.phone) || '-'}</td>
-                        <td style="text-align: right; font-weight: 600;">${s.participacao.toFixed(2)}%</td>
-                        <td style="text-align: right; font-weight: 600;">${Store.formatBRL(totalInvestido)}</td>
+                        <td class="num">${s.participacao.toFixed(2)}%</td>
+                        <td class="num">${Store.formatBRL(totalInvestido)}</td>
                         <td>
                           <div class="actions-cell">
                             <button type="button" class="action-link btn-investimentos" data-id="${s.id}">Investimentos</button>

@@ -26,42 +26,29 @@ window.Previsao = {
     const minimoSaldo = saldoProjetado.length ? Math.min(...saldoProjetado.map(p => p.saldo)) : 0;
     const temNegativo = minimoSaldo < 0;
 
-    app.innerHTML = `
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">📈 Previsão de Caixa</h1>
-          <p class="page-subtitle">Saldo projetado considerando NFs emitidas, contas a pagar e recorrências</p>
-        </div>
-        <div style="display:flex;gap:8px;">
-          ${[30,60,90,180].map(d => `
-            <button class="btn ${this._days === d ? 'btn-primary' : 'btn-secondary'} btn-sm rh-proj-days" data-days="${d}">
-              ${d}d
-            </button>
-          `).join('')}
-        </div>
-      </div>
+    // Padrão B (UIKit) — mesma moldura das demais telas financeiras.
+    const headerHtml = window.UIKit?.pageHeader
+      ? window.UIKit.pageHeader({
+          title: '📈 Previsão de Caixa',
+          subtitle: 'Saldo projetado considerando NFs emitidas, contas a pagar e recorrências',
+          actions: [30, 60, 90, 180].map(d => `
+            <button class="btn ${this._days === d ? 'btn-primary' : 'btn-secondary'} btn-sm rh-proj-days" data-days="${d}">${d}d</button>
+          `).join(''),
+        })
+      : '';
 
-      <!-- KPIs -->
-      <div class="grid-4" style="margin-bottom:var(--sp-lg);">
-        <div class="card" style="text-align:center;">
-          <div style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted);margin-bottom:4px;">Saldo Atual</div>
-          <div style="font-size:22px;font-weight:800;color:${caixaBalance >= 0 ? 'var(--color-success)' : '#E53E3E'};">${fmt(caixaBalance)}</div>
-        </div>
-        <div class="card" style="text-align:center;">
-          <div style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted);margin-bottom:4px;">Saldo Projetado (${this._days}d)</div>
-          <div style="font-size:22px;font-weight:800;color:${saldoFinal >= 0 ? 'var(--color-success)' : '#E53E3E'};">${fmt(saldoFinal)}</div>
-        </div>
-        <div class="card" style="text-align:center;">
-          <div style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted);margin-bottom:4px;">Mínimo Projetado</div>
-          <div style="font-size:22px;font-weight:800;color:${minimoSaldo >= 0 ? 'var(--color-success)' : '#E53E3E'};">${fmt(minimoSaldo)}</div>
-          ${temNegativo ? '<div style="font-size:12px;color:#E53E3E;margin-top:2px;">⚠️ Saldo negativo previsto</div>' : ''}
-        </div>
-        <div class="card" style="text-align:center;">
-          <div style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-muted);margin-bottom:4px;">CP Pendentes</div>
-          <div style="font-size:22px;font-weight:800;color:#E53E3E;">${fmt(contasPagarStatus.totalPendente || 0)}</div>
-          <div style="font-size:12px;color:var(--color-text-muted);">${contasPagarStatus.pendentes || 0} contas</div>
-        </div>
-      </div>
+    const kpisHtml = window.UIKit?.kpiGrid
+      ? window.UIKit.kpiGrid([
+          { label: 'Saldo Atual', value: fmt(caixaBalance), color: caixaBalance >= 0 ? 'var(--color-success)' : 'var(--color-danger)' },
+          { label: `Saldo Projetado (${this._days}d)`, value: fmt(saldoFinal), color: saldoFinal >= 0 ? 'var(--color-success)' : 'var(--color-danger)' },
+          { label: 'Mínimo Projetado', value: fmt(minimoSaldo), color: minimoSaldo >= 0 ? 'var(--color-success)' : 'var(--color-danger)', hint: temNegativo ? '⚠️ Saldo negativo previsto' : '' },
+          { label: 'CP Pendentes', value: fmt(contasPagarStatus.totalPendente || 0), color: 'var(--color-danger)', hint: `${contasPagarStatus.pendentes || 0} contas` },
+        ])
+      : '';
+
+    app.innerHTML = `
+      ${headerHtml}
+      ${kpisHtml}
 
       ${temNegativo ? `
       <div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;padding:12px 16px;margin-bottom:var(--sp-lg);display:flex;align-items:center;gap:10px;">
@@ -80,13 +67,13 @@ window.Previsao = {
       <div class="card" style="margin-bottom:var(--sp-lg);">
         <div style="font-weight:700;margin-bottom:var(--sp-md);">Entradas Previstas (NFs emitidas)</div>
         <table class="table">
-          <thead><tr><th scope="col">Data</th><th scope="col">NF</th><th scope="col">Valor</th></tr></thead>
+          <thead><tr><th scope="col">Data</th><th scope="col">NF</th><th scope="col" class="num">Valor</th></tr></thead>
           <tbody>
             ${projecaoFutura.flatMap(d => d.entradas.map(e => `
               <tr>
                 <td>${new Date(d.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                 <td>${e.numero || '—'}</td>
-                <td style="font-weight:700;color:var(--color-success);">${fmt(e.valor)}</td>
+                <td class="num" style="color:var(--color-success);">${fmt(e.valor)}</td>
               </tr>
             `)).join('')}
           </tbody>
@@ -98,13 +85,13 @@ window.Previsao = {
       <div class="card">
         <div style="font-weight:700;margin-bottom:var(--sp-md);">Saídas Recorrentes Previstas</div>
         <table class="table">
-          <thead><tr><th scope="col">Data</th><th scope="col">Descrição</th><th scope="col">Valor</th></tr></thead>
+          <thead><tr><th scope="col">Data</th><th scope="col">Descrição</th><th scope="col" class="num">Valor</th></tr></thead>
           <tbody>
             ${ocorrenciasVirtuais.map(o => `
               <tr>
                 <td>${new Date(o.data + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                 <td>${o.descricao || '—'}</td>
-                <td style="font-weight:700;color:#E53E3E;">${fmt(o.valor)}</td>
+                <td class="num" style="color:var(--color-danger);">${fmt(o.valor)}</td>
               </tr>
             `).join('')}
           </tbody>
