@@ -93,39 +93,69 @@ window.Caixa = {
       const filtrosAtivos = this.filters.mes || this.filters.dateFrom || this.filters.dateTo ||
                             this.filters.type !== 'todos' || this.filters.contractId;
 
-      const html = `
-        <div class="page-header">
-          <div>
-            <h1 class="page-title">Caixa — Lançamentos</h1>
-            <p class="page-subtitle">
-              Saldo atual da empresa: <strong style="color:${saldoGeral >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${Store.formatBRL(saldoGeral)}</strong>
-            </p>
-          </div>
-          <div style="display:flex;gap:8px;">
-            <input type="file" id="ofxFileInput" accept=".ofx,.OFX" style="display:none;">
-            <button class="btn btn-secondary btn-sm" id="btnImportarOfx" title="Importar extrato bancário OFX" style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('landmark', 15)}Importar OFX</button>
-          </div>
-        </div>
+      // Padrão B (UIKit): pageHeader + kpiGrid + toolbar — mesma moldura de Clientes/ContasPagar.
+      const headerHtml = window.UIKit?.pageHeader
+        ? window.UIKit.pageHeader({
+            title: 'Caixa — Lançamentos',
+            subtitle: `Saldo atual da empresa: ${Store.formatBRL(saldoGeral)}`,
+            actions: `
+              <input type="file" id="ofxFileInput" accept=".ofx,.OFX" style="display:none;">
+              <button class="btn btn-secondary btn-sm" id="btnImportarOfx" title="Importar extrato bancário OFX" style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('landmark', 15)}Importar OFX</button>`,
+          })
+        : '';
 
-        <!-- KPIs do período filtrado -->
-        <div class="stat-grid">
-          <div class="card stat-card">
-            <div class="stat-value" style="color:var(--color-success);">+${Store.formatBRL(totalEntradas)}</div>
-            <div class="stat-label">Total Entradas ${filtrosAtivos ? '(filtrado)' : ''}</div>
-          </div>
-          <div class="card stat-card">
-            <div class="stat-value" style="color:var(--color-danger);">-${Store.formatBRL(totalSaidas)}</div>
-            <div class="stat-label">Total Saídas ${filtrosAtivos ? '(filtrado)' : ''}</div>
-          </div>
-          <div class="card stat-card">
-            <div class="stat-value" style="color:${saldo >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${Store.formatBRL(saldo)}</div>
-            <div class="stat-label">Saldo ${filtrosAtivos ? '(filtrado)' : 'Realizado'}</div>
-          </div>
-          <div class="card stat-card" style="border:1px dashed var(--color-border);">
-            <div class="stat-value" style="color:${saldoProjetado >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${Store.formatBRL(saldoProjetado)}</div>
-            <div class="stat-label">Saldo Projetado</div>
-          </div>
-        </div>
+      const kpisHtml = window.UIKit?.kpiGrid
+        ? window.UIKit.kpiGrid([
+            { label: `Total Entradas ${filtrosAtivos ? '(filtrado)' : ''}`, value: '+' + Store.formatBRL(totalEntradas), color: 'var(--color-success)' },
+            { label: `Total Saídas ${filtrosAtivos ? '(filtrado)' : ''}`, value: '-' + Store.formatBRL(totalSaidas), color: 'var(--color-danger)' },
+            { label: `Saldo ${filtrosAtivos ? '(filtrado)' : 'Realizado'}`, value: Store.formatBRL(saldo), color: saldo >= 0 ? 'var(--color-success)' : 'var(--color-danger)' },
+            { label: 'Saldo Projetado', value: Store.formatBRL(saldoProjetado), color: saldoProjetado >= 0 ? 'var(--color-success)' : 'var(--color-danger)', hint: 'inclui lançamentos futuros' },
+          ])
+        : '';
+
+      const toolbarHtml = window.UIKit?.toolbar
+        ? window.UIKit.toolbar({
+            selects: [
+              {
+                id: 'filterMes', label: 'Mês',
+                options: [
+                  { value: '', label: 'Todos os meses', selected: !this.filters.mes },
+                  ...mesesDisponiveis.map(m => ({ value: m, label: this.formatarMes(m), selected: this.filters.mes === m })),
+                ],
+              },
+              {
+                id: 'filterContract', label: 'Projeto/Contrato',
+                options: [
+                  { value: '', label: 'Todos os contratos', selected: !this.filters.contractId },
+                  ...Store.state.contracts.map(c => ({ value: c.id, label: `${c.name} — ${c.client}`, selected: this.filters.contractId === c.id })),
+                ],
+              },
+              {
+                id: 'filterType', label: 'Tipo',
+                options: [
+                  { value: 'todos', label: 'Todos', selected: this.filters.type === 'todos' },
+                  { value: 'entrada', label: 'Entrada', selected: this.filters.type === 'entrada' },
+                  { value: 'saida', label: 'Saída', selected: this.filters.type === 'saida' },
+                ],
+              },
+            ],
+            extra: `
+              <div class="filter-group" style="min-width:140px;">
+                <label class="filter-label" for="filterFrom">De</label>
+                <input class="form-control filter-control" type="date" id="filterFrom" value="${this.filters.dateFrom}">
+              </div>
+              <div class="filter-group" style="min-width:140px;">
+                <label class="filter-label" for="filterTo">Até</label>
+                <input class="form-control filter-control" type="date" id="filterTo" value="${this.filters.dateTo}">
+              </div>`,
+            showClear: !!filtrosAtivos,
+            clearId: 'btnLimparFiltros',
+          })
+        : '';
+
+      const html = `
+        ${headerHtml}
+        ${kpisHtml}
 
         <!-- Lançamentos Futuros -->
         ${(futEntradas.length > 0 || futSaidas.length > 0 || contasFuturas.length > 0 || nfsFuturas.length > 0) ? `
@@ -154,7 +184,7 @@ window.Caixa = {
                   <th scope="col">Descrição</th>
                   <th scope="col">Tipo</th>
                   <th scope="col">Origem</th>
-                  <th scope="col" style="text-align:right;">Valor</th>
+                  <th scope="col" class="num">Valor</th>
                 </tr>
               </thead>
               <tbody>
@@ -186,12 +216,12 @@ window.Caixa = {
                       ${escapeHtml(item.desc)}
                       ${item.virtual ? `<span class="rh-pill rh-pill-info" style="margin-left:8px;"><span class="rh-pill-dot"></span>previsto</span>` : ''}
                     </td>
-                    <td><span class="badge" style="background:${item.tipo === 'entrada' ? 'rgba(56,161,105,.12)' : 'rgba(229,62,62,.12)'};color:${item.tipo === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};border:1px dashed ${item.tipo === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};">${item.tipo}</span></td>
+                    <td>${window.UIKit?.statusPill ? window.UIKit.statusPill(item.tipo) : escapeHtml(item.tipo)}</td>
                     <td style="font-size:15px;color:var(--color-text-muted);">
                       ${item.origem}
                       ${item.virtual ? `<button class="btn btn-sm btn-secondary btn-realizar-recorrencia" data-source="${item.virtualMeta.sourceId}" data-date="${item.virtualMeta.date}" data-value="${item.virtualMeta.value}" data-desc="${escapeHtml(item.desc)}" data-type-key="${item.virtualMeta.sourceTypeKey || ''}" style="margin-left:8px;font-size:11px;padding:3px 8px;">ajustar e materializar</button>` : ''}
                     </td>
-                    <td style="text-align:right;font-weight:700;color:${item.tipo === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};">
+                    <td class="num" style="color:${item.tipo === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};">
                       ${item.tipo === 'entrada' ? '+' : '-'}${Store.formatBRL(item.valor)}
                     </td>
                   </tr>
@@ -202,51 +232,13 @@ window.Caixa = {
         </div>
         ` : ''}
 
-        <!-- Filtros -->
-        <div class="card" style="margin-bottom:var(--sp-lg);padding:var(--sp-md);">
-          <div style="display:flex;gap:var(--sp-md);flex-wrap:wrap;align-items:flex-end;">
-            <div style="flex:1;min-width:160px;">
-              <label style="display:block;font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Mês</label>
-              <select class="form-control" id="filterMes">
-                <option value="">Todos os meses</option>
-                ${mesesDisponiveis.map(m => `
-                  <option value="${m}" ${this.filters.mes === m ? 'selected' : ''}>${this.formatarMes(m)}</option>
-                `).join('')}
-              </select>
-            </div>
-            <div style="flex:1;min-width:160px;">
-              <label style="display:block;font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Projeto/Contrato</label>
-              <select class="form-control" id="filterContract">
-                <option value="">Todos os contratos</option>
-                ${Store.state.contracts.map(c => `
-                  <option value="${c.id}" ${this.filters.contractId === c.id ? 'selected' : ''}>${escapeHtml(c.name)} — ${escapeHtml(c.client)}</option>
-                `).join('')}
-              </select>
-            </div>
-            <div style="flex:0 0 140px;">
-              <label style="display:block;font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Tipo</label>
-              <select class="form-control" id="filterType">
-                <option value="todos">Todos</option>
-                <option value="entrada" ${this.filters.type === 'entrada' ? 'selected' : ''}>Entrada</option>
-                <option value="saida"   ${this.filters.type === 'saida'   ? 'selected' : ''}>Saída</option>
-              </select>
-            </div>
-            <div style="flex:1;min-width:140px;">
-              <label style="display:block;font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">De</label>
-              <input class="form-control" type="date" id="filterFrom" value="${this.filters.dateFrom}">
-            </div>
-            <div style="flex:1;min-width:140px;">
-              <label style="display:block;font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:4px;">Até</label>
-              <input class="form-control" type="date" id="filterTo" value="${this.filters.dateTo}">
-            </div>
-            <button class="btn btn-secondary" id="btnLimparFiltros">Limpar</button>
+        <!-- Filtros (UIKit.toolbar — padrão B) -->
+        ${toolbarHtml}
+        ${filtrosAtivos ? `
+          <div style="margin:calc(var(--sp-sm) * -1) 0 var(--sp-lg);font-size:15px;color:var(--color-primary);">
+            ✓ Filtros ativos · ${filtered.length} de ${caixaPassado.length} lançamento${caixaPassado.length !== 1 ? 's' : ''}
           </div>
-          ${filtrosAtivos ? `
-            <div style="margin-top:var(--sp-sm);padding-top:var(--sp-sm);border-top:1px solid var(--color-border);font-size:15px;color:var(--color-primary);">
-              ✓ Filtros ativos · ${filtered.length} de ${caixaPassado.length} lançamento${caixaPassado.length !== 1 ? 's' : ''}
-            </div>
-          ` : ''}
-        </div>
+        ` : ''}
 
         <!-- Resumo por mês (quando não há filtro de mês específico) -->
         ${!this.filters.mes && mesesAgrupados.length > 1 ? `
@@ -259,10 +251,10 @@ window.Caixa = {
                 <thead>
                   <tr>
                     <th scope="col">Mês</th>
-                    <th scope="col" style="text-align:right;">Entradas</th>
-                    <th scope="col" style="text-align:right;">Saídas</th>
-                    <th scope="col" style="text-align:right;">Saldo</th>
-                    <th scope="col" style="text-align:right;">Lançamentos</th>
+                    <th scope="col" class="num">Entradas</th>
+                    <th scope="col" class="num">Saídas</th>
+                    <th scope="col" class="num">Saldo</th>
+                    <th scope="col" class="num">Lançamentos</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -271,10 +263,10 @@ window.Caixa = {
                     return `
                       <tr style="cursor:pointer;" class="row-filtrar-mes" data-mes="${ym}">
                         <td><strong>${this.formatarMes(ym)}</strong></td>
-                        <td style="text-align:right;color:var(--color-success);font-weight:600;">+${Store.formatBRL(dados.entradas)}</td>
-                        <td style="text-align:right;color:var(--color-danger);font-weight:600;">-${Store.formatBRL(dados.saidas)}</td>
-                        <td style="text-align:right;font-weight:700;color:${saldoMes >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${Store.formatBRL(saldoMes)}</td>
-                        <td style="text-align:right;">${dados.count}</td>
+                        <td class="num" style="color:var(--color-success);">+${Store.formatBRL(dados.entradas)}</td>
+                        <td class="num" style="color:var(--color-danger);">-${Store.formatBRL(dados.saidas)}</td>
+                        <td class="num" style="color:${saldoMes >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${Store.formatBRL(saldoMes)}</td>
+                        <td class="num">${dados.count}</td>
                       </tr>
                     `;
                   }).join('')}
@@ -299,7 +291,7 @@ window.Caixa = {
                   <th scope="col">Tipo</th>
                   <th scope="col">Projeto/Contrato</th>
                   <th scope="col">Categoria</th>
-                  <th scope="col" style="text-align:right;">Valor</th>
+                  <th scope="col" class="num">Valor</th>
                   <th scope="col">Ações</th>
                 </tr>
               </thead>
@@ -324,7 +316,7 @@ window.Caixa = {
                         if (e.baseItemId) return `<span style="font-size:15px;font-weight:600;color:var(--color-info);background:rgba(49,130,206,.1);padding:2px 7px;border-radius:4px;">BASE</span>`;
                         return `<span style="font-size:15px;color:var(--color-text-muted);">Manual</span>`;
                       })()}</td>
-                      <td style="text-align:right;font-weight:700;color:${e.type === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};">
+                      <td class="num" style="color:${e.type === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};">
                         ${e.type === 'entrada' ? '+' : '-'}${Store.formatBRL(num(e.value))}
                       </td>
                       <td>
@@ -341,7 +333,7 @@ window.Caixa = {
                 <tfoot>
                   <tr style="background:var(--color-bg);font-weight:700;">
                     <td colspan="5" style="padding:var(--sp-md);">Total</td>
-                    <td style="text-align:right;padding:var(--sp-md);color:${saldo >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${Store.formatBRL(saldo)}</td>
+                    <td class="num" style="padding:var(--sp-md);color:${saldo >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${Store.formatBRL(saldo)}</td>
                     <td></td>
                   </tr>
                 </tfoot>
@@ -434,7 +426,8 @@ window.Caixa = {
       document.getElementById('filterTo').addEventListener('change', e => {
         this.filters.dateTo = e.target.value; this.filters.mes = ''; this.render();
       });
-      document.getElementById('btnLimparFiltros').addEventListener('click', () => {
+      // ?. — o botão Limpar só existe quando há filtro ativo (UIKit.toolbar showClear)
+      document.getElementById('btnLimparFiltros')?.addEventListener('click', () => {
         this.filters = { mes: '', dateFrom: '', dateTo: '', type: 'todos', contractId: '' };
         this.render();
       });
@@ -499,7 +492,7 @@ window.Caixa = {
         <td>${window.escapeHtml(t.data)}</td>
         <td style="max-width:280px;word-break:break-word;">${window.escapeHtml(t.memo || '—')}</td>
         <td style="font-weight:700;color:${t.tipo==='entrada'?'var(--color-success)':'var(--color-danger)'};">${t.tipo==='saida'?'-':'+'} ${fmt(t.valor)}</td>
-        <td><span class="badge" style="background:${t.status==='conciliado'?'#D1FAE5':'#FEF3C7'};color:${t.status==='conciliado'?'#065F46':'#92400E'};">${t.status==='conciliado'?'✅ Conciliado':'🆕 Novo'}</span></td>
+        <td>${window.UIKit?.statusPill ? window.UIKit.statusPill(t.status === 'conciliado' ? 'conciliado' : 'novo') : escapeHtml(t.status)}</td>
         <td style="font-size:13px;color:var(--color-text-muted);">${t.match ? window.escapeHtml(t.match.description) : '—'}</td>
       </tr>`).join('');
 

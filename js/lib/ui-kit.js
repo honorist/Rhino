@@ -37,6 +37,14 @@
     pago:         { variant: 'success', label: 'Pago' },
     atrasado:     { variant: 'danger',  label: 'Atrasado' },
     pendente:     { variant: 'warning', label: 'Pendente' },
+    // Financeiro — tipos de lançamento e situação de NF (padronização Fase 2)
+    entrada:      { variant: 'success', label: 'Entrada' },
+    saida:        { variant: 'danger',  label: 'Saída' },
+    emitida:      { variant: 'success', label: 'Emitida' },
+    prevista:     { variant: 'info',    label: 'Prevista' },
+    vencida:      { variant: 'danger',  label: 'Vencida' },
+    conciliado:   { variant: 'success', label: 'Conciliado' },
+    novo:         { variant: 'info',    label: 'Novo' },
   };
 
   function statusPill(status, customLabel) {
