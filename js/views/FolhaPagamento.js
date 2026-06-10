@@ -28,6 +28,8 @@ window.FolhaPagamento = {
   },
 
   _badge(pago) {
+    // Pill canônica do UIKit (Fase 2); fallback mantém o badge antigo.
+    if (window.UIKit?.statusPill) return window.UIKit.statusPill(pago ? 'pago' : 'pendente');
     return pago
       ? '<span class="badge" style="background:#D1FAE5;color:#065F46;">Pago</span>'
       : '<span class="badge" style="background:#FEF3C7;color:#92400E;">Pendente</span>';
@@ -92,20 +94,26 @@ window.FolhaPagamento = {
       </tr>`;
     }).join('');
 
+    // Padrão B (UIKit) — mesma moldura das demais telas financeiras.
     app.innerHTML = `
-      <div class="page-header">
-        <div>
-          <h1 class="page-title">Folha de Pagamento</h1>
-          <p class="page-subtitle">${folha.length} colaborador${folha.length !== 1 ? 'es' : ''} ·
-            Total ${fmt(totalGeral)} · Pago ${fmt(totalPago)} · Pendente ${fmt(totalGeral - totalPago)}${
-            (totProv || totDesc) ? ` · Proventos ${fmt(totProv)} · Descontos ${fmt(totDesc)}` : ''}</p>
-        </div>
-        <div style="display:flex;gap:var(--sp-sm);align-items:center;">
+      ${window.UIKit?.pageHeader ? window.UIKit.pageHeader({
+        title: 'Folha de Pagamento',
+        subtitle: `${folha.length} colaborador${folha.length !== 1 ? 'es' : ''} na competência ${this.competencia}`,
+        actions: `
           <input type="month" class="form-control" id="fpCompetencia" value="${this.competencia}" style="width:170px;">
           ${folha.length > 0 ? '<button class="btn btn-ghost" id="fpLimpar">Limpar folha</button>' : ''}
-          <button class="btn btn-primary btn-lg" id="fpGerar">Gerar folha do mês</button>
-        </div>
-      </div>
+          <button class="btn btn-primary btn-lg" id="fpGerar">Gerar folha do mês</button>`,
+      }) : ''}
+
+      ${window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
+        { label: 'Total da folha', value: fmt(totalGeral), color: 'var(--color-primary)' },
+        { label: 'Pago', value: fmt(totalPago), color: 'var(--color-success)' },
+        { label: 'Pendente', value: fmt(totalGeral - totalPago), color: 'var(--color-warning)' },
+        ...(totProv || totDesc ? [
+          { label: 'Proventos', value: fmt(totProv), color: 'var(--color-info)' },
+          { label: 'Descontos', value: fmt(totDesc), color: 'var(--color-danger)' },
+        ] : []),
+      ]) : ''}
 
       <div class="card">
         <div class="table-wrap">
