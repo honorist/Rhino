@@ -17,14 +17,15 @@ window.FolhaPagamento = {
       this._renderLista();
     } catch (e) {
       console.error('[FolhaPagamento]', e);
-      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar a folha. Tente novamente.</p></div>';
+      app.innerHTML =
+        '<div class="card"><p class="text-danger">Erro ao carregar a folha. Tente novamente.</p></div>';
     }
   },
 
   _nomeLocal(row) {
     if (!row.contractId) return 'Sede (BASE)';
-    const c = (Store.state.contracts || []).find(x => x.id === row.contractId);
-    return c ? (c.name || c.contractNumber || 'Contrato') : 'Contrato';
+    const c = (Store.state.contracts || []).find((x) => x.id === row.contractId);
+    return c ? c.name || c.contractNumber || 'Contrato' : 'Contrato';
   },
 
   _badge(pago) {
@@ -41,13 +42,18 @@ window.FolhaPagamento = {
     const fmt = (v) => Store.formatBRL(parseFloat(v) || 0);
     const esc = window.escapeHtml;
 
-    let totVale = 0, totValePago = 0, totSaldo = 0, totSaldoPago = 0, totProv = 0, totDesc = 0;
-    folha.forEach(f => {
+    let totVale = 0,
+      totValePago = 0,
+      totSaldo = 0,
+      totSaldoPago = 0,
+      totProv = 0,
+      totDesc = 0;
+    folha.forEach((f) => {
       totVale += parseFloat(f.valorVale) || 0;
       totSaldo += parseFloat(f.valorSaldo) || 0;
       if (f.valePago) totValePago += parseFloat(f.valorVale) || 0;
       if (f.saldoPago) totSaldoPago += parseFloat(f.valorSaldo) || 0;
-      (f.itens || []).forEach(it => {
+      (f.itens || []).forEach((it) => {
         const v = parseFloat(it.valor) || 0;
         if (it.tipo === 'provento') totProv += v;
         else if (it.tipo === 'desconto') totDesc += v;
@@ -56,32 +62,37 @@ window.FolhaPagamento = {
     const totalGeral = totVale + totSaldo;
     const totalPago = totValePago + totSaldoPago;
 
-    const rows = folha.map(f => {
-      const elegivel = !!f.elegivelVale && (parseFloat(f.valorVale) || 0) > 0;
-      const acao = (parcela, pago) => pago
-        ? `<button type="button" class="action-link danger js-estornar" data-id="${f.id}" data-parcela="${parcela}">Estornar</button>`
-        : `<button type="button" class="action-link js-pagar" data-id="${f.id}" data-parcela="${parcela}">Pagar</button>`;
-      const valeCell = elegivel
-        ? `${fmt(f.valorVale)} &nbsp;${this._badge(f.valePago)} &nbsp;${acao('vale', f.valePago)}`
-        : '<span class="text-muted">—</span>';
-      const saldoCell = `${fmt(f.valorSaldo)} &nbsp;${this._badge(f.saldoPago)} &nbsp;${acao('saldo', f.saldoPago)}`;
-      const itens = f.itens || [];
-      let prov = 0, desc = 0;
-      itens.forEach(it => {
-        const v = parseFloat(it.valor) || 0;
-        if (it.tipo === 'provento') prov += v;
-        else if (it.tipo === 'desconto') desc += v;
-      });
-      const provCell = prov > 0
-        ? `<span style="color:#065F46;">+${fmt(prov)}</span>`
-        : '<span class="text-muted">—</span>';
-      const descCell = desc > 0
-        ? `<span style="color:#991B1B;">−${fmt(desc)}</span>`
-        : '<span class="text-muted">—</span>';
-      const liquido = (parseFloat(f.valorVale) || 0) + (parseFloat(f.valorSaldo) || 0);
-      const liquidoCell = `<strong${liquido < 0 ? ' style="color:#991B1B;"' : ''}>${fmt(liquido)}</strong>`;
-      const lancCell = `<button type="button" class="action-link js-acertos" data-id="${f.id}">Lançamentos${itens.length ? ` (${itens.length})` : ''}</button>`;
-      return `<tr class="row-folha" data-id="${f.recursoId}" style="cursor:pointer;" title="Ver dados do colaborador">
+    const rows = folha
+      .map((f) => {
+        const elegivel = !!f.elegivelVale && (parseFloat(f.valorVale) || 0) > 0;
+        const acao = (parcela, pago) =>
+          pago
+            ? `<button type="button" class="action-link danger js-estornar" data-id="${f.id}" data-parcela="${parcela}">Estornar</button>`
+            : `<button type="button" class="action-link js-pagar" data-id="${f.id}" data-parcela="${parcela}">Pagar</button>`;
+        const valeCell = elegivel
+          ? `${fmt(f.valorVale)} &nbsp;${this._badge(f.valePago)} &nbsp;${acao('vale', f.valePago)}`
+          : '<span class="text-muted">—</span>';
+        const saldoCell = `${fmt(f.valorSaldo)} &nbsp;${this._badge(f.saldoPago)} &nbsp;${acao('saldo', f.saldoPago)}`;
+        const itens = f.itens || [];
+        let prov = 0,
+          desc = 0;
+        itens.forEach((it) => {
+          const v = parseFloat(it.valor) || 0;
+          if (it.tipo === 'provento') prov += v;
+          else if (it.tipo === 'desconto') desc += v;
+        });
+        const provCell =
+          prov > 0
+            ? `<span style="color:#065F46;">+${fmt(prov)}</span>`
+            : '<span class="text-muted">—</span>';
+        const descCell =
+          desc > 0
+            ? `<span style="color:#991B1B;">−${fmt(desc)}</span>`
+            : '<span class="text-muted">—</span>';
+        const liquido = (parseFloat(f.valorVale) || 0) + (parseFloat(f.valorSaldo) || 0);
+        const liquidoCell = `<strong${liquido < 0 ? ' style="color:#991B1B;"' : ''}>${fmt(liquido)}</strong>`;
+        const lancCell = `<button type="button" class="action-link js-acertos" data-id="${f.id}">Lançamentos${itens.length ? ` (${itens.length})` : ''}</button>`;
+        return `<tr class="row-folha" data-id="${f.recursoId}" style="cursor:pointer;" title="Ver dados do colaborador">
         <td><strong>${esc(f.recursoNome) || '—'}</strong></td>
         <td>${esc(this._nomeLocal(f))}</td>
         <td>${fmt(f.salarioBase)}</td>
@@ -92,28 +103,43 @@ window.FolhaPagamento = {
         <td>${liquidoCell}</td>
         <td>${lancCell}</td>
       </tr>`;
-    }).join('');
+      })
+      .join('');
 
     // Padrão B (UIKit) — mesma moldura das demais telas financeiras.
     app.innerHTML = `
-      ${window.UIKit?.pageHeader ? window.UIKit.pageHeader({
-        title: 'Folha de Pagamento',
-        subtitle: `${folha.length} colaborador${folha.length !== 1 ? 'es' : ''} na competência ${this.competencia}`,
-        actions: `
+      ${
+        window.UIKit?.pageHeader
+          ? window.UIKit.pageHeader({
+              title: 'Folha de Pagamento',
+              subtitle: `${folha.length} colaborador${folha.length !== 1 ? 'es' : ''} na competência ${this.competencia}`,
+              actions: `
           <input type="month" class="form-control" id="fpCompetencia" value="${this.competencia}" style="width:170px;">
           ${folha.length > 0 ? '<button class="btn btn-ghost" id="fpLimpar">Limpar folha</button>' : ''}
           <button class="btn btn-primary btn-lg" id="fpGerar">Gerar folha do mês</button>`,
-      }) : ''}
+            })
+          : ''
+      }
 
-      ${window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
-        { label: 'Total da folha', value: fmt(totalGeral), color: 'var(--color-primary)' },
-        { label: 'Pago', value: fmt(totalPago), color: 'var(--color-success)' },
-        { label: 'Pendente', value: fmt(totalGeral - totalPago), color: 'var(--color-warning)' },
-        ...(totProv || totDesc ? [
-          { label: 'Proventos', value: fmt(totProv), color: 'var(--color-info)' },
-          { label: 'Descontos', value: fmt(totDesc), color: 'var(--color-danger)' },
-        ] : []),
-      ]) : ''}
+      ${
+        window.UIKit?.kpiGrid
+          ? window.UIKit.kpiGrid([
+              { label: 'Total da folha', value: fmt(totalGeral), color: 'var(--color-primary)' },
+              { label: 'Pago', value: fmt(totalPago), color: 'var(--color-success)' },
+              {
+                label: 'Pendente',
+                value: fmt(totalGeral - totalPago),
+                color: 'var(--color-warning)',
+              },
+              ...(totProv || totDesc
+                ? [
+                    { label: 'Proventos', value: fmt(totProv), color: 'var(--color-info)' },
+                    { label: 'Descontos', value: fmt(totDesc), color: 'var(--color-danger)' },
+                  ]
+                : []),
+            ])
+          : ''
+      }
 
       <div class="card">
         <div class="table-wrap">
@@ -124,11 +150,13 @@ window.FolhaPagamento = {
               <th scope="col">A pagar (5º dia útil)</th><th scope="col">Líquido</th><th scope="col">Lançamentos</th>
             </tr></thead>
             <tbody>
-              ${folha.length === 0
-                ? `<tr><td colspan="9" class="text-center text-muted" style="padding:var(--sp-xl);">
+              ${
+                folha.length === 0
+                  ? `<tr><td colspan="9" class="text-center text-muted" style="padding:var(--sp-xl);">
                      Folha de ${this.competencia} ainda não gerada — clique em "Gerar folha do mês".
                    </td></tr>`
-                : rows}
+                  : rows
+              }
             </tbody>
           </table>
         </div>
@@ -138,21 +166,30 @@ window.FolhaPagamento = {
       this.competencia = e.target.value || this.competencia;
       try {
         await Store.loadFolha(this.competencia);
-      } catch (err) { window.showToast('Erro ao carregar: ' + err.message, 'error'); }
+      } catch (err) {
+        window.showToast('Erro ao carregar: ' + err.message, 'error');
+      }
       this._renderLista();
     });
     document.getElementById('fpGerar').addEventListener('click', () => this._gerar());
     const btnLimpar = document.getElementById('fpLimpar');
     if (btnLimpar) btnLimpar.addEventListener('click', () => this._limpar());
-    app.querySelectorAll('.js-pagar').forEach(b =>
-      b.addEventListener('click', () => this._pagar(b.dataset.id, b.dataset.parcela)));
-    app.querySelectorAll('.js-estornar').forEach(b =>
-      b.addEventListener('click', () => this._estornar(b.dataset.id, b.dataset.parcela)));
-    app.querySelectorAll('.js-acertos').forEach(b =>
-      b.addEventListener('click', () => this._acertos(b.dataset.id)));
+    app
+      .querySelectorAll('.js-pagar')
+      .forEach((b) =>
+        b.addEventListener('click', () => this._pagar(b.dataset.id, b.dataset.parcela))
+      );
+    app
+      .querySelectorAll('.js-estornar')
+      .forEach((b) =>
+        b.addEventListener('click', () => this._estornar(b.dataset.id, b.dataset.parcela))
+      );
+    app
+      .querySelectorAll('.js-acertos')
+      .forEach((b) => b.addEventListener('click', () => this._acertos(b.dataset.id)));
 
     // Click na linha → abre o detalhe do colaborador (mesmo modal da aba Recursos).
-    app.querySelectorAll('.row-folha').forEach(tr => {
+    app.querySelectorAll('.row-folha').forEach((tr) => {
       tr.addEventListener('click', async (e) => {
         if (e.target.closest('.action-link')) return; // não dispara ao clicar em Pagar/Estornar
         const id = tr.dataset.id;
@@ -177,25 +214,38 @@ window.FolhaPagamento = {
   async _gerar() {
     try {
       const r = await Store.gerarFolha(this.competencia);
-      window.showToast(`Folha de ${this.competencia} gerada — ${r.criadas} novo(s) registro(s)`, 'success');
-      this._renderLista();
-    } catch (e) { window.showToast('Erro ao gerar folha: ' + e.message, 'error'); }
-  },
-
-  async _limpar() {
-    if (!confirm(`Limpar a folha de ${this.competencia}?\n\nOs registros ainda NÃO pagos (e suas contas a pagar) serão removidos. Os já pagos são mantidos.`)) return;
-    try {
-      const r = await Store.limparFolha(this.competencia);
       window.showToast(
-        `${r.removidas} registro(s) removido(s)` + (r.mantidas ? ` · ${r.mantidas} mantido(s) (já pago)` : ''),
+        `Folha de ${this.competencia} gerada — ${r.criadas} novo(s) registro(s)`,
         'success'
       );
       this._renderLista();
-    } catch (e) { window.showToast('Erro ao limpar: ' + e.message, 'error'); }
+    } catch (e) {
+      window.showToast('Erro ao gerar folha: ' + e.message, 'error');
+    }
+  },
+
+  async _limpar() {
+    if (
+      !confirm(
+        `Limpar a folha de ${this.competencia}?\n\nOs registros ainda NÃO pagos (e suas contas a pagar) serão removidos. Os já pagos são mantidos.`
+      )
+    )
+      return;
+    try {
+      const r = await Store.limparFolha(this.competencia);
+      window.showToast(
+        `${r.removidas} registro(s) removido(s)` +
+          (r.mantidas ? ` · ${r.mantidas} mantido(s) (já pago)` : ''),
+        'success'
+      );
+      this._renderLista();
+    } catch (e) {
+      window.showToast('Erro ao limpar: ' + e.message, 'error');
+    }
   },
 
   _pagar(id, parcela) {
-    const f = (Store.state.folha || []).find(x => x.id === id);
+    const f = (Store.state.folha || []).find((x) => x.id === id);
     if (!f) return;
     const hoje = new Date().toISOString().split('T')[0];
     const label = parcela === 'vale' ? 'Vale' : 'Saldo';
@@ -234,7 +284,9 @@ window.FolhaPagamento = {
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('fpCancelar').addEventListener('click', close);
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
     document.getElementById('fpConfirmar').addEventListener('click', async () => {
       try {
         await Store.pagarFolhaParcela(id, {
@@ -246,7 +298,9 @@ window.FolhaPagamento = {
         window.showToast(`${label} pago`, 'success');
         await Store.loadFolha(this.competencia);
         this._renderLista();
-      } catch (e) { window.showToast('Erro ao pagar: ' + e.message, 'error'); }
+      } catch (e) {
+        window.showToast('Erro ao pagar: ' + e.message, 'error');
+      }
     });
   },
 
@@ -257,12 +311,14 @@ window.FolhaPagamento = {
       window.showToast('Pagamento estornado', 'success');
       await Store.loadFolha(this.competencia);
       this._renderLista();
-    } catch (e) { window.showToast('Erro ao estornar: ' + e.message, 'error'); }
+    } catch (e) {
+      window.showToast('Erro ao estornar: ' + e.message, 'error');
+    }
   },
 
   // Modal de lançamentos (descontos e proventos) de um colaborador.
   _acertos(id) {
-    const f0 = (Store.state.folha || []).find(x => x.id === id);
+    const f0 = (Store.state.folha || []).find((x) => x.id === id);
     if (!f0) return;
     const esc = window.escapeHtml;
     const fmt = (v) => Store.formatBRL(parseFloat(v) || 0);
@@ -287,7 +343,9 @@ window.FolhaPagamento = {
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('acFechar').addEventListener('click', close);
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
 
     // Recarrega a folha, repinta o modal e a tabela de fundo (o modal vive no
     // <body>, então re-renderizar o #app não o remove).
@@ -299,10 +357,10 @@ window.FolhaPagamento = {
 
     // (re)desenha o corpo do modal a partir do estado atual do Store.
     function paint() {
-      const f = (Store.state.folha || []).find(x => x.id === id) || f0;
+      const f = (Store.state.folha || []).find((x) => x.id === id) || f0;
       const itens = f.itens || [];
-      const proventos = itens.filter(i => i.tipo === 'provento');
-      const descontos = itens.filter(i => i.tipo === 'desconto');
+      const proventos = itens.filter((i) => i.tipo === 'provento');
+      const descontos = itens.filter((i) => i.tipo === 'desconto');
       const bloqueado = !!f.saldoPago;
 
       const linhaItem = (it, sinal, cor) => {
@@ -342,9 +400,13 @@ window.FolhaPagamento = {
       const secao = (titulo, cor, autoHtml, arr, sinal) => `
         <h3 style="margin:var(--sp-md) 0 4px;font-size:13px;color:${cor};">${titulo}</h3>
         ${autoHtml}
-        ${arr.length
-          ? arr.map(it => linhaItem(it, sinal, cor)).join('')
-          : (autoHtml ? '' : '<p class="text-muted" style="padding:6px 0;">Nenhum lançamento.</p>')}`;
+        ${
+          arr.length
+            ? arr.map((it) => linhaItem(it, sinal, cor)).join('')
+            : autoHtml
+              ? ''
+              : '<p class="text-muted" style="padding:6px 0;">Nenhum lançamento.</p>'
+        }`;
 
       // O Vale (adiantamento 40%) aparece como desconto automático para os
       // elegíveis — já está embutido no saldo, aqui só fica visível no registro.
@@ -355,8 +417,14 @@ window.FolhaPagamento = {
       const salarioHtml = linhaAuto('Salário base', f.salarioBase, '+', '#065F46');
 
       // Opções do seletor de itens prontos (proventos / descontos).
-      const optGroup = (tipo) => self._PRESETS.filter(p => p.tipo === tipo)
-        .map(p => `<option value="${p.key}">${esc(p.label)}${p.calc === 'outro' ? '…' : ''}</option>`).join('');
+      const optGroup = (tipo) =>
+        self._PRESETS
+          .filter((p) => p.tipo === tipo)
+          .map(
+            (p) =>
+              `<option value="${p.key}">${esc(p.label)}${p.calc === 'outro' ? '…' : ''}</option>`
+          )
+          .join('');
       const optsProv = optGroup('provento');
       const optsDesc = optGroup('desconto');
 
@@ -369,7 +437,10 @@ window.FolhaPagamento = {
           <span class="text-muted">Saldo a pagar (com lançamentos)</span>
           <strong${(parseFloat(f.valorSaldo) || 0) < 0 ? ' style="color:#991B1B;"' : ''}>${fmt(f.valorSaldo)}</strong>
         </div>
-        ${bloqueado ? '' : `
+        ${
+          bloqueado
+            ? ''
+            : `
         <div style="margin-top:var(--sp-lg);">
           <h3 style="margin:0 0 var(--sp-sm);font-size:13px;">Novo lançamento</h3>
           <div class="form-group">
@@ -394,32 +465,58 @@ window.FolhaPagamento = {
           </div>
           <p class="text-muted" id="acHint" style="font-size:11px;margin:-6px 0 var(--sp-sm);"></p>
           <button class="btn btn-primary" id="acAdd" style="width:100%;">Adicionar lançamento</button>
-        </div>`}`;
+        </div>`
+        }`;
 
-      body.querySelectorAll('.js-rm-item').forEach(b =>
-        b.addEventListener('click', () => self._removerItem(id, b.dataset.item, refresh)));
-      body.querySelectorAll('.js-ed-item').forEach(b =>
-        b.addEventListener('click', () => { editId = b.dataset.item; paint(); }));
+      body
+        .querySelectorAll('.js-rm-item')
+        .forEach((b) =>
+          b.addEventListener('click', () => self._removerItem(id, b.dataset.item, refresh))
+        );
+      body.querySelectorAll('.js-ed-item').forEach((b) =>
+        b.addEventListener('click', () => {
+          editId = b.dataset.item;
+          paint();
+        })
+      );
       const edSave = body.querySelector('.js-ed-save');
       if (edSave) {
         const salvar = async () => {
-          const ok = await self._editarItem(id, edSave.dataset.item,
-            document.getElementById('acEditValor').value);
-          if (ok) { editId = null; await refresh(); }
+          const ok = await self._editarItem(
+            id,
+            edSave.dataset.item,
+            document.getElementById('acEditValor').value
+          );
+          if (ok) {
+            editId = null;
+            await refresh();
+          }
         };
         edSave.addEventListener('click', salvar);
         const inp = document.getElementById('acEditValor');
-        inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); salvar(); } });
-        inp.focus(); inp.select();
+        inp.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            salvar();
+          }
+        });
+        inp.focus();
+        inp.select();
       }
       const edCancel = body.querySelector('.js-ed-cancel');
-      if (edCancel) edCancel.addEventListener('click', () => { editId = null; paint(); });
+      if (edCancel)
+        edCancel.addEventListener('click', () => {
+          editId = null;
+          paint();
+        });
 
       if (!bloqueado) {
         const salario = parseFloat(f.salarioBase) || 0;
         // Ajusta os campos do formulário conforme o item escolhido.
         const aplicarPreset = () => {
-          const preset = self._PRESETS.find(p => p.key === document.getElementById('acPreset').value);
+          const preset = self._PRESETS.find(
+            (p) => p.key === document.getElementById('acPreset').value
+          );
           const descWrap = document.getElementById('acDescWrap');
           const qtdWrap = document.getElementById('acQtdWrap');
           const qtdInput = document.getElementById('acQtd');
@@ -439,12 +536,14 @@ window.FolhaPagamento = {
             hint.textContent = '2% do salário, com teto de R$ 70,00.';
           } else if (preset.calc === 'inss') {
             valorInput.value = self._calcInss(salario).toFixed(2);
-            hint.textContent = 'INSS progressivo (tabela 2026) sobre ' + fmt(salario) + '. Ajuste se necessário.';
+            hint.textContent =
+              'INSS progressivo (tabela 2026) sobre ' + fmt(salario) + '. Ajuste se necessário.';
           } else if (preset.calc === 'hora') {
             qtdWrap.style.display = '';
             document.getElementById('acQtdLabel').textContent = 'Horas extras';
             qtdInput.step = '0.5';
-            hint.textContent = '(salário ÷ 220) × ' + preset.fator.toFixed(2).replace('.', ',') + ' por hora.';
+            hint.textContent =
+              '(salário ÷ 220) × ' + preset.fator.toFixed(2).replace('.', ',') + ' por hora.';
           } else if (preset.calc === 'falta') {
             qtdWrap.style.display = '';
             document.getElementById('acQtdLabel').textContent = 'Dias de falta';
@@ -459,18 +558,23 @@ window.FolhaPagamento = {
         };
         // Recalcula o valor sugerido quando a quantidade muda.
         const recalcular = () => {
-          const preset = self._PRESETS.find(p => p.key === document.getElementById('acPreset').value);
+          const preset = self._PRESETS.find(
+            (p) => p.key === document.getElementById('acPreset').value
+          );
           if (!preset) return;
           const qtd = parseFloat(document.getElementById('acQtd').value) || 0;
           let v = null;
           if (preset.calc === 'hora') v = (salario / 220) * preset.fator * qtd;
           else if (preset.calc === 'falta') v = (salario / 30) * qtd;
           else if (preset.calc === 'atraso') v = (salario / 220 / 60) * qtd;
-          if (v !== null) document.getElementById('acValor').value = (Math.round(v * 100) / 100).toFixed(2);
+          if (v !== null)
+            document.getElementById('acValor').value = (Math.round(v * 100) / 100).toFixed(2);
         };
         document.getElementById('acPreset').addEventListener('change', aplicarPreset);
         document.getElementById('acQtd').addEventListener('input', recalcular);
-        document.getElementById('acAdd').addEventListener('click', () => self._adicionarItem(id, refresh));
+        document
+          .getElementById('acAdd')
+          .addEventListener('click', () => self._adicionarItem(id, refresh));
       }
     }
 
@@ -480,28 +584,47 @@ window.FolhaPagamento = {
   async _adicionarItem(folhaId, onDone) {
     const presetEl = document.getElementById('acPreset');
     if (!presetEl) return;
-    const preset = this._PRESETS.find(p => p.key === presetEl.value);
-    if (!preset) { window.showToast('Escolha um item da lista', 'error'); presetEl.focus(); return; }
-    const valor = Math.round((parseFloat(document.getElementById('acValor').value) || 0) * 100) / 100;
-    if (!(valor > 0)) { window.showToast('Informe um valor maior que zero', 'error'); return; }
+    const preset = this._PRESETS.find((p) => p.key === presetEl.value);
+    if (!preset) {
+      window.showToast('Escolha um item da lista', 'error');
+      presetEl.focus();
+      return;
+    }
+    const valor =
+      Math.round((parseFloat(document.getElementById('acValor').value) || 0) * 100) / 100;
+    if (!(valor > 0)) {
+      window.showToast('Informe um valor maior que zero', 'error');
+      return;
+    }
     let descricao;
     if (preset.calc === 'outro') {
       descricao = (document.getElementById('acDesc').value || '').trim();
-      if (!descricao) { window.showToast('Informe a descrição do lançamento', 'error'); return; }
+      if (!descricao) {
+        window.showToast('Informe a descrição do lançamento', 'error');
+        return;
+      }
     } else if (preset.calc === 'hora' || preset.calc === 'falta' || preset.calc === 'atraso') {
       const qtd = parseFloat(document.getElementById('acQtd').value) || 0;
-      const unid = preset.calc === 'hora' ? `${qtd}h`
-        : preset.calc === 'falta' ? `${qtd} ${qtd === 1 ? 'dia' : 'dias'}`
-        : `${qtd} min`;
+      const unid =
+        preset.calc === 'hora'
+          ? `${qtd}h`
+          : preset.calc === 'falta'
+            ? `${qtd} ${qtd === 1 ? 'dia' : 'dias'}`
+            : `${qtd} min`;
       descricao = qtd > 0 ? `${preset.label} (${unid})` : preset.label;
     } else {
       descricao = preset.label;
     }
     try {
       await Store.addFolhaItem(folhaId, { tipo: preset.tipo, descricao, valor });
-      window.showToast(preset.tipo === 'provento' ? 'Provento lançado' : 'Desconto lançado', 'success');
+      window.showToast(
+        preset.tipo === 'provento' ? 'Provento lançado' : 'Desconto lançado',
+        'success'
+      );
       await onDone();
-    } catch (e) { window.showToast('Erro ao lançar: ' + e.message, 'error'); }
+    } catch (e) {
+      window.showToast('Erro ao lançar: ' + e.message, 'error');
+    }
   },
 
   async _removerItem(folhaId, itemId, onDone) {
@@ -510,36 +633,44 @@ window.FolhaPagamento = {
       await Store.removeFolhaItem(folhaId, itemId);
       window.showToast('Lançamento removido', 'success');
       await onDone();
-    } catch (e) { window.showToast('Erro ao remover: ' + e.message, 'error'); }
+    } catch (e) {
+      window.showToast('Erro ao remover: ' + e.message, 'error');
+    }
   },
 
   async _editarItem(folhaId, itemId, valor) {
     const v = Math.round((parseFloat(valor) || 0) * 100) / 100;
-    if (!(v > 0)) { window.showToast('Informe um valor maior que zero', 'error'); return false; }
+    if (!(v > 0)) {
+      window.showToast('Informe um valor maior que zero', 'error');
+      return false;
+    }
     try {
       await Store.updateFolhaItem(folhaId, itemId, { valor: v });
       window.showToast('Lançamento atualizado', 'success');
       return true;
-    } catch (e) { window.showToast('Erro ao atualizar: ' + e.message, 'error'); return false; }
+    } catch (e) {
+      window.showToast('Erro ao atualizar: ' + e.message, 'error');
+      return false;
+    }
   },
 
   // Itens comuns de folha — preenchem descrição/tipo e calculam o valor a
   // partir do salário quando há fórmula. 'outro' libera descrição livre;
   // 'livre' usa a descrição pronta e o valor digitado.
   _PRESETS: [
-    { key: 'he50',    tipo: 'provento', label: 'Hora extra 50%',  calc: 'hora', fator: 1.5 },
-    { key: 'he60',    tipo: 'provento', label: 'Hora extra 60%',  calc: 'hora', fator: 1.6 },
-    { key: 'he70',    tipo: 'provento', label: 'Hora extra 70%',  calc: 'hora', fator: 1.7 },
-    { key: 'he100',   tipo: 'provento', label: 'Hora extra 100%', calc: 'hora', fator: 2.0 },
-    { key: 'plr',     tipo: 'provento', label: 'Participação nos lucros', calc: 'livre' },
-    { key: 'va',      tipo: 'provento', label: 'Vale-alimentação', calc: 'livre' },
-    { key: 'outro_p', tipo: 'provento', label: 'Outro provento',  calc: 'outro' },
-    { key: 'sind',    tipo: 'desconto', label: 'Contribuição sindical', calc: 'sindical' },
-    { key: 'inss',    tipo: 'desconto', label: 'INSS',            calc: 'inss' },
-    { key: 'falta',   tipo: 'desconto', label: 'Faltas',          calc: 'falta' },
-    { key: 'atraso',  tipo: 'desconto', label: 'Atrasos',         calc: 'atraso' },
-    { key: 'dsr',     tipo: 'desconto', label: 'Descanso Semanal Remunerado (D.S.R.)', calc: 'livre' },
-    { key: 'outro_d', tipo: 'desconto', label: 'Outro desconto',  calc: 'outro' },
+    { key: 'he50', tipo: 'provento', label: 'Hora extra 50%', calc: 'hora', fator: 1.5 },
+    { key: 'he60', tipo: 'provento', label: 'Hora extra 60%', calc: 'hora', fator: 1.6 },
+    { key: 'he70', tipo: 'provento', label: 'Hora extra 70%', calc: 'hora', fator: 1.7 },
+    { key: 'he100', tipo: 'provento', label: 'Hora extra 100%', calc: 'hora', fator: 2.0 },
+    { key: 'plr', tipo: 'provento', label: 'Participação nos lucros', calc: 'livre' },
+    { key: 'va', tipo: 'provento', label: 'Vale-alimentação', calc: 'livre' },
+    { key: 'outro_p', tipo: 'provento', label: 'Outro provento', calc: 'outro' },
+    { key: 'sind', tipo: 'desconto', label: 'Contribuição sindical', calc: 'sindical' },
+    { key: 'inss', tipo: 'desconto', label: 'INSS', calc: 'inss' },
+    { key: 'falta', tipo: 'desconto', label: 'Faltas', calc: 'falta' },
+    { key: 'atraso', tipo: 'desconto', label: 'Atrasos', calc: 'atraso' },
+    { key: 'dsr', tipo: 'desconto', label: 'Descanso Semanal Remunerado (D.S.R.)', calc: 'livre' },
+    { key: 'outro_d', tipo: 'desconto', label: 'Outro desconto', calc: 'outro' },
   ],
 
   // INSS progressivo do segurado empregado — tabela 2026 (Portaria
@@ -548,8 +679,8 @@ window.FolhaPagamento = {
   _calcInss(salario) {
     const s = Math.min(parseFloat(salario) || 0, 8475.55); // teto INSS 2026
     if (s <= 0) return 0;
-    let inss = Math.min(s, 1621.00) * 0.075;
-    if (s > 1621.00) inss += (Math.min(s, 2902.84) - 1621.00) * 0.09;
+    let inss = Math.min(s, 1621.0) * 0.075;
+    if (s > 1621.0) inss += (Math.min(s, 2902.84) - 1621.0) * 0.09;
     if (s > 2902.84) inss += (Math.min(s, 4354.27) - 2902.84) * 0.12;
     if (s > 4354.27) inss += (s - 4354.27) * 0.14;
     return Math.round(inss * 100) / 100;

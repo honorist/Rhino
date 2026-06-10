@@ -12,76 +12,98 @@ window.Caixa = {
       }
       await Store.loadAll();
 
-      const num = v => parseFloat(v) || 0;
+      const num = (v) => parseFloat(v) || 0;
       const hojeStr = new Date().toISOString().split('T')[0];
 
       // Separar lançamentos passados/hoje dos futuros
-      const caixaPassado = Store.state.caixa.filter(e => (e.date || '') <= hojeStr);
-      const caixaFuturo  = Store.state.caixa.filter(e => (e.date || '') > hojeStr);
+      const caixaPassado = Store.state.caixa.filter((e) => (e.date || '') <= hojeStr);
+      const caixaFuturo = Store.state.caixa.filter((e) => (e.date || '') > hojeStr);
 
       // Aplicar filtros apenas nos lançamentos reais (passado + hoje)
       let filtered = caixaPassado;
 
       if (this.filters.mes) {
-        filtered = filtered.filter(e => (e.date || '').slice(0, 7) === this.filters.mes);
+        filtered = filtered.filter((e) => (e.date || '').slice(0, 7) === this.filters.mes);
       }
-      if (this.filters.dateFrom) filtered = filtered.filter(e => e.date >= this.filters.dateFrom);
-      if (this.filters.dateTo)   filtered = filtered.filter(e => e.date <= this.filters.dateTo);
-      if (this.filters.type !== 'todos') filtered = filtered.filter(e => e.type === this.filters.type);
-      if (this.filters.contractId) filtered = filtered.filter(e => e.contractId === this.filters.contractId);
+      if (this.filters.dateFrom) filtered = filtered.filter((e) => e.date >= this.filters.dateFrom);
+      if (this.filters.dateTo) filtered = filtered.filter((e) => e.date <= this.filters.dateTo);
+      if (this.filters.type !== 'todos')
+        filtered = filtered.filter((e) => e.type === this.filters.type);
+      if (this.filters.contractId)
+        filtered = filtered.filter((e) => e.contractId === this.filters.contractId);
 
       // Cálculos (parseFloat garante que strings viram números)
-      const totalEntradas = filtered.filter(e => e.type === 'entrada').reduce((s, e) => s + num(e.value), 0);
-      const totalSaidas   = filtered.filter(e => e.type === 'saida').reduce((s, e) => s + num(e.value), 0);
-      const saldo         = totalEntradas - totalSaidas;
+      const totalEntradas = filtered
+        .filter((e) => e.type === 'entrada')
+        .reduce((s, e) => s + num(e.value), 0);
+      const totalSaidas = filtered
+        .filter((e) => e.type === 'saida')
+        .reduce((s, e) => s + num(e.value), 0);
+      const saldo = totalEntradas - totalSaidas;
 
       // Saldo geral real (transações até hoje)
-      const saldoGeral = caixaPassado.reduce((s, e) => e.type === 'entrada' ? s + num(e.value) : s - num(e.value), 0);
+      const saldoGeral = caixaPassado.reduce(
+        (s, e) => (e.type === 'entrada' ? s + num(e.value) : s - num(e.value)),
+        0
+      );
 
       // Lançamentos futuros: caixa com data futura + contas a pagar pendentes + NFs previstas
-      const contasFuturas = (Store.state.contas_pagar || []).filter(c => c.status === 'pendente');
-      const futEntradas = caixaFuturo.filter(e => e.type === 'entrada');
-      const futSaidas   = caixaFuturo.filter(e => e.type === 'saida');
+      const contasFuturas = (Store.state.contas_pagar || []).filter((c) => c.status === 'pendente');
+      const futEntradas = caixaFuturo.filter((e) => e.type === 'entrada');
+      const futSaidas = caixaFuturo.filter((e) => e.type === 'saida');
 
       // NFs pendentes de emissão → entrada prevista em dataLimite + prazoRecebimento dias
       const nfsFuturas = (Store.state.notas_fiscais || [])
-        .filter(nf => !nf.emitida && nf.valor > 0)
-        .map(nf => {
-          const prazo = (Number.isFinite(parseInt(nf.prazoRecebimento)) ? parseInt(nf.prazoRecebimento) : 30);
+        .filter((nf) => !nf.emitida && nf.valor > 0)
+        .map((nf) => {
+          const prazo = Number.isFinite(parseInt(nf.prazoRecebimento))
+            ? parseInt(nf.prazoRecebimento)
+            : 30;
           const dtBase = new Date(nf.dataLimite + 'T12:00:00');
           dtBase.setDate(dtBase.getDate() + prazo);
           const expectedDate = dtBase.toISOString().split('T')[0];
-          const contrato = (Store.state.contracts || []).find(c => c.id === nf.contractId);
+          const contrato = (Store.state.contracts || []).find((c) => c.id === nf.contractId);
           return {
             date: expectedDate,
             desc: `NF ${nf.numero || ''}${contrato ? ` — ${contrato.name}` : ''}`.trim(),
             tipo: 'entrada',
             origem: `NF prevista · emissão até ${new Date(nf.dataLimite + 'T12:00:00').toLocaleDateString('pt-BR')} +${prazo}d`,
-            valor: num(nf.valor)
+            valor: num(nf.valor),
           };
         });
 
       // Recorrências virtuais (BASE items recorrentes) — próximos 90 dias
-      const projUntil = (() => { const d = new Date(); d.setDate(d.getDate() + 90); return d.toISOString().split('T')[0]; })();
+      const projUntil = (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 90);
+        return d.toISOString().split('T')[0];
+      })();
       const baseItems = Store.state.base || [];
-      const virtualOcorrencias = (window.RhinoRecurrence
-        ? window.RhinoRecurrence.expandAll(baseItems, hojeStr, projUntil)
-        : []
-      ).filter(o => !window.RhinoRecurrence.isMaterialized(o, Store.state.caixa || []));
+      const virtualOcorrencias = (
+        window.RhinoRecurrence
+          ? window.RhinoRecurrence.expandAll(baseItems, hojeStr, projUntil)
+          : []
+      ).filter((o) => !window.RhinoRecurrence.isMaterialized(o, Store.state.caixa || []));
 
-      const totalFutEntradas = futEntradas.reduce((s, e) => s + num(e.value), 0)
-                             + nfsFuturas.reduce((s, e) => s + e.valor, 0);
-      const totalFutSaidas   = futSaidas.reduce((s, e) => s + num(e.value), 0)
-                             + contasFuturas.reduce((s, c) => s + num(c.valor), 0)
-                             + virtualOcorrencias.reduce((s, o) => s + (parseFloat(o.value) || 0), 0);
-      const saldoProjetado   = saldoGeral + totalFutEntradas - totalFutSaidas;
+      const totalFutEntradas =
+        futEntradas.reduce((s, e) => s + num(e.value), 0) +
+        nfsFuturas.reduce((s, e) => s + e.valor, 0);
+      const totalFutSaidas =
+        futSaidas.reduce((s, e) => s + num(e.value), 0) +
+        contasFuturas.reduce((s, c) => s + num(c.valor), 0) +
+        virtualOcorrencias.reduce((s, o) => s + (parseFloat(o.value) || 0), 0);
+      const saldoProjetado = saldoGeral + totalFutEntradas - totalFutSaidas;
 
       // Lista de meses disponíveis (somente passado/hoje)
-      const mesesDisponiveis = [...new Set(caixaPassado.map(e => (e.date || '').slice(0, 7)).filter(Boolean))].sort().reverse();
+      const mesesDisponiveis = [
+        ...new Set(caixaPassado.map((e) => (e.date || '').slice(0, 7)).filter(Boolean)),
+      ]
+        .sort()
+        .reverse();
 
       // Agrupar por mês para a visão mensal
       const porMes = {};
-      filtered.forEach(e => {
+      filtered.forEach((e) => {
         const ym = (e.date || '').slice(0, 7);
         if (!porMes[ym]) porMes[ym] = { entradas: 0, saidas: 0, count: 0 };
         if (e.type === 'entrada') porMes[ym].entradas += num(e.value);
@@ -90,8 +112,12 @@ window.Caixa = {
       });
       const mesesAgrupados = Object.entries(porMes).sort(([a], [b]) => b.localeCompare(a));
 
-      const filtrosAtivos = this.filters.mes || this.filters.dateFrom || this.filters.dateTo ||
-                            this.filters.type !== 'todos' || this.filters.contractId;
+      const filtrosAtivos =
+        this.filters.mes ||
+        this.filters.dateFrom ||
+        this.filters.dateTo ||
+        this.filters.type !== 'todos' ||
+        this.filters.contractId;
 
       // Padrão B (UIKit): pageHeader + kpiGrid + toolbar — mesma moldura de Clientes/ContasPagar.
       const headerHtml = window.UIKit?.pageHeader
@@ -106,10 +132,27 @@ window.Caixa = {
 
       const kpisHtml = window.UIKit?.kpiGrid
         ? window.UIKit.kpiGrid([
-            { label: `Total Entradas ${filtrosAtivos ? '(filtrado)' : ''}`, value: '+' + Store.formatBRL(totalEntradas), color: 'var(--color-success)' },
-            { label: `Total Saídas ${filtrosAtivos ? '(filtrado)' : ''}`, value: '-' + Store.formatBRL(totalSaidas), color: 'var(--color-danger)' },
-            { label: `Saldo ${filtrosAtivos ? '(filtrado)' : 'Realizado'}`, value: Store.formatBRL(saldo), color: saldo >= 0 ? 'var(--color-success)' : 'var(--color-danger)' },
-            { label: 'Saldo Projetado', value: Store.formatBRL(saldoProjetado), color: saldoProjetado >= 0 ? 'var(--color-success)' : 'var(--color-danger)', hint: 'inclui lançamentos futuros' },
+            {
+              label: `Total Entradas ${filtrosAtivos ? '(filtrado)' : ''}`,
+              value: '+' + Store.formatBRL(totalEntradas),
+              color: 'var(--color-success)',
+            },
+            {
+              label: `Total Saídas ${filtrosAtivos ? '(filtrado)' : ''}`,
+              value: '-' + Store.formatBRL(totalSaidas),
+              color: 'var(--color-danger)',
+            },
+            {
+              label: `Saldo ${filtrosAtivos ? '(filtrado)' : 'Realizado'}`,
+              value: Store.formatBRL(saldo),
+              color: saldo >= 0 ? 'var(--color-success)' : 'var(--color-danger)',
+            },
+            {
+              label: 'Saldo Projetado',
+              value: Store.formatBRL(saldoProjetado),
+              color: saldoProjetado >= 0 ? 'var(--color-success)' : 'var(--color-danger)',
+              hint: 'inclui lançamentos futuros',
+            },
           ])
         : '';
 
@@ -117,21 +160,32 @@ window.Caixa = {
         ? window.UIKit.toolbar({
             selects: [
               {
-                id: 'filterMes', label: 'Mês',
+                id: 'filterMes',
+                label: 'Mês',
                 options: [
                   { value: '', label: 'Todos os meses', selected: !this.filters.mes },
-                  ...mesesDisponiveis.map(m => ({ value: m, label: this.formatarMes(m), selected: this.filters.mes === m })),
+                  ...mesesDisponiveis.map((m) => ({
+                    value: m,
+                    label: this.formatarMes(m),
+                    selected: this.filters.mes === m,
+                  })),
                 ],
               },
               {
-                id: 'filterContract', label: 'Projeto/Contrato',
+                id: 'filterContract',
+                label: 'Projeto/Contrato',
                 options: [
                   { value: '', label: 'Todos os contratos', selected: !this.filters.contractId },
-                  ...Store.state.contracts.map(c => ({ value: c.id, label: `${c.name} — ${c.client}`, selected: this.filters.contractId === c.id })),
+                  ...Store.state.contracts.map((c) => ({
+                    value: c.id,
+                    label: `${c.name} — ${c.client}`,
+                    selected: this.filters.contractId === c.id,
+                  })),
                 ],
               },
               {
-                id: 'filterType', label: 'Tipo',
+                id: 'filterType',
+                label: 'Tipo',
                 options: [
                   { value: 'todos', label: 'Todos', selected: this.filters.type === 'todos' },
                   { value: 'entrada', label: 'Entrada', selected: this.filters.type === 'entrada' },
@@ -158,7 +212,12 @@ window.Caixa = {
         ${kpisHtml}
 
         <!-- Lançamentos Futuros -->
-        ${(futEntradas.length > 0 || futSaidas.length > 0 || contasFuturas.length > 0 || nfsFuturas.length > 0) ? `
+        ${
+          futEntradas.length > 0 ||
+          futSaidas.length > 0 ||
+          contasFuturas.length > 0 ||
+          nfsFuturas.length > 0
+            ? `
         <div class="card" style="margin-bottom:var(--sp-lg);border:1px dashed var(--color-border);">
           <div class="card-header" style="background:transparent;">
             <h3 class="card-title" style="color:var(--color-text-muted);">⏳ Lançamentos Futuros</h3>
@@ -167,7 +226,9 @@ window.Caixa = {
             </div>
           </div>
           <div class="table-wrap">
-            ${virtualOcorrencias.length > 0 ? `
+            ${
+              virtualOcorrencias.length > 0
+                ? `
               <div style="display:flex;align-items:center;gap:var(--sp-md);padding:var(--sp-sm) var(--sp-md);background:var(--rh-info-bg);border-radius:6px;margin-bottom:var(--sp-sm);">
                 <label class="rh-row-sm" style="cursor:pointer;font-size:13px;font-weight:600;">
                   <input type="checkbox" id="virtSelectAll" style="width:14px;height:14px;cursor:pointer;">
@@ -175,7 +236,9 @@ window.Caixa = {
                 </label>
                 <button class="btn btn-primary btn-sm" id="btnMaterializarBulk" disabled style="margin-left:auto;">Materializar selecionadas</button>
               </div>
-            ` : ''}
+            `
+                : ''
+            }
             <table>
               <thead>
                 <tr>
@@ -189,15 +252,38 @@ window.Caixa = {
               </thead>
               <tbody>
                 ${[
-                  ...futEntradas.map(e => ({ date: e.date, desc: e.description, tipo: 'entrada', origem: 'Caixa agendado', valor: num(e.value) })),
-                  ...futSaidas.map(e => ({ date: e.date, desc: e.description, tipo: 'saida', origem: 'Caixa agendado', valor: num(e.value) })),
+                  ...futEntradas.map((e) => ({
+                    date: e.date,
+                    desc: e.description,
+                    tipo: 'entrada',
+                    origem: 'Caixa agendado',
+                    valor: num(e.value),
+                  })),
+                  ...futSaidas.map((e) => ({
+                    date: e.date,
+                    desc: e.description,
+                    tipo: 'saida',
+                    origem: 'Caixa agendado',
+                    valor: num(e.value),
+                  })),
                   ...nfsFuturas,
-                  ...contasFuturas.map(c => {
+                  ...contasFuturas.map((c) => {
                     const dias = Math.floor((new Date(c.dataVencimento) - new Date()) / 86400000);
-                    const label = dias < 0 ? `${Math.abs(dias)}d vencida` : dias === 0 ? 'vence hoje' : `em ${dias}d`;
-                    return { date: c.dataVencimento || '9999-99-99', desc: c.descricao + (c.numeroNF ? ` — NF ${c.numeroNF}` : ''), tipo: 'saida', origem: `Conta a Pagar · ${label}`, valor: num(c.valor) };
+                    const label =
+                      dias < 0
+                        ? `${Math.abs(dias)}d vencida`
+                        : dias === 0
+                          ? 'vence hoje'
+                          : `em ${dias}d`;
+                    return {
+                      date: c.dataVencimento || '9999-99-99',
+                      desc: c.descricao + (c.numeroNF ? ` — NF ${c.numeroNF}` : ''),
+                      tipo: 'saida',
+                      origem: `Conta a Pagar · ${label}`,
+                      valor: num(c.valor),
+                    };
                   }),
-                  ...virtualOcorrencias.map(o => ({
+                  ...virtualOcorrencias.map((o) => ({
                     date: o.date,
                     desc: o.sourceDescription,
                     tipo: 'saida',
@@ -206,7 +292,10 @@ window.Caixa = {
                     virtual: true,
                     virtualMeta: o,
                   })),
-                ].sort((a, b) => a.date.localeCompare(b.date)).map(item => `
+                ]
+                  .sort((a, b) => a.date.localeCompare(b.date))
+                  .map(
+                    (item) => `
                   <tr style="opacity:0.8;">
                     <td>
                       ${item.virtual ? `<input type="checkbox" class="virt-checkbox" data-source="${item.virtualMeta.sourceId}" data-date="${item.virtualMeta.date}" data-value="${item.virtualMeta.value}" data-desc="${escapeHtml(item.desc)}" data-type-key="${item.virtualMeta.sourceTypeKey || ''}" style="width:14px;height:14px;cursor:pointer;">` : ''}
@@ -225,23 +314,33 @@ window.Caixa = {
                       ${item.tipo === 'entrada' ? '+' : '-'}${Store.formatBRL(item.valor)}
                     </td>
                   </tr>
-                `).join('')}
+                `
+                  )
+                  .join('')}
               </tbody>
             </table>
           </div>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <!-- Filtros (UIKit.toolbar — padrão B) -->
         ${toolbarHtml}
-        ${filtrosAtivos ? `
+        ${
+          filtrosAtivos
+            ? `
           <div style="margin:calc(var(--sp-sm) * -1) 0 var(--sp-lg);font-size:15px;color:var(--color-primary);">
             ✓ Filtros ativos · ${filtered.length} de ${caixaPassado.length} lançamento${caixaPassado.length !== 1 ? 's' : ''}
           </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <!-- Resumo por mês (quando não há filtro de mês específico) -->
-        ${!this.filters.mes && mesesAgrupados.length > 1 ? `
+        ${
+          !this.filters.mes && mesesAgrupados.length > 1
+            ? `
           <div class="card mb-2xl">
             <div class="card-header">
               <h3 class="card-title">Resumo por Mês</h3>
@@ -258,9 +357,10 @@ window.Caixa = {
                   </tr>
                 </thead>
                 <tbody>
-                  ${mesesAgrupados.map(([ym, dados]) => {
-                    const saldoMes = dados.entradas - dados.saidas;
-                    return `
+                  ${mesesAgrupados
+                    .map(([ym, dados]) => {
+                      const saldoMes = dados.entradas - dados.saidas;
+                      return `
                       <tr style="cursor:pointer;" class="row-filtrar-mes" data-mes="${ym}">
                         <td><strong>${this.formatarMes(ym)}</strong></td>
                         <td class="num" style="color:var(--color-success);">+${Store.formatBRL(dados.entradas)}</td>
@@ -269,13 +369,16 @@ window.Caixa = {
                         <td class="num">${dados.count}</td>
                       </tr>
                     `;
-                  }).join('')}
+                    })
+                    .join('')}
                 </tbody>
               </table>
             </div>
             <div style="margin-top:var(--sp-sm);font-size:15px;color:var(--color-text-muted);text-align:center;">Clique em um mês para filtrar</div>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <!-- Tabela de lançamentos -->
         <div class="card">
@@ -296,24 +399,38 @@ window.Caixa = {
                 </tr>
               </thead>
               <tbody>
-                ${filtered.length === 0 ? `
+                ${
+                  filtered.length === 0
+                    ? `
                   <tr>
                     <td colspan="7" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum lançamento encontrado</td>
                   </tr>
-                ` : [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date)).map(e => {
-                  const contract = e.contractId ? Store.getContractById(e.contractId) : null;
-                  return `
+                `
+                    : [...filtered]
+                        .sort((a, b) => new Date(b.date) - new Date(a.date))
+                        .map((e) => {
+                          const contract = e.contractId
+                            ? Store.getContractById(e.contractId)
+                            : null;
+                          return `
                     <tr class="row-caixa" data-id="${e.id}" style="cursor:pointer;">
                       <td>${new Date(e.date + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                       <td><strong>${escapeHtml(e.description)}</strong></td>
                       <td><span class="badge badge-${e.type}">${e.type}</span></td>
-                      <td>${contract
-                        ? `<a href="#/contratos/${contract.id}" style="color:var(--color-primary);text-decoration:none;font-weight:500;">${escapeHtml(contract.name)}</a><div style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(contract.client)}</div>`
-                        : (e.baseItemId ? '<span style="color:var(--color-info);">BASE</span>' : '<span style="color:var(--color-text-muted);">—</span>')}</td>
+                      <td>${
+                        contract
+                          ? `<a href="#/contratos/${contract.id}" style="color:var(--color-primary);text-decoration:none;font-weight:500;">${escapeHtml(contract.name)}</a><div style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(contract.client)}</div>`
+                          : e.baseItemId
+                            ? '<span style="color:var(--color-info);">BASE</span>'
+                            : '<span style="color:var(--color-text-muted);">—</span>'
+                      }</td>
                       <td>${(() => {
-                        if (e.contaPagarId || e.category === 'conta_pagar') return `<span style="font-size:15px;font-weight:600;color:var(--color-danger);background:rgba(229,62,62,.1);padding:2px 7px;border-radius:4px;">Conta a Pagar</span>`;
-                        if (e.nfId || e.category === 'nota_fiscal') return `<span style="font-size:15px;font-weight:600;color:var(--color-success);background:rgba(56,161,105,.1);padding:2px 7px;border-radius:4px;">Conta a Receber</span>`;
-                        if (e.baseItemId) return `<span style="font-size:15px;font-weight:600;color:var(--color-info);background:rgba(49,130,206,.1);padding:2px 7px;border-radius:4px;">BASE</span>`;
+                        if (e.contaPagarId || e.category === 'conta_pagar')
+                          return `<span style="font-size:15px;font-weight:600;color:var(--color-danger);background:rgba(229,62,62,.1);padding:2px 7px;border-radius:4px;">Conta a Pagar</span>`;
+                        if (e.nfId || e.category === 'nota_fiscal')
+                          return `<span style="font-size:15px;font-weight:600;color:var(--color-success);background:rgba(56,161,105,.1);padding:2px 7px;border-radius:4px;">Conta a Receber</span>`;
+                        if (e.baseItemId)
+                          return `<span style="font-size:15px;font-weight:600;color:var(--color-info);background:rgba(49,130,206,.1);padding:2px 7px;border-radius:4px;">BASE</span>`;
                         return `<span style="font-size:15px;color:var(--color-text-muted);">Manual</span>`;
                       })()}</td>
                       <td class="num" style="color:${e.type === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};">
@@ -327,9 +444,13 @@ window.Caixa = {
                       </td>
                     </tr>
                   `;
-                }).join('')}
+                        })
+                        .join('')
+                }
               </tbody>
-              ${filtered.length > 0 ? `
+              ${
+                filtered.length > 0
+                  ? `
                 <tfoot>
                   <tr style="background:var(--color-bg);font-weight:700;">
                     <td colspan="5" style="padding:var(--sp-md);">Total</td>
@@ -337,7 +458,9 @@ window.Caixa = {
                     <td></td>
                   </tr>
                 </tfoot>
-              ` : ''}
+              `
+                  : ''
+              }
             </table>
           </div>
         </div>
@@ -346,7 +469,7 @@ window.Caixa = {
       app.innerHTML = html;
 
       // Listener: "ajustar e materializar" — abre modal pré-preenchido
-      document.querySelectorAll('.btn-realizar-recorrencia').forEach(btn => {
+      document.querySelectorAll('.btn-realizar-recorrencia').forEach((btn) => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           const b = e.currentTarget;
@@ -367,27 +490,36 @@ window.Caixa = {
         if (!bulkBtn) return;
         const checked = document.querySelectorAll('.virt-checkbox:checked').length;
         bulkBtn.disabled = checked === 0;
-        bulkBtn.textContent = checked === 0
-          ? 'Materializar selecionadas'
-          : `Materializar ${checked} selecionada${checked !== 1 ? 's' : ''}`;
+        bulkBtn.textContent =
+          checked === 0
+            ? 'Materializar selecionadas'
+            : `Materializar ${checked} selecionada${checked !== 1 ? 's' : ''}`;
       };
       if (selectAll) {
         selectAll.addEventListener('change', () => {
-          document.querySelectorAll('.virt-checkbox').forEach(cb => { cb.checked = selectAll.checked; });
+          document.querySelectorAll('.virt-checkbox').forEach((cb) => {
+            cb.checked = selectAll.checked;
+          });
           updateBulkBtn();
         });
       }
-      document.querySelectorAll('.virt-checkbox').forEach(cb => {
+      document.querySelectorAll('.virt-checkbox').forEach((cb) => {
         cb.addEventListener('change', updateBulkBtn);
       });
       if (bulkBtn) {
         bulkBtn.addEventListener('click', async () => {
           const checked = [...document.querySelectorAll('.virt-checkbox:checked')];
           if (checked.length === 0) return;
-          if (!confirm(`Materializar ${checked.length} ocorrência(s) com os valores e datas previstos?`)) return;
+          if (
+            !confirm(
+              `Materializar ${checked.length} ocorrência(s) com os valores e datas previstos?`
+            )
+          )
+            return;
           bulkBtn.disabled = true;
           bulkBtn.textContent = 'Criando...';
-          let ok = 0, fail = 0;
+          let ok = 0,
+            fail = 0;
           for (const cb of checked) {
             try {
               await Store.createCaixaEntry({
@@ -400,31 +532,42 @@ window.Caixa = {
                 notes: 'Materializado em lote da recorrência BASE',
               });
               ok++;
-            } catch (err) { fail++; }
+            } catch (err) {
+              fail++;
+            }
           }
-          window.showToast(`${ok} criado${ok !== 1 ? 's' : ''}${fail > 0 ? ` · ${fail} falha${fail !== 1 ? 's' : ''}` : ''}`, fail > 0 ? 'warning' : 'success');
+          window.showToast(
+            `${ok} criado${ok !== 1 ? 's' : ''}${fail > 0 ? ` · ${fail} falha${fail !== 1 ? 's' : ''}` : ''}`,
+            fail > 0 ? 'warning' : 'success'
+          );
           this.render();
         });
       }
 
       // Listeners de filtros
-      document.getElementById('filterMes').addEventListener('change', e => {
+      document.getElementById('filterMes').addEventListener('change', (e) => {
         this.filters.mes = e.target.value;
         this.filters.dateFrom = '';
         this.filters.dateTo = '';
         this.render();
       });
-      document.getElementById('filterContract').addEventListener('change', e => {
-        this.filters.contractId = e.target.value; this.render();
+      document.getElementById('filterContract').addEventListener('change', (e) => {
+        this.filters.contractId = e.target.value;
+        this.render();
       });
-      document.getElementById('filterType').addEventListener('change', e => {
-        this.filters.type = e.target.value; this.render();
+      document.getElementById('filterType').addEventListener('change', (e) => {
+        this.filters.type = e.target.value;
+        this.render();
       });
-      document.getElementById('filterFrom').addEventListener('change', e => {
-        this.filters.dateFrom = e.target.value; this.filters.mes = ''; this.render();
+      document.getElementById('filterFrom').addEventListener('change', (e) => {
+        this.filters.dateFrom = e.target.value;
+        this.filters.mes = '';
+        this.render();
       });
-      document.getElementById('filterTo').addEventListener('change', e => {
-        this.filters.dateTo = e.target.value; this.filters.mes = ''; this.render();
+      document.getElementById('filterTo').addEventListener('change', (e) => {
+        this.filters.dateTo = e.target.value;
+        this.filters.mes = '';
+        this.render();
       });
       // ?. — o botão Limpar só existe quando há filtro ativo (UIKit.toolbar showClear)
       document.getElementById('btnLimparFiltros')?.addEventListener('click', () => {
@@ -433,21 +576,27 @@ window.Caixa = {
       });
 
       // Clicar em linha do resumo mensal filtra
-      document.querySelectorAll('.row-filtrar-mes').forEach(row => {
-        row.addEventListener('click', e => {
+      document.querySelectorAll('.row-filtrar-mes').forEach((row) => {
+        row.addEventListener('click', (e) => {
           this.filters.mes = e.currentTarget.dataset.mes;
           this.render();
         });
       });
 
-      document.querySelectorAll('.btn-editar').forEach(btn => {
-        btn.addEventListener('click', e => { e.stopPropagation(); this.showModal(e.target.dataset.id); });
+      document.querySelectorAll('.btn-editar').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.showModal(e.target.dataset.id);
+        });
       });
-      document.querySelectorAll('.btn-excluir').forEach(btn => {
-        btn.addEventListener('click', e => { e.stopPropagation(); this.deleteEntry(e.target.dataset.id); });
+      document.querySelectorAll('.btn-excluir').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.deleteEntry(e.target.dataset.id);
+        });
       });
-      document.querySelectorAll('.row-caixa').forEach(tr => {
-        tr.addEventListener('click', e => {
+      document.querySelectorAll('.row-caixa').forEach((tr) => {
+        tr.addEventListener('click', (e) => {
           if (e.target.closest('.actions-cell')) return;
           this.showDetail(tr.dataset.id);
         });
@@ -474,27 +623,35 @@ window.Caixa = {
             const data = await r.json();
             if (!r.ok) throw new Error(data.error);
             this._showOfxResultado(data);
-          } catch (e) { window.showToast('Erro: ' + e.message, 'error'); }
+          } catch (e) {
+            window.showToast('Erro: ' + e.message, 'error');
+          }
         });
       }
     } catch (e) {
       console.error(e);
-      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar caixa. Tente novamente.</p></div>';
+      app.innerHTML =
+        '<div class="card"><p class="text-danger">Erro ao carregar caixa. Tente novamente.</p></div>';
     }
   },
 
   _showOfxResultado(data) {
-    const fmt = (v) => 'R$ ' + Math.abs(Number(v)).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    const fmt = (v) =>
+      'R$ ' + Math.abs(Number(v)).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
     // FIX P0-4: escapa dados do arquivo OFX (origem externa, podem conter HTML/JS
     // se o arquivo for malicioso ou se o parser do servidor não sanitizar).
-    const rows = (data.transacoes || []).map(t => `
+    const rows = (data.transacoes || [])
+      .map(
+        (t) => `
       <tr>
         <td>${window.escapeHtml(t.data)}</td>
         <td style="max-width:280px;word-break:break-word;">${window.escapeHtml(t.memo || '—')}</td>
-        <td style="font-weight:700;color:${t.tipo==='entrada'?'var(--color-success)':'var(--color-danger)'};">${t.tipo==='saida'?'-':'+'} ${fmt(t.valor)}</td>
+        <td style="font-weight:700;color:${t.tipo === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)'};">${t.tipo === 'saida' ? '-' : '+'} ${fmt(t.valor)}</td>
         <td>${window.UIKit?.statusPill ? window.UIKit.statusPill(t.status === 'conciliado' ? 'conciliado' : 'novo') : escapeHtml(t.status)}</td>
         <td style="font-size:13px;color:var(--color-text-muted);">${t.match ? window.escapeHtml(t.match.description) : '—'}</td>
-      </tr>`).join('');
+      </tr>`
+      )
+      .join('');
 
     const html = `
       <div class="modal-overlay" id="ofxModal">
@@ -524,29 +681,40 @@ window.Caixa = {
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('ofxClose').addEventListener('click', close);
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
   },
 
   formatarMes(ym) {
     if (!ym) return '';
     const [ano, mes] = ym.split('-').map(Number);
     const d = new Date(ano, mes - 1, 1);
-    return d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
+    return d
+      .toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+      .replace(/^./, (c) => c.toUpperCase());
   },
 
   showDetail(entryId) {
-    const e = Store.state.caixa.find(x => x.id === entryId);
+    const e = Store.state.caixa.find((x) => x.id === entryId);
     if (!e) return;
-    const fmtD = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
-    const fmtDT = d => d ? new Date(d).toLocaleString('pt-BR') : '—';
+    const fmtD = (d) => (d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—');
+    const fmtDT = (d) => (d ? new Date(d).toLocaleString('pt-BR') : '—');
     const contract = e.contractId ? Store.getContractById(e.contractId) : null;
-    const cp = e.contaPagarId ? (Store.state.contas_pagar || []).find(c => c.id === e.contaPagarId) : null;
-    const nf = e.nfId ? (Store.state.notas_fiscais || []).find(n => n.id === e.nfId) : null;
-    const baseItem = e.baseItemId ? (Store.state.base || []).find(b => b.id === e.baseItemId) : null;
+    const cp = e.contaPagarId
+      ? (Store.state.contas_pagar || []).find((c) => c.id === e.contaPagarId)
+      : null;
+    const nf = e.nfId ? (Store.state.notas_fiscais || []).find((n) => n.id === e.nfId) : null;
+    const baseItem = e.baseItemId
+      ? (Store.state.base || []).find((b) => b.id === e.baseItemId)
+      : null;
     const isEntrada = e.type === 'entrada';
     const valor = Store.formatBRL(parseFloat(e.value) || 0);
 
-    const row = (lbl, val) => val ? `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--color-border);"><span style="color:var(--color-text-muted);">${lbl}</span><span style="font-weight:500;">${val}</span></div>` : '';
+    const row = (lbl, val) =>
+      val
+        ? `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--color-border);"><span style="color:var(--color-text-muted);">${lbl}</span><span style="font-weight:500;">${val}</span></div>`
+        : '';
 
     const html = `
       <div class="modal-overlay" id="modalOverlay">
@@ -562,16 +730,16 @@ window.Caixa = {
             <button class="modal-close">✕</button>
           </div>
           <div class="modal-content">
-            ${row('Data',           fmtD(e.date))}
-            ${row('Categoria',      e.category ? escapeHtml(e.category) : null)}
+            ${row('Data', fmtD(e.date))}
+            ${row('Categoria', e.category ? escapeHtml(e.category) : null)}
             ${row('Forma de Pagto.', e.formaPagamento ? escapeHtml(e.formaPagamento) : null)}
-            ${row('Contrato',       contract ? `<a href="#/contratos/${contract.id}" style="color:var(--color-primary);">${escapeHtml(contract.name)}</a>` : null)}
-            ${row('Cliente',        contract ? escapeHtml(contract.client) : null)}
-            ${row('Conta a Pagar',  cp ? escapeHtml(cp.descricao) : null)}
-            ${row('NF vinculada',   nf ? `NF ${escapeHtml(nf.numero)} (${fmtD(nf.dataLimite)})` : null)}
-            ${row('Item BASE',      baseItem ? escapeHtml(baseItem.description) : null)}
-            ${row('Observações',    e.notes ? escapeHtml(e.notes) : null)}
-            ${row('Criado em',      fmtDT(e.createdAt))}
+            ${row('Contrato', contract ? `<a href="#/contratos/${contract.id}" style="color:var(--color-primary);">${escapeHtml(contract.name)}</a>` : null)}
+            ${row('Cliente', contract ? escapeHtml(contract.client) : null)}
+            ${row('Conta a Pagar', cp ? escapeHtml(cp.descricao) : null)}
+            ${row('NF vinculada', nf ? `NF ${escapeHtml(nf.numero)} (${fmtD(nf.dataLimite)})` : null)}
+            ${row('Item BASE', baseItem ? escapeHtml(baseItem.description) : null)}
+            ${row('Observações', e.notes ? escapeHtml(e.notes) : null)}
+            ${row('Criado em', fmtDT(e.createdAt))}
             <div style="font-size:12px;color:var(--color-text-muted);margin-top:var(--sp-md);font-family:monospace;">ID: ${escapeHtml(e.id)}</div>
           </div>
           <div class="modal-footer">
@@ -585,7 +753,10 @@ window.Caixa = {
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnDetClose').addEventListener('click', close);
-    document.getElementById('btnDetEdit').addEventListener('click', () => { close(); this.showModal(e.id); });
+    document.getElementById('btnDetEdit').addEventListener('click', () => {
+      close();
+      this.showModal(e.id);
+    });
   },
 
   // Modal pré-preenchido para materializar uma ocorrência virtual de recorrência.
@@ -624,7 +795,7 @@ window.Caixa = {
               <label class="form-label">Vincular a Contrato (opcional)</label>
               <select class="form-control" name="contractId">
                 <option value="">Nenhum</option>
-                ${(Store.state.contracts || []).map(c => `<option value="${c.id}">${escapeHtml(c.name)} — ${escapeHtml(c.client)}</option>`).join('')}
+                ${(Store.state.contracts || []).map((c) => `<option value="${c.id}">${escapeHtml(c.name)} — ${escapeHtml(c.client)}</option>`).join('')}
               </select>
             </div>
           </form>
@@ -640,7 +811,9 @@ window.Caixa = {
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnCancelar').addEventListener('click', close);
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
 
     document.getElementById('btnSalvar').addEventListener('click', async () => {
       const fd = new FormData(document.getElementById('formMatRec'));
@@ -662,7 +835,7 @@ window.Caixa = {
   },
 
   showModal(entryId) {
-    const entry = entryId ? Store.state.caixa.find(e => e.id === entryId) : null;
+    const entry = entryId ? Store.state.caixa.find((e) => e.id === entryId) : null;
     const title = entry ? 'Editar Lançamento' : 'Novo Lançamento';
 
     const html = `
@@ -678,7 +851,7 @@ window.Caixa = {
                 <label class="form-label">Tipo *</label>
                 <select class="form-control" name="type" id="selectType" required>
                   <option value="entrada" ${entry?.type === 'entrada' ? 'selected' : ''}>Entrada</option>
-                  <option value="saida"   ${entry?.type === 'saida'   ? 'selected' : ''}>Saída</option>
+                  <option value="saida"   ${entry?.type === 'saida' ? 'selected' : ''}>Saída</option>
                 </select>
               </div>
               <div class="form-group">
@@ -704,9 +877,13 @@ window.Caixa = {
               <label class="form-label">Vincular a Contrato</label>
               <select class="form-control" name="contractId">
                 <option value="">Nenhum</option>
-                ${Store.state.contracts.map(c => `
+                ${Store.state.contracts
+                  .map(
+                    (c) => `
                   <option value="${c.id}" ${entry?.contractId === c.id ? 'selected' : ''}>${escapeHtml(c.name)} — ${escapeHtml(c.client)}</option>
-                `).join('')}
+                `
+                  )
+                  .join('')}
               </select>
             </div>
           </form>
@@ -725,7 +902,9 @@ window.Caixa = {
 
     overlay.querySelector('.modal-close').addEventListener('click', closeModal);
     document.getElementById('btnCancelar').addEventListener('click', closeModal);
-    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeModal();
+    });
 
     document.getElementById('btnSalvar').addEventListener('click', async () => {
       const fd = new FormData(document.getElementById('formEntrada'));
@@ -758,5 +937,5 @@ window.Caixa = {
     } catch (e) {
       window.showToast(e.message, 'error');
     }
-  }
+  },
 };

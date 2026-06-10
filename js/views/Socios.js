@@ -4,31 +4,56 @@ window.Socios = {
     app.innerHTML = '<div class="loading-spinner">Carregando...</div>';
 
     try {
-      await Store.loadFor(['socios','investimentos']);
+      await Store.loadFor(['socios', 'investimentos']);
 
       const totalParticipacao = Store.state.socios.reduce((sum, s) => sum + s.participacao, 0);
 
       // Padrão B (UIKit) — mesma moldura das demais telas financeiras.
       const html = `
-        ${window.UIKit?.pageHeader ? window.UIKit.pageHeader({
-          title: 'Sócios',
-          subtitle: 'Gerenciar sócios e participações',
-          actions: '<button class="btn btn-primary btn-lg" id="btnNovoSocio">+ Novo Sócio</button>',
-        }) : ''}
+        ${
+          window.UIKit?.pageHeader
+            ? window.UIKit.pageHeader({
+                title: 'Sócios',
+                subtitle: 'Gerenciar sócios e participações',
+                actions:
+                  '<button class="btn btn-primary btn-lg" id="btnNovoSocio">+ Novo Sócio</button>',
+              })
+            : ''
+        }
 
-        ${window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
-          { label: 'Total Sócios', value: Store.state.socios.length, color: 'var(--color-primary)' },
-          { label: 'Participação Registrada', value: `${totalParticipacao.toFixed(2)}%`, color: totalParticipacao === 100 ? 'var(--color-success)' : 'var(--color-warning)' },
-          { label: 'Participação Faltante', value: `${(100 - totalParticipacao).toFixed(2)}%`, color: 'var(--color-info)' },
-        ]) : ''}
+        ${
+          window.UIKit?.kpiGrid
+            ? window.UIKit.kpiGrid([
+                {
+                  label: 'Total Sócios',
+                  value: Store.state.socios.length,
+                  color: 'var(--color-primary)',
+                },
+                {
+                  label: 'Participação Registrada',
+                  value: `${totalParticipacao.toFixed(2)}%`,
+                  color:
+                    totalParticipacao === 100 ? 'var(--color-success)' : 'var(--color-warning)',
+                },
+                {
+                  label: 'Participação Faltante',
+                  value: `${(100 - totalParticipacao).toFixed(2)}%`,
+                  color: 'var(--color-info)',
+                },
+              ])
+            : ''
+        }
 
         <div class="card">
           <div class="card-header">
             <h3 class="card-title">Sócios</h3>
           </div>
-          ${Store.state.socios.length === 0 ? `
+          ${
+            Store.state.socios.length === 0
+              ? `
             <p class="text-muted" style="padding: var(--sp-lg);">Nenhum sócio registrado</p>
-          ` : `
+          `
+              : `
             <div class="table-wrap">
               <table>
                 <thead>
@@ -43,10 +68,11 @@ window.Socios = {
                   </tr>
                 </thead>
                 <tbody>
-                  ${Store.state.socios.map(s => {
-                    const investimentos = Store.getInvestimentosBySocio(s.id);
-                    const totalInvestido = Store.getTotalInvestimentoBySocio(s.id);
-                    return `
+                  ${Store.state.socios
+                    .map((s) => {
+                      const investimentos = Store.getInvestimentosBySocio(s.id);
+                      const totalInvestido = Store.getTotalInvestimentoBySocio(s.id);
+                      return `
                       <tr>
                         <td>${escapeHtml(s.name)}</td>
                         <td>${escapeHtml(s.document) || '-'}</td>
@@ -63,32 +89,35 @@ window.Socios = {
                         </td>
                       </tr>
                     `;
-                  }).join('')}
+                    })
+                    .join('')}
                 </tbody>
               </table>
             </div>
-          `}
+          `
+          }
         </div>
       `;
 
       app.innerHTML = html;
 
       document.getElementById('btnNovoSocio').addEventListener('click', () => this.showModal());
-      document.querySelectorAll('.btn-investimentos').forEach(btn => {
+      document.querySelectorAll('.btn-investimentos').forEach((btn) => {
         btn.addEventListener('click', (e) => {
           const socio = Store.getSocioById(e.target.dataset.id);
           if (socio) window.Investimentos.showModalInvestimentos(socio);
         });
       });
-      document.querySelectorAll('.btn-editar').forEach(btn => {
+      document.querySelectorAll('.btn-editar').forEach((btn) => {
         btn.addEventListener('click', (e) => this.showModal(e.target.dataset.id));
       });
-      document.querySelectorAll('.btn-excluir').forEach(btn => {
+      document.querySelectorAll('.btn-excluir').forEach((btn) => {
         btn.addEventListener('click', (e) => this.deleteSocio(e.target.dataset.id));
       });
     } catch (e) {
       console.error(e);
-      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar sócios. Tente novamente.</p></div>';
+      app.innerHTML =
+        '<div class="card"><p class="text-danger">Erro ao carregar sócios. Tente novamente.</p></div>';
     }
   },
 
@@ -183,5 +212,5 @@ window.Socios = {
     } catch (e) {
       window.showToast(e.message, 'error');
     }
-  }
+  },
 };

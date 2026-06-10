@@ -25,58 +25,58 @@ window.Conciliacao = {
 
   // ─── Upload Screen ────────────────────────────────────────────────────────────
 
-  _renderUploadScreen: function() {
+  _renderUploadScreen: function () {
     return (
       '<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;padding:var(--sp-lg);">' +
-        '<div class="card" style="max-width:520px;width:100%;padding:var(--sp-xl);">' +
-          '<div class="page-header" style="margin-bottom:var(--sp-lg);padding-bottom:0;border-bottom:none;">' +
-            '<div>' +
-              '<h1 class="page-title">Conciliação Bancária</h1>' +
-              '<p class="page-subtitle">Importe seu extrato bancário e reconcilie com contas a pagar</p>' +
-            '</div>' +
-          '</div>' +
-          '<div id="dropZone" style="' +
-            'border:2.5px dashed var(--color-border);' +
-            'border-radius:12px;' +
-            'padding:var(--sp-xl) var(--sp-lg);' +
-            'text-align:center;' +
-            'cursor:pointer;' +
-            'transition:border-color .18s,background .18s;' +
-            'background:var(--color-bg);' +
-          '">' +
-            '<div style="font-size:42px;margin-bottom:var(--sp-md);">🏦</div>' +
-            '<p style="font-size:16px;font-weight:600;margin-bottom:var(--sp-sm);color:var(--color-text-muted);">Arraste seu extrato aqui</p>' +
-            '<p style="font-size:13px;color:var(--color-text-muted);margin-bottom:var(--sp-md);">ou clique para selecionar</p>' +
-            '<p style="font-size:12px;color:var(--color-text-muted);opacity:.7;">Aceita: .ofx · .csv · .txt</p>' +
-            '<input type="file" id="fileInput" accept=".ofx,.csv,.txt,.OFX,.CSV,.TXT" style="display:none;">' +
-          '</div>' +
-        '</div>' +
+      '<div class="card" style="max-width:520px;width:100%;padding:var(--sp-xl);">' +
+      '<div class="page-header" style="margin-bottom:var(--sp-lg);padding-bottom:0;border-bottom:none;">' +
+      '<div>' +
+      '<h1 class="page-title">Conciliação Bancária</h1>' +
+      '<p class="page-subtitle">Importe seu extrato bancário e reconcilie com contas a pagar</p>' +
+      '</div>' +
+      '</div>' +
+      '<div id="dropZone" style="' +
+      'border:2.5px dashed var(--color-border);' +
+      'border-radius:12px;' +
+      'padding:var(--sp-xl) var(--sp-lg);' +
+      'text-align:center;' +
+      'cursor:pointer;' +
+      'transition:border-color .18s,background .18s;' +
+      'background:var(--color-bg);' +
+      '">' +
+      '<div style="font-size:42px;margin-bottom:var(--sp-md);">🏦</div>' +
+      '<p style="font-size:16px;font-weight:600;margin-bottom:var(--sp-sm);color:var(--color-text-muted);">Arraste seu extrato aqui</p>' +
+      '<p style="font-size:13px;color:var(--color-text-muted);margin-bottom:var(--sp-md);">ou clique para selecionar</p>' +
+      '<p style="font-size:12px;color:var(--color-text-muted);opacity:.7;">Aceita: .ofx · .csv · .txt</p>' +
+      '<input type="file" id="fileInput" accept=".ofx,.csv,.txt,.OFX,.CSV,.TXT" style="display:none;">' +
+      '</div>' +
+      '</div>' +
       '</div>'
     );
   },
 
-  _bindUploadEvents: function() {
+  _bindUploadEvents: function () {
     var self = this;
     var dropZone = document.getElementById('dropZone');
     var fileInput = document.getElementById('fileInput');
     if (!dropZone || !fileInput) return;
 
-    dropZone.addEventListener('click', function() {
+    dropZone.addEventListener('click', function () {
       fileInput.click();
     });
 
-    dropZone.addEventListener('dragover', function(e) {
+    dropZone.addEventListener('dragover', function (e) {
       e.preventDefault();
       dropZone.style.borderColor = 'var(--color-primary)';
       dropZone.style.background = 'var(--color-surface)';
     });
 
-    dropZone.addEventListener('dragleave', function() {
+    dropZone.addEventListener('dragleave', function () {
       dropZone.style.borderColor = 'var(--color-border)';
       dropZone.style.background = 'var(--color-bg)';
     });
 
-    dropZone.addEventListener('drop', function(e) {
+    dropZone.addEventListener('drop', function (e) {
       e.preventDefault();
       dropZone.style.borderColor = 'var(--color-border)';
       dropZone.style.background = 'var(--color-bg)';
@@ -84,7 +84,7 @@ window.Conciliacao = {
       if (file) self._processFile(file);
     });
 
-    fileInput.addEventListener('change', function() {
+    fileInput.addEventListener('change', function () {
       var file = fileInput.files && fileInput.files[0];
       if (file) self._processFile(file);
     });
@@ -92,20 +92,21 @@ window.Conciliacao = {
 
   // ─── File Processing ──────────────────────────────────────────────────────────
 
-  _processFile: function(file) {
+  _processFile: function (file) {
     var self = this;
     var reader = new FileReader();
 
-    reader.onload = function(e) {
+    reader.onload = function (e) {
       var text = e.target.result;
       var transactions;
 
       var name = (file.name || '').toLowerCase();
-      var isOfx = name.endsWith('.ofx') ||
-                  text.indexOf('<OFX') !== -1 ||
-                  text.indexOf('<STMTTRN') !== -1 ||
-                  text.indexOf('<ofx') !== -1 ||
-                  text.indexOf('<stmttrn') !== -1;
+      var isOfx =
+        name.endsWith('.ofx') ||
+        text.indexOf('<OFX') !== -1 ||
+        text.indexOf('<STMTTRN') !== -1 ||
+        text.indexOf('<ofx') !== -1 ||
+        text.indexOf('<stmttrn') !== -1;
 
       try {
         transactions = isOfx ? self._parseOFX(text) : self._parseCSV(text);
@@ -130,7 +131,7 @@ window.Conciliacao = {
           action: 'pending',
           contaPagarId: null,
           topMatch: matches.length > 0 ? matches[0] : null,
-          allMatches: matches
+          allMatches: matches,
         };
       }
 
@@ -138,7 +139,7 @@ window.Conciliacao = {
       self.render();
     };
 
-    reader.onerror = function() {
+    reader.onerror = function () {
       showToast('Erro ao ler o arquivo.', 'error');
     };
 
@@ -147,7 +148,7 @@ window.Conciliacao = {
 
   // ─── OFX Parser ──────────────────────────────────────────────────────────────
 
-  _parseOFX: function(text) {
+  _parseOFX: function (text) {
     var results = [];
     // Normalize line endings
     text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -159,47 +160,54 @@ window.Conciliacao = {
     while ((blockMatch = blockRe.exec(text)) !== null) {
       var block = blockMatch[1];
 
-      var fitid  = this._ofxField(block, 'FITID')  || ('tx-' + results.length);
-      var memo   = this._ofxField(block, 'MEMO')   || this._ofxField(block, 'NAME') || '';
-      var dtRaw  = this._ofxField(block, 'DTPOSTED') || '';
-      var amtRaw = this._ofxField(block, 'TRNAMT')  || '0';
+      var fitid = this._ofxField(block, 'FITID') || 'tx-' + results.length;
+      var memo = this._ofxField(block, 'MEMO') || this._ofxField(block, 'NAME') || '';
+      var dtRaw = this._ofxField(block, 'DTPOSTED') || '';
+      var amtRaw = this._ofxField(block, 'TRNAMT') || '0';
 
       var dateStr = this._ofxDateToISO(dtRaw);
-      var amount  = parseFloat(amtRaw.replace(',', '.')) || 0;
+      var amount = parseFloat(amtRaw.replace(',', '.')) || 0;
 
       results.push({
-        id:          'ofx-' + fitid,
-        date:        dateStr,
-        value:       Math.abs(amount),
-        type:        amount < 0 ? 'saida' : 'entrada',
-        description: memo.trim()
+        id: 'ofx-' + fitid,
+        date: dateStr,
+        value: Math.abs(amount),
+        type: amount < 0 ? 'saida' : 'entrada',
+        description: memo.trim(),
       });
     }
 
     return results;
   },
 
-  _ofxField: function(block, field) {
+  _ofxField: function (block, field) {
     var re = new RegExp('<' + field + '>([^\\r\\n<]*)', 'i');
     var m = block.match(re);
     return m ? m[1].trim() : null;
   },
 
-  _ofxDateToISO: function(raw) {
+  _ofxDateToISO: function (raw) {
     // Format: 20240115120000[-3:BRT] — take first 8 chars
     var digits = (raw || '').replace(/[^0-9]/g, '');
     if (digits.length < 8) return raw || '';
     var yyyy = digits.slice(0, 4);
-    var mm   = digits.slice(4, 6);
-    var dd   = digits.slice(6, 8);
+    var mm = digits.slice(4, 6);
+    var dd = digits.slice(6, 8);
     return yyyy + '-' + mm + '-' + dd;
   },
 
   // ─── CSV Parser ──────────────────────────────────────────────────────────────
 
-  _parseCSV: function(text) {
+  _parseCSV: function (text) {
     text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    var lines = text.split('\n').map(function(l) { return l.trim(); }).filter(function(l) { return l.length > 0; });
+    var lines = text
+      .split('\n')
+      .map(function (l) {
+        return l.trim();
+      })
+      .filter(function (l) {
+        return l.length > 0;
+      });
 
     if (lines.length === 0) return [];
 
@@ -209,8 +217,8 @@ window.Conciliacao = {
     if (firstLine.indexOf(';') === -1 && firstLine.indexOf(',') !== -1) sep = ',';
 
     // Find first data line (where col 0 looks like a date)
-    var dateDDMM  = /^\d{2}\/\d{2}\/\d{4}$/;
-    var dateISO   = /^\d{4}-\d{2}-\d{2}$/;
+    var dateDDMM = /^\d{2}\/\d{2}\/\d{4}$/;
+    var dateISO = /^\d{4}-\d{2}-\d{2}$/;
     var dataStart = -1;
 
     for (var i = 0; i < lines.length; i++) {
@@ -229,7 +237,9 @@ window.Conciliacao = {
 
     var results = [];
     for (var j = dataStart; j < lines.length; j++) {
-      var parts = lines[j].split(sep).map(function(p) { return p.trim().replace(/^"|"$/g, ''); });
+      var parts = lines[j].split(sep).map(function (p) {
+        return p.trim().replace(/^"|"$/g, '');
+      });
       if (parts.length < 2) continue;
 
       var rawDate = parts[0];
@@ -266,11 +276,11 @@ window.Conciliacao = {
       if (!foundValue) continue;
 
       results.push({
-        id:          'csv-' + j + '-' + dateStr,
-        date:        dateStr,
-        value:       Math.abs(amount),
-        type:        amount < 0 ? 'saida' : 'entrada',
-        description: description
+        id: 'csv-' + j + '-' + dateStr,
+        date: dateStr,
+        value: Math.abs(amount),
+        type: amount < 0 ? 'saida' : 'entrada',
+        description: description,
       });
     }
 
@@ -279,8 +289,8 @@ window.Conciliacao = {
 
   // ─── Matching Logic ───────────────────────────────────────────────────────────
 
-  _findMatches: function(tx) {
-    var contas = (Store.state.contas_pagar || []).filter(function(c) {
+  _findMatches: function (tx) {
+    var contas = (Store.state.contas_pagar || []).filter(function (c) {
       return c.status !== 'paga' && c.status !== 'pago';
     });
 
@@ -292,15 +302,15 @@ window.Conciliacao = {
 
       // Value scoring
       var contaValor = parseFloat(conta.valor) || 0;
-      var txValue    = parseFloat(tx.value)    || 0;
-      var diff       = Math.abs(txValue - contaValor);
-      var pct        = contaValor > 0 ? diff / contaValor : 1;
+      var txValue = parseFloat(tx.value) || 0;
+      var diff = Math.abs(txValue - contaValor);
+      var pct = contaValor > 0 ? diff / contaValor : 1;
 
       if (diff < 0.02) {
         score += 55;
       } else if (pct <= 0.02) {
         score += 35;
-      } else if (pct <= 0.10) {
+      } else if (pct <= 0.1) {
         score += 10;
       } else {
         // Value too far off — skip
@@ -309,20 +319,20 @@ window.Conciliacao = {
 
       // Date scoring
       if (tx.date && conta.dataVencimento) {
-        var txMs    = new Date(tx.date + 'T12:00:00').getTime();
+        var txMs = new Date(tx.date + 'T12:00:00').getTime();
         var contaMs = new Date(conta.dataVencimento + 'T12:00:00').getTime();
         var daysDiff = Math.abs(Math.round((txMs - contaMs) / 86400000));
 
-        if (daysDiff === 0)      score += 25;
-        else if (daysDiff <= 3)  score += 18;
-        else if (daysDiff <= 7)  score += 10;
+        if (daysDiff === 0) score += 25;
+        else if (daysDiff <= 3) score += 18;
+        else if (daysDiff <= 7) score += 10;
         else if (daysDiff <= 15) score += 5;
       }
 
       // Description fuzzy scoring
-      var txTokens    = this._tokenize(tx.description || '');
+      var txTokens = this._tokenize(tx.description || '');
       var contaTokens = this._tokenize(conta.descricao || conta.description || conta.nome || '');
-      var matchCount  = 0;
+      var matchCount = 0;
 
       for (var ti = 0; ti < txTokens.length; ti++) {
         for (var ci = 0; ci < contaTokens.length; ci++) {
@@ -338,26 +348,30 @@ window.Conciliacao = {
       scored.push({ item: conta, score: score, type: 'conta_pagar' });
     }
 
-    scored.sort(function(a, b) { return b.score - a.score; });
+    scored.sort(function (a, b) {
+      return b.score - a.score;
+    });
     return scored.slice(0, 3);
   },
 
-  _tokenize: function(str) {
+  _tokenize: function (str) {
     return (str || '')
       .toLowerCase()
       .replace(/[^a-z0-9À-ÿ\s]/g, ' ')
       .split(/\s+/)
-      .filter(function(t) { return t.length > 3; });
+      .filter(function (t) {
+        return t.length > 3;
+      });
   },
 
   // ─── Matching Screen ──────────────────────────────────────────────────────────
 
-  _renderMatchingScreen: function() {
-    var self      = this;
-    var total     = this._transactions.length;
+  _renderMatchingScreen: function () {
+    var self = this;
+    var total = this._transactions.length;
     var confirmed = 0;
-    var skipped   = 0;
-    var pending   = 0;
+    var skipped = 0;
+    var pending = 0;
 
     for (var id in this._decisions) {
       if (!Object.prototype.hasOwnProperty.call(this._decisions, id)) continue;
@@ -373,149 +387,171 @@ window.Conciliacao = {
     }
 
     // Padrão B (UIKit) — mesma moldura das demais telas financeiras.
-    var headerHtml = window.UIKit && window.UIKit.pageHeader
-      ? window.UIKit.pageHeader({
-          title: 'Conciliação Bancária',
-          subtitle: total + ' transaç' + (total === 1 ? 'ão' : 'ões') +
-            ' · ' + confirmed + ' confirmada' + (confirmed === 1 ? '' : 's'),
-          actions:
-            '<button class="btn btn-secondary btn-sm" id="btnNovoArquivo">&#8592; Novo arquivo</button>' +
-            '<button class="btn btn-primary" id="btnLancarConfirmados"' + (confirmed === 0 ? ' disabled' : '') + '>' +
-              '&#10003; Lancar ' + confirmed + ' confirmado' + (confirmed === 1 ? '' : 's') +
-            '</button>',
-        })
-      : '';
+    var headerHtml =
+      window.UIKit && window.UIKit.pageHeader
+        ? window.UIKit.pageHeader({
+            title: 'Conciliação Bancária',
+            subtitle:
+              total +
+              ' transaç' +
+              (total === 1 ? 'ão' : 'ões') +
+              ' · ' +
+              confirmed +
+              ' confirmada' +
+              (confirmed === 1 ? '' : 's'),
+            actions:
+              '<button class="btn btn-secondary btn-sm" id="btnNovoArquivo">&#8592; Novo arquivo</button>' +
+              '<button class="btn btn-primary" id="btnLancarConfirmados"' +
+              (confirmed === 0 ? ' disabled' : '') +
+              '>' +
+              '&#10003; Lancar ' +
+              confirmed +
+              ' confirmado' +
+              (confirmed === 1 ? '' : 's') +
+              '</button>',
+          })
+        : '';
 
-    var kpisHtml = window.UIKit && window.UIKit.kpiGrid
-      ? window.UIKit.kpiGrid([
-          { label: 'Total', value: total, color: 'var(--color-primary)' },
-          { label: 'Confirmadas', value: confirmed, color: 'var(--color-success)' },
-          { label: 'Pendentes', value: pending, color: 'var(--color-warning)' },
-          { label: 'Ignoradas', value: skipped, color: 'var(--color-text-muted)' },
-        ])
-      : '';
+    var kpisHtml =
+      window.UIKit && window.UIKit.kpiGrid
+        ? window.UIKit.kpiGrid([
+            { label: 'Total', value: total, color: 'var(--color-primary)' },
+            { label: 'Confirmadas', value: confirmed, color: 'var(--color-success)' },
+            { label: 'Pendentes', value: pending, color: 'var(--color-warning)' },
+            { label: 'Ignoradas', value: skipped, color: 'var(--color-text-muted)' },
+          ])
+        : '';
 
-    return (
-      headerHtml +
-      kpisHtml +
-      '<div id="txListContainer">' +
-        rows +
-      '</div>'
-    );
+    return headerHtml + kpisHtml + '<div id="txListContainer">' + rows + '</div>';
   },
 
-  _renderTxRow: function(tx) {
-    var decision  = this._decisions[tx.id] || { action: 'pending', contaPagarId: null, allMatches: [] };
-    var action    = decision.action;
-    var matches   = decision.allMatches || [];
+  _renderTxRow: function (tx) {
+    var decision = this._decisions[tx.id] || {
+      action: 'pending',
+      contaPagarId: null,
+      allMatches: [],
+    };
+    var action = decision.action;
+    var matches = decision.allMatches || [];
 
     // Border color by state
     var borderColor;
-    if (action === 'confirm')         borderColor = 'var(--color-success)';
-    else if (action === 'skip')       borderColor = 'var(--color-text-muted)';
-    else if (matches.length > 0)      borderColor = 'var(--color-warning)';
-    else                              borderColor = 'var(--color-border)';
+    if (action === 'confirm') borderColor = 'var(--color-success)';
+    else if (action === 'skip') borderColor = 'var(--color-text-muted)';
+    else if (matches.length > 0) borderColor = 'var(--color-warning)';
+    else borderColor = 'var(--color-border)';
 
     var valueColor = tx.type === 'entrada' ? 'var(--color-success)' : 'var(--color-danger)';
-    var valueSign  = tx.type === 'entrada' ? '+' : '-';
+    var valueSign = tx.type === 'entrada' ? '+' : '-';
 
-    var dateFormatted = tx.date
-      ? tx.date.split('-').reverse().join('/')
-      : '';
+    var dateFormatted = tx.date ? tx.date.split('-').reverse().join('/') : '';
 
     // Left panel
-    var leftPanel = (
+    var leftPanel =
       '<div style="min-width:180px;max-width:220px;">' +
-        '<div style="font-size:13px;color:var(--color-text-muted);margin-bottom:2px;">' + escapeHtml(dateFormatted) + '</div>' +
-        '<div style="font-size:17px;font-weight:700;color:' + valueColor + ';margin-bottom:4px;">' +
-          valueSign + Store.formatBRL(tx.value) +
-        '</div>' +
-        '<div style="font-size:13px;color:var(--color-text-muted);word-break:break-word;">' + escapeHtml(tx.description || '') + '</div>' +
-      '</div>'
-    );
+      '<div style="font-size:13px;color:var(--color-text-muted);margin-bottom:2px;">' +
+      escapeHtml(dateFormatted) +
+      '</div>' +
+      '<div style="font-size:17px;font-weight:700;color:' +
+      valueColor +
+      ';margin-bottom:4px;">' +
+      valueSign +
+      Store.formatBRL(tx.value) +
+      '</div>' +
+      '<div style="font-size:13px;color:var(--color-text-muted);word-break:break-word;">' +
+      escapeHtml(tx.description || '') +
+      '</div>' +
+      '</div>';
 
     // Center panel: matches
     var centerPanel;
     if (action === 'confirm' && decision.contaPagarId) {
-      var linkedConta = (Store.state.contas_pagar || []).find(function(c) {
+      var linkedConta = (Store.state.contas_pagar || []).find(function (c) {
         return c.id === decision.contaPagarId;
       });
-      centerPanel = (
+      centerPanel =
         '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:12px;font-weight:600;color:var(--color-success);margin-bottom:4px;">&#10003; Vinculada</div>' +
-          (linkedConta
-            ? '<div style="font-size:13px;color:var(--color-text-muted);">' +
-                escapeHtml(linkedConta.descricao || linkedConta.nome || '') + ' · ' +
-                Store.formatBRL(linkedConta.valor) +
-              '</div>'
-            : '<div style="font-size:13px;color:var(--color-text-muted);">Lançar sem vincular</div>'
-          ) +
-        '</div>'
-      );
+        '<div style="font-size:12px;font-weight:600;color:var(--color-success);margin-bottom:4px;">&#10003; Vinculada</div>' +
+        (linkedConta
+          ? '<div style="font-size:13px;color:var(--color-text-muted);">' +
+            escapeHtml(linkedConta.descricao || linkedConta.nome || '') +
+            ' · ' +
+            Store.formatBRL(linkedConta.valor) +
+            '</div>'
+          : '<div style="font-size:13px;color:var(--color-text-muted);">Lançar sem vincular</div>') +
+        '</div>';
     } else if (action === 'confirm') {
-      centerPanel = (
+      centerPanel =
         '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:12px;font-weight:600;color:var(--color-success);margin-bottom:4px;">&#10003; Confirmada (sem vinculo)</div>' +
-        '</div>'
-      );
+        '<div style="font-size:12px;font-weight:600;color:var(--color-success);margin-bottom:4px;">&#10003; Confirmada (sem vinculo)</div>' +
+        '</div>';
     } else if (action === 'skip') {
-      centerPanel = (
+      centerPanel =
         '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:12px;color:var(--color-text-muted);">Ignorada</div>' +
-        '</div>'
-      );
+        '<div style="font-size:12px;color:var(--color-text-muted);">Ignorada</div>' +
+        '</div>';
     } else if (matches.length === 0) {
-      centerPanel = (
+      centerPanel =
         '<div style="flex:1;min-width:0;">' +
-          '<div style="font-size:12px;color:var(--color-text-muted);margin-bottom:6px;">Nenhuma conta correspondente</div>' +
-          '<button class="btn btn-secondary btn-sm" data-tx-action="nolink" data-tx-id="' + escapeHtml(tx.id) + '">' +
-            'Lancar sem vincular' +
-          '</button>' +
-        '</div>'
-      );
+        '<div style="font-size:12px;color:var(--color-text-muted);margin-bottom:6px;">Nenhuma conta correspondente</div>' +
+        '<button class="btn btn-secondary btn-sm" data-tx-action="nolink" data-tx-id="' +
+        escapeHtml(tx.id) +
+        '">' +
+        'Lancar sem vincular' +
+        '</button>' +
+        '</div>';
     } else {
       var matchItems = '';
       for (var m = 0; m < matches.length; m++) {
-        var match     = matches[m];
-        var conta     = match.item;
-        var scoreVal  = Math.min(100, match.score);
-        var vcto      = conta.dataVencimento
-          ? conta.dataVencimento.split('-').reverse().join('/')
-          : '';
+        var match = matches[m];
+        var conta = match.item;
+        var scoreVal = Math.min(100, match.score);
+        var vcto = conta.dataVencimento ? conta.dataVencimento.split('-').reverse().join('/') : '';
 
-        matchItems += (
+        matchItems +=
           '<div style="' +
-            'border:1px solid var(--color-border);' +
-            'border-radius:8px;' +
-            'padding:var(--sp-sm) var(--sp-md);' +
-            'margin-bottom:6px;' +
-            'background:var(--color-bg);' +
+          'border:1px solid var(--color-border);' +
+          'border-radius:8px;' +
+          'padding:var(--sp-sm) var(--sp-md);' +
+          'margin-bottom:6px;' +
+          'background:var(--color-bg);' +
           '">' +
-            '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;">' +
-              '<div style="flex:1;min-width:0;">' +
-                '<div style="font-size:13px;font-weight:600;margin-bottom:2px;">' + escapeHtml(conta.descricao || conta.nome || '') + '</div>' +
-                '<div style="font-size:12px;color:var(--color-text-muted);">' +
-                  'Vcto: ' + escapeHtml(vcto) +
-                  ' · ' + Store.formatBRL(parseFloat(conta.valor) || 0) +
-                  ' · <span style="color:var(--color-primary);font-weight:600;">' + scoreVal + '%</span>' +
-                '</div>' +
-              '</div>' +
-              '<div style="display:flex;gap:6px;flex-shrink:0;">' +
-                '<button class="btn btn-primary btn-sm" ' +
-                  'data-tx-action="confirm" ' +
-                  'data-tx-id="' + escapeHtml(tx.id) + '" ' +
-                  'data-conta-id="' + escapeHtml(String(conta.id)) + '">' +
-                  '&#10003; Confirmar' +
-                '</button>' +
-                '<button class="btn btn-secondary btn-sm" ' +
-                  'data-tx-action="nolink" ' +
-                  'data-tx-id="' + escapeHtml(tx.id) + '">' +
-                  'Sem vinculo' +
-                '</button>' +
-              '</div>' +
-            '</div>' +
-          '</div>'
-        );
+          '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;">' +
+          '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:13px;font-weight:600;margin-bottom:2px;">' +
+          escapeHtml(conta.descricao || conta.nome || '') +
+          '</div>' +
+          '<div style="font-size:12px;color:var(--color-text-muted);">' +
+          'Vcto: ' +
+          escapeHtml(vcto) +
+          ' · ' +
+          Store.formatBRL(parseFloat(conta.valor) || 0) +
+          ' · <span style="color:var(--color-primary);font-weight:600;">' +
+          scoreVal +
+          '%</span>' +
+          '</div>' +
+          '</div>' +
+          '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+          '<button class="btn btn-primary btn-sm" ' +
+          'data-tx-action="confirm" ' +
+          'data-tx-id="' +
+          escapeHtml(tx.id) +
+          '" ' +
+          'data-conta-id="' +
+          escapeHtml(String(conta.id)) +
+          '">' +
+          '&#10003; Confirmar' +
+          '</button>' +
+          '<button class="btn btn-secondary btn-sm" ' +
+          'data-tx-action="nolink" ' +
+          'data-tx-id="' +
+          escapeHtml(tx.id) +
+          '">' +
+          'Sem vinculo' +
+          '</button>' +
+          '</div>' +
+          '</div>' +
+          '</div>';
       }
 
       centerPanel = '<div style="flex:1;min-width:0;">' + matchItems + '</div>';
@@ -524,87 +560,93 @@ window.Conciliacao = {
     // Right panel
     var rightPanel;
     if (action === 'pending') {
-      rightPanel = (
+      rightPanel =
         '<div style="text-align:right;flex-shrink:0;">' +
-          '<button class="btn btn-secondary btn-sm" data-tx-action="skip" data-tx-id="' + escapeHtml(tx.id) + '">' +
-            '&#9197; Ignorar' +
-          '</button>' +
-        '</div>'
-      );
+        '<button class="btn btn-secondary btn-sm" data-tx-action="skip" data-tx-id="' +
+        escapeHtml(tx.id) +
+        '">' +
+        '&#9197; Ignorar' +
+        '</button>' +
+        '</div>';
     } else {
-      rightPanel = (
+      rightPanel =
         '<div style="text-align:right;flex-shrink:0;">' +
-          '<button class="btn btn-secondary btn-sm" data-tx-action="undo" data-tx-id="' + escapeHtml(tx.id) + '">' +
-            '&#8617; Desfazer' +
-          '</button>' +
-        '</div>'
-      );
+        '<button class="btn btn-secondary btn-sm" data-tx-action="undo" data-tx-id="' +
+        escapeHtml(tx.id) +
+        '">' +
+        '&#8617; Desfazer' +
+        '</button>' +
+        '</div>';
     }
 
     return (
-      '<div id="txrow-' + escapeHtml(tx.id) + '" style="' +
-        'border-left:4px solid ' + borderColor + ';' +
-        'background:var(--color-surface);' +
-        'border-radius:0 8px 8px 0;' +
-        'padding:var(--sp-md);' +
-        'margin-bottom:var(--sp-md);' +
-        'display:flex;' +
-        'gap:var(--sp-md);' +
-        'align-items:flex-start;' +
-        'flex-wrap:wrap;' +
-        'transition:border-color .18s;' +
+      '<div id="txrow-' +
+      escapeHtml(tx.id) +
+      '" style="' +
+      'border-left:4px solid ' +
+      borderColor +
+      ';' +
+      'background:var(--color-surface);' +
+      'border-radius:0 8px 8px 0;' +
+      'padding:var(--sp-md);' +
+      'margin-bottom:var(--sp-md);' +
+      'display:flex;' +
+      'gap:var(--sp-md);' +
+      'align-items:flex-start;' +
+      'flex-wrap:wrap;' +
+      'transition:border-color .18s;' +
       '">' +
-        leftPanel +
-        centerPanel +
-        rightPanel +
+      leftPanel +
+      centerPanel +
+      rightPanel +
       '</div>'
     );
   },
 
   // ─── Matching Event Delegation ────────────────────────────────────────────────
 
-  _bindMatchingEvents: function() {
+  _bindMatchingEvents: function () {
     var self = this;
 
     var btnNovo = document.getElementById('btnNovoArquivo');
     if (btnNovo) {
-      btnNovo.addEventListener('click', function() {
+      btnNovo.addEventListener('click', function () {
         self._transactions = [];
-        self._decisions    = {};
+        self._decisions = {};
         self.render();
       });
     }
 
     var btnLancar = document.getElementById('btnLancarConfirmados');
     if (btnLancar) {
-      btnLancar.addEventListener('click', function() {
+      btnLancar.addEventListener('click', function () {
         self._confirmAll();
       });
     }
 
     var container = document.getElementById('txListContainer');
     if (container) {
-      container.addEventListener('click', function(e) {
+      container.addEventListener('click', function (e) {
         var btn = e.target.closest('[data-tx-action]');
         if (!btn) return;
 
-        var action  = btn.getAttribute('data-tx-action');
-        var txId    = btn.getAttribute('data-tx-id');
+        var action = btn.getAttribute('data-tx-action');
+        var txId = btn.getAttribute('data-tx-id');
         var contaId = btn.getAttribute('data-conta-id') || null;
 
         if (!txId || !self._decisions[txId]) return;
 
         if (action === 'confirm') {
-          self._decisions[txId].action      = 'confirm';
+          self._decisions[txId].action = 'confirm';
           self._decisions[txId].contaPagarId = contaId;
         } else if (action === 'nolink') {
-          self._decisions[txId].action      = 'confirm';
+          self._decisions[txId].action = 'confirm';
           self._decisions[txId].contaPagarId = null;
         } else if (action === 'skip') {
-          self._decisions[txId].action      = 'skip';
+          self._decisions[txId].action = 'skip';
           self._decisions[txId].contaPagarId = null;
         } else if (action === 'undo') {
-          self._decisions[txId].action      = 'pending';
+          self._decisions[txId].action = 'pending';
           self._decisions[txId].contaPagarId = null;
         }
 
@@ -614,7 +656,7 @@ window.Conciliacao = {
     }
   },
 
-  _updateRow: function(txId) {
+  _updateRow: function (txId) {
     var tx = null;
     for (var i = 0; i < this._transactions.length; i++) {
       if (this._transactions[i].id === txId) {
@@ -634,11 +676,11 @@ window.Conciliacao = {
     if (newRow) rowEl.parentNode.replaceChild(newRow, rowEl);
   },
 
-  _updateHeader: function() {
-    var total     = this._transactions.length;
+  _updateHeader: function () {
+    var total = this._transactions.length;
     var confirmed = 0;
-    var skipped   = 0;
-    var pending   = 0;
+    var skipped = 0;
+    var pending = 0;
 
     for (var id in this._decisions) {
       if (!Object.prototype.hasOwnProperty.call(this._decisions, id)) continue;
@@ -651,8 +693,13 @@ window.Conciliacao = {
     var subtitle = document.querySelector('.page-subtitle');
     if (subtitle) {
       subtitle.textContent =
-        total + ' transaç' + (total === 1 ? 'ão' : 'ões') +
-        ' · ' + confirmed + ' confirmada' + (confirmed === 1 ? '' : 's');
+        total +
+        ' transaç' +
+        (total === 1 ? 'ão' : 'ões') +
+        ' · ' +
+        confirmed +
+        ' confirmada' +
+        (confirmed === 1 ? '' : 's');
     }
 
     var btnLancar = document.getElementById('btnLancarConfirmados');
@@ -681,9 +728,9 @@ window.Conciliacao = {
 
   // ─── Confirm All ─────────────────────────────────────────────────────────────
 
-  _confirmAll: async function() {
-    var self       = this;
-    var toProcess  = [];
+  _confirmAll: async function () {
+    var self = this;
+    var toProcess = [];
 
     for (var txId in this._decisions) {
       if (!Object.prototype.hasOwnProperty.call(this._decisions, txId)) continue;
@@ -696,15 +743,15 @@ window.Conciliacao = {
 
     var btnLancar = document.getElementById('btnLancarConfirmados');
     if (btnLancar) {
-      btnLancar.disabled     = true;
-      btnLancar.textContent  = 'Processando...';
+      btnLancar.disabled = true;
+      btnLancar.textContent = 'Processando...';
     }
 
-    var okCount  = 0;
+    var okCount = 0;
     var errCount = 0;
 
     for (var i = 0; i < toProcess.length; i++) {
-      var txId    = toProcess[i];
+      var txId = toProcess[i];
       var decision = this._decisions[txId];
 
       var tx = null;
@@ -719,12 +766,12 @@ window.Conciliacao = {
       // Create caixa entry
       try {
         await Store.createCaixaEntry({
-          type:        tx.type === 'entrada' ? 'entrada' : 'saida',
+          type: tx.type === 'entrada' ? 'entrada' : 'saida',
           description: tx.description || 'Conciliacao',
-          value:       tx.value,
-          date:        tx.date,
-          category:    'conciliacao',
-          notes:       'Conciliacao bancaria'
+          value: tx.value,
+          date: tx.date,
+          category: 'conciliacao',
+          notes: 'Conciliacao bancaria',
         });
         okCount++;
       } catch (err) {
@@ -737,9 +784,9 @@ window.Conciliacao = {
       if (decision.contaPagarId) {
         try {
           await Store.pagarConta(decision.contaPagarId, {
-            dataPagamento:  tx.date,
-            valorPago:      tx.value,
-            formaPagamento: 'transferencia'
+            dataPagamento: tx.date,
+            valorPago: tx.value,
+            formaPagamento: 'transferencia',
           });
         } catch (err) {
           console.error('Conciliacao: pagarConta failed for conta', decision.contaPagarId, err);
@@ -767,7 +814,7 @@ window.Conciliacao = {
 
       if (remainingTxIds.length === 0) {
         this._transactions = [];
-        this._decisions    = {};
+        this._decisions = {};
       } else {
         // Keep non-confirmed
         var newDecisions = {};
@@ -775,16 +822,21 @@ window.Conciliacao = {
           newDecisions[remainingTxIds[n].id] = this._decisions[remainingTxIds[n].id];
         }
         this._transactions = remainingTxIds;
-        this._decisions    = newDecisions;
+        this._decisions = newDecisions;
       }
 
-      try { await Store.loadAll(); } catch (e) { /* silent */ }
+      try {
+        await Store.loadAll();
+      } catch (e) {
+        /* silent */
+      }
       this.render();
     } else {
       if (btnLancar) {
-        btnLancar.disabled    = false;
-        btnLancar.textContent = '✓ Lancar ' + toProcess.length + ' confirmado' + (toProcess.length === 1 ? '' : 's');
+        btnLancar.disabled = false;
+        btnLancar.textContent =
+          '✓ Lancar ' + toProcess.length + ' confirmado' + (toProcess.length === 1 ? '' : 's');
       }
     }
-  }
+  },
 };

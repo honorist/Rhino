@@ -9,25 +9,33 @@ window.NotasFiscais = {
     try {
       await Store.loadAll();
 
-      const todas       = Store.state.notas_fiscais;
-      const pendentes   = todas.filter(nf => !nf.emitida);
-      const emitidas    = todas.filter(nf => nf.emitida);
-      const nfsVencidas = pendentes.filter(nf => Store.getNotaFiscalStatus(nf.dataLimite).status === 'vencida');
-      const nfsProximas = pendentes.filter(nf => Store.getNotaFiscalStatus(nf.dataLimite).status === 'proximo_vencer');
-      const nfsPrazo    = pendentes.filter(nf => Store.getNotaFiscalStatus(nf.dataLimite).status === 'no_prazo');
+      const todas = Store.state.notas_fiscais;
+      const pendentes = todas.filter((nf) => !nf.emitida);
+      const emitidas = todas.filter((nf) => nf.emitida);
+      const nfsVencidas = pendentes.filter(
+        (nf) => Store.getNotaFiscalStatus(nf.dataLimite).status === 'vencida'
+      );
+      const nfsProximas = pendentes.filter(
+        (nf) => Store.getNotaFiscalStatus(nf.dataLimite).status === 'proximo_vencer'
+      );
+      const nfsPrazo = pendentes.filter(
+        (nf) => Store.getNotaFiscalStatus(nf.dataLimite).status === 'no_prazo'
+      );
 
-      const total       = todas.length;
-      const pctOk       = total > 0 ? Math.round(((nfsPrazo.length + emitidas.length) / total) * 100) : 100;
+      const total = todas.length;
+      const pctOk =
+        total > 0 ? Math.round(((nfsPrazo.length + emitidas.length) / total) * 100) : 100;
 
-      const statusGeral = nfsVencidas.length > 0
-        ? { cor: '#E53E3E', bg: 'rgba(229,62,62,.07)', texto: 'Atenção urgente', icone: '🔴' }
-        : nfsProximas.length > 0
-          ? { cor: '#D69E2E', bg: 'rgba(214,158,46,.07)', texto: 'Requer atenção', icone: '⚠️' }
-          : { cor: '#38A169', bg: 'rgba(56,161,105,.07)', texto: 'Tudo em dia', icone: '✅' };
+      const statusGeral =
+        nfsVencidas.length > 0
+          ? { cor: '#E53E3E', bg: 'rgba(229,62,62,.07)', texto: 'Atenção urgente', icone: '🔴' }
+          : nfsProximas.length > 0
+            ? { cor: '#D69E2E', bg: 'rgba(214,158,46,.07)', texto: 'Requer atenção', icone: '⚠️' }
+            : { cor: '#38A169', bg: 'rgba(56,161,105,.07)', texto: 'Tudo em dia', icone: '✅' };
 
       // Próximas a vencer (apenas pendentes, até 30 dias, ordenadas)
       const proximasTimeline = pendentes
-        .filter(nf => {
+        .filter((nf) => {
           const diff = Math.floor((new Date(nf.dataLimite + 'T12:00:00') - new Date()) / 86400000);
           return diff >= -30 && diff <= 30;
         })
@@ -36,40 +44,86 @@ window.NotasFiscais = {
 
       const html = `
         <!-- Header (UIKit — padrão B) -->
-        ${window.UIKit?.pageHeader ? window.UIKit.pageHeader({
-          title: 'Contas a Receber',
-          subtitle: `Notas fiscais e recebimentos previstos · ${total} nota${total !== 1 ? 's' : ''} registrada${total !== 1 ? 's' : ''}`,
-          actions: '<button class="btn btn-primary btn-lg" id="btnNovoNF">+ Nova Conta a Receber</button>',
-        }) : ''}
+        ${
+          window.UIKit?.pageHeader
+            ? window.UIKit.pageHeader({
+                title: 'Contas a Receber',
+                subtitle: `Notas fiscais e recebimentos previstos · ${total} nota${total !== 1 ? 's' : ''} registrada${total !== 1 ? 's' : ''}`,
+                actions:
+                  '<button class="btn btn-primary btn-lg" id="btnNovoNF">+ Nova Conta a Receber</button>',
+              })
+            : ''
+        }
 
         <!-- KPIs (UIKit — padrão B) -->
-        ${window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
-          { icon: '🔴', label: 'Vencidas', value: nfsVencidas.length, color: 'var(--color-danger)' },
-          { icon: '⚠️', label: 'Próx. 7d', value: nfsProximas.length, color: 'var(--color-warning)' },
-          { icon: '✅', label: 'No prazo', value: nfsPrazo.length, color: 'var(--color-success)' },
-          { icon: '📤', label: 'Emitidas', value: emitidas.length, color: 'var(--color-info)' },
-          { icon: statusGeral.icone, label: 'Saúde dos prazos', value: `${pctOk}%`, color: statusGeral.cor, hint: statusGeral.texto },
-        ]) : ''}
+        ${
+          window.UIKit?.kpiGrid
+            ? window.UIKit.kpiGrid([
+                {
+                  icon: '🔴',
+                  label: 'Vencidas',
+                  value: nfsVencidas.length,
+                  color: 'var(--color-danger)',
+                },
+                {
+                  icon: '⚠️',
+                  label: 'Próx. 7d',
+                  value: nfsProximas.length,
+                  color: 'var(--color-warning)',
+                },
+                {
+                  icon: '✅',
+                  label: 'No prazo',
+                  value: nfsPrazo.length,
+                  color: 'var(--color-success)',
+                },
+                {
+                  icon: '📤',
+                  label: 'Emitidas',
+                  value: emitidas.length,
+                  color: 'var(--color-info)',
+                },
+                {
+                  icon: statusGeral.icone,
+                  label: 'Saúde dos prazos',
+                  value: `${pctOk}%`,
+                  color: statusGeral.cor,
+                  hint: statusGeral.texto,
+                },
+              ])
+            : ''
+        }
 
         <!-- Timeline de próximos vencimentos -->
-        ${proximasTimeline.length > 0 ? `
+        ${
+          proximasTimeline.length > 0
+            ? `
           <div class="card" style="margin-bottom:var(--sp-xl);">
             <div class="card-header">
               <h3 class="card-title">Próximos Vencimentos</h3>
             </div>
             <div style="display:flex;flex-direction:column;gap:0;">
-              ${proximasTimeline.map((nf, idx) => {
-                const contract = Store.getContractById(nf.contractId);
-                const st       = Store.getNotaFiscalStatus(nf.dataLimite);
-                const dias     = Math.floor((new Date(nf.dataLimite + 'T12:00:00') - new Date()) / 86400000);
-                const cor      = st.status === 'vencida' ? '#E53E3E' : st.status === 'proximo_vencer' ? '#D69E2E' : '#38A169';
-                const diasTxt  = dias < 0 ? `${Math.abs(dias)}d atrás` : dias === 0 ? 'HOJE' : `em ${dias}d`;
-                return `
+              ${proximasTimeline
+                .map((nf, idx) => {
+                  const contract = Store.getContractById(nf.contractId);
+                  const st = Store.getNotaFiscalStatus(nf.dataLimite);
+                  const dias = Math.floor(
+                    (new Date(nf.dataLimite + 'T12:00:00') - new Date()) / 86400000
+                  );
+                  const cor =
+                    st.status === 'vencida'
+                      ? '#E53E3E'
+                      : st.status === 'proximo_vencer'
+                        ? '#D69E2E'
+                        : '#38A169';
+                  const diasTxt =
+                    dias < 0 ? `${Math.abs(dias)}d atrás` : dias === 0 ? 'HOJE' : `em ${dias}d`;
+                  return `
                   <div style="display:flex;align-items:center;gap:var(--sp-lg);padding:var(--sp-md) 0;${idx < proximasTimeline.length - 1 ? 'border-bottom:1px solid var(--color-border);' : ''}">
                     <!-- Indicador de dia -->
                     <div style="text-align:center;min-width:52px;">
                       <div style="font-size:20px;font-weight:900;color:${cor};line-height:1;">${new Date(nf.dataLimite + 'T12:00:00').getDate()}</div>
-                      <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;">${new Date(nf.dataLimite + 'T12:00:00').toLocaleDateString('pt-BR', {month:'short'})}</div>
+                      <div style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;">${new Date(nf.dataLimite + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'short' })}</div>
                     </div>
                     <!-- Linha vertical -->
                     <div style="width:3px;height:36px;background:${cor};border-radius:99px;flex-shrink:0;"></div>
@@ -85,42 +139,53 @@ window.NotasFiscais = {
                     </div>
                   </div>
                 `;
-              }).join('')}
+                })
+                .join('')}
             </div>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
 
         <!-- Abas (UIKit.viewToggle — padrão B) -->
         <div style="margin-bottom:var(--sp-lg);">
-          ${window.UIKit?.viewToggle ? window.UIKit.viewToggle({
-            current: this.currentView,
-            options: [
-              { value: 'lista', label: '☰ Lista Geral' },
-              { value: 'semanal', label: '🗓 Semanal' },
-              { value: 'mensal', label: '📅 Mensal' },
-            ],
-          }) : ''}
+          ${
+            window.UIKit?.viewToggle
+              ? window.UIKit.viewToggle({
+                  current: this.currentView,
+                  options: [
+                    { value: 'lista', label: '☰ Lista Geral' },
+                    { value: 'semanal', label: '🗓 Semanal' },
+                    { value: 'mensal', label: '📅 Mensal' },
+                  ],
+                })
+              : ''
+          }
         </div>
 
         <!-- Conteúdo das abas -->
         <div id="tabContent">
-          ${this.currentView === 'lista'   ? this.renderLista()   : ''}
+          ${this.currentView === 'lista' ? this.renderLista() : ''}
           ${this.currentView === 'semanal' ? this.renderSemanal() : ''}
-          ${this.currentView === 'mensal'  ? this.renderMensal()  : ''}
+          ${this.currentView === 'mensal' ? this.renderMensal() : ''}
         </div>
       `;
 
       app.innerHTML = html;
 
       document.getElementById('btnNovoNF').addEventListener('click', () => this.showModal());
-      document.querySelectorAll('.ui-view-toggle button[data-view]').forEach(b => {
-        b.addEventListener('click', () => { this.currentView = b.dataset.view; this.render(); });
+      document.querySelectorAll('.ui-view-toggle button[data-view]').forEach((b) => {
+        b.addEventListener('click', () => {
+          this.currentView = b.dataset.view;
+          this.render();
+        });
       });
 
       this.attachListeners();
     } catch (e) {
       console.error(e);
-      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar notas fiscais. Tente novamente.</p></div>';
+      app.innerHTML =
+        '<div class="card"><p class="text-danger">Erro ao carregar notas fiscais. Tente novamente.</p></div>';
     }
   },
 
@@ -151,33 +216,39 @@ window.NotasFiscais = {
               </tr>
             </thead>
             <tbody>
-              ${sorted.map(nf => {
-                const contract = Store.getContractById(nf.contractId);
-                const st = Store.getNotaFiscalStatus(nf.dataLimite);
-                const prazo = (Number.isFinite(parseInt(nf.prazoRecebimento)) ? parseInt(nf.prazoRecebimento) : 30);
+              ${sorted
+                .map((nf) => {
+                  const contract = Store.getContractById(nf.contractId);
+                  const st = Store.getNotaFiscalStatus(nf.dataLimite);
+                  const prazo = Number.isFinite(parseInt(nf.prazoRecebimento))
+                    ? parseInt(nf.prazoRecebimento)
+                    : 30;
 
-                // Calcular data prevista de recebimento
-                const baseData = nf.emitida ? nf.dataEmissaoReal : nf.dataLimite;
-                const dtRecebimento = new Date(baseData + 'T12:00:00');
-                dtRecebimento.setDate(dtRecebimento.getDate() + prazo);
-                const diasAteRecebimento = Math.floor((dtRecebimento - new Date()) / 86400000);
+                  // Calcular data prevista de recebimento
+                  const baseData = nf.emitida ? nf.dataEmissaoReal : nf.dataLimite;
+                  const dtRecebimento = new Date(baseData + 'T12:00:00');
+                  dtRecebimento.setDate(dtRecebimento.getDate() + prazo);
+                  const diasAteRecebimento = Math.floor((dtRecebimento - new Date()) / 86400000);
 
-                // Label da situação
-                let situacaoHTML;
-                if (nf.emitida) {
-                  situacaoHTML = `
+                  // Label da situação
+                  let situacaoHTML;
+                  if (nf.emitida) {
+                    situacaoHTML = `
                     ${window.UIKit?.statusPill ? window.UIKit.statusPill('emitida') : 'Emitida'}
                     <div style="font-size:15px;color:var(--color-text-muted);margin-top:2px;">em ${new Date(nf.dataEmissaoReal + 'T12:00:00').toLocaleDateString('pt-BR')}</div>
                   `;
-                } else {
-                  const diasTxt = st.status === 'vencida' ? `${Math.abs(Math.floor((new Date(nf.dataLimite) - new Date()) / 86400000))}d atrás` : `em ${st.dias}d`;
-                  situacaoHTML = `
+                  } else {
+                    const diasTxt =
+                      st.status === 'vencida'
+                        ? `${Math.abs(Math.floor((new Date(nf.dataLimite) - new Date()) / 86400000))}d atrás`
+                        : `em ${st.dias}d`;
+                    situacaoHTML = `
                     ${window.UIKit?.statusPill ? window.UIKit.statusPill(st.status) : st.status}
                     <div style="font-size:15px;color:var(--color-text-muted);margin-top:2px;">${diasTxt}</div>
                   `;
-                }
+                  }
 
-                return `
+                  return `
                   <tr class="row-nf" data-id="${nf.id}" style="cursor:pointer;${nf.emitida ? 'opacity:0.75;' : ''}">
                     <td><strong>${escapeHtml(nf.numero)}</strong></td>
                     <td>
@@ -193,9 +264,10 @@ window.NotasFiscais = {
                     <td>${situacaoHTML}</td>
                     <td>
                       <div class="actions-cell" style="flex-wrap:wrap;">
-                        ${!nf.emitida
-                          ? `<button type="button" class="action-link btn-emitir-nf" data-id="${nf.id}" style="color:var(--color-success);font-weight:600;">✓ Marcar Emitida</button>`
-                          : `<button type="button" class="action-link btn-cancelar-emissao" data-id="${nf.id}" style="color:var(--color-warning);">↶ Desfazer Emissão</button>`
+                        ${
+                          !nf.emitida
+                            ? `<button type="button" class="action-link btn-emitir-nf" data-id="${nf.id}" style="color:var(--color-success);font-weight:600;">✓ Marcar Emitida</button>`
+                            : `<button type="button" class="action-link btn-cancelar-emissao" data-id="${nf.id}" style="color:var(--color-warning);">↶ Desfazer Emissão</button>`
                         }
                         <button type="button" class="action-link btn-editar-nf" data-id="${nf.id}">Editar</button>
                         <button type="button" class="action-link danger btn-excluir-nf" data-id="${nf.id}">Excluir</button>
@@ -203,7 +275,8 @@ window.NotasFiscais = {
                     </td>
                   </tr>
                 `;
-              }).join('')}
+                })
+                .join('')}
             </tbody>
           </table>
         </div>
@@ -228,39 +301,48 @@ window.NotasFiscais = {
 
     return `
       <div style="display:flex; flex-direction:column; gap:var(--sp-lg);">
-        ${semanas.map((sem, idx) => {
-          const nfsSem = Store.state.notas_fiscais.filter(nf => {
-            const d = new Date(nf.dataLimite + 'T12:00:00');
-            return d >= sem.inicio && d <= sem.fim;
-          }).sort((a, b) => new Date(a.dataLimite) - new Date(b.dataLimite));
+        ${semanas
+          .map((sem, idx) => {
+            const nfsSem = Store.state.notas_fiscais
+              .filter((nf) => {
+                const d = new Date(nf.dataLimite + 'T12:00:00');
+                return d >= sem.inicio && d <= sem.fim;
+              })
+              .sort((a, b) => new Date(a.dataLimite) - new Date(b.dataLimite));
 
-          const temRisco = nfsSem.some(nf => Store.getNotaFiscalStatus(nf.dataLimite).status !== 'no_prazo');
-          const label = idx === 0 ? 'Esta semana' : idx === 1 ? 'Próxima semana' : `Em ${idx} semanas`;
+            const temRisco = nfsSem.some(
+              (nf) => Store.getNotaFiscalStatus(nf.dataLimite).status !== 'no_prazo'
+            );
+            const label =
+              idx === 0 ? 'Esta semana' : idx === 1 ? 'Próxima semana' : `Em ${idx} semanas`;
 
-          return `
+            return `
             <div class="card" style="border-left:4px solid ${temRisco ? 'var(--color-warning)' : nfsSem.length > 0 ? 'var(--color-primary)' : 'var(--color-border)'};">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:${nfsSem.length > 0 ? 'var(--sp-md)' : '0'};">
                 <div>
                   <div style="font-weight:700;">${label}</div>
                   <div style="font-size:15px;color:var(--color-text-muted);">
-                    ${sem.inicio.toLocaleDateString('pt-BR', { day:'2-digit', month:'short' })} — ${sem.fim.toLocaleDateString('pt-BR', { day:'2-digit', month:'short' })}
+                    ${sem.inicio.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} — ${sem.fim.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
                   </div>
                 </div>
                 <span style="font-size:15px;font-weight:700;color:${nfsSem.length > 0 ? 'var(--color-primary)' : 'var(--color-text-muted)'};">
                   ${nfsSem.length} NF${nfsSem.length !== 1 ? 's' : ''}
                 </span>
               </div>
-              ${nfsSem.length > 0 ? `
+              ${
+                nfsSem.length > 0
+                  ? `
                 <div class="table-wrap">
                   <table>
                     <thead>
                       <tr><th scope="col">NF</th><th scope="col">Cliente</th><th scope="col">Data Limite</th><th scope="col">Status</th></tr>
                     </thead>
                     <tbody>
-                      ${nfsSem.map(nf => {
-                        const contract = Store.getContractById(nf.contractId);
-                        const st = Store.getNotaFiscalStatus(nf.dataLimite);
-                        return `
+                      ${nfsSem
+                        .map((nf) => {
+                          const contract = Store.getContractById(nf.contractId);
+                          const st = Store.getNotaFiscalStatus(nf.dataLimite);
+                          return `
                           <tr>
                             <td><strong>${escapeHtml(nf.numero)}</strong></td>
                             <td>${escapeHtml(contract?.client || '—')}</td>
@@ -268,14 +350,18 @@ window.NotasFiscais = {
                             <td>${window.UIKit?.statusPill ? window.UIKit.statusPill(st.status, st.dias >= 0 ? `${st.dias}d` : 'Vencida') : st.status}</td>
                           </tr>
                         `;
-                      }).join('')}
+                        })
+                        .join('')}
                     </tbody>
                   </table>
                 </div>
-              ` : `<p style="color:var(--color-text-muted);font-size:15px;margin:0;">Nenhuma nota fiscal nesta semana</p>`}
+              `
+                  : `<p style="color:var(--color-text-muted);font-size:15px;margin:0;">Nenhuma nota fiscal nesta semana</p>`
+              }
             </div>
           `;
-        }).join('')}
+          })
+          .join('')}
       </div>
     `;
   },
@@ -286,7 +372,7 @@ window.NotasFiscais = {
     const numDias = new Date(ano, mes + 1, 0).getDate();
     const primeiroDia = new Date(ano, mes, 1).getDay();
 
-    const nfsMes = Store.state.notas_fiscais.filter(nf => {
+    const nfsMes = Store.state.notas_fiscais.filter((nf) => {
       const d = new Date(nf.dataLimite + 'T12:00:00');
       return d.getFullYear() === ano && d.getMonth() === mes;
     });
@@ -311,33 +397,53 @@ window.NotasFiscais = {
           <table style="width:100%;border-collapse:collapse;">
             <thead>
               <tr>
-                ${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d => `<th scope="col" style="padding:var(--sp-sm);text-align:center;font-size:15px;color:var(--color-text-muted);text-transform:uppercase;">${d}</th>`).join('')}
+                ${['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((d) => `<th scope="col" style="padding:var(--sp-sm);text-align:center;font-size:15px;color:var(--color-text-muted);text-transform:uppercase;">${d}</th>`).join('')}
               </tr>
             </thead>
             <tbody>
-              ${linhas.map(linha => `
+              ${linhas
+                .map(
+                  (linha) => `
                 <tr>
-                  ${[...Array(7)].map((_, i) => {
-                    const dia = linha[i] ?? null;
-                    if (!dia) return `<td style="background:var(--color-bg);"></td>`;
+                  ${[...Array(7)]
+                    .map((_, i) => {
+                      const dia = linha[i] ?? null;
+                      if (!dia) return `<td style="background:var(--color-bg);"></td>`;
 
-                    const nfsDodia = nfsMes.filter(nf => new Date(nf.dataLimite + 'T12:00:00').getDate() === dia);
-                    const temRisco = nfsDodia.some(nf => Store.getNotaFiscalStatus(nf.dataLimite).status !== 'no_prazo');
-                    const ehHoje = new Date().getDate() === dia && new Date().getMonth() === mes && new Date().getFullYear() === ano;
+                      const nfsDodia = nfsMes.filter(
+                        (nf) => new Date(nf.dataLimite + 'T12:00:00').getDate() === dia
+                      );
+                      const temRisco = nfsDodia.some(
+                        (nf) => Store.getNotaFiscalStatus(nf.dataLimite).status !== 'no_prazo'
+                      );
+                      const ehHoje =
+                        new Date().getDate() === dia &&
+                        new Date().getMonth() === mes &&
+                        new Date().getFullYear() === ano;
 
-                    return `
+                      return `
                       <td style="border:1px solid var(--color-border);padding:var(--sp-sm);min-height:80px;vertical-align:top;background:${ehHoje ? 'rgba(46,125,82,.06)' : 'white'};">
                         <div style="font-weight:${ehHoje ? '800' : '500'};font-size:15px;margin-bottom:4px;color:${ehHoje ? 'var(--color-primary)' : 'inherit'};">${dia}</div>
-                        ${nfsDodia.map(nf => {
-                          const st = Store.getNotaFiscalStatus(nf.dataLimite);
-                          const icon = st.status === 'vencida' ? '🔴' : st.status === 'proximo_vencer' ? '⚠️' : '🟢';
-                          return `<div style="font-size:15px;padding:2px 4px;margin-bottom:2px;border-radius:3px;background:var(--color-primary);color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="NF ${escapeHtml(nf.numero)}">${icon} NF ${escapeHtml(nf.numero)}</div>`;
-                        }).join('')}
+                        ${nfsDodia
+                          .map((nf) => {
+                            const st = Store.getNotaFiscalStatus(nf.dataLimite);
+                            const icon =
+                              st.status === 'vencida'
+                                ? '🔴'
+                                : st.status === 'proximo_vencer'
+                                  ? '⚠️'
+                                  : '🟢';
+                            return `<div style="font-size:15px;padding:2px 4px;margin-bottom:2px;border-radius:3px;background:var(--color-primary);color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="NF ${escapeHtml(nf.numero)}">${icon} NF ${escapeHtml(nf.numero)}</div>`;
+                          })
+                          .join('')}
                       </td>
                     `;
-                  }).join('')}
+                    })
+                    .join('')}
                 </tr>
-              `).join('')}
+              `
+                )
+                .join('')}
             </tbody>
           </table>
         </div>
@@ -346,9 +452,9 @@ window.NotasFiscais = {
   },
 
   showModal(nfId) {
-    const nf = nfId ? Store.state.notas_fiscais.find(n => n.id === nfId) : null;
+    const nf = nfId ? Store.state.notas_fiscais.find((n) => n.id === nfId) : null;
     const title = nf ? 'Editar Nota Fiscal' : 'Nova Nota Fiscal';
-    const clienteAtual = nf ? (Store.getContractById(nf.contractId)?.client || '') : '';
+    const clienteAtual = nf ? Store.getContractById(nf.contractId)?.client || '' : '';
 
     const html = `
       <div class="modal-overlay" id="modalOverlay">
@@ -373,7 +479,7 @@ window.NotasFiscais = {
               <label class="form-label">Contrato *</label>
               <select class="form-control" name="contractId" id="selectContrato" required>
                 <option value="">Selecionar...</option>
-                ${Store.state.contracts.map(c => `<option value="${c.id}" ${nf?.contractId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
+                ${Store.state.contracts.map((c) => `<option value="${c.id}" ${nf?.contractId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
               </select>
             </div>
 
@@ -395,12 +501,16 @@ window.NotasFiscais = {
               </div>
             </div>
 
-            ${nf?.emitida ? `
+            ${
+              nf?.emitida
+                ? `
             <div class="form-group">
               <label class="form-label">Data de Emissão Real <span style="color:var(--color-success);font-size:13px;">(NF emitida — altere para recalcular recebimento)</span></label>
               <input class="form-control" name="dataEmissaoReal" type="date" value="${nf.dataEmissaoReal || ''}">
             </div>
-            ` : ''}
+            `
+                : ''
+            }
 
             <!-- Preview do recebimento -->
             <div id="previewRecebimento" style="padding:var(--sp-md);background:rgba(46,125,82,.07);border:1px solid rgba(46,125,82,.2);border-radius:8px;font-size:15px;display:none;">
@@ -422,12 +532,14 @@ window.NotasFiscais = {
 
     document.body.insertAdjacentHTML('beforeend', html);
 
-    const overlay   = document.getElementById('modalOverlay');
+    const overlay = document.getElementById('modalOverlay');
     const closeModal = () => overlay.remove();
 
     overlay.querySelector('.modal-close').addEventListener('click', closeModal);
     document.getElementById('btnCancelar').addEventListener('click', closeModal);
-    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeModal();
+    });
 
     // Preenche cliente ao selecionar contrato
     const sel = document.getElementById('selectContrato');
@@ -439,14 +551,21 @@ window.NotasFiscais = {
     // Calcula e mostra data prevista de recebimento
     const atualizarPreview = () => {
       const emissaoInput = document.querySelector('[name=dataEmissaoReal]');
-      const baseDate = emissaoInput ? emissaoInput.value : document.querySelector('[name=dataLimite]').value;
-      const prazo    = parseInt(document.querySelector('[name=prazoRecebimento]').value) || 0;
-      const preview  = document.getElementById('previewRecebimento');
-      const calc     = document.getElementById('dataRecebimentoCalc');
+      const baseDate = emissaoInput
+        ? emissaoInput.value
+        : document.querySelector('[name=dataLimite]').value;
+      const prazo = parseInt(document.querySelector('[name=prazoRecebimento]').value) || 0;
+      const preview = document.getElementById('previewRecebimento');
+      const calc = document.getElementById('dataRecebimentoCalc');
       if (baseDate) {
         const dt = new Date(baseDate + 'T12:00:00');
         dt.setDate(dt.getDate() + prazo);
-        calc.textContent = dt.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+        calc.textContent = dt.toLocaleDateString('pt-BR', {
+          weekday: 'long',
+          day: '2-digit',
+          month: 'long',
+          year: 'numeric',
+        });
         preview.style.display = 'block';
       } else {
         preview.style.display = 'none';
@@ -463,14 +582,16 @@ window.NotasFiscais = {
     atualizarPreview();
 
     document.getElementById('btnSalvar').addEventListener('click', async () => {
-      const fd   = new FormData(document.getElementById('formNF'));
+      const fd = new FormData(document.getElementById('formNF'));
       const data = {
-        numero:            fd.get('numero'),
-        contractId:        fd.get('contractId'),
-        dataLimite:        fd.get('dataLimite'),
-        valor:             window.BRLInput.parse(fd.get('valor')),
-        prazoRecebimento:  (Number.isFinite(parseInt(fd.get("prazoRecebimento"))) ? parseInt(fd.get("prazoRecebimento")) : 30),
-        observacoes:       fd.get('observacoes')
+        numero: fd.get('numero'),
+        contractId: fd.get('contractId'),
+        dataLimite: fd.get('dataLimite'),
+        valor: window.BRLInput.parse(fd.get('valor')),
+        prazoRecebimento: Number.isFinite(parseInt(fd.get('prazoRecebimento')))
+          ? parseInt(fd.get('prazoRecebimento'))
+          : 30,
+        observacoes: fd.get('observacoes'),
       };
       if (fd.get('dataEmissaoReal')) data.dataEmissaoReal = fd.get('dataEmissaoReal');
       try {
@@ -490,44 +611,77 @@ window.NotasFiscais = {
   },
 
   attachListeners() {
-    document.querySelectorAll('.btn-editar-nf').forEach(btn => {
-      btn.addEventListener('click', e => { e.stopPropagation(); this.showModal(e.target.dataset.id); });
+    document.querySelectorAll('.btn-editar-nf').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showModal(e.target.dataset.id);
+      });
     });
-    document.querySelectorAll('.btn-excluir-nf').forEach(btn => {
-      btn.addEventListener('click', e => { e.stopPropagation(); this.deleteNF(e.target.dataset.id); });
+    document.querySelectorAll('.btn-excluir-nf').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.deleteNF(e.target.dataset.id);
+      });
     });
-    document.querySelectorAll('.btn-emitir-nf').forEach(btn => {
-      btn.addEventListener('click', e => { e.stopPropagation(); this.showModalEmitir(e.target.dataset.id); });
+    document.querySelectorAll('.btn-emitir-nf').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.showModalEmitir(e.target.dataset.id);
+      });
     });
-    document.querySelectorAll('.btn-cancelar-emissao').forEach(btn => {
-      btn.addEventListener('click', e => { e.stopPropagation(); this.cancelarEmissao(e.target.dataset.id); });
+    document.querySelectorAll('.btn-cancelar-emissao').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.cancelarEmissao(e.target.dataset.id);
+      });
     });
-    document.querySelectorAll('.row-nf').forEach(tr => {
-      tr.addEventListener('click', e => {
+    document.querySelectorAll('.row-nf').forEach((tr) => {
+      tr.addEventListener('click', (e) => {
         if (e.target.closest('.actions-cell')) return;
         this.showDetail(tr.dataset.id);
       });
     });
     const btnAnt = document.getElementById('btnMesAnterior');
     const btnPrx = document.getElementById('btnProximoMes');
-    if (btnAnt) btnAnt.addEventListener('click', () => { this.currentMonth.setMonth(this.currentMonth.getMonth() - 1); this.render(); });
-    if (btnPrx) btnPrx.addEventListener('click', () => { this.currentMonth.setMonth(this.currentMonth.getMonth() + 1); this.render(); });
+    if (btnAnt)
+      btnAnt.addEventListener('click', () => {
+        this.currentMonth.setMonth(this.currentMonth.getMonth() - 1);
+        this.render();
+      });
+    if (btnPrx)
+      btnPrx.addEventListener('click', () => {
+        this.currentMonth.setMonth(this.currentMonth.getMonth() + 1);
+        this.render();
+      });
   },
 
   showDetail(nfId) {
-    const nf = Store.state.notas_fiscais.find(n => n.id === nfId);
+    const nf = Store.state.notas_fiscais.find((n) => n.id === nfId);
     if (!nf) return;
-    const fmtD = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+    const fmtD = (d) => (d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—');
     const contract = nf.contractId ? Store.getContractById(nf.contractId) : null;
-    const prazo = (Number.isFinite(parseInt(nf.prazoRecebimento)) ? parseInt(nf.prazoRecebimento) : 30);
+    const prazo = Number.isFinite(parseInt(nf.prazoRecebimento))
+      ? parseInt(nf.prazoRecebimento)
+      : 30;
     const baseData = nf.emitida ? nf.dataEmissaoReal : nf.dataLimite;
-    const dtRec = baseData ? (() => { const d = new Date(baseData + 'T12:00:00'); d.setDate(d.getDate() + prazo); return d; })() : null;
+    const dtRec = baseData
+      ? (() => {
+          const d = new Date(baseData + 'T12:00:00');
+          d.setDate(d.getDate() + prazo);
+          return d;
+        })()
+      : null;
     const diasAteRec = dtRec ? Math.floor((dtRec - new Date()) / 86400000) : null;
-    const saidasVinculadas = (Store.state.saidas || []).filter(s => s.nfId === nf.id);
+    const saidasVinculadas = (Store.state.saidas || []).filter((s) => s.nfId === nf.id);
     const totalSaidas = saidasVinculadas.reduce((acc, s) => acc + (parseFloat(s.value) || 0), 0);
-    const caixaEntry = nf.caixaEntryId ? (Store.state.caixa || []).find(e => e.id === nf.caixaEntryId) : null;
+    const caixaEntry = nf.caixaEntryId
+      ? (Store.state.caixa || []).find((e) => e.id === nf.caixaEntryId)
+      : null;
 
-    const row = (lbl, val) => val ? `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--color-border);"><span style="color:var(--color-text-muted);">${lbl}</span><span style="font-weight:500;text-align:right;">${val}</span></div>` : '';
+    const row = (lbl, val) =>
+      val
+        ? `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--color-border);"><span style="color:var(--color-text-muted);">${lbl}</span><span style="font-weight:500;text-align:right;">${val}</span></div>`
+        : '';
 
     const html = `
       <div class="modal-overlay" id="modalOverlay">
@@ -536,31 +690,37 @@ window.NotasFiscais = {
             <div>
               <h2 class="modal-title">NF ${escapeHtml(nf.numero)}</h2>
               <div style="margin-top:6px;">
-                ${window.UIKit?.statusPill ? window.UIKit.statusPill(nf.emitida ? 'emitida' : 'pendente') : (nf.emitida ? 'Emitida' : 'Pendente')}
+                ${window.UIKit?.statusPill ? window.UIKit.statusPill(nf.emitida ? 'emitida' : 'pendente') : nf.emitida ? 'Emitida' : 'Pendente'}
                 <span style="font-size:22px;font-weight:700;color:var(--color-success);margin-left:12px;">${Store.formatBRL(nf.valor || 0)}</span>
               </div>
             </div>
             <button class="modal-close">✕</button>
           </div>
           <div class="modal-content">
-            ${row('Contrato',         contract ? `<a href="#/contratos/${contract.id}" style="color:var(--color-primary);">${escapeHtml(contract.name)}</a>` : null)}
-            ${row('Cliente',          contract ? escapeHtml(contract.client) : null)}
-            ${row('Data limite',      fmtD(nf.dataLimite))}
+            ${row('Contrato', contract ? `<a href="#/contratos/${contract.id}" style="color:var(--color-primary);">${escapeHtml(contract.name)}</a>` : null)}
+            ${row('Cliente', contract ? escapeHtml(contract.client) : null)}
+            ${row('Data limite', fmtD(nf.dataLimite))}
             ${row('Prazo de recebimento', `${prazo} dia${prazo === 1 ? '' : 's'} após emissão`)}
-            ${nf.emitida ? `
-              ${row('Emitida em',     fmtD(nf.dataEmissaoReal))}
+            ${
+              nf.emitida
+                ? `
+              ${row('Emitida em', fmtD(nf.dataEmissaoReal))}
               ${row('Recebimento previsto', dtRec ? `${fmtD(dtRec.toISOString().split('T')[0])} ${diasAteRec >= 0 ? `<span style="color:var(--color-text-muted);font-size:13px;">(em ${diasAteRec} dias)</span>` : `<span style="color:var(--color-text-muted);font-size:13px;">(recebido)</span>`}` : null)}
               ${caixaEntry ? row('Entrada no caixa', `${escapeHtml(caixaEntry.description)} em ${fmtD(caixaEntry.date)}`) : ''}
-            ` : ''}
+            `
+                : ''
+            }
             ${row('Medições vinculadas', saidasVinculadas.length ? `${saidasVinculadas.length} BM${saidasVinculadas.length > 1 ? 's' : ''} · total ${Store.formatBRL(totalSaidas)}` : null)}
-            ${row('Observações',       nf.observacoes ? escapeHtml(nf.observacoes) : null)}
+            ${row('Observações', nf.observacoes ? escapeHtml(nf.observacoes) : null)}
             <div style="font-size:12px;color:var(--color-text-muted);margin-top:var(--sp-md);font-family:monospace;">ID: ${escapeHtml(nf.id)}</div>
           </div>
           <div class="modal-footer">
             <button class="btn btn-secondary" id="btnDetClose">Fechar</button>
-            ${!nf.emitida
-              ? `<button class="btn btn-primary" id="btnDetEmitir" style="background:var(--color-success);border-color:var(--color-success);">Marcar emitida</button>`
-              : `<button class="btn btn-secondary" id="btnDetCancelar">Desfazer emissão</button>`}
+            ${
+              !nf.emitida
+                ? `<button class="btn btn-primary" id="btnDetEmitir" style="background:var(--color-success);border-color:var(--color-success);">Marcar emitida</button>`
+                : `<button class="btn btn-secondary" id="btnDetCancelar">Desfazer emissão</button>`
+            }
           </div>
         </div>
       </div>`;
@@ -570,16 +730,26 @@ window.NotasFiscais = {
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnDetClose').addEventListener('click', close);
     const bEmit = document.getElementById('btnDetEmitir');
-    if (bEmit) bEmit.addEventListener('click', () => { close(); this.showModalEmitir(nfId); });
+    if (bEmit)
+      bEmit.addEventListener('click', () => {
+        close();
+        this.showModalEmitir(nfId);
+      });
     const bCancel = document.getElementById('btnDetCancelar');
-    if (bCancel) bCancel.addEventListener('click', () => { close(); this.cancelarEmissao(nfId); });
+    if (bCancel)
+      bCancel.addEventListener('click', () => {
+        close();
+        this.cancelarEmissao(nfId);
+      });
   },
 
   showModalEmitir(nfId) {
-    const nf = Store.state.notas_fiscais.find(n => n.id === nfId);
+    const nf = Store.state.notas_fiscais.find((n) => n.id === nfId);
     if (!nf) return;
     const contract = Store.getContractById(nf.contractId);
-    const prazo = (Number.isFinite(parseInt(nf.prazoRecebimento)) ? parseInt(nf.prazoRecebimento) : 30);
+    const prazo = Number.isFinite(parseInt(nf.prazoRecebimento))
+      ? parseInt(nf.prazoRecebimento)
+      : 30;
     const hoje = new Date().toISOString().split('T')[0];
 
     const html = `
@@ -640,14 +810,19 @@ window.NotasFiscais = {
 
     overlay.querySelector('.modal-close').addEventListener('click', closeModal);
     document.getElementById('btnCancelarEmissao').addEventListener('click', closeModal);
-    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) closeModal();
+    });
 
     const inputData = document.querySelector('[name=dataEmissaoReal]');
     const previewTexto = document.getElementById('previewTexto');
 
     const atualizarPreview = () => {
       const val = inputData.value;
-      if (!val) { previewTexto.textContent = '—'; return; }
+      if (!val) {
+        previewTexto.textContent = '—';
+        return;
+      }
       const dtEmissao = new Date(val + 'T12:00:00');
       const dtRecebimento = new Date(val + 'T12:00:00');
       dtRecebimento.setDate(dtRecebimento.getDate() + prazo);
@@ -663,7 +838,10 @@ window.NotasFiscais = {
 
     document.getElementById('btnConfirmarEmissao').addEventListener('click', async () => {
       const dataEmissao = inputData.value;
-      if (!dataEmissao) { window.showToast('Informe a data de emissão', 'error'); return; }
+      if (!dataEmissao) {
+        window.showToast('Informe a data de emissão', 'error');
+        return;
+      }
 
       try {
         const result = await Store.emitirNotaFiscal(nfId, dataEmissao);
@@ -688,7 +866,7 @@ window.NotasFiscais = {
   },
 
   async deleteNF(id) {
-    const nf = Store.state.notas_fiscais.find(n => n.id === id);
+    const nf = Store.state.notas_fiscais.find((n) => n.id === id);
     const msg = nf?.emitida
       ? 'Esta NF está emitida. Excluir também vai remover a entrada no caixa. Continuar?'
       : 'Excluir esta nota fiscal?';
@@ -700,5 +878,5 @@ window.NotasFiscais = {
     } catch (e) {
       window.showToast(e.message, 'error');
     }
-  }
+  },
 };
