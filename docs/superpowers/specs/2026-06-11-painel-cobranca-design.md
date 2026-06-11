@@ -21,7 +21,7 @@ exatamente quem cobrar e do quê.
 | Corte de entrada | Itens com <3 dias parados não aparecem (o painel é fila de cobrança, não inventário) |
 | Posição | Topo absoluto do Dashboard, acima do "Apanhado geral do mês" |
 | UI | Cards por área em grade (estilo dos KPIs atuais) |
-| Implementação | Endpoint novo `/api/dashboard/cobranca` + regra pura em `lib/cobranca.js` (abordagem A) |
+| Implementação | Endpoint novo `/api/dashboard/cobranca` + regra pura em `lib/pendencias.js` (abordagem A). Nome `pendencias` (e não `cobranca`) para não colidir com a view existente `CobrancaMensal` (#/cobranca, mensalidade de clientes) |
 
 ## UI
 
@@ -50,7 +50,7 @@ Card "Cobrança por área" no topo do Dashboard, contendo uma grade de 4 cards
 - Acessibilidade: cor nunca é o único sinal — sempre acompanhada de texto/emoji
   (coerente com as sprints de a11y já feitas).
 
-## Regras de negócio (lib/cobranca.js)
+## Regras de negócio (lib/pendencias.js)
 
 Tudo em **dias corridos**, calculado contra a data de "hoje" recebida por parâmetro
 (função pura, testável). Constantes nomeadas:
@@ -76,8 +76,8 @@ const DIAS_AMARELO  = 3;  // 3–6 dias → amarela; itens <3 dias não entram n
 | Obras | NF emitida com recebimento previsto vencido | `dataEmissaoReal + prazoRecebimento` | Cobrar cliente → `#/notas-fiscais` |
 | Obras | RDOs em atraso por obra | dia útil mais antigo sem RDO (aderência diária) | Preencher RDO → `#/contratos/:id` |
 | Financeiro | Conta a pagar vencida não paga | `data_vencimento` | Pagar/renegociar → `#/contas-pagar` |
-| Frota | Manutenção aguardando avaliação/aprovação | `updatedAt` da manutenção | Avaliar/aprovar → `#/frota` |
-| Frota | Revisão de veículo vencida | campo `revisao` do veículo | Agendar revisão → `#/frota` |
+| Frota | Manutenção de equipamento aguardando avaliação/aprovação (`status` solicitada/pendente_aprovacao) | `updatedAt` da manutenção | Avaliar/aprovar → `#/manutencao` |
+| Frota | Plano de revisão de veículo vencido (`veiculo_planos`: `ultima_data + intervalo_meses` no passado) | data de vencimento do plano | Agendar revisão → `#/frota` |
 
 - Ordenação: dentro de cada área, da pendência mais antiga para a mais nova.
 - Cor da área = faixa da pendência mais antiga; sem pendências = verde.
@@ -88,7 +88,7 @@ const DIAS_AMARELO  = 3;  // 3–6 dias → amarela; itens <3 dias não entram n
 GET /api/dashboard/cobranca
   routes/operacao.js  → registra a rota (padrão deps.handle*)
   handlers/dashboard-cobranca.js → busca dados via repos/db e chama a lib
-  lib/cobranca.js     → funções puras: listas + hoje → { areas: [...] }
+  lib/pendencias.js   → funções puras: listas + hoje → { areas: [...] }
   js/views/Dashboard.js → fetch no Promise.all existente + _renderCobranca(cob)
 ```
 
@@ -117,7 +117,7 @@ Payload de resposta (exemplo sintético):
 
 ## Testes
 
-`test/cobranca.test.js` (node:test, padrão do projeto):
+`test/pendencias.test.js` (node:test, padrão do projeto):
 
 - Cor por dias parado, incluindo os limiares exatos (3 e 7 dias).
 - Corte de entrada: item com <3 dias não aparece.
