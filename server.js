@@ -65,6 +65,7 @@ const candidatoDocsHandlers = require('./handlers/candidato-documentos'); // doc
 const rdoAssinaturasHandlers = require('./handlers/rdo-assinaturas'); // RDO assinaturas digitais: upload + list/get/delete
 const propostaAnexosHandlers = require('./handlers/proposta-anexos'); // anexos de proposta (PDF/imagem): upload + get/put/delete
 const caseLogosHandlers = require('./handlers/case-logos'); // case logos: list/get-image + upload + put/delete
+const dashboardCobrancaHandlers = require('./handlers/dashboard-cobranca'); // painel "Cobrança por área"
 const bus = require('./lib/bus');
 const perms = require('./lib/permissions');
 const portalImpersonate = require('./lib/portal-impersonate'); // "Ver portal como cliente" (super admin)
@@ -3517,6 +3518,7 @@ registerOperacao(apiRouter, {
   handlePostVeiculoAbastecimento,
   handlePutVeiculoAbastecimento,
   handleDeleteVeiculoAbastecimento,
+  ...dashboardCobrancaHandlers, // handleDashboardCobranca (handlers/dashboard-cobranca.js)
   handleDashboardOperacional,
   handleListDashLayouts,
   handlePostDashLayout,

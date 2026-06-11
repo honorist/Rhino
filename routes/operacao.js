@@ -87,6 +87,7 @@ module.exports = function registerOperacao(router, deps) {
   router.delete('/api/veiculos/:id/abastecimentos/:abastecId',(ctx) => deps.handleDeleteVeiculoAbastecimento(ctx.params[0], ctx.params[1], ctx.res));
 
   // ── KPIs operacionais do dashboard (frota/compras/recrutamento/folha/estoque) ──
+  router.get('/api/dashboard/cobranca',        (ctx) => deps.handleDashboardCobranca(ctx.res));
   router.get('/api/dashboard/operacional',     (ctx) => deps.handleDashboardOperacional(ctx.res));
 
   // ── Layouts de dashboard (por usuário) ──

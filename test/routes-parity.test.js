@@ -608,7 +608,7 @@ test('routes/comercial.js — proposta/:id não engole as sub-rotas (docx etc.)'
 // ─── routes/operacao.js (recursos, documentos, estoque, solicitações, ────────
 //     manutenções, frota, dashboard-layouts, doc-templates) ──────────────────
 
-test('routes/operacao.js — registra exatamente as 73 rotas de operação', () => {
+test('routes/operacao.js — registra exatamente as 74 rotas de operação', () => {
   const router = createRouter();
   require('../routes/operacao')(router, {});
   const rotas = router
@@ -634,6 +634,7 @@ test('routes/operacao.js — registra exatamente as 73 rotas de operação', () 
       'DELETE /api/veiculos/:id/manutencoes/:manutId',
       'DELETE /api/veiculos/:id/planos/:planoId',
       'GET /api/cotacoes-historico',
+      'GET /api/dashboard/cobranca',
       'GET /api/dashboard/layouts',
       'GET /api/dashboard/operacional',
       'GET /api/doc-templates',
