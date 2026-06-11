@@ -65,3 +65,63 @@ test('semáforo — só pendências de 3–6 dias = amarelo', () => {
   const r = p.calcularCobranca({ hojeISO: HOJE, contas });
   assert.equal(r.areas.find((a) => a.id === 'financeiro').cor, 'amarelo');
 });
+
+// ─── Área RH ──────────────────────────────────────────────────────────────────
+
+test('RH — candidato parado no funil entra com updatedAt como base', () => {
+  const candidatos = [
+    { id: 'c1', vagaId: 'v1', nome: 'João', status: 'contatado', antecedentesStatus: 'pendente', documentos: {}, updatedAt: '2026-06-01T10:00:00Z' }, // 10d
+    { id: 'c2', vagaId: 'v1', nome: 'Ana', status: 'aprovado', documentos: {}, updatedAt: '2026-05-01T10:00:00Z' }, // aprovado → fora
+  ];
+  const r = p.calcularCobranca({ hojeISO: HOJE, candidatos });
+  const rh = r.areas.find((a) => a.id === 'rh');
+  assert.equal(rh.pendencias.length, 1);
+  assert.match(rh.pendencias[0].titulo, /João/);
+  assert.equal(rh.pendencias[0].diasParado, 10);
+  assert.equal(rh.cor, 'vermelho');
+});
+
+test('RH — dedup: candidato aguardando documentos gera UMA pendência (a de docs)', () => {
+  const candidatos = [{
+    id: 'c1', vagaId: 'v1', nome: 'Bia', status: 'interessado',
+    antecedentesStatus: 'ok', documentos: { rg: { filename: 'rg.pdf' } }, // faltam cpf/residencia/ctps
+    updatedAt: '2026-06-05T10:00:00Z', // 6d
+  }];
+  const r = p.calcularCobranca({ hojeISO: HOJE, candidatos });
+  const rh = r.areas.find((a) => a.id === 'rh');
+  assert.equal(rh.pendencias.length, 1);
+  assert.match(rh.pendencias[0].titulo, /aguardando documentos/);
+});
+
+test('RH — vaga aberta sem candidato em andamento entra; com candidato não', () => {
+  const solicitacoes = [
+    { id: 's1', status: 'aberta', createdAt: '2026-06-01T08:00:00Z' }, // 10d, sem candidato
+    { id: 's2', status: 'aberta', createdAt: '2026-06-01T08:00:00Z' }, // tem candidato → fora
+    { id: 's3', status: 'preenchida', createdAt: '2026-01-01T08:00:00Z' }, // fechada → fora
+  ];
+  const vagas = [
+    { id: 'v1', solicitacaoId: 's1', cargo: 'Pedreiro' },
+    { id: 'v2', solicitacaoId: 's2', cargo: 'Mestre' },
+  ];
+  const candidatos = [
+    { id: 'c1', vagaId: 'v2', nome: 'Ze', status: 'contatado', documentos: {}, updatedAt: '2026-06-10T08:00:00Z' }, // 1d → não vira pendência própria
+  ];
+  const r = p.calcularCobranca({ hojeISO: HOJE, solicitacoes, vagas, candidatos });
+  const rh = r.areas.find((a) => a.id === 'rh');
+  assert.equal(rh.pendencias.length, 1);
+  assert.match(rh.pendencias[0].titulo, /Pedreiro/);
+});
+
+test('RH — folha vencida agrega por competência', () => {
+  // competência 2026-04 → saldo venceu ~2026-05-07 (>7d atrás) → vermelho
+  const folha = [
+    { competencia: '2026-04', valorVale: 0, valePago: false, saldoPago: false },
+    { competencia: '2026-04', valorVale: 500, valePago: false, saldoPago: true },
+    { competencia: '2026-04', valorVale: 0, valePago: false, saldoPago: true }, // sem vale e saldo pago → ok
+  ];
+  const r = p.calcularCobranca({ hojeISO: HOJE, folha });
+  const rh = r.areas.find((a) => a.id === 'rh');
+  assert.equal(rh.pendencias.length, 1);
+  assert.match(rh.pendencias[0].titulo, /Folha 2026-04: 2 pagamento/);
+  assert.equal(rh.cor, 'vermelho');
+});
