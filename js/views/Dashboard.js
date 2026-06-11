@@ -1050,9 +1050,9 @@ window.Dashboard = {
       verde: { css: 'var(--rh-pos-strong)', icone: '🟢', rotulo: 'em dia' },
     };
     const linha = (pend) => `
-      <a href="${pend.href}" class="rh-row" style="justify-content:space-between;text-decoration:none;color:inherit;padding:2px 0;" title="${escapeHtml(pend.proximaAcao || '')}">
+      <a href="${escapeHtml(pend.href || '#')}" class="rh-row" style="justify-content:space-between;text-decoration:none;color:inherit;padding:2px 0;" title="${escapeHtml(pend.proximaAcao || '')}">
         <span style="font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(pend.titulo)}</span>
-        <b style="white-space:nowrap;margin-left:8px;">${pend.diasParado}d</b>
+        <b style="white-space:nowrap;margin-left:8px;">${pend.diasParado ?? '?'}d</b>
       </a>`;
     const card = (area) => {
       const cor = COR[area.cor] || COR.verde;
