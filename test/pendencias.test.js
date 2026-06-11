@@ -13,7 +13,10 @@ const HOJE = '2026-06-11'; // quinta-feira
 test('calcularCobranca — entrada vazia devolve 4 áreas verdes', () => {
   const r = p.calcularCobranca({ hojeISO: HOJE });
   assert.equal(r.areas.length, 4);
-  assert.deepEqual(r.areas.map((a) => a.id), ['rh', 'obras', 'financeiro', 'frota']);
+  assert.deepEqual(
+    r.areas.map((a) => a.id),
+    ['rh', 'obras', 'financeiro', 'frota']
+  );
   for (const a of r.areas) {
     assert.equal(a.cor, 'verde');
     assert.deepEqual(a.pendencias, []);
@@ -70,8 +73,23 @@ test('semáforo — só pendências de 3–6 dias = amarelo', () => {
 
 test('RH — candidato parado no funil entra com updatedAt como base', () => {
   const candidatos = [
-    { id: 'c1', vagaId: 'v1', nome: 'João', status: 'contatado', antecedentesStatus: 'pendente', documentos: {}, updatedAt: '2026-06-01T10:00:00Z' }, // 10d
-    { id: 'c2', vagaId: 'v1', nome: 'Ana', status: 'aprovado', documentos: {}, updatedAt: '2026-05-01T10:00:00Z' }, // aprovado → fora
+    {
+      id: 'c1',
+      vagaId: 'v1',
+      nome: 'João',
+      status: 'contatado',
+      antecedentesStatus: 'pendente',
+      documentos: {},
+      updatedAt: '2026-06-01T10:00:00Z',
+    }, // 10d
+    {
+      id: 'c2',
+      vagaId: 'v1',
+      nome: 'Ana',
+      status: 'aprovado',
+      documentos: {},
+      updatedAt: '2026-05-01T10:00:00Z',
+    }, // aprovado → fora
   ];
   const r = p.calcularCobranca({ hojeISO: HOJE, candidatos });
   const rh = r.areas.find((a) => a.id === 'rh');
@@ -82,11 +100,17 @@ test('RH — candidato parado no funil entra com updatedAt como base', () => {
 });
 
 test('RH — dedup: candidato aguardando documentos gera UMA pendência (a de docs)', () => {
-  const candidatos = [{
-    id: 'c1', vagaId: 'v1', nome: 'Bia', status: 'interessado',
-    antecedentesStatus: 'ok', documentos: { rg: { filename: 'rg.pdf' } }, // faltam cpf/residencia/ctps
-    updatedAt: '2026-06-05T10:00:00Z', // 6d
-  }];
+  const candidatos = [
+    {
+      id: 'c1',
+      vagaId: 'v1',
+      nome: 'Bia',
+      status: 'interessado',
+      antecedentesStatus: 'ok',
+      documentos: { rg: { filename: 'rg.pdf' } }, // faltam cpf/residencia/ctps
+      updatedAt: '2026-06-05T10:00:00Z', // 6d
+    },
+  ];
   const r = p.calcularCobranca({ hojeISO: HOJE, candidatos });
   const rh = r.areas.find((a) => a.id === 'rh');
   assert.equal(rh.pendencias.length, 1);
@@ -104,7 +128,14 @@ test('RH — vaga aberta sem candidato em andamento entra; com candidato não', 
     { id: 'v2', solicitacaoId: 's2', cargo: 'Mestre' },
   ];
   const candidatos = [
-    { id: 'c1', vagaId: 'v2', nome: 'Ze', status: 'contatado', documentos: {}, updatedAt: '2026-06-10T08:00:00Z' }, // 1d → não vira pendência própria
+    {
+      id: 'c1',
+      vagaId: 'v2',
+      nome: 'Ze',
+      status: 'contatado',
+      documentos: {},
+      updatedAt: '2026-06-10T08:00:00Z',
+    }, // 1d → não vira pendência própria
   ];
   const r = p.calcularCobranca({ hojeISO: HOJE, solicitacoes, vagas, candidatos });
   const rh = r.areas.find((a) => a.id === 'rh');
@@ -124,4 +155,57 @@ test('RH — folha vencida agrega por competência', () => {
   assert.equal(rh.pendencias.length, 1);
   assert.match(rh.pendencias[0].titulo, /Folha 2026-04: 2 pagamento/);
   assert.equal(rh.cor, 'vermelho');
+});
+
+// ─── Área Obras ───────────────────────────────────────────────────────────────
+
+test('Obras — NF não emitida com prazo vencido entra; emitida em dia não', () => {
+  const nfs = [
+    { numero: 132, emitida: false, dataLimite: '2026-06-01' }, // 10d vencida
+    { numero: 133, emitida: false, dataLimite: '2026-06-20' }, // prazo futuro → fora
+    { numero: 134, emitida: true, dataEmissaoReal: '2026-06-10', prazoRecebimento: 30 }, // em dia → fora
+  ];
+  const r = p.calcularCobranca({ hojeISO: HOJE, nfs });
+  const obras = r.areas.find((a) => a.id === 'obras');
+  assert.equal(obras.pendencias.length, 1);
+  assert.match(obras.pendencias[0].titulo, /NF 132 não emitida/);
+  assert.equal(obras.pendencias[0].diasParado, 10);
+});
+
+test('Obras — NF emitida com recebimento previsto vencido entra', () => {
+  const nfs = [
+    // emitida 2026-04-30 + 30 dias = previsto 2026-05-30 → 12d vencido
+    { numero: 140, emitida: true, dataEmissaoReal: '2026-04-30', prazoRecebimento: 30 },
+  ];
+  const r = p.calcularCobranca({ hojeISO: HOJE, nfs });
+  const obras = r.areas.find((a) => a.id === 'obras');
+  assert.equal(obras.pendencias.length, 1);
+  assert.match(obras.pendencias[0].titulo, /NF 140 — recebimento previsto vencido/);
+  assert.equal(obras.pendencias[0].diasParado, 12);
+});
+
+test('Obras — obra ativa sem RDO há ≥3 dias úteis entra (dias parado = dias úteis)', () => {
+  const contratos = [
+    { id: 'ct1', name: 'Obra Sul', status: 'ativo', createdAt: '2026-01-01T08:00:00Z' },
+    { id: 'ct2', name: 'Obra Norte', status: 'ativo', createdAt: '2026-01-01T08:00:00Z' },
+    { id: 'ct3', name: 'Obra Encerrada', status: 'encerrado', createdAt: '2026-01-01T08:00:00Z' },
+  ];
+  const ultimoRdoPorContrato = {
+    ct1: '2026-06-03', // vários dias úteis sem RDO até 2026-06-11
+    ct2: '2026-06-10', // ontem → em dia
+  };
+  const r = p.calcularCobranca({ hojeISO: HOJE, contratos, ultimoRdoPorContrato });
+  const obras = r.areas.find((a) => a.id === 'obras');
+  assert.equal(obras.pendencias.length, 1);
+  assert.match(obras.pendencias[0].titulo, /Obra Sul sem RDO/);
+  assert.ok(obras.pendencias[0].diasParado >= 3);
+  assert.equal(obras.pendencias[0].href, '#/contratos/ct1');
+});
+
+test('Obras — obra ativa que NUNCA fez RDO usa createdAt como base', () => {
+  const contratos = [{ id: 'ct9', name: 'Obra Nova', status: 'ativo', createdAt: '2026-05-01T08:00:00Z' }];
+  const r = p.calcularCobranca({ hojeISO: HOJE, contratos, ultimoRdoPorContrato: {} });
+  const obras = r.areas.find((a) => a.id === 'obras');
+  assert.equal(obras.pendencias.length, 1);
+  assert.match(obras.pendencias[0].titulo, /Obra Nova sem RDO/);
 });
