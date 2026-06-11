@@ -203,9 +203,40 @@ test('Obras — obra ativa sem RDO há ≥3 dias úteis entra (dias parado = dia
 });
 
 test('Obras — obra ativa que NUNCA fez RDO usa createdAt como base', () => {
-  const contratos = [{ id: 'ct9', name: 'Obra Nova', status: 'ativo', createdAt: '2026-05-01T08:00:00Z' }];
+  const contratos = [
+    { id: 'ct9', name: 'Obra Nova', status: 'ativo', createdAt: '2026-05-01T08:00:00Z' },
+  ];
   const r = p.calcularCobranca({ hojeISO: HOJE, contratos, ultimoRdoPorContrato: {} });
   const obras = r.areas.find((a) => a.id === 'obras');
   assert.equal(obras.pendencias.length, 1);
   assert.match(obras.pendencias[0].titulo, /Obra Nova sem RDO/);
+});
+
+// ─── Robustez: datas como objetos Date (TIMESTAMPTZ do node-pg) ───────────────
+
+test('datas vindas como objeto Date (timestamptz) funcionam', () => {
+  const candidatos = [{
+    id: 'c1', vagaId: 'v1', nome: 'Davi', status: 'contatado',
+    antecedentesStatus: 'pendente', documentos: {},
+    updatedAt: new Date('2026-06-01T10:00:00Z'), // Date, não string — 10d
+  }];
+  const contratos = [{ id: 'ct1', name: 'Obra Date', status: 'ativo', createdAt: new Date('2026-05-01T08:00:00Z') }];
+  const r = p.calcularCobranca({ hojeISO: HOJE, candidatos, contratos, ultimoRdoPorContrato: {} });
+  assert.equal(r.areas.find((a) => a.id === 'rh').pendencias.length, 1);
+  assert.equal(r.areas.find((a) => a.id === 'rh').pendencias[0].diasParado, 10);
+  assert.equal(r.areas.find((a) => a.id === 'obras').pendencias.length, 1);
+});
+
+test('Obras — NF emitida sem dataEmissaoReal é ignorada (dados incompletos)', () => {
+  const nfs = [{ numero: 150, emitida: true, dataEmissaoReal: null, dataLimite: '2026-06-01' }];
+  const r = p.calcularCobranca({ hojeISO: HOJE, nfs });
+  assert.equal(r.areas.find((a) => a.id === 'obras').pendencias.length, 0);
+});
+
+test('Obras — prazoRecebimento 0 conta (recebimento no dia da emissão)', () => {
+  const nfs = [{ numero: 151, emitida: true, dataEmissaoReal: '2026-06-01', prazoRecebimento: 0 }]; // previsto 2026-06-01 → 10d vencido
+  const r = p.calcularCobranca({ hojeISO: HOJE, nfs });
+  const obras = r.areas.find((a) => a.id === 'obras');
+  assert.equal(obras.pendencias.length, 1);
+  assert.equal(obras.pendencias[0].diasParado, 10);
 });
