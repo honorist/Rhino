@@ -14,7 +14,20 @@ window.Dashboard = {
 
   _periodoLabel() {
     const { modo, mes, ano } = this.periodo;
-    const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const meses = [
+      'Janeiro',
+      'Fevereiro',
+      'Março',
+      'Abril',
+      'Maio',
+      'Junho',
+      'Julho',
+      'Agosto',
+      'Setembro',
+      'Outubro',
+      'Novembro',
+      'Dezembro',
+    ];
     if (modo === 'mes') return `${meses[mes - 1]} ${ano}`;
     if (modo === 'ano') return `Ano ${ano}`;
     return '30 dias recentes + projeção';
@@ -24,8 +37,13 @@ window.Dashboard = {
     const app = document.getElementById('app');
     // Disparar carregamento de Chart.js em paralelo com o skeleton — quando o
     // renderChart() for chamado mais abaixo, await garantirá que esteja pronto.
-    if (window.RhinoLazy) window.RhinoLazy.ensure('chart')
-      .catch(e => console.error('[Dashboard] falha ao pré-carregar Chart.js — gráficos podem não renderizar:', e?.message || e));
+    if (window.RhinoLazy)
+      window.RhinoLazy.ensure('chart').catch((e) =>
+        console.error(
+          '[Dashboard] falha ao pré-carregar Chart.js — gráficos podem não renderizar:',
+          e?.message || e
+        )
+      );
     app.innerHTML = `
       <div class="dashboard-skeleton" aria-busy="true">
         <div class="grid grid-4" style="margin-bottom:24px;">
@@ -39,7 +57,7 @@ window.Dashboard = {
           <div class="skeleton" style="height:220px;border-radius:10px;"></div>
         </div>
         <div style="background:var(--color-surface);padding:16px;border-radius:10px;border:1px solid var(--color-border);">
-          ${(window.RhinoUI && window.RhinoUI.skeletonRows) ? window.RhinoUI.skeletonRows(6) : ''}
+          ${window.RhinoUI && window.RhinoUI.skeletonRows ? window.RhinoUI.skeletonRows(6) : ''}
         </div>
       </div>`;
 
@@ -52,26 +70,38 @@ window.Dashboard = {
         Store.loadAll(),
         Store.loadDashboard(this._buildParams()),
         fetch('/api/rdos')
-          .then(r => (r.ok ? r.json() : null))
-          .catch(e => { console.warn('[Dashboard] /api/rdos falhou — KPIs de compliance ficarão zerados:', e?.message || e); return null; }),
+          .then((r) => (r.ok ? r.json() : null))
+          .catch((e) => {
+            console.warn(
+              '[Dashboard] /api/rdos falhou — KPIs de compliance ficarão zerados:',
+              e?.message || e
+            );
+            return null;
+          }),
         fetch('/api/anomalias')
-          .then(r => (r.ok ? r.json() : null))
+          .then((r) => (r.ok ? r.json() : null))
           .catch(() => null),
-        Store.loadFor(['propostas'])
-          .catch(e => { console.warn('[Dashboard] Store.loadFor(propostas) falhou — KPIs de prospecção ficarão zerados:', e?.message || e); }),
+        Store.loadFor(['propostas']).catch((e) => {
+          console.warn(
+            '[Dashboard] Store.loadFor(propostas) falhou — KPIs de prospecção ficarão zerados:',
+            e?.message || e
+          );
+        }),
         fetch('/api/dashboard/operacional')
-          .then(r => (r.ok ? r.json() : null))
+          .then((r) => (r.ok ? r.json() : null))
           .catch(() => null),
       ]);
       const dash = Store.state.dashboard;
       // `rdoStats` local é usado mais abaixo na montagem do HTML (KPI de RDO,
       // painel de aderência); `this._rdoStats` é usado por renderAlertas.
-      const rdoStats = rdoJson ? (rdoJson.stats || null) : null;
+      const rdoStats = rdoJson ? rdoJson.stats || null : null;
       this._rdoStats = rdoStats;
       // RDO é diário: cada (obra × dia útil) sem RDO conta 1 atraso.
-      const rdosAtrasados = (rdoStats?.aderenciaDiaria || [])
-        .reduce((s, d) => s + Math.max(0, (d.esperados || 0) - (d.feitos || 0)), 0);
-      this._anomalias = anomJson ? (anomJson.anomalias || []) : [];
+      const rdosAtrasados = (rdoStats?.aderenciaDiaria || []).reduce(
+        (s, d) => s + Math.max(0, (d.esperados || 0) - (d.feitos || 0)),
+        0
+      );
+      this._anomalias = anomJson ? anomJson.anomalias || [] : [];
 
       // nf/cp/socios/investimentos: loadAll() JÁ trouxe as 4 — antes o Dashboard
       // refazia exatamente as mesmas 4 requisições. Agora lemos de Store.state.
@@ -86,39 +116,46 @@ window.Dashboard = {
 
       // Colaboradores ativos
       const recursos = Store.state.recursos || [];
-      const colaboradoresAtivos = recursos.filter(r => r.status === 'funcionario').length;
-      const colaboradoresCandidatos = recursos.filter(r => r.status === 'candidato').length;
+      const colaboradoresAtivos = recursos.filter((r) => r.status === 'funcionario').length;
+      const colaboradoresCandidatos = recursos.filter((r) => r.status === 'candidato').length;
 
       // Aportes acumulados (sócios + investimentos com origem 'empresa')
-      const aportesSocios = sociosList.reduce((s, x) => s + (parseFloat(x.aporteTotal || x.aporte_total || x.aporte) || 0), 0);
+      const aportesSocios = sociosList.reduce(
+        (s, x) => s + (parseFloat(x.aporteTotal || x.aporte_total || x.aporte) || 0),
+        0
+      );
       const aportesEmpresa = investList
-        .filter(i => (i.origem || '').toLowerCase() === 'empresa')
+        .filter((i) => (i.origem || '').toLowerCase() === 'empresa')
         .reduce((s, i) => s + (parseFloat(i.value || i.valor) || 0), 0);
       const aportesTotal = aportesSocios + aportesEmpresa;
 
       // Propostas em prospecção (rascunho + enviada — ainda não viraram contrato
       // ativo). Já carregadas no Promise.all do início do render().
       const propostasState = Store.state.propostas || [];
-      const propostasRascunho = propostasState.filter(p => p.status === 'rascunho').length;
-      const propostasEnviada = propostasState.filter(p => p.status === 'enviada').length;
-      const propostasAceita = propostasState.filter(p => p.status === 'aceita').length;
+      const propostasRascunho = propostasState.filter((p) => p.status === 'rascunho').length;
+      const propostasEnviada = propostasState.filter((p) => p.status === 'enviada').length;
+      const propostasAceita = propostasState.filter((p) => p.status === 'aceita').length;
       const propostasProspeccao = propostasRascunho + propostasEnviada;
       const valorPropostasProspeccao = propostasState
-        .filter(p => p.status === 'rascunho' || p.status === 'enviada')
+        .filter((p) => p.status === 'rascunho' || p.status === 'enviada')
         .reduce((s, p) => s + (parseFloat(p.valorTotal || p.valor_total) || 0), 0);
 
       // A receber (NFs emitidas, valor + contagens)
-      const nfsEmitidas = nfsList.filter(n => n.emitida || n.status === 'emitida');
-      const nfsPendentes = nfsList.filter(n => !n.emitida && n.status !== 'emitida');
+      const nfsEmitidas = nfsList.filter((n) => n.emitida || n.status === 'emitida');
+      const nfsPendentes = nfsList.filter((n) => !n.emitida && n.status !== 'emitida');
       const totalAReceber = nfsEmitidas
-        .filter(n => !n.caixaEntryId && !n.caixa_entry_id) // emitidas mas ainda não recebidas
+        .filter((n) => !n.caixaEntryId && !n.caixa_entry_id) // emitidas mas ainda não recebidas
         .reduce((s, n) => s + (parseFloat(n.valor || n.totalLiquido || n.valorTotal) || 0), 0);
 
       // A pagar próximos 30 dias
       const hojeStr2 = new Date().toISOString().split('T')[0];
-      const em30str = (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split('T')[0]; })();
-      const cpPendentes = cpList.filter(c => c.status === 'pendente' || c.status === 'aberto');
-      const cp30d = cpPendentes.filter(c => {
+      const em30str = (() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 30);
+        return d.toISOString().split('T')[0];
+      })();
+      const cpPendentes = cpList.filter((c) => c.status === 'pendente' || c.status === 'aberto');
+      const cp30d = cpPendentes.filter((c) => {
         const v = c.dataVencimento || c.data_vencimento;
         return v && v <= em30str;
       });
@@ -127,46 +164,67 @@ window.Dashboard = {
       // Faturado mês corrente (entradas no caixa) e mês anterior para delta
       const hojeD = new Date();
       const mesIni = new Date(hojeD.getFullYear(), hojeD.getMonth(), 1).toISOString().split('T')[0];
-      const mesAntIni = new Date(hojeD.getFullYear(), hojeD.getMonth() - 1, 1).toISOString().split('T')[0];
-      const mesAntFim = new Date(hojeD.getFullYear(), hojeD.getMonth(), 0).toISOString().split('T')[0];
-      const caixaEntries = Array.isArray(Store.state.caixa) ? Store.state.caixa : (Store.state.caixa?.entries || []);
+      const mesAntIni = new Date(hojeD.getFullYear(), hojeD.getMonth() - 1, 1)
+        .toISOString()
+        .split('T')[0];
+      const mesAntFim = new Date(hojeD.getFullYear(), hojeD.getMonth(), 0)
+        .toISOString()
+        .split('T')[0];
+      const caixaEntries = Array.isArray(Store.state.caixa)
+        ? Store.state.caixa
+        : Store.state.caixa?.entries || [];
       const faturadoMes = caixaEntries
-        .filter(e => e.type === 'entrada' && e.date >= mesIni)
+        .filter((e) => e.type === 'entrada' && e.date >= mesIni)
         .reduce((s, e) => s + (parseFloat(e.value) || 0), 0);
       const faturadoMesAnt = caixaEntries
-        .filter(e => e.type === 'entrada' && e.date >= mesAntIni && e.date <= mesAntFim)
+        .filter((e) => e.type === 'entrada' && e.date >= mesAntIni && e.date <= mesAntFim)
         .reduce((s, e) => s + (parseFloat(e.value) || 0), 0);
-      const deltaFaturadoPct = faturadoMesAnt > 0 ? (((faturadoMes - faturadoMesAnt) / faturadoMesAnt) * 100) : 0;
+      const deltaFaturadoPct =
+        faturadoMesAnt > 0 ? ((faturadoMes - faturadoMesAnt) / faturadoMesAnt) * 100 : 0;
 
       // Cobertura de caixa (saldo / saídas médias mensais últimos 3 meses)
-      const tres30 = new Date(); tres30.setDate(tres30.getDate() - 90);
+      const tres30 = new Date();
+      tres30.setDate(tres30.getDate() - 90);
       const tres30str = tres30.toISOString().split('T')[0];
       const saidasUlt90 = caixaEntries
-        .filter(e => e.type === 'saida' && e.date >= tres30str)
+        .filter((e) => e.type === 'saida' && e.date >= tres30str)
         .reduce((s, e) => s + (parseFloat(e.value) || 0), 0);
       const saidaMediaMensal = saidasUlt90 / 3;
-      const coberturaMeses = saidaMediaMensal > 0 ? (dash.caixaBalance / saidaMediaMensal) : 0;
+      const coberturaMeses = saidaMediaMensal > 0 ? dash.caixaBalance / saidaMediaMensal : 0;
 
       // Saudação dinâmica
       const horaH = hojeD.getHours();
       const saudacaoTxt = horaH < 12 ? 'Bom dia' : horaH < 18 ? 'Boa tarde' : 'Boa noite';
       const userObj = (window.auth && window.auth.user && window.auth.user()) || null;
-      const primeiroNome = ((userObj?.name || userObj?.email || '').split(/[\s@]/)[0]) || 'visitante';
+      const primeiroNome = (userObj?.name || userObj?.email || '').split(/[\s@]/)[0] || 'visitante';
       const subParts = [];
       subParts.push(dash.caixaBalance >= 0 ? 'Caixa positivo' : 'Caixa negativo');
       const bmsAguard = pipeline.aguardEmissao.count;
-      if (bmsAguard > 0) subParts.push(`${bmsAguard} BM${bmsAguard !== 1 ? 's' : ''} aguardando emissão`);
-      if (rdosAtrasados > 0) subParts.push(`${rdosAtrasados} RDO${rdosAtrasados !== 1 ? 's' : ''} atrasado${rdosAtrasados !== 1 ? 's' : ''}`);
+      if (bmsAguard > 0)
+        subParts.push(`${bmsAguard} BM${bmsAguard !== 1 ? 's' : ''} aguardando emissão`);
+      if (rdosAtrasados > 0)
+        subParts.push(
+          `${rdosAtrasados} RDO${rdosAtrasados !== 1 ? 's' : ''} atrasado${rdosAtrasados !== 1 ? 's' : ''}`
+        );
 
       const totalSaidas = Store.state.saidas.reduce((sum, s) => sum + s.value, 0);
-      const taxaDespesa = dash.totalContractValue > 0
-        ? ((totalSaidas / dash.totalContractValue) * 100).toFixed(1)
-        : 0;
-      const marginMedia = dash.contractsWithMargin.length > 0
-        ? (dash.contractsWithMargin.reduce((sum, c) => sum + parseFloat(c.marginPct), 0) / dash.contractsWithMargin.length).toFixed(1)
-        : 0;
+      const taxaDespesa =
+        dash.totalContractValue > 0
+          ? ((totalSaidas / dash.totalContractValue) * 100).toFixed(1)
+          : 0;
+      const marginMedia =
+        dash.contractsWithMargin.length > 0
+          ? (
+              dash.contractsWithMargin.reduce((sum, c) => sum + parseFloat(c.marginPct), 0) /
+              dash.contractsWithMargin.length
+            ).toFixed(1)
+          : 0;
 
-      const saudeScore = this.calcularScore(parseFloat(taxaDespesa), parseFloat(marginMedia), dash.caixaBalance);
+      const saudeScore = this.calcularScore(
+        parseFloat(taxaDespesa),
+        parseFloat(marginMedia),
+        dash.caixaBalance
+      );
 
       const _icon = (name, size) => (window.rhIcon ? window.rhIcon(name, size || 16) : '');
 
@@ -175,15 +233,21 @@ window.Dashboard = {
         if (!values || values.length < 2) return '';
         const min = Math.min(...values);
         const max = Math.max(...values);
-        const range = (max - min) || 1;
-        const w = 80, h = 26, p = 2;
+        const range = max - min || 1;
+        const w = 80,
+          h = 26,
+          p = 2;
         const stepX = (w - p * 2) / (values.length - 1);
-        const points = values.map((v, i) => {
-          const x = p + i * stepX;
-          const y = h - p - ((v - min) / range) * (h - p * 2);
-          return `${x.toFixed(1)},${y.toFixed(1)}`;
-        }).join(' ');
-        const cls = ({ pos: 'rh-spark-pos', neg: 'rh-spark-neg', warn: 'rh-spark-warn' })[tone] || 'rh-spark-neutral';
+        const points = values
+          .map((v, i) => {
+            const x = p + i * stepX;
+            const y = h - p - ((v - min) / range) * (h - p * 2);
+            return `${x.toFixed(1)},${y.toFixed(1)}`;
+          })
+          .join(' ');
+        const cls =
+          { pos: 'rh-spark-pos', neg: 'rh-spark-neg', warn: 'rh-spark-warn' }[tone] ||
+          'rh-spark-neutral';
         return `<svg class="rh-spark ${cls}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${points}" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
       };
 
@@ -192,31 +256,49 @@ window.Dashboard = {
         const days = 45;
         const arr = [];
         for (let i = days - 1; i >= 0; i--) {
-          const d = new Date(); d.setDate(d.getDate() - i);
+          const d = new Date();
+          d.setDate(d.getDate() - i);
           arr.push(d.toISOString().split('T')[0]);
         }
-        const sumByDay = (filterFn) => arr.map(date =>
-          caixaEntries.filter(e => e.date <= date && filterFn(e)).reduce((s, e) => s + (parseFloat(e.value) || 0), 0)
-        );
+        const sumByDay = (filterFn) =>
+          arr.map((date) =>
+            caixaEntries
+              .filter((e) => e.date <= date && filterFn(e))
+              .reduce((s, e) => s + (parseFloat(e.value) || 0), 0)
+          );
         return {
-          saldo: arr.map(date => caixaEntries.filter(e => e.date <= date)
-            .reduce((s, e) => s + (e.type === 'entrada' ? 1 : -1) * (parseFloat(e.value) || 0), 0)),
-          entradasAcum: sumByDay(e => e.type === 'entrada'),
-          saidasAcum: sumByDay(e => e.type === 'saida'),
+          saldo: arr.map((date) =>
+            caixaEntries
+              .filter((e) => e.date <= date)
+              .reduce((s, e) => s + (e.type === 'entrada' ? 1 : -1) * (parseFloat(e.value) || 0), 0)
+          ),
+          entradasAcum: sumByDay((e) => e.type === 'entrada'),
+          saidasAcum: sumByDay((e) => e.type === 'saida'),
           // diferença diária (não acumulado) para "faturado mês"
-          entradaDia: arr.map(date => caixaEntries.filter(e => e.date === date && e.type === 'entrada')
-            .reduce((s, e) => s + (parseFloat(e.value) || 0), 0)),
+          entradaDia: arr.map((date) =>
+            caixaEntries
+              .filter((e) => e.date === date && e.type === 'entrada')
+              .reduce((s, e) => s + (parseFloat(e.value) || 0), 0)
+          ),
         };
       })();
 
       const _kpi = (opts) => {
         const tone = opts.tone || '';
-        const valueColor = tone === 'pos' ? 'var(--rh-pos-strong)'
-                         : tone === 'neg' ? 'var(--rh-neg-strong)'
-                         : tone === 'warn' ? 'var(--rh-warn-strong)'
-                         : 'var(--rh-ink-900)';
-        const deltaCls = opts.deltaTone === 'pos' ? 'rh-kpi-delta-pos'
-                       : opts.deltaTone === 'neg' ? 'rh-kpi-delta-neg' : '';
+        const valueColor =
+          tone === 'pos'
+            ? 'var(--rh-pos-strong)'
+            : tone === 'neg'
+              ? 'var(--rh-neg-strong)'
+              : tone === 'warn'
+                ? 'var(--rh-warn-strong)'
+                : 'var(--rh-ink-900)';
+        const deltaCls =
+          opts.deltaTone === 'pos'
+            ? 'rh-kpi-delta-pos'
+            : opts.deltaTone === 'neg'
+              ? 'rh-kpi-delta-neg'
+              : '';
         const sparkSvg = opts.spark ? _spark(opts.spark, opts.deltaTone || tone || 'neutral') : '';
         const tooltip = opts.tooltip ? ` title="${escapeHtml(opts.tooltip)}"` : '';
         return `
@@ -236,17 +318,27 @@ window.Dashboard = {
 
       // Score card especial (estilo hero) com gauge + sub-bars
       const _scoreCard = () => {
-        const score = parseFloat(saudeScore.label.match(/\d+/)?.[0] || '0') || (() => {
-          // calcula pontos como em calcularScore
-          let p = 100;
-          if (parseFloat(taxaDespesa) > 80) p -= 40; else if (parseFloat(taxaDespesa) > 60) p -= 20;
-          if (parseFloat(marginMedia) < 0) p -= 30; else if (parseFloat(marginMedia) < 10) p -= 15;
-          if (dash.caixaBalance < 0) p -= 20;
-          return p;
-        })();
+        const score =
+          parseFloat(saudeScore.label.match(/\d+/)?.[0] || '0') ||
+          (() => {
+            // calcula pontos como em calcularScore
+            let p = 100;
+            if (parseFloat(taxaDespesa) > 80) p -= 40;
+            else if (parseFloat(taxaDespesa) > 60) p -= 20;
+            if (parseFloat(marginMedia) < 0) p -= 30;
+            else if (parseFloat(marginMedia) < 10) p -= 15;
+            if (dash.caixaBalance < 0) p -= 20;
+            return p;
+          })();
         const scoreLabel = score >= 80 ? 'Saudável' : score >= 60 ? 'Atenção' : 'Crítico';
-        const scoreColor = score >= 80 ? 'var(--rh-pos-strong)' : score >= 60 ? 'var(--rh-warn-strong)' : 'var(--rh-neg-strong)';
-        const r = 36, c = 2 * Math.PI * r;
+        const scoreColor =
+          score >= 80
+            ? 'var(--rh-pos-strong)'
+            : score >= 60
+              ? 'var(--rh-warn-strong)'
+              : 'var(--rh-neg-strong)';
+        const r = 36,
+          c = 2 * Math.PI * r;
         const offset = c - (score / 100) * c;
         const margemPct = parseFloat(marginMedia) || 0;
         const taxaPct = parseFloat(taxaDespesa) || 0;
@@ -352,9 +444,13 @@ window.Dashboard = {
               href: '#/caixa',
               label: 'Faturado (mês)',
               value: Store.formatBRLk(faturadoMes),
-              deltaIcon: faturadoMesAnt > 0 ? (deltaFaturadoPct >= 0 ? 'arrow-up' : 'arrow-down') : '',
+              deltaIcon:
+                faturadoMesAnt > 0 ? (deltaFaturadoPct >= 0 ? 'arrow-up' : 'arrow-down') : '',
               deltaTone: deltaFaturadoPct >= 0 ? 'pos' : 'neg',
-              meta: faturadoMesAnt > 0 ? `${Math.abs(deltaFaturadoPct).toFixed(1)}% vs mês ant.` : 'sem comparativo',
+              meta:
+                faturadoMesAnt > 0
+                  ? `${Math.abs(deltaFaturadoPct).toFixed(1)}% vs mês ant.`
+                  : 'sem comparativo',
               spark: _spark45.entradaDia,
               tooltip: `${Store.formatBRL(faturadoMes)} · Entradas do mês. Variação compara com mês anterior.`,
             })}
@@ -362,26 +458,40 @@ window.Dashboard = {
               href: '#/contratos',
               label: 'Margem média',
               value: marginMedia + '%',
-              tone: parseFloat(marginMedia) > 20 ? 'pos' : parseFloat(marginMedia) > 0 ? 'warn' : 'neg',
+              tone:
+                parseFloat(marginMedia) > 20 ? 'pos' : parseFloat(marginMedia) > 0 ? 'warn' : 'neg',
               deltaIcon: parseFloat(marginMedia) > 0 ? 'arrow-up' : 'arrow-down',
               deltaTone: parseFloat(marginMedia) > 0 ? 'pos' : 'neg',
               meta: `${dash.activeContracts} contrato${dash.activeContracts !== 1 ? 's' : ''} ativo${dash.activeContracts !== 1 ? 's' : ''}`,
               spark: _spark45.saldo.map((v, i) => v - (_spark45.saidasAcum[i] || 0)),
-              tooltip: 'Média aritmética simples das margens dos contratos ativos. Margem = (valor − saídas) ÷ valor × 100.',
+              tooltip:
+                'Média aritmética simples das margens dos contratos ativos. Margem = (valor − saídas) ÷ valor × 100.',
             })}
             <!-- Hero enxuto: 6 KPIs essenciais. Prospecção/Aportes/Colaboradores
                  saíram daqui (continuam nas próprias páginas via menu). -->
-            ${rdoStats ? _kpi({
-              href: '#/rdos',
-              label: `Aderência RDO ${rdoStats.diasUteisAvaliados}d`,
-              value: rdoStats.aderencia7d + '%',
-              tone: rdoStats.aderencia7d >= 80 ? 'pos' : rdoStats.aderencia7d >= 50 ? 'warn' : 'neg',
-              deltaIcon: rdoStats.aderencia7d >= 80 ? 'arrow-up' : 'arrow-down',
-              deltaTone: rdoStats.aderencia7d >= 80 ? 'pos' : 'neg',
-              meta: rdosAtrasados > 0 ? `${rdosAtrasados} RDO${rdosAtrasados !== 1 ? 's' : ''} atrasado${rdosAtrasados !== 1 ? 's' : ''}` : 'tudo em dia',
-              spark: (rdoStats.aderenciaDiaria || []).map(d => d.pct),
-              tooltip: `Aderência = RDOs lançados ÷ (obras ativas × ${rdoStats.diasUteisAvaliados} dias úteis avaliados) × 100. Verde ≥80%, amarelo 50–79%, vermelho <50%.`,
-            }) : ''}
+            ${
+              rdoStats
+                ? _kpi({
+                    href: '#/rdos',
+                    label: `Aderência RDO ${rdoStats.diasUteisAvaliados}d`,
+                    value: rdoStats.aderencia7d + '%',
+                    tone:
+                      rdoStats.aderencia7d >= 80
+                        ? 'pos'
+                        : rdoStats.aderencia7d >= 50
+                          ? 'warn'
+                          : 'neg',
+                    deltaIcon: rdoStats.aderencia7d >= 80 ? 'arrow-up' : 'arrow-down',
+                    deltaTone: rdoStats.aderencia7d >= 80 ? 'pos' : 'neg',
+                    meta:
+                      rdosAtrasados > 0
+                        ? `${rdosAtrasados} RDO${rdosAtrasados !== 1 ? 's' : ''} atrasado${rdosAtrasados !== 1 ? 's' : ''}`
+                        : 'tudo em dia',
+                    spark: (rdoStats.aderenciaDiaria || []).map((d) => d.pct),
+                    tooltip: `Aderência = RDOs lançados ÷ (obras ativas × ${rdoStats.diasUteisAvaliados} dias úteis avaliados) × 100. Verde ≥80%, amarelo 50–79%, vermelho <50%.`,
+                  })
+                : ''
+            }
           </div>
         </div>
 
@@ -402,11 +512,33 @@ window.Dashboard = {
               </div>
               <div role="list" aria-label="Estágios do pipeline" style="display:grid;grid-template-columns:repeat(4, 1fr);gap:8px;">
                 ${[
-                  { l: 'Rascunho',        d: pipeline.rascunho,      active: false, tip: 'Saídas (BMs) cadastradas mas ainda sem NF vinculada.' },
-                  { l: 'Aguard. emissão', d: pipeline.aguardEmissao, active: true,  tip: 'Saídas com NF cadastrada mas ainda não emitida.' },
-                  { l: 'NF emitida',      d: pipeline.nfEmitida,     active: false, tip: 'NF emitida, aguardando recebimento.' },
-                  { l: 'Recebida',        d: pipeline.recebida,      active: false, tip: 'Pagamento recebido — ciclo completo.' },
-                ].map(s => `
+                  {
+                    l: 'Rascunho',
+                    d: pipeline.rascunho,
+                    active: false,
+                    tip: 'Saídas (BMs) cadastradas mas ainda sem NF vinculada.',
+                  },
+                  {
+                    l: 'Aguard. emissão',
+                    d: pipeline.aguardEmissao,
+                    active: true,
+                    tip: 'Saídas com NF cadastrada mas ainda não emitida.',
+                  },
+                  {
+                    l: 'NF emitida',
+                    d: pipeline.nfEmitida,
+                    active: false,
+                    tip: 'NF emitida, aguardando recebimento.',
+                  },
+                  {
+                    l: 'Recebida',
+                    d: pipeline.recebida,
+                    active: false,
+                    tip: 'Pagamento recebido — ciclo completo.',
+                  },
+                ]
+                  .map(
+                    (s) => `
                   <div role="listitem" title="${escapeHtml(s.tip)}"
                        style="padding:8px 10px;border-radius:6px;border:1px solid var(--rh-ink-200);${s.active ? 'background:var(--rh-warn-bg);border-left:3px solid var(--rh-warn-strong);' : 'border-left:3px solid var(--rh-ink-300);'}">
                     <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:${s.active ? 'var(--rh-warn-text)' : 'var(--rh-ink-500)'};line-height:1.2;">${s.l}</div>
@@ -415,33 +547,43 @@ window.Dashboard = {
                       <span class="rh-meta-xs" style="font-variant-numeric:tabular-nums;">${Store.formatBRL(s.d.valor).replace('R$ ', '')}</span>
                     </div>
                   </div>
-                `).join('')}
+                `
+                  )
+                  .join('')}
               </div>
             </div>
           </div>
 
           <!-- Aderência RDO -->
           <div>
-        ${rdoStats ? (() => {
-          const ativas = rdoStats.obrasAtivas || 0;
-          const sem = (rdoStats.obrasSemRdoOntem || []).length;
-          const lancados = Math.max(0, ativas - sem);
-          const atrasadas = rdoStats.obrasAtrasadas || [];
-          const aderMes = rdoStats.aderenciaMes != null ? rdoStats.aderenciaMes : rdoStats.aderencia7d;
-          const aderColor = aderMes >= 80 ? 'var(--rh-pos-strong)'
-                          : aderMes >= 50 ? 'var(--rh-warn-strong)'
-                          : 'var(--rh-neg-strong)';
-          const semList = rdoStats.obrasSemRdoOntem || [];
-          return `
+        ${
+          rdoStats
+            ? (() => {
+                const ativas = rdoStats.obrasAtivas || 0;
+                const sem = (rdoStats.obrasSemRdoOntem || []).length;
+                const lancados = Math.max(0, ativas - sem);
+                const atrasadas = rdoStats.obrasAtrasadas || [];
+                const aderMes =
+                  rdoStats.aderenciaMes != null ? rdoStats.aderenciaMes : rdoStats.aderencia7d;
+                const aderColor =
+                  aderMes >= 80
+                    ? 'var(--rh-pos-strong)'
+                    : aderMes >= 50
+                      ? 'var(--rh-warn-strong)'
+                      : 'var(--rh-neg-strong)';
+                const semList = rdoStats.obrasSemRdoOntem || [];
+                return `
           <div class="card" style="margin-bottom:0;">
             <div class="rh-between" style="margin-bottom:var(--sp-md);">
               <div>
                 <h3 class="rh-h2" style="margin:0;">RDOs</h3>
                 <div class="rh-meta">Aderência mensal</div>
               </div>
-              ${atrasadas.length > 0
-                ? `<span class="rh-pill rh-pill-warn"><span class="rh-pill-dot"></span>${atrasadas.length} atrasado${atrasadas.length !== 1 ? 's' : ''}</span>`
-                : `<span class="rh-pill rh-pill-pos"><span class="rh-pill-dot"></span>em dia</span>`}
+              ${
+                atrasadas.length > 0
+                  ? `<span class="rh-pill rh-pill-warn"><span class="rh-pill-dot"></span>${atrasadas.length} atrasado${atrasadas.length !== 1 ? 's' : ''}</span>`
+                  : `<span class="rh-pill rh-pill-pos"><span class="rh-pill-dot"></span>em dia</span>`
+              }
             </div>
             <div style="display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:8px 0;">
               <div class="rh-display" style="font-size:42px;font-weight:800;color:${aderColor};line-height:1;grid-row:span 3;align-self:center;">${aderMes}%<div style="font-size:11px;font-weight:600;color:var(--rh-ink-500);text-transform:uppercase;letter-spacing:.06em;margin-top:6px;">aderência mês</div></div>
@@ -452,17 +594,24 @@ window.Dashboard = {
               <div style="font-size:14px;color:var(--rh-ink-700);" title="Obras com mais de 2 dias úteis sem RDO. Prioridade alta para cobrança.">Atrasados &gt;2du</div>
               <div style="text-align:right;" title="Obras atrasadas (>2 dias úteis sem RDO)."><span class="rh-pill ${atrasadas.length > 0 ? 'rh-pill-neg' : 'rh-pill-pos'}">${atrasadas.length}</span></div>
             </div>
-            ${semList.length > 0 ? `
+            ${
+              semList.length > 0
+                ? `
               <div style="border-top:1px solid var(--rh-ink-200);margin-top:var(--sp-md);padding-top:var(--sp-md);">
                 <div class="rh-label" style="margin-bottom:8px;">Obras sem RDO ontem</div>
                 <div style="display:flex;flex-direction:column;gap:8px;">
-                  ${semList.slice(0, 6).map(o => {
-                    // Tenta achar diasUteisSemRdo na lista de atrasadas
-                    const a = atrasadas.find(x => x.contractId === o.contractId);
-                    const dias = a ? (a.nuncaFezRdo ? null : a.diasUteisSemRdo) : null;
-                    const sub = dias != null ? `sem lançamento há ${dias} dia${dias !== 1 ? 's' : ''} úteis` : 'sem lançamento ontem';
-                    const ctCode = o.contractNumber || (o.name ? o.name.slice(0, 8) : '');
-                    return `
+                  ${semList
+                    .slice(0, 6)
+                    .map((o) => {
+                      // Tenta achar diasUteisSemRdo na lista de atrasadas
+                      const a = atrasadas.find((x) => x.contractId === o.contractId);
+                      const dias = a ? (a.nuncaFezRdo ? null : a.diasUteisSemRdo) : null;
+                      const sub =
+                        dias != null
+                          ? `sem lançamento há ${dias} dia${dias !== 1 ? 's' : ''} úteis`
+                          : 'sem lançamento ontem';
+                      const ctCode = o.contractNumber || (o.name ? o.name.slice(0, 8) : '');
+                      return `
                       <div class="rh-row" style="justify-content:space-between;">
                         <div class="rh-row-sm" style="min-width:0;">
                           <span class="rh-pill-dot" style="background:var(--rh-neg-strong);"></span>
@@ -477,14 +626,19 @@ window.Dashboard = {
                         <a href="#/contratos/${o.contractId}" class="btn btn-secondary btn-sm" style="white-space:nowrap;">Cobrar</a>
                       </div>
                     `;
-                  }).join('')}
+                    })
+                    .join('')}
                   ${semList.length > 6 ? `<div class="rh-meta" style="text-align:center;padding-top:4px;">+ ${semList.length - 6} — <a href="#/rdos" class="rh-link">ver todas</a></div>` : ''}
                 </div>
               </div>
-            ` : ''}
+            `
+                : ''
+            }
           </div>
           `;
-        })() : ''}
+              })()
+            : ''
+        }
           </div>
         </div>
 
@@ -519,10 +673,10 @@ window.Dashboard = {
 
       await this.renderChart(dash);
       this._bindPeriodoCtrl();
-
     } catch (e) {
       console.error(e);
-      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar dashboard. Tente novamente.</p></div>';
+      app.innerHTML =
+        '<div class="card"><p class="text-danger">Erro ao carregar dashboard. Tente novamente.</p></div>';
     }
   },
 
@@ -547,22 +701,30 @@ window.Dashboard = {
                 <div style="width:24px;height:3px;background:#F0B429;border-radius:2px;"></div>
                 <span class="rh-meta">Realizado</span>
               </div>
-              ${this.periodo.modo === 'recente' ? `
+              ${
+                this.periodo.modo === 'recente'
+                  ? `
               <div class="rh-row-sm">
                 <div style="width:24px;height:3px;background:#60A5FA;border-radius:2px;border-top:2px dashed #60A5FA;"></div>
                 <span class="rh-meta">Projetado (NFs)</span>
               </div>
               <div id="projDaysCtrl" style="display:inline-flex;border:1px solid var(--color-border);border-radius:6px;overflow:hidden;">
-                ${[30, 60, 90].map(d => `
+                ${[30, 60, 90]
+                  .map(
+                    (d) => `
                   <button data-days="${d}" style="
                     padding:6px 12px;border:0;cursor:pointer;font-size:13px;font-weight:600;
                     background:${this.projDays === d ? '#60A5FA' : 'transparent'};
                     color:${this.projDays === d ? '#fff' : 'var(--color-text-muted)'};
                     border-right:${d !== 90 ? '1px solid var(--color-border)' : '0'};
                   ">${d}d</button>
-                `).join('')}
+                `
+                  )
+                  .join('')}
               </div>
-              ` : ''}
+              `
+                  : ''
+              }
               <span style="font-weight:700;color:${saudeScore.color};font-size:15px;">${saudeScore.label}</span>
             </div>
           </div>
@@ -578,7 +740,9 @@ window.Dashboard = {
     if (!(dash.projecaoFutura.length > 0)) return '';
     // Achata todas as entradas e mostra só as 6 mais próximas; o total agregado
     // e "ver todas" cobrem o resto (gerencial primeiro, detalhe no módulo de NFs).
-    const todas = dash.projecaoFutura.flatMap(p => p.entradas.map(e => ({ ...e, _data: p.data })));
+    const todas = dash.projecaoFutura.flatMap((p) =>
+      p.entradas.map((e) => ({ ...e, _data: p.data }))
+    );
     const total = dash.projecaoFutura.reduce((s, p) => s + p.totalEntradas, 0);
     const linhas = todas.slice(0, 6);
     const resto = todas.length - linhas.length;
@@ -600,11 +764,17 @@ window.Dashboard = {
                   </tr>
                 </thead>
                 <tbody>
-                  ${linhas.map(e => {
-                    const contract = Store.getContractById(e.contractId);
-                    const diasAte  = Math.floor((new Date(e._data) - new Date()) / 86400000);
-                    const urgCor   = diasAte <= 7 ? 'var(--color-success)' : diasAte <= 30 ? 'var(--color-info)' : 'var(--color-text-muted)';
-                    return `
+                  ${linhas
+                    .map((e) => {
+                      const contract = Store.getContractById(e.contractId);
+                      const diasAte = Math.floor((new Date(e._data) - new Date()) / 86400000);
+                      const urgCor =
+                        diasAte <= 7
+                          ? 'var(--color-success)'
+                          : diasAte <= 30
+                            ? 'var(--color-info)'
+                            : 'var(--color-text-muted)';
+                      return `
                       <tr class="row-dash-fut" data-nf-id="${e.nfId}" style="cursor:pointer;">
                         <td>
                           <strong style="color:${urgCor};">${new Date(e._data + 'T12:00:00').toLocaleDateString('pt-BR')}</strong>
@@ -618,7 +788,8 @@ window.Dashboard = {
                         </td>
                       </tr>
                     `;
-                  }).join('')}
+                    })
+                    .join('')}
                 </tbody>
                 <tfoot>
                   <tr>
@@ -641,16 +812,20 @@ window.Dashboard = {
           </div>
           <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(105px,1fr)); gap:8px;">
             ${[
-              { tone: 'neg',  label: 'Vencidas',     value: dash.nfsStatus.vencidas },
+              { tone: 'neg', label: 'Vencidas', value: dash.nfsStatus.vencidas },
               { tone: 'warn', label: 'Próx. 7 dias', value: dash.nfsStatus.proximasVencer },
-              { tone: 'pos',  label: 'No prazo',     value: dash.nfsStatus.noPrazo },
-              { tone: 'info', label: 'Emitidas',     value: dash.nfsStatus.emitidas || 0 },
-            ].map(s => `
+              { tone: 'pos', label: 'No prazo', value: dash.nfsStatus.noPrazo },
+              { tone: 'info', label: 'Emitidas', value: dash.nfsStatus.emitidas || 0 },
+            ]
+              .map(
+                (s) => `
               <div class="rh-pipeline-stage ${s.value > 0 && s.tone === 'neg' ? 'is-active' : ''}" style="text-align:left;">
                 <div class="rh-pipeline-stage-label rh-row-sm">${window.rhStatusPill ? window.rhStatusPill(s.tone, s.label) : s.label}</div>
                 <div class="rh-pipeline-stage-count">${s.value}</div>
               </div>
-            `).join('')}
+            `
+              )
+              .join('')}
           </div>
         </div>`;
   },
@@ -666,15 +841,30 @@ window.Dashboard = {
           </div>
           <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(105px,1fr)); gap:8px;">
             ${[
-              { tone: 'neg',  label: 'Vencidas',     value: dash.contasPagarStatus?.vencidas || 0 },
-              { tone: 'warn', label: 'Próx. 7 dias', value: dash.contasPagarStatus?.proximasVencer || 0 },
-              { tone: 'pos',  label: 'No prazo',     value: (dash.contasPagarStatus?.pendentes || 0) - (dash.contasPagarStatus?.vencidas || 0) - (dash.contasPagarStatus?.proximasVencer || 0) },
-            ].map(s => `
+              { tone: 'neg', label: 'Vencidas', value: dash.contasPagarStatus?.vencidas || 0 },
+              {
+                tone: 'warn',
+                label: 'Próx. 7 dias',
+                value: dash.contasPagarStatus?.proximasVencer || 0,
+              },
+              {
+                tone: 'pos',
+                label: 'No prazo',
+                value:
+                  (dash.contasPagarStatus?.pendentes || 0) -
+                  (dash.contasPagarStatus?.vencidas || 0) -
+                  (dash.contasPagarStatus?.proximasVencer || 0),
+              },
+            ]
+              .map(
+                (s) => `
               <div class="rh-pipeline-stage ${s.value > 0 && s.tone === 'neg' ? 'is-active' : ''}" style="text-align:left;">
                 <div class="rh-pipeline-stage-label rh-row-sm">${window.rhStatusPill ? window.rhStatusPill(s.tone, s.label) : s.label}</div>
                 <div class="rh-pipeline-stage-count">${s.value}</div>
               </div>
-            `).join('')}
+            `
+              )
+              .join('')}
             <div class="rh-pipeline-stage" style="text-align:left;border-left-color:var(--rh-neg-strong);">
               <div class="rh-pipeline-stage-label" style="color:var(--rh-neg-text);">Total pendente</div>
               <div class="rh-pipeline-stage-count" style="font-size:22px;color:var(--rh-neg-strong);">${Store.formatBRL(dash.contasPagarStatus?.totalPendente || 0)}</div>
@@ -691,11 +881,16 @@ window.Dashboard = {
             <div class="card-header">
               <h3 class="card-title">Contratos a Vencer (30 dias)</h3>
             </div>
-            ${dash.contratosAVencer.length === 0 ? `
+            ${
+              dash.contratosAVencer.length === 0
+                ? `
               <p style="color:var(--color-text-muted); padding:var(--sp-md) 0;">Nenhum contrato vence nos próximos 30 dias</p>
-            ` : `
+            `
+                : `
               <div style="display:flex; flex-direction:column; gap:var(--sp-sm);">
-                ${dash.contratosAVencer.map(c => `
+                ${dash.contratosAVencer
+                  .map(
+                    (c) => `
                   <div style="display:flex; justify-content:space-between; align-items:center; padding:var(--sp-md); background:${c.diasRestantes <= 7 ? 'rgba(229,62,62,.06)' : 'rgba(214,158,46,.06)'}; border-radius:6px; border-left:3px solid ${c.diasRestantes <= 7 ? 'var(--color-danger)' : 'var(--color-warning)'};">
                     <div>
                       <a href="#/contratos/${c.id}" style="font-weight:600; color:var(--color-primary); text-decoration:none;">${escapeHtml(c.name)}</a>
@@ -706,9 +901,12 @@ window.Dashboard = {
                       <div class="rh-meta">${new Date(c.endDate).toLocaleDateString('pt-BR')}</div>
                     </div>
                   </div>
-                `).join('')}
+                `
+                  )
+                  .join('')}
               </div>
-            `}
+            `
+            }
           </div>
 
           <div class="card">
@@ -725,12 +923,22 @@ window.Dashboard = {
                   </tr>
                 </thead>
                 <tbody>
-                  ${dash.contractsWithMargin.length === 0 ? `
+                  ${
+                    dash.contractsWithMargin.length === 0
+                      ? `
                     <tr><td colspan="3" style="text-align:center; color:var(--color-text-muted); padding:var(--sp-xl);">Nenhum contrato</td></tr>
-                  ` : dash.contractsWithMargin.slice(0, 8).map(c => {
-                    const pct = parseFloat(c.marginPct);
-                    const cor = pct < 0 ? 'var(--color-danger)' : pct < 20 ? 'var(--color-warning)' : 'var(--color-success)';
-                    return `
+                  `
+                      : dash.contractsWithMargin
+                          .slice(0, 8)
+                          .map((c) => {
+                            const pct = parseFloat(c.marginPct);
+                            const cor =
+                              pct < 0
+                                ? 'var(--color-danger)'
+                                : pct < 20
+                                  ? 'var(--color-warning)'
+                                  : 'var(--color-success)';
+                            return `
                       <tr>
                         <td>
                           <a href="#/contratos/${c.id}" style="color:var(--color-primary); text-decoration:none; font-weight:500;">${escapeHtml(c.name)}</a>
@@ -745,7 +953,9 @@ window.Dashboard = {
                         </td>
                       </tr>
                     `;
-                  }).join('')}
+                          })
+                          .join('')
+                  }
                 </tbody>
                 ${dash.contractsWithMargin.length > 8 ? `<tfoot><tr><td colspan="3" style="text-align:center;color:var(--color-text-muted);padding-top:8px;">+ ${dash.contractsWithMargin.length - 8} contratos — <a href="#/contratos" class="rh-link">ver todos</a></td></tr></tfoot>` : ''}
               </table>
@@ -757,8 +967,9 @@ window.Dashboard = {
   // Card "Últimas Movimentações — Caixa" com filtro entrada/saída/ambos
   // (estado em this.movFiltro; os botões são religados em _bindPeriodoCtrl).
   _renderUltimasMovimentacoes(dash) {
-    const todas = (dash.recentCaixaEntries || [])
-      .filter(e => this.movFiltro === 'ambos' ? true : e.type === this.movFiltro);
+    const todas = (dash.recentCaixaEntries || []).filter((e) =>
+      this.movFiltro === 'ambos' ? true : e.type === this.movFiltro
+    );
     const filtradas = todas.slice(0, 6);
     return `
           <div class="card" style="margin-top:var(--sp-lg);">
@@ -767,26 +978,35 @@ window.Dashboard = {
               <div style="display:flex;align-items:center;gap:var(--sp-md);">
                 <div id="movFiltroCtrl" style="display:inline-flex;border:1px solid var(--color-border);border-radius:6px;overflow:hidden;">
                   ${[
-                    { k: 'ambos',   l: 'Ambos',   c: '#60A5FA' },
+                    { k: 'ambos', l: 'Ambos', c: '#60A5FA' },
                     { k: 'entrada', l: 'Entradas', c: 'var(--color-success)' },
-                    { k: 'saida',   l: 'Saídas',  c: 'var(--color-danger)' },
-                  ].map((b, i) => `
+                    { k: 'saida', l: 'Saídas', c: 'var(--color-danger)' },
+                  ]
+                    .map(
+                      (b, i) => `
                     <button data-filtro="${b.k}" style="
                       padding:5px 12px;border:0;cursor:pointer;font-size:13px;font-weight:600;
                       background:${this.movFiltro === b.k ? b.c : 'transparent'};
                       color:${this.movFiltro === b.k ? '#fff' : 'var(--color-text-muted)'};
                       ${i < 2 ? 'border-right:1px solid var(--color-border);' : ''}
                     ">${b.l}</button>
-                  `).join('')}
+                  `
+                    )
+                    .join('')}
                 </div>
                 <a href="#/caixa" class="rh-link">Ver todos →</a>
               </div>
             </div>
-            ${filtradas.length === 0 ? `
+            ${
+              filtradas.length === 0
+                ? `
               <p style="color:var(--color-text-muted);padding:var(--sp-md) 0;">Nenhuma movimentação no filtro selecionado</p>
-            ` : `
+            `
+                : `
               <div style="display:flex; flex-direction:column;">
-                ${filtradas.map(e => `
+                ${filtradas
+                  .map(
+                    (e) => `
                   <div class="row-dash-mov" data-id="${e.id}" style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--color-border); cursor:pointer;">
                     <div>
                       <div style="font-weight:500;">${escapeHtml(e.description)}</div>
@@ -799,12 +1019,15 @@ window.Dashboard = {
                       <span class="badge badge-${e.type}">${e.type}</span>
                     </div>
                   </div>
-                `).join('')}
+                `
+                  )
+                  .join('')}
               </div>
               <div style="padding:var(--sp-sm) 0 0;color:var(--color-text-muted);font-size:13px;text-align:center;">
                 ${todas.length > filtradas.length ? `+ ${todas.length - filtradas.length} movimentações — <a href="#/caixa" class="rh-link">ver todas</a>` : `${todas.length} movimentaç${todas.length === 1 ? 'ão' : 'ões'}`}
               </div>
-            `}
+            `
+            }
           </div>`;
   },
 
@@ -822,8 +1045,14 @@ window.Dashboard = {
     const custoCard = (label, atual, anterior, href, extra) => {
       const d = delta(atual, anterior);
       // Custo subindo é ruim (vermelho); caindo é bom (verde).
-      const cor = d ? (d.up ? 'var(--rh-neg-strong)' : 'var(--rh-pos-strong)') : 'var(--rh-ink-500)';
-      const meta = d ? `${d.up ? '↑' : '↓'} ${d.pct.toFixed(0)}% vs mês anterior` : 'sem comparativo';
+      const cor = d
+        ? d.up
+          ? 'var(--rh-neg-strong)'
+          : 'var(--rh-pos-strong)'
+        : 'var(--rh-ink-500)';
+      const meta = d
+        ? `${d.up ? '↑' : '↓'} ${d.pct.toFixed(0)}% vs mês anterior`
+        : 'sem comparativo';
       return `<a href="${href}" class="rh-kpi" style="text-decoration:none;color:inherit;">
         <div class="rh-kpi-label">${escapeHtml(label)}</div>
         <div class="rh-kpi-value">${brlk(atual)}</div>
@@ -836,18 +1065,24 @@ window.Dashboard = {
         <div class="rh-kpi-value" style="${warn ? 'color:var(--rh-warn-strong);' : ''}">${value}</div>
         <div class="rh-kpi-meta">${escapeHtml(meta || '')}</div>
       </a>`;
-    const top = (op.topCombustivel || []);
-    const topFuel = top.length ? `
+    const top = op.topCombustivel || [];
+    const topFuel = top.length
+      ? `
       <div style="margin-top:var(--sp-md);border-top:1px solid var(--color-border);padding-top:var(--sp-md);">
         <div class="rh-label" style="margin-bottom:8px;">🏆 Top combustível do mês (por carro)</div>
         <div style="display:flex;flex-direction:column;gap:6px;">
-          ${top.map((c, i) => `<div class="rh-row" style="justify-content:space-between;">
+          ${top
+            .map(
+              (c, i) => `<div class="rh-row" style="justify-content:space-between;">
             <div class="rh-row-sm"><span style="font-weight:800;color:var(--rh-ink-500);min-width:22px;">${i + 1}º</span>
               <div><div style="font-weight:600;">${escapeHtml(c.placa || '—')}</div><div class="rh-meta-xs">${escapeHtml(c.modelo || '')} · ${(c.litros || 0).toFixed(0)} L</div></div></div>
             <div style="font-weight:700;">${Store.formatBRL(c.total)}</div>
-          </div>`).join('')}
+          </div>`
+            )
+            .join('')}
         </div>
-      </div>` : '';
+      </div>`
+      : '';
     return `
       <div class="card mb-md">
         <div class="card-header">
@@ -871,7 +1106,20 @@ window.Dashboard = {
     const now = new Date();
     const anoAtual = now.getFullYear();
     const anos = [anoAtual - 2, anoAtual - 1, anoAtual, anoAtual + 1];
-    const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const meses = [
+      'Jan',
+      'Fev',
+      'Mar',
+      'Abr',
+      'Mai',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Set',
+      'Out',
+      'Nov',
+      'Dez',
+    ];
     const { modo, mes, ano } = this.periodo;
 
     return `
@@ -884,7 +1132,7 @@ window.Dashboard = {
         ${meses.map((m, i) => `<option value="${i + 1}" ${mes === i + 1 ? 'selected' : ''}>${m}</option>`).join('')}
       </select>
       <select id="dash-ano" style="background:var(--color-surface);color:var(--color-text);border:1px solid var(--color-border);border-radius:6px;padding:6px 10px;font-size:15px;cursor:pointer;display:${modo !== 'recente' ? 'block' : 'none'};">
-        ${anos.map(a => `<option value="${a}" ${ano === a ? 'selected' : ''}>${a}</option>`).join('')}
+        ${anos.map((a) => `<option value="${a}" ${ano === a ? 'selected' : ''}>${a}</option>`).join('')}
       </select>
     `;
   },
@@ -907,7 +1155,7 @@ window.Dashboard = {
       this.periodo = {
         modo,
         mes: parseInt(mesEl.value) || now.getMonth() + 1,
-        ano: parseInt(anoEl.value) || now.getFullYear()
+        ano: parseInt(anoEl.value) || now.getFullYear(),
       };
       this.render();
     });
@@ -923,7 +1171,7 @@ window.Dashboard = {
     });
 
     // Botões 30/60/90 dias de projeção
-    document.querySelectorAll('#projDaysCtrl button[data-days]').forEach(btn => {
+    document.querySelectorAll('#projDaysCtrl button[data-days]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const d = parseInt(btn.dataset.days);
         if (d && d !== this.projDays) {
@@ -934,7 +1182,7 @@ window.Dashboard = {
     });
 
     // Filtro entrada/saída/ambos
-    document.querySelectorAll('#movFiltroCtrl button[data-filtro]').forEach(btn => {
+    document.querySelectorAll('#movFiltroCtrl button[data-filtro]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const f = btn.dataset.filtro;
         if (f && f !== this.movFiltro) {
@@ -945,7 +1193,7 @@ window.Dashboard = {
     });
 
     // Click na linha de movimentação → modal de detalhe (reusa Caixa.showDetail)
-    document.querySelectorAll('.row-dash-mov').forEach(row => {
+    document.querySelectorAll('.row-dash-mov').forEach((row) => {
       row.addEventListener('click', () => {
         const id = row.dataset.id;
         if (window.Caixa?.showDetail) window.Caixa.showDetail(id);
@@ -953,7 +1201,7 @@ window.Dashboard = {
     });
 
     // Click na linha de entradas previstas → modal de detalhe da NF
-    document.querySelectorAll('.row-dash-fut').forEach(row => {
+    document.querySelectorAll('.row-dash-fut').forEach((row) => {
       row.addEventListener('click', () => {
         const nfId = row.dataset.nfId;
         if (window.NotasFiscais?.showDetail) window.NotasFiscais.showDetail(nfId);
@@ -970,27 +1218,33 @@ window.Dashboard = {
     const hoje = new Date();
     const mesIni = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
     const inMes = (dStr) => dStr && new Date(dStr) >= mesIni;
-    const nfById = new Map(nfsList.map(n => [n.id, n]));
+    const nfById = new Map(nfsList.map((n) => [n.id, n]));
     const stats = {
-      rascunho:      { count: 0, valor: 0 },
+      rascunho: { count: 0, valor: 0 },
       aguardEmissao: { count: 0, valor: 0 },
-      nfEmitida:     { count: 0, valor: 0 },
-      recebida:      { count: 0, valor: 0 },
+      nfEmitida: { count: 0, valor: 0 },
+      recebida: { count: 0, valor: 0 },
     };
-    saidasList.filter(s => inMes(s.date)).forEach(s => {
-      const v = parseFloat(s.value) || 0;
-      const nfId = s.nfId || s.nf_id;
-      const nf = nfId ? nfById.get(nfId) : null;
-      if (!nf) {
-        stats.rascunho.count++; stats.rascunho.valor += v;
-      } else if (!nf.emitida && nf.status !== 'emitida') {
-        stats.aguardEmissao.count++; stats.aguardEmissao.valor += v;
-      } else if (!(nf.caixaEntryId || nf.caixa_entry_id)) {
-        stats.nfEmitida.count++; stats.nfEmitida.valor += v;
-      } else {
-        stats.recebida.count++; stats.recebida.valor += v;
-      }
-    });
+    saidasList
+      .filter((s) => inMes(s.date))
+      .forEach((s) => {
+        const v = parseFloat(s.value) || 0;
+        const nfId = s.nfId || s.nf_id;
+        const nf = nfId ? nfById.get(nfId) : null;
+        if (!nf) {
+          stats.rascunho.count++;
+          stats.rascunho.valor += v;
+        } else if (!nf.emitida && nf.status !== 'emitida') {
+          stats.aguardEmissao.count++;
+          stats.aguardEmissao.valor += v;
+        } else if (!(nf.caixaEntryId || nf.caixa_entry_id)) {
+          stats.nfEmitida.count++;
+          stats.nfEmitida.valor += v;
+        } else {
+          stats.recebida.count++;
+          stats.recebida.valor += v;
+        }
+      });
     return stats;
   },
 
@@ -1011,26 +1265,36 @@ window.Dashboard = {
     const hojeStr = new Date().toISOString().split('T')[0];
 
     // Contas a Receber — NFs ainda não emitidas/recebidas
-    const nfPendentes = (Store.state.notas_fiscais || []).filter(nf => !nf.emitida);
-    const recOpen    = nfPendentes.filter(nf => !nf.dataLimite || nf.dataLimite >= hojeStr);
-    const recOverdue = nfPendentes.filter(nf => nf.dataLimite && nf.dataLimite <  hojeStr);
-    const recOpenVal    = recOpen.reduce((s, nf) => s + (parseFloat(nf.valor) || 0), 0);
+    const nfPendentes = (Store.state.notas_fiscais || []).filter((nf) => !nf.emitida);
+    const recOpen = nfPendentes.filter((nf) => !nf.dataLimite || nf.dataLimite >= hojeStr);
+    const recOverdue = nfPendentes.filter((nf) => nf.dataLimite && nf.dataLimite < hojeStr);
+    const recOpenVal = recOpen.reduce((s, nf) => s + (parseFloat(nf.valor) || 0), 0);
     const recOverdueVal = recOverdue.reduce((s, nf) => s + (parseFloat(nf.valor) || 0), 0);
     const recTotal = recOpenVal + recOverdueVal;
-    const recOpenPct    = recTotal > 0 ? (recOpenVal    / recTotal) * 100 : 0;
+    const recOpenPct = recTotal > 0 ? (recOpenVal / recTotal) * 100 : 0;
     const recOverduePct = recTotal > 0 ? (recOverdueVal / recTotal) * 100 : 0;
 
     // Contas a Pagar — contas pendentes
-    const cpPendentes = (Store.state.contas_pagar || []).filter(c => c.status === 'pendente');
-    const payOpen    = cpPendentes.filter(c => !c.dataVencimento || c.dataVencimento >= hojeStr);
-    const payOverdue = cpPendentes.filter(c => c.dataVencimento && c.dataVencimento <  hojeStr);
-    const payOpenVal    = payOpen.reduce((s, c) => s + (parseFloat(c.valor) || 0), 0);
+    const cpPendentes = (Store.state.contas_pagar || []).filter((c) => c.status === 'pendente');
+    const payOpen = cpPendentes.filter((c) => !c.dataVencimento || c.dataVencimento >= hojeStr);
+    const payOverdue = cpPendentes.filter((c) => c.dataVencimento && c.dataVencimento < hojeStr);
+    const payOpenVal = payOpen.reduce((s, c) => s + (parseFloat(c.valor) || 0), 0);
     const payOverdueVal = payOverdue.reduce((s, c) => s + (parseFloat(c.valor) || 0), 0);
     const payTotal = payOpenVal + payOverdueVal;
-    const payOpenPct    = payTotal > 0 ? (payOpenVal    / payTotal) * 100 : 0;
+    const payOpenPct = payTotal > 0 ? (payOpenVal / payTotal) * 100 : 0;
     const payOverduePct = payTotal > 0 ? (payOverdueVal / payTotal) * 100 : 0;
 
-    const card = (titulo, link, subtitulo, total, totalLabel, openVal, openPct, overdueVal, overduePct) => `
+    const card = (
+      titulo,
+      link,
+      subtitulo,
+      total,
+      totalLabel,
+      openVal,
+      openPct,
+      overdueVal,
+      overduePct
+    ) => `
       <div class="card" style="padding:20px 22px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
           <h3 style="font-size:16px;font-weight:700;color:var(--color-text);margin:0;letter-spacing:-.01em;">${titulo}</h3>
@@ -1069,7 +1333,10 @@ window.Dashboard = {
           'Valor que você tem a receber dos seus clientes',
           recTotal,
           'Total de notas fiscais pendentes',
-          recOpenVal, recOpenPct, recOverdueVal, recOverduePct
+          recOpenVal,
+          recOpenPct,
+          recOverdueVal,
+          recOverduePct
         )}
         ${card(
           'Contas a Pagar',
@@ -1077,7 +1344,10 @@ window.Dashboard = {
           'Valor que você tem a pagar aos seus fornecedores',
           payTotal,
           'Total de contas pendentes',
-          payOpenVal, payOpenPct, payOverdueVal, payOverduePct
+          payOpenVal,
+          payOpenPct,
+          payOverdueVal,
+          payOverduePct
         )}
       </div>
     `;
@@ -1090,38 +1360,69 @@ window.Dashboard = {
     // (ver `nomes` abaixo). Nunca interpole nome/descrição/observação cru.
     const alertas = [];
     if (dash.nfsStatus.vencidas > 0)
-      alertas.push({ tipo: 'danger', msg: `🔴 ${dash.nfsStatus.vencidas} nota(s) fiscal(is) VENCIDA(S) — emita imediatamente!` });
+      alertas.push({
+        tipo: 'danger',
+        msg: `🔴 ${dash.nfsStatus.vencidas} nota(s) fiscal(is) VENCIDA(S) — emita imediatamente!`,
+      });
     if (dash.nfsStatus.proximasVencer > 0)
-      alertas.push({ tipo: 'warning', msg: `⚠️ ${dash.nfsStatus.proximasVencer} nota(s) fiscal(is) vence(m) em até 7 dias` });
-    if (dash.contratosAVencer.some(c => c.diasRestantes <= 7))
-      alertas.push({ tipo: 'warning', msg: `⚠️ Há contratos encerrando em menos de 7 dias — faça follow-up com o cliente` });
+      alertas.push({
+        tipo: 'warning',
+        msg: `⚠️ ${dash.nfsStatus.proximasVencer} nota(s) fiscal(is) vence(m) em até 7 dias`,
+      });
+    if (dash.contratosAVencer.some((c) => c.diasRestantes <= 7))
+      alertas.push({
+        tipo: 'warning',
+        msg: `⚠️ Há contratos encerrando em menos de 7 dias — faça follow-up com o cliente`,
+      });
     if (dash.caixaBalance < 0)
-      alertas.push({ tipo: 'danger', msg: `🔴 Saldo de caixa negativo: ${Store.formatBRL(dash.caixaBalance)}` });
+      alertas.push({
+        tipo: 'danger',
+        msg: `🔴 Saldo de caixa negativo: ${Store.formatBRL(dash.caixaBalance)}`,
+      });
     if (dash.contasPagarStatus?.vencidas > 0)
-      alertas.push({ tipo: 'danger', msg: `🔴 ${dash.contasPagarStatus.vencidas} conta(s) a pagar VENCIDA(S) — <a href="#/contas-pagar" style="color:inherit;text-decoration:underline;">ver Contas a Pagar</a>` });
+      alertas.push({
+        tipo: 'danger',
+        msg: `🔴 ${dash.contasPagarStatus.vencidas} conta(s) a pagar VENCIDA(S) — <a href="#/contas-pagar" style="color:inherit;text-decoration:underline;">ver Contas a Pagar</a>`,
+      });
     if (dash.contasPagarStatus?.proximasVencer > 0)
-      alertas.push({ tipo: 'warning', msg: `⚠️ ${dash.contasPagarStatus.proximasVencer} conta(s) a pagar vence(m) em até 7 dias — total ${Store.formatBRL(dash.contasPagarStatus.totalPendente)}` });
+      alertas.push({
+        tipo: 'warning',
+        msg: `⚠️ ${dash.contasPagarStatus.proximasVencer} conta(s) a pagar vence(m) em até 7 dias — total ${Store.formatBRL(dash.contasPagarStatus.totalPendente)}`,
+      });
 
     // Alertas de RDO (compliance de obras)
     const rs = this._rdoStats;
     if (rs && !rs.ehFimDeSemana) {
       if (rs.obrasSemRdoOntem && rs.obrasSemRdoOntem.length > 0) {
-        const nomes = rs.obrasSemRdoOntem.slice(0, 3).map(o => escapeHtml(o.name || '')).join(', ');
-        const sufixo = rs.obrasSemRdoOntem.length > 3 ? ` e mais ${rs.obrasSemRdoOntem.length - 3}` : '';
-        alertas.push({ tipo: 'danger', msg: `🔴 ${rs.obrasSemRdoOntem.length} obra(s) sem RDO no último dia útil: ${nomes}${sufixo} — <a href="#/rdos" style="color:inherit;text-decoration:underline;">ver RDOs</a>` });
+        const nomes = rs.obrasSemRdoOntem
+          .slice(0, 3)
+          .map((o) => escapeHtml(o.name || ''))
+          .join(', ');
+        const sufixo =
+          rs.obrasSemRdoOntem.length > 3 ? ` e mais ${rs.obrasSemRdoOntem.length - 3}` : '';
+        alertas.push({
+          tipo: 'danger',
+          msg: `🔴 ${rs.obrasSemRdoOntem.length} obra(s) sem RDO no último dia útil: ${nomes}${sufixo} — <a href="#/rdos" style="color:inherit;text-decoration:underline;">ver RDOs</a>`,
+        });
       }
       if (rs.obrasAtrasadas && rs.obrasAtrasadas.length > 0) {
-        alertas.push({ tipo: 'warning', msg: `⚠️ ${rs.obrasAtrasadas.length} obra(s) com mais de 2 dias úteis sem RDO — <a href="#/rdos" style="color:inherit;text-decoration:underline;">ver RDOs</a>` });
+        alertas.push({
+          tipo: 'warning',
+          msg: `⚠️ ${rs.obrasAtrasadas.length} obra(s) com mais de 2 dias úteis sem RDO — <a href="#/rdos" style="color:inherit;text-decoration:underline;">ver RDOs</a>`,
+        });
       }
       if (typeof rs.aderencia7d === 'number' && rs.aderencia7d < 50) {
-        alertas.push({ tipo: 'warning', msg: `⚠️ Aderência de RDOs nos últimos ${rs.diasUteisAvaliados} dias úteis: ${rs.aderencia7d}% — abaixo do esperado` });
+        alertas.push({
+          tipo: 'warning',
+          msg: `⚠️ Aderência de RDOs nos últimos ${rs.diasUteisAvaliados} dias úteis: ${rs.aderencia7d}% — abaixo do esperado`,
+        });
       }
     }
 
     // F6: Anomaly detection alerts
     const anomalias = this._anomalias || [];
     if (anomalias.length > 0) {
-      const alta = anomalias.filter(a => a.severidade === 'alta');
+      const alta = anomalias.filter((a) => a.severidade === 'alta');
       if (alta.length > 0) {
         alertas.push({
           tipo: 'danger',
@@ -1138,11 +1439,15 @@ window.Dashboard = {
     if (alertas.length === 0) return '';
     return `
       <div style="display:flex; flex-direction:column; gap:var(--sp-sm); margin-bottom:var(--sp-lg);">
-        ${alertas.map(a => `
+        ${alertas
+          .map(
+            (a) => `
           <div style="padding:var(--sp-md); border-radius:8px; background:rgba(${a.tipo === 'danger' ? '229,62,62' : '214,158,46'},.1); border-left:4px solid var(--color-${a.tipo});">
             <p style="margin:0; font-weight:600; color:var(--color-${a.tipo});">${a.msg}</p>
           </div>
-        `).join('')}
+        `
+          )
+          .join('')}
       </div>
     `;
   },
@@ -1152,18 +1457,29 @@ window.Dashboard = {
     if (typeof window.Chart === 'undefined' && window.RhinoLazy) {
       await window.RhinoLazy.ensure('chart');
     }
-    if (this.chart) { this.chart.destroy(); this.chart = null; }
+    if (this.chart) {
+      this.chart.destroy();
+      this.chart = null;
+    }
     const canvas = document.getElementById('chartSaude');
     if (!canvas || typeof Chart === 'undefined') return;
 
-    const podeVerValores = !window.perfil || typeof window.perfil.podeVerValores !== 'function' || window.perfil.podeVerValores();
-    const fmt = v => podeVerValores ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v) : 'R$ ●●●●●';
+    const podeVerValores =
+      !window.perfil ||
+      typeof window.perfil.podeVerValores !== 'function' ||
+      window.perfil.podeVerValores();
+    const fmt = (v) =>
+      podeVerValores
+        ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v)
+        : 'R$ ●●●●●';
     // Padrão brasileiro: . separa milhar/milhão. Eixo Y mostra valor cheio
     // (ex: R$ 1.234.567) — mais legível que abreviações.
     const _nfBR = new Intl.NumberFormat('pt-BR', {
-      style: 'currency', currency: 'BRL', maximumFractionDigits: 0
+      style: 'currency',
+      currency: 'BRL',
+      maximumFractionDigits: 0,
     });
-    const fmtTick = v => {
+    const fmtTick = (v) => {
       if (!podeVerValores) return '●●●';
       const n = Number(v) || 0;
       return n < 0 ? '-' + _nfBR.format(Math.abs(n)) : _nfBR.format(n);
@@ -1173,33 +1489,53 @@ window.Dashboard = {
     // Cores adaptáveis ao tema (light/dark)
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     const tc = {
-      text:    isDark ? '#FFFFFF' : '#1f2937',
-      grid:    isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-      tipBg:   isDark ? '#0F1523' : '#FFFFFF',
+      text: isDark ? '#FFFFFF' : '#1f2937',
+      grid: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+      tipBg: isDark ? '#0F1523' : '#FFFFFF',
       tipBorder: isDark ? '#1C2840' : '#e5e7eb',
       tipText: isDark ? '#FFFFFF' : '#1f2937',
       hojeLine: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.25)',
     };
 
     // Passado: histórico real (últimos 30 dias)
-    const labelsPassado = dash.historicoCaixa.map(d =>
-      d.label || new Date(d.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+    const labelsPassado = dash.historicoCaixa.map(
+      (d) =>
+        d.label ||
+        new Date(d.data + 'T12:00:00').toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+        })
     );
-    const saldosPassado = dash.historicoCaixa.map(d => d.saldo);
+    const saldosPassado = dash.historicoCaixa.map((d) => d.saldo);
 
     const isHistorico = this.periodo.modo !== 'recente';
 
     // Futuro: projeção only in recente mode
-    const labelsFuturo = isHistorico ? [] : ['Hoje', ...dash.saldoProjetado.map(d =>
-      new Date(d.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-    )];
-    const saldosFuturo = isHistorico ? [] : [dash.caixaBalance, ...dash.saldoProjetado.map(d => d.saldo)];
+    const labelsFuturo = isHistorico
+      ? []
+      : [
+          'Hoje',
+          ...dash.saldoProjetado.map((d) =>
+            new Date(d.data + 'T12:00:00').toLocaleDateString('pt-BR', {
+              day: '2-digit',
+              month: '2-digit',
+            })
+          ),
+        ];
+    const saldosFuturo = isHistorico
+      ? []
+      : [dash.caixaBalance, ...dash.saldoProjetado.map((d) => d.saldo)];
 
     const totalPassado = labelsPassado.length;
     const labels = [...labelsPassado, ...labelsFuturo.slice(1)];
 
-    const dataPassado = [...saldosPassado, ...new Array(Math.max(0, labelsFuturo.length - 1)).fill(null)];
-    const dataFuturo = isHistorico ? [] : [...new Array(totalPassado - 1).fill(null), dash.caixaBalance, ...saldosFuturo.slice(1)];
+    const dataPassado = [
+      ...saldosPassado,
+      ...new Array(Math.max(0, labelsFuturo.length - 1)).fill(null),
+    ];
+    const dataFuturo = isHistorico
+      ? []
+      : [...new Array(totalPassado - 1).fill(null), dash.caixaBalance, ...saldosFuturo.slice(1)];
 
     this.chart = new Chart(canvas.getContext('2d'), {
       type: 'line',
@@ -1217,24 +1553,28 @@ window.Dashboard = {
             pointBackgroundColor: '#F0B429',
             tension: 0.4,
             fill: true,
-            spanGaps: false
+            spanGaps: false,
           },
-          ...(!isHistorico ? [{
-            label: 'Projeção (NFs)',
-            data: dataFuturo,
-            borderColor: '#60A5FA',
-            backgroundColor: 'rgba(96,165,250,0.04)',
-            borderWidth: 2,
-            borderDash: [6, 4],
-            pointRadius: 4,
-            pointHoverRadius: 7,
-            pointBackgroundColor: '#60A5FA',
-            pointStyle: 'rectRot',
-            tension: 0.3,
-            fill: true,
-            spanGaps: false
-          }] : [])
-        ]
+          ...(!isHistorico
+            ? [
+                {
+                  label: 'Projeção (NFs)',
+                  data: dataFuturo,
+                  borderColor: '#60A5FA',
+                  backgroundColor: 'rgba(96,165,250,0.04)',
+                  borderWidth: 2,
+                  borderDash: [6, 4],
+                  pointRadius: 4,
+                  pointHoverRadius: 7,
+                  pointBackgroundColor: '#60A5FA',
+                  pointStyle: 'rectRot',
+                  tension: 0.3,
+                  fill: true,
+                  spanGaps: false,
+                },
+              ]
+            : []),
+        ],
       },
       options: {
         responsive: true,
@@ -1244,7 +1584,12 @@ window.Dashboard = {
           legend: {
             display: true,
             position: 'top',
-            labels: { usePointStyle: true, padding: 20, color: tc.text, font: { size: 14, family: 'Nunito', weight: '600' } }
+            labels: {
+              usePointStyle: true,
+              padding: 20,
+              color: tc.text,
+              font: { size: 14, family: 'Nunito', weight: '600' },
+            },
           },
           tooltip: {
             backgroundColor: tc.tipBg,
@@ -1255,8 +1600,8 @@ window.Dashboard = {
             titleFont: { size: 13 },
             bodyFont: { size: 13 },
             callbacks: {
-              label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y ?? 0)}`
-            }
+              label: (ctx) => ` ${ctx.dataset.label}: ${fmt(ctx.parsed.y ?? 0)}`,
+            },
           },
           annotation: {
             annotations: {
@@ -1267,26 +1612,32 @@ window.Dashboard = {
                 borderColor: tc.hojeLine,
                 borderWidth: 1,
                 borderDash: [4, 4],
-                label: { display: true, content: 'Hoje', position: 'start', font: { size: 12, weight: '600' }, color: tc.text }
-              }
-            }
-          }
+                label: {
+                  display: true,
+                  content: 'Hoje',
+                  position: 'start',
+                  font: { size: 12, weight: '600' },
+                  color: tc.text,
+                },
+              },
+            },
+          },
         },
         scales: {
           x: {
             grid: { color: tc.grid },
-            ticks: { color: tc.text, font: { size: 13, weight: '500' }, maxTicksLimit: 12 }
+            ticks: { color: tc.text, font: { size: 13, weight: '500' }, maxTicksLimit: 12 },
           },
           y: {
             grid: { color: tc.grid },
             ticks: {
               color: tc.text,
               font: { size: 13, weight: '500' },
-              callback: v => fmtTick(v)
-            }
-          }
-        }
-      }
+              callback: (v) => fmtTick(v),
+            },
+          },
+        },
+      },
     });
   },
 
@@ -1300,7 +1651,7 @@ window.Dashboard = {
     if (!app) return;
     this._widgetsDetected = [];
     let idx = 0;
-    Array.from(app.children).forEach(el => {
+    Array.from(app.children).forEach((el) => {
       if (el.classList.contains('page-header')) return; // header sempre visível
       // Extrai título textual da seção (h1/h2/h3/.card-title/.rh-h2)
       const titleEl = el.querySelector('.card-title, .rh-h2, h2, h3');
@@ -1321,12 +1672,16 @@ window.Dashboard = {
       const r = await fetch('/api/dashboard/layouts');
       if (r.ok) {
         const j = await r.json();
-        const def = (j.layouts || []).find(l => l.isDefault) || (j.layouts || [])[0];
+        const def = (j.layouts || []).find((l) => l.isDefault) || (j.layouts || [])[0];
         if (def) prefs = { id: def.id, nome: def.nome, widgets: def.widgets };
       }
-    } catch { /* fallback */ }
+    } catch {
+      /* fallback */
+    }
     if (!prefs) {
-      try { prefs = JSON.parse(localStorage.getItem('rhino-dash-prefs') || 'null'); } catch {}
+      try {
+        prefs = JSON.parse(localStorage.getItem('rhino-dash-prefs') || 'null');
+      } catch {}
     }
     this._prefs = prefs || { widgets: [] };
     return this._prefs;
@@ -1334,8 +1689,8 @@ window.Dashboard = {
 
   async _aplicarPreferenciasDash() {
     const prefs = await this._carregarPrefs();
-    const ocultos = (prefs.widgets || []).filter(w => w.visivel === false).map(w => w.id);
-    ocultos.forEach(id => {
+    const ocultos = (prefs.widgets || []).filter((w) => w.visivel === false).map((w) => w.id);
+    ocultos.forEach((id) => {
       const el = document.querySelector(`[data-widget-id="${id}"]`);
       if (el) el.style.display = 'none';
     });
@@ -1348,14 +1703,20 @@ window.Dashboard = {
     const btn = document.createElement('button');
     btn.id = 'btnCustomizarDash';
     btn.className = 'btn btn-secondary btn-sm';
-    btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;">' + window.rhIcon('palette', 15) + 'Personalizar</span>';
+    btn.innerHTML =
+      '<span style="display:inline-flex;align-items:center;gap:6px;">' +
+      window.rhIcon('palette', 15) +
+      'Personalizar</span>';
     btn.title = 'Mostrar/ocultar seções do dashboard';
     btn.addEventListener('click', () => this._showModalCustomizar());
 
     const btnRel = document.createElement('button');
     btnRel.id = 'btnGerarRelatorio';
     btnRel.className = 'btn btn-secondary btn-sm';
-    btnRel.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;">' + window.rhIcon('file-text', 15) + 'Relatório</span>';
+    btnRel.innerHTML =
+      '<span style="display:inline-flex;align-items:center;gap:6px;">' +
+      window.rhIcon('file-text', 15) +
+      'Relatório</span>';
     btnRel.title = 'Gerar relatório gerencial em PDF';
     btnRel.addEventListener('click', async () => {
       // FIX silent-failure: Relatorio.js é lazy (só carrega em #/relatorios).
@@ -1371,18 +1732,20 @@ window.Dashboard = {
         window.RhinoRelatorio.gerar();
       } else {
         console.error('[Dashboard] RhinoRelatorio.gerar indisponível após lazy-load');
-        alert('Não foi possível carregar o gerador de relatório. Recarregue a página e tente novamente.');
+        alert(
+          'Não foi possível carregar o gerador de relatório. Recarregue a página e tente novamente.'
+        );
       }
     });
 
     ctrl.appendChild(btnRel); // Relatório primeiro
-    ctrl.appendChild(btn);    // Personalizar depois
+    ctrl.appendChild(btn); // Personalizar depois
   },
 
   _showModalCustomizar() {
     const widgets = this._widgetsDetected || [];
     const prefs = this._prefs || { widgets: [] };
-    const visMap = new Map((prefs.widgets || []).map(w => [w.id, w.visivel !== false]));
+    const visMap = new Map((prefs.widgets || []).map((w) => [w.id, w.visivel !== false]));
 
     const html = `
       <div class="modal-overlay" id="modalDashCust">
@@ -1395,15 +1758,17 @@ window.Dashboard = {
             <p class="text-muted font-sm">Escolha quais seções aparecem no seu dashboard. As alterações são salvas na sua conta.</p>
             <div style="display:flex;flex-direction:column;gap:6px;margin-top:var(--sp-md);">
               ${widgets.length === 0 ? '<p class="text-muted">Nenhuma seção detectada</p>' : ''}
-              ${widgets.map(w => {
-                const visivel = visMap.has(w.id) ? visMap.get(w.id) : true;
-                return `
+              ${widgets
+                .map((w) => {
+                  const visivel = visMap.has(w.id) ? visMap.get(w.id) : true;
+                  return `
                   <label style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--color-surface-2);border-radius:6px;cursor:pointer;">
                     <input type="checkbox" data-wid="${w.id}" ${visivel ? 'checked' : ''}>
                     <span style="flex:1;">${escapeHtml(w.label)}</span>
                   </label>
                 `;
-              }).join('')}
+                })
+                .join('')}
             </div>
           </div>
           <div class="modal-footer">
@@ -1419,18 +1784,22 @@ window.Dashboard = {
     overlay.querySelector('.modal-close').addEventListener('click', close);
 
     document.getElementById('btnDashCustReset').addEventListener('click', () => {
-      overlay.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+      overlay.querySelectorAll('input[type="checkbox"]').forEach((cb) => (cb.checked = true));
     });
 
     document.getElementById('btnDashCustSave').addEventListener('click', async () => {
-      const widgetsConfig = Array.from(overlay.querySelectorAll('input[type="checkbox"]')).map(cb => ({
-        id: cb.dataset.wid,
-        visivel: cb.checked,
-      }));
+      const widgetsConfig = Array.from(overlay.querySelectorAll('input[type="checkbox"]')).map(
+        (cb) => ({
+          id: cb.dataset.wid,
+          visivel: cb.checked,
+        })
+      );
       const novasPrefs = { ...prefs, widgets: widgetsConfig };
 
       // Salva no localStorage como cache imediato
-      try { localStorage.setItem('rhino-dash-prefs', JSON.stringify(novasPrefs)); } catch {}
+      try {
+        localStorage.setItem('rhino-dash-prefs', JSON.stringify(novasPrefs));
+      } catch {}
 
       // Sincroniza com servidor
       try {
@@ -1439,16 +1808,22 @@ window.Dashboard = {
         const r = await fetch(url, {
           method,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nome: prefs.nome || 'Padrão', widgets: widgetsConfig, isDefault: true }),
+          body: JSON.stringify({
+            nome: prefs.nome || 'Padrão',
+            widgets: widgetsConfig,
+            isDefault: true,
+          }),
         });
         if (r.ok) {
           const saved = await r.json();
           this._prefs = { id: saved.id, nome: saved.nome, widgets: saved.widgets };
         }
-      } catch (e) { console.warn('Falha ao salvar layout no servidor:', e.message); }
+      } catch (e) {
+        console.warn('Falha ao salvar layout no servidor:', e.message);
+      }
 
       // Aplica imediatamente: esconde/mostra os widgets
-      widgetsConfig.forEach(w => {
+      widgetsConfig.forEach((w) => {
         const el = document.querySelector(`[data-widget-id="${w.id}"]`);
         if (el) el.style.display = w.visivel ? '' : 'none';
       });
