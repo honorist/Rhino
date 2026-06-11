@@ -240,3 +240,34 @@ test('Obras — prazoRecebimento 0 conta (recebimento no dia da emissão)', () =
   assert.equal(obras.pendencias.length, 1);
   assert.equal(obras.pendencias[0].diasParado, 10);
 });
+
+// ─── Área Frota ───────────────────────────────────────────────────────────────────
+
+test('Frota — manutenção solicitada/pendente_aprovacao parada entra; aprovada não', () => {
+  const manutencoes = [
+    { id: 'm1', equipamento: 'Betoneira', status: 'solicitada', updatedAt: '2026-06-03T10:00:00Z' }, // 8d
+    { id: 'm2', equipamento: 'Gerador', status: 'pendente_aprovacao', updatedAt: '2026-06-07T10:00:00Z' }, // 4d
+    { id: 'm3', equipamento: 'Serra', status: 'aprovada', updatedAt: '2026-05-01T10:00:00Z' }, // fluindo → fora
+  ];
+  const r = p.calcularCobranca({ hojeISO: HOJE, manutencoes });
+  const frota = r.areas.find((a) => a.id === 'frota');
+  assert.equal(frota.pendencias.length, 2);
+  assert.equal(frota.cor, 'vermelho');
+  assert.match(frota.pendencias[0].titulo, /Betoneira aguardando avaliação/);
+  assert.match(frota.pendencias[1].titulo, /Gerador aguardando aprovação/);
+});
+
+test('Frota — plano de revisão com prazo vencido entra, com a placa do veículo', () => {
+  const veiculos = [{ id: 'vh1', placa: 'ABC1D23', modelo: 'Caminhão' }];
+  const veiculoPlanos = [
+    // última revisão 2025-12-01 + 6 meses = venceu 2026-06-01 → 10d
+    { id: 'p1', veiculoId: 'vh1', descricao: 'Troca de óleo', intervaloMeses: 6, ultimaData: '2025-12-01', ativo: true },
+    { id: 'p2', veiculoId: 'vh1', descricao: 'Correia', intervaloMeses: 12, ultimaData: '2026-01-01', ativo: true }, // vence 2027 → fora
+    { id: 'p3', veiculoId: 'vh1', descricao: 'Plano inativo', intervaloMeses: 1, ultimaData: '2025-01-01', ativo: false }, // inativo → fora
+  ];
+  const r = p.calcularCobranca({ hojeISO: HOJE, veiculos, veiculoPlanos });
+  const frota = r.areas.find((a) => a.id === 'frota');
+  assert.equal(frota.pendencias.length, 1);
+  assert.match(frota.pendencias[0].titulo, /Troca de óleo.*ABC1D23/);
+  assert.equal(frota.pendencias[0].diasParado, 10);
+});
