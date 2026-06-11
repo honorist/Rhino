@@ -66,7 +66,7 @@ window.Dashboard = {
       // (cada `await` esperava a anterior terminar) — ~6× a latência de rede.
       // loadAll, loadDashboard, /api/rdos, /api/anomalias e loadFor(propostas)
       // são independentes entre si; cada um trata o próprio erro (não bloqueia).
-      const [, , rdoJson, anomJson, , opJson] = await Promise.all([
+      const [, , rdoJson, anomJson, , opJson, cobJson] = await Promise.all([
         Store.loadAll(),
         Store.loadDashboard(this._buildParams()),
         fetch('/api/rdos')
@@ -88,6 +88,9 @@ window.Dashboard = {
           );
         }),
         fetch('/api/dashboard/operacional')
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null),
+        fetch('/api/dashboard/cobranca')
           .then((r) => (r.ok ? r.json() : null))
           .catch(() => null),
       ]);
@@ -399,6 +402,10 @@ window.Dashboard = {
             ${this._renderPeriodoCtrl()}
           </div>
         </div>
+
+        <!-- COBRANÇA POR ÁREA — semáforo do que está parado, há quantos dias e
+             onde resolver. Topo absoluto: é a fila de cobrança do dono. -->
+        ${this._renderCobranca(cobJson)}
 
         <!-- APANHADO GERAL — operação no topo: contratações, compras, estoque, frota.
              Promovido do rodapé porque é o que o gestor cobra primeiro (montagem é
@@ -1029,6 +1036,52 @@ window.Dashboard = {
             `
             }
           </div>`;
+  },
+
+  // Painel "Cobrança por área": 4 cards (RH/Obras/Financeiro/Frota) com
+  // semáforo por dias parado. `cob` vem de /api/dashboard/cobranca
+  // (null-safe: se faltar, a seção some). "+N ver todas" usa <details> nativo
+  // — sem bind de JS. Cor nunca é o único sinal (emoji + rótulo junto).
+  _renderCobranca(cob) {
+    if (!cob || !Array.isArray(cob.areas) || cob.areas.length === 0) return '';
+    const COR = {
+      vermelho: { css: 'var(--rh-neg-strong)', icone: '🔴', rotulo: 'crítico' },
+      amarelo: { css: 'var(--rh-warn-strong)', icone: '🟡', rotulo: 'atenção' },
+      verde: { css: 'var(--rh-pos-strong)', icone: '🟢', rotulo: 'em dia' },
+    };
+    const linha = (pend) => `
+      <a href="${pend.href}" class="rh-row" style="justify-content:space-between;text-decoration:none;color:inherit;padding:2px 0;" title="${escapeHtml(pend.proximaAcao || '')}">
+        <span style="font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(pend.titulo)}</span>
+        <b style="white-space:nowrap;margin-left:8px;">${pend.diasParado}d</b>
+      </a>`;
+    const card = (area) => {
+      const cor = COR[area.cor] || COR.verde;
+      const pend = Array.isArray(area.pendencias) ? area.pendencias : [];
+      const top3 = pend.slice(0, 3);
+      const resto = pend.slice(3);
+      return `
+        <div class="rh-kpi" style="border-left:4px solid ${cor.css};">
+          <div class="rh-kpi-label">${cor.icone} ${escapeHtml(area.nome)}
+            <span class="rh-meta-xs">· ${cor.rotulo}${pend.length ? ` · ${pend.length} pendência(s)` : ''}</span>
+          </div>
+          ${pend.length === 0 ? '<div class="rh-kpi-meta">em dia ✓</div>' : top3.map(linha).join('')}
+          ${
+            resto.length
+              ? `<details><summary style="cursor:pointer;font-size:12px;color:var(--rh-ink-500);">+${resto.length} ver todas</summary>${resto.map(linha).join('')}</details>`
+              : ''
+          }
+        </div>`;
+    };
+    return `
+      <div class="card mb-md">
+        <div class="card-header">
+          <h3 class="card-title">Cobrança por área</h3>
+          <span class="rh-meta">o que está parado e há quantos dias — clique para resolver</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--sp-md);">
+          ${cob.areas.map(card).join('')}
+        </div>
+      </div>`;
   },
 
   // Card "Operação — visão do mês": KPIs de frota/compras/recrutamento/folha/
