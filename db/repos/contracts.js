@@ -92,9 +92,19 @@ async function removeBudgetItem(contractId, itemId) {
  *
  * @returns {Promise<Array<object & { organograma: object[], rdos: object[], aditivos: object[], marcos: object[], ocorrencias: object[] }>>}
  */
-async function findAllWithChildren() {
+async function findAllWithChildren(filter = {}) {
+  // Filtro opcional por cliente — empurra o WHERE pro SQL em vez de carregar
+  // TODOS os contratos + filhos e filtrar em memória (usado pelo portal do
+  // cliente, que só precisa dos contratos daquele cliente). Valor parametrizado.
+  const params = [];
+  let where = '';
+  if (filter.clientId) {
+    params.push(filter.clientId);
+    where = `WHERE client_id = $${params.length}`;
+  }
   const contracts = await db.getMany(
-    `SELECT * FROM contracts ORDER BY created_at DESC`
+    `SELECT * FROM contracts ${where} ORDER BY created_at DESC`,
+    params
   );
   if (!contracts.length) return [];
 

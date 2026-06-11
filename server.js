@@ -1158,14 +1158,13 @@ async function handlePortalRdoPdf(req, rdoId, res) {
 async function handlePortalDashboard(req, res) {
   try {
     const clienteId = req.portalCliente.id;
-    // findAll (repo base) filtra por cliente mas NÃO carrega filhos — c.rdos
-    // vinha sempre undefined e o portal mostrava 0 diários. findAllWithChildren
-    // traz rdos/organograma/etc; o filtro por cliente fica em memória (n=~dezenas).
-    const [allContractsRaw, allNfs] = await Promise.all([
-      repos.contracts.findAllWithChildren(),
+    // findAllWithChildren({ clientId }) filtra no SQL e traz rdos/organograma/etc
+    // — só os contratos deste cliente (antes carregava TODOS e filtrava em
+    // memória). NFs ainda vêm completas e são filtradas por contractId abaixo.
+    const [allContracts, allNfs] = await Promise.all([
+      repos.contracts.findAllWithChildren({ clientId: clienteId }),
       repos.notasFiscais.findAll(),
     ]);
-    const allContracts = allContractsRaw.filter((c) => c.clientId === clienteId);
 
     const contratos = allContracts.map((c) => {
       const saidas = Array.isArray(c.saidas) ? c.saidas : [];
@@ -2629,6 +2628,13 @@ function buildCsp(scriptSrc) {
 function _serveHtmlWithBootstrap(pathname, res) {
   const filename = pathname === '/' || pathname === '' ? '/index.html' : pathname;
   const filepath = path.resolve(__dirname, '.' + filename);
+  // FIX: path traversal — url.parse NÃO colapsa `..`, então um pathname como
+  // `/../../foo.html` escaparia da raiz. Mesmo guard do serveStaticFile.
+  if (!filepath.startsWith(STATIC_ROOT + path.sep) && filepath !== STATIC_ROOT) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('Forbidden');
+    return;
+  }
   if (!fs.existsSync(filepath)) {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('404 Not Found');
