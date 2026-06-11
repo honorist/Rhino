@@ -308,6 +308,11 @@ window.Dashboard = {
           </div>
         </div>
 
+        <!-- APANHADO GERAL — operação no topo: contratações, compras, estoque, frota.
+             Promovido do rodapé porque é o que o gestor cobra primeiro (montagem é
+             execução + mão de obra + suprimentos, não só caixa). -->
+        ${this._renderOperacional(opJson)}
+
         <!-- Hero: Score card + grid de KPIs com sparklines -->
         <div style="display:grid;grid-template-columns:minmax(320px, 1fr) minmax(0, 2fr);gap:var(--sp-md);margin-bottom:var(--sp-md);">
           ${_scoreCard()}
@@ -500,9 +505,6 @@ window.Dashboard = {
 
         <!-- Contratos a vencer + Margem -->
         ${this._renderContratosVencerMargem(dash)}
-
-        <!-- Operação — visão do mês (frota/compras/recrutamento/folha/estoque) -->
-        ${this._renderOperacional(opJson)}
 
         <!-- Últimas movimentações -->
         ${this._renderUltimasMovimentacoes(dash)}
@@ -847,19 +849,19 @@ window.Dashboard = {
         </div>
       </div>` : '';
     return `
-      <div class="card mb-md" style="margin-top:var(--sp-lg);">
+      <div class="card mb-md">
         <div class="card-header">
-          <h3 class="card-title">Operação — visão do mês</h3>
-          <span class="rh-meta">comparado ao mês anterior</span>
+          <h3 class="card-title">Apanhado geral do mês</h3>
+          <span class="rh-meta">contratações · compras · estoque · frota — vs mês anterior</span>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:var(--sp-md);">
+          ${numCard('👥 Vagas abertas', op.recrutamento.vagasAbertas, `${op.recrutamento.candidatosEmAndamento} candidato(s) no funil`, '#/recrutamento', op.recrutamento.vagasAbertas > 0)}
+          ${numCard('🛒 Compras em aberto', op.compras.abertas, op.compras.valorAberto > 0 ? `${brlk(op.compras.valorAberto)} parado` : 'aguardando avaliação/aprovação', '#/solicitacoes-compra', op.compras.abertas > 0)}
+          ${custoCard('🛒 Comprado (mês)', op.compras.compradoAtual, op.compras.compradoAnterior, '#/solicitacoes-compra')}
+          ${numCard('📦 Estoque', brlk(op.estoque.valor), op.estoque.abaixoMinimo > 0 ? `${op.estoque.abaixoMinimo} item(ns) abaixo do mínimo` : 'em dia', '#/estoque', op.estoque.abaixoMinimo > 0)}
+          ${custoCard('💰 Folha (mês)', op.folha.custoAtual, op.folha.custoAnterior, '#/folha-pagamento', op.folha.pendente > 0 ? `${brlk(op.folha.pendente)} pendente` : '')}
           ${custoCard('⛽ Combustível (mês)', op.combustivel.mesAtual, op.combustivel.mesAnterior, '#/frota', `${(op.combustivel.litrosAtual || 0).toFixed(0)} L`)}
           ${custoCard('🔧 Manutenção (mês)', op.manutencao.mesAtual, op.manutencao.mesAnterior, '#/frota')}
-          ${custoCard('💰 Folha (mês)', op.folha.custoAtual, op.folha.custoAnterior, '#/folha-pagamento', op.folha.pendente > 0 ? `${brlk(op.folha.pendente)} pendente` : '')}
-          ${custoCard('🛒 Comprado (mês)', op.compras.compradoAtual, op.compras.compradoAnterior, '#/solicitacoes-compra')}
-          ${numCard('🛒 Compras em aberto', op.compras.abertas, op.compras.valorAberto > 0 ? `${brlk(op.compras.valorAberto)} parado` : 'aguardando avaliação/aprovação', '#/solicitacoes-compra', op.compras.abertas > 0)}
-          ${numCard('👥 Vagas abertas', op.recrutamento.vagasAbertas, `${op.recrutamento.candidatosEmAndamento} candidato(s) no funil`, '#/recrutamento', op.recrutamento.vagasAbertas > 0)}
-          ${numCard('📦 Estoque', brlk(op.estoque.valor), op.estoque.abaixoMinimo > 0 ? `${op.estoque.abaixoMinimo} item(ns) abaixo do mínimo` : 'em dia', '#/estoque', op.estoque.abaixoMinimo > 0)}
         </div>
         ${topFuel}
       </div>`;

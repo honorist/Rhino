@@ -1,6 +1,15 @@
 {
     "entries":  [
                     {
+                        "version":  "1.22.0",
+                        "date":  "2026-06-11",
+                        "summary":  "Dashboard: apanhado geral (contratacoes, compras, estoque) no topo",
+                        "changes":  [
+                                        "O painel \u0027Apanhado geral do mês\u0027 (contratações, compras, estoque, frota) agora aparece no TOPO do dashboard, antes dos números financeiros",
+                                        "Cards reordenados para mostrar primeiro vagas abertas, compras e estoque — o que o gestor de obra cobra primeiro"
+                                    ]
+                    },
+                    {
                         "version":  "1.21.1",
                         "date":  "2026-06-11",
                         "summary":  "Correcoes de seguranca e performance no backend",
