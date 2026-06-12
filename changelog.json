@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.23.1",
+      "date": "2026-06-12",
+      "summary": "Fontes mais compactas e controle de tamanho (-/+) consertado",
+      "changes": [
+        "Textos e números do sistema ficaram um pouco menores por padrão — visual mais compacto",
+        "O controle de tamanho da interface (−/100%/+) na sidebar agora funciona de verdade em todas as telas: ajuste de 80% a 160% ao seu gosto"
+      ]
+    },
+    {
       "version": "1.23.0",
       "date": "2026-06-11",
       "summary": "Painel de cobrança por área no topo do Dashboard",
