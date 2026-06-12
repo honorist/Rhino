@@ -183,32 +183,35 @@ thead th {
   -webkit-text-fill-color: var(--color-text) !important;
 }
 
-/* ═══ Piso absoluto de legibilidade — 16px em qualquer elemento ═══ */
+/* ═══ Piso de legibilidade — agora multiplicado por --fs-mult (controle −/+) ═══
+   Antes era px fixo (16-34px), o que vencia por especificidade o bloco do
+   multiplicador (linha ~886) e deixava o controle de tamanho sem efeito.
+   Piso a 100% = 15.5px; usuário ajusta de 80% a 160% pela sidebar. */
 body, p, span, div, button, a, label, input, select, textarea,
 td, th, li, strong, em {
-  font-size: 16px;
+  font-size: calc(15.5px * var(--fs-mult));
 }
 /* Headings e destaques acima do piso */
-body h1, body .page-title         { font-size: 30px; font-weight: 800; }
-body h2                            { font-size: 26px; font-weight: 700; }
-body h3                            { font-size: 20px; font-weight: 700; }
-body h4                            { font-size: 18px; font-weight: 700; }
-body .modal-title                  { font-size: 24px; }
-body .card-title                   { font-size: 18px; }
-body .stat-value                   { font-size: 34px; }
-body .stat-label                   { font-size: 16px; }
-body tbody td                      { font-size: 16px; }
-body thead th                      { font-size: 15.5px; }
-body .btn                          { font-size: 16px; }
-body .btn-sm                       { font-size: 15.5px; }
-body .btn-lg                       { font-size: 18px; }
-body .form-control                 { font-size: 16px; }
-body .form-label                   { font-size: 16px; }
+body h1, body .page-title         { font-size: calc(26px * var(--fs-mult)); font-weight: 800; }
+body h2                            { font-size: calc(22px * var(--fs-mult)); font-weight: 700; }
+body h3                            { font-size: calc(18px * var(--fs-mult)); font-weight: 700; }
+body h4                            { font-size: calc(16.5px * var(--fs-mult)); font-weight: 700; }
+body .modal-title                  { font-size: calc(20px * var(--fs-mult)); }
+body .card-title                   { font-size: calc(16px * var(--fs-mult)); }
+body .stat-value                   { font-size: calc(30px * var(--fs-mult)); }
+body .stat-label                   { font-size: calc(15px * var(--fs-mult)); }
+body tbody td                      { font-size: calc(15px * var(--fs-mult)); }
+body thead th                      { font-size: calc(14.5px * var(--fs-mult)); }
+body .btn                          { font-size: calc(15px * var(--fs-mult)); }
+body .btn-sm                       { font-size: calc(14.5px * var(--fs-mult)); }
+body .btn-lg                       { font-size: calc(16.5px * var(--fs-mult)); }
+body .form-control                 { font-size: calc(15px * var(--fs-mult)); }
+body .form-label                   { font-size: calc(15px * var(--fs-mult)); }
 body .nav-item a,
 body .nav-group-header,
-body .nav-link-soon                { font-size: 16.5px; }
-body .badge                        { font-size: 15.5px; }
-body .page-subtitle                { font-size: 16.5px; }
+body .nav-link-soon                { font-size: calc(15px * var(--fs-mult)); }
+body .badge                        { font-size: calc(14.5px * var(--fs-mult)); }
+body .page-subtitle                { font-size: calc(15px * var(--fs-mult)); }
 
 /* ─── Shell ─── */
 #shell {
