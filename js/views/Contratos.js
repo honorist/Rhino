@@ -793,7 +793,6 @@ window.Contratos = {
     };
     const onEsc = (e) => { if (e.key === 'Escape') close(); };
 
-    backdropEl.addEventListener('click', close);
     drawerEl.querySelector('.rh-drawer__close').addEventListener('click', close);
     document.getElementById('btnOvClose').addEventListener('click', close);
     document.getElementById('btnOvVerDetalhes').addEventListener('click', () => {
@@ -956,7 +955,6 @@ window.Contratos = {
 
     overlay.querySelector('.modal-close').addEventListener('click', closeModal);
     document.getElementById('btnCancelar').addEventListener('click', closeModal);
-    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
 
     // Link to clientes navigates away and closes modal
     const linkClientes = document.getElementById('linkCadastrarCliente');

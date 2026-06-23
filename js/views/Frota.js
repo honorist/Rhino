@@ -343,8 +343,6 @@ window.Frota = {
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnCanc').addEventListener('click', close);
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-
     this._initEnderecoSearch();
 
     // Máscara de placa em tempo real (aceita padrão antigo e Mercosul)
@@ -564,8 +562,6 @@ window.Frota = {
       const close = () => overlay.remove();
       overlay.querySelector('.modal-close').addEventListener('click', close);
       document.getElementById('btnFecharDet').addEventListener('click', close);
-      overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-
       overlay.querySelectorAll('.ctd-tab').forEach(t => t.addEventListener('click', () => {
         abaAtual = t.dataset.tab; renderModal();
       }));

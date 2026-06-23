@@ -251,7 +251,6 @@ window.Manutencao = {
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     overlay.querySelector('.modal-cancel').addEventListener('click', close);
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
     const btn = document.getElementById(btnId);
     btn.addEventListener('click', async () => {
       if (btn.disabled) return; // anti-duplo-clique
@@ -437,8 +436,6 @@ window.Manutencao = {
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     overlay.querySelector('.modal-cancel').addEventListener('click', close);
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-
     const btnA = document.getElementById('btnAprovar');
     const btnR = document.getElementById('btnRejeitar');
     const trava = () => { btnA.disabled = true; btnR.disabled = true; };

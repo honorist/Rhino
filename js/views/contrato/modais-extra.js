@@ -64,7 +64,6 @@
 
     overlay.querySelector('.modal-close').addEventListener('click', closeModal);
     document.getElementById('btnCancelarExcluir').addEventListener('click', closeModal);
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
 
     const input = document.getElementById('inputConfirmacaoDeletar');
     const btnConfirmar = document.getElementById('btnConfirmarExcluir');
@@ -191,9 +190,6 @@
       }
     });
 
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeModal();
-    });
   },
 
   showModalOrcamento(contractId, item) {
@@ -253,8 +249,6 @@
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnCancelar').addEventListener('click', close);
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-
     document.getElementById('btnSalvar').addEventListener('click', async () => {
       const fd = new FormData(document.getElementById('formOrcamento'));
       const data = Object.fromEntries(fd);
@@ -438,7 +432,6 @@
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnFecharDetalhe').addEventListener('click', close);
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
   },
 
   // ── F3: Contract Templates → PDF ──
@@ -487,8 +480,6 @@
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnCancelarDoc').addEventListener('click', close);
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-
     const fmt = (v) => v ? new Date(v + 'T12:00:00').toLocaleDateString('pt-BR') : '';
     const fmtBRL = (v) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 

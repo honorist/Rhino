@@ -98,7 +98,6 @@
       </div>`;
     document.body.appendChild(overlay);
     const close = () => overlay.remove();
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
     document.addEventListener('keydown', function once(e) {
       if (e.key === 'Escape') { e.preventDefault(); close(); document.removeEventListener('keydown', once, true); }
     }, true);

@@ -649,8 +649,6 @@
 
     document.getElementById('btnCloseRdo').addEventListener('click', () => overlay.remove());
     document.getElementById('btnCancelRdo').addEventListener('click', () => overlay.remove());
-    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-
     overlay.querySelectorAll('[data-rdo-tab]').forEach(btn => {
       btn.addEventListener('click', () => {
         this._rdoTab = btn.dataset.rdoTab;

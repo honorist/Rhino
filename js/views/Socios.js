@@ -198,9 +198,6 @@ window.Socios = {
       }
     });
 
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeModal();
-    });
   },
 
   async deleteSocio(id) {

@@ -358,9 +358,6 @@ window.Clientes = {
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnFechar').addEventListener('click', close);
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) close();
-    });
     document.getElementById('btnEditarDet').addEventListener('click', () => {
       close();
       this.showModal(clienteId);
@@ -499,9 +496,6 @@ window.Clientes = {
     };
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnCancelar').addEventListener('click', close);
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) close();
-    });
 
     this._initEnderecoSearch(cliente?.lat, cliente?.lng, cliente?.endereco);
 

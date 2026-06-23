@@ -326,7 +326,6 @@ window.Documentos = {
 
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 
     document.getElementById('btnAddDoc').addEventListener('click', () => {
       close();
@@ -756,7 +755,6 @@ window.Documentos = {
     const overlay = document.getElementById('modalFichaOverlay');
 
     overlay.querySelector('.modal-close').addEventListener('click', () => overlay.remove());
-    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 
     document.getElementById('btnFichaVerDocs').addEventListener('click', () => {
       overlay.remove();

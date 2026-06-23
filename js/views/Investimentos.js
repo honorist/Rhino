@@ -436,10 +436,6 @@ window.Investimentos = {
     const closeModal = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', closeModal);
     document.getElementById('btnCancelar').addEventListener('click', closeModal);
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeModal();
-    });
-
     // Alternar visual da origem
     const radiosOrigem = document.querySelectorAll('[name=origem]');
     const radiosDestino = document.querySelectorAll('[name=destino]');
@@ -590,9 +586,6 @@ window.Investimentos = {
     const close = () => overlay.remove();
     document.getElementById('btnFechar').addEventListener('click', close);
     overlay.querySelector('.modal-close').addEventListener('click', close);
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) close();
-    });
   },
 
   async deleteAporte(id) {

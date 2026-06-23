@@ -1643,9 +1643,6 @@ window.RhinoConfirm = function (
   };
   overlay.querySelector('#rh-confirm-cancel').addEventListener('click', () => close(false));
   overlay.querySelector('#rh-confirm-ok').addEventListener('click', () => close(true));
-  overlay.querySelector('.modal-overlay').addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) close(false);
-  });
   // Focus the confirm button for keyboard accessibility
   setTimeout(() => overlay.querySelector('#rh-confirm-ok')?.focus(), 50);
 };
@@ -1869,9 +1866,6 @@ window.RhinoShortcuts = {
     const close = () => overlay.remove();
     overlay.querySelector('#rh-sc-close').addEventListener('click', close);
     overlay.querySelector('#rh-sc-close2').addEventListener('click', close);
-    overlay.querySelector('.modal-overlay').addEventListener('click', (e) => {
-      if (e.target === e.currentTarget) close();
-    });
     overlay.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') close();
     });

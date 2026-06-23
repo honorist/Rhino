@@ -284,9 +284,6 @@ window.FolhaPagamento = {
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('fpCancelar').addEventListener('click', close);
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) close();
-    });
     document.getElementById('fpConfirmar').addEventListener('click', async () => {
       try {
         await Store.pagarFolhaParcela(id, {
@@ -343,10 +340,6 @@ window.FolhaPagamento = {
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('acFechar').addEventListener('click', close);
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) close();
-    });
-
     // Recarrega a folha, repinta o modal e a tabela de fundo (o modal vive no
     // <body>, então re-renderizar o #app não o remove).
     const refresh = async () => {

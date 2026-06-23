@@ -958,8 +958,6 @@
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnFecharDetalhe').addEventListener('click', close);
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-
     // FIX: "Gerenciar em Recursos" era um <a href="#/recursos"> sem handler.
     // Quando este modal é aberto de DENTRO da tela de Recursos, o hash já é
     // #/recursos — clicar no link não muda o hash, o navegador não dispara

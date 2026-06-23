@@ -373,7 +373,6 @@ window.ContasPagar = {
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnCancelar').addEventListener('click', close);
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 
     // Toggle periodicidade
     const chkRec = document.getElementById('chkRecorrente');
@@ -495,7 +494,6 @@ window.ContasPagar = {
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnCancelar').addEventListener('click', close);
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 
     // Payment method button selection
     const formaInput = document.getElementById('formaPagamento');

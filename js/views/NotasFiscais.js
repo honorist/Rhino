@@ -537,10 +537,6 @@ window.NotasFiscais = {
 
     overlay.querySelector('.modal-close').addEventListener('click', closeModal);
     document.getElementById('btnCancelar').addEventListener('click', closeModal);
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeModal();
-    });
-
     // Preenche cliente ao selecionar contrato
     const sel = document.getElementById('selectContrato');
     sel.addEventListener('change', () => {
@@ -810,10 +806,6 @@ window.NotasFiscais = {
 
     overlay.querySelector('.modal-close').addEventListener('click', closeModal);
     document.getElementById('btnCancelarEmissao').addEventListener('click', closeModal);
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeModal();
-    });
-
     const inputData = document.querySelector('[name=dataEmissaoReal]');
     const previewTexto = document.getElementById('previewTexto');
 

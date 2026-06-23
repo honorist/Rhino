@@ -803,7 +803,6 @@ window.Auditoria = {
     };
     const onKey = (e) => { if (e.key === 'Escape') close(); };
     document.addEventListener('keydown', onKey);
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnAuditClose').addEventListener('click', close);
     const closeBtn = overlay.querySelector('.modal-close');

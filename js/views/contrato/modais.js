@@ -207,9 +207,6 @@
       }
     });
 
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeModal();
-    });
   },
 
   _miniMapDetail: null,

@@ -422,7 +422,6 @@ window.Base = {
 
     overlay.querySelector('.modal-close').addEventListener('click', closeModal);
     document.getElementById('btnCancelar').addEventListener('click', closeModal);
-    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
 
     // Toggle dos campos de recorrência
     const recAtivo = document.getElementById('recAtivo');
@@ -600,7 +599,6 @@ window.Base = {
 
     overlay.querySelector('.modal-close').addEventListener('click', closeModal);
     document.getElementById('btnCancelar').addEventListener('click', closeModal);
-    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
 
     const btnAlocar = document.getElementById('btnAlocar');
     if (btnAlocar) {

@@ -661,8 +661,6 @@ window.Recursos = {
     };
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnCancelar').addEventListener('click', close);
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-
     document.getElementById('statusSelect').addEventListener('change', e => {
       document.getElementById('secaoDesligamento').style.display = e.target.value === 'ex_funcionario' ? '' : 'none';
       document.getElementById('secaoAlocacao').style.display     = e.target.value === 'funcionario'    ? '' : 'none';
@@ -768,8 +766,6 @@ window.Recursos = {
     const close   = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnFecharFolgas').addEventListener('click', close);
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-
     const btnNova = document.getElementById('btnNovaFolga');
     if (btnNova) btnNova.addEventListener('click', () => { close(); this.showNovaFolga(recursoId); });
 
@@ -1201,7 +1197,6 @@ window.Recursos = {
       overlay.remove();
     };
     overlay.querySelector('.modal-close').addEventListener('click', close);
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 
     // Inicializar mapa (Leaflet sob demanda)
     setTimeout(async () => {
@@ -1315,7 +1310,6 @@ window.Recursos = {
       overlay.remove();
     };
     overlay.querySelector('.modal-close').addEventListener('click', close);
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 
     setTimeout(async () => {
       if (typeof L === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('leaflet');
