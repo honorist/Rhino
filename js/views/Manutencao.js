@@ -824,7 +824,7 @@ window.Manutencao = {
           <div class="modal-header">
             <div>
               <h2 class="modal-title">Manutenção #${m.numero || m.id.slice(-6)}</h2>
-              <div style="margin-top:4px;">${this._badgeStatus(m.status)}</div>
+              <div style="margin-top:4px;">${this._badgeStatus(m.status)} <span style="font-size:12px;color:var(--color-text-muted);margin-left:8px;">${this._codigoRomaneio ? this._codigoRomaneio(m) : ''}</span></div>
             </div>
             <button class="modal-close">✕</button>
           </div>

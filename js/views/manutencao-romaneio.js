@@ -4,6 +4,14 @@
 (function () {
   if (!window.Manutencao) { console.error('[manutencao-romaneio] requires Manutencao core'); return; }
   Object.assign(window.Manutencao, {
+    // Código do romaneio gravado no pedido: RM-NNN-AAAA (sequencial por ano de
+    // criação). Fallback p/ registros antigos: usa o nº sequencial da manutenção.
+    _codigoRomaneio(m) {
+      const ano = String(m.createdAt || new Date().toISOString()).slice(0, 4);
+      const seq = m.romaneioNumero || m.numero || 0;
+      return 'RM-' + String(seq).padStart(3, '0') + '-' + ano;
+    },
+
     // Carrega assets/logo.png e devolve dataURL (fundo branco), p/ o cabeçalho.
     _carregarLogo() {
       return new Promise((resolve) => {
@@ -48,8 +56,7 @@
       doc.text('ROMANEIO DE MATERIAL', pageW / 2 + 14, y + 10, { align: 'center' });
       y += 22;
 
-      const ano = String(m.dataEnvio || m.createdAt || new Date().toISOString()).slice(0, 4);
-      const rm = 'RM-' + String(m.numero || 0).padStart(3, '0') + '-' + ano;
+      const rm = this._codigoRomaneio(m);
 
       // Bloco de dados (rótulos em negrito) + número à direita.
       const origem = this._nomeContrato(m.contractId).replace(/^\u{1F3E2} |^\u{1F3D7}\u{FE0F} /u, '');

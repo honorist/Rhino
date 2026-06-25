@@ -5172,6 +5172,14 @@ async function handlePostManutencao(req, body, res) {
   try {
     const equipamento = (body.equipamento || '').trim();
     if (!equipamento) return sendError(res, 400, 'Informe o equipamento');
+    // Número do romaneio: sequencial por ano de criação, gravado no pedido
+    // (RM-NNN-AAAA). max(ano corrente)+1 — corrida é improvável nesta escala.
+    const seqRow = await db.getOne(
+      `SELECT COALESCE(MAX(romaneio_numero), 0) + 1 AS next
+         FROM manutencoes
+        WHERE EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW())`
+    );
+    const romaneioNumero = (seqRow && seqRow.next) || 1;
     const data = {
       id: generateId('man'),
       equipamento,
@@ -5182,6 +5190,7 @@ async function handlePostManutencao(req, body, res) {
       custoEstimado: 0,
       observacoes: (body.observacoes || '').trim(),
       itens: JSON.stringify(_normalizaItensManutencao(body.itens)),
+      romaneioNumero,
       solicitanteUserId: req.user?.id || null,
       solicitanteNome: req.user?.name || req.user?.email || null,
     };

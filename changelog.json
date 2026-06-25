@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.23.4",
+      "date": "2026-06-25",
+      "summary": "Número do romaneio agora é sequencial e fixo por pedido",
+      "changes": [
+        "Cada solicitação de manutenção recebe um número de romaneio sequencial por ano (RM-001-2026, RM-002-2026...) no momento da criação",
+        "O número fica gravado e vinculado ao pedido — não muda depois",
+        "O código do romaneio aparece na tela de detalhe da manutenção"
+      ]
+    },
+    {
       "version": "1.23.3",
       "date": "2026-06-25",
       "summary": "Romaneio de Material e lista de materiais na solicitação de manutenção",
