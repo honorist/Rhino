@@ -141,6 +141,11 @@ module.exports = function registerOperacao(router, deps) {
   router.post('/api/manutencoes/:id/rejeitar', (ctx) =>
     deps.handleRejeitarManutencao(ctx.req, ctx.params[0], ctx.body, ctx.res)
   );
+  // Foto da manutenção — o POST (upload multipart) é interceptado no server.js,
+  // fora do router (igual ao RDO). Aqui só o DELETE.
+  router.delete('/api/manutencoes/:id/fotos/:fotoId', (ctx) =>
+    deps.handleDeleteManutencaoFoto(ctx.params[0], ctx.params[1], ctx.res)
+  );
 
   // ── Frota / veículos ──
   router.get('/api/veiculos', (ctx) => deps.handleListVeiculos(ctx.res));

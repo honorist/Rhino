@@ -608,7 +608,7 @@ test('routes/comercial.js — proposta/:id não engole as sub-rotas (docx etc.)'
 // ─── routes/operacao.js (recursos, documentos, estoque, solicitações, ────────
 //     manutenções, frota, dashboard-layouts, doc-templates) ──────────────────
 
-test('routes/operacao.js — registra exatamente as 74 rotas de operação', () => {
+test('routes/operacao.js — registra exatamente as 75 rotas de operação', () => {
   const router = createRouter();
   require('../routes/operacao')(router, {});
   const rotas = router
@@ -624,6 +624,7 @@ test('routes/operacao.js — registra exatamente as 74 rotas de operação', () 
       'DELETE /api/estoque/itens/:id',
       'DELETE /api/estoque/movimentacoes/:id',
       'DELETE /api/manutencoes/:id',
+      'DELETE /api/manutencoes/:id/fotos/:fotoId',
       'DELETE /api/recursos/:id',
       'DELETE /api/recursos/:id/documentos/:docId',
       'DELETE /api/recursos/:id/documentos/:docId/arquivo',
@@ -715,6 +716,9 @@ test('routes/operacao.js — req injetado, sub-recursos aninhados e :param', () 
     handleDeleteFolga: (id, folgaId, res) => {
       c.delFolga = [id, folgaId, res];
     },
+    handleDeleteManutencaoFoto: (id, fotoId, res) => {
+      c.delManutFoto = [id, fotoId, res];
+    },
   });
   router.dispatch({
     method: 'POST',
@@ -724,6 +728,9 @@ test('routes/operacao.js — req injetado, sub-recursos aninhados e :param', () 
     res: 'R',
   });
   assert.deepEqual(c.postManut, ['REQ', 'B', 'R']); // req cru no 1º arg
+
+  router.dispatch({ method: 'DELETE', pathname: '/api/manutencoes/M1/fotos/F2', res: 'R' });
+  assert.deepEqual(c.delManutFoto, ['M1', 'F2', 'R']);
 
   router.dispatch({
     method: 'POST',

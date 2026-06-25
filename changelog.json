@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.23.2",
+      "date": "2026-06-25",
+      "summary": "Manutenção no mesmo padrão de Solicitações de Compra, com fotos e romaneio",
+      "changes": [
+        "Aba Manutenção agora tem visão Kanban e cards de indicadores, igual às Solicitações de Compra",
+        "Ao solicitar uma manutenção você pode anexar fotos do equipamento e do defeito",
+        "Nova tela de detalhe da manutenção com a linha do tempo de cada etapa",
+        "Botão para imprimir um romaneio de envio do equipamento para a oficina",
+        "Cancelamento de manutenção agora registra o motivo"
+      ]
+    },
+    {
       "version": "1.23.1",
       "date": "2026-06-12",
       "summary": "Fontes mais compactas e controle de tamanho (-/+) consertado",

@@ -937,6 +937,37 @@ window.Store = {
     this.state.contracts = r.contracts || []; this.notify(); return r;
   },
 
+  // Substitui a manutenção no estado a partir da resposta { manutencao }.
+  _mergeManutencao(m) {
+    if (!m) return;
+    const arr = this.state.manutencoes || (this.state.manutencoes = []);
+    const i = arr.findIndex(x => x.id === m.id);
+    if (i >= 0) arr[i] = m; else arr.push(m);
+    this.notify();
+  },
+  // Upload de fotos da manutenção — comprime no navegador (igual ao RDO) e envia
+  // multipart. `files` é um FileList/array de File.
+  async uploadManutencaoFoto(manutencaoId, files) {
+    const form = new FormData();
+    for (const f of files) {
+      const comp = await this._compressImage(f);
+      form.append('arquivo', comp, comp.name);
+    }
+    const res = await fetch(`/api/manutencoes/${manutencaoId}/fotos`, { method: 'POST', body: form });
+    if (!res.ok) {
+      const msg = await res.text();
+      try { throw new Error(JSON.parse(msg).error || msg); } catch { throw new Error(msg); }
+    }
+    const r = await res.json();
+    this._mergeManutencao(r.manutencao); return r;
+  },
+  async deleteManutencaoFoto(manutencaoId, fotoId) {
+    const res = await fetch(`/api/manutencoes/${manutencaoId}/fotos/${fotoId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await res.text());
+    const r = await res.json();
+    this._mergeManutencao(r.manutencao); return r;
+  },
+
   // Organograma (Equipe por Contrato)
   async createMembroOrganograma(contractId, data) {
     const res = await fetch(`/api/contracts/${contractId}/organograma`, {

@@ -60,6 +60,7 @@ const contractSaidasHandlers = require('./handlers/contract-saidas'); // saídas
 const recursoFolgasHandlers = require('./handlers/recurso-folgas'); // folgas + passagens de recursos
 const contractRdosHandlers = require('./handlers/contract-rdos'); // RDO: visão global + CRUD (fotos/assinaturas seguem inline)
 const rdoFotosHandlers = require('./handlers/rdo-fotos'); // RDO fotos: upload multipart + delete
+const manutencaoFotosHandlers = require('./handlers/manutencao-fotos'); // Manutenção fotos: upload multipart + delete
 const recursoDocsHandlers = require('./handlers/recurso-documentos'); // docs de recurso: arquivo (BYTEA) + validação IA
 const candidatoDocsHandlers = require('./handlers/candidato-documentos'); // docs de candidato: arquivo (BYTEA), Etapa 4.3
 const rdoAssinaturasHandlers = require('./handlers/rdo-assinaturas'); // RDO assinaturas digitais: upload + list/get/delete
@@ -2959,6 +2960,18 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Multipart (upload de fotos de manutenção) — não passa pelo body parser JSON
+  const isManutencaoFotoUpload =
+    req.method === 'POST' && /^\/api\/manutencoes\/[^/]+\/fotos$/.test(pathname);
+  if (isManutencaoFotoUpload) {
+    (async () => {
+      if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
+      const parts = pathname.split('/'); // ['', 'api', 'manutencoes', id, 'fotos']
+      manutencaoFotosHandlers.handlePostManutencaoFoto(parts[3], req, res);
+    })();
+    return;
+  }
+
   // Multipart (upload de arquivo de documento de recurso) — também precisa pular body parser
   const isRecursoDocArqUpload =
     req.method === 'POST' && /^\/api\/recursos\/[^/]+\/documentos\/[^/]+\/arquivo$/.test(pathname);
@@ -3502,6 +3515,8 @@ registerOperacao(apiRouter, {
   handleAvaliarManutencao,
   handleAprovarManutencao,
   handleRejeitarManutencao,
+  ...manutencaoFotosHandlers, // fotos da manutenção: upload (multipart, interceptado) + delete
+
   handleListVeiculos,
   handlePostVeiculo,
   handlePutVeiculo,
@@ -3586,6 +3601,49 @@ async function serveRdoFotoFromDb(pathname, req, res) {
   }
 }
 
+// Serve foto de manutenção a partir do banco (BYTEA), espelhando o RDO.
+// URL: /data/manutencao-fotos/<manutencaoId>/<fotoId>.<ext> — o fotoId é o nome
+// do arquivo sem extensão (handlers/manutencao-fotos.js grava filename = fotoId + ext).
+async function serveManutencaoFotoFromDb(pathname, req, res) {
+  try {
+    const sid = auth.parseCookies(req)[auth.COOKIE_NAME];
+    const sessionUser = await auth.getUserBySession(sid);
+    if (!sessionUser) {
+      res.writeHead(401, { 'Content-Type': 'text/plain' });
+      res.end('Não autenticado');
+      return;
+    }
+    const parts = pathname.split('/'); // ['', 'data', 'manutencao-fotos', manutencaoId, filename]
+    const manutencaoId = parts[3];
+    const filename = parts[4] || '';
+    const fotoId = filename.replace(/\.[^.]+$/, '');
+    // Defesa em profundidade: IDs têm formato fixo (generateId) — rejeita ".." etc.
+    if (!/^man_[0-9a-z]+$/i.test(manutencaoId) || !/^foto_[0-9a-z]+$/i.test(fotoId)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('404 Not Found');
+      return;
+    }
+    const row = await db.getOne(
+      'SELECT mime, data FROM manutencao_fotos WHERE id = $1 AND manutencao_id = $2',
+      [fotoId, manutencaoId]
+    );
+    if (!row || !row.data) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('404 Not Found');
+      return;
+    }
+    res.writeHead(200, {
+      'Content-Type': row.mime || 'image/jpeg',
+      'Content-Length': row.data.length,
+      'Cache-Control': 'private, max-age=3600',
+    });
+    res.end(row.data);
+  } catch (_e) {
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end('Erro ao carregar foto');
+  }
+}
+
 function routeRequest(pathname, method, body, res, parsedUrl, req) {
   // Router modular — se o domínio já foi migrado, casa aqui e encerra.
   if (apiRouter.dispatch({ pathname, method, body, res, parsedUrl, req })) return;
@@ -3610,6 +3668,12 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   // Fotos de RDO: servidas do banco (BYTEA), não do disco.
   if (pathname.startsWith('/data/rdo-fotos/')) {
     serveRdoFotoFromDb(pathname, req, res);
+    return;
+  }
+
+  // Fotos de manutenção: servidas do banco (BYTEA), não do disco.
+  if (pathname.startsWith('/data/manutencao-fotos/')) {
+    serveManutencaoFotoFromDb(pathname, req, res);
     return;
   }
 
@@ -5248,7 +5312,11 @@ async function handleCancelarManutencao(req, id, body, res) {
     if (atual.status === 'retornado')
       return sendError(res, 400, 'Manutenção concluída não pode ser cancelada');
     if (atual.status === 'cancelada') return sendError(res, 400, 'Manutenção já cancelada');
-    const result = await repos.manutencoes.updateById(id, { status: 'cancelada' });
+    const result = await repos.manutencoes.updateById(id, {
+      status: 'cancelada',
+      motivoCancelamento: (body?.motivo || '').trim() || null,
+      canceladoEm: new Date(),
+    });
     sendJson(res, { manutencao: result });
   } catch (e) {
     sendError(res, 400, e.message);
