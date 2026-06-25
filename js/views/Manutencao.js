@@ -110,6 +110,10 @@ window.Manutencao = {
     return Array.isArray(m.fotos) ? m.fotos : (m.fotos ? JSON.parse(m.fotos) : []);
   },
 
+  _itens(m) {
+    return Array.isArray(m.itens) ? m.itens : (m.itens ? JSON.parse(m.itens) : []);
+  },
+
   // ── Ações (compartilhadas por lista e kanban) ───────────────────────────────
   _acoes(m, podeAvaliar, podeAprovar) {
     const a = [`<button type="button" class="action-link btn-detalhe-man" data-id="${m.id}">Ver</button>`];
@@ -391,6 +395,15 @@ window.Manutencao = {
     );
     const origemAtual = m?.contractId || '';
     const fotos = m ? this._fotos(m) : [];
+    const itens = m && this._itens(m).length ? this._itens(m) : [{ descricao: '', patrimonio: '', qtd: 1 }];
+
+    const linhaItem = (it) => `
+      <tr class="man-item-row">
+        <td><input class="form-control" data-f="descricao" placeholder="Descrição do material" value="${escapeHtml(it.descricao || '')}"></td>
+        <td><input class="form-control" data-f="patrimonio" placeholder="Patrimônio / código" value="${escapeHtml(it.patrimonio || '')}" style="width:150px;"></td>
+        <td><input class="form-control" data-f="qtd" type="number" step="1" min="0" value="${it.qtd ?? 1}" style="width:90px;"></td>
+        <td><button type="button" class="btn btn-sm btn-ghost man-rm-item" style="color:#DC2626;">✕</button></td>
+      </tr>`;
 
     const thumb = (f) => `
       <div class="man-foto-thumb" data-foto-id="${f.id}" style="position:relative;width:72px;height:72px;border-radius:6px;overflow:hidden;border:1px solid var(--color-border);">
@@ -420,6 +433,22 @@ window.Manutencao = {
           <textarea class="form-control" name="observacoes" rows="2" placeholder="Notas adicionais (opcional)">${escapeHtml(m?.observacoes || '')}</textarea>
         </div>
         <div class="form-group">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <label class="form-label" style="margin:0;">Materiais / ferramentas (para o romaneio)</label>
+            <button type="button" class="btn btn-sm btn-secondary" id="btnAddItemMan">+ Item</button>
+          </div>
+          <table style="width:100%;font-size:14px;">
+            <thead><tr style="background:var(--color-surface-2);">
+              <th scope="col" style="padding:6px;text-align:left;">Descrição</th>
+              <th scope="col" style="padding:6px;text-align:left;">Patrimônio / Código</th>
+              <th scope="col" style="padding:6px;text-align:left;">Qtd</th>
+              <th scope="col" style="padding:6px;width:36px;"></th>
+            </tr></thead>
+            <tbody id="manItensBody">${itens.map(linhaItem).join('')}</tbody>
+          </table>
+          <div style="font-size:12px;color:var(--color-text-muted);margin-top:4px;">Opcional. Lista o que está sendo enviado; aparece na tabela do romaneio.</div>
+        </div>
+        <div class="form-group">
           <label class="form-label">Fotos do equipamento / defeito</label>
           <div id="manFotosGrid" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
             ${fotos.map(thumb).join('')}
@@ -441,6 +470,14 @@ window.Manutencao = {
         m ? 'Salvar' : 'Enviar solicitação'
       )
     );
+
+    // Itens do romaneio: adicionar / remover linhas.
+    document.getElementById('btnAddItemMan').addEventListener('click', () => {
+      document.getElementById('manItensBody').insertAdjacentHTML('beforeend', linhaItem({ descricao: '', patrimonio: '', qtd: 1 }));
+    });
+    document.getElementById('manItensBody').addEventListener('click', (e) => {
+      if (e.target.classList.contains('man-rm-item')) e.target.closest('.man-item-row').remove();
+    });
 
     // Pré-visualização local dos arquivos recém-selecionados.
     const input = document.getElementById('manFotoInput');
@@ -474,11 +511,19 @@ window.Manutencao = {
       const fd = new FormData(document.getElementById('formManutencao'));
       const equipamento = (fd.get('equipamento') || '').trim();
       if (!equipamento) throw new Error('Informe o equipamento');
+      const itensColetados = [];
+      document.querySelectorAll('#manItensBody .man-item-row').forEach((tr) => {
+        const descricao = tr.querySelector('[data-f="descricao"]').value.trim();
+        const patrimonio = tr.querySelector('[data-f="patrimonio"]').value.trim();
+        const qtd = parseFloat(tr.querySelector('[data-f="qtd"]').value) || 0;
+        if (descricao) itensColetados.push({ descricao, patrimonio, qtd });
+      });
       const payload = {
         equipamento,
         problema: (fd.get('problema') || '').trim(),
         contractId: fd.get('contractId') || null,
         observacoes: (fd.get('observacoes') || '').trim(),
+        itens: itensColetados,
       };
       // Fase 1: cria/atualiza a manutenção (JSON).
       const resp = await this._fetchJson(
@@ -798,6 +843,28 @@ window.Manutencao = {
                 </div>
                 ${m.problema ? `<div style="padding:10px;background:var(--color-surface-2);border-radius:6px;margin-bottom:var(--sp-md);font-size:14px;"><strong>Problema:</strong><br>${escapeHtml(m.problema)}</div>` : ''}
                 ${m.observacoes ? `<div style="padding:10px;background:var(--color-surface-2);border-radius:6px;margin-bottom:var(--sp-md);font-size:14px;"><strong>Observações:</strong><br>${escapeHtml(m.observacoes)}</div>` : ''}
+                ${(() => {
+                  const itens = this._itens(m);
+                  if (!itens.length) return '';
+                  const total = itens.reduce((s, it) => s + (parseFloat(it.qtd) || 0), 0);
+                  return `
+                    <h3 style="margin:0 0 8px;font-size:15px;">Materiais (${itens.length})</h3>
+                    <table style="width:100%;font-size:13px;margin-bottom:var(--sp-md);">
+                      <thead><tr style="background:var(--color-surface-2);">
+                        <th style="padding:5px;text-align:left;">Descrição</th>
+                        <th style="padding:5px;text-align:left;">Patrim./Código</th>
+                        <th style="padding:5px;text-align:right;">Qtd</th>
+                      </tr></thead>
+                      <tbody>
+                        ${itens.map((it) => `<tr>
+                          <td style="padding:5px;">${escapeHtml(it.descricao || '—')}</td>
+                          <td style="padding:5px;">${escapeHtml(it.patrimonio || '—')}</td>
+                          <td style="padding:5px;text-align:right;">${parseFloat(it.qtd) || 0}</td>
+                        </tr>`).join('')}
+                        <tr style="font-weight:700;border-top:2px solid var(--color-border);"><td colspan="2" style="padding:5px;text-align:right;">TOTAL</td><td style="padding:5px;text-align:right;">${total}</td></tr>
+                      </tbody>
+                    </table>`;
+                })()}
                 <h3 style="margin:0 0 8px;font-size:15px;">Fotos (${fotos.length})</h3>
                 ${fotos.length
                   ? `<div style="display:flex;flex-wrap:wrap;gap:8px;">${fotos.map((f) => `<a href="${f.url}" target="_blank" rel="noopener" style="width:88px;height:88px;border-radius:6px;overflow:hidden;border:1px solid var(--color-border);display:block;"><img src="${f.url}" alt="foto" style="width:100%;height:100%;object-fit:cover;"></a>`).join('')}</div>`
@@ -819,68 +886,8 @@ window.Manutencao = {
     document.getElementById('btnRomaneioDet')?.addEventListener('click', () => this.imprimirRomaneio(id));
   },
 
-  // ── Romaneio (envio do equipamento p/ manutenção) ───────────────────────────
-  // NOTA: layout preliminar. Será ajustado quando o modelo de romaneio do cliente
-  // for fornecido (campos, ordem, logo, vias).
-  async imprimirRomaneio(id) {
-    const m = (Store.state.manutencoes || []).find((x) => x.id === id);
-    if (!m) return;
-    if (typeof window.jspdf === 'undefined') {
-      try { await window.RhinoLazy.ensure(['jspdf', 'jspdf-autotable']); }
-      catch { window.showToast('Falha ao carregar biblioteca PDF', 'error'); return; }
-    }
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
-    const pageW = doc.internal.pageSize.getWidth();
-    const margin = 14;
-    let y = margin;
-
-    doc.setFontSize(16); doc.setFont(undefined, 'bold');
-    doc.text('ROMANEIO DE ENVIO — MANUTENÇÃO', pageW / 2, y, { align: 'center' });
-    y += 7;
-    doc.setFontSize(10); doc.setFont(undefined, 'normal');
-    doc.text(`Nº ${m.numero || m.id.slice(-6)}   ·   Emitido em ${new Date().toLocaleDateString('pt-BR')}`, pageW / 2, y, { align: 'center' });
-    y += 8;
-
-    const linhas = [
-      ['Equipamento', m.equipamento || '—'],
-      ['Problema / defeito', m.problema || '—'],
-      ['Origem', this._nomeContrato(m.contractId).replace(/^🏢 |^🏗️ /, '')],
-      ['Oficina / destino', m.oficina || '—'],
-      ['Data de envio', this._fmtDate(m.dataEnvio)],
-      ['Previsão de retorno', this._fmtDate(m.dataRetornoPrevista)],
-      ['Custo estimado', this._fmtBRL(m.custoEstimado)],
-      ['Solicitante', m.solicitanteNome || '—'],
-      ['Observações', m.observacoes || '—'],
-    ];
-    if (doc.autoTable) {
-      doc.autoTable({
-        startY: y,
-        head: [['Informação', 'Detalhe']],
-        body: linhas,
-        styles: { fontSize: 10, cellPadding: 2.5 },
-        headStyles: { fillColor: [37, 99, 235] },
-        columnStyles: { 0: { cellWidth: 50, fontStyle: 'bold' } },
-        margin: { left: margin, right: margin },
-      });
-      y = doc.lastAutoTable.finalY + 18;
-    } else {
-      doc.setFontSize(10);
-      for (const [k, v] of linhas) { doc.text(`${k}: ${v}`, margin, y); y += 6; }
-      y += 12;
-    }
-
-    // Linhas de assinatura
-    const colW = (pageW - 2 * margin - 10) / 2;
-    doc.setFontSize(9);
-    doc.line(margin, y, margin + colW, y);
-    doc.line(margin + colW + 10, y, margin + 2 * colW + 10, y);
-    y += 4;
-    doc.text('Responsável pelo envio', margin, y);
-    doc.text('Recebedor (oficina)', margin + colW + 10, y);
-
-    doc.save(`romaneio-manutencao-${m.numero || m.id.slice(-6)}.pdf`);
-  },
+  // O romaneio (imprimirRomaneio + _carregarLogo) vive em
+  // js/views/manutencao-romaneio.js, carregado depois desta view (ver app.js).
 
   async _cancelar(id) {
     const motivo = prompt('Motivo do cancelamento (opcional):');

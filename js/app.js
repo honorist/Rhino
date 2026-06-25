@@ -41,7 +41,7 @@ const _lazyManifest = {
     viewName: 'CotacoesHistorico',
     scripts: ['./js/views/CotacoesHistorico.js'],
   },
-  '#/manutencao': { viewName: 'Manutencao', scripts: ['./js/views/Manutencao.js'] },
+  '#/manutencao': { viewName: 'Manutencao', scripts: ['./js/views/Manutencao.js', './js/views/manutencao-romaneio.js'] },
   '#/frota': { viewName: 'Frota', scripts: ['./js/views/Frota.js'] },
   '#/estoque': { viewName: 'Estoque', scripts: ['./js/views/Estoque.js'] },
   '#/proposta': { viewName: 'Propostas', scripts: ['./js/views/Propostas.js'] },

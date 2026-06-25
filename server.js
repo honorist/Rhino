@@ -5155,6 +5155,19 @@ async function handleListManutencoes(query, res) {
 }
 
 // 1ª etapa — solicitante: apenas o equipamento e o problema.
+// Normaliza a lista de materiais do romaneio: { descricao, patrimonio, qtd }.
+// Mantém só linhas com descrição; qtd default 1.
+function _normalizaItensManutencao(itens) {
+  if (!Array.isArray(itens)) return [];
+  return itens
+    .map((it) => ({
+      descricao: (it?.descricao || '').trim(),
+      patrimonio: (it?.patrimonio || '').trim(),
+      qtd: parseFloat(it?.qtd) || 0,
+    }))
+    .filter((it) => it.descricao);
+}
+
 async function handlePostManutencao(req, body, res) {
   try {
     const equipamento = (body.equipamento || '').trim();
@@ -5168,6 +5181,7 @@ async function handlePostManutencao(req, body, res) {
       custo: 0,
       custoEstimado: 0,
       observacoes: (body.observacoes || '').trim(),
+      itens: JSON.stringify(_normalizaItensManutencao(body.itens)),
       solicitanteUserId: req.user?.id || null,
       solicitanteNome: req.user?.name || req.user?.email || null,
     };
@@ -5195,6 +5209,7 @@ async function handlePutManutencao(id, body, res) {
     if (body.contractId !== undefined) allowed.contractId = body.contractId || null;
     if (body.problema !== undefined) allowed.problema = (body.problema || '').trim();
     if (body.observacoes !== undefined) allowed.observacoes = (body.observacoes || '').trim();
+    if (body.itens !== undefined) allowed.itens = JSON.stringify(_normalizaItensManutencao(body.itens));
     const result = await repos.manutencoes.updateById(id, allowed);
     sendJson(res, { manutencao: result });
   } catch (e) {

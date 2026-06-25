@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.23.3",
+      "date": "2026-06-25",
+      "summary": "Romaneio de Material e lista de materiais na solicitação de manutenção",
+      "changes": [
+        "Na solicitação de manutenção você lista os materiais/ferramentas (descrição, patrimônio/código e quantidade)",
+        "Botão de romaneio agora gera o PDF no padrão RHINO 'ROMANEIO DE MATERIAL' (RM-000-AAAA), com logo, dados da obra e tabela de itens com TOTAL",
+        "A tela de detalhe mostra a lista de materiais com o total"
+      ]
+    },
+    {
       "version": "1.23.2",
       "date": "2026-06-25",
       "summary": "Manutenção no mesmo padrão de Solicitações de Compra, com fotos e romaneio",
