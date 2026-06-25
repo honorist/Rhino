@@ -50,9 +50,9 @@ test('_entityInfo traduz e dá artigo', () => {
 });
 
 test('_actionVerb cobre as ações novas', () => {
-  assert.strictEqual(A._actionVerb('aprovar').verbo, 'Aprovou');
-  assert.strictEqual(A._actionVerb('enviar').verbo, 'Enviou');
-  assert.strictEqual(A._actionVerb('comprar').verbo, 'Comprou');
+  assert.strictEqual(A._actionVerb('aprovar').verbo, 'aprovou');
+  assert.strictEqual(A._actionVerb('enviar').verbo, 'enviou');
+  assert.strictEqual(A._actionVerb('comprar').verbo, 'comprou');
 });
 
 test('_eventSentence: criação com nome amigável', () => {
@@ -113,12 +113,6 @@ test('_groupByDay separa por dia', () => {
   assert.strictEqual(groups[1].rows.length, 1);
 });
 
-test('_avatar: iniciais determinísticas', () => {
-  const a = A._avatar('joao.silva@x.com');
-  assert.strictEqual(a.initials, 'JS');
-  assert.ok(a.hue >= 0 && a.hue < 360);
-});
-
 test('_userName humaniza o email', () => {
   assert.strictEqual(A._userName('joao.silva@x.com'), 'Joao Silva');
 });
@@ -130,7 +124,7 @@ test('_eventRow (update) mostra resumo do diff (US-2)', () => {
     beforeState: { value: 120000 }, body: { value: 135000 },
   });
   assert.ok(html.includes('Maria Costa'));
-  assert.ok(html.includes('alterou'), 'frase deve ser o diff, não genérica');
+  assert.ok(html.includes('editou'), 'frase deve ser o diff, não genérica');
   assert.ok(html.includes('135.000,00'), 'valor novo formatado');
 });
 
@@ -161,7 +155,7 @@ test('_fmtTyped formata por tipo', () => {
 // ── US-2: resumo do update ──
 test('_updateSummaryHtml: 1 campo com valores', () => {
   const s = A._updateSummaryHtml({ beforeState: { execPct: 5 }, body: { execPct: 10 } });
-  assert.ok(s.includes('alterou') && s.includes('Execução') && s.includes('5%') && s.includes('10%'), s);
+  assert.ok(s.includes('editou') && s.includes('Execução') && s.includes('5%') && s.includes('10%'), s);
 });
 
 test('_updateSummaryHtml: 2 campos (2º só rótulo)', () => {
@@ -179,26 +173,4 @@ test('_updateSummaryHtml: >2 campos vira +N', () => {
   assert.ok(s.includes('+1 campos'), s);
 });
 
-// ── US-2: agrupamento consecutivo ──
-test('_groupConsecutive agrupa creates idênticos', () => {
-  const g = A._groupConsecutive([
-    { id: 1, userEmail: 'a@x', action: 'create', entity: 'contas-pagar', status: 200 },
-    { id: 2, userEmail: 'a@x', action: 'create', entity: 'contas-pagar', status: 200 },
-    { id: 3, userEmail: 'a@x', action: 'create', entity: 'contas-pagar', status: 200 },
-  ]);
-  assert.strictEqual(g.length, 1);
-  assert.strictEqual(g[0]._count, 3);
-});
-
-test('_groupConsecutive NÃO agrupa updates', () => {
-  const g = A._groupConsecutive([
-    { id: 1, userEmail: 'a@x', action: 'update', entity: 'contracts', status: 200 },
-    { id: 2, userEmail: 'a@x', action: 'update', entity: 'contracts', status: 200 },
-  ]);
-  assert.strictEqual(g.length, 2);
-});
-
-test('_pluralEntity pluraliza a 1ª palavra', () => {
-  assert.strictEqual(A._pluralEntity('contas-pagar', 5), '5 contas a pagar');
-  assert.strictEqual(A._pluralEntity('clientes', 3), '3 clientes');
-});
+// _groupConsecutive e _pluralEntity removidos no redesign v1.23.6 — feed mostra 1 linha por ação.

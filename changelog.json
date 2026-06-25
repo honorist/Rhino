@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.23.6",
+      "date": "2026-06-25",
+      "summary": "Auditoria reformulada: feed compacto, uma ação por linha, sem detalhe",
+      "changes": [
+        "Auditoria reformulada: feed compacto, uma ação por linha, sem detalhe"
+      ]
+    },
+    {
       "version": "1.23.5",
       "date": "2026-06-25",
       "summary": "Tela atualiza automaticamente após criar, editar ou excluir itens (sem precisar dar F5)",
