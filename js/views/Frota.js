@@ -11,7 +11,10 @@ window.Frota = {
   // ── Placa: padrão antigo (ABC-1234) e Mercosul (ABC1D23) ──
   // Normaliza removendo tudo que não é alfanumérico e botando maiúsculo.
   _normalizarPlaca(s) {
-    return (s || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+    return (s || '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .slice(0, 7);
   },
   // Aplica máscara conforme detecta o padrão (após 4 dígitos = antigo; com letra na 5ª = Mercosul).
   _formatPlaca(s) {
@@ -39,19 +42,23 @@ window.Frota = {
   // Calcula a manutenção mais próxima do vencimento.
   // Retorna { plano, status, kmRestante, diasRestante, label } ou null se não há plano ativo.
   _proximaManut(v) {
-    const planos = (v.planos || []).filter(p => p.ativo !== false);
+    const planos = (v.planos || []).filter((p) => p.ativo !== false);
     if (!planos.length) return null;
-    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
     const km = parseInt(v.kmAtual) || 0;
 
     let melhor = null;
     for (const p of planos) {
-      let kmRest = null, diasRest = null;
-      if (p.intervaloKm && p.ultimoKm != null) kmRest = (parseInt(p.ultimoKm) + parseInt(p.intervaloKm)) - km;
+      let kmRest = null,
+        diasRest = null;
+      if (p.intervaloKm && p.ultimoKm != null)
+        kmRest = parseInt(p.ultimoKm) + parseInt(p.intervaloKm) - km;
       else if (p.intervaloKm && p.ultimoKm == null) kmRest = parseInt(p.intervaloKm); // ainda não fez nenhuma vez
       if (p.intervaloMeses && p.ultimaData) {
         const ult = new Date(p.ultimaData + 'T12:00:00');
-        const venc = new Date(ult); venc.setMonth(venc.getMonth() + parseInt(p.intervaloMeses));
+        const venc = new Date(ult);
+        venc.setMonth(venc.getMonth() + parseInt(p.intervaloMeses));
         diasRest = Math.ceil((venc - hoje) / 86400000);
       } else if (p.intervaloMeses && !p.ultimaData) {
         diasRest = parseInt(p.intervaloMeses) * 30;
@@ -61,43 +68,52 @@ window.Frota = {
       if (kmRest !== null) candidatos.push({ tipo: 'km', valor: kmRest, urgencia: kmRest });
       if (diasRest !== null) candidatos.push({ tipo: 'data', valor: diasRest, urgencia: diasRest });
       if (!candidatos.length) continue;
-      const mais = candidatos.reduce((a, b) => a.urgencia <= b.urgencia ? a : b);
+      const mais = candidatos.reduce((a, b) => (a.urgencia <= b.urgencia ? a : b));
       const score = mais.urgencia;
       if (!melhor || score < melhor.score) melhor = { plano: p, kmRest, diasRest, score };
     }
     if (!melhor) return null;
     let status = 'vigente';
-    const venc = melhor.kmRest !== null && melhor.kmRest <= 0
-              || melhor.diasRest !== null && melhor.diasRest <= 0;
-    const proximo = (melhor.kmRest !== null && melhor.kmRest <= 500)
-                 || (melhor.diasRest !== null && melhor.diasRest <= 30);
+    const venc =
+      (melhor.kmRest !== null && melhor.kmRest <= 0) ||
+      (melhor.diasRest !== null && melhor.diasRest <= 0);
+    const proximo =
+      (melhor.kmRest !== null && melhor.kmRest <= 500) ||
+      (melhor.diasRest !== null && melhor.diasRest <= 30);
     if (venc) status = 'vencido';
     else if (proximo) status = 'proximo';
     let label = melhor.plano.descricao;
-    if (melhor.kmRest !== null) label += ` · ${melhor.kmRest >= 0 ? 'em' : 'venceu há'} ${Math.abs(melhor.kmRest)} km`;
-    if (melhor.diasRest !== null) label += ` · ${melhor.diasRest >= 0 ? 'em' : 'venceu há'} ${Math.abs(melhor.diasRest)} dias`;
+    if (melhor.kmRest !== null)
+      label += ` · ${melhor.kmRest >= 0 ? 'em' : 'venceu há'} ${Math.abs(melhor.kmRest)} km`;
+    if (melhor.diasRest !== null)
+      label += ` · ${melhor.diasRest >= 0 ? 'em' : 'venceu há'} ${Math.abs(melhor.diasRest)} dias`;
     return { ...melhor, status, label };
   },
 
   _badgeManut(prox) {
-    if (!prox) return `<span class="badge" style="background:#F3F4F6;color:#6B7280;font-size:12px;padding:2px 8px;border-radius:10px;">sem plano</span>`;
+    if (!prox)
+      return `<span class="badge" style="background:#F3F4F6;color:#6B7280;font-size:12px;padding:2px 8px;border-radius:10px;">sem plano</span>`;
     const cfg = {
-      vigente:  { bg: '#D1FAE5', color: '#065F46', label: '✓ vigente' },
-      proximo:  { bg: '#FEF3C7', color: '#92400E', label: '⚠ próximo' },
-      vencido:  { bg: '#FEE2E2', color: '#991B1B', label: '✗ vencido' },
+      vigente: { bg: '#D1FAE5', color: '#065F46', label: '✓ vigente' },
+      proximo: { bg: '#FEF3C7', color: '#92400E', label: '⚠ próximo' },
+      vencido: { bg: '#FEE2E2', color: '#991B1B', label: '✗ vencido' },
     }[prox.status];
     return `<span class="badge" title="${escapeHtml(prox.label)}" style="background:${cfg.bg};color:${cfg.color};font-size:12px;padding:2px 8px;border-radius:10px;font-weight:700;">${cfg.label}</span>`;
   },
 
   async render() {
     const app = document.getElementById('app');
-    app.innerHTML = '<div class="loading-spinner">Carregando frota...</div>';
-    try {
-      await Store.loadAll();
-      this._draw();
-    } catch (e) {
-      app.innerHTML = `<div class="card"><p class="text-danger">Erro ao carregar: ${escapeHtml(e.message)}</p></div>`;
+    if (!this._loaded) {
+      app.innerHTML = '<div class="loading-spinner">Carregando frota...</div>';
+      try {
+        await Store.loadAll();
+        this._loaded = true;
+      } catch (e) {
+        app.innerHTML = `<div class="card"><p class="text-danger">Erro ao carregar: ${escapeHtml(e.message)}</p></div>`;
+        return;
+      }
     }
+    this._draw();
   },
 
   _draw() {
@@ -107,63 +123,117 @@ window.Frota = {
 
     const termo = (this.busca || '').toLowerCase();
     let lista = todos;
-    if (termo) lista = lista.filter(v =>
-      (v.placa || '').toLowerCase().includes(termo) ||
-      (v.modelo || '').toLowerCase().includes(termo) ||
-      (v.marca || '').toLowerCase().includes(termo)
-    );
-    if (this.filtroStatus) lista = lista.filter(v => v.status === this.filtroStatus);
-    if (this.filtroContrato) lista = lista.filter(v => v.contractId === this.filtroContrato);
+    if (termo)
+      lista = lista.filter(
+        (v) =>
+          (v.placa || '').toLowerCase().includes(termo) ||
+          (v.modelo || '').toLowerCase().includes(termo) ||
+          (v.marca || '').toLowerCase().includes(termo)
+      );
+    if (this.filtroStatus) lista = lista.filter((v) => v.status === this.filtroStatus);
+    if (this.filtroContrato) lista = lista.filter((v) => v.contractId === this.filtroContrato);
 
-    const proxs = todos.map(v => this._proximaManut(v));
-    const kpiVencidos = proxs.filter(p => p?.status === 'vencido').length;
-    const kpiProximos = proxs.filter(p => p?.status === 'proximo').length;
-    const kpiManut = todos.filter(v => v.status === 'manutencao').length;
+    const proxs = todos.map((v) => this._proximaManut(v));
+    const kpiVencidos = proxs.filter((p) => p?.status === 'vencido').length;
+    const kpiProximos = proxs.filter((p) => p?.status === 'proximo').length;
+    const kpiManut = todos.filter((v) => v.status === 'manutencao').length;
 
     const filtroAtivo = !!(termo || this.filtroStatus || this.filtroContrato);
-    const kpiAtivos = todos.filter(v => v.status === 'ativo').length;
+    const kpiAtivos = todos.filter((v) => v.status === 'ativo').length;
 
-    const headerHtml = window.UIKit?.pageHeader ? window.UIKit.pageHeader({
-      title: 'Frota',
-      subtitle: filtroAtivo
-        ? `${lista.length} de ${todos.length} veículo${todos.length !== 1 ? 's' : ''}`
-        : `${todos.length} veículo${todos.length !== 1 ? 's' : ''}`,
-      actions: '<button class="btn btn-primary btn-lg" id="btnNovoVeic">+ Novo Veículo</button>',
-    }) : `<div class="page-header"><div><h1 class="page-title">Frota</h1></div><button class="btn btn-primary btn-lg" id="btnNovoVeic">+ Novo Veículo</button></div>`;
+    const headerHtml = window.UIKit?.pageHeader
+      ? window.UIKit.pageHeader({
+          title: 'Frota',
+          subtitle: filtroAtivo
+            ? `${lista.length} de ${todos.length} veículo${todos.length !== 1 ? 's' : ''}`
+            : `${todos.length} veículo${todos.length !== 1 ? 's' : ''}`,
+          actions:
+            '<button class="btn btn-primary btn-lg" id="btnNovoVeic">+ Novo Veículo</button>',
+        })
+      : `<div class="page-header"><div><h1 class="page-title">Frota</h1></div><button class="btn btn-primary btn-lg" id="btnNovoVeic">+ Novo Veículo</button></div>`;
 
-    const kpisHtml = window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
-      { label: 'Total',           value: todos.length,   color: 'var(--color-primary)' },
-      { label: 'Ativos',          value: kpiAtivos,      color: 'var(--color-success)' },
-      { label: 'Em manutenção',   value: kpiManut,       color: 'var(--color-warning)' },
-      { label: 'Manut. vencidas', value: kpiVencidos,    color: 'var(--color-danger)',
-        hint: kpiProximos ? `+${kpiProximos} próximas` : 'tudo em dia' },
-    ]) : '';
+    const kpisHtml = window.UIKit?.kpiGrid
+      ? window.UIKit.kpiGrid([
+          { label: 'Total', value: todos.length, color: 'var(--color-primary)' },
+          { label: 'Ativos', value: kpiAtivos, color: 'var(--color-success)' },
+          { label: 'Em manutenção', value: kpiManut, color: 'var(--color-warning)' },
+          {
+            label: 'Manut. vencidas',
+            value: kpiVencidos,
+            color: 'var(--color-danger)',
+            hint: kpiProximos ? `+${kpiProximos} próximas` : 'tudo em dia',
+          },
+        ])
+      : '';
 
-    const toolbarHtml = window.UIKit?.toolbar ? window.UIKit.toolbar({
-      search:  { id: 'inpBusca', value: this.busca, label: 'Buscar',
-                 placeholder: 'Placa, modelo ou marca...' },
-      selects: [
-        { id: 'filtroStatus', label: 'Status', options: [
-          { value: '',           label: 'Todos status',  selected: !this.filtroStatus },
-          { value: 'ativo',      label: 'Ativos',        selected: this.filtroStatus==='ativo' },
-          { value: 'manutencao', label: 'Em manutenção', selected: this.filtroStatus==='manutencao' },
-          { value: 'inativo',    label: 'Inativos',      selected: this.filtroStatus==='inativo' },
-        ]},
-        { id: 'filtroContrato', label: 'Contrato', options: [
-          { value: '', label: `Todos (${contratos.length})`, selected: !this.filtroContrato },
-          ...contratos.map(c => ({ value: c.id, label: c.name, selected: this.filtroContrato===c.id })),
-        ]},
-      ],
-      showClear: filtroAtivo, clearId: 'btnLimparFrota',
-    }) : '';
+    const toolbarHtml = window.UIKit?.toolbar
+      ? window.UIKit.toolbar({
+          search: {
+            id: 'inpBusca',
+            value: this.busca,
+            label: 'Buscar',
+            placeholder: 'Placa, modelo ou marca...',
+          },
+          selects: [
+            {
+              id: 'filtroStatus',
+              label: 'Status',
+              options: [
+                { value: '', label: 'Todos status', selected: !this.filtroStatus },
+                { value: 'ativo', label: 'Ativos', selected: this.filtroStatus === 'ativo' },
+                {
+                  value: 'manutencao',
+                  label: 'Em manutenção',
+                  selected: this.filtroStatus === 'manutencao',
+                },
+                { value: 'inativo', label: 'Inativos', selected: this.filtroStatus === 'inativo' },
+              ],
+            },
+            {
+              id: 'filtroContrato',
+              label: 'Contrato',
+              options: [
+                { value: '', label: `Todos (${contratos.length})`, selected: !this.filtroContrato },
+                ...contratos.map((c) => ({
+                  value: c.id,
+                  label: c.name,
+                  selected: this.filtroContrato === c.id,
+                })),
+              ],
+            },
+          ],
+          showClear: filtroAtivo,
+          clearId: 'btnLimparFrota',
+        })
+      : '';
 
     // Chips por status
-    const chipsHtml = window.UIKit?.chips ? window.UIKit.chips([
-      { value: '',           label: 'Todos',         count: todos.length, active: !this.filtroStatus },
-      { value: 'ativo',      label: 'Ativos',        count: kpiAtivos,    active: this.filtroStatus==='ativo' },
-      { value: 'manutencao', label: 'Em manutenção', count: kpiManut,     active: this.filtroStatus==='manutencao' },
-      { value: 'inativo',    label: 'Inativos',      count: todos.filter(v=>v.status==='inativo').length, active: this.filtroStatus==='inativo' },
-    ], { name: 'frota-status', inCard: true }) : '';
+    const chipsHtml = window.UIKit?.chips
+      ? window.UIKit.chips(
+          [
+            { value: '', label: 'Todos', count: todos.length, active: !this.filtroStatus },
+            {
+              value: 'ativo',
+              label: 'Ativos',
+              count: kpiAtivos,
+              active: this.filtroStatus === 'ativo',
+            },
+            {
+              value: 'manutencao',
+              label: 'Em manutenção',
+              count: kpiManut,
+              active: this.filtroStatus === 'manutencao',
+            },
+            {
+              value: 'inativo',
+              label: 'Inativos',
+              count: todos.filter((v) => v.status === 'inativo').length,
+              active: this.filtroStatus === 'inativo',
+            },
+          ],
+          { name: 'frota-status', inCard: true }
+        )
+      : '';
 
     const html = `
       ${headerHtml}
@@ -186,29 +256,44 @@ window.Frota = {
               </tr>
             </thead>
             <tbody>
-              ${lista.length === 0 ? `
-                <tr><td colspan="7" style="padding:0;">${window.UIKit?.empty ? window.UIKit.empty({
-                  icon: window.rhIcon('truck', 40),
-                  title: 'Nenhum veículo cadastrado',
-                  desc: 'Comece registrando os veículos da frota — carros, caminhões, máquinas. Você poderá acompanhar abastecimentos, manutenções e custos por veículo.',
-                  cta: '<button class="btn btn-primary" onclick="document.getElementById(\'btnNovoVeic\')?.click()">+ Cadastrar primeiro veículo</button>',
-                }) : '<div class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum veículo cadastrado</div>'}</td></tr>
-              ` : lista.map(v => {
-                const c = contratos.find(x => x.id === v.contractId);
-                const prox = this._proximaManut(v);
-                const cidade = (v.endereco || '').split(',').slice(0, 2).join(', ').trim();
-                return `
+              ${
+                lista.length === 0
+                  ? `
+                <tr><td colspan="7" style="padding:0;">${
+                  window.UIKit?.empty
+                    ? window.UIKit.empty({
+                        icon: window.rhIcon('truck', 40),
+                        title: 'Nenhum veículo cadastrado',
+                        desc: 'Comece registrando os veículos da frota — carros, caminhões, máquinas. Você poderá acompanhar abastecimentos, manutenções e custos por veículo.',
+                        cta: '<button class="btn btn-primary" onclick="document.getElementById(\'btnNovoVeic\')?.click()">+ Cadastrar primeiro veículo</button>',
+                      })
+                    : '<div class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum veículo cadastrado</div>'
+                }</td></tr>
+              `
+                  : lista
+                      .map((v) => {
+                        const c = contratos.find((x) => x.id === v.contractId);
+                        const prox = this._proximaManut(v);
+                        const cidade = (v.endereco || '').split(',').slice(0, 2).join(', ').trim();
+                        return `
                 <tr data-id="${v.id}">
                   <td><strong>${escapeHtml(v.placa || '—')}</strong></td>
                   <td>${escapeHtml((v.marca || '') + ' ' + (v.modelo || '')).trim() || '—'}<div style="font-size:12px;color:var(--color-text-muted);">${escapeHtml(v.tipo || '')}${v.ano ? ' · ' + v.ano : ''}</div></td>
                   <td>${c ? escapeHtml(c.name) : '<span class="text-muted">—</span>'}</td>
                   <td>${this._badgeManut(prox)}<div style="font-size:11px;color:var(--color-text-muted);">${prox ? escapeHtml(prox.plano.descricao) : ''}</div></td>
                   <td style="font-size:13px;">${cidade ? escapeHtml(cidade) : '<span class="text-muted">—</span>'}</td>
-                  <td>${window.UIKit?.statusPill
-                    ? (v.status === 'manutencao' ? window.UIKit.statusPill('pausado', '🔧 Manutenção')
-                       : v.status === 'inativo'  ? window.UIKit.statusPill('cancelado', '⏸ Inativo')
-                       : window.UIKit.statusPill('ativo'))
-                    : (v.status === 'manutencao' ? '🔧 Manut.' : v.status === 'inativo' ? '⏸ Inativo' : '✓ Ativo')
+                  <td>${
+                    window.UIKit?.statusPill
+                      ? v.status === 'manutencao'
+                        ? window.UIKit.statusPill('pausado', '🔧 Manutenção')
+                        : v.status === 'inativo'
+                          ? window.UIKit.statusPill('cancelado', '⏸ Inativo')
+                          : window.UIKit.statusPill('ativo')
+                      : v.status === 'manutencao'
+                        ? '🔧 Manut.'
+                        : v.status === 'inativo'
+                          ? '⏸ Inativo'
+                          : '✓ Ativo'
                   }</td>
                   <td>
                     <div class="actions-cell" style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -221,7 +306,9 @@ window.Frota = {
                     </div>
                   </td>
                 </tr>`;
-              }).join('')}
+                      })
+                      .join('')
+              }
             </tbody>
           </table>
         </div>
@@ -231,29 +318,60 @@ window.Frota = {
     app.innerHTML = html;
 
     document.getElementById('btnNovoVeic').addEventListener('click', () => this.showModal());
-    document.getElementById('inpBusca').addEventListener('input', e => {
+    document.getElementById('inpBusca').addEventListener('input', (e) => {
       this.busca = e.target.value;
-      clearTimeout(this._tBusca); this._tBusca = setTimeout(() => this._draw(), 200);
+      clearTimeout(this._tBusca);
+      this._tBusca = setTimeout(() => this._draw(), 200);
     });
-    document.getElementById('filtroStatus').addEventListener('change', e => { this.filtroStatus = e.target.value; this._draw(); });
-    document.getElementById('filtroContrato').addEventListener('change', e => { this.filtroContrato = e.target.value; this._draw(); });
+    document.getElementById('filtroStatus').addEventListener('change', (e) => {
+      this.filtroStatus = e.target.value;
+      this._draw();
+    });
+    document.getElementById('filtroContrato').addEventListener('change', (e) => {
+      this.filtroContrato = e.target.value;
+      this._draw();
+    });
     document.getElementById('btnLimparFrota')?.addEventListener('click', () => {
-      this.busca = ''; this.filtroStatus = ''; this.filtroContrato = ''; this._draw();
+      this.busca = '';
+      this.filtroStatus = '';
+      this.filtroContrato = '';
+      this._draw();
     });
-    document.querySelectorAll('[data-chips="frota-status"] .rh-chip').forEach(b => {
-      b.addEventListener('click', () => { this.filtroStatus = b.dataset.value || ''; this._draw(); });
+    document.querySelectorAll('[data-chips="frota-status"] .rh-chip').forEach((b) => {
+      b.addEventListener('click', () => {
+        this.filtroStatus = b.dataset.value || '';
+        this._draw();
+      });
     });
 
-    document.querySelectorAll('.btn-plano').forEach(b => b.addEventListener('click', e => this.showDetalhe(e.target.dataset.id, 'plano')));
-    document.querySelectorAll('.btn-historico').forEach(b => b.addEventListener('click', e => this.showDetalhe(e.target.dataset.id, 'historico')));
-    document.querySelectorAll('.btn-abastec').forEach(b => b.addEventListener('click', e => this.showDetalhe(e.target.dataset.id, 'abastecimentos')));
-    document.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', e => this.showModal(e.target.dataset.id)));
-    document.querySelectorAll('.btn-distancia').forEach(b => b.addEventListener('click', e => this.showDistancias(e.target.dataset.id)));
-    document.querySelectorAll('.btn-excluir').forEach(b => b.addEventListener('click', e => this.excluir(e.target.dataset.id)));
+    document
+      .querySelectorAll('.btn-plano')
+      .forEach((b) =>
+        b.addEventListener('click', (e) => this.showDetalhe(e.target.dataset.id, 'plano'))
+      );
+    document
+      .querySelectorAll('.btn-historico')
+      .forEach((b) =>
+        b.addEventListener('click', (e) => this.showDetalhe(e.target.dataset.id, 'historico'))
+      );
+    document
+      .querySelectorAll('.btn-abastec')
+      .forEach((b) =>
+        b.addEventListener('click', (e) => this.showDetalhe(e.target.dataset.id, 'abastecimentos'))
+      );
+    document
+      .querySelectorAll('.btn-editar')
+      .forEach((b) => b.addEventListener('click', (e) => this.showModal(e.target.dataset.id)));
+    document
+      .querySelectorAll('.btn-distancia')
+      .forEach((b) => b.addEventListener('click', (e) => this.showDistancias(e.target.dataset.id)));
+    document
+      .querySelectorAll('.btn-excluir')
+      .forEach((b) => b.addEventListener('click', (e) => this.excluir(e.target.dataset.id)));
   },
 
   showModal(id) {
-    const v = id ? (Store.state.veiculos || []).find(x => x.id === id) : null;
+    const v = id ? (Store.state.veiculos || []).find((x) => x.id === id) : null;
     const contratos = Store.state.contracts || [];
 
     const html = `
@@ -275,7 +393,7 @@ window.Frota = {
               <div class="form-group">
                 <label class="form-label">Tipo</label>
                 <select class="form-control" name="tipo">
-                  ${this.TIPOS.map(t => `<option value="${t}" ${v?.tipo===t?'selected':''}>${t}</option>`).join('')}
+                  ${this.TIPOS.map((t) => `<option value="${t}" ${v?.tipo === t ? 'selected' : ''}>${t}</option>`).join('')}
                 </select>
               </div>
             </div>
@@ -301,16 +419,16 @@ window.Frota = {
               <div class="form-group">
                 <label class="form-label">Status</label>
                 <select class="form-control" name="status">
-                  <option value="ativo"      ${v?.status==='ativo'?'selected':''}>Ativo</option>
-                  <option value="manutencao" ${v?.status==='manutencao'?'selected':''}>Em manutenção</option>
-                  <option value="inativo"    ${v?.status==='inativo'?'selected':''}>Inativo</option>
+                  <option value="ativo"      ${v?.status === 'ativo' ? 'selected' : ''}>Ativo</option>
+                  <option value="manutencao" ${v?.status === 'manutencao' ? 'selected' : ''}>Em manutenção</option>
+                  <option value="inativo"    ${v?.status === 'inativo' ? 'selected' : ''}>Inativo</option>
                 </select>
               </div>
               <div class="form-group">
                 <label class="form-label">Alocado em</label>
                 <select class="form-control" name="contractId">
                   <option value="">— Pool (sem alocação) —</option>
-                  ${contratos.map(c => `<option value="${c.id}" ${v?.contractId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
+                  ${contratos.map((c) => `<option value="${c.id}" ${v?.contractId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
                 </select>
               </div>
             </div>
@@ -358,7 +476,10 @@ window.Frota = {
       const fd = new FormData(document.getElementById('formVeic'));
       const data = Object.fromEntries(fd);
       data.placa = this._normalizarPlaca(data.placa || '');
-      if (!data.placa) { window.showToast('Placa obrigatória', 'error'); return; }
+      if (!data.placa) {
+        window.showToast('Placa obrigatória', 'error');
+        return;
+      }
       if (!this._placaValida(data.placa)) {
         window.showToast('Placa inválida — use ABC-1234 (antigo) ou ABC1D23 (Mercosul)', 'error');
         return;
@@ -366,13 +487,23 @@ window.Frota = {
       try {
         const url = v ? `/api/veiculos/${v.id}` : '/api/veiculos';
         const method = v ? 'PUT' : 'POST';
-        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-        if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        if (!res.ok) {
+          const _b = await res.text();
+          throw new Error(_b && _b.length < 120 ? _b : 'Erro no servidor. Tente novamente.');
+        }
         window.showToast(v ? 'Veículo atualizado' : 'Veículo criado', 'success');
         close();
         Store.invalidate();
+        this._loaded = false;
         this.render();
-      } catch (e) { window.showToast(e.message, 'error'); }
+      } catch (e) {
+        window.showToast(e.message, 'error');
+      }
     });
   },
 
@@ -383,43 +514,61 @@ window.Frota = {
     const lngInp = document.getElementById('lngInp');
     if (!input) return;
     let tBusca;
-    input.addEventListener('input', e => {
+    input.addEventListener('input', (e) => {
       const q = e.target.value.trim();
       clearTimeout(tBusca);
-      if (q.length < 4) { drop.style.display = 'none'; return; }
+      if (q.length < 4) {
+        drop.style.display = 'none';
+        return;
+      }
       tBusca = setTimeout(async () => {
         try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&accept-language=pt-BR`);
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&accept-language=pt-BR`
+          );
           const arr = await res.json();
-          if (!arr.length) { drop.style.display = 'none'; return; }
-          // FIX P0-2: escapa data-* do Nominatim (já escapava no texto via escapeHtml).
-          drop.innerHTML = arr.map(r => `<div class="nominatim-item" data-lat="${window.escapeHtml(r.lat)}" data-lng="${window.escapeHtml(r.lon)}" data-name="${window.escapeHtml(r.display_name)}">${escapeHtml(r.display_name)}</div>`).join('');
-          drop.style.display = 'block';
-          drop.querySelectorAll('.nominatim-item').forEach(el => el.addEventListener('click', () => {
-            input.value = el.dataset.name;
-            latInp.value = el.dataset.lat;
-            lngInp.value = el.dataset.lng;
+          if (!arr.length) {
             drop.style.display = 'none';
-          }));
+            return;
+          }
+          // FIX P0-2: escapa data-* do Nominatim (já escapava no texto via escapeHtml).
+          drop.innerHTML = arr
+            .map(
+              (r) =>
+                `<div class="nominatim-item" data-lat="${window.escapeHtml(r.lat)}" data-lng="${window.escapeHtml(r.lon)}" data-name="${window.escapeHtml(r.display_name)}">${escapeHtml(r.display_name)}</div>`
+            )
+            .join('');
+          drop.style.display = 'block';
+          drop.querySelectorAll('.nominatim-item').forEach((el) =>
+            el.addEventListener('click', () => {
+              input.value = el.dataset.name;
+              latInp.value = el.dataset.lat;
+              lngInp.value = el.dataset.lng;
+              drop.style.display = 'none';
+            })
+          );
         } catch {}
       }, 350);
     });
-    document.addEventListener('click', e => {
+    document.addEventListener('click', (e) => {
       if (!document.getElementById('enderecoWrap')?.contains(e.target)) drop.style.display = 'none';
     });
   },
 
   showDetalhe(id, abaInicial) {
-    const v = (Store.state.veiculos || []).find(x => x.id === id);
+    const v = (Store.state.veiculos || []).find((x) => x.id === id);
     if (!v) return;
     let abaAtual = abaInicial || 'plano';
 
     const draw = () => {
       const planos = v.planos || [];
       const manuts = v.manutencoes || [];
-      const planosHtml = planos.length === 0
-        ? `<p class="text-muted" style="text-align:center;padding:var(--sp-lg);">Nenhum plano cadastrado</p>`
-        : planos.map(p => `
+      const planosHtml =
+        planos.length === 0
+          ? `<p class="text-muted" style="text-align:center;padding:var(--sp-lg);">Nenhum plano cadastrado</p>`
+          : planos
+              .map(
+                (p) => `
           <tr>
             <td><strong>${escapeHtml(p.descricao)}</strong></td>
             <td>${p.intervaloKm ? p.intervaloKm.toLocaleString('pt-BR') + ' km' : '—'}</td>
@@ -428,13 +577,17 @@ window.Frota = {
             <td>${p.ultimaData ? new Date(p.ultimaData + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
             <td><button type="button" class="action-link btn-edit-plano" data-id="${p.id}">Editar</button> · <button type="button" class="action-link danger btn-del-plano" data-id="${p.id}">×</button></td>
           </tr>
-        `).join('');
+        `
+              )
+              .join('');
 
-      const manutsHtml = manuts.length === 0
-        ? `<p class="text-muted" style="text-align:center;padding:var(--sp-lg);">Nenhuma manutenção registrada</p>`
-        : manuts.map(m => {
-          const plano = planos.find(p => p.id === m.planoId);
-          return `
+      const manutsHtml =
+        manuts.length === 0
+          ? `<p class="text-muted" style="text-align:center;padding:var(--sp-lg);">Nenhuma manutenção registrada</p>`
+          : manuts
+              .map((m) => {
+                const plano = planos.find((p) => p.id === m.planoId);
+                return `
           <tr>
             <td>${m.data ? new Date(m.data + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
             <td>${escapeHtml(m.tipo || '—')}</td>
@@ -443,37 +596,53 @@ window.Frota = {
             <td>${m.custo ? Store.formatBRL(m.custo) : '—'}</td>
             <td><button type="button" class="action-link danger btn-del-manut" data-id="${m.id}">×</button></td>
           </tr>
-        `;}).join('');
+        `;
+              })
+              .join('');
 
       const abastecs = v.abastecimentos || [];
       const totalAbastecGasto = abastecs.reduce((s, a) => s + (parseFloat(a.valorTotal) || 0), 0);
       const totalAbastecLitros = abastecs.reduce((s, a) => s + (parseFloat(a.litros) || 0), 0);
       // km rodado: diferença entre maior e menor km registrado nos abastecimentos
-      const kmsAbastec = abastecs.map(a => parseInt(a.km)).filter(k => k > 0).sort((a, b) => a - b);
-      const kmRodado = kmsAbastec.length >= 2 ? kmsAbastec[kmsAbastec.length - 1] - kmsAbastec[0] : 0;
-      const mediaConsumo = kmRodado > 0 && totalAbastecLitros > 0 ? (kmRodado / totalAbastecLitros).toFixed(2) : null;
+      const kmsAbastec = abastecs
+        .map((a) => parseInt(a.km))
+        .filter((k) => k > 0)
+        .sort((a, b) => a - b);
+      const kmRodado =
+        kmsAbastec.length >= 2 ? kmsAbastec[kmsAbastec.length - 1] - kmsAbastec[0] : 0;
+      const mediaConsumo =
+        kmRodado > 0 && totalAbastecLitros > 0 ? (kmRodado / totalAbastecLitros).toFixed(2) : null;
       const contratos = Store.state.contracts || [];
 
-      const abastecHtml = abastecs.length === 0
-        ? `<p class="text-muted" style="text-align:center;padding:var(--sp-lg);">Nenhum abastecimento registrado</p>`
-        : abastecs.map(a => {
-          const vlLitro = a.valorTotal && a.litros ? (parseFloat(a.valorTotal) / parseFloat(a.litros)).toFixed(3) : '—';
-          const ct = contratos.find(c => c.id === a.contractId);
-          return `<tr>
+      const abastecHtml =
+        abastecs.length === 0
+          ? `<p class="text-muted" style="text-align:center;padding:var(--sp-lg);">Nenhum abastecimento registrado</p>`
+          : abastecs
+              .map((a) => {
+                const vlLitro =
+                  a.valorTotal && a.litros
+                    ? (parseFloat(a.valorTotal) / parseFloat(a.litros)).toFixed(3)
+                    : '—';
+                const ct = contratos.find((c) => c.id === a.contractId);
+                return `<tr>
             <td>${a.data ? new Date(a.data + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}</td>
             <td>${a.km ? a.km.toLocaleString('pt-BR') + ' km' : '—'}</td>
-            <td>${parseFloat(a.litros).toLocaleString('pt-BR', {minimumFractionDigits:2})} L</td>
+            <td>${parseFloat(a.litros).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} L</td>
             <td>R$ ${vlLitro}</td>
             <td>${a.valorTotal ? Store.formatBRL(a.valorTotal) : '—'}</td>
             <td>${escapeHtml(a.tipoCombustivel || '—')}</td>
             <td style="font-size:12px;">${ct ? escapeHtml(ct.name) : '<span class="text-muted">—</span>'}</td>
             <td><button type="button" class="action-link danger btn-del-abastec" data-id="${a.id}">×</button></td>
           </tr>`;
-        }).join('');
+              })
+              .join('');
 
-      const tabBtn = (k, l) => `<button class="ctd-tab ${abaAtual===k?'active':''}" data-tab="${k}">${l}</button>`;
+      const tabBtn = (k, l) =>
+        `<button class="ctd-tab ${abaAtual === k ? 'active' : ''}" data-tab="${k}">${l}</button>`;
 
-      const conteudo = abaAtual === 'plano' ? `
+      const conteudo =
+        abaAtual === 'plano'
+          ? `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-sm);">
           <h3 style="margin:0;font-size:15px;">Plano de Manutenção</h3>
           <button class="btn btn-sm btn-primary" id="btnAddPlano">+ Adicionar plano</button>
@@ -482,7 +651,9 @@ window.Frota = {
           <thead><tr style="background:var(--color-surface-2);"><th scope="col" style="padding:8px;text-align:left;">Item</th><th scope="col" style="padding:8px;">Intervalo KM</th><th scope="col" style="padding:8px;">Intervalo</th><th scope="col" style="padding:8px;">Último KM</th><th scope="col" style="padding:8px;">Última data</th><th scope="col" style="padding:8px;width:90px;"></th></tr></thead>
           <tbody>${planosHtml}</tbody>
         </table>
-      ` : abaAtual === 'historico' ? `
+      `
+          : abaAtual === 'historico'
+            ? `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--sp-sm);">
           <h3 style="margin:0;font-size:15px;">Histórico de Manutenções</h3>
           <button class="btn btn-sm btn-primary" id="btnAddManut">+ Registrar manutenção</button>
@@ -491,7 +662,9 @@ window.Frota = {
           <thead><tr style="background:var(--color-surface-2);"><th scope="col" style="padding:8px;">Data</th><th scope="col" style="padding:8px;">Tipo</th><th scope="col" style="padding:8px;text-align:left;">Descrição</th><th scope="col" style="padding:8px;">KM</th><th scope="col" style="padding:8px;">Custo</th><th scope="col" style="padding:8px;width:30px;"></th></tr></thead>
           <tbody>${manutsHtml}</tbody>
         </table>
-      ` : abaAtual === 'abastecimentos' ? `
+      `
+            : abaAtual === 'abastecimentos'
+              ? `
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-sm);margin-bottom:var(--sp-md);">
           <div style="background:var(--color-surface-2);border-radius:8px;padding:var(--sp-sm) var(--sp-md);">
             <div style="font-size:11px;color:var(--color-text-muted);text-transform:uppercase;font-weight:700;">Total gasto</div>
@@ -525,14 +698,15 @@ window.Frota = {
             <tbody>${abastecHtml}</tbody>
           </table>
         </div>
-      ` : '';
+      `
+              : '';
 
       return `
         <div class="modal-overlay" id="modalDetVeic">
           <div class="modal" style="width:780px;max-width:95vw;max-height:90vh;overflow-y:auto;">
             <div class="modal-header">
               <div>
-                <h2 class="modal-title">${escapeHtml(v.placa)} · ${escapeHtml((v.marca||'') + ' ' + (v.modelo||''))}</h2>
+                <h2 class="modal-title">${escapeHtml(v.placa)} · ${escapeHtml((v.marca || '') + ' ' + (v.modelo || ''))}</h2>
                 <div style="font-size:13px;color:var(--color-text-muted);">${(v.kmAtual || 0).toLocaleString('pt-BR')} km · ${escapeHtml(v.status)}</div>
               </div>
               <button class="modal-close">✕</button>
@@ -562,22 +736,68 @@ window.Frota = {
       const close = () => overlay.remove();
       overlay.querySelector('.modal-close').addEventListener('click', close);
       document.getElementById('btnFecharDet').addEventListener('click', close);
-      overlay.querySelectorAll('.ctd-tab').forEach(t => t.addEventListener('click', () => {
-        abaAtual = t.dataset.tab; renderModal();
-      }));
+      overlay.querySelectorAll('.ctd-tab').forEach((t) =>
+        t.addEventListener('click', () => {
+          abaAtual = t.dataset.tab;
+          renderModal();
+        })
+      );
 
       const btnAddPlano = document.getElementById('btnAddPlano');
-      if (btnAddPlano) btnAddPlano.addEventListener('click', () => this.showModalPlano(v.id, null, () => { this._reloadAndKeepDetalhe(v.id, abaAtual); }));
-      overlay.querySelectorAll('.btn-edit-plano').forEach(b => b.addEventListener('click', e => this.showModalPlano(v.id, e.target.dataset.id, () => this._reloadAndKeepDetalhe(v.id, abaAtual))));
-      overlay.querySelectorAll('.btn-del-plano').forEach(b => b.addEventListener('click', e => this.deletePlano(v.id, e.target.dataset.id, () => this._reloadAndKeepDetalhe(v.id, abaAtual))));
+      if (btnAddPlano)
+        btnAddPlano.addEventListener('click', () =>
+          this.showModalPlano(v.id, null, () => {
+            this._reloadAndKeepDetalhe(v.id, abaAtual);
+          })
+        );
+      overlay
+        .querySelectorAll('.btn-edit-plano')
+        .forEach((b) =>
+          b.addEventListener('click', (e) =>
+            this.showModalPlano(v.id, e.target.dataset.id, () =>
+              this._reloadAndKeepDetalhe(v.id, abaAtual)
+            )
+          )
+        );
+      overlay
+        .querySelectorAll('.btn-del-plano')
+        .forEach((b) =>
+          b.addEventListener('click', (e) =>
+            this.deletePlano(v.id, e.target.dataset.id, () =>
+              this._reloadAndKeepDetalhe(v.id, abaAtual)
+            )
+          )
+        );
 
       const btnAddManut = document.getElementById('btnAddManut');
-      if (btnAddManut) btnAddManut.addEventListener('click', () => this.showModalManut(v.id, () => this._reloadAndKeepDetalhe(v.id, abaAtual)));
-      overlay.querySelectorAll('.btn-del-manut').forEach(b => b.addEventListener('click', e => this.deleteManut(v.id, e.target.dataset.id, () => this._reloadAndKeepDetalhe(v.id, abaAtual))));
+      if (btnAddManut)
+        btnAddManut.addEventListener('click', () =>
+          this.showModalManut(v.id, () => this._reloadAndKeepDetalhe(v.id, abaAtual))
+        );
+      overlay
+        .querySelectorAll('.btn-del-manut')
+        .forEach((b) =>
+          b.addEventListener('click', (e) =>
+            this.deleteManut(v.id, e.target.dataset.id, () =>
+              this._reloadAndKeepDetalhe(v.id, abaAtual)
+            )
+          )
+        );
 
       const btnAddAbastec = document.getElementById('btnAddAbastec');
-      if (btnAddAbastec) btnAddAbastec.addEventListener('click', () => this.showModalAbastecimento(v.id, () => this._reloadAndKeepDetalhe(v.id, abaAtual)));
-      overlay.querySelectorAll('.btn-del-abastec').forEach(b => b.addEventListener('click', e => this.deleteAbastecimento(v.id, e.target.dataset.id, () => this._reloadAndKeepDetalhe(v.id, abaAtual))));
+      if (btnAddAbastec)
+        btnAddAbastec.addEventListener('click', () =>
+          this.showModalAbastecimento(v.id, () => this._reloadAndKeepDetalhe(v.id, abaAtual))
+        );
+      overlay
+        .querySelectorAll('.btn-del-abastec')
+        .forEach((b) =>
+          b.addEventListener('click', (e) =>
+            this.deleteAbastecimento(v.id, e.target.dataset.id, () =>
+              this._reloadAndKeepDetalhe(v.id, abaAtual)
+            )
+          )
+        );
     };
 
     renderModal();
@@ -593,8 +813,8 @@ window.Frota = {
   },
 
   showModalPlano(veiculoId, planoId, onDone) {
-    const v = (Store.state.veiculos || []).find(x => x.id === veiculoId);
-    const p = planoId ? (v?.planos || []).find(x => x.id === planoId) : null;
+    const v = (Store.state.veiculos || []).find((x) => x.id === veiculoId);
+    const p = planoId ? (v?.planos || []).find((x) => x.id === planoId) : null;
     const html = `
       <div class="modal-overlay" id="modalPlano" style="z-index:10000;">
         <div class="modal" style="width:520px;">
@@ -642,16 +862,33 @@ window.Frota = {
     document.getElementById('btnSalvPlano').addEventListener('click', async () => {
       const fd = new FormData(document.getElementById('formPlano'));
       const data = Object.fromEntries(fd);
-      if (!data.descricao) { window.showToast('Descrição obrigatória', 'error'); return; }
-      if (!data.intervaloKm && !data.intervaloMeses) { window.showToast('Informe pelo menos KM ou meses', 'error'); return; }
+      if (!data.descricao) {
+        window.showToast('Descrição obrigatória', 'error');
+        return;
+      }
+      if (!data.intervaloKm && !data.intervaloMeses) {
+        window.showToast('Informe pelo menos KM ou meses', 'error');
+        return;
+      }
       try {
-        const url = p ? `/api/veiculos/${veiculoId}/planos/${p.id}` : `/api/veiculos/${veiculoId}/planos`;
+        const url = p
+          ? `/api/veiculos/${veiculoId}/planos/${p.id}`
+          : `/api/veiculos/${veiculoId}/planos`;
         const method = p ? 'PUT' : 'POST';
-        const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-        if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        if (!res.ok) {
+          const _b = await res.text();
+          throw new Error(_b && _b.length < 120 ? _b : 'Erro no servidor. Tente novamente.');
+        }
         close();
         if (onDone) onDone();
-      } catch (e) { window.showToast(e.message, 'error'); }
+      } catch (e) {
+        window.showToast(e.message, 'error');
+      }
     });
   },
 
@@ -659,13 +896,18 @@ window.Frota = {
     if (!confirm('Excluir este plano?')) return;
     try {
       const res = await fetch(`/api/veiculos/${veiculoId}/planos/${planoId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const _b = await res.text();
+        throw new Error(_b && _b.length < 120 ? _b : 'Erro no servidor. Tente novamente.');
+      }
       if (onDone) onDone();
-    } catch (e) { window.showToast(e.message, 'error'); }
+    } catch (e) {
+      window.showToast(e.message, 'error');
+    }
   },
 
   showModalManut(veiculoId, onDone) {
-    const v = (Store.state.veiculos || []).find(x => x.id === veiculoId);
+    const v = (Store.state.veiculos || []).find((x) => x.id === veiculoId);
     const planos = v?.planos || [];
     const fornecedores = Store.state.fornecedores || [];
     const hoje = new Date().toISOString().split('T')[0];
@@ -692,7 +934,7 @@ window.Frota = {
               <label class="form-label">Plano vinculado</label>
               <select class="form-control" name="planoId">
                 <option value="">— Manutenção avulsa —</option>
-                ${planos.map(p => `<option value="${p.id}">${escapeHtml(p.descricao)}</option>`).join('')}
+                ${planos.map((p) => `<option value="${p.id}">${escapeHtml(p.descricao)}</option>`).join('')}
               </select>
               <span style="font-size:12px;color:var(--color-text-muted);">Vincular ao plano atualiza "Último KM/data" automaticamente.</span>
             </div>
@@ -719,7 +961,7 @@ window.Frota = {
                 <label class="form-label">Fornecedor</label>
                 <select class="form-control" name="fornecedorId">
                   <option value="">—</option>
-                  ${fornecedores.map(f => `<option value="${f.id}">${escapeHtml(f.nome || f.razaoSocial)}</option>`).join('')}
+                  ${fornecedores.map((f) => `<option value="${f.id}">${escapeHtml(f.nome || f.razaoSocial)}</option>`).join('')}
                 </select>
               </div>
             </div>
@@ -741,25 +983,41 @@ window.Frota = {
       const fd = new FormData(document.getElementById('formManut'));
       const data = Object.fromEntries(fd);
       try {
-        const res = await fetch(`/api/veiculos/${veiculoId}/manutencoes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-        if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+        const res = await fetch(`/api/veiculos/${veiculoId}/manutencoes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        if (!res.ok) {
+          const _b = await res.text();
+          throw new Error(_b && _b.length < 120 ? _b : 'Erro no servidor. Tente novamente.');
+        }
         close();
         if (onDone) onDone();
-      } catch (e) { window.showToast(e.message, 'error'); }
+      } catch (e) {
+        window.showToast(e.message, 'error');
+      }
     });
   },
 
   async deleteManut(veiculoId, manId, onDone) {
     if (!confirm('Excluir esta manutenção?')) return;
     try {
-      const res = await fetch(`/api/veiculos/${veiculoId}/manutencoes/${manId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error(await res.text());
+      const res = await fetch(`/api/veiculos/${veiculoId}/manutencoes/${manId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const _b = await res.text();
+        throw new Error(_b && _b.length < 120 ? _b : 'Erro no servidor. Tente novamente.');
+      }
       if (onDone) onDone();
-    } catch (e) { window.showToast(e.message, 'error'); }
+    } catch (e) {
+      window.showToast(e.message, 'error');
+    }
   },
 
   showModalAbastecimento(veiculoId, onDone) {
-    const v = (Store.state.veiculos || []).find(x => x.id === veiculoId);
+    const v = (Store.state.veiculos || []).find((x) => x.id === veiculoId);
     const fornecedores = Store.state.fornecedores || [];
     const contratos = Store.state.contracts || [];
     const hoje = new Date().toISOString().split('T')[0];
@@ -811,7 +1069,7 @@ window.Frota = {
                 <label class="form-label">Fornecedor (posto)</label>
                 <select class="form-control" name="fornecedorId">
                   <option value="">—</option>
-                  ${fornecedores.map(f => `<option value="${f.id}">${escapeHtml(f.nome || f.razaoSocial)}</option>`).join('')}
+                  ${fornecedores.map((f) => `<option value="${f.id}">${escapeHtml(f.nome || f.razaoSocial)}</option>`).join('')}
                 </select>
               </div>
             </div>
@@ -819,7 +1077,7 @@ window.Frota = {
               <label class="form-label">Lançar custo em contrato</label>
               <select class="form-control" name="contractId">
                 <option value="">— Não lançar —</option>
-                ${contratos.map(c => `<option value="${c.id}" ${v?.contractId===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
+                ${contratos.map((c) => `<option value="${c.id}" ${v?.contractId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
               </select>
               <span style="font-size:12px;color:var(--color-text-muted);">Se selecionado, o valor total será lançado no caixa do contrato.</span>
             </div>
@@ -853,28 +1111,43 @@ window.Frota = {
     document.getElementById('btnSalvAbastec').addEventListener('click', async () => {
       const fd = new FormData(document.getElementById('formAbastec'));
       const data = Object.fromEntries(fd);
-      if (!data.litros || parseFloat(data.litros) <= 0) { window.showToast('Informe a quantidade de litros', 'error'); return; }
+      if (!data.litros || parseFloat(data.litros) <= 0) {
+        window.showToast('Informe a quantidade de litros', 'error');
+        return;
+      }
       try {
         const res = await fetch(`/api/veiculos/${veiculoId}/abastecimentos`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
         });
-        if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+        if (!res.ok) {
+          const _b = await res.text();
+          throw new Error(_b && _b.length < 120 ? _b : 'Erro no servidor. Tente novamente.');
+        }
         window.showToast('Abastecimento registrado', 'success');
         close();
         if (onDone) onDone();
-      } catch (e) { window.showToast(e.message, 'error'); }
+      } catch (e) {
+        window.showToast(e.message, 'error');
+      }
     });
   },
 
   async deleteAbastecimento(veiculoId, abastecId, onDone) {
     if (!confirm('Excluir este abastecimento?')) return;
     try {
-      const res = await fetch(`/api/veiculos/${veiculoId}/abastecimentos/${abastecId}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error(await res.text());
+      const res = await fetch(`/api/veiculos/${veiculoId}/abastecimentos/${abastecId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const _b = await res.text();
+        throw new Error(_b && _b.length < 120 ? _b : 'Erro no servidor. Tente novamente.');
+      }
       if (onDone) onDone();
-    } catch (e) { window.showToast(e.message, 'error'); }
+    } catch (e) {
+      window.showToast(e.message, 'error');
+    }
   },
 
   async showDistancias(veiculoId) {
@@ -882,17 +1155,23 @@ window.Frota = {
     if (typeof window.GeoUtils === 'undefined' && window.RhinoLazy) {
       await window.RhinoLazy.ensure('geo');
     }
-    const v = (Store.state.veiculos || []).find(x => x.id === veiculoId);
+    const v = (Store.state.veiculos || []).find((x) => x.id === veiculoId);
     if (!v) return;
-    if (!v.lat || !v.lng) { window.showToast('Veículo sem localização cadastrada', 'error'); return; }
+    if (!v.lat || !v.lng) {
+      window.showToast('Veículo sem localização cadastrada', 'error');
+      return;
+    }
 
-    const obras = (Store.state.contracts || []).filter(c => c.lat && c.lng);
-    const lat1 = parseFloat(v.lat), lng1 = parseFloat(v.lng);
+    const obras = (Store.state.contracts || []).filter((c) => c.lat && c.lng);
+    const lat1 = parseFloat(v.lat),
+      lng1 = parseFloat(v.lng);
 
-    const dists = obras.map(o => ({
-      obra: o,
-      kmReta: window.GeoUtils.haversine(lat1, lng1, parseFloat(o.lat), parseFloat(o.lng)),
-    })).sort((a, b) => a.kmReta - b.kmReta);
+    const dists = obras
+      .map((o) => ({
+        obra: o,
+        kmReta: window.GeoUtils.haversine(lat1, lng1, parseFloat(o.lat), parseFloat(o.lng)),
+      }))
+      .sort((a, b) => a.kmReta - b.kmReta);
 
     const html = `
       <div class="modal-overlay" id="modalDist">
@@ -905,23 +1184,31 @@ window.Frota = {
             <button class="modal-close">✕</button>
           </div>
           <div class="modal-content">
-            ${obras.length === 0 ? '<p class="text-muted">Nenhuma obra com coordenadas cadastradas.</p>' : `
+            ${
+              obras.length === 0
+                ? '<p class="text-muted">Nenhuma obra com coordenadas cadastradas.</p>'
+                : `
               <div style="margin-bottom:var(--sp-sm);">
                 <button class="btn btn-sm btn-secondary" id="btnRotaReal">Calcular rotas reais (OSRM)</button>
               </div>
               <table style="width:100%;font-size:14px;">
                 <thead><tr style="background:var(--color-surface-2);"><th scope="col" style="padding:8px;text-align:left;">Obra</th><th scope="col" style="padding:8px;text-align:right;">Linha reta</th><th scope="col" style="padding:8px;text-align:right;" class="col-rota">Rota real</th><th scope="col" style="padding:8px;text-align:right;" class="col-tempo">Tempo</th></tr></thead>
                 <tbody>
-                  ${dists.map(d => `
+                  ${dists
+                    .map(
+                      (d) => `
                     <tr data-id="${d.obra.id}">
                       <td style="padding:8px;"><strong>${escapeHtml(d.obra.name)}</strong><div style="font-size:12px;color:var(--color-text-muted);">${escapeHtml((d.obra.endereco || '').split(',').slice(0, 2).join(', '))}</div></td>
                       <td style="padding:8px;text-align:right;">${d.kmReta.toFixed(1)} km</td>
                       <td style="padding:8px;text-align:right;" class="cell-rota">—</td>
                       <td style="padding:8px;text-align:right;" class="cell-tempo">—</td>
-                    </tr>`).join('')}
+                    </tr>`
+                    )
+                    .join('')}
                 </tbody>
               </table>
-            `}
+            `
+            }
           </div>
           <div class="modal-footer">
             <button class="btn btn-secondary" id="btnFecharDist">Fechar</button>
@@ -936,28 +1223,50 @@ window.Frota = {
     document.getElementById('btnFecharDist').addEventListener('click', close);
 
     const btn = document.getElementById('btnRotaReal');
-    if (btn) btn.addEventListener('click', async () => {
-      btn.disabled = true; btn.textContent = 'Calculando...';
-      for (const d of dists) {
-        const rota = await window.GeoUtils.fetchRotaOSRM(lat1, lng1, parseFloat(d.obra.lat), parseFloat(d.obra.lng));
-        const row = overlay.querySelector(`tr[data-id="${d.obra.id}"]`);
-        if (row) {
-          row.querySelector('.cell-rota').textContent = rota ? rota.km.toFixed(1) + ' km' : '—';
-          row.querySelector('.cell-tempo').textContent = rota ? window.GeoUtils.fmtMin(rota.min) : '—';
+    if (btn)
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = 'Calculando...';
+        for (const d of dists) {
+          let rota = null;
+          try {
+            rota = await window.GeoUtils.fetchRotaOSRM(
+              lat1,
+              lng1,
+              parseFloat(d.obra.lat),
+              parseFloat(d.obra.lng)
+            );
+          } catch (_err) {
+            // rota permanece null; célula mostrará "Rota indisponível"
+          }
+          const row = overlay.querySelector(`tr[data-id="${d.obra.id}"]`);
+          if (row) {
+            row.querySelector('.cell-rota').textContent = rota
+              ? rota.km.toFixed(1) + ' km'
+              : 'Rota indisponível';
+            row.querySelector('.cell-tempo').textContent = rota
+              ? window.GeoUtils.fmtMin(rota.min)
+              : '—';
+          }
         }
-      }
-      btn.textContent = '✓ rotas calculadas';
-    });
+        btn.textContent = '✓ rotas calculadas';
+      });
   },
 
   async excluir(id) {
     if (!confirm('Excluir este veículo? Histórico de manutenções e plano serão apagados.')) return;
     try {
       const res = await fetch(`/api/veiculos/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
+      if (!res.ok) {
+        const _b = await res.text();
+        throw new Error(_b && _b.length < 120 ? _b : 'Erro no servidor. Tente novamente.');
+      }
       window.showToast('Veículo excluído', 'success');
       Store.invalidate();
+      this._loaded = false;
       this.render();
-    } catch (e) { window.showToast(e.message, 'error'); }
+    } catch (e) {
+      window.showToast(e.message, 'error');
+    }
   },
 };

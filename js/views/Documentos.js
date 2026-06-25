@@ -1,26 +1,27 @@
-window.Documentos = {
+﻿window.Documentos = {
   busca: '',
   filtroConformidade: '',
 
   TIPOS_DOC: [
-    { key: 'ASO',     label: 'ASO',     full: 'Atestado de Saúde Ocupacional',   meses: 12 },
-    { key: 'PGR',     label: 'PGR',     full: 'Prog. Gerenciamento de Riscos',    meses: 24 },
-    { key: 'PCMSO',   label: 'PCMSO',   full: 'Prog. Controle Médico de Saúde',  meses: 12 },
-    { key: 'NR10',    label: 'NR-10',   full: 'Segurança em Eletricidade',        meses: 24 },
-    { key: 'NR12',    label: 'NR-12',   full: 'Segurança em Máquinas',            meses: 24 },
-    { key: 'NR18',    label: 'NR-18',   full: 'Construção Civil',                 meses: 12 },
-    { key: 'NR20',    label: 'NR-20',   full: 'Líquidos Combustíveis',            meses: 12 },
-    { key: 'NR33',    label: 'NR-33',   full: 'Espaço Confinado',                 meses: 12 },
-    { key: 'NR35',    label: 'NR-35',   full: 'Trabalho em Altura',               meses: 24 },
-    { key: 'CIPA',    label: 'CIPA',    full: 'Comissão Interna de Prevenção',    meses: 12 },
-    { key: 'BRIGADA', label: 'Brigada', full: 'Brigada de Incêndio',              meses: 12 },
-    { key: 'CNH',     label: 'CNH',     full: 'Habilitação',                      meses: 60 },
-    { key: 'OUTRO',   label: 'Outro',   full: 'Outro',                            meses: 12 },
+    { key: 'ASO', label: 'ASO', full: 'Atestado de Saúde Ocupacional', meses: 12 },
+    { key: 'PGR', label: 'PGR', full: 'Prog. Gerenciamento de Riscos', meses: 24 },
+    { key: 'PCMSO', label: 'PCMSO', full: 'Prog. Controle Médico de Saúde', meses: 12 },
+    { key: 'NR10', label: 'NR-10', full: 'Segurança em Eletricidade', meses: 24 },
+    { key: 'NR12', label: 'NR-12', full: 'Segurança em Máquinas', meses: 24 },
+    { key: 'NR18', label: 'NR-18', full: 'Construção Civil', meses: 12 },
+    { key: 'NR20', label: 'NR-20', full: 'Líquidos Combustíveis', meses: 12 },
+    { key: 'NR33', label: 'NR-33', full: 'Espaço Confinado', meses: 12 },
+    { key: 'NR35', label: 'NR-35', full: 'Trabalho em Altura', meses: 24 },
+    { key: 'CIPA', label: 'CIPA', full: 'Comissão Interna de Prevenção', meses: 12 },
+    { key: 'BRIGADA', label: 'Brigada', full: 'Brigada de Incêndio', meses: 12 },
+    { key: 'CNH', label: 'CNH', full: 'Habilitação', meses: 60 },
+    { key: 'OUTRO', label: 'Outro', full: 'Outro', meses: 12 },
   ],
 
   _statusDoc(doc) {
     if (!doc.dataVencimento) return 'pendente';
-    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
     const venc = new Date(doc.dataVencimento + 'T12:00:00');
     const dias = Math.ceil((venc - hoje) / 86400000);
     if (dias < 0) return 'vencido';
@@ -30,16 +31,25 @@ window.Documentos = {
 
   _diasRestantes(doc) {
     if (!doc.dataVencimento) return null;
-    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
     const venc = new Date(doc.dataVencimento + 'T12:00:00');
     return Math.ceil((venc - hoje) / 86400000);
   },
 
   _badgeStatus(status, dias) {
     const configs = {
-      vigente:  { bg: '#D1FAE5', color: '#065F46', label: 'Vigente' },
-      vencendo: { bg: '#FEF3C7', color: '#92400E', label: dias !== null ? `Vence em ${dias}d` : 'Vencendo' },
-      vencido:  { bg: '#FEE2E2', color: '#991B1B', label: dias !== null ? `Vencido há ${Math.abs(dias)}d` : 'Vencido' },
+      vigente: { bg: '#D1FAE5', color: '#065F46', label: 'Vigente' },
+      vencendo: {
+        bg: '#FEF3C7',
+        color: '#92400E',
+        label: dias !== null ? `Vence em ${dias}d` : 'Vencendo',
+      },
+      vencido: {
+        bg: '#FEE2E2',
+        color: '#991B1B',
+        label: dias !== null ? `Vencido há ${Math.abs(dias)}d` : 'Vencido',
+      },
       pendente: { bg: '#F3F4F6', color: '#6B7280', label: 'Pendente' },
     };
     const c = configs[status] || configs.pendente;
@@ -49,8 +59,8 @@ window.Documentos = {
   _conformidade(recurso) {
     const docs = recurso.documentos || [];
     if (docs.length === 0) return { score: 0, vigentes: 0, total: 0, status: 'sem_docs' };
-    const vigentes = docs.filter(d => this._statusDoc(d) === 'vigente').length;
-    const vencidos = docs.filter(d => this._statusDoc(d) === 'vencido').length;
+    const vigentes = docs.filter((d) => this._statusDoc(d) === 'vigente').length;
+    const vencidos = docs.filter((d) => this._statusDoc(d) === 'vencido').length;
     const score = Math.round((vigentes / docs.length) * 100);
     let status = 'ok';
     if (vencidos > 0) status = 'critico';
@@ -77,21 +87,24 @@ window.Documentos = {
       this._renderLista();
     } catch (e) {
       console.error(e);
-      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar. Tente novamente.</p></div>';
+      app.innerHTML =
+        '<div class="card"><p class="text-danger">Erro ao carregar. Tente novamente.</p></div>';
     }
   },
 
   _renderLista() {
     const app = document.getElementById('app');
-    const recursos = (Store.state.recursos || []).filter(r => r.status === 'funcionario');
+    const recursos = (Store.state.recursos || []).filter((r) => r.status === 'funcionario');
     const termo = (this.busca || '').toLowerCase().trim();
 
-    const filtrados = recursos.filter(r => {
-      const matchBusca = !termo ||
+    const filtrados = recursos.filter((r) => {
+      const matchBusca =
+        !termo ||
         (r.nome || '').toLowerCase().includes(termo) ||
         (r.profissao || '').toLowerCase().includes(termo);
       const conf = this._conformidade(r);
-      const matchConf = !this.filtroConformidade ||
+      const matchConf =
+        !this.filtroConformidade ||
         (this.filtroConformidade === 'ok' && conf.status === 'ok') ||
         (this.filtroConformidade === 'atencao' && conf.status === 'atencao') ||
         (this.filtroConformidade === 'critico' && conf.status === 'critico') ||
@@ -100,10 +113,13 @@ window.Documentos = {
     });
 
     const totalAtivos = recursos.length;
-    const comDocs = recursos.filter(r => (r.documentos || []).length > 0).length;
-    const criticos = recursos.filter(r => this._conformidade(r).status === 'critico').length;
-    const vencendo30 = recursos.reduce((acc, r) =>
-      acc + (r.documentos || []).filter(d => this._statusDoc(d) === 'vencendo').length, 0);
+    const comDocs = recursos.filter((r) => (r.documentos || []).length > 0).length;
+    const criticos = recursos.filter((r) => this._conformidade(r).status === 'critico').length;
+    const vencendo30 = recursos.reduce(
+      (acc, r) =>
+        acc + (r.documentos || []).filter((d) => this._statusDoc(d) === 'vencendo').length,
+      0
+    );
 
     app.innerHTML = `
       <div class="page-header">
@@ -117,12 +133,16 @@ window.Documentos = {
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--sp-md);margin-bottom:var(--sp-lg);">
         ${this._statCard('Funcionários Ativos', totalAtivos, 'var(--color-primary)', '◉')}
         ${this._statCard('Com Documentação', comDocs, '#059669', '✓')}
-        ${criticos > 0
-          ? this._statCard('Docs Vencidos', criticos, '#DC2626', '✕')
-          : this._statCard('Docs em Dia', recursos.length - criticos, '#059669', '✓')}
-        ${vencendo30 > 0
-          ? this._statCard('Vencem em 30 dias', vencendo30, '#D97706', '⚑')
-          : this._statCard('Vencem em 30 dias', 0, '#059669', '✓')}
+        ${
+          criticos > 0
+            ? this._statCard('Docs Vencidos', criticos, '#DC2626', '✕')
+            : this._statCard('Docs em Dia', recursos.length - criticos, '#059669', '✓')
+        }
+        ${
+          vencendo30 > 0
+            ? this._statCard('Vencem em 30 dias', vencendo30, '#D97706', '⚑')
+            : this._statCard('Vencem em 30 dias', 0, '#059669', '✓')
+        }
       </div>
 
       <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-lg);">
@@ -130,9 +150,9 @@ window.Documentos = {
           <input class="form-control" id="inputBuscaDocs" placeholder="Buscar por nome, profissão..." value="${escapeHtml(this.busca)}" style="flex:1;min-width:200px;">
           <select class="form-control" id="filtroConformidade" style="width:220px;">
             <option value="">Todos os funcionários</option>
-            <option value="ok"       ${this.filtroConformidade === 'ok'       ? 'selected' : ''}>Em dia (100%)</option>
-            <option value="atencao"  ${this.filtroConformidade === 'atencao'  ? 'selected' : ''}>Com atenção</option>
-            <option value="critico"  ${this.filtroConformidade === 'critico'  ? 'selected' : ''}>Crítico (vencidos)</option>
+            <option value="ok"       ${this.filtroConformidade === 'ok' ? 'selected' : ''}>Em dia (100%)</option>
+            <option value="atencao"  ${this.filtroConformidade === 'atencao' ? 'selected' : ''}>Com atenção</option>
+            <option value="critico"  ${this.filtroConformidade === 'critico' ? 'selected' : ''}>Crítico (vencidos)</option>
             <option value="sem_docs" ${this.filtroConformidade === 'sem_docs' ? 'selected' : ''}>Sem documentos</option>
           </select>
         </div>
@@ -151,9 +171,11 @@ window.Documentos = {
               </tr>
             </thead>
             <tbody>
-              ${filtrados.length === 0
-                ? `<tr><td colspan="5" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum resultado encontrado</td></tr>`
-                : filtrados.map(r => this._renderRow(r)).join('')}
+              ${
+                filtrados.length === 0
+                  ? `<tr><td colspan="5" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum resultado encontrado</td></tr>`
+                  : filtrados.map((r) => this._renderRow(r)).join('')
+              }
             </tbody>
           </table>
         </div>
@@ -164,19 +186,29 @@ window.Documentos = {
       window.Configuracao && (window.Configuracao.currentSection = 'doc_templates');
       location.hash = '#/configuracao';
     });
-    document.getElementById('inputBuscaDocs').addEventListener('input', e => {
+    document.getElementById('inputBuscaDocs').addEventListener('input', (e) => {
       this.busca = e.target.value;
       clearTimeout(this._tBusca);
       this._tBusca = setTimeout(() => this._renderLista(), 250);
     });
-    document.getElementById('filtroConformidade').addEventListener('change', e => {
+    document.getElementById('filtroConformidade').addEventListener('change', (e) => {
       this.filtroConformidade = e.target.value;
       this._renderLista();
     });
-    document.querySelectorAll('.btn-ver-docs').forEach(b =>
-      b.addEventListener('click', e => this.showDocumentos(e.target.closest('[data-id]').dataset.id)));
-    document.querySelectorAll('.btn-nome-rec').forEach(b =>
-      b.addEventListener('click', e => this.showFichaColaborador(e.target.closest('[data-id]').dataset.id)));
+    document
+      .querySelectorAll('.btn-ver-docs')
+      .forEach((b) =>
+        b.addEventListener('click', (e) =>
+          this.showDocumentos(e.target.closest('[data-id]').dataset.id)
+        )
+      );
+    document
+      .querySelectorAll('.btn-nome-rec')
+      .forEach((b) =>
+        b.addEventListener('click', (e) =>
+          this.showFichaColaborador(e.target.closest('[data-id]').dataset.id)
+        )
+      );
   },
 
   _statCard(label, value, cor, icon) {
@@ -193,28 +225,37 @@ window.Documentos = {
 
     let obraAtual = '—';
     if (r.alocacaoAtual?.contractId) {
-      const c = Store.state.contracts.find(x => x.id === r.alocacaoAtual.contractId);
+      const c = Store.state.contracts.find((x) => x.id === r.alocacaoAtual.contractId);
       if (c) obraAtual = escapeHtml(c.name);
     }
 
     const statusLabel = {
-      ok:       `<span style="color:#059669;font-weight:600;">● Em dia</span>`,
-      atencao:  `<span style="color:#D97706;font-weight:600;">● Atenção</span>`,
-      critico:  `<span style="color:#DC2626;font-weight:600;">● Crítico</span>`,
+      ok: `<span style="color:#059669;font-weight:600;">● Em dia</span>`,
+      atencao: `<span style="color:#D97706;font-weight:600;">● Atenção</span>`,
+      critico: `<span style="color:#DC2626;font-weight:600;">● Crítico</span>`,
       sem_docs: `<span style="color:#374151;">— Sem docs</span>`,
     }[conf.status];
 
-    const docBadges = docs.slice(0, 4).map(d => {
-      const status = this._statusDoc(d);
-      const colors = { vigente: '#059669', vencendo: '#D97706', vencido: '#DC2626', pendente: '#9CA3AF' };
-      const color = colors[status] || '#9CA3AF';
-      const label = d.tipoLabel || d.tipo || '?';
-      const short = label.length > 7 ? label.substring(0, 7) : label;
-      return `<span title="${escapeHtml(label)}" style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:15px;font-weight:700;background:${color}22;color:${color};border:1px solid ${color}44;margin:1px;">${escapeHtml(short)}</span>`;
-    }).join('');
-    const extraDocs = docs.length > 4
-      ? `<span style="font-size:15px;color:var(--color-text-muted);"> +${docs.length - 4}</span>`
-      : '';
+    const docBadges = docs
+      .slice(0, 4)
+      .map((d) => {
+        const status = this._statusDoc(d);
+        const colors = {
+          vigente: '#059669',
+          vencendo: '#D97706',
+          vencido: '#DC2626',
+          pendente: '#9CA3AF',
+        };
+        const color = colors[status] || '#9CA3AF';
+        const label = d.tipoLabel || d.tipo || '?';
+        const short = label.length > 7 ? label.substring(0, 7) : label;
+        return `<span title="${escapeHtml(label)}" style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:15px;font-weight:700;background:${color}22;color:${color};border:1px solid ${color}44;margin:1px;">${escapeHtml(short)}</span>`;
+      })
+      .join('');
+    const extraDocs =
+      docs.length > 4
+        ? `<span style="font-size:15px;color:var(--color-text-muted);"> +${docs.length - 4}</span>`
+        : '';
 
     return `<tr>
       <td>
@@ -227,9 +268,11 @@ window.Documentos = {
         ${docs.length > 0 ? `<div style="margin-top:4px;">${this._scoreBar(conf.score)}</div>` : ''}
       </td>
       <td>
-        ${docs.length > 0
-          ? docBadges + extraDocs
-          : '<span style="font-size:15px;color:var(--color-text-muted);">Nenhum</span>'}
+        ${
+          docs.length > 0
+            ? docBadges + extraDocs
+            : '<span style="font-size:15px;color:var(--color-text-muted);">Nenhum</span>'
+        }
       </td>
       <td>
         <button class="btn btn-sm btn-ver-docs" data-id="${r.id}" style="white-space:nowrap;">
@@ -246,12 +289,14 @@ window.Documentos = {
   },
 
   _badgeValidacao(d) {
-    if (!d.templateId) return `<span style="font-size:12px;color:var(--color-text-muted);">—</span>`;
+    if (!d.templateId)
+      return `<span style="font-size:12px;color:var(--color-text-muted);">—</span>`;
     const v = d.validacao;
-    if (!v) return `<span class="badge" style="background:#F3F4F6;color:#6B7280;font-size:12px;padding:2px 8px;border-radius:10px;">⏳ Não validado</span>`;
+    if (!v)
+      return `<span class="badge" style="background:#F3F4F6;color:#6B7280;font-size:12px;padding:2px 8px;border-radius:10px;">⏳ Não validado</span>`;
     const cfg = {
-      conforme:     { bg: '#D1FAE5', color: '#065F46', label: '✅ Conforme' },
-      parcial:      { bg: '#FEF3C7', color: '#92400E', label: '⚠️ Parcial' },
+      conforme: { bg: '#D1FAE5', color: '#065F46', label: '✅ Conforme' },
+      parcial: { bg: '#FEF3C7', color: '#92400E', label: '⚠️ Parcial' },
       nao_conforme: { bg: '#FEE2E2', color: '#991B1B', label: '❌ Não conforme' },
       nao_validado: { bg: '#F3F4F6', color: '#6B7280', label: '⏳ Não validado' },
     }[v.status] || { bg: '#F3F4F6', color: '#6B7280', label: v.status };
@@ -261,16 +306,18 @@ window.Documentos = {
 
   // ── MODAL: LISTA DE DOCUMENTOS DO COLABORADOR ─────────────────────────────
   showDocumentos(recursoId) {
-    const r = (Store.state.recursos || []).find(x => x.id === recursoId);
+    const r = (Store.state.recursos || []).find((x) => x.id === recursoId);
     if (!r) return;
     const docs = r.documentos || [];
 
-    const rows = docs.length === 0
-      ? `<tr><td colspan="7" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum documento cadastrado</td></tr>`
-      : docs.map(d => {
-          const status = this._statusDoc(d);
-          const dias = this._diasRestantes(d);
-          return `<tr>
+    const rows =
+      docs.length === 0
+        ? `<tr><td colspan="7" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum documento cadastrado</td></tr>`
+        : docs
+            .map((d) => {
+              const status = this._statusDoc(d);
+              const dias = this._diasRestantes(d);
+              return `<tr>
             <td><strong style="font-size:15px;">${escapeHtml(d.tipoLabel || d.tipo)}</strong></td>
             <td style="font-size:15px;">${this._fmtDate(d.dataEmissao)}</td>
             <td style="font-size:15px;">${this._fmtDate(d.dataVencimento)}</td>
@@ -285,7 +332,8 @@ window.Documentos = {
               </div>
             </td>
           </tr>`;
-        }).join('');
+            })
+            .join('');
 
     const html = `
       <div class="modal-overlay" id="modalDocsOverlay">
@@ -331,42 +379,51 @@ window.Documentos = {
       close();
       this.showModalDocumento(recursoId, null);
     });
-    overlay.querySelectorAll('.btn-edit-doc').forEach(b =>
-      b.addEventListener('click', e => {
+    overlay.querySelectorAll('.btn-edit-doc').forEach((b) =>
+      b.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-rid]');
         close();
         this.showModalDocumento(btn.dataset.rid, btn.dataset.did);
-      }));
-    overlay.querySelectorAll('.btn-del-doc').forEach(b =>
-      b.addEventListener('click', e => {
+      })
+    );
+    overlay.querySelectorAll('.btn-del-doc').forEach((b) =>
+      b.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-rid]');
         this._deleteDocumento(btn.dataset.rid, btn.dataset.did, overlay);
-      }));
-    overlay.querySelectorAll('.btn-validar-doc').forEach(b =>
-      b.addEventListener('click', e => {
+      })
+    );
+    overlay.querySelectorAll('.btn-validar-doc').forEach((b) =>
+      b.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-rid]');
         this.showModalValidacao(btn.dataset.rid, btn.dataset.did);
-      }));
+      })
+    );
   },
 
   // ── MODAL: RELATÓRIO DE VALIDAÇÃO IA ──────────────────────────────────
   showModalValidacao(recursoId, docId) {
-    const r = (Store.state.recursos || []).find(x => x.id === recursoId);
-    const d = r?.documentos?.find(x => x.id === docId);
+    const r = (Store.state.recursos || []).find((x) => x.id === recursoId);
+    const d = r?.documentos?.find((x) => x.id === docId);
     if (!d) return;
-    const tpl = (Store.state.doc_templates || []).find(x => x.id === d.templateId);
+    const tpl = (Store.state.doc_templates || []).find((x) => x.id === d.templateId);
     const v = d.validacao;
 
     const renderRel = (val) => {
-      if (!val) return '<p class="text-muted" style="text-align:center;padding:var(--sp-lg);">Documento ainda não foi validado. Clique em "Validar agora".</p>';
+      if (!val)
+        return '<p class="text-muted" style="text-align:center;padding:var(--sp-lg);">Documento ainda não foi validado. Clique em "Validar agora".</p>';
       if (val.status === 'nao_validado') {
         return `<div style="padding:var(--sp-md);background:#FEF3C7;border-left:3px solid #F59E0B;border-radius:6px;">
           <strong>⏳ Não validado</strong><br>
           <span style="font-size:13px;">${escapeHtml(val.motivo || val.erro || 'Validação pendente')}</span>
         </div>`;
       }
-      const cor = val.status === 'conforme' ? '#10B981' : val.status === 'parcial' ? '#F59E0B' : '#EF4444';
-      const item = (label, ok, extra) => `<li style="display:flex;gap:8px;align-items:flex-start;margin-bottom:4px;font-size:13px;">
+      const cor =
+        val.status === 'conforme' ? '#10B981' : val.status === 'parcial' ? '#F59E0B' : '#EF4444';
+      const item = (
+        label,
+        ok,
+        extra
+      ) => `<li style="display:flex;gap:8px;align-items:flex-start;margin-bottom:4px;font-size:13px;">
         <span style="color:${ok ? '#10B981' : '#EF4444'};font-weight:700;flex-shrink:0;">${ok ? '✓' : '✗'}</span>
         <div><strong>${escapeHtml(label)}</strong>${extra ? `<div style="font-size:12px;color:var(--color-text-muted);">${extra}</div>` : ''}</div>
       </li>`;
@@ -378,24 +435,40 @@ window.Documentos = {
             <div style="font-size:12px;color:var(--color-text-muted);">Validado em ${val.validadoEm ? new Date(val.validadoEm).toLocaleString('pt-BR') : '—'} · ${val.modelo || ''}</div>
           </div>
         </div>
-        ${(val.problemas || []).length ? `
+        ${
+          (val.problemas || []).length
+            ? `
           <div style="padding:10px;background:#FEE2E2;border-left:3px solid #EF4444;border-radius:4px;margin-bottom:var(--sp-md);">
             <strong>Problemas detectados:</strong>
-            <ul style="margin:6px 0 0;padding-left:18px;font-size:13px;">${val.problemas.map(p => `<li>${escapeHtml(p)}</li>`).join('')}</ul>
+            <ul style="margin:6px 0 0;padding-left:18px;font-size:13px;">${val.problemas.map((p) => `<li>${escapeHtml(p)}</li>`).join('')}</ul>
           </div>
-        ` : ''}
-        ${(val.secoes || []).length ? `
+        `
+            : ''
+        }
+        ${
+          (val.secoes || []).length
+            ? `
           <h4 style="margin:var(--sp-md) 0 6px;font-size:14px;">Seções esperadas</h4>
-          <ul style="list-style:none;padding:0;">${val.secoes.map(s => item(`Seção ${s.ordem || ''}: ${s.observacao ? '' : ''}`.trim() + (s.observacao || ''), s.encontrada)).join('')}</ul>
-        ` : ''}
-        ${(val.campos || []).length ? `
+          <ul style="list-style:none;padding:0;">${val.secoes.map((s) => item(`Seção ${s.ordem || ''}: ${s.observacao ? '' : ''}`.trim() + (s.observacao || ''), s.encontrada)).join('')}</ul>
+        `
+            : ''
+        }
+        ${
+          (val.campos || []).length
+            ? `
           <h4 style="margin:var(--sp-md) 0 6px;font-size:14px;">Campos extraídos</h4>
-          <ul style="list-style:none;padding:0;">${val.campos.map(c => item(c.nome, c.encontrado, c.valor ? `Valor: ${escapeHtml(c.valor)}` : '')).join('')}</ul>
-        ` : ''}
-        ${(val.elementos_visuais || []).length ? `
+          <ul style="list-style:none;padding:0;">${val.campos.map((c) => item(c.nome, c.encontrado, c.valor ? `Valor: ${escapeHtml(c.valor)}` : '')).join('')}</ul>
+        `
+            : ''
+        }
+        ${
+          (val.elementos_visuais || []).length
+            ? `
           <h4 style="margin:var(--sp-md) 0 6px;font-size:14px;">Elementos visuais</h4>
-          <ul style="list-style:none;padding:0;">${val.elementos_visuais.map(e => item(e.descricao, e.encontrado)).join('')}</ul>
-        ` : ''}
+          <ul style="list-style:none;padding:0;">${val.elementos_visuais.map((e) => item(e.descricao, e.encontrado)).join('')}</ul>
+        `
+            : ''
+        }
       `;
     };
 
@@ -425,42 +498,56 @@ window.Documentos = {
 
     document.getElementById('btnRevalidar').addEventListener('click', async () => {
       const btn = document.getElementById('btnRevalidar');
-      btn.disabled = true; btn.textContent = '⏳ Validando...';
-      document.getElementById('valBody').innerHTML = '<p style="text-align:center;padding:var(--sp-lg);color:var(--color-text-muted);">⏳ Analisando documento com Claude Vision... (pode levar 5-10s)</p>';
+      btn.disabled = true;
+      btn.textContent = '⏳ Validando...';
+      document.getElementById('valBody').innerHTML =
+        '<p style="text-align:center;padding:var(--sp-lg);color:var(--color-text-muted);">⏳ Analisando documento com Claude Vision... (pode levar 5-10s)</p>';
       try {
-        const res = await fetch(`/api/recursos/${recursoId}/documentos/${docId}/validar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        const res = await fetch(`/api/recursos/${recursoId}/documentos/${docId}/validar`, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: '{}',
+        });
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
         document.getElementById('valBody').innerHTML = renderRel(data.validacao);
         await Store.loadAll();
         window.showToast('Validação concluída', 'success');
       } catch (e) {
-        document.getElementById('valBody').innerHTML = `<div style="padding:var(--sp-md);background:#FEE2E2;border-radius:6px;">Erro: ${escapeHtml(e.message)}</div>`;
+        document.getElementById('valBody').innerHTML =
+          `<div style="padding:var(--sp-md);background:#FEE2E2;border-radius:6px;">Erro: ${escapeHtml(e.message)}</div>`;
         window.showToast(e.message, 'error');
       } finally {
-        btn.disabled = false; btn.textContent = '🔄 Validar agora';
+        btn.disabled = false;
+        btn.textContent = '🔄 Validar agora';
       }
     });
   },
 
   // ── MODAL: ADICIONAR / EDITAR DOCUMENTO ───────────────────────────────────
   showModalDocumento(recursoId, docId) {
-    const r = (Store.state.recursos || []).find(x => x.id === recursoId);
+    const r = (Store.state.recursos || []).find((x) => x.id === recursoId);
     if (!r) return;
-    const doc = docId ? (r.documentos || []).find(d => d.id === docId) : null;
+    const doc = docId ? (r.documentos || []).find((d) => d.id === docId) : null;
 
-    const tiposOptions = this.TIPOS_DOC.map(t =>
-      `<option value="${t.key}" data-meses="${t.meses}" ${doc?.tipo === t.key ? 'selected' : ''}>${t.label} — ${t.full}</option>`
+    const tiposOptions = this.TIPOS_DOC.map(
+      (t) =>
+        `<option value="${t.key}" data-meses="${t.meses}" ${doc?.tipo === t.key ? 'selected' : ''}>${t.label} — ${t.full}</option>`
     ).join('');
 
     // Templates personalizados criados em Configuração → Templates de Docs
     const templates = Store.state.doc_templates || [];
-    const templatesPorContrato = templates.filter(t => !r.contractId || !t.empresaId || t.empresaId === r.contractId);
-    const templateOptions = templatesPorContrato.map(t => {
-      const key = 'tpl:' + t.id;
-      const meses = t.periodicidadeMeses || 12;
-      return `<option value="${key}" data-meses="${meses}" data-tpl="1" ${doc?.tipo === key ? 'selected' : ''}>${escapeHtml(t.nome)} — ${meses}m</option>`;
-    }).join('');
+    const templatesPorContrato = templates.filter(
+      (t) => !r.contractId || !t.empresaId || t.empresaId === r.contractId
+    );
+    const templateOptions = templatesPorContrato
+      .map((t) => {
+        const key = 'tpl:' + t.id;
+        const meses = t.periodicidadeMeses || 12;
+        return `<option value="${key}" data-meses="${meses}" data-tpl="1" ${doc?.tipo === key ? 'selected' : ''}>${escapeHtml(t.nome)} — ${meses}m</option>`;
+      })
+      .join('');
 
     const html = `
       <div class="modal-overlay" id="modalDocFormOverlay">
@@ -513,7 +600,9 @@ window.Documentos = {
 
             <div class="form-group">
               <label class="form-label">📎 Arquivo Anexado</label>
-              ${doc?.arquivo ? `
+              ${
+                doc?.arquivo
+                  ? `
                 <div id="arquivoAnexadoInfo" style="padding:10px 12px;background:var(--color-surface-2);border:1px solid var(--color-border);border-radius:6px;display:flex;align-items:center;gap:var(--sp-sm);margin-bottom:var(--sp-sm);">
                   <span style="font-size:20px;">${(doc.arquivo.mimeType || '').includes('pdf') ? '📄' : '🖼️'}</span>
                   <div style="flex:1;min-width:0;">
@@ -523,7 +612,9 @@ window.Documentos = {
                   <a href="/api/recursos/${recursoId}/documentos/${doc.id}/arquivo" target="_blank" class="btn btn-sm btn-secondary" style="text-decoration:none;">⬇️ Baixar</a>
                   <button type="button" class="btn btn-sm btn-danger" id="btnRemoverArquivo" data-rid="${recursoId}" data-did="${doc.id}"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('trash-2', 15)}Remover</span></button>
                 </div>
-              ` : ''}
+              `
+                  : ''
+              }
               <input
                 type="file"
                 id="inputArquivoDoc"
@@ -548,7 +639,10 @@ window.Documentos = {
     document.body.insertAdjacentHTML('beforeend', html);
     const overlay = document.getElementById('modalDocFormOverlay');
 
-    const voltar = () => { overlay.remove(); this.showDocumentos(recursoId); };
+    const voltar = () => {
+      overlay.remove();
+      this.showDocumentos(recursoId);
+    };
     overlay.querySelector('.modal-close').addEventListener('click', voltar);
     document.getElementById('btnCancelarDoc').addEventListener('click', voltar);
 
@@ -572,9 +666,13 @@ window.Documentos = {
     const btnRemArq = document.getElementById('btnRemoverArquivo');
     if (btnRemArq) {
       btnRemArq.addEventListener('click', async () => {
-        if (!confirm('Remover o arquivo anexado deste documento? O documento em si permanece.')) return;
+        if (!confirm('Remover o arquivo anexado deste documento? O documento em si permanece.'))
+          return;
         try {
-          const res = await fetch(`/api/recursos/${recursoId}/documentos/${docId}/arquivo`, { method: 'DELETE' });
+          const res = await fetch(`/api/recursos/${recursoId}/documentos/${docId}/arquivo`, {
+            method: 'DELETE',
+            credentials: 'same-origin',
+          });
           if (!res.ok) throw new Error(await res.text());
           showToast('Arquivo removido');
           await Store.loadAll();
@@ -587,7 +685,7 @@ window.Documentos = {
       });
     }
 
-    document.getElementById('formDocumento').addEventListener('submit', async e => {
+    document.getElementById('formDocumento').addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
       const tipoKey = fd.get('tipo');
@@ -595,10 +693,10 @@ window.Documentos = {
       let templateId = null;
       if (tipoKey && tipoKey.startsWith('tpl:')) {
         templateId = tipoKey.slice(4);
-        const tpl = (Store.state.doc_templates || []).find(t => t.id === templateId);
+        const tpl = (Store.state.doc_templates || []).find((t) => t.id === templateId);
         tipoLabel = tpl ? tpl.nome : tipoKey;
       } else {
-        const tipoObj = this.TIPOS_DOC.find(t => t.key === tipoKey);
+        const tipoObj = this.TIPOS_DOC.find((t) => t.key === tipoKey);
         tipoLabel = tipoObj ? tipoObj.label : tipoKey;
       }
 
@@ -606,11 +704,11 @@ window.Documentos = {
         tipo: tipoKey,
         tipoLabel,
         ...(templateId ? { templateId } : {}),
-        dataEmissao:    fd.get('dataEmissao') || '',
+        dataEmissao: fd.get('dataEmissao') || '',
         dataVencimento: fd.get('dataVencimento') || '',
-        responsavel:    fd.get('responsavel') || '',
-        resultado:      fd.get('resultado') || '',
-        observacoes:    fd.get('observacoes') || '',
+        responsavel: fd.get('responsavel') || '',
+        resultado: fd.get('resultado') || '',
+        observacoes: fd.get('observacoes') || '',
       };
 
       const fileInput = document.getElementById('inputArquivoDoc');
@@ -628,7 +726,7 @@ window.Documentos = {
         } else {
           const result = await Store.addDocumento(recursoId, payload);
           // Pega o id do doc recém-criado (último doc do recurso)
-          const rec = (Store.state.recursos || []).find(x => x.id === recursoId);
+          const rec = (Store.state.recursos || []).find((x) => x.id === recursoId);
           const ultimo = (rec?.documentos || []).slice(-1)[0];
           savedDocId = ultimo?.id || null;
         }
@@ -638,7 +736,9 @@ window.Documentos = {
           const fdUp = new FormData();
           fdUp.append('file', arquivo);
           const upRes = await fetch(`/api/recursos/${recursoId}/documentos/${savedDocId}/arquivo`, {
-            method: 'POST', body: fdUp,
+            method: 'POST',
+            credentials: 'same-origin',
+            body: fdUp,
           });
           if (!upRes.ok) throw new Error(await upRes.text());
           await Store.loadAll();
@@ -679,39 +779,47 @@ window.Documentos = {
 
   // ── FICHA DO COLABORADOR ───────────────────────────────────────────────────
   showFichaColaborador(recursoId) {
-    const r = (Store.state.recursos || []).find(x => x.id === recursoId);
+    const r = (Store.state.recursos || []).find((x) => x.id === recursoId);
     if (!r) return;
 
     const c = r.alocacaoAtual?.contractId
-      ? Store.state.contracts.find(x => x.id === r.alocacaoAtual.contractId)
+      ? Store.state.contracts.find((x) => x.id === r.alocacaoAtual.contractId)
       : null;
 
-    const linha = (label, valor) => valor
-      ? `<div style="display:flex;gap:var(--sp-sm);padding:var(--sp-sm) 0;border-bottom:1px solid var(--color-border);">
+    const linha = (label, valor) =>
+      valor
+        ? `<div style="display:flex;gap:var(--sp-sm);padding:var(--sp-sm) 0;border-bottom:1px solid var(--color-border);">
            <span style="min-width:140px;font-size:15px;color:var(--color-text-muted);">${label}</span>
-           <span style="font-size:15px;font-weight:500;">${valor}</span>
+           <span style="font-size:15px;font-weight:500;">${escapeHtml(String(valor))}</span>
          </div>`
-      : '';
+        : '';
 
-    const statusBadge = {
-      funcionario:    `<span class="badge" style="background:#D1FAE5;color:#065F46;">Funcionário Ativo</span>`,
-      candidato:      `<span class="badge" style="background:#DBEAFE;color:#1E40AF;">Candidato</span>`,
-      ex_funcionario: `<span class="badge" style="background:#E5E7EB;color:#374151;">Ex-Funcionário</span>`,
-    }[r.status] || '';
+    const statusBadge =
+      {
+        funcionario: `<span class="badge" style="background:#D1FAE5;color:#065F46;">Funcionário Ativo</span>`,
+        candidato: `<span class="badge" style="background:#DBEAFE;color:#1E40AF;">Candidato</span>`,
+        ex_funcionario: `<span class="badge" style="background:#E5E7EB;color:#374151;">Ex-Funcionário</span>`,
+      }[r.status] || '';
 
-    const fmtDate = d => {
+    const fmtDate = (d) => {
       if (!d) return null;
       const [y, m, day] = d.split('-');
       return `${day}/${m}/${y}`;
     };
 
-    const idade = r.dataNascimento ? (() => {
-      const nasc = new Date(r.dataNascimento);
-      const hoje = new Date();
-      let i = hoje.getFullYear() - nasc.getFullYear();
-      if (hoje.getMonth() < nasc.getMonth() || (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate())) i--;
-      return `${i} anos`;
-    })() : null;
+    const idade = r.dataNascimento
+      ? (() => {
+          const nasc = new Date(r.dataNascimento);
+          const hoje = new Date();
+          let i = hoje.getFullYear() - nasc.getFullYear();
+          if (
+            hoje.getMonth() < nasc.getMonth() ||
+            (hoje.getMonth() === nasc.getMonth() && hoje.getDate() < nasc.getDate())
+          )
+            i--;
+          return `${i} anos`;
+        })()
+      : null;
 
     const html = `
       <div class="modal-overlay" id="modalFichaOverlay">
@@ -728,7 +836,7 @@ window.Documentos = {
             <h3 style="font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--sp-sm);">Dados Pessoais</h3>
             ${linha('CPF', r.cpf)}
             ${linha('Data de Nascimento', fmtDate(r.dataNascimento) + (idade ? ` (${idade})` : ''))}
-            ${linha('Gênero', r.genero ? ({ masculino: 'Masculino', feminino: 'Feminino', outro: 'Outro' }[r.genero] || r.genero) : null)}
+            ${linha('Gênero', r.genero ? { masculino: 'Masculino', feminino: 'Feminino', outro: 'Outro' }[r.genero] || r.genero : null)}
             ${linha('Telefone', r.telefone)}
             ${linha('Email', r.email)}
             ${linha('Endereço', r.endereco)}
@@ -765,5 +873,5 @@ window.Documentos = {
       overlay.remove();
       if (window.Recursos) window.Recursos.showModal(recursoId);
     });
-  }
+  },
 };

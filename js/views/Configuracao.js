@@ -1,4 +1,4 @@
-// Sanitiza cor CSS — aceita apenas hex curto/longo (#abc, #abcd, #aabbcc, #aabbccdd) ou nome simples.
+﻿// Sanitiza cor CSS — aceita apenas hex curto/longo (#abc, #abcd, #aabbcc, #aabbccdd) ou nome simples.
 // Bloqueia injeção via "; background-image: url(...)" ou similar em atributos style.
 function _safeCorCss(cor) {
   if (typeof cor !== 'string') return '#999';
@@ -41,40 +41,52 @@ window.Configuracao = {
             ${this.renderMenuItem('lgpd', '🔒', 'Privacidade (LGPD)')}
             ${this.renderMenuItem('tour', '🗺️', 'Tour Guiado')}
             ${this.renderMenuItem('atualizacoes', '🆕', 'Atualizações')}
-            ${(!window.perfil || window.perfil.podeAcessar('#/usuarios')) ? `
+            ${
+              !window.perfil || window.perfil.podeAcessar('#/usuarios')
+                ? `
             <a href="#/usuarios" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;text-decoration:none;color:var(--color-text);margin-top:4px;border-top:1px solid var(--color-border);padding-top:14px;">
               <span style="display:inline-flex;align-items:center;color:var(--rh-ink-500);">${window.rhIcon ? window.rhIcon('user-plus', 16) : ''}</span><span>Usuários e Logins</span>
-            </a>` : ''}
-            ${(!window.perfil || window.perfil.podeAcessar('#/auditoria')) ? `
+            </a>`
+                : ''
+            }
+            ${
+              !window.perfil || window.perfil.podeAcessar('#/auditoria')
+                ? `
             <a href="#/auditoria" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;text-decoration:none;color:var(--color-text);">
               <span style="display:inline-flex;align-items:center;color:var(--rh-ink-500);">${window.rhIcon ? window.rhIcon('eye', 16) : ''}</span><span>Auditoria</span>
-            </a>` : ''}
-            ${(!window.perfil || window.perfil.podeAcessar('#/cobranca')) ? `
+            </a>`
+                : ''
+            }
+            ${
+              !window.perfil || window.perfil.podeAcessar('#/cobranca')
+                ? `
             <a href="#/cobranca" style="display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;text-decoration:none;color:var(--color-text);">
               <span style="display:inline-flex;align-items:center;color:var(--rh-ink-500);">${window.rhIcon ? window.rhIcon('receipt', 16) : ''}</span><span>Cobrança</span>
-            </a>` : ''}
+            </a>`
+                : ''
+            }
           </nav>
 
           <!-- Conteúdo da seção -->
           <div id="configContent">
-            ${this.currentSection === 'tipos_custo'    ? this.renderTiposCusto() : ''}
-            ${this.currentSection === 'niveis_acesso'  ? this.renderNiveisAcesso() : ''}
-            ${this.currentSection === 'doc_templates'  ? this.renderDocTemplates() : ''}
-            ${this.currentSection === 'arquivos'       ? this.renderArquivos() : ''}
-            ${this.currentSection === 'backup'         ? this.renderBackup() : ''}
-            ${this.currentSection === 'feature_flags'  ? '<div id="featureFlagsSection"><div class="loading-spinner">Carregando…</div></div>' : ''}
-            ${this.currentSection === 'notificacoes'   ? this.renderNotificacoesPush() : ''}
-            ${this.currentSection === 'lgpd'           ? this.renderLgpd() : ''}
-            ${this.currentSection === 'tour'           ? this.renderTour() : ''}
-            ${this.currentSection === 'atualizacoes'   ? this.renderAtualizacoes() : ''}
+            ${this.currentSection === 'tipos_custo' ? this.renderTiposCusto() : ''}
+            ${this.currentSection === 'niveis_acesso' ? this.renderNiveisAcesso() : ''}
+            ${this.currentSection === 'doc_templates' ? this.renderDocTemplates() : ''}
+            ${this.currentSection === 'arquivos' ? this.renderArquivos() : ''}
+            ${this.currentSection === 'backup' ? this.renderBackup() : ''}
+            ${this.currentSection === 'feature_flags' ? '<div id="featureFlagsSection"><div class="loading-spinner">Carregando…</div></div>' : ''}
+            ${this.currentSection === 'notificacoes' ? this.renderNotificacoesPush() : ''}
+            ${this.currentSection === 'lgpd' ? this.renderLgpd() : ''}
+            ${this.currentSection === 'tour' ? this.renderTour() : ''}
+            ${this.currentSection === 'atualizacoes' ? this.renderAtualizacoes() : ''}
           </div>
         </div>
       `;
 
       app.innerHTML = html;
 
-      document.querySelectorAll('.config-menu-item').forEach(btn => {
-        btn.addEventListener('click', e => {
+      document.querySelectorAll('.config-menu-item').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
           this.currentSection = e.currentTarget.dataset.section;
           this.render();
         });
@@ -83,7 +95,8 @@ window.Configuracao = {
       this.attachListeners();
     } catch (e) {
       console.error(e);
-      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar configurações. Tente novamente.</p></div>';
+      app.innerHTML =
+        '<div class="card"><p class="text-danger">Erro ao carregar configurações. Tente novamente.</p></div>';
     }
   },
 
@@ -100,7 +113,7 @@ window.Configuracao = {
   renderTiposCusto() {
     const tipos = Store.state.tipos_base || [];
     const usoContagem = {};
-    (Store.state.base || []).forEach(i => {
+    (Store.state.base || []).forEach((i) => {
       usoContagem[i.type] = (usoContagem[i.type] || 0) + 1;
     });
 
@@ -140,9 +153,10 @@ window.Configuracao = {
               </tr>
             </thead>
             <tbody>
-              ${tipos.map(t => {
-                const uso = usoContagem[t.key] || 0;
-                return `
+              ${tipos
+                .map((t) => {
+                  const uso = usoContagem[t.key] || 0;
+                  return `
                   <tr>
                     <td style="font-size:22px;">${t.icon}</td>
                     <td><strong>${t.label}</strong></td>
@@ -154,9 +168,11 @@ window.Configuracao = {
                       </div>
                     </td>
                     <td>
-                      ${t.sistema
-                        ? `<span class="badge" style="background:rgba(113,128,150,.15);color:#718096;">🔒 Sistema</span>`
-                        : `<span class="badge" style="background:rgba(56,161,105,.15);color:#38A169;">✨ Customizado</span>`}
+                      ${
+                        t.sistema
+                          ? `<span class="badge" style="background:rgba(113,128,150,.15);color:#718096;">🔒 Sistema</span>`
+                          : `<span class="badge" style="background:rgba(56,161,105,.15);color:#38A169;">✨ Customizado</span>`
+                      }
                     </td>
                     <td style="text-align:right;font-weight:${uso > 0 ? '700' : '400'};color:${uso > 0 ? 'var(--color-info)' : 'var(--color-text-muted)'};">
                       ${uso} ${uso !== 1 ? 'itens' : 'item'}
@@ -169,7 +185,8 @@ window.Configuracao = {
                     </td>
                   </tr>
                 `;
-              }).join('')}
+                })
+                .join('')}
             </tbody>
           </table>
         </div>
@@ -180,60 +197,126 @@ window.Configuracao = {
   renderNiveisAcesso() {
     // Ordem das colunas: Gerente sempre na ponta direita (pedido do cliente);
     // os demais perfis mantêm a ordem original (sort estável).
-    const niveis = [...(Store.state.niveis_acesso || [])]
-      .sort((a, b) => (a.id === 'gerente' ? 1 : 0) - (b.id === 'gerente' ? 1 : 0));
-    const ic = (n) => window.rhIcon ? window.rhIcon(n, 14) : '';
+    const niveis = [...(Store.state.niveis_acesso || [])].sort(
+      (a, b) => (a.id === 'gerente' ? 1 : 0) - (b.id === 'gerente' ? 1 : 0)
+    );
+    const ic = (n) => (window.rhIcon ? window.rhIcon(n, 14) : '');
     // Estrutura: páginas com sub-itens internos aninhados (children).
     // Os children têm prefixo 'contrato-tab:' (abas do contrato) ou
     // 'solicitacoes-compra:' (etapas do fluxo de compra) e ficam indentados
     // sob a página pai. Itens com esses prefixos são flags binárias (só "Ver").
     // Mantenha esta lista em sincronia com as rotas de js/app.js.
     const todasAbas = [
-      { route: '#/dashboard',     label: 'Dashboard',       icon: ic('home'),            grupo: 'Principal' },
-      { route: '#/proposta',      label: 'Propostas',       icon: ic('file-text'),       grupo: 'Principal' },
-      { route: '#/clausulas',     label: 'Biblioteca de Cláusulas', icon: ic('book'),     grupo: 'Principal' },
-      { route: '#/contratos',     label: 'Contratos',       icon: ic('briefcase'),       grupo: 'Principal',
+      { route: '#/dashboard', label: 'Dashboard', icon: ic('home'), grupo: 'Principal' },
+      { route: '#/proposta', label: 'Propostas', icon: ic('file-text'), grupo: 'Principal' },
+      {
+        route: '#/clausulas',
+        label: 'Biblioteca de Cláusulas',
+        icon: ic('book'),
+        grupo: 'Principal',
+      },
+      {
+        route: '#/contratos',
+        label: 'Contratos',
+        icon: ic('briefcase'),
+        grupo: 'Principal',
         children: [
-          { route: 'contrato-tab:visao',      label: 'Aba Visão Geral',  icon: ic('eye') },
-          { route: 'contrato-tab:financeiro', label: 'Aba Financeiro',   icon: ic('dollar-sign') },
-          { route: 'contrato-tab:equipe',     label: 'Aba Equipe',       icon: ic('users') },
-          { route: 'contrato-tab:rdo',        label: 'Aba RDO',          icon: ic('clipboard-check') },
-          { route: 'contrato-tab:pendencias', label: 'Aba Pendências',   icon: ic('alert-triangle') },
-        ] },
-      { route: '#/rdos',          label: 'RDOs (todos)',    icon: ic('clipboard-check'), grupo: 'Obras' },
-      { route: '#/obras',         label: 'Mapa de Obras',   icon: ic('map-pin'),         grupo: 'Obras' },
-      { route: '#/solicitacoes-compra', label: 'Solicitações de Compra', icon: ic('clipboard'), grupo: 'Obras',
+          { route: 'contrato-tab:visao', label: 'Aba Visão Geral', icon: ic('eye') },
+          { route: 'contrato-tab:financeiro', label: 'Aba Financeiro', icon: ic('dollar-sign') },
+          { route: 'contrato-tab:equipe', label: 'Aba Equipe', icon: ic('users') },
+          { route: 'contrato-tab:rdo', label: 'Aba RDO', icon: ic('clipboard-check') },
+          { route: 'contrato-tab:pendencias', label: 'Aba Pendências', icon: ic('alert-triangle') },
+        ],
+      },
+      { route: '#/rdos', label: 'RDOs (todos)', icon: ic('clipboard-check'), grupo: 'Obras' },
+      { route: '#/obras', label: 'Mapa de Obras', icon: ic('map-pin'), grupo: 'Obras' },
+      {
+        route: '#/solicitacoes-compra',
+        label: 'Solicitações de Compra',
+        icon: ic('clipboard'),
+        grupo: 'Obras',
         children: [
-          { route: 'solicitacoes-compra:avaliar', label: 'Etapa · Avaliar e cotar (equipe de compras)', icon: ic('dollar-sign') },
-          { route: 'solicitacoes-compra:aprovar', label: 'Etapa · Aprovar ou rejeitar (gerência)',       icon: ic('check-circle') },
-          { route: 'solicitacoes-compra:receber', label: 'Etapa · Registrar recebimento',                icon: ic('package') },
-        ] },
-      { route: '#/estoque',       label: 'Almoxarifado',    icon: ic('package'),         grupo: 'Obras' },
-      { route: '#/frota',         label: 'Frota',           icon: ic('truck'),           grupo: 'Obras' },
-      { route: '#/manutencao',    label: 'Manutenção',      icon: ic('wrench'),          grupo: 'Obras',
+          {
+            route: 'solicitacoes-compra:avaliar',
+            label: 'Etapa · Avaliar e cotar (equipe de compras)',
+            icon: ic('dollar-sign'),
+          },
+          {
+            route: 'solicitacoes-compra:aprovar',
+            label: 'Etapa · Aprovar ou rejeitar (gerência)',
+            icon: ic('check-circle'),
+          },
+          {
+            route: 'solicitacoes-compra:receber',
+            label: 'Etapa · Registrar recebimento',
+            icon: ic('package'),
+          },
+        ],
+      },
+      { route: '#/estoque', label: 'Almoxarifado', icon: ic('package'), grupo: 'Obras' },
+      { route: '#/frota', label: 'Frota', icon: ic('truck'), grupo: 'Obras' },
+      {
+        route: '#/manutencao',
+        label: 'Manutenção',
+        icon: ic('wrench'),
+        grupo: 'Obras',
         children: [
-          { route: 'manutencao:avaliar', label: 'Etapa · Avaliar — oficina/prazo/custo (equipe de compras)', icon: ic('dollar-sign') },
-          { route: 'manutencao:aprovar', label: 'Etapa · Aprovar ou rejeitar (gerência)',                    icon: ic('check-circle') },
-        ] },
-      { route: '#/clientes',      label: 'Clientes',        icon: ic('users'),           grupo: 'RH' },
-      { route: '#/fornecedores',  label: 'Fornecedores',    icon: ic('truck'),           grupo: 'RH' },
-      { route: '#/recursos',      label: 'Recursos',        icon: ic('user-plus'),       grupo: 'RH' },
-      { route: '#/folha-pagamento', label: 'Folha de Pagamento', icon: ic('dollar-sign'), grupo: 'RH' },
-      { route: '#/documentos',    label: 'Documentação',    icon: ic('file-text'),       grupo: 'RH' },
-      { route: '#/base',          label: 'BASE',            icon: ic('database'),        grupo: 'Financeiro' },
-      { route: '#/caixa',         label: 'Caixa',           icon: ic('wallet'),          grupo: 'Financeiro' },
-      { route: '#/contas-pagar',  label: 'Contas a Pagar',  icon: ic('minus-circle'),    grupo: 'Financeiro' },
-      { route: '#/notas-fiscais', label: 'Contas a Receber', icon: ic('receipt'),        grupo: 'Financeiro' },
-      { route: '#/conciliacao',   label: 'Conciliação',     icon: ic('check-circle'),    grupo: 'Financeiro' },
-      { route: '#/cobranca',      label: 'Cobrança',        icon: ic('receipt'),         grupo: 'Financeiro' },
-      { route: '#/socios',        label: 'Sócios',          icon: ic('users'),           grupo: 'Financeiro' },
-      { route: '#/investimentos', label: 'Aportes',         icon: ic('plus-circle'),     grupo: 'Financeiro' },
-      { route: '#/previsao',      label: 'Previsão',        icon: ic('trending-up'),     grupo: 'Financeiro' },
-      { route: '#/ai-chat',       label: 'Assistente IA',   icon: ic('activity'),        grupo: 'Financeiro' },
-      { route: '#/configuracao',  label: 'Configuração',    icon: ic('settings'),        grupo: 'Sistema' },
-      { route: '#/usuarios',      label: 'Usuários',        icon: ic('user-plus'),       grupo: 'Sistema' },
-      { route: '#/auditoria',     label: 'Auditoria',       icon: ic('eye'),             grupo: 'Sistema' },
-      { route: 'special:nao-ver-valores', label: 'Ocultar valores monetários (R$)', icon: ic('eye-off'), grupo: 'Restrições especiais' },
+          {
+            route: 'manutencao:avaliar',
+            label: 'Etapa · Avaliar — oficina/prazo/custo (equipe de compras)',
+            icon: ic('dollar-sign'),
+          },
+          {
+            route: 'manutencao:aprovar',
+            label: 'Etapa · Aprovar ou rejeitar (gerência)',
+            icon: ic('check-circle'),
+          },
+        ],
+      },
+      { route: '#/clientes', label: 'Clientes', icon: ic('users'), grupo: 'RH' },
+      { route: '#/fornecedores', label: 'Fornecedores', icon: ic('truck'), grupo: 'RH' },
+      { route: '#/recursos', label: 'Recursos', icon: ic('user-plus'), grupo: 'RH' },
+      {
+        route: '#/folha-pagamento',
+        label: 'Folha de Pagamento',
+        icon: ic('dollar-sign'),
+        grupo: 'RH',
+      },
+      { route: '#/documentos', label: 'Documentação', icon: ic('file-text'), grupo: 'RH' },
+      { route: '#/base', label: 'BASE', icon: ic('database'), grupo: 'Financeiro' },
+      { route: '#/caixa', label: 'Caixa', icon: ic('wallet'), grupo: 'Financeiro' },
+      {
+        route: '#/contas-pagar',
+        label: 'Contas a Pagar',
+        icon: ic('minus-circle'),
+        grupo: 'Financeiro',
+      },
+      {
+        route: '#/notas-fiscais',
+        label: 'Contas a Receber',
+        icon: ic('receipt'),
+        grupo: 'Financeiro',
+      },
+      {
+        route: '#/conciliacao',
+        label: 'Conciliação',
+        icon: ic('check-circle'),
+        grupo: 'Financeiro',
+      },
+      { route: '#/cobranca', label: 'Cobrança', icon: ic('receipt'), grupo: 'Financeiro' },
+      { route: '#/socios', label: 'Sócios', icon: ic('users'), grupo: 'Financeiro' },
+      { route: '#/investimentos', label: 'Aportes', icon: ic('plus-circle'), grupo: 'Financeiro' },
+      { route: '#/previsao', label: 'Previsão', icon: ic('trending-up'), grupo: 'Financeiro' },
+      { route: '#/ai-chat', label: 'Assistente IA', icon: ic('activity'), grupo: 'Financeiro' },
+      { route: '#/configuracao', label: 'Configuração', icon: ic('settings'), grupo: 'Sistema' },
+      { route: '#/usuarios', label: 'Usuários', icon: ic('user-plus'), grupo: 'Sistema' },
+      { route: '#/auditoria', label: 'Auditoria', icon: ic('eye'), grupo: 'Sistema' },
+      {
+        route: 'special:nao-ver-valores',
+        label: 'Ocultar valores monetários (R$)',
+        icon: ic('eye-off'),
+        grupo: 'Restrições especiais',
+      },
     ];
 
     const grupos = ['Principal', 'Obras', 'RH', 'Financeiro', 'Sistema', 'Restrições especiais'];
@@ -248,24 +331,26 @@ window.Configuracao = {
     }
 
     const corOf = (n) => _safeCorCss(n.cor);
-    const isFlag = (route) => route.startsWith('special:')
-      || route.startsWith('contrato-tab:')
-      || route.startsWith('solicitacoes-compra:')
-      || route.startsWith('manutencao:');
+    const isFlag = (route) =>
+      route.startsWith('special:') ||
+      route.startsWith('contrato-tab:') ||
+      route.startsWith('solicitacoes-compra:') ||
+      route.startsWith('manutencao:');
     const totalCols = 1 + niveis.length * 2;
 
     // Uma linha da matriz: a tela à esquerda, um par de checkboxes (Ver/Ed) por perfil.
     // Sub-permissões (flags) são binárias — um único checkbox que ocupa as 2 colunas.
     const matrixRow = (aba, indented) => {
       const flag = isFlag(aba.route);
-      const cells = niveis.map((n, i) => {
-        const cor = corOf(n);
-        const sep = i > 0 ? 'border-left:2px solid var(--color-border);' : '';
-        const verChecked = (n.abas || []).includes(aba.route);
-        if (flag) {
-          // Sub-permissão: interruptor único. Fica na coluna "Ver" (alinhado com
-          // os demais) e a coluna "Ed." mostra "—" — não se aplica.
-          return `
+      const cells = niveis
+        .map((n, i) => {
+          const cor = corOf(n);
+          const sep = i > 0 ? 'border-left:2px solid var(--color-border);' : '';
+          const verChecked = (n.abas || []).includes(aba.route);
+          if (flag) {
+            // Sub-permissão: interruptor único. Fica na coluna "Ver" (alinhado com
+            // os demais) e a coluna "Ed." mostra "—" — não se aplica.
+            return `
           <td style="text-align:center;${sep}">
             <input type="checkbox" class="nivel-checkbox" data-kind="ver"
                    data-nivel="${escapeHtml(n.id)}" data-route="${escapeHtml(aba.route)}"
@@ -274,10 +359,10 @@ window.Configuracao = {
                    style="width:14px;height:14px;accent-color:${cor};">
           </td>
           <td style="text-align:center;color:var(--color-text-muted);" title="Não se aplica a sub-permissões">—</td>`;
-        }
-        const editChecked = (n.abas || []).includes('edit:' + aba.route);
-        const pair = escapeHtml(n.id + '|' + aba.route);
-        return `
+          }
+          const editChecked = (n.abas || []).includes('edit:' + aba.route);
+          const pair = escapeHtml(n.id + '|' + aba.route);
+          return `
           <td style="text-align:center;${sep}">
             <input type="checkbox" class="nivel-checkbox" data-kind="ver" data-pair="${pair}"
                    data-nivel="${escapeHtml(n.id)}" data-route="${escapeHtml(aba.route)}"
@@ -290,7 +375,8 @@ window.Configuracao = {
                    ${editChecked ? 'checked' : ''} ${verChecked ? '' : 'disabled'}
                    style="width:14px;height:14px;accent-color:${cor};opacity:${verChecked ? '1' : '.35'};">
           </td>`;
-      }).join('');
+        })
+        .join('');
       return `
         <tr class="nivel-row">
           <td style="${indented ? 'padding-left:30px;' : 'padding-left:10px;'}white-space:nowrap;${indented ? 'color:var(--color-text-muted);' : ''}">
@@ -301,23 +387,33 @@ window.Configuracao = {
     };
 
     let bodyRows = '';
-    grupos.forEach(grupo => {
-      const abasGrupo = todasAbas.filter(a => a.grupo === grupo);
+    grupos.forEach((grupo) => {
+      const abasGrupo = todasAbas.filter((a) => a.grupo === grupo);
       if (!abasGrupo.length) return;
       bodyRows += `<tr><td colspan="${totalCols}" class="nivel-grupo">${escapeHtml(grupo)}</td></tr>`;
-      abasGrupo.forEach(aba => {
+      abasGrupo.forEach((aba) => {
         bodyRows += matrixRow(aba, false);
-        (aba.children || []).forEach(child => { bodyRows += matrixRow(child, true); });
+        (aba.children || []).forEach((child) => {
+          bodyRows += matrixRow(child, true);
+        });
       });
     });
 
-    const headPerfil = niveis.map((n, i) => `
+    const headPerfil = niveis
+      .map(
+        (n, i) => `
       <th scope="col" colspan="2" style="border-bottom:3px solid ${corOf(n)};${i > 0 ? 'border-left:2px solid var(--color-border);' : ''}">
         <span style="font-size:15px;margin-right:4px;">${escapeHtml(n.icon || '')}</span><span style="color:${corOf(n)};">${escapeHtml(n.label)}</span>
-      </th>`).join('');
-    const headVerEd = niveis.map((n, i) => `
+      </th>`
+      )
+      .join('');
+    const headVerEd = niveis
+      .map(
+        (n, i) => `
       <th scope="col" style="${i > 0 ? 'border-left:2px solid var(--color-border);' : ''}width:46px;">Ver</th>
-      <th scope="col" style="width:46px;">Ed.</th>`).join('');
+      <th scope="col" style="width:46px;">Ed.</th>`
+      )
+      .join('');
 
     return `
       <style>
@@ -375,14 +471,15 @@ window.Configuracao = {
   attachListeners() {
     // Níveis de acesso — matriz de permissões
     this._niveisDirty = new Set();
-    document.querySelectorAll('.nivel-checkbox').forEach(cb => {
-      cb.addEventListener('change', e => {
+    document.querySelectorAll('.nivel-checkbox').forEach((cb) => {
+      cb.addEventListener('change', (e) => {
         const t = e.target;
         this._niveisDirty.add(t.dataset.nivel);
         // "Ver" comanda o "Ed." do mesmo par — sem ver a tela não há como editar.
         if (t.dataset.kind === 'ver' && t.dataset.pair) {
-          const ed = [...document.querySelectorAll('.nivel-checkbox[data-kind="ed"]')]
-            .find(x => x.dataset.pair === t.dataset.pair);
+          const ed = [...document.querySelectorAll('.nivel-checkbox[data-kind="ed"]')].find(
+            (x) => x.dataset.pair === t.dataset.pair
+          );
           if (ed) {
             ed.disabled = !t.checked;
             ed.style.opacity = t.checked ? '1' : '.35';
@@ -397,19 +494,26 @@ window.Configuracao = {
     if (btnSalvarNiveis) {
       btnSalvarNiveis.addEventListener('click', async () => {
         const dirty = [...(this._niveisDirty || [])];
-        if (!dirty.length) { window.showToast('Nenhuma alteração para salvar', 'info'); return; }
+        if (!dirty.length) {
+          window.showToast('Nenhuma alteração para salvar', 'info');
+          return;
+        }
         const txtOrig = btnSalvarNiveis.textContent;
         btnSalvarNiveis.disabled = true;
         btnSalvarNiveis.textContent = 'Salvando…';
         try {
           for (const nivelId of dirty) {
             const checkboxes = document.querySelectorAll(
-              `.nivel-checkbox[data-nivel="${CSS.escape(nivelId)}"]`);
-            const abas = [...checkboxes].filter(c => c.checked).map(c => c.dataset.route);
+              `.nivel-checkbox[data-nivel="${CSS.escape(nivelId)}"]`
+            );
+            const abas = [...checkboxes].filter((c) => c.checked).map((c) => c.dataset.route);
             await Store.updateNivelAcesso(nivelId, abas);
           }
           this._niveisDirty.clear();
-          window.showToast(`${dirty.length} perfil${dirty.length !== 1 ? 's' : ''} salvo${dirty.length !== 1 ? 's' : ''}`, 'success');
+          window.showToast(
+            `${dirty.length} perfil${dirty.length !== 1 ? 's' : ''} salvo${dirty.length !== 1 ? 's' : ''}`,
+            'success'
+          );
           this.render();
         } catch (err) {
           window.showToast(err.message, 'error');
@@ -422,11 +526,11 @@ window.Configuracao = {
     const btnNovo = document.getElementById('btnNovoTipo');
     if (btnNovo) btnNovo.addEventListener('click', () => this.showModalTipo());
 
-    document.querySelectorAll('.btn-editar-tipo').forEach(btn => {
-      btn.addEventListener('click', e => this.showModalTipo(e.target.dataset.id));
+    document.querySelectorAll('.btn-editar-tipo').forEach((btn) => {
+      btn.addEventListener('click', (e) => this.showModalTipo(e.target.dataset.id));
     });
-    document.querySelectorAll('.btn-excluir-tipo').forEach(btn => {
-      btn.addEventListener('click', e => this.deleteTipo(e.target.dataset.id));
+    document.querySelectorAll('.btn-excluir-tipo').forEach((btn) => {
+      btn.addEventListener('click', (e) => this.deleteTipo(e.target.dataset.id));
     });
 
     if (this.currentSection === 'doc_templates') this.attachDocTemplateListeners();
@@ -440,12 +544,19 @@ window.Configuracao = {
       btnLgpd.addEventListener('click', async () => {
         if (!confirm('Tem certeza? Esta ação anonimiza seus dados e encerra sua sessão.')) return;
         try {
-          const r = await fetch('/api/lgpd/delete-account', { method: 'POST', credentials: 'same-origin' });
+          const r = await fetch('/api/lgpd/delete-account', {
+            method: 'POST',
+            credentials: 'same-origin',
+          });
           const d = await r.json();
           if (!r.ok) throw new Error(d.error);
           window.showToast(d.message, 'success');
-          setTimeout(() => { window.location.href = '/'; }, 2000);
-        } catch (e) { window.showToast(e.message, 'error'); }
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
+        } catch (e) {
+          window.showToast(e.message, 'error');
+        }
       });
     }
 
@@ -459,11 +570,47 @@ window.Configuracao = {
   },
 
   showModalTipo(tipoId) {
-    const tipo = tipoId ? Store.state.tipos_base.find(t => t.id === tipoId) : null;
+    const tipo = tipoId ? Store.state.tipos_base.find((t) => t.id === tipoId) : null;
     const title = tipo ? 'Editar Tipo de Custo' : 'Novo Tipo de Custo';
 
-    const cores = ['#7C3AED', '#D97706', '#059669', '#3182CE', '#D69E2E', '#E53E3E', '#0891B2', '#DB2777', '#2E7D52', '#718096', '#F59E0B', '#10B981'];
-    const icones = ['👷', '📦', '🚗', '📌', '📊', '🔹', '💻', '🏢', '📱', '⚡', '🔧', '💰', '🏭', '📑', '🎨', '🔌', '🛠️', '📞', '☕', '🧾', '🚚', '✈️'];
+    const cores = [
+      '#7C3AED',
+      '#D97706',
+      '#059669',
+      '#3182CE',
+      '#D69E2E',
+      '#E53E3E',
+      '#0891B2',
+      '#DB2777',
+      '#2E7D52',
+      '#718096',
+      '#F59E0B',
+      '#10B981',
+    ];
+    const icones = [
+      '👷',
+      '📦',
+      '🚗',
+      '📌',
+      '📊',
+      '🔹',
+      '💻',
+      '🏢',
+      '📱',
+      '⚡',
+      '🔧',
+      '💰',
+      '🏭',
+      '📑',
+      '🎨',
+      '🔌',
+      '🛠️',
+      '📞',
+      '☕',
+      '🧾',
+      '🚚',
+      '✈️',
+    ];
 
     const html = `
       <div class="modal-overlay" id="modalOverlay">
@@ -482,9 +629,13 @@ window.Configuracao = {
             <div class="form-group">
               <label class="form-label">Ícone</label>
               <div style="display:flex;flex-wrap:wrap;gap:6px;padding:var(--sp-sm);border:1px solid var(--color-border);border-radius:6px;max-height:120px;overflow-y:auto;">
-                ${icones.map(ic => `
+                ${icones
+                  .map(
+                    (ic) => `
                   <button type="button" class="btn-icone" data-icone="${ic}" style="width:36px;height:36px;font-size:18px;border:2px solid ${tipo?.icon === ic ? 'var(--color-primary)' : 'transparent'};background:${tipo?.icon === ic ? 'rgba(46,125,82,.1)' : 'transparent'};border-radius:6px;cursor:pointer;">${ic}</button>
-                `).join('')}
+                `
+                  )
+                  .join('')}
               </div>
               <input type="hidden" name="icon" value="${tipo?.icon || '🔹'}">
             </div>
@@ -492,9 +643,13 @@ window.Configuracao = {
             <div class="form-group">
               <label class="form-label">Cor</label>
               <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                ${cores.map(c => `
+                ${cores
+                  .map(
+                    (c) => `
                   <button type="button" class="btn-cor" data-cor="${c}" style="width:32px;height:32px;border-radius:50%;background:${c};border:${tipo?.cor === c ? '3px solid var(--color-text)' : '2px solid var(--color-border)'};cursor:pointer;"></button>
-                `).join('')}
+                `
+                  )
+                  .join('')}
               </div>
               <input type="hidden" name="cor" value="${tipo?.cor || '#718096'}">
             </div>
@@ -525,11 +680,11 @@ window.Configuracao = {
     document.getElementById('btnCancelar').addEventListener('click', close);
 
     const inputLabel = document.querySelector('[name=label]');
-    const inputIcon  = document.querySelector('[name=icon]');
-    const inputCor   = document.querySelector('[name=cor]');
-    const prevIcon   = document.getElementById('prevIcon');
-    const prevLabel  = document.getElementById('prevLabel');
-    const prevBadge  = document.getElementById('prevBadge');
+    const inputIcon = document.querySelector('[name=icon]');
+    const inputCor = document.querySelector('[name=cor]');
+    const prevIcon = document.getElementById('prevIcon');
+    const prevLabel = document.getElementById('prevLabel');
+    const prevBadge = document.getElementById('prevBadge');
 
     const atualizarPreview = () => {
       prevIcon.textContent = inputIcon.value;
@@ -539,9 +694,12 @@ window.Configuracao = {
     };
     inputLabel.addEventListener('input', atualizarPreview);
 
-    document.querySelectorAll('.btn-icone').forEach(btn => {
-      btn.addEventListener('click', e => {
-        document.querySelectorAll('.btn-icone').forEach(b => { b.style.border = '2px solid transparent'; b.style.background = 'transparent'; });
+    document.querySelectorAll('.btn-icone').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.btn-icone').forEach((b) => {
+          b.style.border = '2px solid transparent';
+          b.style.background = 'transparent';
+        });
         e.currentTarget.style.border = '2px solid var(--color-primary)';
         e.currentTarget.style.background = 'rgba(46,125,82,.1)';
         inputIcon.value = e.currentTarget.dataset.icone;
@@ -549,9 +707,11 @@ window.Configuracao = {
       });
     });
 
-    document.querySelectorAll('.btn-cor').forEach(btn => {
-      btn.addEventListener('click', e => {
-        document.querySelectorAll('.btn-cor').forEach(b => { b.style.border = '2px solid var(--color-border)'; });
+    document.querySelectorAll('.btn-cor').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.btn-cor').forEach((b) => {
+          b.style.border = '2px solid var(--color-border)';
+        });
         e.currentTarget.style.border = '3px solid var(--color-text)';
         inputCor.value = e.currentTarget.dataset.cor;
         atualizarPreview();
@@ -561,14 +721,19 @@ window.Configuracao = {
     document.getElementById('btnSalvarTipo').addEventListener('click', async () => {
       const fd = new FormData(document.getElementById('formTipo'));
       const data = { label: fd.get('label'), icon: fd.get('icon'), cor: fd.get('cor') };
-      if (!data.label || !data.label.trim()) { window.showToast('Informe o nome do tipo', 'error'); return; }
+      if (!data.label || !data.label.trim()) {
+        window.showToast('Informe o nome do tipo', 'error');
+        return;
+      }
       try {
         if (tipo) await Store.updateTipoBase(tipoId, data);
         else await Store.createTipoBase(data);
         window.showToast(tipo ? 'Tipo atualizado' : 'Tipo criado', 'success');
         close();
         this.render();
-      } catch (e) { window.showToast(e.message, 'error'); }
+      } catch (e) {
+        window.showToast(e.message, 'error');
+      }
     });
   },
 
@@ -578,36 +743,43 @@ window.Configuracao = {
       await Store.deleteTipoBase(id);
       window.showToast('Tipo excluído', 'success');
       this.render();
-    } catch (e) { window.showToast(e.message, 'error'); }
+    } catch (e) {
+      window.showToast(e.message, 'error');
+    }
   },
 
   // ── TEMPLATES DE DOCUMENTAÇÃO ──────────────────────────────────────────────
   TIPOS_DOC_TPL: [
-    { key: 'ASO',     label: 'ASO — Atestado de Saúde Ocupacional' },
-    { key: 'PGR',     label: 'PGR — Prog. Gerenciamento de Riscos' },
-    { key: 'PCMSO',   label: 'PCMSO — Prog. Controle Médico de Saúde' },
-    { key: 'NR10',    label: 'NR-10 — Segurança em Eletricidade' },
-    { key: 'NR12',    label: 'NR-12 — Segurança em Máquinas' },
-    { key: 'NR18',    label: 'NR-18 — Construção Civil' },
-    { key: 'NR20',    label: 'NR-20 — Líquidos Combustíveis' },
-    { key: 'NR33',    label: 'NR-33 — Espaço Confinado' },
-    { key: 'NR35',    label: 'NR-35 — Trabalho em Altura' },
-    { key: 'CIPA',    label: 'CIPA — Comissão Interna de Prevenção' },
+    { key: 'ASO', label: 'ASO — Atestado de Saúde Ocupacional' },
+    { key: 'PGR', label: 'PGR — Prog. Gerenciamento de Riscos' },
+    { key: 'PCMSO', label: 'PCMSO — Prog. Controle Médico de Saúde' },
+    { key: 'NR10', label: 'NR-10 — Segurança em Eletricidade' },
+    { key: 'NR12', label: 'NR-12 — Segurança em Máquinas' },
+    { key: 'NR18', label: 'NR-18 — Construção Civil' },
+    { key: 'NR20', label: 'NR-20 — Líquidos Combustíveis' },
+    { key: 'NR33', label: 'NR-33 — Espaço Confinado' },
+    { key: 'NR35', label: 'NR-35 — Trabalho em Altura' },
+    { key: 'CIPA', label: 'CIPA — Comissão Interna de Prevenção' },
     { key: 'BRIGADA', label: 'Brigada de Incêndio' },
-    { key: 'CNH',     label: 'CNH — Habilitação' },
-    { key: 'OUTRO',   label: 'Outro' },
+    { key: 'CNH', label: 'CNH — Habilitação' },
+    { key: 'OUTRO', label: 'Outro' },
   ],
 
   renderDocTemplates() {
     const templates = Store.state.doc_templates || [];
-    const contratos = (Store.state.contracts || []).filter(c => c.status === 'ativo');
+    const contratos = (Store.state.contracts || []).filter((c) => c.status === 'ativo');
 
-    const rows = templates.length === 0
-      ? `<tr><td colspan="5" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum template cadastrado</td></tr>`
-      : templates.map(t => {
-          const contrato = contratos.find(c => c.id === t.empresaId);
-          const tipoLabel = this.TIPOS_DOC_TPL.find(x => x.key === t.tipoDocumento)?.label || t.tipoDocumento || '—';
-          return `<tr>
+    const rows =
+      templates.length === 0
+        ? `<tr><td colspan="5" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum template cadastrado</td></tr>`
+        : templates
+            .map((t) => {
+              const contrato = contratos.find((c) => c.id === t.empresaId);
+              const tipoLabel =
+                this.TIPOS_DOC_TPL.find((x) => x.key === t.tipoDocumento)?.label ||
+                t.tipoDocumento ||
+                '—';
+              return `<tr>
             <td><strong>${escapeHtml(t.nome)}</strong></td>
             <td style="font-size:15px;">${escapeHtml(tipoLabel)}</td>
             <td style="font-size:15px;">${contrato ? escapeHtml(contrato.name) : '<span style="color:var(--color-text-muted);">Todos</span>'}</td>
@@ -619,7 +791,8 @@ window.Configuracao = {
               </div>
             </td>
           </tr>`;
-        }).join('');
+            })
+            .join('');
 
     return `
       <div class="page-header" style="margin-bottom:var(--sp-lg);">
@@ -663,25 +836,38 @@ window.Configuracao = {
   attachDocTemplateListeners() {
     const btnNovo = document.getElementById('btnNovoTemplate');
     if (btnNovo) btnNovo.addEventListener('click', () => this.showModalTemplate(null));
-    document.querySelectorAll('.btn-edit-tpl').forEach(b =>
-      b.addEventListener('click', e => this.showModalTemplate(e.target.dataset.id)));
-    document.querySelectorAll('.btn-del-tpl').forEach(b =>
-      b.addEventListener('click', e => this.deleteTemplate(e.target.dataset.id)));
+    document
+      .querySelectorAll('.btn-edit-tpl')
+      .forEach((b) =>
+        b.addEventListener('click', (e) => this.showModalTemplate(e.target.dataset.id))
+      );
+    document
+      .querySelectorAll('.btn-del-tpl')
+      .forEach((b) => b.addEventListener('click', (e) => this.deleteTemplate(e.target.dataset.id)));
   },
 
   showModalTemplate(templateId) {
-    const t = templateId ? (Store.state.doc_templates || []).find(x => x.id === templateId) : null;
-    const contratos = (Store.state.contracts || []).filter(c => c.status === 'ativo');
-    const checklist = t ? (t.checklist || []) : [];
+    const t = templateId
+      ? (Store.state.doc_templates || []).find((x) => x.id === templateId)
+      : null;
+    const contratos = (Store.state.contracts || []).filter((c) => c.status === 'ativo');
+    const checklist = t ? t.checklist || [] : [];
 
-    const tiposOptions = this.TIPOS_DOC_TPL.map(x =>
-      `<option value="${x.key}" ${t?.tipoDocumento === x.key ? 'selected' : ''}>${x.label}</option>`
+    const tiposOptions = this.TIPOS_DOC_TPL.map(
+      (x) =>
+        `<option value="${x.key}" ${t?.tipoDocumento === x.key ? 'selected' : ''}>${x.label}</option>`
     ).join('');
-    const contratosOptions = contratos.map(c =>
-      `<option value="${c.id}" ${t?.empresaId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`
-    ).join('');
+    const contratosOptions = contratos
+      .map(
+        (c) =>
+          `<option value="${c.id}" ${t?.empresaId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`
+      )
+      .join('');
 
-    const renderChecklist = (items) => items.map((item, i) => `
+    const renderChecklist = (items) =>
+      items
+        .map(
+          (item, i) => `
       <div class="checklist-item" data-index="${i}" style="display:flex;gap:var(--sp-sm);align-items:center;margin-bottom:var(--sp-sm);">
         <input class="form-control" style="flex:1;" value="${escapeHtml(item.campo || '')}" placeholder="Campo obrigatório..." data-field="campo">
         <label style="display:flex;align-items:center;gap:4px;white-space:nowrap;font-size:15px;cursor:pointer;">
@@ -689,40 +875,57 @@ window.Configuracao = {
         </label>
         <button type="button" class="btn btn-sm btn-ghost btn-rm-item" data-index="${i}" style="padding:2px 8px;color:#DC2626;">✕</button>
       </div>
-    `).join('');
+    `
+        )
+        .join('');
 
     // Padrão rigoroso (metadata JSONB) — usado pela IA pra validar uploads
     const meta = t?.metadata || {};
-    const secoesIniciais  = Array.isArray(meta.secoes) ? meta.secoes : [];
-    const camposIniciais  = Array.isArray(meta.campos) ? meta.campos : [];
+    const secoesIniciais = Array.isArray(meta.secoes) ? meta.secoes : [];
+    const camposIniciais = Array.isArray(meta.campos) ? meta.campos : [];
     const visuaisIniciais = Array.isArray(meta.elementos_visuais) ? meta.elementos_visuais : [];
-    const instrIniciais   = meta.instrucoes_extras || '';
+    const instrIniciais = meta.instrucoes_extras || '';
 
-    const renderSecoes = (arr) => arr.map((s, i) => `
+    const renderSecoes = (arr) =>
+      arr
+        .map(
+          (s, i) => `
       <div class="secao-row" data-i="${i}" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
-        <span style="width:30px;font-weight:700;color:var(--color-text-muted);">${i+1}.</span>
+        <span style="width:30px;font-weight:700;color:var(--color-text-muted);">${i + 1}.</span>
         <input class="form-control" data-f="nome" style="flex:1;" placeholder="Ex: Cabeçalho com logo" value="${escapeHtml(s.nome || '')}">
         <label style="display:flex;align-items:center;gap:4px;font-size:13px;white-space:nowrap;"><input type="checkbox" data-f="obrigatorio" ${s.obrigatorio !== false ? 'checked' : ''}>Obrig.</label>
         <button type="button" class="btn btn-sm btn-ghost rm-secao" style="color:#DC2626;">✕</button>
       </div>
-    `).join('');
+    `
+        )
+        .join('');
 
-    const renderCampos = (arr) => arr.map((c, i) => `
+    const renderCampos = (arr) =>
+      arr
+        .map(
+          (c, i) => `
       <div class="campo-row" data-i="${i}" style="display:grid;grid-template-columns:1fr 1fr auto auto;gap:6px;align-items:center;margin-bottom:6px;">
         <input class="form-control" data-f="nome" placeholder="Ex: CPF" value="${escapeHtml(c.nome || '')}">
         <input class="form-control" data-f="regex" placeholder="Regex (opcional) ex: \\d{3}\\.\\d{3}\\.\\d{3}-\\d{2}" value="${escapeHtml(c.regex || '')}" style="font-family:monospace;font-size:12px;">
         <label style="display:flex;align-items:center;gap:4px;font-size:13px;white-space:nowrap;"><input type="checkbox" data-f="obrigatorio" ${c.obrigatorio !== false ? 'checked' : ''}>Obrig.</label>
         <button type="button" class="btn btn-sm btn-ghost rm-campo" style="color:#DC2626;">✕</button>
       </div>
-    `).join('');
+    `
+        )
+        .join('');
 
-    const renderVisuais = (arr) => arr.map((v, i) => `
+    const renderVisuais = (arr) =>
+      arr
+        .map(
+          (v, i) => `
       <div class="visual-row" data-i="${i}" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
         <input class="form-control" data-f="descricao" style="flex:1;" placeholder="Ex: Assinatura do médico, Carimbo, Foto 3x4" value="${escapeHtml(v.descricao || '')}">
         <label style="display:flex;align-items:center;gap:4px;font-size:13px;white-space:nowrap;"><input type="checkbox" data-f="obrigatorio" ${v.obrigatorio !== false ? 'checked' : ''}>Obrig.</label>
         <button type="button" class="btn btn-sm btn-ghost rm-visual" style="color:#DC2626;">✕</button>
       </div>
-    `).join('');
+    `
+        )
+        .join('');
 
     const html = `
       <div class="modal-overlay" id="modalTplOverlay">
@@ -771,7 +974,7 @@ window.Configuracao = {
               ${checklist.length === 0 ? `<p style="font-size:15px;color:var(--color-text-muted);">Nenhum campo adicionado. Clique em "+ Adicionar Campo" para inserir itens do checklist.</p>` : ''}
             </div>
 
-            <details class="form-group" style="border:1px solid var(--color-border);border-radius:8px;padding:var(--sp-md);margin-top:var(--sp-md);" ${(secoesIniciais.length || camposIniciais.length || visuaisIniciais.length) ? 'open' : ''}>
+            <details class="form-group" style="border:1px solid var(--color-border);border-radius:8px;padding:var(--sp-md);margin-top:var(--sp-md);" ${secoesIniciais.length || camposIniciais.length || visuaisIniciais.length ? 'open' : ''}>
               <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#7C3AED;">🤖 Padrão rigoroso de validação (IA verifica os uploads)</summary>
               <div style="margin-top:var(--sp-md);font-size:13px;color:var(--color-text-muted);">
                 Quando o colaborador subir um arquivo com este template selecionado, o sistema usa Claude Vision pra checar automaticamente se o documento atende aos itens abaixo. Deixe vazio se quiser apenas o checklist manual.
@@ -812,7 +1015,7 @@ window.Configuracao = {
                 <span>📋 Corpo do Documento (para Gerar PDF por contrato)</span>
                 <span style="font-size:12px;color:var(--color-text-muted);">Variáveis: {{cliente}}, {{contrato}}, {{valor}}, {{inicio}}, {{fim}}, {{data}}</span>
               </label>
-              <textarea class="form-control" name="body" rows="8" style="font-family:monospace;font-size:13px;" placeholder="CONTRATO DE PRESTAÇÃO DE SERVIÇOS\n\nCliente: {{cliente}}\nContrato: {{contrato}}\nValor: {{valor}}\n...">${this._escHtml(t?.body || '')}</textarea>
+              <textarea class="form-control" name="body" rows="8" style="font-family:monospace;font-size:13px;" placeholder="CONTRATO DE PRESTAÇÃO DE SERVIÇOS\n\nCliente: {{cliente}}\nContrato: {{contrato}}\nValor: {{valor}}\n...">${escapeHtml(t?.body || '')}</textarea>
             </div>
 
             <div style="display:flex;gap:var(--sp-sm);justify-content:flex-end;margin-top:var(--sp-lg);">
@@ -830,11 +1033,12 @@ window.Configuracao = {
 
     const refreshChecklist = () => {
       container.innerHTML = renderChecklist(items);
-      container.querySelectorAll('.btn-rm-item').forEach(b =>
-        b.addEventListener('click', e => {
+      container.querySelectorAll('.btn-rm-item').forEach((b) =>
+        b.addEventListener('click', (e) => {
           items.splice(parseInt(e.target.dataset.index), 1);
           refreshChecklist();
-        }));
+        })
+      );
     };
 
     refreshChecklist();
@@ -845,49 +1049,69 @@ window.Configuracao = {
     });
 
     // Padrão rigoroso (metadata) — listas mutáveis
-    let secoesArr  = [...secoesIniciais];
-    let camposArr  = [...camposIniciais];
+    let secoesArr = [...secoesIniciais];
+    let camposArr = [...camposIniciais];
     let visuaisArr = [...visuaisIniciais];
 
     const refreshSecoes = () => {
       const c = document.getElementById('secoesContainer');
       c.innerHTML = renderSecoes(secoesArr);
-      c.querySelectorAll('.rm-secao').forEach(b => b.addEventListener('click', e => {
-        const i = +e.target.closest('.secao-row').dataset.i;
-        secoesArr.splice(i, 1); refreshSecoes();
-      }));
+      c.querySelectorAll('.rm-secao').forEach((b) =>
+        b.addEventListener('click', (e) => {
+          const i = +e.target.closest('.secao-row').dataset.i;
+          secoesArr.splice(i, 1);
+          refreshSecoes();
+        })
+      );
     };
     const refreshCampos = () => {
       const c = document.getElementById('camposContainer');
       c.innerHTML = renderCampos(camposArr);
-      c.querySelectorAll('.rm-campo').forEach(b => b.addEventListener('click', e => {
-        const i = +e.target.closest('.campo-row').dataset.i;
-        camposArr.splice(i, 1); refreshCampos();
-      }));
+      c.querySelectorAll('.rm-campo').forEach((b) =>
+        b.addEventListener('click', (e) => {
+          const i = +e.target.closest('.campo-row').dataset.i;
+          camposArr.splice(i, 1);
+          refreshCampos();
+        })
+      );
     };
     const refreshVisuais = () => {
       const c = document.getElementById('visuaisContainer');
       c.innerHTML = renderVisuais(visuaisArr);
-      c.querySelectorAll('.rm-visual').forEach(b => b.addEventListener('click', e => {
-        const i = +e.target.closest('.visual-row').dataset.i;
-        visuaisArr.splice(i, 1); refreshVisuais();
-      }));
+      c.querySelectorAll('.rm-visual').forEach((b) =>
+        b.addEventListener('click', (e) => {
+          const i = +e.target.closest('.visual-row').dataset.i;
+          visuaisArr.splice(i, 1);
+          refreshVisuais();
+        })
+      );
     };
-    refreshSecoes(); refreshCampos(); refreshVisuais();
-    document.getElementById('btnAddSecao').addEventListener('click', () => { secoesArr.push({ nome: '', obrigatorio: true }); refreshSecoes(); });
-    document.getElementById('btnAddCampo').addEventListener('click', () => { camposArr.push({ nome: '', regex: '', obrigatorio: true }); refreshCampos(); });
-    document.getElementById('btnAddVisual').addEventListener('click', () => { visuaisArr.push({ descricao: '', obrigatorio: true }); refreshVisuais(); });
+    refreshSecoes();
+    refreshCampos();
+    refreshVisuais();
+    document.getElementById('btnAddSecao').addEventListener('click', () => {
+      secoesArr.push({ nome: '', obrigatorio: true });
+      refreshSecoes();
+    });
+    document.getElementById('btnAddCampo').addEventListener('click', () => {
+      camposArr.push({ nome: '', regex: '', obrigatorio: true });
+      refreshCampos();
+    });
+    document.getElementById('btnAddVisual').addEventListener('click', () => {
+      visuaisArr.push({ descricao: '', obrigatorio: true });
+      refreshVisuais();
+    });
 
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnCancelarTpl').addEventListener('click', close);
 
-    document.getElementById('formTemplate').addEventListener('submit', async e => {
+    document.getElementById('formTemplate').addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
 
       const checklistAtual = [];
-      container.querySelectorAll('.checklist-item').forEach(row => {
+      container.querySelectorAll('.checklist-item').forEach((row) => {
         const campo = row.querySelector('[data-field="campo"]').value.trim();
         const obrigatorio = row.querySelector('[data-field="obrigatorio"]').checked;
         if (campo) checklistAtual.push({ campo, obrigatorio });
@@ -901,15 +1125,15 @@ window.Configuracao = {
         if (nome) secoesAtual.push({ ordem: i + 1, nome, obrigatorio: obrig });
       });
       const camposAtual = [];
-      document.querySelectorAll('#camposContainer .campo-row').forEach(r => {
-        const nome  = r.querySelector('[data-f="nome"]').value.trim();
+      document.querySelectorAll('#camposContainer .campo-row').forEach((r) => {
+        const nome = r.querySelector('[data-f="nome"]').value.trim();
         const regex = r.querySelector('[data-f="regex"]').value.trim();
         const obrig = r.querySelector('[data-f="obrigatorio"]').checked;
         if (nome) camposAtual.push({ nome, regex: regex || null, obrigatorio: obrig });
       });
       const visuaisAtual = [];
-      document.querySelectorAll('#visuaisContainer .visual-row').forEach(r => {
-        const desc  = r.querySelector('[data-f="descricao"]').value.trim();
+      document.querySelectorAll('#visuaisContainer .visual-row').forEach((r) => {
+        const desc = r.querySelector('[data-f="descricao"]').value.trim();
         const obrig = r.querySelector('[data-f="obrigatorio"]').checked;
         if (desc) visuaisAtual.push({ descricao: desc, obrigatorio: obrig });
       });
@@ -921,13 +1145,13 @@ window.Configuracao = {
       };
 
       const payload = {
-        nome:               fd.get('nome'),
-        tipoDocumento:      fd.get('tipoDocumento'),
-        empresaId:          fd.get('empresaId') || null,
+        nome: fd.get('nome'),
+        tipoDocumento: fd.get('tipoDocumento'),
+        empresaId: fd.get('empresaId') || null,
         periodicidadeMeses: parseInt(fd.get('periodicidadeMeses')) || 12,
-        checklist:          checklistAtual,
+        checklist: checklistAtual,
         metadata,
-        body:               fd.get('body') || null,
+        body: fd.get('body') || null,
       };
 
       try {
@@ -936,7 +1160,9 @@ window.Configuracao = {
         window.showToast(t ? 'Template atualizado' : 'Template criado', 'success');
         close();
         this.render();
-      } catch (err) { window.showToast(err.message, 'error'); }
+      } catch (err) {
+        window.showToast(err.message, 'error');
+      }
     });
   },
 
@@ -946,7 +1172,9 @@ window.Configuracao = {
       await Store.deleteDocTemplate(id);
       window.showToast('Template excluído', 'success');
       this.render();
-    } catch (e) { window.showToast(e.message, 'error'); }
+    } catch (e) {
+      window.showToast(e.message, 'error');
+    }
   },
 
   // ─── Arquivos do Sistema ───
@@ -1015,14 +1243,17 @@ window.Configuracao = {
 
   async attachArquivosListeners() {
     try {
-      const r = await fetch('/api/admin/arquivos');
+      const r = await fetch('/api/admin/arquivos', { credentials: 'same-origin' });
       if (!r.ok) throw new Error(await r.text());
       this._arquivosData = await r.json();
     } catch (e) {
       const div = document.getElementById('arquivosContent');
-      if (div) div.innerHTML = `<div class="card"><p class="text-danger">Erro ao carregar arquivos: ${escapeHtml(e.message)}</p></div>`;
-      const ld = document.getElementById('arquivosLoading'); if (ld) ld.style.display = 'none';
-      const ct = document.getElementById('arquivosContent'); if (ct) ct.style.display = 'block';
+      if (div)
+        div.innerHTML = `<div class="card"><p class="text-danger">Erro ao carregar arquivos: ${escapeHtml(e.message)}</p></div>`;
+      const ld = document.getElementById('arquivosLoading');
+      if (ld) ld.style.display = 'none';
+      const ct = document.getElementById('arquivosContent');
+      if (ct) ct.style.display = 'block';
       return;
     }
     this._desenharArquivos();
@@ -1038,13 +1269,15 @@ window.Configuracao = {
     const { arquivos, totalBytes, count } = this._arquivosData;
     const filtro = (this._arquivosFiltro || '').toLowerCase().trim();
     const filtrados = filtro
-      ? arquivos.filter(a =>
-          (a.filename || '').toLowerCase().includes(filtro) ||
-          (a.recursoNome || '').toLowerCase().includes(filtro) ||
-          (a.tipoDoc || '').toLowerCase().includes(filtro))
+      ? arquivos.filter(
+          (a) =>
+            (a.filename || '').toLowerCase().includes(filtro) ||
+            (a.recursoNome || '').toLowerCase().includes(filtro) ||
+            (a.tipoDoc || '').toLowerCase().includes(filtro)
+        )
       : arquivos;
 
-    const fmtData = (s) => s ? new Date(s).toLocaleString('pt-BR') : '—';
+    const fmtData = (s) => (s ? new Date(s).toLocaleString('pt-BR') : '—');
 
     ct.innerHTML = `
       <div class="page-header" style="margin-bottom:var(--sp-lg);">
@@ -1062,13 +1295,18 @@ window.Configuracao = {
           value="${escapeHtml(this._arquivosFiltro)}">
       </div>
 
-      ${filtrados.length === 0 ? `
+      ${
+        filtrados.length === 0
+          ? `
         <div class="card" style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">
-          ${arquivos.length === 0
-            ? 'Nenhum arquivo anexado ainda. Anexe documentos via Recursos → Documentação.'
-            : 'Nenhum arquivo encontrado para o filtro.'}
+          ${
+            arquivos.length === 0
+              ? 'Nenhum arquivo anexado ainda. Anexe documentos via Recursos → Documentação.'
+              : 'Nenhum arquivo encontrado para o filtro.'
+          }
         </div>
-      ` : `
+      `
+          : `
         <div class="card" style="padding:0;overflow:hidden;">
           <div style="overflow-x:auto;">
             <table class="table" style="margin:0;">
@@ -1083,7 +1321,9 @@ window.Configuracao = {
                 </tr>
               </thead>
               <tbody>
-                ${filtrados.map(a => `
+                ${filtrados
+                  .map(
+                    (a) => `
                   <tr>
                     <td style="word-break:break-all;max-width:300px;">
                       <span style="font-size:18px;margin-right:6px;">${(a.mimeType || '').includes('pdf') ? '📄' : '🖼️'}</span>
@@ -1102,12 +1342,15 @@ window.Configuracao = {
                         data-rid="${a.recursoId}" data-did="${a.docId}" data-fn="${escapeHtml(a.filename)}"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('trash-2', 15)}</span></button>
                     </td>
                   </tr>
-                `).join('')}
+                `
+                  )
+                  .join('')}
               </tbody>
             </table>
           </div>
         </div>
-      `}
+      `
+      }
     `;
 
     const inp = document.getElementById('inputBuscaArquivos');
@@ -1116,15 +1359,26 @@ window.Configuracao = {
         this._arquivosFiltro = e.target.value;
         this._desenharArquivos();
         const inp2 = document.getElementById('inputBuscaArquivos');
-        if (inp2) { inp2.focus(); inp2.setSelectionRange(inp2.value.length, inp2.value.length); }
+        if (inp2) {
+          inp2.focus();
+          inp2.setSelectionRange(inp2.value.length, inp2.value.length);
+        }
       });
     }
-    document.querySelectorAll('.btn-excluir-arq').forEach(btn => {
+    document.querySelectorAll('.btn-excluir-arq').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const fn = btn.dataset.fn;
-        if (!confirm(`Excluir o arquivo "${fn}"? O registro do documento permanece, apenas o anexo é removido.`)) return;
+        if (
+          !confirm(
+            `Excluir o arquivo "${fn}"? O registro do documento permanece, apenas o anexo é removido.`
+          )
+        )
+          return;
         try {
-          const r = await fetch(`/api/recursos/${btn.dataset.rid}/documentos/${btn.dataset.did}/arquivo`, { method: 'DELETE' });
+          const r = await fetch(
+            `/api/recursos/${btn.dataset.rid}/documentos/${btn.dataset.did}/arquivo`,
+            { method: 'DELETE' }
+          );
           if (!r.ok) throw new Error(await r.text());
           window.showToast('Arquivo excluído', 'success');
           await this.attachArquivosListeners();
@@ -1149,14 +1403,16 @@ window.Configuracao = {
           <p class="page-subtitle">Ative ou desative funcionalidades sem deploy</p></div>
         </div>
         <div class="card">
-          ${flags.map(f => `
+          ${flags
+            .map(
+              (f) => `
             <div style="display:flex;align-items:center;justify-content:space-between;padding:var(--sp-md) 0;border-bottom:1px solid var(--color-border);">
               <div>
-                <div style="font-weight:600;">${this._escHtml(f.key)}</div>
-                <div style="font-size:14px;color:var(--color-text-muted);">${this._escHtml(f.description || '')}</div>
+                <div style="font-weight:600;">${escapeHtml(f.key)}</div>
+                <div style="font-size:14px;color:var(--color-text-muted);">${escapeHtml(f.description || '')}</div>
               </div>
               <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-                <div class="rh-toggle ${f.enabled ? 'rh-toggle--on' : ''}" data-flag="${this._escHtml(f.key)}" style="
+                <div class="rh-toggle ${f.enabled ? 'rh-toggle--on' : ''}" data-flag="${escapeHtml(f.key)}" style="
                   width:44px;height:24px;border-radius:12px;
                   background:${f.enabled ? 'var(--color-primary)' : 'var(--color-border)'};
                   position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;
@@ -1170,11 +1426,13 @@ window.Configuracao = {
                 <span style="font-weight:600;color:${f.enabled ? 'var(--color-success)' : 'var(--color-text-muted)'};">${f.enabled ? 'Ativo' : 'Inativo'}</span>
               </label>
             </div>
-          `).join('')}
+          `
+            )
+            .join('')}
         </div>
       `;
 
-      section.querySelectorAll('.rh-toggle').forEach(toggle => {
+      section.querySelectorAll('.rh-toggle').forEach((toggle) => {
         toggle.addEventListener('click', async () => {
           const key = toggle.dataset.flag;
           const isOn = toggle.classList.contains('rh-toggle--on');
@@ -1188,11 +1446,13 @@ window.Configuracao = {
             if (!r.ok) throw new Error(await r.text());
             window.showToast(`${key}: ${!isOn ? 'ativado' : 'desativado'}`, 'success');
             await this.attachFeatureFlagsListeners();
-          } catch (e) { window.showToast(e.message, 'error'); }
+          } catch (e) {
+            window.showToast(e.message, 'error');
+          }
         });
       });
     } catch (e) {
-      section.innerHTML = `<div class="card"><p class="text-danger">Erro: ${this._escHtml(e.message)}</p></div>`;
+      section.innerHTML = `<div class="card"><p class="text-danger">Erro: ${escapeHtml(e.message)}</p></div>`;
     }
   },
 
@@ -1237,7 +1497,7 @@ window.Configuracao = {
 
   // ── Atualizações (changelog em linguagem leiga) ───────────────────────────
   renderAtualizacoes() {
-    const versaoAtual = (window.__APP_VERSION__ || '');
+    const versaoAtual = window.__APP_VERSION__ || '';
     return `
       <div class="page-header" style="margin-bottom:var(--sp-lg);">
         <div>
@@ -1261,16 +1521,18 @@ window.Configuracao = {
       const res = await fetch('/changelog.json', { cache: 'no-cache' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
-      const entries = (data.entries || []);
+      const entries = data.entries || [];
       if (!entries.length) {
-        box.innerHTML = '<p style="color:var(--color-text-muted);">Nenhuma atualização registrada ainda.</p>';
+        box.innerHTML =
+          '<p style="color:var(--color-text-muted);">Nenhuma atualização registrada ainda.</p>';
         return;
       }
       const versaoAtual = (window.__APP_VERSION__ || '').replace(/^v/, '');
-      box.innerHTML = entries.map(e => {
-        const isAtual = e.version === versaoAtual;
-        const dataFmt = e.date ? this._fmtDataChangelog(e.date) : '';
-        return `
+      box.innerHTML = entries
+        .map((e) => {
+          const isAtual = e.version === versaoAtual;
+          const dataFmt = e.date ? this._fmtDataChangelog(e.date) : '';
+          return `
           <div style="padding:14px 0;border-bottom:1px solid var(--color-border);">
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
               <strong style="font-size:17px;color:var(--color-primary);">v${escapeHtml(e.version)}</strong>
@@ -1279,11 +1541,12 @@ window.Configuracao = {
             </div>
             ${e.summary ? `<div style="font-weight:600;margin-bottom:8px;font-size:15px;">${escapeHtml(e.summary)}</div>` : ''}
             <ul style="margin:0;padding-left:20px;color:var(--color-text);font-size:14px;line-height:1.6;">
-              ${(e.changes || []).map(c => `<li style="margin-bottom:4px;">${escapeHtml(c)}</li>`).join('')}
+              ${(e.changes || []).map((c) => `<li style="margin-bottom:4px;">${escapeHtml(c)}</li>`).join('')}
             </ul>
           </div>
         `;
-      }).join('');
+        })
+        .join('');
       // Remove a borda do último item
       const last = box.querySelector('div:last-child');
       if (last) last.style.borderBottom = 'none';
@@ -1296,7 +1559,9 @@ window.Configuracao = {
     try {
       const dt = new Date(d + 'T12:00:00');
       return dt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
-    } catch { return d; }
+    } catch {
+      return d;
+    }
   },
 
   // ── Notificações Push ──────────────────────────────────────────────────────
@@ -1372,9 +1637,5 @@ window.Configuracao = {
         };
       }
     });
-  },
-
-  _escHtml(s) {
-    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  },
+  }
 };
