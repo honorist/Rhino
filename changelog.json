@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.23.5",
+      "date": "2026-06-25",
+      "summary": "Tela atualiza automaticamente após criar, editar ou excluir itens (sem precisar dar F5)",
+      "changes": [
+        "Tela atualiza automaticamente após criar, editar ou excluir itens — sem precisar dar F5",
+        "Suas próprias ações (criar manutenção, cadastrar sócio, etc.) também atualizam a lista imediatamente",
+        "9 telas a mais passaram a receber atualizações em tempo real: Manutenção, Frota, Estoque, Solicitações, Recrutamento, Propostas, Cláusulas, Folha de Pagamento, Documentação"
+      ]
+    },
+    {
       "version": "1.23.4",
       "date": "2026-06-25",
       "summary": "Número do romaneio agora é sequencial e fixo por pedido",
