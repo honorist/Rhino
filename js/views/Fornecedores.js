@@ -4,9 +4,21 @@ window.Fornecedores = {
 
   // Sugestões pré-cadastradas para autocompletar materiais
   SUGESTOES_MATERIAIS: [
-    'Elétrica', 'Estrutura Metálica', 'Andaime', 'Solda', 'Pintura',
-    'Hidráulica', 'Alvenaria', 'Ferragens', 'Cimento', 'Madeira',
-    'EPI', 'Ferramentas', 'Transporte', 'Hospedagem', 'Combustível'
+    'Elétrica',
+    'Estrutura Metálica',
+    'Andaime',
+    'Solda',
+    'Pintura',
+    'Hidráulica',
+    'Alvenaria',
+    'Ferragens',
+    'Cimento',
+    'Madeira',
+    'EPI',
+    'Ferramentas',
+    'Transporte',
+    'Hospedagem',
+    'Combustível',
   ],
 
   async render() {
@@ -17,70 +29,117 @@ window.Fornecedores = {
       await Store.loadFor(['fornecedores']);
 
       // Coleta todos os materiais únicos já cadastrados
-      const todosMateriais = [...new Set(
-        Store.state.fornecedores.flatMap(f => f.materiais || [])
-      )].sort();
+      const todosMateriais = [
+        ...new Set(Store.state.fornecedores.flatMap((f) => f.materiais || [])),
+      ].sort();
 
       const termo = (this.busca || '').toLowerCase().trim();
       let filtrados = Store.state.fornecedores;
       if (termo) {
-        filtrados = filtrados.filter(f =>
-          (f.nome || '').toLowerCase().includes(termo) ||
-          (f.cnpj || '').includes(termo) ||
-          (f.pessoaContato || '').toLowerCase().includes(termo) ||
-          (f.telefone || '').includes(termo));
+        filtrados = filtrados.filter(
+          (f) =>
+            (f.nome || '').toLowerCase().includes(termo) ||
+            (f.cnpj || '').includes(termo) ||
+            (f.pessoaContato || '').toLowerCase().includes(termo) ||
+            (f.telefone || '').includes(termo)
+        );
       }
       if (this.filtroMaterial) {
-        filtrados = filtrados.filter(f => (f.materiais || []).includes(this.filtroMaterial));
+        filtrados = filtrados.filter((f) => (f.materiais || []).includes(this.filtroMaterial));
       }
 
       const totalF = Store.state.fornecedores.length;
       const filtroAtivo = !!(termo || this.filtroMaterial);
-      const comCnpj = Store.state.fornecedores.filter(f => f.cnpj).length;
-      const comBanco = Store.state.fornecedores.filter(f => f.banco || f.agencia || f.conta || f.pix).length;
+      const comCnpj = Store.state.fornecedores.filter((f) => f.cnpj).length;
+      const comBanco = Store.state.fornecedores.filter(
+        (f) => f.banco || f.agencia || f.conta || f.pix
+      ).length;
 
-      const headerHtml = window.UIKit?.pageHeader ? window.UIKit.pageHeader({
-        title: 'Fornecedores',
-        subtitle: filtroAtivo
-          ? `${filtrados.length} de ${totalF} fornecedor${totalF !== 1 ? 'es' : ''}`
-          : `${totalF} fornecedor${totalF !== 1 ? 'es' : ''} cadastrado${totalF !== 1 ? 's' : ''}`,
-        actions: '<button class="btn btn-primary btn-lg" id="btnNovoFornecedor">+ Novo Fornecedor</button>',
-      }) : `<div class="page-header"><div><h1 class="page-title">Fornecedores</h1></div><button class="btn btn-primary btn-lg" id="btnNovoFornecedor">+ Novo Fornecedor</button></div>`;
+      const headerHtml = window.UIKit?.pageHeader
+        ? window.UIKit.pageHeader({
+            title: 'Fornecedores',
+            subtitle: filtroAtivo
+              ? `${filtrados.length} de ${totalF} fornecedor${totalF !== 1 ? 'es' : ''}`
+              : `${totalF} fornecedor${totalF !== 1 ? 'es' : ''} cadastrado${totalF !== 1 ? 's' : ''}`,
+            actions:
+              '<button class="btn btn-primary btn-lg" id="btnNovoFornecedor">+ Novo Fornecedor</button>',
+          })
+        : `<div class="page-header"><div><h1 class="page-title">Fornecedores</h1></div><button class="btn btn-primary btn-lg" id="btnNovoFornecedor">+ Novo Fornecedor</button></div>`;
 
-      const kpisHtml = window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
-        { label: 'Total',          value: totalF,                color: 'var(--color-primary)' },
-        { label: 'Materiais',      value: todosMateriais.length, color: 'var(--color-violet)' },
-        { label: 'Com CNPJ',       value: comCnpj,               color: 'var(--color-info)',   hint: `${Math.round(comCnpj/Math.max(totalF,1)*100)}% do total` },
-        { label: 'Dados bancários',value: comBanco,              color: 'var(--color-success)',hint: `${Math.round(comBanco/Math.max(totalF,1)*100)}% completos` },
-      ]) : '';
+      const kpisHtml = window.UIKit?.kpiGrid
+        ? window.UIKit.kpiGrid([
+            { label: 'Total', value: totalF, color: 'var(--color-primary)' },
+            { label: 'Materiais', value: todosMateriais.length, color: 'var(--color-violet)' },
+            {
+              label: 'Com CNPJ',
+              value: comCnpj,
+              color: 'var(--color-info)',
+              hint: `${Math.round((comCnpj / Math.max(totalF, 1)) * 100)}% do total`,
+            },
+            {
+              label: 'Dados bancários',
+              value: comBanco,
+              color: 'var(--color-success)',
+              hint: `${Math.round((comBanco / Math.max(totalF, 1)) * 100)}% completos`,
+            },
+          ])
+        : '';
 
-      const toolbarHtml = window.UIKit?.toolbar ? window.UIKit.toolbar({
-        search: {
-          id: 'inputBusca', value: this.busca, label: 'Buscar',
-          placeholder: 'Nome, CNPJ, contato ou telefone...',
-        },
-        selects: [{
-          id: 'filtroMaterial',
-          label: 'Material',
-          options: [
-            { value: '', label: `Todos (${todosMateriais.length})`, selected: !this.filtroMaterial },
-            ...todosMateriais.map(m => ({ value: m, label: m, selected: this.filtroMaterial === m })),
-          ],
-        }],
-        showClear: filtroAtivo,
-        clearId: 'btnLimparFornecedores',
-      }) : '';
+      const toolbarHtml = window.UIKit?.toolbar
+        ? window.UIKit.toolbar({
+            search: {
+              id: 'inputBusca',
+              value: this.busca,
+              label: 'Buscar',
+              placeholder: 'Nome, CNPJ, contato ou telefone...',
+            },
+            selects: [
+              {
+                id: 'filtroMaterial',
+                label: 'Material',
+                options: [
+                  {
+                    value: '',
+                    label: `Todos (${todosMateriais.length})`,
+                    selected: !this.filtroMaterial,
+                  },
+                  ...todosMateriais.map((m) => ({
+                    value: m,
+                    label: m,
+                    selected: this.filtroMaterial === m,
+                  })),
+                ],
+              },
+            ],
+            showClear: filtroAtivo,
+            clearId: 'btnLimparFornecedores',
+          })
+        : '';
 
       // Chips: top materiais por frequência + "Todos"
       const matContagem = {};
-      Store.state.fornecedores.forEach(f => (f.materiais || []).forEach(m => {
-        matContagem[m] = (matContagem[m] || 0) + 1;
-      }));
-      const topMateriais = Object.entries(matContagem).sort((a, b) => b[1] - a[1]).slice(0, 6);
-      const chipsHtml = window.UIKit?.chips ? window.UIKit.chips([
-        { value: '', label: 'Todos', count: totalF, active: !this.filtroMaterial },
-        ...topMateriais.map(([m, n]) => ({ value: m, label: m, count: n, active: this.filtroMaterial === m })),
-      ], { name: 'material', inCard: true }) : '';
+      Store.state.fornecedores.forEach((f) =>
+        (f.materiais || []).forEach((m) => {
+          matContagem[m] = (matContagem[m] || 0) + 1;
+        })
+      );
+      const topMateriais = Object.entries(matContagem)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6);
+      const chipsHtml = window.UIKit?.chips
+        ? window.UIKit.chips(
+            [
+              { value: '', label: 'Todos', count: totalF, active: !this.filtroMaterial },
+              ...topMateriais.map(([m, n]) => ({
+                value: m,
+                label: m,
+                count: n,
+                active: this.filtroMaterial === m,
+              })),
+            ],
+            { name: 'material', inCard: true }
+          )
+        : '';
 
       const html = `
         ${headerHtml}
@@ -102,11 +161,16 @@ window.Fornecedores = {
                 </tr>
               </thead>
               <tbody>
-                ${filtrados.length === 0 ? `
+                ${
+                  filtrados.length === 0
+                    ? `
                   <tr><td colspan="6" class="text-center text-muted" style="padding:var(--sp-xl);">
                     ${termo || this.filtroMaterial ? 'Nenhum fornecedor encontrado para os filtros' : 'Nenhum fornecedor cadastrado'}
                   </td></tr>
-                ` : filtrados.map(f => `
+                `
+                    : filtrados
+                        .map(
+                          (f) => `
                   <tr>
                     <td>
                       <div style="display:flex;align-items:center;gap:10px;">
@@ -123,11 +187,13 @@ window.Fornecedores = {
                       ${f.pessoaContato ? `<strong style="font-size:15px;">${escapeHtml(f.pessoaContato)}</strong>` : '—'}
                     </td>
                     <td style="max-width:200px;">
-                      ${(f.materiais && f.materiais.length > 0)
-                        ? `<div style="display:flex;flex-wrap:wrap;gap:4px;">
-                            ${f.materiais.map(m => `<span class="badge" style="background:rgba(46,125,82,.12);color:#2E7D52;font-size:15px;">${escapeHtml(m)}</span>`).join('')}
+                      ${
+                        f.materiais && f.materiais.length > 0
+                          ? `<div style="display:flex;flex-wrap:wrap;gap:4px;">
+                            ${f.materiais.map((m) => `<span class="badge" style="background:rgba(46,125,82,.12);color:#2E7D52;font-size:15px;">${escapeHtml(m)}</span>`).join('')}
                            </div>`
-                        : '<span style="color:var(--color-text-muted);">—</span>'}
+                          : '<span style="color:var(--color-text-muted);">—</span>'
+                      }
                     </td>
                     <td style="font-size:15px;">
                       ${f.banco || f.conta ? `<div>🏦 ${escapeHtml(f.banco) || ''} ${f.agencia ? `Ag. ${escapeHtml(f.agencia)}` : ''} ${f.conta ? `C. ${escapeHtml(f.conta)}` : ''}</div>` : ''}
@@ -141,7 +207,10 @@ window.Fornecedores = {
                       </div>
                     </td>
                   </tr>
-                `).join('')}
+                `
+                        )
+                        .join('')
+                }
               </tbody>
             </table>
           </div>
@@ -150,42 +219,55 @@ window.Fornecedores = {
 
       app.innerHTML = html;
 
-      document.getElementById('btnNovoFornecedor').addEventListener('click', () => this.showModal());
-      document.getElementById('inputBusca').addEventListener('input', e => {
+      document
+        .getElementById('btnNovoFornecedor')
+        .addEventListener('click', () => this.showModal());
+      document.getElementById('inputBusca').addEventListener('input', (e) => {
         this.busca = e.target.value;
         clearTimeout(this._tBusca);
         this._tBusca = setTimeout(() => this.render(), 250);
       });
-      document.getElementById('filtroMaterial').addEventListener('change', e => {
+      document.getElementById('filtroMaterial').addEventListener('change', (e) => {
         this.filtroMaterial = e.target.value;
         this.render();
       });
       document.getElementById('btnLimparFornecedores')?.addEventListener('click', () => {
-        this.busca = ''; this.filtroMaterial = ''; this.render();
+        this.busca = '';
+        this.filtroMaterial = '';
+        this.render();
       });
-      document.querySelectorAll('[data-chips="material"] .rh-chip').forEach(b => {
+      document.querySelectorAll('[data-chips="material"] .rh-chip').forEach((b) => {
         b.addEventListener('click', () => {
           this.filtroMaterial = b.dataset.value || '';
           this.render();
         });
       });
 
-      document.querySelectorAll('.btn-editar').forEach(b => b.addEventListener('click', e => this.showModal(e.target.dataset.id)));
-      document.querySelectorAll('.btn-excluir').forEach(b => b.addEventListener('click', e => this.deleteFornecedor(e.target.dataset.id)));
+      document
+        .querySelectorAll('.btn-editar')
+        .forEach((b) => b.addEventListener('click', (e) => this.showModal(e.target.dataset.id)));
+      document
+        .querySelectorAll('.btn-excluir')
+        .forEach((b) =>
+          b.addEventListener('click', (e) => this.deleteFornecedor(e.target.dataset.id))
+        );
     } catch (e) {
       console.error(e);
-      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar fornecedores. Tente novamente.</p></div>';
+      app.innerHTML =
+        '<div class="card"><p class="text-danger">Erro ao carregar fornecedores. Tente novamente.</p></div>';
     }
   },
 
   showModal(fornecedorId) {
-    const fornecedor = fornecedorId ? Store.state.fornecedores.find(f => f.id === fornecedorId) : null;
+    const fornecedor = fornecedorId
+      ? Store.state.fornecedores.find((f) => f.id === fornecedorId)
+      : null;
     const title = fornecedor ? 'Editar Fornecedor' : 'Novo Fornecedor';
 
     // Todos os materiais já cadastrados no sistema + sugestões
-    const materiaisSistema = [...new Set(
-      Store.state.fornecedores.flatMap(f => f.materiais || [])
-    )];
+    const materiaisSistema = [
+      ...new Set(Store.state.fornecedores.flatMap((f) => f.materiais || [])),
+    ];
     const sugestoes = [...new Set([...this.SUGESTOES_MATERIAIS, ...materiaisSistema])].sort();
 
     const html = `
@@ -202,16 +284,16 @@ window.Fornecedores = {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Nome / Razão Social *</label>
-                <input class="form-control" name="nome" value="${fornecedor?.nome || ''}" required>
+                <input class="form-control" name="nome" value="${window.escapeHtml(fornecedor?.nome || '')}" required>
               </div>
               <div class="form-group">
                 <label class="form-label">CNPJ</label>
-                <input class="form-control" name="cnpj" value="${fornecedor?.cnpj || ''}" placeholder="00.000.000/0000-00">
+                <input class="form-control" name="cnpj" value="${window.escapeHtml(fornecedor?.cnpj || '')}" placeholder="00.000.000/0000-00">
               </div>
             </div>
             <div class="form-group">
               <label class="form-label">Endereço</label>
-              <textarea class="form-control" name="endereco" style="min-height:60px;" placeholder="Rua, número, bairro, cidade — UF, CEP">${fornecedor?.endereco || ''}</textarea>
+              <textarea class="form-control" name="endereco" style="min-height:60px;" placeholder="Rua, número, bairro, cidade — UF, CEP">${window.escapeHtml(fornecedor?.endereco || '')}</textarea>
             </div>
 
             <!-- Contato -->
@@ -219,11 +301,11 @@ window.Fornecedores = {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Telefone</label>
-                <input class="form-control" name="telefone" data-phone inputmode="numeric" maxlength="16" value="${fornecedor?.telefone ? window.formatPhoneBR(fornecedor.telefone) : ''}" placeholder="(00) 00000-0000">
+                <input class="form-control" name="telefone" data-phone inputmode="numeric" maxlength="16" value="${fornecedor?.telefone ? window.escapeHtml(window.formatPhoneBR(fornecedor.telefone)) : ''}" placeholder="(00) 00000-0000">
               </div>
               <div class="form-group">
                 <label class="form-label">Pessoa de Contato</label>
-                <input class="form-control" name="pessoaContato" value="${fornecedor?.pessoaContato || ''}" placeholder="Nome do vendedor/atendente">
+                <input class="form-control" name="pessoaContato" value="${window.escapeHtml(fornecedor?.pessoaContato || '')}" placeholder="Nome do vendedor/atendente">
               </div>
             </div>
 
@@ -232,10 +314,10 @@ window.Fornecedores = {
             <div class="form-group">
               <label class="form-label">Tipos de Material / Serviço</label>
               <input class="form-control" name="materiais" list="sugestoesMateriais"
-                     value="${(fornecedor?.materiais || []).join(', ')}"
+                     value="${window.escapeHtml((fornecedor?.materiais || []).join(', '))}"
                      placeholder="Ex: Elétrica, Estrutura Metálica, Andaime">
               <datalist id="sugestoesMateriais">
-                ${sugestoes.map(s => `<option value="${s}">`).join('')}
+                ${sugestoes.map((s) => `<option value="${s}">`).join('')}
               </datalist>
               <div class="form-helper">Separe múltiplos materiais por vírgula. Sugestões aparecem ao digitar.</div>
             </div>
@@ -245,21 +327,21 @@ window.Fornecedores = {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Banco</label>
-                <input class="form-control" name="banco" value="${fornecedor?.banco || ''}" placeholder="Ex: Itaú, Bradesco, Nubank">
+                <input class="form-control" name="banco" value="${window.escapeHtml(fornecedor?.banco || '')}" placeholder="Ex: Itaú, Bradesco, Nubank">
               </div>
               <div class="form-group">
                 <label class="form-label">Agência</label>
-                <input class="form-control" name="agencia" value="${fornecedor?.agencia || ''}" placeholder="0000">
+                <input class="form-control" name="agencia" value="${window.escapeHtml(fornecedor?.agencia || '')}" placeholder="0000">
               </div>
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Conta</label>
-                <input class="form-control" name="conta" value="${fornecedor?.conta || ''}" placeholder="00000-0">
+                <input class="form-control" name="conta" value="${window.escapeHtml(fornecedor?.conta || '')}" placeholder="00000-0">
               </div>
               <div class="form-group">
                 <label class="form-label">Chave PIX</label>
-                <input class="form-control" name="chavePix" value="${fornecedor?.chavePix || ''}" placeholder="CPF, e-mail, telefone ou aleatória">
+                <input class="form-control" name="chavePix" value="${window.escapeHtml(fornecedor?.chavePix || '')}" placeholder="CPF, e-mail, telefone ou aleatória">
               </div>
             </div>
 
@@ -285,9 +367,15 @@ window.Fornecedores = {
     document.getElementById('btnSalvar').addEventListener('click', async () => {
       const fd = new FormData(document.getElementById('formFornecedor'));
       const data = Object.fromEntries(fd);
-      if (!data.nome || !data.nome.trim()) { window.showToast('Nome é obrigatório', 'error'); return; }
+      if (!data.nome || !data.nome.trim()) {
+        window.showToast('Nome é obrigatório', 'error');
+        return;
+      }
       // materiais: string → array
-      data.materiais = (data.materiais || '').split(',').map(s => s.trim()).filter(Boolean);
+      data.materiais = (data.materiais || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
 
       try {
         if (fornecedor) await Store.updateFornecedor(fornecedorId, data);
@@ -295,7 +383,9 @@ window.Fornecedores = {
         window.showToast(fornecedor ? 'Fornecedor atualizado' : 'Fornecedor criado', 'success');
         close();
         this.render();
-      } catch (e) { window.showToast(e.message, 'error'); }
+      } catch (e) {
+        window.showToast(e.message, 'error');
+      }
     });
   },
 
@@ -305,6 +395,8 @@ window.Fornecedores = {
       await Store.deleteFornecedor(id);
       window.showToast('Fornecedor removido', 'success');
       this.render();
-    } catch (e) { window.showToast(e.message, 'error'); }
-  }
+    } catch (e) {
+      window.showToast(e.message, 'error');
+    }
+  },
 };

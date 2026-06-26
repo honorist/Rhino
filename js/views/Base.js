@@ -5,7 +5,7 @@ window.Base = {
   // Getter dinâmico dos tipos (vêm do Store, gerenciados em Configuração)
   get TIPOS() {
     const map = {};
-    (Store.state.tipos_base || []).forEach(t => {
+    (Store.state.tipos_base || []).forEach((t) => {
       map[t.key] = { label: t.label, icon: t.icon, cor: t.cor };
     });
     if (Object.keys(map).length === 0) {
@@ -22,33 +22,46 @@ window.Base = {
       await Store.loadAll();
 
       // Itens do mês selecionado
-      const itensMes = Store.state.base.filter(item => {
+      const itensMes = Store.state.base.filter((item) => {
         const ym = (item.date || '').slice(0, 7);
         return ym === this.currentMonth;
       });
 
       // Totais por tipo (do mês)
       const totaisPorTipo = {};
-      Object.keys(this.TIPOS).forEach(t => { totaisPorTipo[t] = 0; });
-      itensMes.forEach(item => {
+      Object.keys(this.TIPOS).forEach((t) => {
+        totaisPorTipo[t] = 0;
+      });
+      itensMes.forEach((item) => {
         const tipo = this.TIPOS[item.type] ? item.type : 'outros';
         if (!(tipo in totaisPorTipo)) totaisPorTipo[tipo] = 0;
         totaisPorTipo[tipo] += item.value;
       });
 
-      const totalMes       = itensMes.reduce((s, i) => s + i.value, 0);
-      const totalGeral     = Store.state.base.reduce((s, i) => s + i.value, 0);
-      const totalAlocado   = Store.state.base.reduce((s, i) => s + i.allocations.reduce((a, b) => a + b.value, 0), 0);
+      const totalMes = itensMes.reduce((s, i) => s + i.value, 0);
+      const totalGeral = Store.state.base.reduce((s, i) => s + i.value, 0);
+      const totalAlocado = Store.state.base.reduce(
+        (s, i) => s + i.allocations.reduce((a, b) => a + b.value, 0),
+        0
+      );
       const totalDisponivel = totalGeral - totalAlocado;
 
       // Lista de meses disponíveis (para o seletor)
-      const mesesDisponiveis = [...new Set(Store.state.base.map(i => (i.date || '').slice(0, 7)).filter(Boolean))].sort().reverse();
-      if (!mesesDisponiveis.includes(this.currentMonth)) mesesDisponiveis.unshift(this.currentMonth);
+      const mesesDisponiveis = [
+        ...new Set(Store.state.base.map((i) => (i.date || '').slice(0, 7)).filter(Boolean)),
+      ]
+        .sort()
+        .reverse();
+      if (!mesesDisponiveis.includes(this.currentMonth))
+        mesesDisponiveis.unshift(this.currentMonth);
 
       // Aplicar filtro de tipo na listagem
-      const itensFiltrados = this.currentTypeFilter === 'todos'
-        ? itensMes
-        : itensMes.filter(i => (this.TIPOS[i.type] ? i.type : 'outros') === this.currentTypeFilter);
+      const itensFiltrados =
+        this.currentTypeFilter === 'todos'
+          ? itensMes
+          : itensMes.filter(
+              (i) => (this.TIPOS[i.type] ? i.type : 'outros') === this.currentTypeFilter
+            );
 
       const html = `
         <div class="page-header">
@@ -64,7 +77,7 @@ window.Base = {
           <div style="display:flex;align-items:center;gap:var(--sp-sm);">
             <button class="btn btn-sm" id="btnMesAnterior" style="background:transparent;color:var(--color-text);border:1px solid var(--color-border);font-size:16px;font-weight:700;padding:6px 12px;">←</button>
             <select class="form-control" id="selectMes" style="min-width:180px;font-weight:600;">
-              ${mesesDisponiveis.map(m => `<option value="${m}" ${m === this.currentMonth ? 'selected' : ''}>${this.formatarMes(m)}</option>`).join('')}
+              ${mesesDisponiveis.map((m) => `<option value="${m}" ${m === this.currentMonth ? 'selected' : ''}>${this.formatarMes(m)}</option>`).join('')}
             </select>
             <button class="btn btn-sm" id="btnProximoMes" style="background:transparent;color:var(--color-text);border:1px solid var(--color-border);font-size:16px;font-weight:700;padding:6px 12px;">→</button>
           </div>
@@ -92,7 +105,9 @@ window.Base = {
               <div style="font-size:32px;font-weight:800;color:var(--color-primary);margin-top:4px;">${Store.formatBRL(totalMes)}</div>
               <div style="font-size:15px;color:var(--color-text-muted);margin-top:4px;">${itensMes.length} lançamento${itensMes.length !== 1 ? 's' : ''}</div>
             </div>
-            ${totalMes > 0 ? `
+            ${
+              totalMes > 0
+                ? `
               <div style="display:flex;flex-direction:column;gap:4px;min-width:280px;">
                 ${Object.entries(totaisPorTipo)
                   .filter(([_, v]) => v > 0)
@@ -111,9 +126,12 @@ window.Base = {
                         <span style="font-size:15px;font-weight:700;min-width:80px;text-align:right;">${Store.formatBRL(valor)}</span>
                       </div>
                     `;
-                  }).join('')}
+                  })
+                  .join('')}
               </div>
-            ` : ''}
+            `
+                : ''
+            }
           </div>
         </div>
 
@@ -126,12 +144,13 @@ window.Base = {
           if (topTipos.length === 0) return '';
           return `
             <div style="display:grid;grid-template-columns:repeat(${topTipos.length},1fr);gap:var(--sp-md);margin-bottom:var(--sp-xl);">
-              ${topTipos.map(([tipo]) => {
-                const info = this.TIPOS[tipo] || { label: tipo, icon: '🔹', cor: '#718096' };
-                const valor = totaisPorTipo[tipo] || 0;
-                const count = itensMes.filter(i => i.type === tipo).length;
-                const ativo = this.currentTypeFilter === tipo;
-                return `
+              ${topTipos
+                .map(([tipo]) => {
+                  const info = this.TIPOS[tipo] || { label: tipo, icon: '🔹', cor: '#718096' };
+                  const valor = totaisPorTipo[tipo] || 0;
+                  const count = itensMes.filter((i) => i.type === tipo).length;
+                  const ativo = this.currentTypeFilter === tipo;
+                  return `
                   <div class="card btn-filtro-tipo" data-tipo="${tipo}" style="cursor:pointer;border-left:4px solid ${info.cor};${ativo ? `background:${info.cor}10;` : ''}transition:all .2s;">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;">
                       <div>
@@ -143,7 +162,8 @@ window.Base = {
                     </div>
                   </div>
                 `;
-              }).join('')}
+                })
+                .join('')}
             </div>
           `;
         })()}
@@ -152,9 +172,13 @@ window.Base = {
         <div style="display:flex;gap:var(--sp-sm);margin-bottom:var(--sp-lg);flex-wrap:wrap;align-items:center;">
           <span style="font-size:15px;color:var(--color-text-muted);text-transform:uppercase;font-weight:600;margin-right:4px;">Filtrar por tipo:</span>
           <button class="btn btn-sm btn-filtro" data-filtro="todos" style="${this.currentTypeFilter === 'todos' ? 'background:var(--color-primary);color:#fff;' : 'background:transparent;color:var(--color-text-muted);border:1px solid var(--color-border);'}">Todos</button>
-          ${Object.entries(this.TIPOS).map(([tipo, info]) => `
+          ${Object.entries(this.TIPOS)
+            .map(
+              ([tipo, info]) => `
             <button class="btn btn-sm btn-filtro" data-filtro="${tipo}" style="${this.currentTypeFilter === tipo ? `background:${info.cor};color:#fff;` : 'background:transparent;color:var(--color-text-muted);border:1px solid var(--color-border);'}">${info.icon} ${info.label}</button>
-          `).join('')}
+          `
+            )
+            .join('')}
         </div>
 
         <!-- Tabela de itens -->
@@ -177,23 +201,32 @@ window.Base = {
                 </tr>
               </thead>
               <tbody>
-                ${itensFiltrados.length === 0 ? `
+                ${
+                  itensFiltrados.length === 0
+                    ? `
                   <tr>
                     <td colspan="7" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum item neste período/filtro</td>
                   </tr>
-                ` : itensFiltrados.map(item => {
-                  const allocated = item.allocations.reduce((sum, a) => sum + a.value, 0);
-                  const saldo = item.value - allocated;
-                  const tipoKey = this.TIPOS[item.type] ? item.type : 'outros';
-                  const info = this.TIPOS[tipoKey];
-                  return `
+                `
+                    : itensFiltrados
+                        .map((item) => {
+                          const allocated = item.allocations.reduce((sum, a) => sum + a.value, 0);
+                          const saldo = item.value - allocated;
+                          const tipoKey = this.TIPOS[item.type] ? item.type : 'outros';
+                          const info = this.TIPOS[tipoKey];
+                          return `
                     <tr>
                       <td>
                         <strong>${escapeHtml(item.description)}</strong>
                         ${(() => {
                           const r = item?.metadata?.recurrence;
                           if (!r || !r.active) return '';
-                          const fmap = { weekly: 'semanal', monthly: 'mensal', quarterly: 'trimestral', yearly: 'anual' };
+                          const fmap = {
+                            weekly: 'semanal',
+                            monthly: 'mensal',
+                            quarterly: 'trimestral',
+                            yearly: 'anual',
+                          };
                           return `<div style="margin-top:4px;"><span class="rh-pill rh-pill-info"><span class="rh-pill-dot"></span>recorrente · ${fmap[r.frequency] || r.frequency}</span></div>`;
                         })()}
                       </td>
@@ -203,19 +236,24 @@ window.Base = {
                         ${(() => {
                           const r = item?.metadata?.recurrence;
                           if (!r || !r.active) return '';
-                          const fmt = (d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+                          const fmt = (d) =>
+                            d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
                           return `<div class="rh-meta-xs" style="margin-top:2px;">${fmt(r.startDate)} → ${fmt(r.endDate)}</div>`;
                         })()}
                       </td>
                       <td style="text-align:right;font-weight:600;">${Store.formatBRL(item.value)}</td>
                       <td style="min-width:260px;">
-                        ${(item.allocations || []).length === 0 ? `
+                        ${
+                          (item.allocations || []).length === 0
+                            ? `
                           <span style="font-size:15px;color:var(--color-text-muted);font-style:italic;">Nenhuma alocação</span>
-                        ` : `
+                        `
+                            : `
                           <div style="display:flex;flex-direction:column;gap:4px;">
-                            ${(item.allocations || []).map(a => {
-                              const contract = Store.getContractById(a.contractId);
-                              return `
+                            ${(item.allocations || [])
+                              .map((a) => {
+                                const contract = Store.getContractById(a.contractId);
+                                return `
                                 <div style="display:flex;justify-content:space-between;align-items:center;gap:var(--sp-sm);padding:4px 8px;background:rgba(49,130,206,.08);border-left:3px solid var(--color-info);border-radius:3px;font-size:15px;">
                                   <a href="#/contratos/${a.contractId}" style="color:var(--color-primary);text-decoration:none;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;" title="${escapeHtml(contract?.name || 'Contrato removido')}${contract?.client ? ' — ' + escapeHtml(contract.client) : ''}">
                                     ${escapeHtml(contract?.name) || '⚠️ Removido'}
@@ -223,12 +261,14 @@ window.Base = {
                                   <span style="font-weight:700;color:var(--color-info);white-space:nowrap;">${Store.formatBRL(a.value)}</span>
                                 </div>
                               `;
-                            }).join('')}
+                              })
+                              .join('')}
                             <div style="text-align:right;font-size:15px;color:var(--color-text-muted);font-weight:600;margin-top:2px;">
                               Total: ${Store.formatBRL(allocated)}
                             </div>
                           </div>
-                        `}
+                        `
+                        }
                       </td>
                       <td style="text-align:right;font-weight:700;color:${saldo > 0 ? 'var(--color-warning)' : saldo === 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${Store.formatBRL(saldo)}</td>
                       <td>
@@ -240,9 +280,13 @@ window.Base = {
                       </td>
                     </tr>
                   `;
-                }).join('')}
+                        })
+                        .join('')
+                }
               </tbody>
-              ${itensFiltrados.length > 0 ? `
+              ${
+                itensFiltrados.length > 0
+                  ? `
                 <tfoot>
                   <tr style="background:var(--color-bg);font-weight:700;">
                     <td colspan="3" style="padding:var(--sp-md);">Total filtrado</td>
@@ -252,7 +296,9 @@ window.Base = {
                     <td></td>
                   </tr>
                 </tfoot>
-              ` : ''}
+              `
+                  : ''
+              }
             </table>
           </div>
         </div>
@@ -263,7 +309,7 @@ window.Base = {
       // Listeners
       document.getElementById('btnNovoItem').addEventListener('click', () => this.showModal());
 
-      document.getElementById('selectMes').addEventListener('change', e => {
+      document.getElementById('selectMes').addEventListener('change', (e) => {
         this.currentMonth = e.target.value;
         this.render();
       });
@@ -283,16 +329,16 @@ window.Base = {
       });
 
       let _filterTimer = null;
-      document.querySelectorAll('.btn-filtro').forEach(btn => {
-        btn.addEventListener('click', e => {
+      document.querySelectorAll('.btn-filtro').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
           this.currentTypeFilter = e.currentTarget.dataset.filtro;
           clearTimeout(_filterTimer);
           _filterTimer = setTimeout(() => this.render(), 150);
         });
       });
 
-      document.querySelectorAll('.btn-filtro-tipo').forEach(btn => {
-        btn.addEventListener('click', e => {
+      document.querySelectorAll('.btn-filtro-tipo').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
           const tipo = e.currentTarget.dataset.tipo;
           this.currentTypeFilter = this.currentTypeFilter === tipo ? 'todos' : tipo;
           clearTimeout(_filterTimer);
@@ -300,18 +346,19 @@ window.Base = {
         });
       });
 
-      document.querySelectorAll('.btn-alocar').forEach(btn => {
-        btn.addEventListener('click', e => this.showModalAlocar(e.target.dataset.id));
+      document.querySelectorAll('.btn-alocar').forEach((btn) => {
+        btn.addEventListener('click', (e) => this.showModalAlocar(e.target.dataset.id));
       });
-      document.querySelectorAll('.btn-editar').forEach(btn => {
-        btn.addEventListener('click', e => this.showModal(e.target.dataset.id));
+      document.querySelectorAll('.btn-editar').forEach((btn) => {
+        btn.addEventListener('click', (e) => this.showModal(e.target.dataset.id));
       });
-      document.querySelectorAll('.btn-excluir').forEach(btn => {
-        btn.addEventListener('click', e => this.deleteItem(e.target.dataset.id));
+      document.querySelectorAll('.btn-excluir').forEach((btn) => {
+        btn.addEventListener('click', (e) => this.deleteItem(e.target.dataset.id));
       });
     } catch (e) {
       console.error(e);
-      app.innerHTML = '<div class="card"><p class="text-danger">Erro ao carregar BASE. Tente novamente.</p></div>';
+      app.innerHTML =
+        '<div class="card"><p class="text-danger">Erro ao carregar BASE. Tente novamente.</p></div>';
     }
   },
 
@@ -319,7 +366,9 @@ window.Base = {
     if (!ym) return '';
     const [ano, mes] = ym.split('-').map(Number);
     const d = new Date(ano, mes - 1, 1);
-    return d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
+    return d
+      .toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+      .replace(/^./, (c) => c.toUpperCase());
   },
 
   showModal(itemId) {
@@ -336,33 +385,39 @@ window.Base = {
           <form id="formItem" class="modal-content">
             <div class="form-group">
               <label class="form-label">Descrição *</label>
-              <input class="form-control" name="description" id="descItemBase" value="${item?.description || ''}" required>
+              <input class="form-control" name="description" id="descItemBase" value="${escapeHtml(item?.description || '')}" required>
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Tipo *</label>
                 <select class="form-control" name="type" id="tipoItemBase" required>
-                  ${((Store.state.tipos_base && Store.state.tipos_base.length) ? Store.state.tipos_base : [
-                    { key: 'material', label: 'Material', icon: '🔹' },
-                    { key: 'mao_de_obra', label: 'Mão de obra', icon: '🔹' },
-                    { key: 'equipamento', label: 'Equipamento', icon: '🔹' },
-                    { key: 'administrativo', label: 'Administrativo', icon: '🔹' },
-                    { key: 'outros', label: 'Outros', icon: '🔹' },
-                  ]).map(t =>
-                    `<option value="${t.key}" ${item?.type === t.key ? 'selected' : ''}>${t.icon} ${t.label}</option>`
-                  ).join('')}
+                  ${(Store.state.tipos_base && Store.state.tipos_base.length
+                    ? Store.state.tipos_base
+                    : [
+                        { key: 'material', label: 'Material', icon: '🔹' },
+                        { key: 'mao_de_obra', label: 'Mão de obra', icon: '🔹' },
+                        { key: 'equipamento', label: 'Equipamento', icon: '🔹' },
+                        { key: 'administrativo', label: 'Administrativo', icon: '🔹' },
+                        { key: 'outros', label: 'Outros', icon: '🔹' },
+                      ]
+                  )
+                    .map(
+                      (t) =>
+                        `<option value="${escapeHtml(t.key)}" ${item?.type === t.key ? 'selected' : ''}>${t.icon} ${t.label}</option>`
+                    )
+                    .join('')}
                 </select>
                 <div class="form-helper" id="tipoLockNote" style="display:none;color:var(--color-primary);font-weight:600;">🔒 Tipo travado em "Salário" porque a descrição contém "salário".</div>
                 <div class="form-helper">Não encontrou? Cadastre em <a href="#/configuracao" style="color:var(--color-primary);">Configuração → Tipos de Custo</a>.</div>
               </div>
               <div class="form-group">
                 <label class="form-label">Valor (BRL) *</label>
-                <input class="form-control" name="value" type="text" data-currency inputmode="numeric" value="${item?.value ? window.BRLInput.toDisplay(item.value) : ''}" placeholder="0,00" required>
+                <input class="form-control" name="value" type="text" data-currency inputmode="numeric" value="${escapeHtml(item?.value ? window.BRLInput.toDisplay(item.value) : '')}" placeholder="0,00" required>
               </div>
             </div>
             <div class="form-group">
               <label class="form-label">Data *</label>
-              <input class="form-control" name="date" type="date" value="${item?.date || new Date().toISOString().split('T')[0]}" required>
+              <input class="form-control" name="date" type="date" value="${escapeHtml(item?.date || new Date().toISOString().split('T')[0])}" required>
             </div>
 
             <!-- Recorrência -->
@@ -381,20 +436,20 @@ window.Base = {
                 <div class="form-row">
                   <div class="form-group">
                     <label class="form-label">Início *</label>
-                    <input class="form-control" name="recInicio" type="date" value="${rec.startDate || ''}">
+                    <input class="form-control" name="recInicio" type="date" value="${escapeHtml(rec.startDate || '')}">
                   </div>
                   <div class="form-group">
                     <label class="form-label">Fim *</label>
-                    <input class="form-control" name="recFim" type="date" value="${rec.endDate || ''}">
+                    <input class="form-control" name="recFim" type="date" value="${escapeHtml(rec.endDate || '')}">
                   </div>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Frequência *</label>
                   <select class="form-control" name="recFreq">
-                    <option value="weekly"     ${rec.frequency === 'weekly'     ? 'selected' : ''}>Semanal</option>
+                    <option value="weekly"     ${rec.frequency === 'weekly' ? 'selected' : ''}>Semanal</option>
                     <option value="monthly"    ${rec.frequency === 'monthly' || !rec.frequency ? 'selected' : ''}>Mensal</option>
-                    <option value="quarterly"  ${rec.frequency === 'quarterly'  ? 'selected' : ''}>Trimestral</option>
-                    <option value="yearly"     ${rec.frequency === 'yearly'     ? 'selected' : ''}>Anual</option>
+                    <option value="quarterly"  ${rec.frequency === 'quarterly' ? 'selected' : ''}>Trimestral</option>
+                    <option value="yearly"     ${rec.frequency === 'yearly' ? 'selected' : ''}>Anual</option>
                   </select>
                   <div class="form-helper">O valor informado acima é aplicado a cada ocorrência.</div>
                 </div>
@@ -435,7 +490,7 @@ window.Base = {
     // Regra: descrição com "salário" ⇒ Tipo travado em "Salário"
     const normTxt = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     const salarioKey = (Store.state.tipos_base || []).find(
-      t => t.key === 'salario' || normTxt(t.label).includes('salario')
+      (t) => t.key === 'salario' || normTxt(t.label).includes('salario')
     )?.key;
     const descInput = document.getElementById('descItemBase');
     const tipoSelect = document.getElementById('tipoItemBase');
@@ -470,7 +525,7 @@ window.Base = {
 
       // Monta metadata.recurrence se ativo
       const recurrenceActive = !!data.recAtivo;
-      const meta = (item && item.metadata) ? { ...item.metadata } : {};
+      const meta = item && item.metadata ? { ...item.metadata } : {};
       if (recurrenceActive) {
         if (!data.recInicio || !data.recFim) {
           window.showToast('Informe as datas de início e fim da recorrência', 'error');
@@ -491,7 +546,10 @@ window.Base = {
       }
       data.metadata = meta;
       // Limpa campos auxiliares (não vão para o backend)
-      delete data.recAtivo; delete data.recInicio; delete data.recFim; delete data.recFreq;
+      delete data.recAtivo;
+      delete data.recInicio;
+      delete data.recFim;
+      delete data.recFreq;
 
       try {
         if (item) {
@@ -543,13 +601,16 @@ window.Base = {
             </div>
 
             <!-- Alocações existentes -->
-            ${item.allocations.length > 0 ? `
+            ${
+              item.allocations.length > 0
+                ? `
               <div style="margin-bottom:var(--sp-lg);">
                 <div style="font-size:15px;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;margin-bottom:var(--sp-sm);">Alocações existentes</div>
                 <div style="display:flex;flex-direction:column;gap:6px;">
-                  ${item.allocations.map(a => {
-                    const contract = Store.getContractById(a.contractId);
-                    return `
+                  ${item.allocations
+                    .map((a) => {
+                      const contract = Store.getContractById(a.contractId);
+                      return `
                       <div style="display:flex;justify-content:space-between;align-items:center;padding:var(--sp-sm) var(--sp-md);background:rgba(49,130,206,.06);border-left:3px solid var(--color-info);border-radius:4px;font-size:15px;">
                         <div>
                           <strong>${escapeHtml(contract?.name || 'Contrato removido')}</strong>
@@ -558,10 +619,13 @@ window.Base = {
                         <div style="font-weight:700;color:var(--color-info);">${Store.formatBRL(a.value)}</div>
                       </div>
                     `;
-                  }).join('')}
+                    })
+                    .join('')}
                 </div>
               </div>
-            ` : ''}
+            `
+                : ''
+            }
 
             <!-- Nova alocação -->
             <form id="formAlocar">
@@ -571,9 +635,14 @@ window.Base = {
                   <label class="form-label">Contrato *</label>
                   <select class="form-control" name="contractId" required>
                     <option value="">Selecionar...</option>
-                    ${Store.state.contracts.filter(c => c.status === 'ativo').map(c => `
-                      <option value="${c.id}">${escapeHtml(c.name)} — ${escapeHtml(c.client)}</option>
-                    `).join('')}
+                    ${Store.state.contracts
+                      .filter((c) => c.status === 'ativo')
+                      .map(
+                        (c) => `
+                      <option value="${escapeHtml(String(c.id))}">${escapeHtml(c.name)} — ${escapeHtml(c.client)}</option>
+                    `
+                      )
+                      .join('')}
                   </select>
                 </div>
                 <div class="form-group">
@@ -604,11 +673,23 @@ window.Base = {
     if (btnAlocar) {
       btnAlocar.addEventListener('click', async () => {
         const fd = new FormData(document.getElementById('formAlocar'));
-        const data = { contractId: fd.get('contractId'), value: window.BRLInput.parse(fd.get('value')) };
+        const data = {
+          contractId: fd.get('contractId'),
+          value: window.BRLInput.parse(fd.get('value')),
+        };
 
-        if (!data.contractId) { window.showToast('Selecione um contrato', 'error'); return; }
-        if (!data.value || data.value <= 0) { window.showToast('Informe um valor válido', 'error'); return; }
-        if (data.value > disponivel) { window.showToast('Valor excede o disponível', 'error'); return; }
+        if (!data.contractId) {
+          window.showToast('Selecione um contrato', 'error');
+          return;
+        }
+        if (!data.value || data.value <= 0) {
+          window.showToast('Informe um valor válido', 'error');
+          return;
+        }
+        if (data.value > disponivel) {
+          window.showToast('Valor excede o disponível', 'error');
+          return;
+        }
 
         btnAlocar.disabled = true;
         btnAlocar.textContent = 'Alocando...';
@@ -624,7 +705,8 @@ window.Base = {
           // Re-abre o modal com dados atualizados para permitir nova alocação
           const itemAtualizado = Store.getBaseItemById(itemId);
           if (itemAtualizado) {
-            const novaDisponivel = itemAtualizado.value - itemAtualizado.allocations.reduce((s, a) => s + a.value, 0);
+            const novaDisponivel =
+              itemAtualizado.value - itemAtualizado.allocations.reduce((s, a) => s + a.value, 0);
             if (novaDisponivel > 0) {
               setTimeout(() => this.showModalAlocar(itemId), 100);
             }
@@ -647,5 +729,5 @@ window.Base = {
     } catch (e) {
       window.showToast(e.message, 'error');
     }
-  }
+  },
 };

@@ -45,8 +45,6 @@
     es.addEventListener('mutation', (e) => {
       let m;
       try { m = JSON.parse(e.data); } catch { return; }
-      // Ignora ecos da própria sessão (evita re-render redundante)
-      if (m.by && myEmail && m.by === myEmail) return;
       dispatch('rh:mutation', m);
     });
 
@@ -90,18 +88,28 @@
   // ─── Re-render automático da view ativa quando uma mutação chega ───
   // Mapeia entidade do API → método de refresh.
   const VIEW_BY_ENTITY = {
-    contracts:        () => /^#\/contratos/.test(location.hash),
-    clientes:         () => location.hash === '#/clientes',
-    fornecedores:     () => location.hash === '#/fornecedores',
-    'contas-pagar':   () => location.hash === '#/contas-pagar',
-    'notas-fiscais':  () => location.hash === '#/notas-fiscais',
-    caixa:            () => location.hash === '#/caixa',
-    socios:           () => location.hash === '#/socios',
-    investimentos:    () => location.hash === '#/investimentos',
-    base:             () => location.hash === '#/base',
-    recursos:         () => location.hash === '#/recursos',
-    organograma:      () => /^#\/contratos/.test(location.hash),
-    rdos:             () => location.hash === '#/rdos' || /^#\/contratos/.test(location.hash),
+    contracts:           () => /^#\/contratos/.test(location.hash),
+    clientes:            () => location.hash === '#/clientes',
+    fornecedores:        () => location.hash === '#/fornecedores',
+    'contas-pagar':      () => location.hash === '#/contas-pagar',
+    'notas-fiscais':     () => location.hash === '#/notas-fiscais',
+    caixa:               () => location.hash === '#/caixa',
+    socios:              () => location.hash === '#/socios',
+    investimentos:       () => location.hash === '#/investimentos',
+    base:                () => location.hash === '#/base',
+    recursos:            () => location.hash === '#/recursos',
+    organograma:         () => /^#\/contratos/.test(location.hash),
+    rdos:                () => location.hash === '#/rdos' || /^#\/contratos/.test(location.hash),
+    manutencoes:         () => location.hash === '#/manutencao',
+    veiculos:            () => location.hash === '#/frota',
+    estoque:             () => location.hash === '#/estoque',
+    'solicitacoes-compra': () => location.hash === '#/solicitacoes-compra',
+    recrutamento:        () => location.hash === '#/recrutamento',
+    propostas:           () => /^#\/proposta/.test(location.hash),
+    clausulas:           () => location.hash === '#/clausulas',
+    'folha-pagamento':   () => location.hash === '#/folha-pagamento',
+    documentos:          () => location.hash === '#/documentos',
+    sugestoes:           () => location.hash === '#/sugestoes',
   };
 
   let refreshTimer = null;

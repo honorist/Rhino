@@ -6,32 +6,59 @@
 (function () {
   'use strict';
 
-  const RU = window.RhinoUI = window.RhinoUI || {};
+  const RU = (window.RhinoUI = window.RhinoUI || {});
+
+  // ───────────────────────────────────────────────
+  // Utilidade interna: escapa HTML para uso seguro em innerHTML
+  // ───────────────────────────────────────────────
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
 
   // ───────────────────────────────────────────────
   // Q1 · Keyboard shortcuts
   // ───────────────────────────────────────────────
   // Sequência "g x" para Go-to + teclas únicas para ações.
   const SHORTCUTS = [
-    { keys: ['g', 'd'], desc: 'Ir para Dashboard',     run: () => location.hash = '#/dashboard' },
-    { keys: ['g', 'c'], desc: 'Ir para Contratos',     run: () => location.hash = '#/contratos' },
-    { keys: ['g', 'r'], desc: 'Ir para RDOs',          run: () => location.hash = '#/rdos' },
-    { keys: ['g', 'o'], desc: 'Ir para Mapa de Obras', run: () => location.hash = '#/obras' },
-    { keys: ['g', '$'], desc: 'Ir para Caixa',         run: () => location.hash = '#/caixa' },
-    { keys: ['g', 'p'], desc: 'Ir para Contas a Pagar',run: () => location.hash = '#/contas-pagar' },
-    { keys: ['g', 'n'], desc: 'Ir para Notas Fiscais', run: () => location.hash = '#/notas-fiscais' },
-    { keys: ['g', 'k'], desc: 'Ir para Clientes',      run: () => location.hash = '#/clientes' },
-    { keys: ['g', 'f'], desc: 'Ir para Fornecedores',  run: () => location.hash = '#/fornecedores' },
-    { keys: ['g', 'm'], desc: 'Abrir Manual',          run: () => location.hash = '#/manual' },
-    { keys: ['?'],      desc: 'Mostrar atalhos',       run: () => RU.showShortcutsHelp() },
-    { keys: ['t'],      desc: 'Alternar tema',         run: () => window.toggleTheme && window.toggleTheme() },
-    { keys: ['/'],      desc: 'Foco no campo de busca',run: () => focusSearch() },
+    { keys: ['g', 'd'], desc: 'Ir para Dashboard', run: () => (location.hash = '#/dashboard') },
+    { keys: ['g', 'c'], desc: 'Ir para Contratos', run: () => (location.hash = '#/contratos') },
+    { keys: ['g', 'r'], desc: 'Ir para RDOs', run: () => (location.hash = '#/rdos') },
+    { keys: ['g', 'o'], desc: 'Ir para Mapa de Obras', run: () => (location.hash = '#/obras') },
+    { keys: ['g', '$'], desc: 'Ir para Caixa', run: () => (location.hash = '#/caixa') },
+    {
+      keys: ['g', 'p'],
+      desc: 'Ir para Contas a Pagar',
+      run: () => (location.hash = '#/contas-pagar'),
+    },
+    {
+      keys: ['g', 'n'],
+      desc: 'Ir para Notas Fiscais',
+      run: () => (location.hash = '#/notas-fiscais'),
+    },
+    { keys: ['g', 'k'], desc: 'Ir para Clientes', run: () => (location.hash = '#/clientes') },
+    {
+      keys: ['g', 'f'],
+      desc: 'Ir para Fornecedores',
+      run: () => (location.hash = '#/fornecedores'),
+    },
+    { keys: ['g', 'm'], desc: 'Abrir Manual', run: () => (location.hash = '#/manual') },
+    { keys: ['?'], desc: 'Mostrar atalhos', run: () => RU.showShortcutsHelp() },
+    { keys: ['t'], desc: 'Alternar tema', run: () => window.toggleTheme && window.toggleTheme() },
+    { keys: ['/'], desc: 'Foco no campo de busca', run: () => focusSearch() },
   ];
   RU.shortcuts = SHORTCUTS;
 
   function focusSearch() {
     const el = document.querySelector('[data-search-input], input[type=search], .search-input');
-    if (el) { el.focus(); return; }
+    if (el) {
+      el.focus();
+      return;
+    }
     if (RU.openCommandPalette) RU.openCommandPalette();
   }
 
@@ -58,7 +85,9 @@
 
     // Sequência de duas teclas (g + x)
     if (pending) {
-      const seq = SHORTCUTS.find((s) => s.keys.length === 2 && s.keys[0] === pending && s.keys[1] === k);
+      const seq = SHORTCUTS.find(
+        (s) => s.keys.length === 2 && s.keys[0] === pending && s.keys[1] === k
+      );
       if (seq) {
         e.preventDefault();
         seq.run();
@@ -89,18 +118,28 @@
           <kbd class="cmdk-kbd">esc</kbd>
         </div>
         <div class="cmdk-list" style="max-height:60vh;">
-          ${SHORTCUTS.map((s) => `
+          ${SHORTCUTS.map(
+            (s) => `
             <div class="cmdk-item" style="cursor:default;">
-              <span class="cmdk-item__label">${s.desc}</span>
-              <span class="cmdk-item__hint">${s.keys.map((k) => `<kbd class="cmdk-kbd">${k}</kbd>`).join(' ')}</span>
-            </div>`).join('')}
+              <span class="cmdk-item__label">${escapeHtml(s.desc)}</span>
+              <span class="cmdk-item__hint">${s.keys.map((k) => `<kbd class="cmdk-kbd">${escapeHtml(k)}</kbd>`).join(' ')}</span>
+            </div>`
+          ).join('')}
         </div>
       </div>`;
     document.body.appendChild(overlay);
     const close = () => overlay.remove();
-    document.addEventListener('keydown', function once(e) {
-      if (e.key === 'Escape') { e.preventDefault(); close(); document.removeEventListener('keydown', once, true); }
-    }, true);
+    document.addEventListener(
+      'keydown',
+      function once(e) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          close();
+          document.removeEventListener('keydown', once, true);
+        }
+      },
+      true
+    );
   };
 
   // ───────────────────────────────────────────────
@@ -114,15 +153,20 @@
     return new Promise((resolve) => {
       const stack = (function ensureStack() {
         let s = document.querySelector('.toast-stack');
-        if (!s) { s = document.createElement('div'); s.className = 'toast-stack'; document.body.appendChild(s); }
+        if (!s) {
+          s = document.createElement('div');
+          s.className = 'toast-stack';
+          document.body.appendChild(s);
+        }
         return s;
       })();
       const el = document.createElement('div');
       el.className = 'toast toast--warning';
       el.style.cssText = 'display:flex;align-items:center;gap:14px;';
       el.innerHTML = `
-        <span style="flex:1;">${message}</span>
+        <span class="undo-message" style="flex:1;"></span>
         <button class="btn btn-sm" style="background:transparent;border:1px solid currentColor;color:inherit;font-weight:700;">Desfazer</button>`;
+      el.querySelector('.undo-message').textContent = message;
       stack.appendChild(el);
       let done = false;
       const cleanup = () => {
@@ -133,15 +177,21 @@
       };
       const timer = setTimeout(async () => {
         if (done) return;
-        try { onCommit && (await onCommit()); }
-        catch (e) { console.error(e); }
+        try {
+          onCommit && (await onCommit());
+        } catch (e) {
+          console.error(e);
+        }
         cleanup();
         resolve(true);
       }, undoMs);
       el.querySelector('button').addEventListener('click', async () => {
         clearTimeout(timer);
-        try { onUndo && (await onUndo()); }
-        catch (e) { console.error(e); }
+        try {
+          onUndo && (await onUndo());
+        } catch (e) {
+          console.error(e);
+        }
         cleanup();
         resolve(false);
       });
@@ -164,18 +214,24 @@
     const key = `rh_chips_${namespace}`;
     const active = new Set();
     try {
-      const raw = JSON.parse(localStorage.getItem(key) || '[]');
-      raw.forEach((id) => active.add(id));
+      const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+      parsed.filter((id) => typeof id === 'string').forEach((id) => active.add(id));
     } catch {}
 
     const api = {
-      get active() { return active; },
+      get active() {
+        return active;
+      },
       html() {
         return `<div class="filter-chips" data-chips="${namespace}" role="group" aria-label="Filtros">
-          ${options.map((o) => `
-            <button type="button" class="filter-chip ${active.has(o.id) ? 'is-active' : ''}" data-chip-id="${o.id}">
-              ${o.label}
-            </button>`).join('')}
+          ${options
+            .map(
+              (o) => `
+            <button type="button" class="filter-chip ${active.has(o.id) ? 'is-active' : ''}" data-chip-id="${escapeHtml(o.id)}">
+              ${escapeHtml(o.label)}
+            </button>`
+            )
+            .join('')}
           ${active.size > 0 ? '<button type="button" class="filter-chip filter-chip--clear" data-chip-clear>limpar</button>' : ''}
         </div>`;
       },
@@ -189,7 +245,8 @@
             active.clear();
           } else {
             const id = btn.dataset.chipId;
-            if (active.has(id)) active.delete(id); else active.add(id);
+            if (active.has(id)) active.delete(id);
+            else active.add(id);
           }
           localStorage.setItem(key, JSON.stringify([...active]));
           el.outerHTML = api.html();
@@ -216,9 +273,15 @@
     const original = cell.innerHTML;
     cell.innerHTML = `<input class="form-control" type="${type}" value="${String(value).replace(/"/g, '&quot;')}" style="width:100%;padding:4px 6px;font-size:14px;">`;
     const input = cell.querySelector('input');
-    input.focus(); input.select && input.select();
+    input.focus();
+    input.select && input.select();
     let committed = false;
-    const cancel = () => { if (committed) return; committed = true; cell.innerHTML = original; cell.dataset.editing = ''; };
+    const cancel = () => {
+      if (committed) return;
+      committed = true;
+      cell.innerHTML = original;
+      cell.dataset.editing = '';
+    };
     const commit = async () => {
       if (committed) return;
       committed = true;
@@ -236,8 +299,13 @@
       }
     };
     input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); commit(); }
-      else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        commit();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        cancel();
+      }
     });
     input.addEventListener('blur', commit);
   };
@@ -247,12 +315,22 @@
   // ───────────────────────────────────────────────
   function applyDensity(d) {
     document.documentElement.setAttribute('data-density', d);
-    try { localStorage.setItem('rhino-density', d); } catch {}
+    try {
+      localStorage.setItem('rhino-density', d);
+    } catch {}
   }
-  function getDensity() { try { return localStorage.getItem('rhino-density') || 'comfortable'; } catch { return 'comfortable'; } }
+  function getDensity() {
+    try {
+      return localStorage.getItem('rhino-density') || 'comfortable';
+    } catch {
+      return 'comfortable';
+    }
+  }
   RU.applyDensity = applyDensity;
   RU.getDensity = getDensity;
-  RU.toggleDensity = function () { applyDensity(getDensity() === 'compact' ? 'comfortable' : 'compact'); };
+  RU.toggleDensity = function () {
+    applyDensity(getDensity() === 'compact' ? 'comfortable' : 'compact');
+  };
   applyDensity(getDensity());
 
   // ───────────────────────────────────────────────
@@ -295,7 +373,10 @@
     const api = {
       update(count, hide = false) {
         const b = ensureBar();
-        if (hide || count <= 0) { b.classList.remove('is-visible'); return; }
+        if (hide || count <= 0) {
+          b.classList.remove('is-visible');
+          return;
+        }
         b.querySelector('.bulk-bar__count').textContent = `${count} selecionado(s)`;
         b.classList.add('is-visible');
       },
@@ -315,10 +396,14 @@
   // Uso: <form data-autosave="contrato-novo"> ... </form>
   // Restaura ao montar, salva debounced no input, limpa no submit.
   // ───────────────────────────────────────────────
-  function key(name) { return `rh_draft_${name}`; }
+  function key(name) {
+    return `rh_draft_${name}`;
+  }
   function snapshotForm(form) {
     const data = {};
-    new FormData(form).forEach((v, k) => { data[k] = v; });
+    new FormData(form).forEach((v, k) => {
+      data[k] = v;
+    });
     return data;
   }
   function restoreForm(form, data) {
@@ -341,11 +426,15 @@
     form.addEventListener('input', () => {
       clearTimeout(timer);
       timer = setTimeout(() => {
-        try { localStorage.setItem(key(name), JSON.stringify(snapshotForm(form))); } catch {}
+        try {
+          localStorage.setItem(key(name), JSON.stringify(snapshotForm(form)));
+        } catch {}
       }, 500);
     });
     form.addEventListener('submit', () => {
-      try { localStorage.removeItem(key(name)); } catch {}
+      try {
+        localStorage.removeItem(key(name));
+      } catch {}
     });
   };
   // Auto-attach a qualquer form com data-autosave que aparecer no DOM
@@ -353,7 +442,10 @@
     muts.forEach((m) => {
       m.addedNodes.forEach((n) => {
         if (n.nodeType !== 1) return;
-        const forms = n.matches && n.matches('form[data-autosave]') ? [n] : [...((n.querySelectorAll && n.querySelectorAll('form[data-autosave]')) || [])];
+        const forms =
+          n.matches && n.matches('form[data-autosave]')
+            ? [n]
+            : [...((n.querySelectorAll && n.querySelectorAll('form[data-autosave]')) || [])];
         forms.forEach((f) => RU.attachAutosave(f));
       });
     });

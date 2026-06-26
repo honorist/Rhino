@@ -1,11 +1,40 @@
 {
   "entries": [
     {
-      "version": "1.23.5",
+      "version": "1.23.8",
       "date": "2026-06-26",
-      "summary": "Log de auditoria mais legível: nomes reais no lugar de números internos",
+      "summary": "Log de auditoria: nomes reais no lugar de números internos, fotos mapeadas",
       "changes": [
-        "Log de auditoria mais legível: nomes reais no lugar de números internos"
+        "Manutenções mostram nome do equipamento em vez de número sequencial",
+        "Fotos de manutenção aparecem como 'Foto de manutenção' em vez de código técnico",
+        "Diffs de campos com valor idêntico antes/depois não aparecem mais",
+        "Campos de placa, cargo e competência usados como label quando disponíveis"
+      ]
+    },
+    {
+      "version": "1.23.7",
+      "date": "2026-06-26",
+      "summary": "Auditoria: equipamento visível, todos os campos editados listados",
+      "changes": [
+        "Auditoria: equipamento visível, todos os campos editados listados"
+      ]
+    },
+    {
+      "version": "1.23.6",
+      "date": "2026-06-25",
+      "summary": "Auditoria reformulada: feed compacto, uma ação por linha, sem detalhe",
+      "changes": [
+        "Auditoria reformulada: feed compacto, uma ação por linha, sem detalhe"
+      ]
+    },
+    {
+      "version": "1.23.5",
+      "date": "2026-06-25",
+      "summary": "Tela atualiza automaticamente após criar, editar ou excluir itens (sem precisar dar F5)",
+      "changes": [
+        "Tela atualiza automaticamente após criar, editar ou excluir itens — sem precisar dar F5",
+        "Suas próprias ações (criar manutenção, cadastrar sócio, etc.) também atualizam a lista imediatamente",
+        "9 telas a mais passaram a receber atualizações em tempo real: Manutenção, Frota, Estoque, Solicitações, Recrutamento, Propostas, Cláusulas, Folha de Pagamento, Documentação"
       ]
     },
     {

@@ -790,11 +790,6 @@ button, .btn, [role="button"], a.nav-link, .nav-item a, input[type="checkbox"], 
 /* ═══════════════════════════════════════════════
    13. AUDITORIA — Histórico de Atividades (feed legível)
 ═══════════════════════════════════════════════ */
-.audit-headmeta { display: flex; gap: 14px; align-items: center; font-size: 14px; color: var(--color-text-muted); }
-.audit-viewtoggle { display: inline-flex; border: 1px solid var(--color-border); border-radius: 999px; overflow: hidden; }
-.audit-viewtoggle .btn { border-radius: 0; background: transparent; border: none; }
-.audit-viewtoggle .btn.is-on { background: var(--color-primary); color: #fff; }
-
 /* Barra de busca + atalhos */
 .audit-toolbar {
   display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
@@ -833,47 +828,27 @@ button, .btn, [role="button"], a.nav-link, .nav-item a, input[type="checkbox"], 
   padding: 1px 8px; font-size: 11px; margin-left: 4px;
 }
 
-/* Linha de evento */
+/* Linha compacta — uma ação por linha, sem avatar, sem painel de detalhe */
 .audit-ev {
-  display: flex; gap: 12px; align-items: flex-start;
-  padding: 10px 8px; border-bottom: 1px solid var(--color-border);
-  cursor: pointer; border-radius: 8px; transition: background .12s ease;
+  display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+  padding: 7px 10px; border-bottom: 1px solid var(--color-border);
+  line-height: 1.5; font-size: 14px;
 }
 .audit-ev:hover { background: var(--color-surface-2); }
-.audit-ev:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
 .audit-ev--err { background: rgba(220,38,38,.04); }
-.audit-ava {
-  flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%;
-  color: #fff; font-size: 12px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  margin-top: 1px; user-select: none;
-}
-.audit-ev__main { flex: 1 1 auto; min-width: 0; }
-.audit-ev__line { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; line-height: 1.5; }
-.audit-ev__who { font-weight: 700; color: var(--color-text); }
-.audit-ev__what { color: var(--color-text); font-size: 14px; }
-.audit-ev__what .audit-name { color: var(--color-text); }
-.audit-removed { font-size: 12px; color: var(--color-text-muted); font-style: italic; }
-.audit-ev__err {
-  font-size: 11px; font-weight: 700; color: var(--color-danger);
-  background: rgba(220,38,38,.12); border-radius: 999px; padding: 1px 8px;
-}
-.audit-ev__time { flex: 0 0 auto; font-size: 12px; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
-.audit-ev__diff { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
-.audit-chip-diff {
-  font-size: 12px; color: var(--color-text-muted);
-  background: var(--color-surface-2); border-radius: 6px; padding: 2px 8px;
-}
-.audit-chip-diff s { color: var(--color-text-muted); }
-.audit-chip-diff b { color: var(--color-primary); font-weight: 600; }
-/* Diff na timeline (US-2): resumo "alterou X (a→b)", contexto e contagem */
+.audit-ev__who { flex: 0 0 auto; font-weight: 700; color: var(--color-text); font-size: 13px; min-width: 80px; }
+.audit-ev__what { flex: 1 1 200px; min-width: 0; color: var(--color-text); }
 .audit-ev__what strong { color: var(--color-text); font-weight: 700; }
+.audit-name { color: var(--color-text); }
+.audit-removed { font-size: 12px; color: var(--color-text-muted); font-style: italic; }
+.audit-diff { font-size: 12px; color: var(--color-text-muted); }
 .audit-ctx { color: var(--color-text-muted); font-size: 12px; }
 .audit-more { color: var(--color-text-muted); font-size: 12px; font-style: italic; }
-.audit-ev__badge {
-  font-size: 11px; font-weight: 700; color: var(--color-primary);
-  background: var(--color-surface-2); border-radius: 999px; padding: 1px 7px;
+.audit-ev__err {
+  flex: 0 0 auto; font-size: 11px; font-weight: 700; color: var(--color-danger);
+  background: rgba(220,38,38,.12); border-radius: 999px; padding: 1px 8px;
 }
+.audit-ev__time { flex: 0 0 auto; font-size: 12px; color: var(--color-text-muted); font-variant-numeric: tabular-nums; margin-left: auto; }
 
 .audit-pager { display: flex; justify-content: center; align-items: center; gap: var(--sp-sm); margin-top: var(--sp-md); color: var(--color-text-muted); }
 
