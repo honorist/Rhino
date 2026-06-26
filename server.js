@@ -460,7 +460,7 @@ async function handleDashboardOperacional(res) {
     () =>
       db.getOne(`
       WITH ds AS (
-        SELECT (doc.val->>'uploadedAt')::timestamptz
+        SELECT NULLIF(doc.val->>'uploadedAt', '')::timestamptz
                  + (t.periodicidade_meses || ' months')::interval AS vence_em
         FROM recursos r,
              jsonb_each(r.documentos) AS doc(tipo, val),
@@ -526,8 +526,7 @@ async function handleDashboardOperacional(res) {
       FROM recursos r
       CROSS JOIN LATERAL jsonb_array_elements(COALESCE(r.folgas, '[]'::jsonb)) AS f
       WHERE r.status = 'funcionario'
-        AND (f->>'dataInicio') IS NOT NULL
-        AND (f->>'dataInicio')::date BETWEEN CURRENT_DATE AND CURRENT_DATE + 5`),
+        AND NULLIF(f->>'dataInicio', '')::date BETWEEN CURRENT_DATE AND CURRENT_DATE + 5`),
     { proximas5d: 0 }
   );
 
@@ -584,16 +583,24 @@ async function handleDashboardOperacional(res) {
     candidatosParados: candidatosParados.parados,
     revisoes: { vencidas: revisoes.vencidas },
     folgasKpi: { proximas5d: folgasKpi.proximas5d },
-    comprasParadas: { emAvaliacao: comprasParadas.emAvaliacao, paradas3d: comprasParadas.paradas3d },
+    comprasParadas: {
+      emAvaliacao: comprasParadas.emAvaliacao,
+      paradas3d: comprasParadas.paradas3d,
+    },
   });
 }
 
 async function handleDashboard(res, query) {
   try {
-    const contracts = await repos.contracts.getEnvelope();
-    const caixa = { entries: await repos.caixa.findAll() };
-    const base = { items: await repos.baseItems.findAll() };
-    const notasFiscais = { notas_fiscais: await repos.notasFiscais.findAll() };
+    const [contracts, caixaEntries, baseItems, notasFiscaisRows] = await Promise.all([
+      repos.contracts.getEnvelope(),
+      repos.caixa.findAll(),
+      repos.baseItems.findAll(),
+      repos.notasFiscais.findAll(),
+    ]);
+    const caixa = { entries: caixaEntries };
+    const base = { items: baseItems };
+    const notasFiscais = { notas_fiscais: notasFiscaisRows };
 
     // Janela do gráfico — configurável via ?projDays (30/60/90, default 60, max 180).
     // Controla TANTO o histórico (passado) quanto a projeção (futuro).
@@ -5340,7 +5347,8 @@ async function handlePutManutencao(id, body, res) {
     if (body.contractId !== undefined) allowed.contractId = body.contractId || null;
     if (body.problema !== undefined) allowed.problema = (body.problema || '').trim();
     if (body.observacoes !== undefined) allowed.observacoes = (body.observacoes || '').trim();
-    if (body.itens !== undefined) allowed.itens = JSON.stringify(_normalizaItensManutencao(body.itens));
+    if (body.itens !== undefined)
+      allowed.itens = JSON.stringify(_normalizaItensManutencao(body.itens));
     const result = await repos.manutencoes.updateById(id, allowed);
     sendJson(res, { manutencao: result });
   } catch (e) {

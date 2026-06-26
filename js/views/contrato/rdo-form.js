@@ -537,8 +537,9 @@
     const [hi, mi] = String(eq.horaInicio || '').split(':').map(Number);
     const [hf, mf] = String(eq.horaFim || '').split(':').map(Number);
     if ([hi, mi, hf, mf].some(n => Number.isNaN(n))) return 0;
-    const min = (hf * 60 + mf) - (hi * 60 + mi);
-    return min > 0 ? min / 60 : 0;
+    let min = (hf * 60 + mf) - (hi * 60 + mi);
+    if (min <= 0) min += 24 * 60; // turno noturno que cruza meia-noite
+    return min / 60;
   },
 
   /** Homens-hora de uma equipe = duração do turno × nº de membros. */
@@ -1021,9 +1022,8 @@
           showToast(`Enviando ${fotoInput.files.length} foto(s)...`, 'info');
           await Store.uploadRdoFoto(contractId, rdoOriginal.id, fotoInput.files, legenda);
           // atualiza rdoOriginal local
-          const freshContract = Store.getContractById(contractId);
-          const freshRdo = (freshContract.rdos || []).find(r => r.id === rdoOriginal.id);
-          Object.assign(rdoOriginal, freshRdo);
+          const freshRdo = (Store.getContractById(contractId)?.rdos || []).find(r => r.id === rdoOriginal.id);
+          Object.assign(rdoOriginal, freshRdo || {});
           rerender();
           showToast('Fotos enviadas!', 'success');
         } catch (err) {
@@ -1038,9 +1038,8 @@
         if (!confirm('Remover esta foto?')) return;
         try {
           await Store.deleteRdoFoto(contractId, rdoOriginal.id, btn.dataset.id);
-          const freshContract = Store.getContractById(contractId);
-          const freshRdo = (freshContract.rdos || []).find(r => r.id === rdoOriginal.id);
-          Object.assign(rdoOriginal, freshRdo);
+          const freshRdo = (Store.getContractById(contractId)?.rdos || []).find(r => r.id === rdoOriginal.id);
+          Object.assign(rdoOriginal, freshRdo || {});
           rerender();
           showToast('Foto removida.', 'success');
         } catch (err) {

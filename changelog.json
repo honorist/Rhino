@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.23.10",
+      "date": "2026-06-26",
+      "summary": "Segurança e bugs: XSS corrigido, turnos noturnos, dashboard paralelo",
+      "changes": [
+        "XSS corrigido nos modais de Sócios, Clientes e edição de Contrato",
+        "Cálculo de horas de equipe agora funciona em turnos noturnos (ex: 23h–07h)",
+        "Dashboard principal carrega 4× mais rápido (fetches em paralelo)",
+        "Deleção de RDO agora verifica se pertence ao contrato antes de executar",
+        "Crash corrigido ao editar fotos de RDO com contrato deletado em outra aba"
+      ]
+    },
+    {
       "version": "1.23.9",
       "date": "2026-06-26",
       "summary": "Dashboard: nova seção 'Situação atual' com 9 indicadores operacionais",

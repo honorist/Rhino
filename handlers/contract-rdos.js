@@ -324,6 +324,10 @@ async function handleGetRdoPdf(contractId, rdoId, res) {
 
 async function handleDeleteRdo(contractId, rdoId, res) {
   try {
+    const contract = await repos.contracts.findByIdWithChildren(contractId);
+    if (!contract) return sendError(res, 404, 'Contrato não encontrado');
+    const rdo = (contract.rdos || []).find((r) => r.id === rdoId);
+    if (!rdo) return sendError(res, 404, 'RDO não encontrado neste contrato');
     await repos.rdos.removeById(rdoId);
     // As fotos (rdo_fotos) são removidas em cascata pela FK ON DELETE CASCADE.
     sendJson(res, await repos.contracts.getEnvelope());

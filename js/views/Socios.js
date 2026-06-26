@@ -135,12 +135,12 @@ window.Socios = {
           <form id="formSocio" class="modal-content">
             <div class="form-group">
               <label class="form-label">Nome/Razão Social *</label>
-              <input class="form-control" name="name" value="${socio?.name || ''}" required>
+              <input class="form-control" name="name" value="${escapeHtml(socio?.name || '')}" required>
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">CPF/CNPJ</label>
-                <input class="form-control" name="document" value="${socio?.document || ''}">
+                <input class="form-control" name="document" value="${escapeHtml(socio?.document || '')}">
               </div>
               <div class="form-group">
                 <label class="form-label">Participação % *</label>
@@ -150,7 +150,7 @@ window.Socios = {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Email</label>
-                <input class="form-control" name="email" type="email" value="${socio?.email || ''}">
+                <input class="form-control" name="email" type="email" value="${escapeHtml(socio?.email || '')}">
               </div>
               <div class="form-group">
                 <label class="form-label">Telefone</label>

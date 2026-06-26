@@ -210,7 +210,7 @@ window.Dashboard = {
           `${rdosAtrasados} RDO${rdosAtrasados !== 1 ? 's' : ''} atrasado${rdosAtrasados !== 1 ? 's' : ''}`
         );
 
-      const totalSaidas = Store.state.saidas.reduce((sum, s) => sum + s.value, 0);
+      const totalSaidas = (Store.state.saidas || []).reduce((sum, s) => sum + s.value, 0);
       const taxaDespesa =
         dash.totalContractValue > 0
           ? ((totalSaidas / dash.totalContractValue) * 100).toFixed(1)
@@ -1173,12 +1173,14 @@ window.Dashboard = {
     const cp = op.comprasParadas || {};
     const candParados = op.candidatosParados || 0;
 
-    const manutMeta = me.emAberto > 0
-      ? `${me.aAvaliar || 0} a avaliar · ${me.emManutencao || 0} em exec.`
-      : 'nenhuma em aberto';
+    const manutMeta =
+      me.emAberto > 0
+        ? `${me.aAvaliar || 0} a avaliar · ${me.emManutencao || 0} em exec.`
+        : 'nenhuma em aberto';
     const docsMeta = dk.vencendo30d > 0 ? `${dk.vencendo30d} vencem em 30 dias` : 'todos em dia';
     const propMeta = pk.emAndamento > 0 ? brlk(pk.valorEmAndamento) + ' em jogo' : 'nenhuma ativa';
-    const compMeta = cp.paradas3d > 0 ? `${cp.paradas3d} parada(s) há mais de 3 dias` : 'sem atrasos';
+    const compMeta =
+      cp.paradas3d > 0 ? `${cp.paradas3d} parada(s) há mais de 3 dias` : 'sem atrasos';
 
     return `
       <div class="card mb-md">

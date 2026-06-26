@@ -389,12 +389,12 @@ window.Clientes = {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Nome *</label>
-                <input class="form-control" name="nome" value="${cliente?.nome || ''}" required>
+                <input class="form-control" name="nome" value="${escapeHtml(cliente?.nome || '')}" required>
               </div>
               <div class="form-group">
                 <label class="form-label">Empresa</label>
                 <input class="form-control" name="empresa" list="empresasJaCadastradas"
-                  value="${cliente?.empresa || ''}"
+                  value="${escapeHtml(cliente?.empresa || '')}"
                   placeholder="Escolha uma cadastrada ou digite nova..."
                   autocomplete="off">
                 <datalist id="empresasJaCadastradas">
@@ -415,11 +415,11 @@ window.Clientes = {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Cargo</label>
-                <input class="form-control" name="cargo" value="${cliente?.cargo || ''}" placeholder="Ex: Gerente de Compras">
+                <input class="form-control" name="cargo" value="${escapeHtml(cliente?.cargo || '')}" placeholder="Ex: Gerente de Compras">
               </div>
               <div class="form-group">
                 <label class="form-label">Setor</label>
-                <input class="form-control" name="setor" value="${cliente?.setor || ''}" placeholder="Ex: Engenharia, TI, Operações">
+                <input class="form-control" name="setor" value="${escapeHtml(cliente?.setor || '')}" placeholder="Ex: Engenharia, TI, Operações">
               </div>
             </div>
             <div class="form-row">
@@ -429,14 +429,14 @@ window.Clientes = {
               </div>
               <div class="form-group">
                 <label class="form-label">Email</label>
-                <input class="form-control" name="email" type="email" value="${cliente?.email || ''}" placeholder="email@exemplo.com">
+                <input class="form-control" name="email" type="email" value="${escapeHtml(cliente?.email || '')}" placeholder="email@exemplo.com">
               </div>
             </div>
             <div class="form-group">
               <label class="form-label">Endereço</label>
               <div style="position:relative;" id="enderecoWrap">
                 <input class="form-control" id="enderecoInput" name="endereco"
-                  value="${cliente?.endereco || ''}"
+                  value="${escapeHtml(cliente?.endereco || '')}"
                   placeholder="Buscar endereço no mapa..."
                   autocomplete="off"
                   style="padding-right:36px;">

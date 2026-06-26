@@ -16,7 +16,7 @@
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Número do Contrato</label>
-                <input class="form-control" name="contractNumber" value="${contract.contractNumber || ''}">
+                <input class="form-control" name="contractNumber" value="${escapeHtml(contract.contractNumber || '')}">
               </div>
               <div class="form-group">
                 <label class="form-label">Status *</label>
