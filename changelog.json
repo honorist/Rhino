@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.23.7",
+      "date": "2026-06-26",
+      "summary": "Auditoria: equipamento visível, todos os campos editados listados",
+      "changes": [
+        "Auditoria: equipamento visível, todos os campos editados listados"
+      ]
+    },
+    {
       "version": "1.23.6",
       "date": "2026-06-25",
       "summary": "Auditoria reformulada: feed compacto, uma ação por linha, sem detalhe",

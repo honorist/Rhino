@@ -13,19 +13,26 @@ const assert = require('node:assert');
 
 function loadView() {
   const code = fs.readFileSync(path.join(__dirname, '../js/views/Auditoria.js'), 'utf8');
-  const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
-    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
-  ));
+  const escapeHtml = (s) =>
+    String(s ?? '').replace(
+      /[&<>"']/g,
+      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]
+    );
   const sandbox = {
     window: {},
     localStorage: { getItem: () => null, setItem: () => {} },
     escapeHtml,
-    Store: { state: {
-      contracts: [{ id: 'ctr_1', name: 'Obra Figueira' }],
-      clientes: [{ id: 'cli_1', nome: 'Veracel' }],
-      recursos: [{ id: 'rec_1', nome: 'Carlos Mendes' }],
-    } },
-    document: {}, console, Date, Intl,
+    Store: {
+      state: {
+        contracts: [{ id: 'ctr_1', name: 'Obra Figueira' }],
+        clientes: [{ id: 'cli_1', nome: 'Veracel' }],
+        recursos: [{ id: 'rec_1', nome: 'Carlos Mendes' }],
+      },
+    },
+    document: {},
+    console,
+    Date,
+    Intl,
   };
   sandbox.window.Store = sandbox.Store;
   vm.createContext(sandbox);
@@ -56,7 +63,12 @@ test('_actionVerb cobre as ações novas', () => {
 });
 
 test('_eventSentence: criação com nome amigável', () => {
-  const s = A._eventSentence({ entity: 'clientes', entityId: 'cli_1', action: 'create', entityLabel: 'Veracel' });
+  const s = A._eventSentence({
+    entity: 'clientes',
+    entityId: 'cli_1',
+    action: 'create',
+    entityLabel: 'Veracel',
+  });
   assert.ok(s.startsWith('criou'), s);
   assert.ok(s.includes('cliente'), s);
   assert.ok(s.includes('Veracel'), s);
@@ -94,7 +106,8 @@ test('_fmtVal: booleano e vazio', () => {
 });
 
 test('_dayLabel: Hoje / Ontem', () => {
-  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
   const ontem = new Date(hoje.getTime() - 86400000);
   assert.strictEqual(A._dayLabel(hoje), 'Hoje');
   assert.strictEqual(A._dayLabel(ontem), 'Ontem');
@@ -119,9 +132,15 @@ test('_userName humaniza o email', () => {
 
 test('_eventRow (update) mostra resumo do diff (US-2)', () => {
   const html = A._eventRow({
-    id: 9, ts: new Date().toISOString(), userEmail: 'maria.costa@x.com',
-    entity: 'contracts', entityId: 'ctr_1', action: 'update', status: 200,
-    beforeState: { value: 120000 }, body: { value: 135000 },
+    id: 9,
+    ts: new Date().toISOString(),
+    userEmail: 'maria.costa@x.com',
+    entity: 'contracts',
+    entityId: 'ctr_1',
+    action: 'update',
+    status: 200,
+    beforeState: { value: 120000 },
+    body: { value: 135000 },
   });
   assert.ok(html.includes('Maria Costa'));
   assert.ok(html.includes('editou'), 'frase deve ser o diff, não genérica');
@@ -155,22 +174,27 @@ test('_fmtTyped formata por tipo', () => {
 // ── US-2: resumo do update ──
 test('_updateSummaryHtml: 1 campo com valores', () => {
   const s = A._updateSummaryHtml({ beforeState: { execPct: 5 }, body: { execPct: 10 } });
-  assert.ok(s.includes('editou') && s.includes('Execução') && s.includes('5%') && s.includes('10%'), s);
+  assert.ok(
+    s.includes('editou') && s.includes('Execução') && s.includes('5%') && s.includes('10%'),
+    s
+  );
 });
 
-test('_updateSummaryHtml: 2 campos (2º só rótulo)', () => {
+test('_updateSummaryHtml: 2 campos mostra ambos os rótulos', () => {
   const s = A._updateSummaryHtml({
     beforeState: { execPct: 5, dataFimPlan: '2026-05-30' },
     body: { execPct: 10, dataFimPlan: '2026-05-31' },
   });
-  assert.ok(s.includes('Execução') && s.includes(' e ') && s.includes('Data fim'), s);
+  assert.ok(s.includes('Execução') && s.includes('Data fim'), s);
 });
 
-test('_updateSummaryHtml: >2 campos vira +N', () => {
+test('_updateSummaryHtml: >2 campos lista todos sem +N', () => {
   const s = A._updateSummaryHtml({
-    beforeState: { a: 1, b: 1, c: 1 }, body: { a: 2, b: 2, c: 2 },
+    beforeState: { a: 1, b: 1, c: 1 },
+    body: { a: 2, b: 2, c: 2 },
   });
-  assert.ok(s.includes('+1 campos'), s);
+  assert.ok(!s.includes('+'), 'não deve ter +N campos');
+  assert.ok(s.includes('editou'), s);
 });
 
 // _groupConsecutive e _pluralEntity removidos no redesign v1.23.6 — feed mostra 1 linha por ação.
