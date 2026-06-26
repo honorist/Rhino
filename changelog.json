@@ -1,6 +1,14 @@
 {
   "entries": [
     {
+      "version": "1.23.5",
+      "date": "2026-06-26",
+      "summary": "Log de auditoria mais legível: nomes reais no lugar de números internos",
+      "changes": [
+        "Log de auditoria mais legível: nomes reais no lugar de números internos"
+      ]
+    },
+    {
       "version": "1.23.4",
       "date": "2026-06-25",
       "summary": "Número do romaneio agora é sequencial e fixo por pedido",
