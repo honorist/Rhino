@@ -437,6 +437,112 @@ async function handleDashboardOperacional(res) {
     { abaixo: 0 }
   );
 
+  // ── Novos indicadores operacionais ──────────────────────────────────────
+
+  // Manutenções de equipamento (≠ frota/veículos que já está em `manut`)
+  const manutEquip = await safe(
+    () =>
+      db.getOne(`
+      SELECT
+        COUNT(*) FILTER (WHERE status IN ('solicitada','pendente_aprovacao','aprovada'))::int AS em_aberto,
+        COUNT(*) FILTER (WHERE status = 'solicitada')::int AS a_avaliar,
+        COUNT(*) FILTER (WHERE status = 'aprovada')::int AS em_manutencao,
+        COUNT(*) FILTER (WHERE status = 'aprovada'
+          AND data_retorno_prevista IS NOT NULL
+          AND data_retorno_prevista < CURRENT_DATE
+          AND data_retorno IS NULL)::int AS atrasadas
+      FROM manutencoes`),
+    { emAberto: 0, aAvaliar: 0, emManutencao: 0, atrasadas: 0 }
+  );
+
+  // Documentos de colaboradores (vencidos e vencendo em 30 dias)
+  const docsKpi = await safe(
+    () =>
+      db.getOne(`
+      WITH ds AS (
+        SELECT (doc.val->>'uploadedAt')::timestamptz
+                 + (t.periodicidade_meses || ' months')::interval AS vence_em
+        FROM recursos r,
+             jsonb_each(r.documentos) AS doc(tipo, val),
+             doc_templates t
+        WHERE r.status = 'funcionario'
+          AND r.documentos IS NOT NULL
+          AND r.documentos != '{}'::jsonb
+          AND t.id = doc.tipo
+          AND t.periodicidade_meses IS NOT NULL
+          AND (doc.val->>'uploadedAt') IS NOT NULL
+      )
+      SELECT
+        COUNT(*) FILTER (WHERE vence_em < NOW())::int AS vencidos,
+        COUNT(*) FILTER (WHERE vence_em BETWEEN NOW() AND NOW() + interval '30 days')::int AS vencendo_30d
+      FROM ds`),
+    { vencidos: 0, vencendo30d: 0 }
+  );
+
+  // Propostas comerciais em andamento + taxa de conversão
+  const propostasKpi = await safe(
+    () =>
+      db.getOne(`
+      SELECT
+        COUNT(*) FILTER (WHERE status IN ('rascunho','enviada'))::int AS em_andamento,
+        COALESCE(SUM(valor_total) FILTER (WHERE status IN ('rascunho','enviada')), 0)::float AS valor_em_andamento,
+        CASE WHEN COUNT(*) > 0
+          THEN ROUND((COUNT(*) FILTER (WHERE status = 'aceita')::float / COUNT(*) * 100)::numeric, 0)
+          ELSE 0 END::int AS taxa_conversao
+      FROM propostas`),
+    { emAndamento: 0, valorEmAndamento: 0, taxaConversao: 0 }
+  );
+
+  // Candidatos parados no funil (>7 dias sem atualização)
+  const candidatosParados = await safe(
+    () =>
+      db.getOne(`
+      SELECT COUNT(*) FILTER (
+        WHERE status IN ('contatado','interessado')
+          AND updated_at < NOW() - interval '7 days'
+      )::int AS parados
+      FROM candidatos`),
+    { parados: 0 }
+  );
+
+  // Revisões preventivas de frota vencidas (veiculo_planos)
+  const revisoes = await safe(
+    () =>
+      db.getOne(`
+      SELECT COUNT(DISTINCT veiculo_id)::int AS vencidas
+      FROM veiculo_planos
+      WHERE ativo = TRUE
+        AND intervalo_meses IS NOT NULL
+        AND ultima_data IS NOT NULL
+        AND (ultima_data + (intervalo_meses || ' months')::interval)::date < CURRENT_DATE`),
+    { vencidas: 0 }
+  );
+
+  // Folgas de colaboradores nos próximos 5 dias (JSONB array em recursos.folgas)
+  const folgasKpi = await safe(
+    () =>
+      db.getOne(`
+      SELECT COUNT(DISTINCT r.id)::int AS proximas_5d
+      FROM recursos r
+      CROSS JOIN LATERAL jsonb_array_elements(COALESCE(r.folgas, '[]'::jsonb)) AS f
+      WHERE r.status = 'funcionario'
+        AND (f->>'dataInicio') IS NOT NULL
+        AND (f->>'dataInicio')::date BETWEEN CURRENT_DATE AND CURRENT_DATE + 5`),
+    { proximas5d: 0 }
+  );
+
+  // Compras paradas em avaliação (pendente_avaliacao > 3 dias)
+  const comprasParadas = await safe(
+    () =>
+      db.getOne(`
+      SELECT
+        COUNT(*) FILTER (WHERE status = 'pendente_avaliacao')::int AS em_avaliacao,
+        COUNT(*) FILTER (WHERE status = 'pendente_avaliacao'
+          AND updated_at < NOW() - interval '3 days')::int AS paradas_3d
+      FROM solicitacoes_compra`),
+    { emAvaliacao: 0, paradas3d: 0 }
+  );
+
   sendJson(res, {
     combustivel: {
       mesAtual: comb.mesAtual,
@@ -463,6 +569,22 @@ async function handleDashboardOperacional(res) {
       pendente: folha.pendenteAtual,
     },
     estoque: { valor: estoqueValor.valor, abaixoMinimo: estoqueMin.abaixo },
+    manutEquip: {
+      emAberto: manutEquip.emAberto,
+      aAvaliar: manutEquip.aAvaliar,
+      emManutencao: manutEquip.emManutencao,
+      atrasadas: manutEquip.atrasadas,
+    },
+    docsKpi: { vencidos: docsKpi.vencidos, vencendo30d: docsKpi.vencendo30d },
+    propostasKpi: {
+      emAndamento: propostasKpi.emAndamento,
+      valorEmAndamento: propostasKpi.valorEmAndamento,
+      taxaConversao: propostasKpi.taxaConversao,
+    },
+    candidatosParados: candidatosParados.parados,
+    revisoes: { vencidas: revisoes.vencidas },
+    folgasKpi: { proximas5d: folgasKpi.proximas5d },
+    comprasParadas: { emAvaliacao: comprasParadas.emAvaliacao, paradas3d: comprasParadas.paradas3d },
   });
 }
 

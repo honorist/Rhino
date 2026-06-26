@@ -1152,6 +1152,51 @@ window.Dashboard = {
           ${custoCard('🔧 Manutenção (mês)', op.manutencao.mesAtual, op.manutencao.mesAnterior, '#/frota')}
         </div>
         ${topFuel}
+      </div>
+      ${this._renderSituacaoAtual(op)}`;
+  },
+
+  _renderSituacaoAtual(op) {
+    const brlk = (v) => Store.formatBRLk(v || 0);
+    const numCard = (label, value, meta, href, warn) => `
+      <a href="${href}" class="rh-kpi" style="text-decoration:none;color:inherit;">
+        <div class="rh-kpi-label">${escapeHtml(label)}</div>
+        <div class="rh-kpi-value" style="${warn ? 'color:var(--rh-warn-strong);' : ''}">${value}</div>
+        <div class="rh-kpi-meta">${escapeHtml(meta || '')}</div>
+      </a>`;
+
+    const me = op.manutEquip || {};
+    const dk = op.docsKpi || {};
+    const pk = op.propostasKpi || {};
+    const re = op.revisoes || {};
+    const fk = op.folgasKpi || {};
+    const cp = op.comprasParadas || {};
+    const candParados = op.candidatosParados || 0;
+
+    const manutMeta = me.emAberto > 0
+      ? `${me.aAvaliar || 0} a avaliar · ${me.emManutencao || 0} em exec.`
+      : 'nenhuma em aberto';
+    const docsMeta = dk.vencendo30d > 0 ? `${dk.vencendo30d} vencem em 30 dias` : 'todos em dia';
+    const propMeta = pk.emAndamento > 0 ? brlk(pk.valorEmAndamento) + ' em jogo' : 'nenhuma ativa';
+    const compMeta = cp.paradas3d > 0 ? `${cp.paradas3d} parada(s) há mais de 3 dias` : 'sem atrasos';
+
+    return `
+      <div class="card mb-md">
+        <div class="card-header">
+          <h3 class="card-title">Situação atual</h3>
+          <span class="rh-meta">pendências · vencimentos · funil — tempo real</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:var(--sp-md);">
+          ${numCard('🔧 Equip. em manutenção', me.emAberto || 0, manutMeta, '#/manutencoes', (me.atrasadas || 0) > 0)}
+          ${numCard('⏰ Manutenções atrasadas', me.atrasadas || 0, me.atrasadas > 0 ? 'retorno previsto ultrapassado' : 'sem atrasos', '#/manutencoes', (me.atrasadas || 0) > 0)}
+          ${numCard('📄 Docs vencidos', dk.vencidos || 0, docsMeta, '#/recursos', (dk.vencidos || 0) > 0)}
+          ${numCard('📊 Propostas ativas', pk.emAndamento || 0, propMeta, '#/propostas', false)}
+          ${numCard('🎯 Conversão propostas', (pk.taxaConversao || 0) + '%', 'aceitas / total enviadas', '#/propostas', false)}
+          ${numCard('👤 Candidatos parados', candParados, candParados > 0 ? 'sem atualização há +7 dias' : 'funil ativo', '#/recrutamento', candParados > 0)}
+          ${numCard('🔩 Revisões venc. (frota)', re.vencidas || 0, re.vencidas > 0 ? 'revisão preventiva em atraso' : 'revisões em dia', '#/frota', (re.vencidas || 0) > 0)}
+          ${numCard('🏖️ Folgas (próx. 5 dias)', fk.proximas5d || 0, fk.proximas5d > 0 ? 'colaborador(es) de folga' : 'nenhuma prevista', '#/recursos', false)}
+          ${numCard('🛒 Compras em avaliação', cp.emAvaliacao || 0, compMeta, '#/solicitacoes-compra', (cp.paradas3d || 0) > 0)}
+        </div>
       </div>`;
   },
 

@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.23.9",
+      "date": "2026-06-26",
+      "summary": "Dashboard: nova seção 'Situação atual' com 9 indicadores operacionais",
+      "changes": [
+        "Manutenções de equipamento em aberto e atrasadas visíveis no dashboard",
+        "Documentos vencidos e vencendo em 30 dias exibidos como alerta",
+        "Propostas ativas com valor em jogo e taxa de conversão histórica",
+        "Candidatos parados no funil, revisões de frota vencidas e folgas próximas",
+        "Compras em avaliação com alerta de atraso (>3 dias sem resposta)"
+      ]
+    },
+    {
       "version": "1.23.8",
       "date": "2026-06-26",
       "summary": "Log de auditoria: nomes reais no lugar de números internos, fotos mapeadas",
