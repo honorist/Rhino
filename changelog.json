@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.23.11",
+      "date": "2026-06-26",
+      "summary": "Confiabilidade: operações financeiras protegidas e dashboard mais rápido",
+      "changes": [
+        "Comprar passagem de folga: se a atualização falhar, o lançamento financeiro é desfeito automaticamente",
+        "Criar solicitação de contratação: vagas criadas parcialmente são removidas se houver erro",
+        "Aprovar candidato: recurso fantasma é removido automaticamente em caso de falha",
+        "Validação de antecedentes corrigida: candidato deve estar em status 'interessado'",
+        "Dashboard operacional carrega ~16× mais rápido (todas as consultas em paralelo)"
+      ]
+    },
+    {
       "version": "1.23.10",
       "date": "2026-06-26",
       "summary": "Segurança e bugs: XSS corrigido, turnos noturnos, dashboard paralelo",

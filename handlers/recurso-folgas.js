@@ -103,10 +103,17 @@ async function handleComprarPassagem(recursoId, folgaId, body, res) {
         caixaEntryId, contaPagarId,
       },
     };
-    await repos.recursos.updateById(recursoId, {
-      folgas: JSON.stringify(folgas),
-      updatedAt: new Date().toISOString(),
-    });
+    try {
+      await repos.recursos.updateById(recursoId, {
+        folgas: JSON.stringify(folgas),
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (updateErr) {
+      // Compensação: desfaz o lançamento financeiro se a folga não foi salva
+      if (contaPagarId) repos.contasPagar.removeById(contaPagarId).catch(() => {});
+      if (caixaEntryId) repos.caixa.removeById(caixaEntryId).catch(() => {});
+      throw updateErr;
+    }
 
     sendJson(res, {
       recursos: await repos.recursos.findAll(),

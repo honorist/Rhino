@@ -135,15 +135,22 @@ async function criarSolicitacao(req, body, res) {
       dataDesejadaObra: body.dataDesejadaObra || null,
     });
     const vagasCriadas = [];
-    for (const v of vagas) {
-      const novaVaga = await repos.vagas.create({
-        id: generateId('vag'),
-        solicitacaoId: sol.id,
-        cargo: String(v.cargo).trim(),
-        qtdTotal: Number(v.qtdTotal ?? v.qtd_total),
-        qtdPreenchida: 0,
-      });
-      vagasCriadas.push(novaVaga);
+    try {
+      for (const v of vagas) {
+        const novaVaga = await repos.vagas.create({
+          id: generateId('vag'),
+          solicitacaoId: sol.id,
+          cargo: String(v.cargo).trim(),
+          qtdTotal: Number(v.qtdTotal ?? v.qtd_total),
+          qtdPreenchida: 0,
+        });
+        vagasCriadas.push(novaVaga);
+      }
+    } catch (vagaErr) {
+      // Compensação: remove a solicitação e vagas parcialmente criadas
+      for (const v of vagasCriadas) repos.vagas.removeById(v.id).catch(() => {});
+      repos.solicitacoesContratacao.removeById(sol.id).catch(() => {});
+      throw vagaErr;
     }
 
     // US-05 (notificação RH).
@@ -237,7 +244,7 @@ async function atualizarAntecedentes(req, body, res, candidatoId) {
     const cand = await repos.candidatos.findById(candidatoId);
     if (!cand) return sendError(res, 404, 'Candidato não encontrado');
 
-    if (cand.status !== 'interessado' && cand.antecedentesStatus === 'pendente')
+    if (cand.status !== 'interessado')
       return sendError(
         res,
         400,
@@ -363,37 +370,43 @@ async function aprovarCandidato(req, body, res, candidatoId) {
       documentos: JSON.stringify(recursoDocs),
     });
 
-    // Copia os BYTEA p/ recurso_doc_arquivos (keyed por recurso_id + doc_id).
-    // O buffer já está cifrado em repouso — copia-se como está (mesma chave LGPD).
-    for (const { docId, arqId, a } of copias) {
-      await db.query(
-        `INSERT INTO recurso_doc_arquivos
-         (id, recurso_id, doc_id, filename, filename_original, mime_type, size_bytes, data)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [arqId, recurso.id, docId, a.filename, a.filenameOriginal || null, a.mimeType, a.sizeBytes, a.data],
-      );
-    }
+    try {
+      // Copia os BYTEA p/ recurso_doc_arquivos (keyed por recurso_id + doc_id).
+      // O buffer já está cifrado em repouso — copia-se como está (mesma chave LGPD).
+      for (const { docId, arqId, a } of copias) {
+        await db.query(
+          `INSERT INTO recurso_doc_arquivos
+           (id, recurso_id, doc_id, filename, filename_original, mime_type, size_bytes, data)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [arqId, recurso.id, docId, a.filename, a.filenameOriginal || null, a.mimeType, a.sizeBytes, a.data],
+        );
+      }
 
-    // Marca candidato como aprovado + linka recurso
-    await repos.candidatos.updateById(candidatoId, {
-      status: 'aprovado',
-      recursoId: recurso.id,
-    });
-
-    // Incrementa vaga.qtd_preenchida
-    const novaQtd = vaga.qtdPreenchida + 1;
-    await repos.vagas.updateById(vaga.id, { qtdPreenchida: novaQtd });
-
-    // Verifica se a solicitação pode ser fechada (todas as vagas atingiram total)
-    const todasVagas = await repos.vagas.findAll({ solicitacaoId: vaga.solicitacaoId });
-    const todasPreenchidas = todasVagas.every(
-      (v) => (v.id === vaga.id ? novaQtd : v.qtdPreenchida) >= v.qtdTotal,
-    );
-    if (todasPreenchidas) {
-      await repos.solicitacoesContratacao.updateById(vaga.solicitacaoId, {
-        status: 'preenchida',
-        closedAt: new Date().toISOString(),
+      // Marca candidato como aprovado + linka recurso
+      await repos.candidatos.updateById(candidatoId, {
+        status: 'aprovado',
+        recursoId: recurso.id,
       });
+
+      // Incrementa vaga.qtd_preenchida
+      const novaQtd = vaga.qtdPreenchida + 1;
+      await repos.vagas.updateById(vaga.id, { qtdPreenchida: novaQtd });
+
+      // Verifica se a solicitação pode ser fechada (todas as vagas atingiram total)
+      const todasVagas = await repos.vagas.findAll({ solicitacaoId: vaga.solicitacaoId });
+      const todasPreenchidas = todasVagas.every(
+        (v) => (v.id === vaga.id ? novaQtd : v.qtdPreenchida) >= v.qtdTotal,
+      );
+      if (todasPreenchidas) {
+        await repos.solicitacoesContratacao.updateById(vaga.solicitacaoId, {
+          status: 'preenchida',
+          closedAt: new Date().toISOString(),
+        });
+      }
+    } catch (approvalErr) {
+      // Compensação: remove o recurso criado para evitar fantasma no sistema
+      repos.recursos.removeById(recurso.id).catch(() => {});
+      throw approvalErr;
     }
 
     sendJson(res, { candidato: { ...cand, status: 'aprovado', recursoId: recurso.id }, recurso });
