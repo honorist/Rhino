@@ -25,7 +25,8 @@ const MAX_TOTAL = MAX_BYTES + 64 * 1024; // arquivo + overhead do multipart
 
 function _slugify(s) {
   return String(s || '')
-    .normalize('NFD').replace(/[̀-ͯ]/g, '') // remove acentos
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '') // remove acentos
     .replace(/[^a-zA-Z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');
 }
@@ -47,7 +48,7 @@ function _buildFilename({ nomeCandidato, tipo, filenameOriginal }) {
 async function tiposComArquivo(candidatoId) {
   const rows = await db.getMany(
     `SELECT DISTINCT tipo FROM candidato_doc_arquivos WHERE candidato_id = $1`,
-    [candidatoId],
+    [candidatoId]
   );
   return rows.map((r) => r.tipo);
 }
@@ -65,7 +66,11 @@ function handlePostCandidatoDocArquivo(candidatoId, tipo, req, res) {
     totalSize += c.length;
     if (totalSize > MAX_TOTAL) {
       req.destroy();
-      sendError(res, 413, `Arquivo muito grande (máximo ${Math.floor(MAX_BYTES / 1024 / 1024)} MB)`);
+      sendError(
+        res,
+        413,
+        `Arquivo muito grande (máximo ${Math.floor(MAX_BYTES / 1024 / 1024)} MB)`
+      );
     } else {
       chunks.push(c);
     }
@@ -97,17 +102,26 @@ function handlePostCandidatoDocArquivo(candidatoId, tipo, req, res) {
       });
 
       // Substitui o arquivo anterior do mesmo tipo (um arquivo por tipo).
-      await db.query(
-        'DELETE FROM candidato_doc_arquivos WHERE candidato_id = $1 AND tipo = $2',
-        [candidatoId, tipo],
-      );
+      await db.query('DELETE FROM candidato_doc_arquivos WHERE candidato_id = $1 AND tipo = $2', [
+        candidatoId,
+        tipo,
+      ]);
       const arqId = generateId('cda');
       await db.query(
         `INSERT INTO candidato_doc_arquivos
          (id, candidato_id, tipo, filename, filename_original, mime_type, size_bytes, data)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         // data cifrado em repouso (LGPD); size_bytes guarda o tamanho original.
-        [arqId, candidatoId, tipo, filename, arq.filename || null, arq.contentType, arq.data.length, piiCrypto.encryptBuffer(arq.data)],
+        [
+          arqId,
+          candidatoId,
+          tipo,
+          filename,
+          arq.filename || null,
+          arq.contentType,
+          arq.data.length,
+          piiCrypto.encryptBuffer(arq.data),
+        ]
       );
 
       // Atualiza a referência no JSONB documentos[tipo] (sem o binário).
@@ -135,7 +149,7 @@ async function handleGetCandidatoDocArquivo(candidatoId, tipo, res) {
     const row = await db.getOne(
       `SELECT filename, mime_type, data FROM candidato_doc_arquivos
        WHERE candidato_id = $1 AND tipo = $2 ORDER BY created_at DESC LIMIT 1`,
-      [candidatoId, tipo],
+      [candidatoId, tipo]
     );
     if (!row) return sendError(res, 404, 'Arquivo não encontrado');
     const fileData = piiCrypto.decryptBuffer(row.data); // decifra em repouso (LGPD)
@@ -144,6 +158,7 @@ async function handleGetCandidatoDocArquivo(candidatoId, tipo, res) {
       'Content-Disposition': `inline; filename="${encodeURIComponent(row.filename)}"`,
       'Content-Length': fileData.length,
       'Cache-Control': 'private, max-age=300',
+      'X-Content-Type-Options': 'nosniff',
     });
     res.end(fileData);
   } catch (e) {
@@ -156,10 +171,10 @@ async function handleDeleteCandidatoDocArquivo(candidatoId, tipo, res) {
   try {
     const cand = await repos.candidatos.findById(candidatoId);
     if (!cand) return sendError(res, 404, 'Candidato não encontrado');
-    await db.query(
-      'DELETE FROM candidato_doc_arquivos WHERE candidato_id = $1 AND tipo = $2',
-      [candidatoId, tipo],
-    );
+    await db.query('DELETE FROM candidato_doc_arquivos WHERE candidato_id = $1 AND tipo = $2', [
+      candidatoId,
+      tipo,
+    ]);
     const docs = { ...(cand.documentos || {}) };
     if (docs[tipo]) {
       delete docs[tipo];

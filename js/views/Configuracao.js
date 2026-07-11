@@ -158,9 +158,9 @@ window.Configuracao = {
                   const uso = usoContagem[t.key] || 0;
                   return `
                   <tr>
-                    <td style="font-size:22px;">${t.icon}</td>
-                    <td><strong>${t.label}</strong></td>
-                    <td><code style="font-size:15px;background:var(--color-bg);padding:2px 6px;border-radius:3px;">${t.key}</code></td>
+                    <td style="font-size:22px;">${window.escapeHtml(t.icon)}</td>
+                    <td><strong>${window.escapeHtml(t.label)}</strong></td>
+                    <td><code style="font-size:15px;background:var(--color-bg);padding:2px 6px;border-radius:3px;">${window.escapeHtml(t.key)}</code></td>
                     <td>
                       <div style="display:flex;align-items:center;gap:var(--sp-sm);">
                         <div style="width:22px;height:22px;border-radius:4px;background:${t.cor};border:1px solid var(--color-border);"></div>
@@ -622,7 +622,7 @@ window.Configuracao = {
           <form id="formTipo" class="modal-content">
             <div class="form-group">
               <label class="form-label">Nome do Tipo *</label>
-              <input class="form-control" name="label" value="${tipo?.label || ''}" placeholder="Ex: Software, Licença, Consultoria..." required>
+              <input class="form-control" name="label" value="${window.escapeHtml(tipo?.label || '')}" placeholder="Ex: Software, Licença, Consultoria..." required>
               ${tipo?.sistema ? '<div class="form-helper">🔒 Tipo do sistema — a chave não pode ser alterada</div>' : ''}
             </div>
 
@@ -1637,5 +1637,5 @@ window.Configuracao = {
         };
       }
     });
-  }
+  },
 };

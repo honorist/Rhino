@@ -763,7 +763,7 @@ window.Contratos = {
         }
         try {
           const ids = [...this._selectedIds];
-          await Promise.all(ids.map(id => Store.updateContract(id, { status })));
+          await Promise.all(ids.map((id) => Store.updateContract(id, { status })));
           window.showToast(`${ids.length} contrato(s) atualizados para "${status}"`, 'success');
           this._selectedIds.clear();
           this.render();
@@ -779,7 +779,7 @@ window.Contratos = {
           return;
         try {
           const ids = [...this._selectedIds];
-          await Promise.all(ids.map(id => Store.deleteContract(id)));
+          await Promise.all(ids.map((id) => Store.deleteContract(id)));
           this._selectedIds.clear();
           window.showToast(`${n} contrato(s) excluídos`, 'success');
           this.render();
@@ -1084,10 +1084,10 @@ window.Contratos = {
                       .join('')}
                     <option value="__outro__">✏️ Digitar manualmente...</option>
                   </select>
-                  <input class="form-control" name="clientManual" id="inputClienteManual" placeholder="Nome do cliente" style="margin-top:6px;display:none;" value="${!contract?.clientId && !clientes.some((c) => contract?.client === c.nome) ? contract?.client || '' : ''}">
+                  <input class="form-control" name="clientManual" id="inputClienteManual" placeholder="Nome do cliente" style="margin-top:6px;display:none;" value="${window.escapeHtml(!contract?.clientId && !clientes.some((c) => contract?.client === c.nome) ? contract?.client || '' : '')}">
                 `
                     : `
-                  <input class="form-control" name="clientManual" id="inputClienteManual" value="${contract?.client || ''}" required placeholder="Nome do cliente ou empresa">
+                  <input class="form-control" name="clientManual" id="inputClienteManual" value="${window.escapeHtml(contract?.client || '')}" required placeholder="Nome do cliente ou empresa">
                 `
                 }
               </div>

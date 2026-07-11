@@ -317,7 +317,7 @@ window.Fornecedores = {
                      value="${window.escapeHtml((fornecedor?.materiais || []).join(', '))}"
                      placeholder="Ex: Elétrica, Estrutura Metálica, Andaime">
               <datalist id="sugestoesMateriais">
-                ${sugestoes.map((s) => `<option value="${s}">`).join('')}
+                ${sugestoes.map((s) => `<option value="${window.escapeHtml(s)}">`).join('')}
               </datalist>
               <div class="form-helper">Separe múltiplos materiais por vírgula. Sugestões aparecem ao digitar.</div>
             </div>

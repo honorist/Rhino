@@ -62,7 +62,10 @@ async function _validarDocComTemplate(arquivoBuffer, mimeType, template) {
         let imgBuf = allPages[idx];
         try {
           const img = await Jimp.read(imgBuf);
-          if (img.bitmap.width > 1024) { img.resize({ w: 1024 }); imgBuf = await img.getBuffer('image/png'); }
+          if (img.bitmap.width > 1024) {
+            img.resize({ w: 1024 });
+            imgBuf = await img.getBuffer('image/png');
+          }
         } catch {}
         images.push({ data: imgBuf.toString('base64'), mediaType: 'image/png', pagina: idx + 1 });
       }
@@ -71,13 +74,19 @@ async function _validarDocComTemplate(arquivoBuffer, mimeType, template) {
       try {
         const { Jimp } = require('jimp');
         const img = await Jimp.read(imgBuf);
-        if (img.bitmap.width > 1280) { img.resize({ w: 1280 }); imgBuf = await img.getBuffer('image/png'); }
+        if (img.bitmap.width > 1280) {
+          img.resize({ w: 1280 });
+          imgBuf = await img.getBuffer('image/png');
+        }
       } catch (eImg) {
         console.warn('[validar-doc] jimp falhou:', eImg.message);
       }
       images.push({ data: imgBuf.toString('base64'), mediaType: mimeType });
     } else {
-      return { status: 'nao_validado', motivo: `Tipo de arquivo não suportado pra validação: ${mimeType}` };
+      return {
+        status: 'nao_validado',
+        motivo: `Tipo de arquivo não suportado pra validação: ${mimeType}`,
+      };
     }
   } catch (e) {
     return { status: 'nao_validado', erro: 'falha ao preparar imagem: ' + e.message };
@@ -89,24 +98,26 @@ async function _validarDocComTemplate(arquivoBuffer, mimeType, template) {
   const promptTexto = `
 Você é um auditor rigoroso de documentos trabalhistas brasileiros.
 
-${isMultiPage
-  ? `O documento enviado tem ${totalPaginas} página(s) no total.${paginasEsperadas ? ` O template exige exatamente ${paginasEsperadas} páginas.` : ''}
+${
+  isMultiPage
+    ? `O documento enviado tem ${totalPaginas} página(s) no total.${paginasEsperadas ? ` O template exige exatamente ${paginasEsperadas} páginas.` : ''}
 As imagens abaixo são amostras de páginas selecionadas (cada uma identificada com "Página X de ${totalPaginas}").
 Avalie a conformidade com base nas imagens e no total de páginas informado.`
-  : 'Analise a IMAGEM abaixo e verifique se ela atende aos requisitos.'}
+    : 'Analise a IMAGEM abaixo e verifique se ela atende aos requisitos.'
+}
 
 Responda APENAS com um JSON válido (sem markdown, sem comentários) no formato exato indicado.
 
 REQUISITOS:
 
 Seções esperadas (na ordem informada, todas obrigatórias salvo indicação):
-${secoes.map(s => `- ordem ${s.ordem}: ${s.nome}${s.obrigatorio === false ? ' (opcional)' : ''}`).join('\n') || '(nenhuma)'}
+${secoes.map((s) => `- ordem ${s.ordem}: ${s.nome}${s.obrigatorio === false ? ' (opcional)' : ''}`).join('\n') || '(nenhuma)'}
 
 Campos a extrair:
-${campos.map(c => `- ${c.nome}${c.obrigatorio === false ? ' (opcional)' : ''}${c.regex ? ` (formato: ${c.regex})` : ''}`).join('\n') || '(nenhum)'}
+${campos.map((c) => `- ${c.nome}${c.obrigatorio === false ? ' (opcional)' : ''}${c.regex ? ` (formato: ${c.regex})` : ''}`).join('\n') || '(nenhum)'}
 
 Elementos visuais esperados:
-${visuais.map(v => `- ${v.descricao}${v.obrigatorio === false ? ' (opcional)' : ''}`).join('\n') || '(nenhum)'}
+${visuais.map((v) => `- ${v.descricao}${v.obrigatorio === false ? ' (opcional)' : ''}`).join('\n') || '(nenhum)'}
 
 Instruções extras:
 ${meta.instrucoes_extras || '(nenhuma)'}
@@ -125,8 +136,12 @@ FORMATO DE RESPOSTA (JSON puro):
   // Monta content com imagens intercaladas de label de página
   const contentItems = [];
   for (const img of images) {
-    if (img.pagina) contentItems.push({ type: 'text', text: `--- Página ${img.pagina} de ${totalPaginas} ---` });
-    contentItems.push({ type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } });
+    if (img.pagina)
+      contentItems.push({ type: 'text', text: `--- Página ${img.pagina} de ${totalPaginas} ---` });
+    contentItems.push({
+      type: 'image',
+      source: { type: 'base64', media_type: img.mediaType, data: img.data },
+    });
   }
   contentItems.push({ type: 'text', text: promptTexto });
 
@@ -137,7 +152,11 @@ FORMATO DE RESPOSTA (JSON puro):
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       signal: ctrl.signal,
-      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 2000,
@@ -148,7 +167,10 @@ FORMATO DE RESPOSTA (JSON puro):
     clearTimeout(timer);
     if (!resp.ok) {
       const errText = await resp.text();
-      return { status: 'nao_validado', erro: `Claude HTTP ${resp.status}: ${errText.slice(0, 200)}` };
+      return {
+        status: 'nao_validado',
+        erro: `Claude HTTP ${resp.status}: ${errText.slice(0, 200)}`,
+      };
     }
     const json = await resp.json();
     texto = json?.content?.[0]?.text || '';
@@ -157,11 +179,11 @@ FORMATO DE RESPOSTA (JSON puro):
       const inputTok = json?.usage?.input_tokens || 0;
       const outputTok = json?.usage?.output_tokens || 0;
       // Haiku 4.5: $0.80/MTok input, $4.00/MTok output
-      const costUsd = (inputTok * 0.0000008) + (outputTok * 0.000004);
+      const costUsd = inputTok * 0.0000008 + outputTok * 0.000004;
       await db.query(
         `INSERT INTO ai_usage (model, input_tokens, output_tokens, cost_usd, status)
          VALUES ($1, $2, $3, $4, $5)`,
-        ['claude-haiku-4-5-20251001', inputTok, outputTok, costUsd, 'ok'],
+        ['claude-haiku-4-5-20251001', inputTok, outputTok, costUsd, 'ok']
       );
     } catch (eUsage) {
       console.warn('[ai-usage] falha ao registrar:', eUsage.message);
@@ -176,11 +198,16 @@ FORMATO DE RESPOSTA (JSON puro):
     const m = texto.match(/\{[\s\S]*\}/);
     parsed = JSON.parse(m ? m[0] : texto);
   } catch {
-    return { status: 'nao_validado', erro: 'Claude não retornou JSON válido', resposta: texto.slice(0, 300) };
+    return {
+      status: 'nao_validado',
+      erro: 'Claude não retornou JSON válido',
+      resposta: texto.slice(0, 300),
+    };
   }
 
   // Calcula score: peso por categoria, considerando obrigatórios
-  let totalPeso = 0, atendidoPeso = 0;
+  let totalPeso = 0,
+    atendidoPeso = 0;
   const checaSec = (s, idx) => {
     const obr = secoes[idx]?.obrigatorio !== false;
     const peso = obr ? 2 : 1;
@@ -194,7 +221,9 @@ FORMATO DE RESPOSTA (JSON puro):
     let ok = c.encontrado;
     // Verifica regex se houver
     if (ok && campos[idx]?.regex && c.valor) {
-      try { ok = new RegExp(campos[idx].regex).test(c.valor); } catch {}
+      try {
+        ok = new RegExp(campos[idx].regex).test(c.valor);
+      } catch {}
     }
     if (ok) atendidoPeso += peso;
   };
@@ -230,7 +259,7 @@ async function _validarDocBackground(recursoId, docId) {
     const rec = await repos.recursos.findById(recursoId);
     if (!rec) return;
     const docs = rec.documentos || [];
-    const idx = docs.findIndex(d => d.id === docId);
+    const idx = docs.findIndex((d) => d.id === docId);
     if (idx === -1) return;
     const doc = docs[idx];
     if (!doc.templateId) return;
@@ -243,12 +272,16 @@ async function _validarDocBackground(recursoId, docId) {
     );
     if (!arq) return;
 
-    const validacao = await _validarDocComTemplate(piiCrypto.decryptBuffer(arq.data), arq.mimeType, tpl);
+    const validacao = await _validarDocComTemplate(
+      piiCrypto.decryptBuffer(arq.data),
+      arq.mimeType,
+      tpl
+    );
 
     // Re-busca o recurso (pode ter mudado) e atualiza só o doc
     const recAtual = await repos.recursos.findById(recursoId);
     const docsAtual = recAtual.documentos || [];
-    const idx2 = docsAtual.findIndex(d => d.id === docId);
+    const idx2 = docsAtual.findIndex((d) => d.id === docId);
     if (idx2 === -1) return;
     docsAtual[idx2] = { ...docsAtual[idx2], validacao, updatedAt: new Date().toISOString() };
     await repos.recursos.updateById(recursoId, {
@@ -265,7 +298,7 @@ async function handleValidarDocumento(recursoId, docId, res) {
     const rec = await repos.recursos.findById(recursoId);
     if (!rec) return sendError(res, 404, 'Recurso não encontrado');
     const docs = rec.documentos || [];
-    const idx = docs.findIndex(d => d.id === docId);
+    const idx = docs.findIndex((d) => d.id === docId);
     if (idx === -1) return sendError(res, 404, 'Documento não encontrado');
     const doc = docs[idx];
     if (!doc.templateId) return sendError(res, 400, 'Documento não tem template associado');
@@ -277,7 +310,11 @@ async function handleValidarDocumento(recursoId, docId, res) {
     );
     if (!arq) return sendError(res, 400, 'Documento sem arquivo anexado');
 
-    const validacao = await _validarDocComTemplate(piiCrypto.decryptBuffer(arq.data), arq.mimeType, tpl);
+    const validacao = await _validarDocComTemplate(
+      piiCrypto.decryptBuffer(arq.data),
+      arq.mimeType,
+      tpl
+    );
     docs[idx] = { ...doc, validacao, updatedAt: new Date().toISOString() };
     await repos.recursos.updateById(recursoId, {
       documentos: JSON.stringify(docs),
@@ -293,15 +330,19 @@ async function handleValidarDocumento(recursoId, docId, res) {
 // ============ Arquivos de documentos de recursos (BYTEA no PG) ============
 const ARQ_DOC_ALLOWED_TYPES = [
   'application/pdf',
-  'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
 ];
 const ARQ_DOC_MAX_BYTES = 10 * 1024 * 1024; // 10 MB por arquivo
 
 function _slugifyForFilename(s) {
   return String(s || '')
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')   // remove acentos
-    .replace(/[^a-zA-Z0-9]+/g, '_')                       // não-alfanum → _
-    .replace(/^_+|_+$/g, '');                             // trim _
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '') // remove acentos
+    .replace(/[^a-zA-Z0-9]+/g, '_') // não-alfanum → _
+    .replace(/^_+|_+$/g, ''); // trim _
 }
 
 // Formato: AAAA_MM_DD_TipoDoc_Nome_Pessoa.ext
@@ -310,7 +351,7 @@ function _buildArquivoFilename({ nomeRecurso, tipoDoc, filenameOriginal }) {
   const ano = d.getFullYear();
   const mes = String(d.getMonth() + 1).padStart(2, '0');
   const dia = String(d.getDate()).padStart(2, '0');
-  const tipo   = _slugifyForFilename(tipoDoc) || 'Doc';
+  const tipo = _slugifyForFilename(tipoDoc) || 'Doc';
   const pessoa = _slugifyForFilename(nomeRecurso) || 'Pessoa';
   const m = String(filenameOriginal || '').match(/\.[a-zA-Z0-9]+$/);
   const ext = m ? m[0].toLowerCase() : '.bin';
@@ -327,11 +368,15 @@ function handlePostRecursoDocArquivo(recursoId, docId, req, res) {
   let totalSize = 0;
   const MAX_TOTAL = ARQ_DOC_MAX_BYTES + 64 * 1024; // file + overhead multipart
 
-  req.on('data', c => {
+  req.on('data', (c) => {
     totalSize += c.length;
     if (totalSize > MAX_TOTAL) {
       req.destroy();
-      sendError(res, 413, `Arquivo muito grande (máximo ${Math.floor(ARQ_DOC_MAX_BYTES / 1024 / 1024)} MB)`);
+      sendError(
+        res,
+        413,
+        `Arquivo muito grande (máximo ${Math.floor(ARQ_DOC_MAX_BYTES / 1024 / 1024)} MB)`
+      );
     } else {
       chunks.push(c);
     }
@@ -341,7 +386,7 @@ function handlePostRecursoDocArquivo(recursoId, docId, req, res) {
     try {
       const body = Buffer.concat(chunks);
       const parts = parseMultipart(body, boundary);
-      const arq = parts.find(p => p.filename && p.data && p.data.length > 0);
+      const arq = parts.find((p) => p.filename && p.data && p.data.length > 0);
       if (!arq) return sendError(res, 400, 'Nenhum arquivo enviado');
       // FIX C-02: bypass — sem '!arq.contentType', omitir o Content-Type no
       // multipart pulava o check inteiro e permitia subir HTML/SVG com script.
@@ -349,13 +394,17 @@ function handlePostRecursoDocArquivo(recursoId, docId, req, res) {
         return sendError(res, 400, `Tipo não permitido. Use: PDF, JPG ou PNG`);
       }
       if (arq.data.length > ARQ_DOC_MAX_BYTES) {
-        return sendError(res, 413, `Arquivo excede ${Math.floor(ARQ_DOC_MAX_BYTES / 1024 / 1024)} MB`);
+        return sendError(
+          res,
+          413,
+          `Arquivo excede ${Math.floor(ARQ_DOC_MAX_BYTES / 1024 / 1024)} MB`
+        );
       }
 
       const rec = await repos.recursos.findById(recursoId);
       if (!rec) return sendError(res, 404, 'Recurso não encontrado');
       const docs = rec.documentos || [];
-      const docIdx = docs.findIndex(d => d.id === docId);
+      const docIdx = docs.findIndex((d) => d.id === docId);
       if (docIdx === -1) return sendError(res, 404, 'Documento não encontrado');
       const doc = docs[docIdx];
 
@@ -367,7 +416,10 @@ function handlePostRecursoDocArquivo(recursoId, docId, req, res) {
       });
 
       // Apaga arquivo anterior do mesmo doc (se existir) — substitui
-      await db.query('DELETE FROM recurso_doc_arquivos WHERE recurso_id = $1 AND doc_id = $2', [recursoId, docId]);
+      await db.query('DELETE FROM recurso_doc_arquivos WHERE recurso_id = $1 AND doc_id = $2', [
+        recursoId,
+        docId,
+      ]);
 
       const arqId = generateId('arq');
       await db.query(
@@ -375,7 +427,16 @@ function handlePostRecursoDocArquivo(recursoId, docId, req, res) {
          (id, recurso_id, doc_id, filename, filename_original, mime_type, size_bytes, data)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         // data cifrado em repouso (LGPD); size_bytes guarda o tamanho original.
-        [arqId, recursoId, docId, filename, arq.filename || null, arq.contentType || 'application/octet-stream', arq.data.length, piiCrypto.encryptBuffer(arq.data)]
+        [
+          arqId,
+          recursoId,
+          docId,
+          filename,
+          arq.filename || null,
+          arq.contentType || 'application/octet-stream',
+          arq.data.length,
+          piiCrypto.encryptBuffer(arq.data),
+        ]
       );
 
       // Atualiza JSONB do doc com referência ao arquivo (sem o BYTEA)
@@ -424,6 +485,7 @@ async function handleGetRecursoDocArquivo(recursoId, docId, res) {
       'Content-Disposition': `inline; filename="${encodeURIComponent(row.filename)}"`,
       'Content-Length': fileData.length,
       'Cache-Control': 'private, max-age=300',
+      'X-Content-Type-Options': 'nosniff',
     });
     res.end(fileData);
   } catch (e) {
@@ -435,10 +497,13 @@ async function handleDeleteRecursoDocArquivo(recursoId, docId, res) {
   try {
     const rec = await repos.recursos.findById(recursoId);
     if (!rec) return sendError(res, 404, 'Recurso não encontrado');
-    await db.query('DELETE FROM recurso_doc_arquivos WHERE recurso_id = $1 AND doc_id = $2', [recursoId, docId]);
+    await db.query('DELETE FROM recurso_doc_arquivos WHERE recurso_id = $1 AND doc_id = $2', [
+      recursoId,
+      docId,
+    ]);
     // Remove referência do JSONB do doc
     const docs = rec.documentos || [];
-    const dIdx = docs.findIndex(d => d.id === docId);
+    const dIdx = docs.findIndex((d) => d.id === docId);
     if (dIdx !== -1) {
       const { arquivo, nomeArquivo, ...rest } = docs[dIdx];
       docs[dIdx] = { ...rest, updatedAt: new Date().toISOString() };
@@ -454,6 +519,8 @@ async function handleDeleteRecursoDocArquivo(recursoId, docId, res) {
 }
 
 module.exports = {
-  handlePostRecursoDocArquivo, handleGetRecursoDocArquivo,
-  handleDeleteRecursoDocArquivo, handleValidarDocumento,
+  handlePostRecursoDocArquivo,
+  handleGetRecursoDocArquivo,
+  handleDeleteRecursoDocArquivo,
+  handleValidarDocumento,
 };

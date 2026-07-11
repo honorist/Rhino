@@ -467,7 +467,7 @@ window.NotasFiscais = {
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">Número da Nota Fiscal *</label>
-                <input class="form-control" name="numero" value="${nf?.numero || ''}" placeholder="Ex: 1234/2026" required>
+                <input class="form-control" name="numero" value="${escapeHtml(nf?.numero || '')}" placeholder="Ex: 1234/2026" required>
               </div>
               <div class="form-group">
                 <label class="form-label">Valor da NF (R$) *</label>
@@ -485,7 +485,7 @@ window.NotasFiscais = {
 
             <div class="form-group">
               <label class="form-label">Cliente</label>
-              <input class="form-control" id="inputCliente" readonly style="background:var(--color-bg);" value="${clienteAtual}">
+              <input class="form-control" id="inputCliente" readonly style="background:var(--color-bg);" value="${escapeHtml(clienteAtual)}">
             </div>
 
             <div class="form-row">
@@ -760,11 +760,11 @@ window.NotasFiscais = {
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-md);font-size:15px;">
                 <div>
                   <div style="color:var(--color-text-muted);font-size:15px;text-transform:uppercase;">Contrato</div>
-                  <div style="font-weight:600;">${contract?.name || '—'}</div>
+                  <div style="font-weight:600;">${escapeHtml(contract?.name || '—')}</div>
                 </div>
                 <div>
                   <div style="color:var(--color-text-muted);font-size:15px;text-transform:uppercase;">Cliente</div>
-                  <div style="font-weight:600;">${contract?.client || '—'}</div>
+                  <div style="font-weight:600;">${escapeHtml(contract?.client || '—')}</div>
                 </div>
                 <div>
                   <div style="color:var(--color-text-muted);font-size:15px;text-transform:uppercase;">Valor</div>

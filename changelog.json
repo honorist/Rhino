@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.23.12",
+      "date": "2026-07-11",
+      "summary": "Segurança: dados de RH/folha protegidos por perfil e correção no caixa",
+      "changes": [
+        "Privacidade: documentos de colaborador e o painel de cobrança só aparecem para quem tem acesso às telas de RH/Folha",
+        "Correção: conciliação bancária não lança mais o pagamento em dobro no caixa",
+        "Segurança reforçada contra injeção de conteúdo em formulários (cadastros, notas, caixa)",
+        "Correção: excluir foto/assinatura de RDO afeta apenas o RDO correto, com limite de fotos por RDO",
+        "Melhorias no preenchimento do RDO"
+      ]
+    },
+    {
       "version": "1.23.11",
       "date": "2026-06-26",
       "summary": "Confiabilidade: operações financeiras protegidas e dashboard mais rápido",

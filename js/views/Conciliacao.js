@@ -763,35 +763,47 @@ window.Conciliacao = {
       }
       if (!tx) continue;
 
-      // Create caixa entry
+      // Registra o movimento no Caixa. ATENÇÃO (fix double-post): se a transação
+      // está vinculada a uma conta a pagar, o próprio Store.pagarConta cria o
+      // lançamento de caixa (handlers/contas-pagar.js grava repos.caixa.create).
+      // Criar OUTRO lançamento aqui contaria a saída EM DOBRO. Então: com vínculo,
+      // só dá baixa na conta; sem vínculo, cria a entrada avulsa de conciliação.
       try {
-        await Store.createCaixaEntry({
-          type: tx.type === 'entrada' ? 'entrada' : 'saida',
-          description: tx.description || 'Conciliacao',
-          value: tx.value,
-          date: tx.date,
-          category: 'conciliacao',
-          notes: 'Conciliacao bancaria',
-        });
+        if (decision.contaPagarId) {
+          try {
+            await Store.pagarConta(decision.contaPagarId, {
+              dataPagamento: tx.date,
+              valorPago: tx.value,
+              formaPagamento: 'transferencia',
+            });
+          } catch (err) {
+            // Falha ao dar baixa: não perder o movimento financeiro. Como o
+            // pagarConta não chegou a lançar no caixa, registra a saída avulsa.
+            console.error('Conciliacao: pagarConta failed for conta', decision.contaPagarId, err);
+            await Store.createCaixaEntry({
+              type: tx.type === 'entrada' ? 'entrada' : 'saida',
+              description: tx.description || 'Conciliacao',
+              value: tx.value,
+              date: tx.date,
+              category: 'conciliacao',
+              notes: 'Conciliacao bancaria (conta nao baixada)',
+            });
+          }
+        } else {
+          await Store.createCaixaEntry({
+            type: tx.type === 'entrada' ? 'entrada' : 'saida',
+            description: tx.description || 'Conciliacao',
+            value: tx.value,
+            date: tx.date,
+            category: 'conciliacao',
+            notes: 'Conciliacao bancaria',
+          });
+        }
         okCount++;
       } catch (err) {
-        console.error('Conciliacao: createCaixaEntry failed for', txId, err);
+        console.error('Conciliacao: lancamento falhou para', txId, err);
         errCount++;
         continue;
-      }
-
-      // Link to conta a pagar if chosen
-      if (decision.contaPagarId) {
-        try {
-          await Store.pagarConta(decision.contaPagarId, {
-            dataPagamento: tx.date,
-            valorPago: tx.value,
-            formaPagamento: 'transferencia',
-          });
-        } catch (err) {
-          console.error('Conciliacao: pagarConta failed for conta', decision.contaPagarId, err);
-          // Non-fatal: caixa entry already created
-        }
       }
     }
 

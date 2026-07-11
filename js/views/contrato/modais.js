@@ -2,10 +2,13 @@
    Extraído de js/views/ContratoDetail.js (linhas 4775-5049)
    Estende o objeto window.ContratoDetail já definido. */
 (function () {
-  if (!window.ContratoDetail) { console.error('[contrato/modais] requires ContratoDetail core'); return; }
+  if (!window.ContratoDetail) {
+    console.error('[contrato/modais] requires ContratoDetail core');
+    return;
+  }
   Object.assign(window.ContratoDetail, {
-  showModalEditarDados(contract) {
-    const html = `
+    showModalEditarDados(contract) {
+      const html = `
       <div class="modal-overlay" id="modalOverlay">
         <div class="modal" style="width: 680px; max-height: 90vh; display: flex; flex-direction: column;">
           <div class="modal-header" style="flex-shrink: 0;">
@@ -41,15 +44,18 @@
                 <label class="form-label">Cliente *</label>
                 <select class="form-control" id="selectClienteDetail" name="clientId" required>
                   <option value="">Selecione um cliente...</option>
-                  ${Store.state.clientes.map(c => {
-                    const selected = (contract.clientId && contract.clientId === c.id) ||
-                                     (!contract.clientId && contract.client === c.nome);
-                    return `<option value="${c.id}" ${selected ? 'selected' : ''}>${escapeHtml(c.nome)}${c.empresa ? ' — ' + escapeHtml(c.empresa) : ''}</option>`;
-                  }).join('')}
-                  <option value="__outro__" ${!contract.clientId && contract.client && !Store.state.clientes.find(c => c.nome === contract.client) ? 'selected' : ''}>Outro (digitar manualmente)</option>
+                  ${Store.state.clientes
+                    .map((c) => {
+                      const selected =
+                        (contract.clientId && contract.clientId === c.id) ||
+                        (!contract.clientId && contract.client === c.nome);
+                      return `<option value="${c.id}" ${selected ? 'selected' : ''}>${escapeHtml(c.nome)}${c.empresa ? ' — ' + escapeHtml(c.empresa) : ''}</option>`;
+                    })
+                    .join('')}
+                  <option value="__outro__" ${!contract.clientId && contract.client && !Store.state.clientes.find((c) => c.nome === contract.client) ? 'selected' : ''}>Outro (digitar manualmente)</option>
                 </select>
               </div>
-              <div class="form-group" id="clienteManualWrapDetail" style="${!contract.clientId && contract.client && !Store.state.clientes.find(c => c.nome === contract.client) ? '' : 'display:none;'}">
+              <div class="form-group" id="clienteManualWrapDetail" style="${!contract.clientId && contract.client && !Store.state.clientes.find((c) => c.nome === contract.client) ? '' : 'display:none;'}">
                 <label class="form-label">Nome/Razão Social *</label>
                 <input class="form-control" id="clienteManualDetail" name="client" value="${escapeHtml(contract.client || '')}">
               </div>
@@ -130,160 +136,188 @@
       </div>
     `;
 
-    document.body.insertAdjacentHTML('beforeend', html);
+      document.body.insertAdjacentHTML('beforeend', html);
 
-    const overlay = document.getElementById('modalOverlay');
-    setTimeout(() => {
-      const firstInput = overlay?.querySelector('input:not([type="hidden"]):not([readonly]), select, textarea');
-      firstInput?.focus();
-    }, 50);
-    const closeModal = () => {
-      if (this._miniMapDetail) { this._miniMapDetail.remove(); this._miniMapDetail = null; }
-      overlay.remove();
-    };
+      const overlay = document.getElementById('modalOverlay');
+      setTimeout(() => {
+        const firstInput = overlay?.querySelector(
+          'input:not([type="hidden"]):not([readonly]), select, textarea'
+        );
+        firstInput?.focus();
+      }, 50);
+      const closeModal = () => {
+        if (this._miniMapDetail) {
+          this._miniMapDetail.remove();
+          this._miniMapDetail = null;
+        }
+        overlay.remove();
+      };
 
-    overlay.querySelector('.modal-close').addEventListener('click', closeModal);
-    document.getElementById('btnCancelar').addEventListener('click', closeModal);
+      overlay.querySelector('.modal-close').addEventListener('click', closeModal);
+      document.getElementById('btnCancelar').addEventListener('click', closeModal);
 
-    // Cliente select logic
-    const selectCliente = document.getElementById('selectClienteDetail');
-    const manualWrap = document.getElementById('clienteManualWrapDetail');
-    const manualInput = document.getElementById('clienteManualDetail');
+      // Cliente select logic
+      const selectCliente = document.getElementById('selectClienteDetail');
+      const manualWrap = document.getElementById('clienteManualWrapDetail');
+      const manualInput = document.getElementById('clienteManualDetail');
 
-    const preencherEnderecoDoCliente = (clienteId) => {
-      const endInput = document.getElementById('enderecoInputDetail');
+      const preencherEnderecoDoCliente = (clienteId) => {
+        const endInput = document.getElementById('enderecoInputDetail');
+        const latInput = document.getElementById('enderecoLatDetail');
+        const lngInput = document.getElementById('enderecoLngDetail');
+        if (!endInput || endInput.value.trim()) return;
+        const cl = Store.state.clientes.find((c) => c.id === clienteId);
+        if (cl && cl.endereco) {
+          endInput.value = cl.endereco;
+          latInput.value = cl.lat || '';
+          lngInput.value = cl.lng || '';
+          if (cl.lat && cl.lng)
+            this._mostrarMiniMapaDetail(parseFloat(cl.lat), parseFloat(cl.lng), cl.endereco);
+        }
+      };
+
+      selectCliente.addEventListener('change', () => {
+        const val = selectCliente.value;
+        if (val === '__outro__') {
+          manualWrap.style.display = '';
+          manualInput.required = true;
+        } else {
+          manualWrap.style.display = 'none';
+          manualInput.required = false;
+          preencherEnderecoDoCliente(val);
+        }
+      });
+
+      this._initEnderecoSearchDetail(
+        contract.lat || '',
+        contract.lng || '',
+        contract.endereco || contract.clientAddress || ''
+      );
+
+      document.getElementById('btnSalvarDados').addEventListener('click', async () => {
+        const formData = new FormData(document.getElementById('formEditarDados'));
+        const data = Object.fromEntries(formData);
+        data.value = window.BRLInput.parse(data.value);
+
+        // Resolve client name from select
+        const clientId = data.clientId;
+        if (clientId && clientId !== '__outro__') {
+          const cl = Store.state.clientes.find((c) => c.id === clientId);
+          if (cl) data.client = cl.nome;
+        } else if (clientId === '__outro__') {
+          data.clientId = '';
+        }
+        if (!data.client || !data.client.trim()) {
+          window.showToast('Cliente é obrigatório', 'error');
+          return;
+        }
+
+        try {
+          await Store.updateContract(contract.id, data);
+          window.showToast('Contrato atualizado com sucesso', 'success');
+          closeModal();
+          this.render({ id: contract.id });
+        } catch (e) {
+          window.showToast(e.message, 'error');
+        }
+      });
+    },
+
+    _miniMapDetail: null,
+
+    _mostrarMiniMapaDetail(la, lo, label) {
+      const mapaDiv = document.getElementById('miniMapaDetail');
+      if (!mapaDiv) return;
+      mapaDiv.style.display = 'block';
+      setTimeout(async () => {
+        if (typeof L === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('leaflet');
+        if (typeof L === 'undefined') return;
+        if (this._miniMapDetail) {
+          this._miniMapDetail.remove();
+          this._miniMapDetail = null;
+        }
+        this._miniMapDetail = L.map(mapaDiv, { zoomControl: true, scrollWheelZoom: false }).setView(
+          [la, lo],
+          15
+        );
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap',
+        }).addTo(this._miniMapDetail);
+        L.marker([la, lo]).addTo(this._miniMapDetail).bindPopup(label).openPopup();
+      }, 50);
+    },
+
+    _initEnderecoSearchDetail(lat, lng, enderecoSalvo) {
+      const input = document.getElementById('enderecoInputDetail');
+      const dropdown = document.getElementById('nominatimDropdownDetail');
       const latInput = document.getElementById('enderecoLatDetail');
       const lngInput = document.getElementById('enderecoLngDetail');
-      if (!endInput || endInput.value.trim()) return;
-      const cl = Store.state.clientes.find(c => c.id === clienteId);
-      if (cl && cl.endereco) {
-        endInput.value = cl.endereco;
-        latInput.value = cl.lat || '';
-        lngInput.value = cl.lng || '';
-        if (cl.lat && cl.lng) this._mostrarMiniMapaDetail(parseFloat(cl.lat), parseFloat(cl.lng), cl.endereco);
-      }
-    };
+      if (!input) return;
 
-    selectCliente.addEventListener('change', () => {
-      const val = selectCliente.value;
-      if (val === '__outro__') {
-        manualWrap.style.display = '';
-        manualInput.required = true;
-      } else {
-        manualWrap.style.display = 'none';
-        manualInput.required = false;
-        preencherEnderecoDoCliente(val);
-      }
-    });
+      if (lat && lng)
+        this._mostrarMiniMapaDetail(parseFloat(lat), parseFloat(lng), enderecoSalvo || 'Local');
 
-    this._initEnderecoSearchDetail(
-      contract.lat || '',
-      contract.lng || '',
-      contract.endereco || contract.clientAddress || ''
-    );
+      let debounce = null;
+      input.addEventListener('input', () => {
+        clearTimeout(debounce);
+        const q = input.value.trim();
+        if (q.length < 4) {
+          dropdown.style.display = 'none';
+          return;
+        }
+        debounce = setTimeout(async () => {
+          try {
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=6&addressdetails=1`,
+              { headers: { 'Accept-Language': 'pt-BR,pt;q=0.9' } }
+            );
+            const results = await res.json();
+            if (!results.length) {
+              dropdown.style.display = 'none';
+              return;
+            }
 
-    document.getElementById('btnSalvarDados').addEventListener('click', async () => {
-      const formData = new FormData(document.getElementById('formEditarDados'));
-      const data = Object.fromEntries(formData);
-      data.value = window.BRLInput.parse(data.value);
-
-      // Resolve client name from select
-      const clientId = data.clientId;
-      if (clientId && clientId !== '__outro__') {
-        const cl = Store.state.clientes.find(c => c.id === clientId);
-        if (cl) data.client = cl.nome;
-      } else if (clientId === '__outro__') {
-        data.clientId = '';
-      }
-      if (!data.client || !data.client.trim()) { window.showToast('Cliente é obrigatório', 'error'); return; }
-
-      try {
-        await Store.updateContract(contract.id, data);
-        window.showToast('Contrato atualizado com sucesso', 'success');
-        closeModal();
-        this.render({ id: contract.id });
-      } catch (e) {
-        window.showToast(e.message, 'error');
-      }
-    });
-
-  },
-
-  _miniMapDetail: null,
-
-  _mostrarMiniMapaDetail(la, lo, label) {
-    const mapaDiv = document.getElementById('miniMapaDetail');
-    if (!mapaDiv) return;
-    mapaDiv.style.display = 'block';
-    setTimeout(async () => {
-      if (typeof L === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('leaflet');
-      if (typeof L === 'undefined') return;
-      if (this._miniMapDetail) { this._miniMapDetail.remove(); this._miniMapDetail = null; }
-      this._miniMapDetail = L.map(mapaDiv, { zoomControl: true, scrollWheelZoom: false })
-        .setView([la, lo], 15);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap'
-      }).addTo(this._miniMapDetail);
-      L.marker([la, lo]).addTo(this._miniMapDetail).bindPopup(label).openPopup();
-    }, 50);
-  },
-
-  _initEnderecoSearchDetail(lat, lng, enderecoSalvo) {
-    const input    = document.getElementById('enderecoInputDetail');
-    const dropdown = document.getElementById('nominatimDropdownDetail');
-    const latInput = document.getElementById('enderecoLatDetail');
-    const lngInput = document.getElementById('enderecoLngDetail');
-    if (!input) return;
-
-    if (lat && lng) this._mostrarMiniMapaDetail(parseFloat(lat), parseFloat(lng), enderecoSalvo || 'Local');
-
-    let debounce = null;
-    input.addEventListener('input', () => {
-      clearTimeout(debounce);
-      const q = input.value.trim();
-      if (q.length < 4) { dropdown.style.display = 'none'; return; }
-      debounce = setTimeout(async () => {
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=6&addressdetails=1`,
-            { headers: { 'Accept-Language': 'pt-BR,pt;q=0.9' } }
-          );
-          const results = await res.json();
-          if (!results.length) { dropdown.style.display = 'none'; return; }
-
-          dropdown.innerHTML = results.map(r => {
-            // FIX A-02: escapar dados do Nominatim (API externa) antes do innerHTML — XSS.
-            const name   = window.escapeHtml(r.display_name.split(',').slice(0, 3).join(','));
-            const detail = window.escapeHtml(r.display_name.split(',').slice(3).join(',').trim());
-            return `<div class="nominatim-item" data-lat="${window.escapeHtml(String(r.lat))}" data-lng="${window.escapeHtml(String(r.lon))}" data-name="${window.escapeHtml(r.display_name)}">
+            dropdown.innerHTML = results
+              .map((r) => {
+                // FIX A-02: escapar dados do Nominatim (API externa) antes do innerHTML — XSS.
+                const name = window.escapeHtml(r.display_name.split(',').slice(0, 3).join(','));
+                const detail = window.escapeHtml(
+                  r.display_name.split(',').slice(3).join(',').trim()
+                );
+                return `<div class="nominatim-item" data-lat="${window.escapeHtml(String(r.lat))}" data-lng="${window.escapeHtml(String(r.lon))}" data-name="${window.escapeHtml(r.display_name)}">
               <strong>${name}</strong><span>${detail}</span>
             </div>`;
-          }).join('');
-          dropdown.style.display = 'block';
+              })
+              .join('');
+            dropdown.style.display = 'block';
 
-          dropdown.querySelectorAll('.nominatim-item').forEach(el => {
-            el.addEventListener('click', () => {
-              const la = parseFloat(el.dataset.lat);
-              const lo = parseFloat(el.dataset.lng);
-              const nome = el.dataset.name;
-              input.value = nome;
-              latInput.value = la;
-              lngInput.value = lo;
-              dropdown.style.display = 'none';
-              this._mostrarMiniMapaDetail(la, lo, nome);
+            dropdown.querySelectorAll('.nominatim-item').forEach((el) => {
+              el.addEventListener('click', () => {
+                const la = parseFloat(el.dataset.lat);
+                const lo = parseFloat(el.dataset.lng);
+                const nome = el.dataset.name;
+                input.value = nome;
+                latInput.value = la;
+                lngInput.value = lo;
+                dropdown.style.display = 'none';
+                this._mostrarMiniMapaDetail(la, lo, nome);
+              });
             });
-          });
-        } catch { dropdown.style.display = 'none'; }
-      }, 450);
-    });
+          } catch {
+            dropdown.style.display = 'none';
+          }
+        }, 450);
+      });
 
-    const _onDocClickDetail = e => {
-      if (!document.getElementById('enderecoWrapDetail')?.contains(e.target))
-        dropdown.style.display = 'none';
-    };
-    document.addEventListener('click', _onDocClickDetail);
-    window.viewLifecycle && window.viewLifecycle.onCleanup(() => document.removeEventListener('click', _onDocClickDetail));
-  },
-
+      const _onDocClickDetail = (e) => {
+        if (!document.getElementById('enderecoWrapDetail')?.contains(e.target))
+          dropdown.style.display = 'none';
+      };
+      document.addEventListener('click', _onDocClickDetail);
+      window.viewLifecycle &&
+        window.viewLifecycle.onCleanup(() =>
+          document.removeEventListener('click', _onDocClickDetail)
+        );
+    },
   });
 })();

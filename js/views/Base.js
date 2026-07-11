@@ -230,7 +230,7 @@ window.Base = {
                           return `<div style="margin-top:4px;"><span class="rh-pill rh-pill-info"><span class="rh-pill-dot"></span>recorrente · ${fmap[r.frequency] || r.frequency}</span></div>`;
                         })()}
                       </td>
-                      <td><span class="badge badge-${tipoKey}">${info.icon} ${info.label}</span></td>
+                      <td><span class="badge badge-${window.escapeHtml(tipoKey)}">${window.escapeHtml(info.icon)} ${window.escapeHtml(info.label)}</span></td>
                       <td>
                         ${item.date ? new Date(item.date + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
                         ${(() => {

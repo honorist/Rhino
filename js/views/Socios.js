@@ -197,7 +197,6 @@ window.Socios = {
         window.showToast(e.message, 'error');
       }
     });
-
   },
 
   async deleteSocio(id) {

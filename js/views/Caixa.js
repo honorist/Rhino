@@ -416,7 +416,7 @@ window.Caixa = {
                     <tr class="row-caixa" data-id="${e.id}" style="cursor:pointer;">
                       <td>${new Date(e.date + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
                       <td><strong>${escapeHtml(e.description)}</strong></td>
-                      <td><span class="badge badge-${e.type}">${e.type}</span></td>
+                      <td><span class="badge badge-${escapeHtml(e.type)}">${escapeHtml(e.type)}</span></td>
                       <td>${
                         contract
                           ? `<a href="#/contratos/${contract.id}" style="color:var(--color-primary);text-decoration:none;font-weight:500;">${escapeHtml(contract.name)}</a><div style="font-size:15px;color:var(--color-text-muted);">${escapeHtml(contract.client)}</div>`
@@ -864,7 +864,7 @@ window.Caixa = {
               </div>
               <div class="form-group">
                 <label class="form-label">Categoria</label>
-                <input class="form-control" name="category" value="${entry?.category || ''}" placeholder="Ex: Adiantamento, Pagamento...">
+                <input class="form-control" name="category" value="${escapeHtml(entry?.category || '')}" placeholder="Ex: Adiantamento, Pagamento...">
               </div>
             </div>
             <div class="form-group">

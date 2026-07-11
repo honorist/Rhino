@@ -43,7 +43,7 @@ function normalizarPassarelli(passarelliBody) {
 
 function validarRdo(body, rdos, rdoIdAtual) {
   if (!body.data) return 'Data é obrigatória';
-  const duplicado = rdos.some(r => r.data === body.data && r.id !== rdoIdAtual);
+  const duplicado = rdos.some((r) => r.data === body.data && r.id !== rdoIdAtual);
   if (duplicado) return `Já existe um RDO para a data ${body.data} neste contrato`;
   return null;
 }
@@ -75,25 +75,37 @@ async function handleGetRdosGlobal(res) {
     // Obras ativas = status='ativo' (mesmo critério do dashboard).
     // Contratos com endDate no passado ainda contam se não foram concluídos manualmente —
     // isso é intencional: obra "vencida" mas aberta ainda precisa de RDO.
-    const ativas = contracts.filter(c => c.status === 'ativo');
+    const ativas = contracts.filter((c) => c.status === 'ativo');
 
     // Sem RDO ontem: obra ativa cuja data do último RDO < último dia útil
     const obrasSemRdoOntem = ativas
-      .filter(c => {
+      .filter((c) => {
         const last = lastByContract[c.id];
         return !last || last < ultimoDiaUtil;
       })
-      .map(c => ({ contractId: c.id, name: c.name, client: c.client, ultimoRdo: lastByContract[c.id] || null }));
+      .map((c) => ({
+        contractId: c.id,
+        name: c.name,
+        client: c.client,
+        ultimoRdo: lastByContract[c.id] || null,
+      }));
 
     // Atrasada: > 2 dias úteis sem RDO ou nunca fez RDO.
     const obrasAtrasadas = ativas
-      .map(c => {
+      .map((c) => {
         const last = lastByContract[c.id] || null;
         const nuncaFezRdo = !last;
         const diasSem = nuncaFezRdo ? null : feriados.diasUteisEntre(last, hojeISO);
-        return { contractId: c.id, name: c.name, client: c.client, ultimoRdo: last, diasUteisSemRdo: diasSem, nuncaFezRdo };
+        return {
+          contractId: c.id,
+          name: c.name,
+          client: c.client,
+          ultimoRdo: last,
+          diasUteisSemRdo: diasSem,
+          nuncaFezRdo,
+        };
       })
-      .filter(c => c.nuncaFezRdo || c.diasUteisSemRdo > 2)
+      .filter((c) => c.nuncaFezRdo || c.diasUteisSemRdo > 2)
       .sort((a, b) => {
         const av = a.nuncaFezRdo ? Number.MAX_SAFE_INTEGER : a.diasUteisSemRdo;
         const bv = b.nuncaFezRdo ? Number.MAX_SAFE_INTEGER : b.diasUteisSemRdo;
@@ -103,7 +115,7 @@ async function handleGetRdosGlobal(res) {
     // Aderência últimos 7 dias úteis: feitos / esperados (ativas × 7).
     const ultimos7 = feriados.ultimosNDiasUteis(7, hojeISO);
     const setUltimos7 = new Set(ultimos7);
-    const ativasIds = new Set(ativas.map(c => c.id));
+    const ativasIds = new Set(ativas.map((c) => c.id));
     let feitos = 0;
     // Contagem por dia para o gráfico
     const feitosPorDia = {};
@@ -122,7 +134,7 @@ async function handleGetRdosGlobal(res) {
     const aderenciaDiaria = ultimos7
       .slice()
       .sort()
-      .map(d => ({
+      .map((d) => ({
         data: d,
         feitos: feitosPorDia[d] || 0,
         esperados: ativas.length,
@@ -135,7 +147,7 @@ async function handleGetRdosGlobal(res) {
 
     // Aderência do mês corrente: RDOs feitos ÷ (obras ativas × dias úteis do mês até hoje).
     const mesInicio = hojeISO.slice(0, 7) + '-01';
-    const diasUteisMes = feriados.ultimosNDiasUteis(45, hojeISO).filter(d => d >= mesInicio);
+    const diasUteisMes = feriados.ultimosNDiasUteis(45, hojeISO).filter((d) => d >= mesInicio);
     const setMes = new Set(diasUteisMes);
     let feitosMes = 0;
     for (const r of rdos) {
@@ -184,7 +196,9 @@ async function handlePostRdo(contractId, body, res) {
           ? JSON.parse(contract.metadata)
           : contract.metadata || {};
       rdoSeed = Number(meta.rdoSeed) || 0;
-    } catch { /* metadata inválido — ignora */ }
+    } catch {
+      /* metadata inválido — ignora */
+    }
 
     const pass = normalizarPassarelli(body.passarelli);
 
@@ -193,32 +207,45 @@ async function handlePostRdo(contractId, body, res) {
       contractId,
       // Número editável: usa o informado (ex.: RDO antigo de obra em andamento);
       // senão, sequencial automático.
-      numero: (body.numero != null && String(body.numero).trim())
-        ? String(body.numero).trim()
-        : String(proxNumeroRdo(contract.rdos || [], rdoSeed)),
+      numero:
+        body.numero != null && String(body.numero).trim()
+          ? String(body.numero).trim()
+          : String(proxNumeroRdo(contract.rdos || [], rdoSeed)),
       data: body.data,
       diaSemana: body.diaSemana || '',
       osNumero: body.osNumero || '',
       ordemCompra: body.ordemCompra || '',
       projeto: body.projeto || '',
-      prazo: JSON.stringify(body.prazo || { dataInicial: '', contratual: 0, decorrido: 0, faltante: 0, pctConcluida: 0 }),
-      tempo: JSON.stringify(body.tempo || {
-        manha:    { tempo: 'bom', condicoes: 'operavel' },
-        tarde:    { tempo: 'bom', condicoes: 'operavel' },
-        noiteAnt: { tempo: 'bom', condicoes: 'operavel' },
-        precipitacao: 0,
-      }),
+      prazo: JSON.stringify(
+        body.prazo || { dataInicial: '', contratual: 0, decorrido: 0, faltante: 0, pctConcluida: 0 }
+      ),
+      tempo: JSON.stringify(
+        body.tempo || {
+          manha: { tempo: 'bom', condicoes: 'operavel' },
+          tarde: { tempo: 'bom', condicoes: 'operavel' },
+          noiteAnt: { tempo: 'bom', condicoes: 'operavel' },
+          precipitacao: 0,
+        }
+      ),
       periodoTrabalho: body.periodoTrabalho || '7:00 às 17:00',
       horaExtra: body.horaExtra ? 'true' : 'false',
-      moi:  JSON.stringify(Array.isArray(body.moi)  ? body.moi  : []),
-      mod:  JSON.stringify(Array.isArray(body.mod)  ? body.mod  : []),
+      moi: JSON.stringify(Array.isArray(body.moi) ? body.moi : []),
+      mod: JSON.stringify(Array.isArray(body.mod) ? body.mod : []),
       terc: JSON.stringify(Array.isArray(body.terc) ? body.terc : []),
       equipamentos: JSON.stringify(Array.isArray(body.equipamentos) ? body.equipamentos : []),
-      atividades:   JSON.stringify(Array.isArray(body.atividades)   ? body.atividades   : []),
-      seguranca: JSON.stringify(body.seguranca || { acidente: 'nao_houve', diagnostico: '', comentarios: '' }),
+      atividades: JSON.stringify(Array.isArray(body.atividades) ? body.atividades : []),
+      seguranca: JSON.stringify(
+        body.seguranca || { acidente: 'nao_houve', diagnostico: '', comentarios: '' }
+      ),
       fiscalizacaoComentarios: body.fiscalizacaoComentarios || '',
       totais: JSON.stringify({
-        moi: 0, mod: 0, terc: 0, eqp: 0, homensHora: 0, horasParadas: 0, equipamentoHora: 0,
+        moi: 0,
+        mod: 0,
+        terc: 0,
+        eqp: 0,
+        homensHora: 0,
+        horasParadas: 0,
+        equipamentoHora: 0,
         ...(body.totais || {}),
         totalHomemHora: pass.totalHomemHora,
       }),
@@ -238,7 +265,7 @@ async function handlePutRdo(contractId, rdoId, body, res) {
   try {
     const contract = await repos.contracts.findByIdWithChildren(contractId);
     if (!contract) return sendError(res, 404, 'Contrato não encontrado');
-    const atual = (contract.rdos || []).find(r => r.id === rdoId);
+    const atual = (contract.rdos || []).find((r) => r.id === rdoId);
     if (!atual) return sendError(res, 404, 'RDO não encontrado');
 
     const novaData = body.data !== undefined ? body.data : atual.data;
@@ -246,9 +273,30 @@ async function handlePutRdo(contractId, rdoId, body, res) {
     if (erro) return sendError(res, 400, erro);
 
     const allowed = {};
-    const stringFields = ['data', 'diaSemana', 'numero', 'osNumero', 'ordemCompra', 'projeto', 'periodoTrabalho', 'fiscalizacaoComentarios'];
-    for (const f of stringFields) { if (body[f] !== undefined) allowed[f] = body[f]; }
-    const jsonbFields = ['prazo', 'tempo', 'moi', 'mod', 'terc', 'equipamentos', 'atividades', 'seguranca', 'totais'];
+    const stringFields = [
+      'data',
+      'diaSemana',
+      'numero',
+      'osNumero',
+      'ordemCompra',
+      'projeto',
+      'periodoTrabalho',
+      'fiscalizacaoComentarios',
+    ];
+    for (const f of stringFields) {
+      if (body[f] !== undefined) allowed[f] = body[f];
+    }
+    const jsonbFields = [
+      'prazo',
+      'tempo',
+      'moi',
+      'mod',
+      'terc',
+      'equipamentos',
+      'atividades',
+      'seguranca',
+      'totais',
+    ];
     for (const f of jsonbFields) {
       if (body[f] !== undefined) allowed[f] = JSON.stringify(body[f]);
     }
@@ -257,9 +305,12 @@ async function handlePutRdo(contractId, rdoId, body, res) {
     if (body.passarelli !== undefined) {
       const pass = normalizarPassarelli(body.passarelli);
       allowed.passarelli = JSON.stringify(pass.passarelli);
-      const totaisBase = body.totais !== undefined
-        ? body.totais
-        : (typeof atual.totais === 'string' ? JSON.parse(atual.totais || '{}') : (atual.totais || {}));
+      const totaisBase =
+        body.totais !== undefined
+          ? body.totais
+          : typeof atual.totais === 'string'
+            ? JSON.parse(atual.totais || '{}')
+            : atual.totais || {};
       allowed.totais = JSON.stringify({ ...totaisBase, totalHomemHora: pass.totalHomemHora });
     }
     if (body.horaExtra !== undefined) allowed.horaExtra = body.horaExtra ? 'true' : 'false';
@@ -285,7 +336,7 @@ async function handleGetRdoPdf(contractId, rdoId, res) {
   try {
     const contract = await repos.contracts.findByIdWithChildren(contractId);
     if (!contract) return sendError(res, 404, 'Contrato não encontrado');
-    const rdo = (contract.rdos || []).find(r => r.id === rdoId);
+    const rdo = (contract.rdos || []).find((r) => r.id === rdoId);
     if (!rdo) return sendError(res, 404, 'RDO não encontrado');
 
     let buf;
@@ -336,4 +387,10 @@ async function handleDeleteRdo(contractId, rdoId, res) {
   }
 }
 
-module.exports = { handleGetRdosGlobal, handlePostRdo, handlePutRdo, handleDeleteRdo, handleGetRdoPdf };
+module.exports = {
+  handleGetRdosGlobal,
+  handlePostRdo,
+  handlePutRdo,
+  handleDeleteRdo,
+  handleGetRdoPdf,
+};

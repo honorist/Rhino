@@ -702,7 +702,7 @@ window.Recursos = {
                 </div>
                 <div class="form-group">
                   <label class="form-label">PIS/PASEP</label>
-                  <input class="form-control" name="pis" value="${r?.pis || ''}">
+                  <input class="form-control" name="pis" value="${window.escapeHtml(r?.pis || '')}">
                 </div>
               </div>
             </div>
@@ -756,14 +756,14 @@ window.Recursos = {
               </div>
               <div class="form-group">
                 <label class="form-label">Observações sobre o desligamento</label>
-                <textarea class="form-control" name="obsDesligamento" style="min-height:60px;">${r?.obsDesligamento || ''}</textarea>
+                <textarea class="form-control" name="obsDesligamento" style="min-height:60px;">${window.escapeHtml(r?.obsDesligamento || '')}</textarea>
               </div>
             </div>
 
             <div style="border-top:1px solid var(--color-border);padding-top:var(--sp-lg);margin-top:var(--sp-lg);">
               <div class="form-group">
                 <label class="form-label">Notas / Observações</label>
-                <textarea class="form-control" name="notas" style="min-height:60px;">${r?.notas || ''}</textarea>
+                <textarea class="form-control" name="notas" style="min-height:60px;">${window.escapeHtml(r?.notas || '')}</textarea>
               </div>
             </div>
           </form>

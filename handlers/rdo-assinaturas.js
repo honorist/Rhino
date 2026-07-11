@@ -29,7 +29,7 @@ function handlePostRdoAssinatura(rdoId, req, res) {
   let totalSize = 0;
   const MAX_TOTAL = ASSINATURA_MAX_BYTES + 32 * 1024;
 
-  req.on('data', c => {
+  req.on('data', (c) => {
     totalSize += c.length;
     if (totalSize > MAX_TOTAL) {
       req.destroy();
@@ -44,7 +44,7 @@ function handlePostRdoAssinatura(rdoId, req, res) {
       const body = Buffer.concat(chunks);
       const parts = parseMultipart(body, boundary);
 
-      const arq = parts.find(p => p.filename && p.data && p.data.length > 0);
+      const arq = parts.find((p) => p.filename && p.data && p.data.length > 0);
       if (!arq) return sendError(res, 400, 'Nenhuma imagem enviada');
       // FIX A-05: Content-Type obrigatório (antes `arq.contentType &&` permitia bypass).
       if (!arq.contentType || !ASSINATURA_ALLOWED_TYPES.includes(arq.contentType)) {
@@ -58,10 +58,10 @@ function handlePostRdoAssinatura(rdoId, req, res) {
         return sendError(res, 413, 'Assinatura excede 2 MB');
       }
 
-      const papelPart = parts.find(p => p.name === 'papel' && !p.filename);
-      const nomePart  = parts.find(p => p.name === 'nome'  && !p.filename);
+      const papelPart = parts.find((p) => p.name === 'papel' && !p.filename);
+      const nomePart = parts.find((p) => p.name === 'nome' && !p.filename);
       const papel = papelPart ? papelPart.data.toString('utf8').trim() : '';
-      const nome  = nomePart  ? nomePart.data.toString('utf8').trim()  : '';
+      const nome = nomePart ? nomePart.data.toString('utf8').trim() : '';
       if (!papel || !ASSINATURA_PAPEIS.has(papel)) return sendError(res, 400, 'Papel inválido');
       if (!nome) return sendError(res, 400, 'Nome obrigatório');
 
@@ -69,7 +69,10 @@ function handlePostRdoAssinatura(rdoId, req, res) {
       if (!rdo) return sendError(res, 404, 'RDO não encontrado');
 
       const id = generateId('ass');
-      const ip = req.socket?.remoteAddress || (req.headers['x-forwarded-for'] || '').split(',')[0]?.trim() || null;
+      // FIX L5: atrás de proxy (Railway) o req.socket.remoteAddress é o IP do PROXY,
+      // inútil pra trilha de não-repúdio. Prefere o 1º IP do X-Forwarded-For (cliente).
+      const xff = (req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+      const ip = xff || req.socket?.remoteAddress || null;
       const ua = (req.headers['user-agent'] || '').slice(0, 500);
 
       await db.query(
@@ -78,7 +81,14 @@ function handlePostRdoAssinatura(rdoId, req, res) {
         [id, rdoId, papel, nome, arq.data, arq.contentType || 'image/png', ip, ua]
       );
 
-      sendJson(res, { ok: true, id, papel, nome, sizeBytes: arq.data.length, createdAt: new Date().toISOString() });
+      sendJson(res, {
+        ok: true,
+        id,
+        papel,
+        nome,
+        sizeBytes: arq.data.length,
+        createdAt: new Date().toISOString(),
+      });
     } catch (e) {
       sendError(res, 400, e.message);
     }
@@ -126,6 +136,8 @@ async function handleDeleteRdoAssinatura(rdoId, assId, res) {
 }
 
 module.exports = {
-  handlePostRdoAssinatura, handleListRdoAssinaturas,
-  handleGetRdoAssinatura, handleDeleteRdoAssinatura,
+  handlePostRdoAssinatura,
+  handleListRdoAssinaturas,
+  handleGetRdoAssinatura,
+  handleDeleteRdoAssinatura,
 };

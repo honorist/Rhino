@@ -21,8 +21,11 @@ const { podeAprovar } = require('../lib/recrutamento-docs');
 const candidatoDocs = require('./candidato-documentos'); // tiposComArquivo (sem ciclo: não requer este módulo)
 
 const STATUS_CANDIDATO_VALIDOS = [
-  'contatado', 'interessado', 'sem_interesse',
-  'reprovado_antecedentes', 'aprovado',
+  'contatado',
+  'interessado',
+  'sem_interesse',
+  'reprovado_antecedentes',
+  'aprovado',
 ];
 const ANTECEDENTES_VALIDOS = ['pendente', 'ok', 'reprovado'];
 const DOC_TIPOS = ['rg', 'cpf', 'residencia', 'ctps', 'antecedentes'];
@@ -54,10 +57,7 @@ async function listarSolicitacoes(req, res) {
     // Anexa as vagas de cada solicitação (lista pequena, JOIN simples ok).
     const ids = solicitacoes.map((s) => s.id);
     const vagas = ids.length
-      ? await db.getMany(
-          `SELECT * FROM vagas WHERE solicitacao_id = ANY($1::text[])`,
-          [ids],
-        )
+      ? await db.getMany(`SELECT * FROM vagas WHERE solicitacao_id = ANY($1::text[])`, [ids])
       : [];
     const byId = new Map();
     for (const v of vagas) {
@@ -84,7 +84,7 @@ async function obterSolicitacao(req, res, id) {
     const candidatos = vagaIds.length
       ? await db.getMany(
           `SELECT * FROM candidatos WHERE vaga_id = ANY($1::text[]) ORDER BY created_at DESC`,
-          [vagaIds],
+          [vagaIds]
         )
       : [];
     const candidatosByVaga = new Map();
@@ -157,11 +157,9 @@ async function criarSolicitacao(req, body, res) {
     await notificarRh(
       'recrutamento.nova_solicitacao',
       `Nova solicitação de contratação de ${sol.solicitanteNome}`,
-      vagasCriadas
-        .map((v) => `${v.qtdTotal}× ${v.cargo}`)
-        .join(', '),
+      vagasCriadas.map((v) => `${v.qtdTotal}× ${v.cargo}`).join(', '),
       `/recrutamento?solicitacao=${sol.id}`,
-      { solicitacaoId: sol.id },
+      { solicitacaoId: sol.id }
     );
 
     sendJson(res, { solicitacao: { ...sol, vagas: vagasCriadas } });
@@ -193,9 +191,8 @@ async function adicionarCandidato(req, body, res, vagaId) {
     if (!body.nome || !String(body.nome).trim())
       return sendError(res, 400, 'Nome do candidato é obrigatório.');
 
-    const status = body.status && STATUS_CANDIDATO_VALIDOS.includes(body.status)
-      ? body.status
-      : 'contatado';
+    const status =
+      body.status && STATUS_CANDIDATO_VALIDOS.includes(body.status) ? body.status : 'contatado';
 
     const cand = await repos.candidatos.create({
       id: generateId('cnd'),
@@ -225,8 +222,7 @@ async function atualizarTriagem(req, body, res, candidatoId) {
       return sendError(res, 400, `Status inválido: ${novoStatus}`);
 
     // Validação de transição: aprovado/reprovado_antecedentes são estados terminais.
-    if (cand.status === 'aprovado')
-      return sendError(res, 400, 'Candidato já aprovado.');
+    if (cand.status === 'aprovado') return sendError(res, 400, 'Candidato já aprovado.');
 
     const updated = await repos.candidatos.updateById(candidatoId, {
       status: novoStatus,
@@ -248,7 +244,7 @@ async function atualizarAntecedentes(req, body, res, candidatoId) {
       return sendError(
         res,
         400,
-        'Antecedentes só podem ser registrados após o candidato confirmar interesse.',
+        'Antecedentes só podem ser registrados após o candidato confirmar interesse.'
       );
 
     const resultado = body.resultado;
@@ -283,7 +279,7 @@ async function anexarDocumento(req, body, res, candidatoId, tipo) {
       return sendError(
         res,
         400,
-        'Documentos só podem ser anexados após aprovação dos antecedentes.',
+        'Documentos só podem ser anexados após aprovação dos antecedentes.'
       );
     if (!body.filename || !body.storagePath)
       return sendError(res, 400, 'documento.filename e documento.storagePath são obrigatórios');
@@ -325,7 +321,7 @@ async function aprovarCandidato(req, body, res, candidatoId) {
     const arquivos = await db.getMany(
       `SELECT id, tipo, filename, filename_original, mime_type, size_bytes, data
          FROM candidato_doc_arquivos WHERE candidato_id = $1`,
-      [candidatoId],
+      [candidatoId]
     );
     const arqByTipo = new Map(arquivos.map((a) => [a.tipo, a]));
     const docsJsonb = cand.documentos || {};
@@ -378,7 +374,16 @@ async function aprovarCandidato(req, body, res, candidatoId) {
           `INSERT INTO recurso_doc_arquivos
            (id, recurso_id, doc_id, filename, filename_original, mime_type, size_bytes, data)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [arqId, recurso.id, docId, a.filename, a.filenameOriginal || null, a.mimeType, a.sizeBytes, a.data],
+          [
+            arqId,
+            recurso.id,
+            docId,
+            a.filename,
+            a.filenameOriginal || null,
+            a.mimeType,
+            a.sizeBytes,
+            a.data,
+          ]
         );
       }
 
@@ -395,7 +400,7 @@ async function aprovarCandidato(req, body, res, candidatoId) {
       // Verifica se a solicitação pode ser fechada (todas as vagas atingiram total)
       const todasVagas = await repos.vagas.findAll({ solicitacaoId: vaga.solicitacaoId });
       const todasPreenchidas = todasVagas.every(
-        (v) => (v.id === vaga.id ? novaQtd : v.qtdPreenchida) >= v.qtdTotal,
+        (v) => (v.id === vaga.id ? novaQtd : v.qtdPreenchida) >= v.qtdTotal
       );
       if (todasPreenchidas) {
         await repos.solicitacoesContratacao.updateById(vaga.solicitacaoId, {
@@ -426,7 +431,7 @@ async function listarNotificacoes(req, res) {
       `SELECT * FROM notificacoes
         WHERE destinatario IN ('rh', 'todos', $1)
         ORDER BY created_at DESC LIMIT 100`,
-      [user.id],
+      [user.id]
     );
     sendJson(res, { notificacoes: rows });
   } catch (e) {

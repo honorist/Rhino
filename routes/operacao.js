@@ -190,7 +190,7 @@ module.exports = function registerOperacao(router, deps) {
   );
 
   // ── KPIs operacionais do dashboard (frota/compras/recrutamento/folha/estoque) ──
-  router.get('/api/dashboard/cobranca', (ctx) => deps.handleDashboardCobranca(ctx.res));
+  router.get('/api/dashboard/cobranca', (ctx) => deps.handleDashboardCobranca(ctx.req, ctx.res));
   router.get('/api/dashboard/operacional', (ctx) => deps.handleDashboardOperacional(ctx.res));
 
   // ── Layouts de dashboard (por usuário) ──

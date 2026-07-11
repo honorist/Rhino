@@ -361,12 +361,26 @@ async function handleDashboardOperacional(res) {
   const MES_ANT = `data >= date_trunc('month', CURRENT_DATE - interval '1 month') AND data < date_trunc('month', CURRENT_DATE)`;
 
   const [
-    comb, topCombustivel, manut, compras, vagas, candidatos, folha,
-    estoqueValor, estoqueMin, manutEquip, docsKpi, propostasKpi,
-    candidatosParados, revisoes, folgasKpi, comprasParadas,
+    comb,
+    topCombustivel,
+    manut,
+    compras,
+    vagas,
+    candidatos,
+    folha,
+    estoqueValor,
+    estoqueMin,
+    manutEquip,
+    docsKpi,
+    propostasKpi,
+    candidatosParados,
+    revisoes,
+    folgasKpi,
+    comprasParadas,
   ] = await Promise.all([
     safe(
-      () => db.getOne(`
+      () =>
+        db.getOne(`
         SELECT COALESCE(SUM(valor_total) FILTER (WHERE ${MES_ATUAL}),0)::float AS mes_atual,
                COALESCE(SUM(valor_total) FILTER (WHERE ${MES_ANT}),0)::float AS mes_anterior,
                COALESCE(SUM(litros) FILTER (WHERE ${MES_ATUAL}),0)::float AS litros_atual,
@@ -375,7 +389,8 @@ async function handleDashboardOperacional(res) {
       { mesAtual: 0, mesAnterior: 0, litrosAtual: 0, litrosAnterior: 0 }
     ),
     safe(
-      () => db.getMany(`
+      () =>
+        db.getMany(`
         SELECT v.placa, v.modelo, COALESCE(SUM(a.valor_total),0)::float AS total, COALESCE(SUM(a.litros),0)::float AS litros
         FROM veiculo_abastecimentos a JOIN veiculos v ON v.id = a.veiculo_id
         WHERE a.data >= date_trunc('month', CURRENT_DATE)
@@ -383,14 +398,16 @@ async function handleDashboardOperacional(res) {
       []
     ),
     safe(
-      () => db.getOne(`
+      () =>
+        db.getOne(`
         SELECT COALESCE(SUM(custo) FILTER (WHERE ${MES_ATUAL}),0)::float AS mes_atual,
                COALESCE(SUM(custo) FILTER (WHERE ${MES_ANT}),0)::float AS mes_anterior
         FROM veiculo_manutencoes`),
       { mesAtual: 0, mesAnterior: 0 }
     ),
     safe(
-      () => db.getOne(`
+      () =>
+        db.getOne(`
         SELECT COUNT(*) FILTER (WHERE status IN ('pendente_avaliacao','pendente_aprovacao'))::int AS abertas,
                COALESCE(SUM(valor_total) FILTER (WHERE status IN ('pendente_avaliacao','pendente_aprovacao')),0)::float AS valor_aberto,
                COALESCE(SUM(valor_total) FILTER (WHERE status='aprovada' AND aprovado_em >= date_trunc('month', CURRENT_DATE)),0)::float AS comprado_atual,
@@ -399,17 +416,22 @@ async function handleDashboardOperacional(res) {
       { abertas: 0, valorAberto: 0, compradoAtual: 0, compradoAnterior: 0 }
     ),
     safe(
-      () => db.getOne(`SELECT COALESCE(SUM(GREATEST(qtd_total - qtd_preenchida,0)),0)::int AS abertas FROM vagas`),
+      () =>
+        db.getOne(
+          `SELECT COALESCE(SUM(GREATEST(qtd_total - qtd_preenchida,0)),0)::int AS abertas FROM vagas`
+        ),
       { abertas: 0 }
     ),
     safe(
-      () => db.getOne(`
+      () =>
+        db.getOne(`
         SELECT COUNT(*) FILTER (WHERE status IN ('contatado','interessado'))::int AS em_andamento,
                COUNT(*) FILTER (WHERE status='aprovado')::int AS aprovados FROM candidatos`),
       { emAndamento: 0, aprovados: 0 }
     ),
     safe(
-      () => db.getOne(`
+      () =>
+        db.getOne(`
         SELECT COALESCE(SUM(valor_vale + valor_saldo) FILTER (WHERE competencia = to_char(CURRENT_DATE,'YYYY-MM')),0)::float AS custo_atual,
                COALESCE(SUM(valor_vale + valor_saldo) FILTER (WHERE competencia = to_char(CURRENT_DATE - interval '1 month','YYYY-MM')),0)::float AS custo_anterior,
                COALESCE(SUM((CASE WHEN NOT vale_pago THEN valor_vale ELSE 0 END) + (CASE WHEN NOT saldo_pago THEN valor_saldo ELSE 0 END)) FILTER (WHERE competencia = to_char(CURRENT_DATE,'YYYY-MM')),0)::float AS pendente_atual
@@ -417,11 +439,15 @@ async function handleDashboardOperacional(res) {
       { custoAtual: 0, custoAnterior: 0, pendenteAtual: 0 }
     ),
     safe(
-      () => db.getOne(`SELECT COALESCE(SUM(s.quantidade * i.custo_medio),0)::float AS valor FROM estoque_saldo s JOIN itens_estoque i ON i.id = s.item_id`),
+      () =>
+        db.getOne(
+          `SELECT COALESCE(SUM(s.quantidade * i.custo_medio),0)::float AS valor FROM estoque_saldo s JOIN itens_estoque i ON i.id = s.item_id`
+        ),
       { valor: 0 }
     ),
     safe(
-      () => db.getOne(`
+      () =>
+        db.getOne(`
         SELECT COUNT(*)::int AS abaixo FROM (
           SELECT i.id FROM itens_estoque i LEFT JOIN estoque_saldo s ON s.item_id = i.id
           WHERE i.ativo = TRUE AND i.estoque_minimo > 0
@@ -429,7 +455,8 @@ async function handleDashboardOperacional(res) {
       { abaixo: 0 }
     ),
     safe(
-      () => db.getOne(`
+      () =>
+        db.getOne(`
         SELECT
           COUNT(*) FILTER (WHERE status IN ('solicitada','pendente_aprovacao','aprovada'))::int AS em_aberto,
           COUNT(*) FILTER (WHERE status = 'solicitada')::int AS a_avaliar,
@@ -442,7 +469,8 @@ async function handleDashboardOperacional(res) {
       { emAberto: 0, aAvaliar: 0, emManutencao: 0, atrasadas: 0 }
     ),
     safe(
-      () => db.getOne(`
+      () =>
+        db.getOne(`
         WITH ds AS (
           SELECT NULLIF(doc.val->>'uploadedAt', '')::timestamptz
                    + (t.periodicidade_meses || ' months')::interval AS vence_em
@@ -463,7 +491,8 @@ async function handleDashboardOperacional(res) {
       { vencidos: 0, vencendo30d: 0 }
     ),
     safe(
-      () => db.getOne(`
+      () =>
+        db.getOne(`
         SELECT
           COUNT(*) FILTER (WHERE status IN ('rascunho','enviada'))::int AS em_andamento,
           COALESCE(SUM(valor_total) FILTER (WHERE status IN ('rascunho','enviada')), 0)::float AS valor_em_andamento,
@@ -474,7 +503,8 @@ async function handleDashboardOperacional(res) {
       { emAndamento: 0, valorEmAndamento: 0, taxaConversao: 0 }
     ),
     safe(
-      () => db.getOne(`
+      () =>
+        db.getOne(`
         SELECT COUNT(*) FILTER (
           WHERE status IN ('contatado','interessado')
             AND updated_at < NOW() - interval '7 days'
@@ -483,7 +513,8 @@ async function handleDashboardOperacional(res) {
       { parados: 0 }
     ),
     safe(
-      () => db.getOne(`
+      () =>
+        db.getOne(`
         SELECT COUNT(DISTINCT veiculo_id)::int AS vencidas
         FROM veiculo_planos
         WHERE ativo = TRUE
@@ -493,7 +524,8 @@ async function handleDashboardOperacional(res) {
       { vencidas: 0 }
     ),
     safe(
-      () => db.getOne(`
+      () =>
+        db.getOne(`
         SELECT COUNT(DISTINCT r.id)::int AS proximas_5d
         FROM recursos r
         CROSS JOIN LATERAL jsonb_array_elements(COALESCE(r.folgas, '[]'::jsonb)) AS f
@@ -502,7 +534,8 @@ async function handleDashboardOperacional(res) {
       { proximas5d: 0 }
     ),
     safe(
-      () => db.getOne(`
+      () =>
+        db.getOne(`
         SELECT
           COUNT(*) FILTER (WHERE status = 'pendente_avaliacao')::int AS em_avaliacao,
           COUNT(*) FILTER (WHERE status = 'pendente_avaliacao'
@@ -2752,7 +2785,13 @@ function _serveHtmlWithBootstrap(pathname, res) {
     // versão atrás a cada deploy. Os scripts lazy já versionam em app.js.
     .replace(/(src|href)="(\.\/(?:js|css)\/[^"]+\.(?:js|css))"/g, `$1="$2?v=${APP_VERSION}"`);
   // CSP com nonce — só o script-src difere; resto vem de buildCsp().
-  const csp = buildCsp(`script-src 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net`);
+  // FIX M4 (varredura 2026-07): estreita o script-src para os CAMINHOS dos pacotes
+  // vendorados via jsDelivr (mermaid no Manual, shepherd no onboarding) em vez do
+  // domínio inteiro — jsDelivr serve QUALQUER pacote npm, então liberar o host todo
+  // é um bypass de CSP (um XSS poderia carregar /npm/<pacote-malicioso>).
+  const csp = buildCsp(
+    `script-src 'self' 'nonce-${nonce}' https://cdn.jsdelivr.net/npm/mermaid@10/ https://cdn.jsdelivr.net/npm/shepherd.js@11/`
+  );
   res.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
@@ -2765,7 +2804,10 @@ function _serveHtmlWithBootstrap(pathname, res) {
 
 function serveStaticFile(pathname, res) {
   // HTML nunca usa cache em memória — cada response tem nonce CSP único.
-  if (pathname === '/' || pathname.endsWith('.html')) {
+  // FIX L1: só o index.html é servido como HTML (com bootstrap). Qualquer outro
+  // `.html` cai na allowlist abaixo e vira 404 — sem isso, QUALQUER .html da árvore
+  // do projeto (ex.: relatórios de coverage) era servível com o bootstrap injetado.
+  if (pathname === '/' || pathname === '/index.html') {
     return _serveHtmlWithBootstrap(pathname, res);
   }
   // FIX H-01: allowlist de recursos públicos do frontend. STATIC_ROOT é a raiz
@@ -2952,7 +2994,10 @@ const server = http.createServer((req, res) => {
   //  - script-src-elem permite jsdelivr APENAS para mermaid ESM (Manual)
   //  - style-src mantém 'unsafe-inline' (muitos inline styles em views;
   //    refator separado, menor risco que script inline)
-  res.setHeader('Content-Security-Policy', buildCsp("script-src 'self' https://cdn.jsdelivr.net"));
+  res.setHeader(
+    'Content-Security-Policy',
+    buildCsp("script-src 'self' https://cdn.jsdelivr.net/npm/mermaid@10/")
+  );
   if (process.env.NODE_ENV === 'production') {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
@@ -3323,6 +3368,10 @@ const VIEW_PERMISSION_RULES = [
   // Recrutamento expõe CPF/antecedentes — leitura restrita a quem tem a tela.
   // (/api/notificacoes NÃO casa este regex, segue aberto pro sino.)
   { re: /^\/api\/recrutamento(\/|$)/, screen: '#/recrutamento' },
+  // Arquivo de documento de colaborador (BYTEA decifrado = PII sensível): só
+  // baixa quem tem a tela Recursos. A LISTA /api/recursos segue aberta (alimenta
+  // dropdowns/nomes em outras telas) — gateamos APENAS o download do arquivo.
+  { re: /^\/api\/recursos\/[^/]+\/documentos\/[^/]+\/arquivo$/, screen: '#/recursos' },
 ];
 
 /**
@@ -3418,7 +3467,14 @@ async function withIdempotency(req, res, pathname, body, runHandler) {
   if (!key || typeof key !== 'string') return runHandler();
 
   const method = req.method || 'POST';
-  const rowId = crypto.createHash('sha256').update(`${method} ${pathname} ${key}`).digest('hex');
+  // FIX L2 (varredura 2026-07): escopa a chave por USUÁRIO. Sem o id do usuário no
+  // hash, dois usuários com a mesma Idempotency-Key na mesma rota compartilhariam a
+  // resposta capturada (replay cross-user vazaria a resposta de um pro outro).
+  const uid = (req.user && req.user.id) || 'anon';
+  const rowId = crypto
+    .createHash('sha256')
+    .update(`${uid} ${method} ${pathname} ${key}`)
+    .digest('hex');
   const reqHash = crypto
     .createHash('sha256')
     .update(typeof body === 'string' ? body : JSON.stringify(body || {}))

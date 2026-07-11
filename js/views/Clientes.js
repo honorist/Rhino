@@ -269,7 +269,7 @@ window.Clientes = {
         ? `
       <div style="padding:10px 0;border-bottom:1px solid var(--rh-ink-200);display:flex;justify-content:space-between;gap:12px;">
         <span class="rh-meta" style="flex-shrink:0;">${escapeHtml(label)}</span>
-        <span style="text-align:right;font-weight:600;">${link ? `<a href="${link}" style="color:var(--rh-brand-500);text-decoration:none;">${escapeHtml(value)}</a>` : escapeHtml(value)}</span>
+        <span style="text-align:right;font-weight:600;">${link ? `<a href="${escapeHtml(link)}" style="color:var(--rh-brand-500);text-decoration:none;">${escapeHtml(value)}</a>` : escapeHtml(value)}</span>
       </div>
     `
         : '';
