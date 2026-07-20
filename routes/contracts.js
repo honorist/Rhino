@@ -41,6 +41,7 @@ module.exports = function registerContracts(router, deps) {
   router.put('/api/contracts/:id/atividades/:atvId',    (ctx) => deps.handlePutAtividade(ctx.params[0], ctx.params[1], ctx.body, ctx.res));
   router.delete('/api/contracts/:id/atividades/:atvId', (ctx) => deps.handleDeleteAtividade(ctx.params[0], ctx.params[1], ctx.res));
   router.get('/api/contracts/:id/curva-s',              (ctx) => deps.handleGetCurvaS(ctx.params[0], ctx.res));
+  router.get('/api/contracts/:id/dre',                  (ctx) => deps.handleGetContractDre(ctx.params[0], ctx.res));
 
   // ── Organograma ── (DELETE recebe também body e query)
   router.post('/api/contracts/:id/organograma',             (ctx) => deps.handlePostMembroOrganograma(ctx.params[0], ctx.body, ctx.res));

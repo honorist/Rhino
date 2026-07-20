@@ -253,6 +253,7 @@ window.ContratoDetail = {
           ${[
             { k:'visao',      l:'Visão Geral',  icon:'eye' },
             { k:'financeiro', l:'Financeiro',   icon:'dollar-sign' },
+            { k:'dre',        l:'DRE / Margem', icon:'trending-up' },
             { k:'medicao',    l:'Medição',      icon:'list' },
             { k:'cronograma', l:'Cronograma',   icon:'calendar' },
             { k:'equipe',     l:'Equipe',       icon:'users' },
@@ -571,6 +572,9 @@ window.ContratoDetail = {
 
         <!-- ─── Medição (BM estruturado: planilha de serviços + BMs) ─── -->
         ${this._tab === 'medicao' ? this.renderMedicaoSection(contract) : ''}
+
+        <!-- ─── DRE / Margem por obra (realizado, base caixa) ─── -->
+        ${this._tab === 'dre' ? this.renderDreSection(contract) : ''}
 
         <!-- ─── Cronograma físico-financeiro ─── -->
         ${this._tab === 'cronograma' ? this.renderCronogramaSection(contract) : ''}
@@ -945,6 +949,9 @@ window.ContratoDetail = {
         this._loadAtividades(contract);
         document.getElementById('btnNovaAtividade')?.addEventListener('click', () => this._showModalAtividade(contract, null));
       }
+
+      // DRE / Margem — busca o consolidado do servidor (fonte única, base caixa)
+      if (this._tab === 'dre') this._loadDre(contract);
 
       document.querySelectorAll('.composicao-item[data-tipo]').forEach(el => {
         el.addEventListener('click', () => {

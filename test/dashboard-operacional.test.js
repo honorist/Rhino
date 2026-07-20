@@ -111,8 +111,8 @@ test('financeiro: banco vazio devolve painel coerente e 200', async () => {
   assert.ok(Array.isArray(res.body.historicoCaixa), 'histórico é sempre uma série');
 });
 
-// ── Financeiro: margem por contrato = valor - saídas do contrato ────────────
-test('financeiro: margem por obra = valor do contrato menos suas saídas', async () => {
+// ── Financeiro: margem por obra = DRE realizado (caixa); saldoAMedir à parte ──
+test('financeiro: margin = margem realizada do caixa; saldoAMedir = valor − medido', async () => {
   repos.contracts = {
     getEnvelope: async () => ({
       contracts: [
@@ -121,12 +121,19 @@ test('financeiro: margem por obra = valor do contrato menos suas saídas', async
       ],
       saidas: [
         { contractId: 'c1', value: 300 },
-        { contractId: 'c1', value: 100 },
-        { contractId: 'c2', value: 500 },
+        { contractId: 'c1', value: 100 }, // c1 medido = 400
+        { contractId: 'c2', value: 500 }, // c2 medido = 500
       ],
     }),
   };
-  repos.caixa = { findAll: async () => [] };
+  // Caixa realizado de c1: recebeu 480 de NF, gastou 260 (MO+material); c2 vazio.
+  repos.caixa = {
+    findAll: async () => [
+      { contractId: 'c1', type: 'entrada', category: 'nota_fiscal', value: 480, date: '2026-07-01' },
+      { contractId: 'c1', type: 'saida', category: 'mao_de_obra', value: 200, date: '2026-07-02' },
+      { contractId: 'c1', type: 'saida', category: 'Estoque', value: 60, date: '2026-07-03' },
+    ],
+  };
   repos.baseItems = { findAll: async () => [] };
   repos.notasFiscais = { findAll: async () => [] };
   repos.contasPagar = { findAll: async () => [] };
@@ -135,9 +142,16 @@ test('financeiro: margem por obra = valor do contrato menos suas saídas', async
   await dashboards.handleDashboard(res, {});
 
   const byId = Object.fromEntries(res.body.contractsWithMargin.map((c) => [c.id, c]));
-  assert.strictEqual(byId.c1.margin, 600); // 1000 - (300+100)
-  assert.strictEqual(byId.c1.marginPct, '60.00');
-  assert.strictEqual(byId.c2.margin, 0); // 500 - 500
+  // Margem realizada de c1 = 480 recebido − 260 gasto = 220 (45,83% da receita).
+  assert.strictEqual(byId.c1.margin, 220);
+  assert.strictEqual(byId.c1.marginPct, 45.83);
+  assert.strictEqual(byId.c1.receitaRecebida, 480);
+  assert.strictEqual(byId.c1.custoRealizado, 260);
+  // Saldo a medir (o antigo "margin" enganoso) = 1000 − 400.
+  assert.strictEqual(byId.c1.saldoAMedir, 600);
+  // c2 sem caixa: margem realizada 0; saldo a medir = 500 − 500 = 0.
+  assert.strictEqual(byId.c2.margin, 0);
+  assert.strictEqual(byId.c2.saldoAMedir, 0);
   assert.strictEqual(res.body.activeContracts, 2);
   assert.strictEqual(res.body.totalContractValue, 1500);
 });

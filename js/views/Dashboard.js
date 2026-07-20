@@ -472,7 +472,7 @@ window.Dashboard = {
               meta: `${dash.activeContracts} contrato${dash.activeContracts !== 1 ? 's' : ''} ativo${dash.activeContracts !== 1 ? 's' : ''}`,
               spark: _spark45.saldo.map((v, i) => v - (_spark45.saidasAcum[i] || 0)),
               tooltip:
-                'Média aritmética simples das margens dos contratos ativos. Margem = (valor − saídas) ÷ valor × 100.',
+                'Média aritmética simples das margens realizadas dos contratos ativos. Margem realizada = (recebido − custos pagos, do caixa) ÷ recebido × 100.',
             })}
             <!-- Hero enxuto: 6 KPIs essenciais. Prospecção/Aportes/Colaboradores
                  saíram daqui (continuam nas próprias páginas via menu). -->
@@ -951,7 +951,7 @@ window.Dashboard = {
                           <a href="#/contratos/${c.id}" style="color:var(--color-primary); text-decoration:none; font-weight:500;">${escapeHtml(c.name)}</a>
                           <div class="rh-meta">${escapeHtml(c.client)}</div>
                         </td>
-                        <td>${Store.formatBRL(c.totalSaidas)}</td>
+                        <td>${Store.formatBRL(c.custoRealizado)}</td>
                         <td>
                           <span style="font-weight:700; color:${cor};">${pct}%</span>
                           <div class="progress-bar-wrap" style="margin-top:4px; width:80px;">

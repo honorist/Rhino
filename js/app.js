@@ -17,6 +17,7 @@ const _lazyManifest = {
       './js/views/contrato/rdos-pdf-batch.js',
       './js/views/contrato/modais.js',
       './js/views/contrato/cronograma.js',
+      './js/views/contrato/dre.js',
       './js/views/contrato/medicao.js',
       './js/views/contrato/medicao-bms.js',
       './js/views/contrato/export-pdf.js',

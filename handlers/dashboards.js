@@ -14,6 +14,7 @@
 const db = require('../db');
 const repos = require('../db/repos');
 const money = require('../lib/money');
+const { computeDreRealizado } = require('../lib/dre'); // margem por obra = DRE realizado (caixa)
 const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
 
@@ -320,19 +321,42 @@ async function handleDashboard(res, query) {
       .sort((a, b) => new Date(b.date) - new Date(a.date))
       .slice(0, 20);
 
+    // Margem por obra = DRE REALIZADO (base caixa), fonte única em lib/dre.js.
+    // Antes, `margin` era `valor − Σ saidas` — mas `saidas` é Boletim de Medição
+    // (receita medida), então aquilo era "saldo a medir", não margem. Agora:
+    //   margin       = margem realizada (receita recebida − custos, do caixa)
+    //   saldoAMedir  = valor do contrato − medido (o antigo `margin`, rotulado certo)
+    // Agrupa o caixa (já carregado) por contrato numa passada, evitando N×M.
+    const caixaPorContrato = new Map();
+    for (const e of caixa.entries) {
+      if (!e.contractId) continue;
+      const arr = caixaPorContrato.get(e.contractId) || [];
+      arr.push({ type: e.type, category: e.category, total: e.value });
+      caixaPorContrato.set(e.contractId, arr);
+    }
     const contractsWithMargin = contracts.contracts.map((c) => {
       const cSaidas = contracts.saidas
         .filter((s) => s.contractId === c.id)
         .reduce((sum, s) => sum + s.value, 0);
-      const margin = c.value - cSaidas;
+      const dre = computeDreRealizado({
+        contractValue: c.value,
+        totalMedido: cSaidas,
+        caixaRows: caixaPorContrato.get(c.id) || [],
+      });
       return {
         id: c.id,
         name: c.name,
         client: c.client,
         value: c.value,
         totalSaidas: cSaidas,
-        margin: margin,
-        marginPct: c.value > 0 ? ((margin / c.value) * 100).toFixed(2) : 0,
+        // Margem realizada (do caixa) — o número "de verdade".
+        margin: dre.margem.valor,
+        marginPct: dre.margem.pct,
+        receitaRecebida: dre.receita.recebida,
+        custoRealizado: dre.custoTotal,
+        // Saldo ainda a medir (era o antigo `margin`, agora rotulado corretamente).
+        saldoAMedir: dre.saldoAMedir.valor,
+        saldoAMedirPct: dre.saldoAMedir.pct,
         status: c.status,
         endDate: c.endDate,
       };

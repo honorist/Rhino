@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.25.4",
+      "date": "2026-07-20",
+      "summary": "Nova aba DRE / Margem por obra",
+      "changes": [
+        "Cada obra ganhou a aba 'DRE / Margem': receita recebida menos os custos por categoria (mão de obra, material, BASE, frota, passagens) = margem realizada, com base no que de fato entrou e saiu do caixa",
+        "O Dashboard agora mostra a margem de verdade por obra (lucro sobre o recebido); antes o número era, na prática, o saldo ainda a medir — que agora aparece separado e com o nome certo",
+        "Perfis com abas de contrato restritas precisam da permissão 'contrato-tab:dre' para ver a nova aba (perfis de administrador já enxergam)"
+      ]
+    },
+    {
       "version": "1.25.3",
       "date": "2026-07-20",
       "summary": "Reorganização interna: código do servidor mais enxuto e testável",

@@ -753,7 +753,7 @@ test('routes/operacao.js — req injetado, sub-recursos aninhados e :param', () 
 
 // ─── routes/contracts.js (contratos, saídas, RDO, aditivos, marcos…) ─────────
 
-test('routes/contracts.js — registra exatamente as 45 rotas de contratos', () => {
+test('routes/contracts.js — registra exatamente as 46 rotas de contratos', () => {
   const router = createRouter();
   require('../routes/contracts')(router, {});
   const rotas = router
@@ -778,6 +778,7 @@ test('routes/contracts.js — registra exatamente as 45 rotas de contratos', () 
       'GET /api/contracts',
       'GET /api/contracts/:id/atividades',
       'GET /api/contracts/:id/curva-s',
+      'GET /api/contracts/:id/dre',
       'GET /api/contracts/:id/medicoes',
       'GET /api/contracts/:id/servicos',
       'GET /api/contracts/:id/rdos/:rdoId/assinaturas',
@@ -919,6 +920,18 @@ test('routes/contracts.js — BM estruturado: serviços, medições e aprovaçã
     res: 'R',
   });
   assert.deepEqual(c.aprovBm, ['C2', 'NF8', 'B', undefined, 'R']);
+});
+
+test('routes/contracts.js — DRE por obra despacha (id, res)', () => {
+  const c = {};
+  const router = createRouter();
+  require('../routes/contracts')(router, {
+    handleGetContractDre: (cid, res) => {
+      c.dre = [cid, res];
+    },
+  });
+  router.dispatch({ method: 'GET', pathname: '/api/contracts/C1/dre', res: 'R' });
+  assert.deepEqual(c.dre, ['C1', 'R']);
 });
 
 // ─── routes/recrutamento.js (solicitações, candidatos, docs/arquivo, sino) ───
