@@ -96,8 +96,8 @@ const perms = require('./lib/permissions');
 const portalHandlers = require('./handlers/portal'); // portal do cliente: auth/login/impersonate/dashboard/rdo-pdf
 const usuariosHandlers = require('./handlers/usuarios'); // RBAC: users CRUD + níveis de acesso
 const integracoesHandlers = require('./handlers/integracoes'); // LGPD + IA (chat/classify/uso) + OFX
+const platformHandlers = require('./handlers/platform'); // push/auditoria/anomalias/recorrências/flags/busca/arquivos
 const fluxoCompra = require('./lib/fluxo-compra');
-const recorrencia = require('./lib/recorrencia');
 const { sendJson, sendError, setErrorReporter } = require('./lib/http-respond');
 // Todo 5xx respondido pela API vira evento de observabilidade. Injetado (e não
 // importado dentro do http-respond) para manter aquele módulo sem dependência.
@@ -240,53 +240,7 @@ const { generateId } = require('./lib/id'); // Fase A — extraído para lib/id.
 // Contratos (CRUD principal) extraídos → handlers/contracts.js
 
 // ── Push Notification Handlers ──────────────────────────────────────────────
-async function handlePushSubscribe(body, userId, res) {
-  try {
-    if (!body?.endpoint || !body?.keys?.p256dh || !body?.keys?.auth)
-      return sendError(res, 400, 'Subscription inválida');
-    const id = 'ps_' + Date.now().toString(36);
-    await db.query(
-      `INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth)
-       VALUES ($1,$2,$3,$4,$5)
-       ON CONFLICT (endpoint) DO UPDATE SET user_id=$2, p256dh=$4, auth=$5, created_at=NOW()`,
-      [id, userId || null, body.endpoint, body.keys.p256dh, body.keys.auth]
-    );
-    sendJson(res, { ok: true });
-  } catch (e) {
-    sendError(res, 500, e.message);
-  }
-}
-
-/**
- * Remove uma push subscription do usuário autenticado.
- *
- * Apenas remove subscriptions que pertencem ao próprio usuário — sem isso, um
- * usuário autenticado poderia desativar notificações de qualquer outro (basta
- * conhecer o endpoint, que é semi-público em sites com SW).
- *
- * @param {{ endpoint?: string }} body  Payload com o endpoint a remover.
- * @param {import('http').IncomingMessage & { user?: { id: string } }} req  Request com user injetado pelo auth middleware.
- * @param {import('http').ServerResponse} res
- */
-async function handlePushUnsubscribe(body, req, res) {
-  try {
-    if (
-      !body?.endpoint ||
-      typeof body.endpoint !== 'string' ||
-      !body.endpoint.startsWith('https://')
-    ) {
-      return sendError(res, 400, 'Endpoint inválido');
-    }
-    if (!req.user?.id) return sendError(res, 401, 'Não autenticado');
-    await db.query('DELETE FROM push_subscriptions WHERE endpoint=$1 AND user_id=$2', [
-      body.endpoint,
-      req.user.id,
-    ]);
-    sendJson(res, { ok: true });
-  } catch (e) {
-    sendError(res, 500, e.message);
-  }
-}
+// Push notifications → handlers/platform.js (registrado em registerPlatform).
 
 // Saídas/BM (Post/Put/Delete) extraídas → handlers/contract-saidas.js (com FIX de deadlock)
 
@@ -297,67 +251,7 @@ async function handlePushUnsubscribe(body, req, res) {
 // Handlers de BASE (CRUD) extraídos → handlers/base.js. handleAllocateBase
 // (lógica de alocação) permanece abaixo.
 
-async function handleAllocateBase(id, body, res) {
-  try {
-    const allocationValue = money.parse(body.value);
-    // FIX: alocação sob transação + advisory lock — a checagem de limite e os 2 writes
-    // (base item + caixa) eram soltos, permitindo over-alocação concorrente e inconsistência.
-    const env = await db.withTransaction(async (client) => {
-      await client.query("SELECT pg_advisory_xact_lock(hashtext('base:' || $1)::int)", [id]);
-      const baseItem = await repos.baseItems.findById(id);
-      if (!baseItem) {
-        const e = new Error('Base item not found');
-        e.statusCode = 404;
-        throw e;
-      }
-
-      const allocs = baseItem.allocations || [];
-      const totalAllocated = allocs.reduce((sum, a) => sum + (parseFloat(a.value) || 0), 0);
-      if (totalAllocated + allocationValue > parseFloat(baseItem.value) + 0.01) {
-        const e = new Error(
-          `Cannot allocate more than available. Available: ${(parseFloat(baseItem.value) - totalAllocated).toFixed(2)}`
-        );
-        e.statusCode = 400;
-        throw e;
-      }
-
-      const allocation = {
-        id: generateId('alc'),
-        contractId: body.contractId,
-        value: allocationValue,
-        date: new Date().toISOString().split('T')[0],
-        createdAt: new Date().toISOString(),
-      };
-      const newAllocs = allocs.concat(allocation);
-      await repos.baseItems.updateById(id, {
-        allocations: JSON.stringify(newAllocs),
-        updatedAt: new Date().toISOString(),
-      });
-
-      await repos.caixa.create({
-        id: generateId('cxa'),
-        type: 'saida',
-        description: `Alocação BASE: ${baseItem.description}`,
-        value: allocationValue,
-        date: allocation.date,
-        contractId: body.contractId,
-        baseItemId: id,
-        category: 'base',
-        notes: '',
-        createdAt: new Date().toISOString(),
-      });
-
-      return {
-        base: { items: await repos.baseItems.findAll() },
-        caixa: { entries: await repos.caixa.findAll() },
-        contracts: await repos.contracts.getEnvelope(),
-      };
-    });
-    sendJson(res, env);
-  } catch (e) {
-    sendError(res, e.statusCode || 400, e.message);
-  }
-}
+// handleAllocateBase → handlers/base.js (alocação da BASE, transação + advisory lock).
 
 // ============ Dashboards (financeiro + operacional) ============
 // → handlers/dashboards.js (handleDashboard + handleDashboardOperacional).
@@ -486,38 +380,7 @@ async function handleHealth(res) {
 // Handlers de autenticação → handlers/auth.js (Fase A do desmembramento).
 
 // ============ Auditoria ============
-async function handleGetAudit(req, query, res) {
-  // Auditoria NÃO é tela universal: espelha o gate do frontend (podeAcessar).
-  // Sem isso, qualquer usuário logado lia o log inteiro (e-mails, IPs, estados)
-  // chamando /api/audit direto. Super admin passa; perfis restritos só com
-  // '#/auditoria' nas abas (perms.can resolve 'view' = abas.includes(rota)).
-  if (!(await perms.can(req.user, 'auditoria', 'view'))) {
-    return sendError(res, 403, 'Sem permissão para visualizar a auditoria.');
-  }
-  try {
-    const limit = Math.min(500, parseInt(query.limit) || 100);
-    const offset = Math.max(0, parseInt(query.offset) || 0);
-    const data = await audit.listEvents({
-      user: query.user || null,
-      entity: query.entity || null,
-      action: query.action || null,
-      from: query.from || null,
-      to: query.to || null,
-      errorsOnly: query.errors === '1',
-      limit,
-      offset,
-    });
-    // Mascara PII/sensíveis ANTES de sair do servidor (nunca em claro no cliente).
-    data.rows = (data.rows || []).map((r) => ({
-      ...r,
-      beforeState: audit.maskSensitive(r.beforeState),
-      body: audit.maskSensitive(r.body),
-    }));
-    sendJson(res, data);
-  } catch (e) {
-    sendError(res, 500, e.message);
-  }
-}
+// → handlers/platform.js (leitura com mascaramento de PII). registerPlatform.
 
 // ============ Portal do Cliente ============
 // → handlers/portal.js (auth própria, login/logout, impersonação, dashboard,
@@ -1491,34 +1354,27 @@ registerPortal(apiRouter, {
 registerPlatform(apiRouter, {
   bus,
   sendJson,
-  handleGetAudit,
   ...usuariosHandlers, // RBAC: users CRUD + níveis de acesso (handlers/usuarios.js)
   ...integracoesHandlers, // LGPD + IA (chat/classify/uso) + OFX (handlers/integracoes.js; importarOfx é usado no financeiro)
+  ...platformHandlers, // push/auditoria/anomalias/recorrências/flags/busca/arquivos (handlers/platform.js; recorrências é usado no financeiro)
+  // Ops/introspecção do processo (dependem do estado de boot) seguem aqui:
   handleHealth,
   handleChangelog,
   handleMetrics,
-  handleGetAdminArquivos,
-  handleGetFeatureFlags,
-  handlePutFeatureFlag,
-  handleGlobalSearch,
-  handlePushSubscribe,
-  handlePushUnsubscribe,
   ...dashboardsHandlers, // painel financeiro + operacional + layouts (handlers/dashboards.js)
   handleBackup,
   handleBackupDownload,
   _runEmailBackup,
-  handleGetAnomalias,
 });
 registerFinanceiro(apiRouter, {
   withIdempotency,
   ...caixaHandlers, // handleGetCaixa/Post/Put/Delete (handlers/caixa.js)
-  ...baseHandlers,
-  handleAllocateBase, // base CRUD em handlers/base.js; allocate inline
+  ...baseHandlers, // CRUD + handleAllocateBase (handlers/base.js)
   ...sociosHandlers, // handlers/socios.js
   ...investimentosHandlers, // handlers/investimentos.js
   ...tiposBaseHandlers, // handlers/tipos-base.js
   ...contasPagarHandlers, // CRUD + pagar/estornar (handlers/contas-pagar.js)
-  handleProcessarRecorrencias,
+  handleProcessarRecorrencias: platformHandlers.handleProcessarRecorrencias, // contas recorrentes (handlers/platform.js)
   ...folhaPagamentoHandlers, // gerar/get/limpar + pagar/estornar parcela + lançamentos (handlers/folha-pagamento.js)
   ...notasFiscaisHandlers, // CRUD + emitir/cancelar-emissão (handlers/notas-fiscais.js)
   ...cobrancaHandlers, // cobrança mensal da plataforma (handlers/cobranca.js)
@@ -1706,224 +1562,19 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
 }
 
 // ============ F6: Anomaly Detection ============
-async function handleGetAnomalias(res) {
-  try {
-    const caixaAll = await repos.caixa.findAll();
-    const saidas = caixaAll.filter((e) => e.type === 'saida');
-
-    const byCat = {};
-    for (const s of saidas) {
-      const cat = s.category || 'outros';
-      if (!byCat[cat]) byCat[cat] = [];
-      byCat[cat].push({ v: parseFloat(s.value) || 0, entry: s });
-    }
-
-    const anomalias = [];
-    for (const [cat, items] of Object.entries(byCat)) {
-      if (items.length < 4) continue;
-      const values = items.map((i) => i.v);
-      const n = values.length;
-      const mean = values.reduce((s, v) => s + v, 0) / n;
-      const sigma = Math.sqrt(values.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / n);
-      if (sigma < 1) continue;
-      for (const { v, entry } of items) {
-        if (v > mean + 2 * sigma) {
-          anomalias.push({
-            ...entry,
-            category: cat,
-            media: Math.round(mean * 100) / 100,
-            sigma: Math.round(sigma * 100) / 100,
-            desvios: ((v - mean) / sigma).toFixed(1),
-            severidade: v > mean + 3 * sigma ? 'alta' : 'media',
-          });
-        }
-      }
-    }
-
-    anomalias.sort((a, b) => parseFloat(b.desvios) - parseFloat(a.desvios));
-    sendJson(res, { anomalias });
-  } catch (e) {
-    sendError(res, 500, e.message);
-  }
-}
-
-// ============ F7: Contas Recorrentes ============
-// Próxima data de recorrência — regra extraída para lib/recorrencia.js (testável).
-const _calcProximaData = recorrencia.proximaData;
-
-async function handleProcessarRecorrencias(res) {
-  try {
-    const hojeStr = new Date().toISOString().split('T')[0];
-    const contas = await repos.contasPagar.findAll();
-    const recorrentes = contas.filter(
-      (c) =>
-        c.recorrente && c.status === 'pendente' && c.dataVencimento && c.dataVencimento <= hojeStr
-    );
-
-    const criadas = [];
-    for (const conta of recorrentes) {
-      // Avança até a próxima data futura (evita criar parcelas já passadas quando há atraso acumulado)
-      let nextDate = _calcProximaData(conta.dataVencimento, conta.periodicidade || 'mensal');
-      while (nextDate <= hojeStr) {
-        nextDate = _calcProximaData(nextDate, conta.periodicidade || 'mensal');
-      }
-      const jaExiste = contas.some(
-        (c) => c.recorrenciaOrigemId === conta.id && c.dataVencimento === nextDate
-      );
-      if (jaExiste) continue;
-      const nova = {
-        id: generateId('cp'),
-        descricao: conta.descricao,
-        fornecedorId: conta.fornecedorId || null,
-        valor: conta.valor,
-        dataEmissao: hojeStr,
-        dataVencimento: nextDate,
-        status: 'pendente',
-        contractId: conta.contractId || null,
-        category: conta.category || 'fornecedor',
-        observacoes: conta.observacoes || '',
-        recorrente: true,
-        periodicidade: conta.periodicidade,
-        recorrenciaOrigemId: conta.id,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      await repos.contasPagar.create(nova);
-      criadas.push(nova);
-    }
-    sendJson(res, { criadas: criadas.length, contas: await repos.contasPagar.findAll() });
-  } catch (e) {
-    sendError(res, 500, e.message);
-  }
-}
+// Anomalias de gasto + Contas recorrentes → handlers/platform.js
+// (handleGetAnomalias em registerPlatform; handleProcessarRecorrencias em registerFinanceiro).
 
 // ============ LGPD + IA + OFX ============
 // → handlers/integracoes.js (export/anonimização LGPD, chat/classify IA com
 // rate-limit, importação/conciliação OFX). Registrados em platform/financeiro.
 
-// ============ F18: Feature Flags ============
-async function handleGetFeatureFlags(res) {
-  try {
-    const rows = await db.getMany('SELECT * FROM feature_flags ORDER BY key');
-    sendJson(res, { flags: rows });
-  } catch (e) {
-    sendError(res, 500, e.message);
-  }
-}
-
-async function handlePutFeatureFlag(key, body, res) {
-  try {
-    await db.query(
-      `INSERT INTO feature_flags (key, enabled, description, updated_at)
-       VALUES ($1, $2, $3, NOW())
-       ON CONFLICT (key) DO UPDATE SET enabled = $2, updated_at = NOW()`,
-      [key, !!body.enabled, body.description || '']
-    );
-    const rows = await db.getMany('SELECT * FROM feature_flags ORDER BY key');
-    sendJson(res, { flags: rows });
-  } catch (e) {
-    sendError(res, 500, e.message);
-  }
-}
+// ============ Feature Flags ============
+// → handlers/platform.js (Get/Put). Registrado em registerPlatform.
 
 // ============ Níveis de Acesso handlers ============
 // ============ Global search (M3) ============
-async function handleGlobalSearch(query, res) {
-  const q = String(query.q || '')
-    .trim()
-    .toLowerCase();
-  if (!q || q.length < 2) {
-    return sendJson(res, { results: [], q });
-  }
-  const norm = (s) => String(s || '').toLowerCase();
-  const matches = (s) => norm(s).includes(q);
-  const results = [];
-  const safe = async (fn) => {
-    try {
-      return await fn();
-    } catch {
-      return [];
-    }
-  };
-
-  const [contracts, clientes, fornecedores, contas, nfs, recursos] = await Promise.all([
-    safe(() => repos.contracts.findAll()),
-    safe(() => repos.clientes.findAll()),
-    safe(() => repos.fornecedores.findAll()),
-    safe(() => repos.contasPagar.findAll()),
-    safe(() => repos.notasFiscais.findAll()),
-    safe(() => repos.recursos.findAll()),
-  ]);
-
-  contracts.forEach((c) => {
-    if (matches(c.name) || matches(c.client) || matches(c.contractNumber) || matches(c.id)) {
-      results.push({
-        kind: 'Contrato',
-        id: c.id,
-        title: c.name || c.id,
-        hint: c.client || '',
-        hash: `#/contratos/${c.id}`,
-      });
-    }
-  });
-  clientes.forEach((c) => {
-    if (matches(c.nome) || matches(c.email) || matches(c.empresa)) {
-      results.push({
-        kind: 'Cliente',
-        id: c.id,
-        title: c.nome,
-        hint: c.email || c.empresa || '',
-        hash: '#/clientes',
-      });
-    }
-  });
-  fornecedores.forEach((f) => {
-    if (matches(f.nome) || matches(f.cnpj)) {
-      results.push({
-        kind: 'Fornecedor',
-        id: f.id,
-        title: f.nome,
-        hint: f.cnpj || '',
-        hash: '#/fornecedores',
-      });
-    }
-  });
-  contas.forEach((c) => {
-    if (matches(c.descricao) || matches(c.fornecedor) || matches(c.numero)) {
-      results.push({
-        kind: 'Conta a Pagar',
-        id: c.id,
-        title: c.descricao || c.fornecedor || c.numero,
-        hint: c.dataVencimento || '',
-        hash: '#/contas-pagar',
-      });
-    }
-  });
-  nfs.forEach((n) => {
-    if (matches(n.numero) || matches(n.descricao) || matches(n.cliente)) {
-      results.push({
-        kind: 'Nota Fiscal',
-        id: n.id,
-        title: n.numero || n.descricao || n.cliente,
-        hint: n.dataVencimento || '',
-        hash: '#/notas-fiscais',
-      });
-    }
-  });
-  recursos.forEach((r) => {
-    if (matches(r.name) || matches(r.cpf) || matches(r.role)) {
-      results.push({
-        kind: 'Recurso',
-        id: r.id,
-        title: r.name,
-        hint: r.role || '',
-        hash: '#/recursos',
-      });
-    }
-  });
-
-  sendJson(res, { results: results.slice(0, 50), q, count: results.length });
-}
+// → handlers/platform.js. Registrado em registerPlatform.
 
 // ============ Recursos handlers ============
 /**
@@ -2694,41 +2345,7 @@ async function handleRejeitarSolicitacao(req, id, body, res) {
 // Assinaturas digitais de RDO extraídas → handlers/rdo-assinaturas.js
 
 // Lista TODOS os arquivos do sistema com tamanho (sem o BYTEA)
-async function handleGetAdminArquivos(res) {
-  try {
-    const rows = await db.getMany(
-      `SELECT a.id, a.recurso_id, a.doc_id, a.filename, a.filename_original,
-              a.mime_type, a.size_bytes, a.created_at,
-              r.nome AS recurso_nome
-       FROM recurso_doc_arquivos a
-       LEFT JOIN recursos r ON r.id = a.recurso_id
-       ORDER BY a.created_at DESC`
-    );
-    // Resolve tipoDoc a partir do JSONB documentos do recurso
-    const recursosIds = [...new Set(rows.map((r) => r.recursoId).filter(Boolean))];
-    const tipoPorDocId = new Map();
-    if (recursosIds.length > 0) {
-      const ph = recursosIds.map((_, i) => `$${i + 1}`).join(', ');
-      const recs = await db.getMany(
-        `SELECT id, documentos FROM recursos WHERE id IN (${ph})`,
-        recursosIds
-      );
-      for (const rec of recs) {
-        for (const d of rec.documentos || []) {
-          tipoPorDocId.set(d.id, d.tipoLabel || d.tipo || '—');
-        }
-      }
-    }
-    const total = rows.reduce((s, r) => s + (r.sizeBytes || 0), 0);
-    sendJson(res, {
-      arquivos: rows.map((r) => ({ ...r, tipoDoc: tipoPorDocId.get(r.docId) || '—' })),
-      totalBytes: total,
-      count: rows.length,
-    });
-  } catch (e) {
-    sendError(res, 500, e.message);
-  }
-}
+// handleGetAdminArquivos → handlers/platform.js (inventário de arquivos, admin).
 
 // handleGetDocumentosStatus → handlers/recurso-documentos.js
 
