@@ -527,7 +527,15 @@ textarea:focus-visible,
 
   /* Tabelas: scroll horizontal explicito */
   .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  table { min-width: 540px; font-size: 13px; }
+  table { font-size: 13px; }
+  /* BUG CORRIGIDO: `table { min-width: 540px }` era aplicado a TODA tabela,
+     inclusive às que não vivem dentro de nenhum contêiner rolável — RDOs.js
+     monta `<table class="data-table">` solta em #app, e Manutencao.js/Frota.js
+     têm <table> soltas dentro de .modal-content. Nesses casos os 540px não
+     produziam rolagem local: empurravam o shell inteiro e geravam a rolagem
+     horizontal do body. Agora o piso só vale onde há de fato um scroller. */
+  .table-wrap > table,
+  div[style*="overflow-x"] > table { min-width: 540px; }
 
   /* Tabs do contrato com scroll */
   .ctd-tabs { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
@@ -536,12 +544,17 @@ textarea:focus-visible,
   .rh-pipeline { grid-template-columns: 1fr !important; }
   .rh-pipeline-stage-count { font-size: 22px !important; }
 
-  /* Modal: tela cheia em mobile */
-  .modal {
-    width: calc(100% - 16px) !important;
-    max-width: none !important;
-    margin: 8px;
-    max-height: calc(100vh - 16px) !important;
+  /* Modal quase cheio na faixa 641–768px (tablet em pé).
+     Abaixo de 640px o bloco "Telas de campo" no fim deste arquivo assume e faz
+     tela cheia de verdade — por isso este limita-se ao piso de 641px, senão
+     as duas regras brigariam por !important. */
+  @media (min-width: 641px) {
+    .modal {
+      width: calc(100% - 16px) !important;
+      max-width: none !important;
+      margin: 8px;
+      max-height: calc(100vh - 16px) !important;
+    }
   }
 
   /* Theme toggle não fica em cima do conteúdo */
@@ -580,9 +593,12 @@ textarea:focus-visible,
   body.rh-mobile button:not(.btn-sm):not(.modal-close):not(.btn-link-rdo-ass-del):not(.zoom-btn) {
     min-height: 40px;
   }
+  /* Era 32px. Subiu pra 44 junto com o bloco "Telas de campo" no fim deste
+     arquivo — aqui o seletor é mais específico (body.rh-mobile .btn-sm) e
+     venceria a regra nova, mantendo o alvo pequeno. */
   body.rh-mobile .btn-sm {
-    min-height: 32px;
-    padding: 6px 10px;
+    min-height: 44px;
+    padding: 8px 12px;
   }
 
   /* Sidebar drawer: largura adapta a telas muito estreitas */
@@ -632,14 +648,25 @@ textarea:focus-visible,
   body.rh-mobile .rh-display { font-size: 18px !important; }
   body.rh-mobile .rh-kpi-value { font-size: 16px !important; }
 
-  /* Tabelas: scroll mais óbvio (sombra nas bordas) */
-  body.rh-mobile .table-wrap,
-  body.rh-mobile .card > div[style*="overflow-x"] {
+  /* Tabelas: scroll mais óbvio (sombra nas bordas).
+     As 2 primeiras camadas são "máscaras" da cor do papel com attachment
+     `local` — rolam junto com o conteúdo e somem quando você chega na ponta.
+     As 2 últimas são as sombras, com attachment `scroll` — ficam grudadas na
+     borda do contêiner. Efeito: a sombra aparece SÓ do lado que ainda tem
+     conteúdo escondido.
+     Sem body.rh-mobile: a media query já é a mesma condição (≤768px) e assim a
+     affordance continua funcionando se o JS que aplica a classe falhar. */
+  .table-wrap,
+  .card > div[style*="overflow-x"],
+  #app > table,
+  .modal-content > table {
     background:
-      linear-gradient(to right, var(--color-surface) 30%, rgba(0,0,0,0)) 0 0/40px 100% no-repeat,
-      linear-gradient(to left,  var(--color-surface) 30%, rgba(0,0,0,0)) 100% 0/40px 100% no-repeat,
-      linear-gradient(to right, rgba(0,0,0,.15), rgba(0,0,0,0)) 0 0/16px 100% no-repeat,
-      linear-gradient(to left,  rgba(0,0,0,.15), rgba(0,0,0,0)) 100% 0/16px 100% no-repeat;
+      linear-gradient(to right, var(--color-surface) 30%, transparent) 0 0/40px 100% no-repeat,
+      linear-gradient(to left,  var(--color-surface) 30%, transparent) 100% 0/40px 100% no-repeat,
+      /* tokenizado: rgba(0,0,0,.15) era invisível no dark. color-mix sobre
+         --color-text funciona nos dois temas. */
+      linear-gradient(to right, color-mix(in srgb, var(--color-text) 22%, transparent), transparent) 0 0/18px 100% no-repeat,
+      linear-gradient(to left,  color-mix(in srgb, var(--color-text) 22%, transparent), transparent) 100% 0/18px 100% no-repeat;
     background-attachment: local, local, scroll, scroll;
   }
 
@@ -650,13 +677,12 @@ textarea:focus-visible,
     flex: 0 0 auto;
   }
 
-  /* Modais: padding menor + content mais espaço */
-  body.rh-mobile .modal {
-    width: calc(100% - 8px) !important;
-    margin: 4px !important;
-    max-height: calc(100vh - 8px) !important;
-    border-radius: 10px !important;
-  }
+  /* Modais: padding menor + content com mais espaço.
+     As antigas regras de DIMENSÃO (width/margin/max-height/border-radius com
+     !important em `body.rh-mobile .modal`) saíram daqui: por serem mais
+     específicas que `.modal`, elas venciam o bloco "Telas de campo" no fim
+     deste arquivo e impediam o modal de ocupar a tela toda abaixo de 640px.
+     Dimensão agora é responsabilidade de um lugar só. */
   body.rh-mobile .modal-header {
     padding: 12px 14px !important;
   }
@@ -666,10 +692,10 @@ textarea:focus-visible,
   body.rh-mobile .modal-footer {
     padding: 10px 14px !important;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
   }
   body.rh-mobile .modal-footer > .btn {
-    flex: 1 1 calc(50% - 3px);
+    flex: 1 1 calc(50% - 4px);
     min-width: 0;
   }
   body.rh-mobile .modal-footer > .btn:only-child {
@@ -682,12 +708,16 @@ textarea:focus-visible,
     width: 100%;
   }
 
-  /* Estoque: matriz horizontal com botões de ação empilhados */
+  /* Estoque: os 4 botões de ação da linha (Comprei / Enviar / Usei / ⋯).
+     Eram 36px de altura e ~11px de fonte com padding inline de 4px 8px —
+     inclicáveis de luva. Viram 2 colunas de 44px. Os !important seguem
+     necessários porque Estoque.js:250-253 escreve padding e font-size inline
+     em cada botão. */
   body.rh-mobile .btn-acao-est {
     flex: 1 1 calc(50% - 4px);
-    min-height: 36px;
-    font-size: 12px !important;
-    padding: 6px 8px !important;
+    min-height: 44px;
+    font-size: 13px !important;
+    padding: 10px 8px !important;
     margin: 2px 1px !important;
   }
 
@@ -737,6 +767,219 @@ textarea:focus-visible,
   }
   body.rh-mobile .filter-group {
     width: 100%;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   TELAS DE CAMPO — usabilidade real no celular (roadmap #28)
+   Foco: RDO > Estoque > Manutenção > Frota.
+
+   Breakpoints usados aqui:
+     ≤1024px  tablet (já existente acima)
+     ≤768px   mobile — mesmo limiar que o JS usa pra ligar body.rh-mobile.
+              As regras ABAIXO deliberadamente NÃO dependem dessa classe: se o
+              JS falhar (ou o outro agente mexer nele), o layout continua certo.
+     ≤640px   colapso de grids de formulário/KPI e modal em tela cheia.
+     ≤480px / ≤380px  ajustes finos (já existentes acima).
+
+   Tokens: nada de hex fixo — tudo via --color-* / --rh-* pra funcionar em
+   light e dark. Nenhuma animação nova (o app já respeita
+   prefers-reduced-motion no bloco do topo deste arquivo).
+   ═══════════════════════════════════════════════════════ */
+
+/* ─── Anti-overflow estrutural (vale em qualquer largura) ───────────────────
+   Item de flex/grid tem min-width:auto por padrão e se RECUSA a encolher além
+   do conteúdo. É o que faz um nome de contrato comprido ou um valor em R$
+   esticar o card e, por tabela, o shell inteiro. */
+.card, .stat-card, .modal, .modal-content,
+.form-group, .filter-group, .rh-kpi, .ui-kpi,
+.rh-pipeline-stage, .ui-kanban__card { min-width: 0; }
+
+/* Texto que não tem onde quebrar (códigos de item, placas, e-mails) */
+.card-title, .ui-kpi__value, .ui-kanban__card-title,
+td, th { overflow-wrap: anywhere; }
+
+@media (max-width: 768px) {
+  /* ── 1. Tabelas densas ────────────────────────────────────────────────────
+     Não existe atributo data-label em NENHUMA view (conferido: zero
+     ocorrências em js/). Então NÃO dá pra virar cartão empilhado sem mexer no
+     JS — que está fora do meu escopo. Estratégia adotada: rolagem horizontal
+     CONTIDA + affordance visual (degradê acima).
+
+     Tabelas soltas (sem .table-wrap) viram elas próprias o contêiner rolável.
+     `display:block` num <table> faz o browser gerar uma table anônima ao redor
+     de thead+tbody, então o alinhamento das colunas é preservado — é o truque
+     padrão pra tabela sem wrapper. Casos reais: RDOs.js (#app > table.data-table)
+     e as <table> soltas dentro de modais de Manutencao.js / Frota.js. */
+  #app > table,
+  .modal-content > table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  /* Rolagem contida também nos outros trilhos horizontais do app, pra nenhum
+     deles empurrar o body. */
+  .table-wrap, .ctd-tabs, .ui-kanban,
+  .card > div[style*="overflow-x"] { overscroll-behavior-x: contain; }
+
+  /* ── 2. Alvos de toque — 44×44 mínimo (dedo com luva de obra) ─────────────
+     WCAG 2.2 pede 24px; obra pede mais. Isto SOBE o piso que já existia neste
+     arquivo (btn 40px / btn-sm 32px), que era pequeno demais pra campo. */
+  .btn, .btn-sm,
+  .action-link,
+  .rdo-tab, .ctd-tab,
+  .btn-acao-est,
+  .rh-pagination__btn,
+  .modal-close,
+  .ui-view-toggle button,
+  .filter-chip, .rh-chip, .chip,
+  .btn-fav, .copy-btn,
+  .rh-fab__action-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* Botões-texto (.action-link, .btn-fav, .copy-btn) são inline por padrão:
+     sem isto o min-height não centraliza o rótulo. */
+  .action-link, .btn-fav, .copy-btn, .rh-pagination__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  /* Ações de linha ganham respiro entre si — 44px encostado em 44px vira um
+     alvo só na prática. */
+  .actions-cell { gap: 8px; }
+
+  /* !important INEVITÁVEL: rdo-form.js escreve o tamanho do checkbox no
+     atributo style do elemento (`style="width:18px;height:18px"`, ex.: Hora
+     Extra). 18px é intocável de luva. Só o !important vence estilo inline. */
+  input[type="checkbox"], input[type="radio"] {
+    width: 24px !important;
+    height: 24px !important;
+    flex-shrink: 0;
+  }
+  /* A linha inteira (checkbox + label) passa a ser o alvo de 44px. */
+  label:has(> input[type="checkbox"]),
+  label:has(> input[type="radio"]) { min-height: 44px; display: flex; align-items: center; gap: 10px; }
+
+  /* ── 3. Barra de filtros / toolbar em coluna ──────────────────────────── */
+  .filters-bar { flex-direction: column; align-items: stretch; }
+  .filter-group { width: 100%; }
+  .filter-control, .ui-toolbar__select, .ui-toolbar__search {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+
+  /* ── 4. Botões flutuantes não podem tapar a bottom-nav nem uns aos outros ──
+     Empilhados no canto direito havia .rh-fab (52px), .rh-theme-toggle (44px)
+     e .rh-back-top (44px), todos sobre a .bottom-nav (~62px). Agora: tema à
+     esquerda, FAB e "ir ao topo" à direita em alturas distintas. */
+  .bottom-nav { --rh-bottomnav-h: calc(62px + env(safe-area-inset-bottom)); }
+  body.has-bottom-nav .rh-theme-toggle {
+    left: 12px; right: auto;
+    bottom: calc(70px + env(safe-area-inset-bottom));
+  }
+  body.has-bottom-nav .rh-fab {
+    right: 16px;
+    bottom: calc(70px + env(safe-area-inset-bottom));
+  }
+  body.has-bottom-nav .rh-back-top {
+    right: 16px;
+    bottom: calc(134px + env(safe-area-inset-bottom));
+  }
+}
+
+/* ─── ≤640px — colapso de grids e modal em tela cheia ─────────────────────── */
+@media (max-width: 640px) {
+  /* ── 5. Grids inline → 1 coluna ───────────────────────────────────────────
+     !important INEVITÁVEL (e este é o núcleo do item #28): as views montam as
+     colunas no atributo style, não em classe. Exemplos reais:
+       rdo-form.js:117  grid-template-columns:2fr 1fr
+       rdo-form.js:188  repeat(3,1fr)          (bloco "Prazo do Contrato")
+       rdo-form.js:517  1fr 3fr 120px auto     (linha de Atividade)
+       rdo-form.js:559  2fr 110px 110px auto   (linha de Equipe)
+       rdo-form.js:582  2fr 2fr 40px           (linha de Membro)
+       Estoque.js:189   1fr 220px              (busca + categoria)
+       Estoque.js:475   repeat(3,1fr)          (saldo no modal do item)
+       Manutencao.js:832/838  2fr 3fr / 1fr 1fr
+       Frota.js:689     repeat(3,1fr)
+     Estilo inline só perde pra !important — nenhuma media query ou seletor,
+     por mais específico, alcança isso.
+
+     auto-fit/auto-fill ficam de fora de propósito: esses já colapsam sozinhos
+     e forçá-los a 1fr estouraria a grade de fotos do RDO (rdo-form.js:706),
+     transformando cada miniatura numa foto de largura total. */
+  [style*="grid-template-columns"]:not([style*="auto-fit"]):not([style*="auto-fill"]) {
+    grid-template-columns: 1fr !important;
+  }
+  /* Corolário: filho com `grid-column:span N` numa grade de 1 coluna criaria
+     N-1 colunas IMPLÍCITAS e ressuscitaria o overflow. `1 / -1` = largura
+     total, seja qual for a contagem. (rdo-form.js:225 usa span 3.) */
+  [style*="grid-column:span"], [style*="grid-column: span"] {
+    grid-column: 1 / -1 !important;
+  }
+
+  /* Grids de KPI/stat por classe — mesma regra, sem precisar de !important. */
+  .stat-grid, .ui-kpi-grid, .rh-grid-2, .rh-grid-3, .rh-grid-4,
+  .prop-grid-2, .audit-advanced, .rh-pipeline { grid-template-columns: 1fr; }
+
+  /* ── 6. Modais em tela cheia, com rolagem interna e ação sempre alcançável ─
+     O :has() separa os modais que seguem o trio header/content/footer (viram
+     coluna flex: só o miolo rola, o rodapé fica fixo na base) dos avulsos, que
+     continuam rolando por inteiro. */
+  .modal-overlay { padding: 0; align-items: stretch; }
+
+  .modal {
+    /* !important: as views escrevem largura/altura inline —
+       rdo-form.js:37 `width:90vw;max-width:1100px;max-height:92vh`,
+       Estoque.js:465 `width:560px;max-height:90vh`, e dezenas de
+       `width:640px;max-width:95vw` em outras telas. */
+    width: 100% !important;
+    max-width: none !important;
+    height: 100vh;            /* fallback */
+    height: 100dvh;           /* dvh = desconta a barra de URL do navegador */
+    max-height: 100dvh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border-width: 0;
+  }
+
+  .modal:has(> .modal-content) {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+  .modal:has(> .modal-content) > .modal-header {
+    flex: 0 0 auto;
+    padding: 12px 14px;
+    margin-bottom: 0;
+  }
+  .modal > .modal-content {
+    flex: 1 1 auto;
+    min-height: 0;            /* sem isto o miolo não encolhe e o rodapé some */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    padding: 14px;
+    margin-bottom: 0;
+  }
+  .modal:has(> .modal-content) > .modal-footer {
+    flex: 0 0 auto;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+    background: var(--color-surface);
+  }
+  /* Ação primária larga e alcançável com o polegar. */
+  .modal-footer > .btn { flex: 1 1 calc(50% - 8px); min-height: 48px; }
+  .modal-footer > .btn:only-child { flex: 1 1 100%; }
+
+  /* Modal sem o trio: rola por inteiro, mantém o respiro interno. */
+  .modal:not(:has(> .modal-content)) {
+    overflow-y: auto;
+    padding: 14px;
   }
 }
 

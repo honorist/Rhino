@@ -503,3 +503,41 @@ textarea:focus-visible,
 .ui-stick-col-2 thead th:nth-child(2),
 .ui-stick-col-2 tbody td:nth-child(2) { left: 48px; box-shadow: 1px 0 0 var(--color-border); }
 .ui-stick-col-2 thead th { background: var(--color-surface-2); z-index: 2; }
+
+/* ═══════════════════════════════════════════════════════
+   TELAS DE CAMPO — ajustes do UI Kit no celular (roadmap #28)
+   Complementa o bloco principal em theme-v2.css. Este arquivo é o ÚLTIMO no
+   index.html, então aqui só entra o que precisa vencer polish.css por ordem
+   de cascata — nada de !important.
+═══════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Kanban: coluna fixa de 300px é mais larga que a área útil de um celular
+     (360px − 24px de padding do #app), então a coluna era cortada e não dava
+     pra ver o card inteiro. 84vw deixa a próxima coluna "espiando" — é a
+     affordance de que há mais colunas ao lado. */
+  .ui-kanban { scroll-snap-type: x proximity; overscroll-behavior-x: contain; }
+  .ui-kanban__col {
+    flex: 0 0 84vw;
+    max-height: none;      /* calc(100vh - 380px) sobrava ~pouco em tela baixa */
+    scroll-snap-align: start;
+  }
+  .ui-kanban__col-body { overflow-y: visible; }
+
+  /* Colunas sticky atrapalham mais do que ajudam num scroller estreito:
+     a 1ª coluna comia metade da largura visível. */
+  .ui-stick-col thead th:first-child,
+  .ui-stick-col tbody td:first-child,
+  .ui-stick-col-2 thead th:nth-child(-n+2),
+  .ui-stick-col-2 tbody td:nth-child(-n+2) { position: static; box-shadow: none; }
+
+  /* Ações do cabeçalho de página ocupam a linha inteira e ficam alcançáveis. */
+  .page-header-actions { width: 100%; }
+  .page-header-actions > .btn { flex: 1 1 auto; justify-content: center; }
+}
+
+@media (max-width: 640px) {
+  /* KPIs em coluna única: minmax(180px,1fr) ainda cabia 2 colunas em ~400px e
+     os valores em R$ ficavam truncados. */
+  .ui-kpi-grid { grid-template-columns: 1fr; }
+  .ui-kpi__value { overflow-wrap: anywhere; }
+}

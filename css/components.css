@@ -81,6 +81,14 @@
 .table-wrap {
   overflow-x: auto;
   border-radius: var(--border-radius-lg);
+  /* Sem isto o wrapper acompanha a largura da tabela e o overflow "vaza" pro
+     shell em vez de rolar aqui dentro. */
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  /* Barra fina sempre visível no desktop dá o sinal de "tem mais pra direita";
+     no toque a affordance vem do degradê aplicado em theme-v2.css. */
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
 }
 
 table {
@@ -306,8 +314,14 @@ textarea.form-control {
 }
 
 @media (max-width: 768px) {
+  /* !important INEVITÁVEL: as views escrevem a contagem de colunas no atributo
+     style do próprio .form-row — p.ex. rdo-form.js linhas 124/150/517:
+     <div class="form-row form-row-3" style="grid-template-columns:1fr 1fr 1fr">.
+     Estilo inline vence qualquer seletor de folha, então sem !important o RDO
+     continuava com 3 e 4 colunas no celular (era a origem do corte lateral no
+     formulário mais usado em campo). */
   .form-row,
-  .form-row-3 { grid-template-columns: 1fr; }
+  .form-row-3 { grid-template-columns: 1fr !important; }
 }
 
 .form-helper {

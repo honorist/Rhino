@@ -455,8 +455,13 @@ button, .btn, [role="button"], a.nav-link, .nav-item a, input[type="checkbox"], 
     background: var(--sidebar-active-bg);
   }
   .bottom-nav__icon { font-size: 20px; line-height: 1; }
-  /* Espaço para a bottom nav não tampar conteúdo */
-  body { padding-bottom: 72px; }
+  /* Espaço para a bottom nav não tampar conteúdo.
+     Passa a somar a safe-area: no iPhone com barra de gestos os 72px fixos
+     deixavam a última linha da tabela por baixo da barra do sistema. */
+  body { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+  /* Alvo de toque dos itens da bottom-nav (5 colunas num celular estreito
+     davam ~40px de altura). */
+  .bottom-nav__item { min-height: 48px; justify-content: center; }
   /* Esconde a sidebar lateral em telas mobile (drawer toggle existente do app continua disponível) */
   body.has-bottom-nav #sidebar.collapsed-mobile { display: none; }
 }
@@ -1105,6 +1110,22 @@ label.required::after {
 .rh-pagination__btn:disabled { opacity: .4; cursor: default; }
 .rh-pagination__per-page { font-size: 13px; }
 .rh-pagination__per-page select { margin-left: 6px; padding: 4px 8px; border-radius: 5px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-text); font-size: 13px; font-family: inherit; cursor: pointer; }
+
+/* Paginação no celular: as páginas viravam uma fileira de botões de 34px que
+   estourava a largura. Vira uma faixa própria, centralizada, com quebra e
+   alvos de 44px (o min-height/min-width vem do bloco de telas de campo em
+   theme-v2.css). */
+@media (max-width: 768px) {
+  .rh-pagination { justify-content: center; text-align: center; }
+  .rh-pagination__pages { flex-wrap: wrap; justify-content: center; gap: 6px; }
+  .rh-pagination__per-page { width: 100%; }
+  .rh-pagination__per-page select { min-height: 44px; }
+}
+/* NOTA: as bulk bars (.bulk-bar / .rh-bulk-bar) foram deixadas em bottom:0 de
+   propósito. Elas se escondem com translateY(100%/140%) relativo à PRÓPRIA
+   altura; levantá-las pra cima da bottom-nav faria o estado "oculto" parar no
+   meio do caminho e deixar uma faixa visível. Tapar a bottom-nav enquanto há
+   seleção ativa é comportamento aceitável (é um modo modal). */
 
 /* ── 24. Status chips ─────────────────────────────────────── */
 .rh-chip {

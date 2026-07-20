@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.24.8",
+      "date": "2026-07-20",
+      "summary": "App utilizável no celular nas telas de obra",
+      "changes": [
+        "Corrigida a rolagem lateral que cortava conteúdo — o problema afetava também o computador",
+        "RDO, Estoque, Manutenção e Frota: formulários e cartões passam a empilhar em uma coluna no celular",
+        "Botões e ações de linha ficaram maiores, para usar com luva em obra",
+        "Tabelas largas rolam dentro do próprio quadro, com indicação visível de que há mais conteúdo",
+        "Botões flutuantes não se sobrepõem mais entre si nem à barra inferior do iPhone"
+      ]
+    },
+    {
       "version": "1.24.7",
       "date": "2026-07-20",
       "summary": "Cálculos da folha de pagamento agora são verificados automaticamente",

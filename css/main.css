@@ -123,6 +123,13 @@
 html, body {
   width: 100%;
   height: 100%;
+  /* NADA pode rolar horizontalmente no body: conteúdo largo (tabelas densas,
+     kanban, tabs) tem que rolar DENTRO do próprio contêiner.
+     `clip` e não `hidden` de propósito — `overflow-x:hidden` transformaria o
+     body em contêiner de rolagem e quebraria os `position:sticky` do app
+     (thead de tabela, .audit-day, .ui-kanban__col-header). `clip` só recorta,
+     e é a única combinação válida com `overflow-y: visible`. */
+  overflow-x: clip;
 }
 
 body {
@@ -662,6 +669,12 @@ body.sb-collapsed .footer-utils {
   padding: var(--sp-xl);
   overflow-y: auto;
   max-height: 100vh;
+  /* CAUSA-RAIZ da rolagem horizontal do body. #app é item da grid #shell, e a
+     track `1fr` é na verdade `minmax(auto, 1fr)`: o min-size `auto` faz a
+     coluna INCHAR até caber o conteúdo mais largo (uma tabela densa, um
+     kanban). `min-width: 0` devolve à track o direito de encolher, e o
+     overflow passa a acontecer dentro do contêiner rolável certo. */
+  min-width: 0;
 }
 
 .page-header {
@@ -826,64 +839,29 @@ body.sb-collapsed .footer-utils {
 
 .hidden { display: none !important; }
 
-/* ─── Notebook readability — escala tipográfica (legado, base já é grande) ─── */
-@media (max-width: 1600px) and (min-width: 9999px) {
-  body                         { font-size: 15px; }
+/* ─── Notebook readability — REMOVIDO (era código morto) ────────────────────
+   Aqui existiam dois blocos `@media (max-width:1600px) and (min-width:9999px)`
+   e `@media (max-width:1400px) and (max-height:900px) and (min-width:9999px)`.
+   As duas condições são mutuamente exclusivas (nenhuma viewport é ao mesmo
+   tempo ≤1600px e ≥9999px), então NENHUMA das regras jamais foi aplicada.
 
-  .page-title                  { font-size: 24px; }
-  .page-subtitle               { font-size: 15px; }
-
-  /* Sidebar */
-  .nav-item a                  { font-size: 15px; padding: 11px 13px; }
-  .nav-group-header            { font-size: 15px; padding: 11px 13px; }
-  .nav-group-children .nav-item a { font-size: 15px; }
-  .nav-link-soon               { font-size: 15px; padding: 11px 13px; }
-  .nav-icon                    { font-size: 15px; }
-  .sidebar-logo-sub            { font-size: 15px; }
-  .theme-toggle-btn            { font-size: 15px; }
-  .nav-badge-soon              { font-size: 15px; }
-
-  /* Cards e Stats */
-  .card-title                  { font-size: 15px; }
-  .stat-value                  { font-size: 28px; }
-  .stat-label                  { font-size: 15px; }
-
-  /* Tabelas */
-  thead th                     { font-size: 15px; padding: 11px var(--sp-md); }
-  tbody td                     { font-size: 15px; padding: 12px var(--sp-md); }
-
-  /* Botões */
-  .btn                         { font-size: 15px; padding: 9px 17px; }
-  .btn-sm                      { font-size: 15px; padding: 5px 11px; }
-  .btn-lg                      { font-size: 16px; }
-
-  /* Formulários */
-  .form-label                  { font-size: 15px; }
-  .form-control                { font-size: 15px; padding: 9px 13px; }
-  textarea.form-control        { font-size: 15px; }
-  .form-helper, .form-error    { font-size: 15px; }
-
-  /* Modais */
-  .modal-title                 { font-size: 18px; }
-
-  /* Badges e afins */
-  .badge                       { font-size: 15px; padding: 3px 8px; }
-  .doc-tipo-badge              { font-size: 15px; }
-  .stacked-segment             { font-size: 15px; }
-
-  /* Toasts */
-  .toast                       { font-size: 15px; }
-  .toast-icon                  { font-size: 17px; }
-
-  /* Filtros e ações */
-  .filter-label                { font-size: 15px; }
-  .action-link                 { font-size: 15px; padding: 4px 9px; }
-}
-
-/* Ajuste adicional para notebooks menores (Full HD compacto / HD) */
-@media (max-width: 1400px) and (max-height: 900px) and (min-width: 9999px) {
-  /* desabilitado — base já é grande */
-}
+   Decisão: REMOVER em vez de "consertar" o breakpoint.
+   1. O `min-width:9999px` não é um erro de digitação plausível — é o truque
+      clássico de desativar um bloco sem apagá-lo. O próprio segundo bloco
+      estava vazio com o comentário "desabilitado — base já é grande", e o
+      título do primeiro dizia "(legado, base já é grande)". A intenção
+      registrada era desligar, não ligar.
+   2. Reativar seria uma regressão: todo seletor de font-size ali (body,
+      .page-title, thead th, .btn, .form-control, .modal-title, .badge…) é
+      redefinido logo abaixo, no bloco do multiplicador, como
+      `calc(Npx * var(--fs-mult))`. Como aquele bloco vem DEPOIS e tem a mesma
+      especificidade, os px fixos daqui perderiam de qualquer forma — exceto
+      os `padding`, que passariam a encolher botões/linhas em QUALQUER tela
+      ≤1600px (ou seja, na maioria dos notebooks), justo o oposto do que a
+      responsividade de campo precisa.
+   Resultado prático da remoção: zero mudança de render, ~60 linhas de CSS
+   morto a menos.
+─────────────────────────────────────────────────────────────────────────── */
 
 /* ─── Multiplicador global de fonte (controle +/- da sidebar) ─── */
 /* Sobrepõe os font-sizes dos elementos principais com calc(...*--fs-mult) */
