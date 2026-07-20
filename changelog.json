@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.24.6",
+      "date": "2026-07-20",
+      "summary": "Lista de solicitações de compra agora é paginada",
+      "changes": [
+        "A visão Lista mostra 25 solicitações por página em vez de todas de uma vez",
+        "O quadro Kanban continua mostrando tudo, já que as colunas dividem por etapa",
+        "Trocar filtro ou alternar entre Lista e Kanban recomeça na primeira página"
+      ]
+    },
+    {
       "version": "1.24.5",
       "date": "2026-07-20",
       "summary": "Lista de notas fiscais agora é paginada",

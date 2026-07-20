@@ -13,6 +13,11 @@ window.SolicitacoesCompra = {
   set filtroContrato(v) { this._store?.set('filtroContrato', v); },
   get view()            { return this._store?.get('view')           ?? 'list'; },
   set view(v)           { this._store?.set('view', v); },
+  // Paginação da visão Lista (UIKit.paginate). O Kanban NÃO pagina de propósito:
+  // as colunas já dividem o conjunto, e paginar um quadro quebraria a leitura.
+  _page: 1,
+  _pageSize: 25,
+  _paginaAtual: null,
 
   _abas() { return window.perfil?.abas?.() || null; },
   _podeAvaliar() { const a = this._abas(); return !a || a.includes('solicitacoes-compra:avaliar'); },
@@ -189,6 +194,9 @@ window.SolicitacoesCompra = {
       ];
       contentHtml = window.UIKit?.kanban ? window.UIKit.kanban({ columns, renderCard }) : '';
     } else {
+      const pagina = window.UIKit.paginate(lista, this._page, this._pageSize);
+      this._page = pagina.page; // clamp: o filtro pode ter encolhido a lista
+      this._paginaAtual = pagina;
       contentHtml = `
         <div class="card">
           <div class="table-wrap">
@@ -200,7 +208,7 @@ window.SolicitacoesCompra = {
                 </tr>
               </thead>
               <tbody>
-                ${lista.length === 0 ? `<tr><td colspan="8" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhuma solicitação encontrada</td></tr>` : lista.map(s => {
+                ${lista.length === 0 ? `<tr><td colspan="8" class="text-center text-muted" style="padding:var(--sp-xl);">Nenhuma solicitação encontrada</td></tr>` : pagina.slice.map(s => {
                   const contrato = contratos.find(c => c.id === s.contractId);
                   const itens = Array.isArray(s.itens) ? s.itens : (s.itens ? JSON.parse(s.itens) : []);
                   const semValor = s.status === 'pendente_avaliacao';
@@ -234,6 +242,7 @@ window.SolicitacoesCompra = {
               </tbody>
             </table>
           </div>
+          ${window.UIKit.pagination(pagina, { label: 'solicitações' })}
         </div>`;
     }
 
@@ -247,14 +256,23 @@ window.SolicitacoesCompra = {
     app.innerHTML = html;
 
     document.getElementById('btnNovaSolicitacao').addEventListener('click', () => this.showModalCriar());
-    document.getElementById('filtroStatus')?.addEventListener('change', e => { this.filtroStatus = e.target.value; this._draw(); });
-    document.getElementById('filtroContrato')?.addEventListener('change', e => { this.filtroContrato = e.target.value; this._draw(); });
+    // Mudança de filtro volta para a página 1: senão o usuário filtra estando
+    // na página 4 e cai numa tela vazia.
+    document.getElementById('filtroStatus')?.addEventListener('change', e => { this.filtroStatus = e.target.value; this._page = 1; this._draw(); });
+    document.getElementById('filtroContrato')?.addEventListener('change', e => { this.filtroContrato = e.target.value; this._page = 1; this._draw(); });
     document.getElementById('btnLimparSC')?.addEventListener('click', () => {
-      this.filtroStatus = ''; this.filtroContrato = ''; this._draw();
+      this.filtroStatus = ''; this.filtroContrato = ''; this._page = 1; this._draw();
     });
+    if (this.view !== 'kanban' && this._paginaAtual) {
+      window.UIKit.wirePagination(app, this._paginaAtual, ({ page, pageSize }) => {
+        this._page = page;
+        this._pageSize = pageSize;
+        this._draw();
+      });
+    }
     // Toggle Lista / Kanban
     document.querySelectorAll('.ui-view-toggle button[data-view]').forEach(b => {
-      b.addEventListener('click', () => { this.view = b.dataset.view; this._draw(); });
+      b.addEventListener('click', () => { this.view = b.dataset.view; this._page = 1; this._draw(); });
     });
 
     document.querySelectorAll('.btn-detalhe').forEach(b => b.addEventListener('click', e => this.showDetalhe(e.target.dataset.id)));
