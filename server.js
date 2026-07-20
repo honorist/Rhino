@@ -85,6 +85,7 @@ const folhaPagamentoHandlers = require('./handlers/folha-pagamento'); // folha: 
 const estoqueHandlers = require('./handlers/estoque'); // estoque: itens/almoxarifados/movimentações/saldo
 const frotaHandlers = require('./handlers/frota'); // frota: veículos/planos/manutenções/abastecimentos
 const atividadesHandlers = require('./handlers/atividades'); // cronograma físico-financeiro + curva S
+const clausulasHandlers = require('./handlers/clausulas'); // cláusulas reusáveis + apresentação da proposta
 // Helpers de estoque compartilhados com Solicitações de Compra e o startup (seguem aqui).
 const { ensureAlmoxarifadoCentral, _resolveAlmoxId, _ajustarSaldo } = estoqueHandlers;
 const bus = require('./lib/bus');
@@ -1985,92 +1986,9 @@ async function handlePortalPropostaDocx(req, propostaId, res) {
   }
 }
 
-// ============ Cláusulas (biblioteca reusável) ============
-async function handleGetClausulas(res, query) {
-  try {
-    const filtros = {
-      categoria: query?.categoria || undefined,
-      termo: query?.termo || undefined,
-      ativa:
-        query?.ativa === '0' || query?.ativa === 'false'
-          ? false
-          : query?.ativa === '1' || query?.ativa === 'true'
-            ? true
-            : undefined,
-    };
-    const clausulas = await repos.clausulas.buscar(filtros);
-    sendJson(res, { clausulas });
-  } catch (e) {
-    sendError(res, 500, e.message);
-  }
-}
-
-async function handlePostClausula(body, res) {
-  try {
-    if (!body.titulo || !body.texto || !body.categoria) {
-      return sendError(res, 400, 'Título, texto e categoria são obrigatórios');
-    }
-    const clausula = {
-      id: generateId('cla'),
-      titulo: body.titulo,
-      texto: body.texto,
-      categoria: body.categoria,
-      tags: Array.isArray(body.tags) ? body.tags : [],
-      ativa: body.ativa !== false,
-    };
-    await repos.clausulas.create(clausula);
-    sendJson(res, { clausulas: await repos.clausulas.findAll() });
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handlePutClausula(id, body, res) {
-  try {
-    const allowed = {};
-    for (const f of ['titulo', 'texto', 'categoria', 'ativa']) {
-      if (body[f] !== undefined) allowed[f] = body[f];
-    }
-    if (Array.isArray(body.tags)) allowed.tags = body.tags;
-    const result = await repos.clausulas.updateById(id, allowed);
-    if (!result) return sendError(res, 404, 'Cláusula não encontrada');
-    sendJson(res, { clausulas: await repos.clausulas.findAll() });
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handleDeleteClausula(id, res) {
-  try {
-    await repos.clausulas.removeById(id);
-    sendJson(res, { clausulas: await repos.clausulas.findAll() });
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-// ============ Apresentação Global (configuração) ============
-async function handleGetApresentacao(res) {
-  try {
-    const value = (await repos.appSettings.get('proposta_apresentacao')) || {};
-    sendJson(res, { apresentacao: value });
-  } catch (e) {
-    sendError(res, 500, e.message);
-  }
-}
-
-async function handlePutApresentacao(body, res) {
-  try {
-    const allowed = {};
-    for (const k of ['apresentacao', 'casesSucesso', 'segurancaSaude']) {
-      if (body[k] !== undefined) allowed[k] = String(body[k] || '');
-    }
-    const novo = await repos.appSettings.patch('proposta_apresentacao', allowed);
-    sendJson(res, { apresentacao: novo });
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
+// ============ Cláusulas + Apresentação Global ============
+// → handlers/clausulas.js (biblioteca de cláusulas + apresentação da proposta).
+// Registrado via `...clausulasHandlers` em registerComercial.
 
 // Case Logos extraídos → handlers/case-logos.js
 
@@ -3038,10 +2956,7 @@ registerComercial(apiRouter, {
   ...clientesHandlers, // handlers/clientes.js
   handlePortalImpersonate, // "Ver portal como cliente" (super admin) — server.js seção Portal
   ...fornecedoresHandlers, // handlers/fornecedores.js
-  handleGetClausulas,
-  handlePostClausula,
-  handlePutClausula,
-  handleDeleteClausula,
+  ...clausulasHandlers, // cláusulas reusáveis + apresentação (handlers/clausulas.js)
   handleGetPropostas,
   handlePostProposta,
   handleGetProposta,
@@ -3058,8 +2973,6 @@ registerComercial(apiRouter, {
   handleGetPropostaDocx,
   handleGetPropostaPdf,
   handleGetPropostaPreview,
-  handleGetApresentacao,
-  handlePutApresentacao,
   ...caseLogosHandlers, // case logos: list/get-image + upload + put/delete (handlers/case-logos.js)
 });
 registerOperacao(apiRouter, {
