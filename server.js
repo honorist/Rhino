@@ -223,24 +223,9 @@ async function captureAuditBefore(req, pathname) {
 
 const { generateId } = require('./lib/id'); // Fase A — extraído para lib/id.js
 
-// Lê uma coleção do Postgres e retorna o envelope `{ [arrayKey]: rows }`.
-// Nota: `filename` é vestigial (legado da época JSON); mantido para evitar
-// editar 12 call sites. Postgres é única fonte de verdade em runtime.
-async function readCollection(filename, repoName, arrayKey) {
-  const rows = await repos[repoName].findAll();
-  return { [arrayKey]: rows };
-}
-
-// Executa uma operação de escrita via repo e devolve o envelope atualizado.
-// Lança se o PG não estiver disponível (escritas não têm fallback seguro).
-async function writeCollection(repoName, arrayKey, fn) {
-  if (!repos || !repos[repoName]) {
-    throw new Error('Banco de dados indisponível');
-  }
-  const result = await fn(repos[repoName]);
-  const rows = await repos[repoName].findAll();
-  return { envelope: { [arrayKey]: rows }, result };
-}
+// Envelopes de coleção (readCollection/writeCollection) → lib/collections.js
+// (compartilhados com handlers de documentos de recurso e níveis de acesso).
+const { readCollection, writeCollection } = require('./lib/collections');
 
 // FIX SEC-04: 5xx NUNCA expõem `e.message` ao cliente — vazava nomes de coluna,
 // trechos de SQL e stack do Postgres pra qualquer usuário autenticado.
@@ -2977,11 +2962,7 @@ registerComercial(apiRouter, {
 registerOperacao(apiRouter, {
   ...recursosHandlers, // CRUD principal (handlers/recursos.js)
   ...recursoFolgasHandlers, // folgas + passagens (handlers/recurso-folgas.js)
-  handleGetDocumentosStatus,
-  handleAddDocumento,
-  handlePutDocumento,
-  handleDeleteDocumento,
-  ...recursoDocsHandlers, // arquivo (BYTEA) + validação IA (handlers/recurso-documentos.js)
+  ...recursoDocsHandlers, // metadados (Add/Put/Delete/Status) + arquivo BYTEA + validação IA (handlers/recurso-documentos.js)
   ...estoqueHandlers, // itens/almoxarifados/movimentações/saldo/visão geral (handlers/estoque.js)
   handleListSolicitacoesCompra,
   handlePostSolicitacaoCompra,
@@ -3664,90 +3645,8 @@ async function handlePutNivelAcesso(id, body, res) {
 // volume). Registrado via `...cobrancaHandlers` em registerFinanceiro.
 
 // ============ Documentos de colaboradores handlers ============
-async function handleAddDocumento(recursoId, body, res) {
-  try {
-    const rec = await repos.recursos.findById(recursoId);
-    if (!rec) return sendError(res, 404, 'Recurso não encontrado');
-    const doc = {
-      id: generateId('doc'),
-      tipo: body.tipo || '',
-      tipoLabel: body.tipoLabel || body.tipo || '',
-      templateId: body.templateId || null,
-      dataEmissao: body.dataEmissao || '',
-      dataVencimento: body.dataVencimento || '',
-      responsavel: body.responsavel || '',
-      resultado: body.resultado || '',
-      observacoes: body.observacoes || '',
-      nomeArquivo: body.nomeArquivo || null,
-      validacao: null, // preenchido após validação por IA quando há arquivo + template
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    const documentos = (rec.documentos || []).concat(doc);
-    const { envelope } = await writeCollection('recursos', 'recursos', (repo) =>
-      repo.updateById(recursoId, {
-        documentos: JSON.stringify(documentos),
-        updatedAt: new Date().toISOString(),
-      })
-    );
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handlePutDocumento(recursoId, docId, body, res) {
-  try {
-    const rec = await repos.recursos.findById(recursoId);
-    if (!rec) return sendError(res, 404, 'Recurso não encontrado');
-    const docs = rec.documentos || [];
-    const dIdx = docs.findIndex((d) => d.id === docId);
-    if (dIdx === -1) return sendError(res, 404, 'Documento não encontrado');
-    // Mescla os campos enviados, mas blinda os controlados pelo servidor para
-    // evitar mass-assignment: `id` é imutável; `validacao` só é escrita pelo
-    // fluxo de validação por IA (_validarDocComTemplate), nunca por este PUT;
-    // `createdAt` nunca muda. Sem isso, o cliente poderia forjar a validação.
-    docs[dIdx] = {
-      ...docs[dIdx],
-      ...body,
-      id: docId,
-      validacao: docs[dIdx].validacao,
-      createdAt: docs[dIdx].createdAt,
-      updatedAt: new Date().toISOString(),
-    };
-    const { envelope } = await writeCollection('recursos', 'recursos', (repo) =>
-      repo.updateById(recursoId, {
-        documentos: JSON.stringify(docs),
-        updatedAt: new Date().toISOString(),
-      })
-    );
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
-
-async function handleDeleteDocumento(recursoId, docId, res) {
-  try {
-    const rec = await repos.recursos.findById(recursoId);
-    if (!rec) return sendError(res, 404, 'Recurso não encontrado');
-    const docs = (rec.documentos || []).filter((d) => d.id !== docId);
-    // Apaga também o arquivo físico (BYTEA) vinculado, se houver
-    await db.query('DELETE FROM recurso_doc_arquivos WHERE recurso_id = $1 AND doc_id = $2', [
-      recursoId,
-      docId,
-    ]);
-    const { envelope } = await writeCollection('recursos', 'recursos', (repo) =>
-      repo.updateById(recursoId, {
-        documentos: JSON.stringify(docs),
-        updatedAt: new Date().toISOString(),
-      })
-    );
-    sendJson(res, envelope);
-  } catch (e) {
-    sendError(res, 400, e.message);
-  }
-}
+// → handlers/recurso-documentos.js (Add/Put/Delete metadados no JSONB +
+// GetDocumentosStatus). Arquivos BYTEA e validação por IA já estavam lá.
 
 // Arquivos de documentos de recurso extraídos → handlers/recurso-documentos.js
 
@@ -4612,55 +4511,7 @@ async function handleGetAdminArquivos(res) {
   }
 }
 
-async function handleGetDocumentosStatus(res) {
-  try {
-    const recursos = await repos.recursos.findAll();
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const ativos = recursos.filter((r) => r.status === 'funcionario');
-    let totalDocs = 0,
-      vigentes = 0,
-      vencidos = 0,
-      vencendo = 0,
-      pendentes = 0;
-
-    ativos.forEach((r) => {
-      (r.documentos || []).forEach((doc) => {
-        totalDocs++;
-        if (!doc.dataVencimento) {
-          pendentes++;
-          return;
-        }
-        const venc = new Date(doc.dataVencimento + 'T12:00:00');
-        const dias = Math.ceil((venc - hoje) / 86400000);
-        if (dias < 0) vencidos++;
-        else if (dias <= 30) vencendo++;
-        else vigentes++;
-      });
-    });
-
-    const colaboradoresComVencidos = ativos.filter((r) =>
-      (r.documentos || []).some((doc) => {
-        if (!doc.dataVencimento) return false;
-        return Math.ceil((new Date(doc.dataVencimento + 'T12:00:00') - hoje) / 86400000) < 0;
-      })
-    ).length;
-
-    sendJson(res, {
-      totalAtivos: ativos.length,
-      colaboradoresComVencidos,
-      totalDocs,
-      vigentes,
-      vencidos,
-      vencendo,
-      pendentes,
-    });
-  } catch (e) {
-    // Via sendError (não res.end cru): redige a mensagem em 5xx, evitando vazar
-    // o texto de erro do Postgres ao cliente. Mantém o padrão do resto do app.
-    sendError(res, 500, e.message);
-  }
-}
+// handleGetDocumentosStatus → handlers/recurso-documentos.js
 
 // Export for testing; start only when run directly
 async function bootstrap() {

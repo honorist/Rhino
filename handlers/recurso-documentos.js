@@ -17,6 +17,7 @@ const piiCrypto = require('../lib/crypto-pii');
 const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
 const { parseMultipart } = require('../lib/multipart');
+const { writeCollection } = require('../lib/collections');
 
 // ============ Validação de documento contra template (Claude Vision) ============
 // Lê o BYTEA do arquivo, converte PDF→imagem se preciso, redimensiona com jimp,
@@ -518,9 +519,153 @@ async function handleDeleteRecursoDocArquivo(recursoId, docId, res) {
   }
 }
 
+// ============ Documentos do colaborador (metadados no JSONB `documentos`) ============
+// Add/Put/Delete gerenciam o array `documentos` do recurso (tipo, validade,
+// responsável, referência ao arquivo); o BYTEA em si é tratado pelos handlers de
+// arquivo acima. GetDocumentosStatus agrega os KPIs de validade pro dashboard.
+
+async function handleAddDocumento(recursoId, body, res) {
+  try {
+    const rec = await repos.recursos.findById(recursoId);
+    if (!rec) return sendError(res, 404, 'Recurso não encontrado');
+    const doc = {
+      id: generateId('doc'),
+      tipo: body.tipo || '',
+      tipoLabel: body.tipoLabel || body.tipo || '',
+      templateId: body.templateId || null,
+      dataEmissao: body.dataEmissao || '',
+      dataVencimento: body.dataVencimento || '',
+      responsavel: body.responsavel || '',
+      resultado: body.resultado || '',
+      observacoes: body.observacoes || '',
+      nomeArquivo: body.nomeArquivo || null,
+      validacao: null, // preenchido após validação por IA quando há arquivo + template
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const documentos = (rec.documentos || []).concat(doc);
+    const { envelope } = await writeCollection('recursos', 'recursos', (repo) =>
+      repo.updateById(recursoId, {
+        documentos: JSON.stringify(documentos),
+        updatedAt: new Date().toISOString(),
+      })
+    );
+    sendJson(res, envelope);
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handlePutDocumento(recursoId, docId, body, res) {
+  try {
+    const rec = await repos.recursos.findById(recursoId);
+    if (!rec) return sendError(res, 404, 'Recurso não encontrado');
+    const docs = rec.documentos || [];
+    const dIdx = docs.findIndex((d) => d.id === docId);
+    if (dIdx === -1) return sendError(res, 404, 'Documento não encontrado');
+    // Mescla os campos enviados, mas blinda os controlados pelo servidor para
+    // evitar mass-assignment: `id` é imutável; `validacao` só é escrita pelo
+    // fluxo de validação por IA (_validarDocComTemplate), nunca por este PUT;
+    // `createdAt` nunca muda. Sem isso, o cliente poderia forjar a validação.
+    docs[dIdx] = {
+      ...docs[dIdx],
+      ...body,
+      id: docId,
+      validacao: docs[dIdx].validacao,
+      createdAt: docs[dIdx].createdAt,
+      updatedAt: new Date().toISOString(),
+    };
+    const { envelope } = await writeCollection('recursos', 'recursos', (repo) =>
+      repo.updateById(recursoId, {
+        documentos: JSON.stringify(docs),
+        updatedAt: new Date().toISOString(),
+      })
+    );
+    sendJson(res, envelope);
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handleDeleteDocumento(recursoId, docId, res) {
+  try {
+    const rec = await repos.recursos.findById(recursoId);
+    if (!rec) return sendError(res, 404, 'Recurso não encontrado');
+    const docs = (rec.documentos || []).filter((d) => d.id !== docId);
+    // Apaga também o arquivo físico (BYTEA) vinculado, se houver
+    await db.query('DELETE FROM recurso_doc_arquivos WHERE recurso_id = $1 AND doc_id = $2', [
+      recursoId,
+      docId,
+    ]);
+    const { envelope } = await writeCollection('recursos', 'recursos', (repo) =>
+      repo.updateById(recursoId, {
+        documentos: JSON.stringify(docs),
+        updatedAt: new Date().toISOString(),
+      })
+    );
+    sendJson(res, envelope);
+  } catch (e) {
+    sendError(res, 400, e.message);
+  }
+}
+
+async function handleGetDocumentosStatus(res) {
+  try {
+    const recursos = await repos.recursos.findAll();
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const ativos = recursos.filter((r) => r.status === 'funcionario');
+    let totalDocs = 0,
+      vigentes = 0,
+      vencidos = 0,
+      vencendo = 0,
+      pendentes = 0;
+
+    ativos.forEach((r) => {
+      (r.documentos || []).forEach((doc) => {
+        totalDocs++;
+        if (!doc.dataVencimento) {
+          pendentes++;
+          return;
+        }
+        const venc = new Date(doc.dataVencimento + 'T12:00:00');
+        const dias = Math.ceil((venc - hoje) / 86400000);
+        if (dias < 0) vencidos++;
+        else if (dias <= 30) vencendo++;
+        else vigentes++;
+      });
+    });
+
+    const colaboradoresComVencidos = ativos.filter((r) =>
+      (r.documentos || []).some((doc) => {
+        if (!doc.dataVencimento) return false;
+        return Math.ceil((new Date(doc.dataVencimento + 'T12:00:00') - hoje) / 86400000) < 0;
+      })
+    ).length;
+
+    sendJson(res, {
+      totalAtivos: ativos.length,
+      colaboradoresComVencidos,
+      totalDocs,
+      vigentes,
+      vencidos,
+      vencendo,
+      pendentes,
+    });
+  } catch (e) {
+    // Via sendError (não res.end cru): redige a mensagem em 5xx, evitando vazar
+    // o texto de erro do Postgres ao cliente. Mantém o padrão do resto do app.
+    sendError(res, 500, e.message);
+  }
+}
+
 module.exports = {
   handlePostRecursoDocArquivo,
   handleGetRecursoDocArquivo,
   handleDeleteRecursoDocArquivo,
   handleValidarDocumento,
+  handleAddDocumento,
+  handlePutDocumento,
+  handleDeleteDocumento,
+  handleGetDocumentosStatus,
 };
