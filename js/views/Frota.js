@@ -5,6 +5,9 @@ window.Frota = {
   busca: '',
   filtroStatus: '',
   filtroContrato: '',
+  // Paginação (UIKit.paginate) — ver test/paginacao.test.js.
+  _page: 1,
+  _pageSize: 25,
 
   TIPOS: ['carro', 'caminhao', 'van', 'moto', 'equipamento', 'outro'],
 
@@ -132,6 +135,10 @@ window.Frota = {
       );
     if (this.filtroStatus) lista = lista.filter((v) => v.status === this.filtroStatus);
     if (this.filtroContrato) lista = lista.filter((v) => v.contractId === this.filtroContrato);
+
+    // Paginação (UIKit.paginate) — antes a tabela recebia a frota filtrada inteira.
+    const pagina = window.UIKit.paginate(lista, this._page, this._pageSize);
+    this._page = pagina.page; // clamp: o filtro pode ter encolhido a lista
 
     const proxs = todos.map((v) => this._proximaManut(v));
     const kpiVencidos = proxs.filter((p) => p?.status === 'vencido').length;
@@ -270,7 +277,7 @@ window.Frota = {
                     : '<div class="text-center text-muted" style="padding:var(--sp-xl);">Nenhum veículo cadastrado</div>'
                 }</td></tr>
               `
-                  : lista
+                  : pagina.slice
                       .map((v) => {
                         const c = contratos.find((x) => x.id === v.contractId);
                         const prox = this._proximaManut(v);
@@ -312,34 +319,48 @@ window.Frota = {
             </tbody>
           </table>
         </div>
+        ${window.UIKit.pagination(pagina, { label: 'veículos' })}
       </div>
     `;
 
     app.innerHTML = html;
 
+    window.UIKit.wirePagination(app, pagina, ({ page, pageSize }) => {
+      this._page = page;
+      this._pageSize = pageSize;
+      this._draw();
+    });
+
     document.getElementById('btnNovoVeic').addEventListener('click', () => this.showModal());
+    // Toda mudança de filtro/busca volta para a página 1: senão o usuário filtra
+    // estando na página 5 e cai numa tela vazia.
     document.getElementById('inpBusca').addEventListener('input', (e) => {
       this.busca = e.target.value;
+      this._page = 1;
       clearTimeout(this._tBusca);
       this._tBusca = setTimeout(() => this._draw(), 200);
     });
     document.getElementById('filtroStatus').addEventListener('change', (e) => {
       this.filtroStatus = e.target.value;
+      this._page = 1;
       this._draw();
     });
     document.getElementById('filtroContrato').addEventListener('change', (e) => {
       this.filtroContrato = e.target.value;
+      this._page = 1;
       this._draw();
     });
     document.getElementById('btnLimparFrota')?.addEventListener('click', () => {
       this.busca = '';
       this.filtroStatus = '';
       this.filtroContrato = '';
+      this._page = 1;
       this._draw();
     });
     document.querySelectorAll('[data-chips="frota-status"] .rh-chip').forEach((b) => {
       b.addEventListener('click', () => {
         this.filtroStatus = b.dataset.value || '';
+        this._page = 1;
         this._draw();
       });
     });

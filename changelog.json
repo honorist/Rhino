@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.24.4",
+      "date": "2026-07-20",
+      "summary": "Lista de veículos agora é paginada",
+      "changes": [
+        "A tela de Frota mostra 25 veículos por página em vez da frota inteira de uma vez",
+        "Você escolhe quantos ver por página (10, 25, 50 ou 100)",
+        "Buscar ou trocar filtro volta para a primeira página automaticamente"
+      ]
+    },
+    {
       "version": "1.24.3",
       "date": "2026-07-20",
       "summary": "Lista de estoque agora é paginada, como a de colaboradores",
