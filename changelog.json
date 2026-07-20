@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.25.2",
+      "date": "2026-07-20",
+      "summary": "Frota: lançamentos de combustível verificados automaticamente",
+      "changes": [
+        "Abastecimento com obra vinculada: a saída no caixa é conferida ao criar, editar e excluir — nada de lançamento esquecido inflando o custo da obra",
+        "O hodômetro do veículo continua só avançando, mesmo se alguém digitar um KM menor",
+        "Organização interna: a Frota passou a ter módulo próprio"
+      ]
+    },
+    {
       "version": "1.25.1",
       "date": "2026-07-20",
       "summary": "Correção: gerar folha de pagamento voltou a funcionar",
