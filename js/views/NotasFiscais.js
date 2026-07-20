@@ -1,6 +1,10 @@
 window.NotasFiscais = {
   currentView: 'lista',
   currentMonth: new Date(),
+  // Paginação da aba Lista (UIKit.paginate) — antes despejava todas as NFs no DOM.
+  _page: 1,
+  _pageSize: 25,
+  _paginaAtual: null,
 
   async render() {
     const app = document.getElementById('app');
@@ -177,9 +181,18 @@ window.NotasFiscais = {
       document.querySelectorAll('.ui-view-toggle button[data-view]').forEach((b) => {
         b.addEventListener('click', () => {
           this.currentView = b.dataset.view;
+          this._page = 1; // trocar de aba recomeça a paginação
           this.render();
         });
       });
+
+      if (this.currentView === 'lista' && this._paginaAtual) {
+        window.UIKit.wirePagination(app, this._paginaAtual, ({ page, pageSize }) => {
+          this._page = page;
+          this._pageSize = pageSize;
+          this.render();
+        });
+      }
 
       this.attachListeners();
     } catch (e) {
@@ -200,6 +213,10 @@ window.NotasFiscais = {
       return new Date(a.dataLimite) - new Date(b.dataLimite);
     });
 
+    const pagina = window.UIKit.paginate(sorted, this._page, this._pageSize);
+    this._page = pagina.page;
+    this._paginaAtual = pagina;
+
     return `
       <div class="card">
         <div class="table-wrap">
@@ -216,7 +233,7 @@ window.NotasFiscais = {
               </tr>
             </thead>
             <tbody>
-              ${sorted
+              ${pagina.slice
                 .map((nf) => {
                   const contract = Store.getContractById(nf.contractId);
                   const st = Store.getNotaFiscalStatus(nf.dataLimite);
@@ -280,6 +297,7 @@ window.NotasFiscais = {
             </tbody>
           </table>
         </div>
+        ${window.UIKit.pagination(pagina, { label: 'notas fiscais' })}
       </div>
     `;
   },
