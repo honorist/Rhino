@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.25.3",
+      "date": "2026-07-20",
+      "summary": "Reorganização interna: código do servidor mais enxuto e testável",
+      "changes": [
+        "Nenhuma mudança visível no uso do sistema — as telas e regras continuam idênticas",
+        "O motor do sistema foi dividido em módulos menores (dashboards, propostas, portal, compras, manutenções e outros), deixando a manutenção mais segura e rápida",
+        "O cálculo do custo médio de estoque (usado na margem por obra) agora é verificado automaticamente por testes"
+      ]
+    },
+    {
       "version": "1.25.2",
       "date": "2026-07-20",
       "summary": "Frota: lançamentos de combustível verificados automaticamente",
