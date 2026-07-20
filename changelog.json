@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.24.3",
+      "date": "2026-07-20",
+      "summary": "Lista de estoque agora é paginada, como a de colaboradores",
+      "changes": [
+        "A aba Geral do Almoxarifado mostra 25 itens por página em vez do catálogo inteiro",
+        "Você escolhe quantos itens ver por página (10, 25, 50 ou 100)",
+        "Ao buscar ou trocar a categoria, a lista volta para a primeira página automaticamente"
+      ]
+    },
+    {
       "version": "1.24.2",
       "date": "2026-07-20",
       "summary": "Lista de colaboradores agora é paginada e abre bem mais rápido",

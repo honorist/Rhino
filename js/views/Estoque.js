@@ -12,6 +12,12 @@ window.Estoque = {
   set _filtroCategoria(v){ this._filterStore?.set('filtroCategoria', v); },
   get _tab()             { return this._filterStore?.get('tab')             ?? 'geral'; },
   set _tab(v)            { this._filterStore?.set('tab', v); },
+  // Paginação (UIKit.paginate) — antes a aba Geral jogava o catálogo filtrado
+  // inteiro no DOM. Não vai para o persistFilter de propósito: página é estado
+  // de navegação, não filtro; reabrir a tela deve começar na primeira.
+  _page: 1,
+  _pageSize: 25,
+  _paginaAtual: null,
 
   CATEGORIAS_PADRAO: [
     'Material de Consumo',
@@ -174,6 +180,11 @@ window.Estoque = {
 
     const categorias = [...new Set(this._itens.map(i => i.categoria).filter(Boolean))].sort();
 
+    // Guardado para o _attachListenersGeral ligar os botões na mesma fatia.
+    const pagina = window.UIKit.paginate(filtrados, this._page, this._pageSize);
+    this._page = pagina.page; // clamp: lista pode ter encolhido pelo filtro
+    this._paginaAtual = pagina;
+
     return `
       <div class="card" style="padding:var(--sp-md);margin-bottom:var(--sp-md);display:grid;grid-template-columns:1fr 220px;gap:8px;">
         <input class="form-control" id="inputBuscaEstoque" placeholder="🔎 Buscar por descrição, código ou categoria..." value="${escapeHtml(this._busca)}">
@@ -200,7 +211,7 @@ window.Estoque = {
             </thead>
             <tbody>
               ${filtrados.length === 0 ? `<tr><td colspan="8" style="text-align:center;color:var(--color-text-muted);padding:var(--sp-md);">Nenhum item no filtro</td></tr>` : ''}
-              ${filtrados.map(item => {
+              ${pagina.slice.map(item => {
                 const total = this._saldoTotal(item);
                 const min = parseFloat(item.estoqueMinimo) || 0;
                 const abaixo = total < min && min > 0;
@@ -251,6 +262,7 @@ window.Estoque = {
             </tbody>
           </table>
         </div>
+        ${window.UIKit.pagination(pagina, { label: 'itens de estoque' })}
       </div>
 
       <div class="text-muted font-sm" style="margin-top:6px;font-size:12px;">
@@ -273,13 +285,22 @@ window.Estoque = {
     if (inp) {
       inp.addEventListener('input', (e) => {
         this._busca = e.target.value;
+        this._page = 1; // busca mudou: senão o usuário busca e cai numa página vazia
         this._draw();
         const inp2 = document.getElementById('inputBuscaEstoque');
         if (inp2) { inp2.focus(); inp2.setSelectionRange(inp2.value.length, inp2.value.length); }
       });
     }
     const sel = document.getElementById('filtroCategoriaEstoque');
-    if (sel) sel.addEventListener('change', (e) => { this._filtroCategoria = e.target.value; this._draw(); });
+    if (sel) sel.addEventListener('change', (e) => { this._filtroCategoria = e.target.value; this._page = 1; this._draw(); });
+
+    if (this._paginaAtual) {
+      window.UIKit.wirePagination(document.getElementById('app'), this._paginaAtual, ({ page, pageSize }) => {
+        this._page = page;
+        this._pageSize = pageSize;
+        this._draw();
+      });
+    }
 
     document.querySelectorAll('.btn-comprei').forEach(b => b.addEventListener('click', () => {
       const item = this._itens.find(x => x.id === b.dataset.id);
