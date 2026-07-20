@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.24.2",
+      "date": "2026-07-20",
+      "summary": "Lista de colaboradores agora é paginada e abre bem mais rápido",
+      "changes": [
+        "A tela de Recursos mostra 25 colaboradores por página em vez de carregar a lista inteira de uma vez",
+        "Você escolhe quantos itens ver por página (10, 25, 50 ou 100)",
+        "Ao buscar ou trocar um filtro, a lista volta para a primeira página automaticamente"
+      ]
+    },
+    {
       "version": "1.24.1",
       "date": "2026-07-20",
       "summary": "Falhas do sistema passam a gerar alerta em vez de sumir no log",

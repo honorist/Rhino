@@ -510,6 +510,136 @@
   }
 
   // ─────────────────────────────────────────────
+  // PAGINAÇÃO
+  // ─────────────────────────────────────────────
+  // Extraído do padrão já maduro de Contratos.js (pageSize + clamp + janela de
+  // páginas) para telas que renderizavam o dataset filtrado INTEIRO no DOM
+  // (Recursos, Estoque, Frota, Solicitações, Notas Fiscais). Reusa o CSS
+  // `rh-pagination` que já existe — nada de estilo novo.
+
+  const PAGE_SIZES = [10, 25, 50, 100];
+  const DEFAULT_PAGE_SIZE = 25;
+
+  /**
+   * Fatia uma lista. FUNÇÃO PURA — não lê DOM nem estado global, por isso é
+   * testável (test/paginacao.test.js).
+   *
+   * Faz o *clamp* da página: se a lista encolheu (usuário filtrou estando na
+   * página 7), volta para a última página existente em vez de devolver vazio.
+   *
+   * @param {Array} items
+   * @param {number} page      1-based
+   * @param {number} pageSize
+   * @returns {{page:number,pageSize:number,total:number,totalPages:number,start:number,end:number,slice:Array}}
+   */
+  function paginate(items, page, pageSize) {
+    const lista = Array.isArray(items) ? items : [];
+    const total = lista.length;
+
+    let tam = parseInt(pageSize, 10);
+    if (!Number.isFinite(tam) || tam <= 0) tam = DEFAULT_PAGE_SIZE;
+
+    const totalPages = Math.max(1, Math.ceil(total / tam));
+
+    let pg = parseInt(page, 10);
+    if (!Number.isFinite(pg) || pg < 1) pg = 1;
+    if (pg > totalPages) pg = totalPages;
+
+    const start = (pg - 1) * tam;
+    const end = Math.min(start + tam, total);
+    return { page: pg, pageSize: tam, total, totalPages, start, end, slice: lista.slice(start, end) };
+  }
+
+  /**
+   * Janela de números de página (no máximo `max`), centrada na atual.
+   * Pura. Espelha a lógica de Contratos.js.
+   * @returns {number[]}
+   */
+  function pageWindow(page, totalPages, max = 7) {
+    const tp = Math.max(1, parseInt(totalPages, 10) || 1);
+    const n = Math.min(tp, max);
+    let inicio = 1;
+    if (tp > max) {
+      const meio = Math.floor(max / 2);
+      if (page <= meio + 1) inicio = 1;
+      else if (page >= tp - meio) inicio = tp - max + 1;
+      else inicio = page - meio;
+    }
+    return Array.from({ length: n }, (_, i) => inicio + i);
+  }
+
+  /**
+   * HTML do controle de paginação. Devolve '' quando tudo cabe numa página —
+   * paginação que não pagina é só ruído na tela.
+   *
+   * @param {object} info  retorno de `paginate`
+   * @param {{sizes?: number[], label?: string}} [opts]
+   * @returns {string}
+   */
+  function pagination(info, opts = {}) {
+    if (!info || info.total <= info.pageSize) return '';
+    const sizes = opts.sizes || PAGE_SIZES;
+    const label = opts.label || 'itens';
+    const paginas = pageWindow(info.page, info.totalPages);
+
+    return `
+      <div class="rh-pagination" role="navigation" aria-label="Paginação de ${esc(label)}">
+        <div style="color:var(--color-text-muted);font-size:13px;">
+          ${info.start + 1}–${info.end} de ${info.total}
+          <select class="rh-pager-size" aria-label="Itens por página" style="margin-left:8px;padding:4px 8px;border-radius:5px;border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-text);font-size:13px;font-family:inherit;">
+            ${sizes.map((n) => `<option value="${n}" ${info.pageSize === n ? 'selected' : ''}>${n} por página</option>`).join('')}
+          </select>
+        </div>
+        <div class="rh-pagination__pages">
+          <button class="rh-pagination__btn" data-pg-prev aria-label="Página anterior" ${info.page === 1 ? 'disabled' : ''}>‹</button>
+          ${paginas
+            .map(
+              (pg) =>
+                `<button class="rh-pagination__btn ${info.page === pg ? 'is-active' : ''}" data-pg="${pg}" aria-label="Página ${pg}"${info.page === pg ? ' aria-current="page"' : ''}>${pg}</button>`
+            )
+            .join('')}
+          <button class="rh-pagination__btn" data-pg-next aria-label="Próxima página" ${info.page === info.totalPages ? 'disabled' : ''}>›</button>
+        </div>
+      </div>`;
+  }
+
+  /**
+   * Liga os cliques do controle. `onChange({page, pageSize})` deve guardar o
+   * estado na view e re-renderizar.
+   *
+   * @param {ParentNode} root       elemento que contém o controle
+   * @param {object} info           retorno de `paginate`
+   * @param {(s:{page:number,pageSize:number}) => void} onChange
+   */
+  function wirePagination(root, info, onChange) {
+    if (!root || typeof onChange !== 'function') return;
+
+    const prev = root.querySelector('[data-pg-prev]');
+    if (prev) prev.addEventListener('click', () => {
+      if (info.page > 1) onChange({ page: info.page - 1, pageSize: info.pageSize });
+    });
+
+    const next = root.querySelector('[data-pg-next]');
+    if (next) next.addEventListener('click', () => {
+      if (info.page < info.totalPages) onChange({ page: info.page + 1, pageSize: info.pageSize });
+    });
+
+    root.querySelectorAll('[data-pg]').forEach((b) => {
+      b.addEventListener('click', () => {
+        const pg = parseInt(b.getAttribute('data-pg'), 10);
+        if (Number.isFinite(pg) && pg !== info.page) onChange({ page: pg, pageSize: info.pageSize });
+      });
+    });
+
+    const sel = root.querySelector('.rh-pager-size');
+    // Trocar o tamanho volta para a página 1: manter a página faria o usuário
+    // cair num intervalo que não corresponde ao que ele estava vendo.
+    if (sel) sel.addEventListener('change', (e) => {
+      onChange({ page: 1, pageSize: parseInt(e.target.value, 10) || DEFAULT_PAGE_SIZE });
+    });
+  }
+
+  // ─────────────────────────────────────────────
   // EXPORT
   // ─────────────────────────────────────────────
   window.UIKit = {
@@ -518,5 +648,7 @@
     density, autosave, esc,
     // Padrão de cabeçalho B (KPIs + Toolbar) + visualizações
     pageHeader, kpiGrid, toolbar, chips, kanban, viewToggle,
+    // Paginação (Wave 2) — ver test/paginacao.test.js
+    paginate, pageWindow, pagination, wirePagination, PAGE_SIZES, DEFAULT_PAGE_SIZE,
   };
 })();

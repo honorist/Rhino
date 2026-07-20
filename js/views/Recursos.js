@@ -3,6 +3,10 @@ window.Recursos = {
   filtroStatus: '',
   filtroProfissoes: [],
   _miniMap: null,
+  // Paginação (UIKit.paginate). Antes a tela jogava o resultado filtrado INTEIRO
+  // no DOM — com o crescimento do cadastro isso trava justamente a tela mais usada.
+  _page: 1,
+  _pageSize: 25,
 
   async render() {
     const app = document.getElementById('app');
@@ -21,6 +25,7 @@ window.Recursos = {
     const app = document.getElementById('app');
     const recursos = Store.state.recursos || [];
     const filtrados = this._filtrarRecursos(recursos);
+    const pagina = UIKit.paginate(filtrados, this._page, this._pageSize);
 
     // Funções distintas (normalizadas) — deduplica variações de escrita/caixa
     // ("PEDREIRO", "pedreiro", " Pedreiro " viram um único "Pedreiro").
@@ -167,33 +172,47 @@ window.Recursos = {
                   ? `<tr><td colspan="6" class="text-center text-muted" style="padding:var(--sp-xl);">
                     ${this._temFiltro() ? 'Nenhum resultado' : 'Nenhum cadastro ainda'}
                    </td></tr>`
-                  : filtrados.map((r) => this._renderRow(r)).join('')
+                  : pagina.slice.map((r) => this._renderRow(r)).join('')
               }
             </tbody>
           </table>
         </div>
+        ${UIKit.pagination(pagina, { label: 'colaboradores' })}
       </div>`;
+
+    // O clamp acontece dentro do paginate: se a lista encolheu, `pagina.page`
+    // já vem corrigido — guardar de volta evita ficar preso numa página morta.
+    this._page = pagina.page;
+    UIKit.wirePagination(app, pagina, ({ page, pageSize }) => {
+      this._page = page;
+      this._pageSize = pageSize;
+      this._renderLista();
+    });
 
     document.getElementById('btnNovoRecurso').addEventListener('click', () => this.showModal());
     document.getElementById('btnMapaGeral').addEventListener('click', () => this.showMapaGeral());
     document.getElementById('inputBusca').addEventListener('input', (e) => {
       this.busca = e.target.value;
+      this._page = 1; // filtro mudou: senão o usuário busca e cai numa página vazia
       clearTimeout(this._tBusca);
       this._tBusca = setTimeout(() => this._renderLista(), 250);
     });
     document.getElementById('filtroStatus').addEventListener('change', (e) => {
       this.filtroStatus = e.target.value;
+      this._page = 1;
       this._renderLista();
     });
     document.getElementById('btnLimparRec')?.addEventListener('click', () => {
       this.busca = '';
       this.filtroStatus = '';
       this.filtroProfissoes = [];
+      this._page = 1;
       this.render();
     });
     document.querySelectorAll('[data-chips="rec-status"] .rh-chip').forEach((b) => {
       b.addEventListener('click', () => {
         this.filtroStatus = b.dataset.value || '';
+        this._page = 1;
         this.render();
       });
     });
@@ -391,6 +410,7 @@ window.Recursos = {
       this.filtroProfissoes = [...document.querySelectorAll('#cargoFilterList .cargo-cb')]
         .filter((x) => x.checked)
         .map((x) => x.value);
+      this._page = 1; // filtro de cargo mudou
       this._refreshResultados();
     };
     document.querySelectorAll('#cargoFilterList .cargo-cb').forEach((cb) => {
@@ -423,13 +443,40 @@ window.Recursos = {
   _refreshResultados() {
     const recursos = Store.state.recursos || [];
     const filtrados = this._filtrarRecursos(recursos);
+    // Este é o caminho INCREMENTAL (troca só o tbody). Ele também precisa
+    // paginar: sem isto, mexer no filtro de cargo devolveria a lista inteira ao
+    // DOM e furaria a paginação aplicada no _renderLista.
+    const pagina = UIKit.paginate(filtrados, this._page, this._pageSize);
+    this._page = pagina.page;
     const tbody = document.getElementById('recursosTbody');
     if (tbody) {
       tbody.innerHTML =
         filtrados.length === 0
           ? `<tr><td colspan="6" class="text-center text-muted" style="padding:var(--sp-xl);">${this._temFiltro() ? 'Nenhum resultado' : 'Nenhum cadastro ainda'}</td></tr>`
-          : filtrados.map((r) => this._renderRow(r)).join('');
+          : pagina.slice.map((r) => this._renderRow(r)).join('');
       this._attachRowListeners();
+    }
+    // Redesenha o controle no lugar: o total de páginas muda conforme o filtro.
+    const paginacaoAtual = document.querySelector('#app .rh-pagination');
+    const novoHtml = UIKit.pagination(pagina, { label: 'colaboradores' });
+    if (paginacaoAtual) {
+      if (!novoHtml) {
+        paginacaoAtual.remove();
+      } else {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = novoHtml;
+        paginacaoAtual.replaceWith(tmp.firstElementChild);
+        UIKit.wirePagination(document.getElementById('app'), pagina, ({ page, pageSize }) => {
+          this._page = page;
+          this._pageSize = pageSize;
+          this._renderLista();
+        });
+      }
+    } else if (novoHtml) {
+      // Antes não paginava e agora precisa (ex.: filtro foi limpo) — só um
+      // re-render completo recoloca o controle na posição certa.
+      this._renderLista();
+      return;
     }
     const res = document.getElementById('recursosResultado');
     if (res) {
