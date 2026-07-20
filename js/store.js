@@ -378,6 +378,86 @@ window.Store = {
     }
   },
 
+  // ── BM estruturado: planilha de serviços + medição por itens ──────────────
+  // Os handlers respondem erro como JSON { error: "mensagem em pt-BR" }.
+  // _medicaoFetch normaliza isso num Error com a mensagem PRONTA para o usuário
+  // (as regras de negócio de lib/medicao.js já devolvem texto final).
+  async _medicaoFetch(url, options) {
+    let res;
+    try {
+      res = await fetch(url, options);
+    } catch {
+      const err = new Error('Falha de conexão. Verifique a rede e tente novamente.');
+      this.state.error = err.message;
+      this.notify();
+      throw err;
+    }
+    let payload = null;
+    try { payload = await res.json(); } catch { payload = null; }
+    if (!res.ok) {
+      const msg = (payload && payload.error) || `Erro HTTP ${res.status}`;
+      const err = new Error(msg);
+      err.status = res.status;
+      this.state.error = msg;
+      this.notify();
+      throw err;
+    }
+    // Respostas que trazem o envelope global mantêm o Store em dia.
+    if (payload && payload.contracts !== undefined) {
+      this.state.contracts = payload.contracts || [];
+      this.state.saidas = payload.saidas || [];
+      if (payload.notas_fiscais !== undefined) this.state.notas_fiscais = payload.notas_fiscais;
+      this.notify();
+    }
+    return payload || {};
+  },
+
+  getContractServicos(contractId) {
+    return this._medicaoFetch(`/api/contracts/${encodeURIComponent(contractId)}/servicos`);
+  },
+
+  createContractServico(contractId, data) {
+    return this._medicaoFetch(`/api/contracts/${encodeURIComponent(contractId)}/servicos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  },
+
+  updateContractServico(contractId, servicoId, data) {
+    return this._medicaoFetch(`/api/contracts/${encodeURIComponent(contractId)}/servicos/${encodeURIComponent(servicoId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  },
+
+  deleteContractServico(contractId, servicoId) {
+    return this._medicaoFetch(`/api/contracts/${encodeURIComponent(contractId)}/servicos/${encodeURIComponent(servicoId)}`, {
+      method: 'DELETE'
+    });
+  },
+
+  getContractMedicoes(contractId) {
+    return this._medicaoFetch(`/api/contracts/${encodeURIComponent(contractId)}/medicoes`);
+  },
+
+  createContractMedicao(contractId, data) {
+    return this._medicaoFetch(`/api/contracts/${encodeURIComponent(contractId)}/medicoes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  },
+
+  aprovarBm(contractId, nfId, data) {
+    return this._medicaoFetch(`/api/contracts/${encodeURIComponent(contractId)}/bms/${encodeURIComponent(nfId)}/aprovacao`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+  },
+
   // Caixa
   async createCaixaEntry(data) {
     try {

@@ -17,6 +17,8 @@ const _lazyManifest = {
       './js/views/contrato/rdos-pdf-batch.js',
       './js/views/contrato/modais.js',
       './js/views/contrato/cronograma.js',
+      './js/views/contrato/medicao.js',
+      './js/views/contrato/medicao-bms.js',
       './js/views/contrato/export-pdf.js',
       './js/views/contrato/modais-extra.js',
     ],
@@ -710,7 +712,7 @@ const perfil = {
     const abas = this.abas();
     if (!abas) return true; // sem perfil → tudo liberado
     // Sub-abas universais (adicionadas depois do cadastro inicial dos perfis):
-    if (['cronograma', 'timeline'].includes(tabKey)) return true;
+    if (['cronograma', 'timeline', 'medicao'].includes(tabKey)) return true;
     const contractTabs = abas.filter((a) => typeof a === 'string' && a.startsWith('contrato-tab:'));
     if (contractTabs.length === 0) return true; // nada configurado → tudo liberado (legado)
     return contractTabs.includes('contrato-tab:' + tabKey);
@@ -718,7 +720,7 @@ const perfil = {
 
   // Primeira sub-aba do contrato liberada
   primeiraContractTab() {
-    const ordem = ['visao', 'financeiro', 'cronograma', 'equipe', 'rdo', 'pendencias'];
+    const ordem = ['visao', 'financeiro', 'medicao', 'cronograma', 'equipe', 'rdo', 'pendencias'];
     return ordem.find((k) => this.podeContractTab(k)) || 'visao';
   },
 

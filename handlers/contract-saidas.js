@@ -8,12 +8,116 @@
  * deadlockava com o lock FK do `INSERT` da NF (feito por uma conexão separada do
  * pool — `repos`). Trocado por `pg_advisory_xact_lock` (mesmo lock que PUT/DELETE
  * já usavam), que serializa por contrato SEM conflitar com o lock FK.
+ *
+ * BM estruturado (2026-07): a criação "saída + agregação em NF" foi extraída em
+ * `criarSaidaAgregandoNf` para ser compartilhada com a medição por itens
+ * (handlers/contract-medicoes.js). NFs novas recebem snapshot do % de retenção
+ * do contrato (BR-MED-003); saída com itens de medição não admite edição direta
+ * de valor (BR-MED-004 — lib/medicao.js).
  */
 const db = require('../db');
 const repos = require('../db/repos');
 const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
 const { validateBody, schemas } = require('../lib/validate');
+const med = require('../lib/medicao');
+
+/**
+ * % de retenção contratual, lido do campo que já existe no contrato
+ * (`contracts.retencao_percent`, editável no formulário de contrato e exibido
+ * no ContratoDetail). Gravado como snapshot na NF na criação do BM (BR-MED-003).
+ * Fora da faixa [0,100] ou ausente → null (sem retenção).
+ */
+function retencaoPctDoContrato(contract) {
+  const pct = parseFloat(contract && contract.retencaoPercent);
+  return Number.isFinite(pct) && pct >= 0 && pct <= 100 ? pct : null;
+}
+
+/**
+ * Cria uma saída agregando na NF (BM) não emitida do mesmo dia — ou criando um
+ * BM-NNN novo com snapshot do % de retenção do contrato.
+ *
+ * PRÉ-CONDIÇÃO: chamar dentro de `db.withTransaction` com o advisory lock do
+ * contrato já tomado (`pg_advisory_xact_lock(hashtext(contractId))`) — os writes
+ * via repos commitam imediatamente; o lock é o que serializa por contrato.
+ * Lança `Error` com `statusCode` em violação de regra (caller aborta).
+ *
+ * @returns {Promise<{saida: object, nf: object, nfCriada: boolean, nfValorAnterior: number}>}
+ */
+async function criarSaidaAgregandoNf(contract, { valor, date, type, description, prazoRecebimento }) {
+  const contractId = contract.id;
+  const nfsAll = await repos.notasFiscais.findAll();
+  const nfsContrato = nfsAll.filter((nf) => nf.contractId === contractId);
+  const totalMedidoAtual = nfsContrato.reduce((s, nf) => s + (parseFloat(nf.valor) || 0), 0);
+  if (contract.value > 0 && totalMedidoAtual + valor > parseFloat(contract.value) + 0.01) {
+    const err = new Error(`BM ultrapassa o valor do contrato. Disponível para medir: R$ ${(parseFloat(contract.value) - totalMedidoAtual).toFixed(2).replace('.', ',')}`);
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Busca NF do mesmo dia (não emitida) para agregar
+  let nf = nfsContrato.find((n) => n.dataLimite === date && !n.emitida);
+  let nfCriada = false;
+  let nfValorAnterior = 0;
+  let numeroNf;
+
+  if (nf) {
+    // Relê `emitida` imediatamente antes de somar. `handleEmitirNotaFiscal`
+    // serializa por OUTRA chave de lock ('nf:'+id), então o advisory lock do
+    // contrato NÃO exclui a emissão: entre a leitura acima e este update a NF
+    // podia ser emitida, e a soma entraria num BM já emitido — a entrada de
+    // caixa agendada ficaria com o valor antigo (a diferença sumia da projeção)
+    // e a saída resultante ficaria presa, já que PUT/DELETE proíbem mexer em
+    // saída de BM emitido. Aqui a corrida vira erro claro em vez de rombo.
+    const nfAtual = await repos.notasFiscais.findById(nf.id);
+    if (!nfAtual || nfAtual.emitida) {
+      const err = new Error('O BM deste dia acabou de ser emitido. Cancele a emissão ou lance em outra data.');
+      err.statusCode = 409;
+      throw err;
+    }
+    nfValorAnterior = parseFloat(nfAtual.valor) || 0;
+    await repos.notasFiscais.updateById(nf.id, {
+      valor: nfValorAnterior + valor,
+      updatedAt: new Date().toISOString(),
+    });
+    numeroNf = nfAtual.numero;
+  } else {
+    const numeroBm = String(nfsContrato.length + 1).padStart(3, '0');
+    numeroNf = `BM-${numeroBm}`;
+    const newNf = {
+      id: generateId('nf'),
+      numero: numeroNf,
+      contractId,
+      dataLimite: date,
+      valor,
+      prazoRecebimento: (Number.isFinite(parseInt(prazoRecebimento, 10)) ? parseInt(prazoRecebimento, 10) : 30),
+      observacoes: description,
+      emitida: false,
+      dataEmissaoReal: null,
+      caixaEntryId: null,
+      retencaoPct: retencaoPctDoContrato(contract), // snapshot (BR-MED-003)
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await repos.notasFiscais.create(newNf);
+    nf = newNf;
+    nfCriada = true;
+  }
+
+  const saida = {
+    id: generateId('sai'),
+    contractId,
+    type,
+    description,
+    value: valor,
+    date,
+    nfId: nf.id,
+    numeroBm: numeroNf,
+    createdAt: new Date().toISOString(),
+  };
+  await repos.saidas.create(saida);
+  return { saida, nf, nfCriada, nfValorAnterior };
+}
 
 async function handlePostSaida(contractId, body, res) {
   try {
@@ -28,57 +132,13 @@ async function handlePostSaida(contractId, body, res) {
       }
 
       const { value: valor, date: dataSaida, type: saidaType, description: saidaDesc } = validateBody(schemas.saidaPost, body);
-
-      const nfsAll = await repos.notasFiscais.findAll();
-      const nfsContrato = nfsAll.filter((nf) => nf.contractId === contractId);
-      const totalMedidoAtual = nfsContrato.reduce((s, nf) => s + (parseFloat(nf.valor) || 0), 0);
-      if (contract.value > 0 && totalMedidoAtual + valor > parseFloat(contract.value) + 0.01) {
-        const err = new Error(`BM ultrapassa o valor do contrato. Disponível para medir: R$ ${(parseFloat(contract.value) - totalMedidoAtual).toFixed(2).replace('.', ',')}`);
-        err.statusCode = 400;
-        throw err;
-      }
-
-      // Busca NF do mesmo dia (não emitida) para agregar
-      let nf = nfsContrato.find((n) => n.dataLimite === dataSaida && !n.emitida);
-      let numeroNf;
-
-      if (nf) {
-        const novoValor = (parseFloat(nf.valor) || 0) + valor;
-        await repos.notasFiscais.updateById(nf.id, { valor: novoValor, updatedAt: new Date().toISOString() });
-        numeroNf = nf.numero;
-      } else {
-        const numeroBm = String(nfsContrato.length + 1).padStart(3, '0');
-        numeroNf = `BM-${numeroBm}`;
-        const newNf = {
-          id: generateId('nf'),
-          numero: numeroNf,
-          contractId,
-          dataLimite: dataSaida,
-          valor,
-          prazoRecebimento: (Number.isFinite(parseInt(body.prazoRecebimento, 10)) ? parseInt(body.prazoRecebimento, 10) : 30),
-          observacoes: saidaDesc,
-          emitida: false,
-          dataEmissaoReal: null,
-          caixaEntryId: null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
-        await repos.notasFiscais.create(newNf);
-        nf = newNf;
-      }
-
-      const saida = {
-        id: generateId('sai'),
-        contractId,
+      await criarSaidaAgregandoNf(contract, {
+        valor,
+        date: dataSaida,
         type: saidaType,
         description: saidaDesc,
-        value: valor,
-        date: dataSaida,
-        nfId: nf.id,
-        numeroBm: numeroNf,
-        createdAt: new Date().toISOString(),
-      };
-      await repos.saidas.create(saida);
+        prazoRecebimento: body.prazoRecebimento,
+      });
     });
     const env = await repos.contracts.getEnvelope();
     sendJson(res, { ...env, notas_fiscais: await repos.notasFiscais.findAll() });
@@ -114,6 +174,15 @@ async function handlePutSaida(id, body, res) {
  */
 async function _handlePutSaidaInner(id, body, saida) {
   const allowedSaida = { ...validateBody(schemas.saidaPut, body) };
+
+  // BR-MED-004: saída de medição estruturada tem valor derivado dos itens.
+  const itensMedicao = await repos.medicaoItens.findAll({ saidaId: id });
+  const guard = med.podeEditarSaida(allowedSaida, saida.value, itensMedicao.length > 0);
+  if (!guard.ok) {
+    const err = new Error(guard.msg);
+    err.statusCode = 400;
+    throw err;
+  }
 
   if (saida.nfId) {
     const nf = await repos.notasFiscais.findById(saida.nfId);
@@ -171,6 +240,7 @@ async function _handlePutSaidaInner(id, body, saida) {
           allowedSaida.nfId = nfNova.id;
           allowedSaida.numeroBm = nfNova.numero;
         } else {
+          const contract = await repos.contracts.findById(saida.contractId);
           const numeroNf = `BM-${String(nfsContrato.length + 1).padStart(3, '0')}`;
           const novaNf = {
             id: generateId('nf'),
@@ -183,6 +253,7 @@ async function _handlePutSaidaInner(id, body, saida) {
             emitida: false,
             dataEmissaoReal: null,
             caixaEntryId: null,
+            retencaoPct: retencaoPctDoContrato(contract), // snapshot (BR-MED-003)
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           };
@@ -238,6 +309,7 @@ async function handleDeleteSaida(id, res) {
           }
         }
       }
+      // medicao_itens da saída (se houver) caem por FK ON DELETE CASCADE.
       await repos.saidas.removeById(id);
     });
 
@@ -248,4 +320,4 @@ async function handleDeleteSaida(id, res) {
   }
 }
 
-module.exports = { handlePostSaida, handlePutSaida, handleDeleteSaida };
+module.exports = { handlePostSaida, handlePutSaida, handleDeleteSaida, criarSaidaAgregandoNf, retencaoPctDoContrato };

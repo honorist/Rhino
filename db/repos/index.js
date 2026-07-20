@@ -13,6 +13,8 @@
 module.exports = {
   contracts:      require('./contracts'),
   saidas:         require('./saidas'),
+  contractServicos: require('./contract_servicos'),
+  medicaoItens:     require('./medicao_itens'),
   organograma:    require('./organograma'),
   rdos:           require('./rdos'),
   clientes:       require('./clientes'),

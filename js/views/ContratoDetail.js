@@ -253,6 +253,7 @@ window.ContratoDetail = {
           ${[
             { k:'visao',      l:'Visão Geral',  icon:'eye' },
             { k:'financeiro', l:'Financeiro',   icon:'dollar-sign' },
+            { k:'medicao',    l:'Medição',      icon:'list' },
             { k:'cronograma', l:'Cronograma',   icon:'calendar' },
             { k:'equipe',     l:'Equipe',       icon:'users' },
             { k:'rdo',        l:'RDO',          icon:'clipboard', badge: (contract.rdos || []).length },
@@ -568,6 +569,9 @@ window.ContratoDetail = {
 
         ` : ''}
 
+        <!-- ─── Medição (BM estruturado: planilha de serviços + BMs) ─── -->
+        ${this._tab === 'medicao' ? this.renderMedicaoSection(contract) : ''}
+
         <!-- ─── Cronograma físico-financeiro ─── -->
         ${this._tab === 'cronograma' ? this.renderCronogramaSection(contract) : ''}
 
@@ -852,7 +856,7 @@ window.ContratoDetail = {
           const _hashBase = location.hash.split('?')[0];
           history.replaceState(null, '', _hashBase + '?tab=' + this._tab);
           // Update document title
-          const _tabLabel = { visao: 'Visão Geral', financeiro: 'Financeiro', cronograma: 'Cronograma', equipe: 'Equipe', rdo: 'RDOs', aditivos: 'Aditivos', marcos: 'Marcos', ocorrencias: 'Ocorrências', timeline: 'Timeline' }[this._tab] || this._tab;
+          const _tabLabel = { visao: 'Visão Geral', financeiro: 'Financeiro', medicao: 'Medição', cronograma: 'Cronograma', equipe: 'Equipe', rdo: 'RDOs', aditivos: 'Aditivos', marcos: 'Marcos', ocorrencias: 'Ocorrências', timeline: 'Timeline' }[this._tab] || this._tab;
           document.title = `${_tabLabel} — ${escapeHtml(contract.name)} | Rhino`;
           this.render({ id: contractId });
         });
@@ -931,6 +935,7 @@ window.ContratoDetail = {
       this.attachOrganogramaListeners(contract);
 
       // Novas abas
+      if (this._tab === 'medicao') this._attachMedicaoListeners(contractId);
       if (this._tab === 'aditivos') this._attachAditivosListeners(contractId);
       if (this._tab === 'marcos')   this._attachMarcosListeners(contractId);
       if (this._tab === 'ocorrencias') this._attachOcorrenciasListeners(contractId);

@@ -753,7 +753,7 @@ test('routes/operacao.js — req injetado, sub-recursos aninhados e :param', () 
 
 // ─── routes/contracts.js (contratos, saídas, RDO, aditivos, marcos…) ─────────
 
-test('routes/contracts.js — registra exatamente as 38 rotas de contratos', () => {
+test('routes/contracts.js — registra exatamente as 45 rotas de contratos', () => {
   const router = createRouter();
   require('../routes/contracts')(router, {});
   const rotas = router
@@ -773,10 +773,13 @@ test('routes/contracts.js — registra exatamente as 38 rotas de contratos', () 
       'DELETE /api/contracts/:id/rdos/:rdoId',
       'DELETE /api/contracts/:id/rdos/:rdoId/assinaturas/:assId',
       'DELETE /api/contracts/:id/rdos/:rdoId/fotos/:fotoId',
+      'DELETE /api/contracts/:id/servicos/:servicoId',
       'DELETE /api/saidas/:id',
       'GET /api/contracts',
       'GET /api/contracts/:id/atividades',
       'GET /api/contracts/:id/curva-s',
+      'GET /api/contracts/:id/medicoes',
+      'GET /api/contracts/:id/servicos',
       'GET /api/contracts/:id/rdos/:rdoId/assinaturas',
       'GET /api/contracts/:id/rdos/:rdoId/assinaturas/:assId',
       'GET /api/contracts/:id/rdos/:rdoId/pdf',
@@ -785,13 +788,16 @@ test('routes/contracts.js — registra exatamente as 38 rotas de contratos', () 
       'POST /api/contracts',
       'POST /api/contracts/:id/aditivos',
       'POST /api/contracts/:id/atividades',
+      'POST /api/contracts/:id/bms/:nfId/aprovacao',
       'POST /api/contracts/:id/budget',
       'POST /api/contracts/:id/marcos',
+      'POST /api/contracts/:id/medicoes',
       'POST /api/contracts/:id/ocorrencias',
       'POST /api/contracts/:id/organograma',
       'POST /api/contracts/:id/rdos',
       'POST /api/contracts/:id/rdos/:rdoId/fotos',
       'POST /api/contracts/:id/saidas',
+      'POST /api/contracts/:id/servicos',
       'PUT /api/contracts/:id',
       'PUT /api/contracts/:id/aditivos/:aditivoId',
       'PUT /api/contracts/:id/atividades/:atvId',
@@ -800,6 +806,7 @@ test('routes/contracts.js — registra exatamente as 38 rotas de contratos', () 
       'PUT /api/contracts/:id/ocorrencias/:ocorrId',
       'PUT /api/contracts/:id/organograma/:membroId',
       'PUT /api/contracts/:id/rdos/:rdoId',
+      'PUT /api/contracts/:id/servicos/:servicoId',
       'PUT /api/saidas/:id',
     ].sort()
   );
@@ -854,6 +861,64 @@ test('routes/contracts.js — organograma DELETE (5 args), assinaturas, fotos, s
 
   router.dispatch({ method: 'PUT', pathname: '/api/saidas/S9', body: 'B', res: 'R' });
   assert.deepEqual(c.putSaida, ['S9', 'B', 'R']);
+});
+
+test('routes/contracts.js — BM estruturado: serviços, medições e aprovação de BM', () => {
+  const c = {};
+  const router = createRouter();
+  require('../routes/contracts')(router, {
+    handleListContractServicos: (cid, res) => {
+      c.listSrv = [cid, res];
+    },
+    handlePutContractServico: (cid, sid, body, res) => {
+      c.putSrv = [cid, sid, body, res];
+    },
+    handleDeleteContractServico: (cid, sid, res) => {
+      c.delSrv = [cid, sid, res];
+    },
+    handlePostContractMedicao: (cid, body, res) => {
+      c.postMed = [cid, body, res];
+    },
+    handlePostBmAprovacao: (cid, nfId, body, user, res) => {
+      c.aprovBm = [cid, nfId, body, user, res];
+    },
+  });
+
+  router.dispatch({ method: 'GET', pathname: '/api/contracts/C1/servicos', res: 'R' });
+  assert.deepEqual(c.listSrv, ['C1', 'R']);
+
+  router.dispatch({
+    method: 'PUT',
+    pathname: '/api/contracts/C1/servicos/SRV2',
+    body: 'B',
+    res: 'R',
+  });
+  assert.deepEqual(c.putSrv, ['C1', 'SRV2', 'B', 'R']);
+
+  router.dispatch({ method: 'DELETE', pathname: '/api/contracts/C1/servicos/SRV2', res: 'R' });
+  assert.deepEqual(c.delSrv, ['C1', 'SRV2', 'R']);
+
+  router.dispatch({ method: 'POST', pathname: '/api/contracts/C1/medicoes', body: 'B', res: 'R' });
+  assert.deepEqual(c.postMed, ['C1', 'B', 'R']);
+
+  // Aprovação recebe o usuário da sessão (autoria do aceite) — 5 args.
+  router.dispatch({
+    method: 'POST',
+    pathname: '/api/contracts/C1/bms/NF7/aprovacao',
+    body: 'B',
+    req: { user: 'U' },
+    res: 'R',
+  });
+  assert.deepEqual(c.aprovBm, ['C1', 'NF7', 'B', 'U', 'R']);
+
+  // Sem req no ctx (dispatch parcial) não pode estourar TypeError.
+  router.dispatch({
+    method: 'POST',
+    pathname: '/api/contracts/C2/bms/NF8/aprovacao',
+    body: 'B',
+    res: 'R',
+  });
+  assert.deepEqual(c.aprovBm, ['C2', 'NF8', 'B', undefined, 'R']);
 });
 
 // ─── routes/recrutamento.js (solicitações, candidatos, docs/arquivo, sino) ───

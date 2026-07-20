@@ -90,7 +90,10 @@ erDiagram
     CONTRACTS ||--o{ CONTRACT_OCORRENCIAS  : "registra ocorrências"
     CONTRACTS ||--o{ CAIXA                 : "movimenta"
     CONTRACTS ||--o{ CONTAS_PAGAR          : "rateia despesas"
+    CONTRACTS ||--o{ CONTRACT_SERVICOS     : "planilha de serviços"
     SAIDAS    }o--|| NOTAS_FISCAIS         : "compõe BM"
+    SAIDAS    ||--o{ MEDICAO_ITENS         : "detalha medição"
+    CONTRACT_SERVICOS ||--o{ MEDICAO_ITENS : "é medido em"
     NOTAS_FISCAIS ||--o{ CAIXA             : "vira entrada"
     CONTAS_PAGAR ||--o{ CAIXA              : "vira saída"
     RDOS ||--o{ RDO_ASSINATURAS            : "é assinado por"
@@ -124,6 +127,25 @@ erDiagram
         text numero_bm
         numeric value
         date date
+    }
+    CONTRACT_SERVICOS {
+        text id PK
+        text contract_id FK
+        text codigo
+        text descricao
+        text unidade
+        numeric qtd_contratada
+        numeric preco_unit
+        boolean ativo
+    }
+    MEDICAO_ITENS {
+        text id PK
+        text saida_id FK
+        text servico_id FK
+        text contract_id FK
+        numeric qtd
+        numeric preco_unit "snapshot"
+        numeric valor
     }
     CAIXA {
         text id PK
@@ -382,6 +404,53 @@ sequenceDiagram
     API->>Bus: publish {entity:"caixa", action:"update"}
     API-->>V: 200 → saldo atualiza em tempo real
 ```
+
+### Medição estruturada (BM por itens)
+
+Convive com o fluxo acima, sem substituí-lo. Contratos **sem** planilha de serviços
+seguem medindo por valor fechado (`POST /saidas`); contratos **com** planilha medem
+por quantidade × preço unitário (`POST /medicoes`). Nos dois casos o resultado é uma
+`saida` agregada numa NF/BM — daí pra frente (emissão, caixa) o caminho é o mesmo.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Eng as Engenharia
+    participant V as View Contrato
+    participant API as server.js
+    participant H as handlers/contract-medicoes
+    participant M as lib/medicao
+    participant S as repos/contract_servicos
+    participant I as medicao_itens
+    participant SA as handlers/contract-saidas
+    Note over Eng,V: Uma vez por contrato
+    Eng->>V: cadastra planilha (serviço, unidade, qtd, preço)
+    V->>API: POST /api/contracts/:id/servicos
+    Note over Eng,V: A cada medição
+    Eng->>V: informa qtd medida por serviço
+    V->>API: POST /api/contracts/:id/medicoes
+    API->>H: {date, itens:[{servicoId, qtd}]}
+    H->>H: pg_advisory_xact_lock(contrato)
+    H->>S: planilha do contrato
+    H->>I: qtd já medida (acumulado)
+    H->>M: computeMedicao(itens, servicos, medido)
+    alt qtd > saldo contratado (BR-MED-001)
+        M-->>H: {ok:false, errors}
+        H-->>V: 400 "saldo disponível: X un — excedente entra via aditivo"
+    else dentro do saldo
+        M-->>H: {ok:true, itens com preço snapshot, total}
+        H->>SA: criarSaidaAgregandoNf(total) → saída + BM (com retencao_pct)
+        H->>I: INSERT dos itens (se falhar, compensa desfazendo saída/NF)
+        H-->>V: 200 → envelope do contrato
+    end
+```
+
+O preço unitário é **snapshot** (reajuste da planilha não retroage a medições
+passadas). A retenção é o `%` do contrato (`contracts.retencao_percent`) gravado
+como snapshot na NF, com o **valor retido sempre derivado**, nunca armazenado. O BM
+aceita aprovação/rejeição do cliente (`POST /bms/:nfId/aprovacao`; rejeição exige
+motivo). Regras e testes em `lib/medicao.js` / `test/medicao.test.js`
+(`BR-MED-001..005`).
 
 ### RDO com assinatura digital
 

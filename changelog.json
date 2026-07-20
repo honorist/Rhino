@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.24.0",
+      "date": "2026-07-20",
+      "summary": "Medição de obra por planilha de serviços, com saldo e aprovação de BM",
+      "changes": [
+        "Cada contrato pode ter sua planilha de serviços (descrição, unidade, quantidade contratada e preço unitário)",
+        "Nova aba Medição: você lança a quantidade medida de cada serviço e o sistema calcula o valor do BM",
+        "O sistema mostra quanto já foi medido, o saldo que resta e o avanço de cada serviço",
+        "Medição acima do saldo contratado é bloqueada, com aviso de quanto ainda pode ser medido",
+        "BM agora exibe a retenção e o valor líquido, e pode ser aprovado ou rejeitado com motivo registrado"
+      ]
+    },
+    {
       "version": "1.23.12",
       "date": "2026-07-11",
       "summary": "Segurança: dados de RH/folha protegidos por perfil e correção no caixa",

@@ -186,6 +186,13 @@ CREATE TABLE IF NOT EXISTS notas_fiscais (
   emitida            BOOLEAN DEFAULT FALSE,
   data_emissao_real  DATE,
   caixa_entry_id     TEXT,
+  -- BM estruturado: aprovação do cliente + % de retenção contratual (snapshot).
+  -- O VALOR retido é sempre calculado (valor × retencao_pct) — nunca armazenado.
+  aprovacao_status   TEXT,
+  aprovacao_por      TEXT,
+  aprovacao_em       TIMESTAMPTZ,
+  aprovacao_obs      TEXT,
+  retencao_pct       NUMERIC(5,2),
   created_at         TIMESTAMPTZ DEFAULT NOW(),
   updated_at         TIMESTAMPTZ DEFAULT NOW()
 );
@@ -340,6 +347,40 @@ CREATE TABLE IF NOT EXISTS saidas (
 CREATE INDEX IF NOT EXISTS idx_saidas_contract ON saidas(contract_id);
 CREATE INDEX IF NOT EXISTS idx_saidas_nf ON saidas(nf_id);
 CREATE INDEX IF NOT EXISTS idx_saidas_date_created ON saidas(date DESC, created_at DESC);
+
+-- ============ BM estruturado: planilha de serviços do contrato ============
+-- Bill of quantities: cada serviço com unidade, qtd contratada e preço unitário.
+CREATE TABLE IF NOT EXISTS contract_servicos (
+  id              TEXT PRIMARY KEY,
+  contract_id     TEXT NOT NULL REFERENCES contracts(id) ON DELETE CASCADE,
+  codigo          TEXT DEFAULT '',
+  descricao       TEXT NOT NULL,
+  unidade         TEXT NOT NULL DEFAULT 'un',
+  qtd_contratada  NUMERIC(15,3) NOT NULL DEFAULT 0,
+  preco_unit      NUMERIC(15,2) NOT NULL DEFAULT 0,
+  ordem           INTEGER DEFAULT 0,
+  ativo           BOOLEAN DEFAULT TRUE,
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_contract_servicos_contract ON contract_servicos(contract_id);
+
+-- ============ BM estruturado: itens de medição ============
+-- Itens de uma medição estruturada, pendurados na `saida` (que agrega na NF/BM
+-- por data). preco_unit é SNAPSHOT do serviço no momento da medição.
+CREATE TABLE IF NOT EXISTS medicao_itens (
+  id           TEXT PRIMARY KEY,
+  saida_id     TEXT NOT NULL REFERENCES saidas(id) ON DELETE CASCADE,
+  servico_id   TEXT NOT NULL REFERENCES contract_servicos(id) ON DELETE RESTRICT,
+  contract_id  TEXT NOT NULL REFERENCES contracts(id) ON DELETE CASCADE,
+  qtd          NUMERIC(15,3) NOT NULL,
+  preco_unit   NUMERIC(15,2) NOT NULL,
+  valor        NUMERIC(15,2) NOT NULL,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_medicao_itens_saida ON medicao_itens(saida_id);
+CREATE INDEX IF NOT EXISTS idx_medicao_itens_servico ON medicao_itens(servico_id);
+CREATE INDEX IF NOT EXISTS idx_medicao_itens_contract ON medicao_itens(contract_id);
 
 -- ============ Organograma (membros por contrato) ============
 CREATE TABLE IF NOT EXISTS organograma_membros (

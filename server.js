@@ -57,6 +57,8 @@ const contractExtrasHandlers = require('./handlers/contract-extras'); // budget/
 const contractOrganogramaHandlers = require('./handlers/contract-organograma');
 const recursosHandlers = require('./handlers/recursos'); // CRUD principal de recursos (colaboradores)
 const contractSaidasHandlers = require('./handlers/contract-saidas'); // saídas/BM (medições) — FIX deadlock
+const contractServicosHandlers = require('./handlers/contract-servicos'); // BM estruturado: planilha de serviços
+const contractMedicoesHandlers = require('./handlers/contract-medicoes'); // BM estruturado: medição por itens + aprovação
 const recursoFolgasHandlers = require('./handlers/recurso-folgas'); // folgas + passagens de recursos
 const contractRdosHandlers = require('./handlers/contract-rdos'); // RDO: visão global + CRUD (fotos/assinaturas seguem inline)
 const rdoFotosHandlers = require('./handlers/rdo-fotos'); // RDO fotos: upload multipart + delete
@@ -3700,6 +3702,8 @@ registerContracts(apiRouter, {
   ...contractRdosHandlers,
   ...contractsHandlers, // RDO global+CRUD (handlers/contract-rdos.js) + CRUD do contrato (handlers/contracts.js)
   ...contractSaidasHandlers,
+  ...contractServicosHandlers, // BM estruturado: planilha de serviços (handlers/contract-servicos.js)
+  ...contractMedicoesHandlers, // BM estruturado: medições por itens + aprovação (handlers/contract-medicoes.js)
   ...contractExtrasHandlers, // saídas/BM + budget/aditivos/marcos/ocorrências
   handleListAtividades,
   handlePostAtividade,

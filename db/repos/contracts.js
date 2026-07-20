@@ -207,6 +207,14 @@ async function removeByIdCascade(id) {
     await client.query('DELETE FROM contas_pagar WHERE contract_id = $1', [id]);
     await client.query('DELETE FROM notas_fiscais WHERE contract_id = $1', [id]);
     await client.query('DELETE FROM investimentos WHERE contract_id = $1', [id]);
+    // medicao_itens ANTES de contract_servicos: a FK `medicao_itens.servico_id`
+    // é ON DELETE RESTRICT, então deixar os dois a cargo do CASCADE tornava a
+    // exclusão dependente da ordem de disparo dos triggers RI (alfabética por
+    // `RI_ConstraintTrigger_a_<oid>`) — podia abortar com violação de FK num
+    // banco e funcionar em outro, conforme os OIDs sorteados. Apagar
+    // explicitamente aqui torna o resultado determinístico.
+    await client.query('DELETE FROM medicao_itens WHERE contract_id = $1', [id]);
+    await client.query('DELETE FROM contract_servicos WHERE contract_id = $1', [id]);
     const r = await client.query('DELETE FROM contracts WHERE id = $1', [id]);
     return r.rowCount > 0;
   });

@@ -26,6 +26,15 @@ module.exports = function registerContracts(router, deps) {
   router.put('/api/contracts/:id/budget/:budgetId',    (ctx) => deps.handlePutBudgetItem(ctx.params[0], ctx.params[1], ctx.body, ctx.res));
   router.delete('/api/contracts/:id/budget/:budgetId', (ctx) => deps.handleDeleteBudgetItem(ctx.params[0], ctx.params[1], ctx.res));
 
+  // ── BM estruturado: planilha de serviços + medições por itens + aprovação ──
+  router.get('/api/contracts/:id/servicos',                (ctx) => deps.handleListContractServicos(ctx.params[0], ctx.res));
+  router.post('/api/contracts/:id/servicos',               (ctx) => deps.handlePostContractServico(ctx.params[0], ctx.body, ctx.res));
+  router.put('/api/contracts/:id/servicos/:servicoId',     (ctx) => deps.handlePutContractServico(ctx.params[0], ctx.params[1], ctx.body, ctx.res));
+  router.delete('/api/contracts/:id/servicos/:servicoId',  (ctx) => deps.handleDeleteContractServico(ctx.params[0], ctx.params[1], ctx.res));
+  router.get('/api/contracts/:id/medicoes',                (ctx) => deps.handleGetContractMedicoes(ctx.params[0], ctx.res));
+  router.post('/api/contracts/:id/medicoes',               (ctx) => deps.handlePostContractMedicao(ctx.params[0], ctx.body, ctx.res));
+  router.post('/api/contracts/:id/bms/:nfId/aprovacao',    (ctx) => deps.handlePostBmAprovacao(ctx.params[0], ctx.params[1], ctx.body, ctx.req && ctx.req.user, ctx.res));
+
   // ── Atividades / cronograma ──
   router.get('/api/contracts/:id/atividades',           (ctx) => deps.handleListAtividades(ctx.params[0], ctx.res));
   router.post('/api/contracts/:id/atividades',          (ctx) => deps.handlePostAtividade(ctx.params[0], ctx.body, ctx.res));
