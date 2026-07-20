@@ -163,3 +163,33 @@ test('feriadosFolha — Sexta-feira Santa acompanha a Páscoa, sem erro de fuso'
   assert.ok(folha.feriadosFolha(2025).has('04-18'));
   assert.ok(folha.feriadosFolha(2027).has('03-26'));
 });
+
+// ─── Regressão: TDZ por sombreamento de `folha` ──────────────────────────────
+
+test('handlers/folha-pagamento — nenhum uso de `folha.` de módulo (armadilha de TDZ)', () => {
+  // Bug real introduzido e corrigido em 2026-07-20: o handler importava
+  // `const folha = require('../lib/folha')`, mas várias funções do arquivo
+  // declaram `const folha = await repos.folhaPagamento...` no próprio corpo.
+  // A const local sombreia o BLOCO INTEIRO, então `folha.calcVale(...)` antes
+  // da declaração caía na temporal dead zone → ReferenceError → 500. Na
+  // prática, gerar folha quebrava sempre que havia um funcionário novo.
+  //
+  // `node --check` e o ESLint NÃO pegam isso (é erro de runtime). Este teste
+  // pega: proíbe voltar a acessar as regras via um objeto chamado `folha`.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const src = fs.readFileSync(
+    path.join(__dirname, '..', 'handlers', 'folha-pagamento.js'),
+    'utf8'
+  );
+  assert.doesNotMatch(
+    src,
+    /\bfolha\.(calcVale|calcInss|quintoDiaUtil|calcVale|VALE_PCT|INSS_TETO)\b/,
+    'use as funções desestruturadas (calcVale, calcInss, quintoDiaUtil) — um objeto `folha` de módulo fica sombreado pelas consts locais'
+  );
+  assert.doesNotMatch(
+    src,
+    /^const folha = require/m,
+    'não crie uma const de módulo chamada `folha`: colide com as consts locais do próprio arquivo'
+  );
+});

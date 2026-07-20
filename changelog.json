@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.25.1",
+      "date": "2026-07-20",
+      "summary": "Correção: gerar folha de pagamento voltou a funcionar",
+      "changes": [
+        "Corrigido erro que fazia \"Gerar folha\" falhar sempre que havia um colaborador novo na competência",
+        "Organização interna do sistema: folha de pagamento e estoque passaram a ter módulos próprios"
+      ]
+    },
+    {
       "version": "1.25.0",
       "date": "2026-07-20",
       "summary": "Agora dá para preencher RDO sem sinal na obra",
