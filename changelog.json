@@ -1,6 +1,15 @@
 {
   "entries": [
     {
+      "version": "1.24.7",
+      "date": "2026-07-20",
+      "summary": "Cálculos da folha de pagamento agora são verificados automaticamente",
+      "changes": [
+        "As regras de vale, INSS e data de vencimento do salário ganharam testes automáticos que impedem alteração acidental",
+        "O comportamento dos cálculos permanece exatamente o mesmo — a equivalência foi verificada em 21 anos de feriados e milhares de salários"
+      ]
+    },
+    {
       "version": "1.24.6",
       "date": "2026-07-20",
       "summary": "Lista de solicitações de compra agora é paginada",

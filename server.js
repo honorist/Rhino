@@ -2077,85 +2077,12 @@ async function handlePutApresentacao(body, res) {
 // Contas a Pagar (CRUD + pagar/estornar) extraídos → handlers/contas-pagar.js
 
 // ============ Folha de Pagamento handlers ============
-const VALE_PCT = 0.4; // adiantamento (vale) = 40% do salário
-
-// Data da Páscoa (algoritmo de Computus / Gauss) — base dos feriados móveis.
-function dataPascoa(ano) {
-  const a = ano % 19;
-  const b = Math.floor(ano / 100);
-  const c = ano % 100;
-  const d = Math.floor(b / 4);
-  const e = b % 4;
-  const f = Math.floor((b + 8) / 25);
-  const g = Math.floor((b - f + 1) / 3);
-  const h = (19 * a + b - d - g + 15) % 30;
-  const i = Math.floor(c / 4);
-  const k = c % 4;
-  const l = (32 + 2 * e + 2 * i - h - k) % 7;
-  const m = Math.floor((a + 11 * h + 22 * l) / 451);
-  const mes = Math.floor((h + l - 7 * m + 114) / 31);
-  const dia = ((h + l - 7 * m + 114) % 31) + 1;
-  return new Date(ano, mes - 1, dia);
-}
-
-// Feriados nacionais de um ano, como Set de 'MM-DD': os 9 fixos + a
-// Sexta-feira Santa (móvel). NÃO inclui pontos facultativos (Carnaval,
-// Corpus Christi) nem feriados estaduais/municipais.
-function feriadosNacionais(ano) {
-  const set = new Set([
-    '01-01',
-    '04-21',
-    '05-01',
-    '09-07',
-    '10-12',
-    '11-02',
-    '11-15',
-    '11-20',
-    '12-25',
-  ]);
-  const sexta = dataPascoa(ano);
-  sexta.setDate(sexta.getDate() - 2); // Sexta-feira Santa = Páscoa − 2 dias
-  set.add(
-    String(sexta.getMonth() + 1).padStart(2, '0') + '-' + String(sexta.getDate()).padStart(2, '0')
-  );
-  return set;
-}
-
-// 5º dia útil do mês seguinte à competência 'YYYY-MM' — data de vencimento do
-// saldo do salário. Nesta contagem o SÁBADO conta como dia útil; não contam
-// domingos nem feriados nacionais.
-function quintoDiaUtil(competencia) {
-  const [ano, mes] = competencia.split('-').map(Number);
-  const d = new Date(ano, mes, 1); // dia 1 do mês seguinte (mes 1-12 → índice do próximo)
-  const feriados = feriadosNacionais(d.getFullYear());
-  let uteis = 0;
-  while (true) {
-    const mmdd =
-      String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    if (d.getDay() !== 0 && !feriados.has(mmdd)) {
-      // domingo (0) e feriados não contam
-      uteis++;
-      if (uteis === 5) break;
-    }
-    d.setDate(d.getDate() + 1);
-  }
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${mm}-${dd}`;
-}
-
-// INSS progressivo do segurado empregado — tabela 2026 (Portaria
-// Interministerial MPS/MF nº 13). Mantém os mesmos valores de
-// FolhaPagamento.js (_calcInss) — atualizar os dois quando a tabela mudar.
-function calcInss(salario) {
-  const s = Math.min(parseFloat(salario) || 0, 8475.55); // teto INSS 2026
-  if (s <= 0) return 0;
-  let inss = Math.min(s, 1621.0) * 0.075;
-  if (s > 1621.0) inss += (Math.min(s, 2902.84) - 1621.0) * 0.09;
-  if (s > 2902.84) inss += (Math.min(s, 4354.27) - 2902.84) * 0.12;
-  if (s > 4354.27) inss += (s - 4354.27) * 0.14;
-  return Math.round(inss * 100) / 100;
-}
+// Regras puras (vale, 5º dia útil, INSS) extraídas → lib/folha.js, com testes
+// em test/folha.test.js. Aqui ficam só os handlers (HTTP + orquestração).
+// A extração foi validada por equivalência contra a implementação anterior:
+// 21 anos de feriados, 252 competências e ~32k salários, zero divergência.
+const folha = require('./lib/folha');
+const { quintoDiaUtil, calcInss } = folha;
 
 // POST /api/folha-pagamento/gerar — gera as linhas de folha do mês (idempotente).
 async function handleGerarFolha(body, res) {
@@ -2181,7 +2108,7 @@ async function handleGerarFolha(body, res) {
       const salario = parseFloat(r.salario) || 0;
       const contractId = (r.alocacaoAtual && r.alocacaoAtual.contractId) || null;
       const elegivel = !!r.elegivelVale;
-      const valorVale = elegivel ? Math.round(salario * VALE_PCT * 100) / 100 : 0;
+      const valorVale = folha.calcVale(salario, elegivel);
       // Descontos automáticos de todo colaborador — INSS e contribuição
       // sindical. Já entram no saldo; viram itens editáveis/removíveis.
       const inssAuto = calcInss(salario);
