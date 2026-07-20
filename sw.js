@@ -39,6 +39,10 @@ const PRECACHE_URLS = [
   './css/polish.css',
   './js/app.js',
   './js/store.js',
+  './js/offline.js',
+  // Regras da fila offline: precisam estar em cache, senão o RDO preenchido na
+  // obra (sem sinal, app aberto do zero) não teria como ser enfileirado.
+  './js/lib/offline-queue.js',
   './js/lib/icons.js',
   './js/lib/recurrence.js',
   './assets/icon.svg',
@@ -66,6 +70,29 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('message', (event) => {
   if (event.data === 'SKIP_WAITING') self.skipWaiting();
+});
+
+// ── Background Sync da fila offline (RDO) ───────────────────────────────────
+// O navegador dispara este evento quando a conexão volta — inclusive depois de
+// o app ter sido fechado. A fila mora no IndexedDB da PÁGINA (js/offline.js),
+// junto com as regras de retry/backoff; duplicar essa lógica aqui seria uma
+// segunda fonte da verdade fácil de dessincronizar. Então o SW só acorda o app:
+// avisa qualquer client aberto para rodar a sincronização.
+//
+// Se não há client aberto, o evento resolve sem fazer nada e o envio acontece
+// na próxima abertura (js/offline.js sincroniza no boot e no evento 'online').
+// Background Sync NÃO existe no Safari/iOS — lá o fallback de retry no próprio
+// app é o único caminho, e é por isso que ele não pode depender daqui.
+self.addEventListener('sync', (event) => {
+  if (event.tag !== 'rhino-offline-sync') return;
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((lista) => {
+        for (const client of lista) client.postMessage({ type: 'RHINO_SYNC_QUEUE' });
+      })
+      .catch(() => {})
+  );
 });
 
 // ── Push Notifications ──────────────────────────────────────

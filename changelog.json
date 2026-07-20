@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.25.0",
+      "date": "2026-07-20",
+      "summary": "Agora dá para preencher RDO sem sinal na obra",
+      "changes": [
+        "Sem internet, o que você salva fica guardado no aparelho e é enviado sozinho quando o sinal volta",
+        "Aparece um aviso de quantos registros ainda estão aguardando envio",
+        "Os envios respeitam a ordem em que foram feitos e não duplicam lançamento se a conexão cair no meio",
+        "Se o servidor recusar por uma regra (e não por falta de sinal), o registro sai da fila e você é avisado"
+      ]
+    },
+    {
       "version": "1.24.8",
       "date": "2026-07-20",
       "summary": "App utilizável no celular nas telas de obra",

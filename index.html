@@ -122,6 +122,11 @@
   <script src="./js/themer.js" defer></script>
   <script src="./js/realtime.js" defer></script>
   <script src="./js/onboarding.js" defer></script>
+  <!-- Regras puras da fila offline ANTES de offline.js: sem isto o offline.js
+       cai num carregamento dinâmico e sobra uma janela de alguns ms no boot em
+       que uma mutação passaria direto, sem ser enfileirada. `defer` preserva a
+       ordem do documento, então aqui a dependência está garantida. -->
+  <script src="./js/lib/offline-queue.js" defer></script>
   <script src="./js/offline.js" defer></script>
 </body>
 </html>

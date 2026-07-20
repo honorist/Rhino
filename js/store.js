@@ -58,6 +58,26 @@ window.Store = {
     this.notify();
   },
 
+  // ── Fila offline (RDO offline-first) ──────────────────────────────────────
+  // Sem sinal, js/offline.js grava a mutação no IndexedDB e devolve 202 com
+  // `_offlineQueued: true`. A resposta ECOA o estado atual justamente para que
+  // os `this.state.X = r.X || []` espalhados aqui não zerem a tela; mesmo assim,
+  // quem quiser reagir ("salvo no dispositivo") testa com este helper em vez de
+  // adivinhar pelo formato do payload.
+  isOfflineQueued(resposta) {
+    return !!(resposta && resposta._offlineQueued);
+  },
+
+  // Quantos registros ainda esperam sinal. Views usam para o aviso
+  // "N registros aguardando envio".
+  pendingSyncCount() {
+    return (window.RhinoOffline && window.RhinoOffline.pendingCount) || 0;
+  },
+
+  pendingSyncLabel() {
+    return (window.RhinoOffline && window.RhinoOffline.describe()) || '';
+  },
+
   formatBRL(value) {
     // Mascara valor se o perfil atual não tem permissão de ver valores
     if (window.perfil && typeof window.perfil.podeVerValores === 'function' && !window.perfil.podeVerValores()) {
@@ -939,6 +959,14 @@ window.Store = {
   },
 
   // RDO (Relatório Diário de Obra)
+  // Estes são os métodos usados NA OBRA, onde falta sinal. Quando a fila offline
+  // aceita a mutação (202 `_offlineQueued`), não há dado novo do servidor para
+  // aplicar — só devolvemos o aviso. Sobrescrever `state.contracts` com o eco
+  // seria inofensivo, mas explicitar deixa claro que nada foi confirmado ainda.
+  _aplicarRdo(r) {
+    if (this.isOfflineQueued(r)) return r;
+    this.state.contracts = r.contracts || []; this.notify(); return r;
+  },
   async createRdo(contractId, data) {
     const res = await fetch(`/api/contracts/${contractId}/rdos`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
@@ -947,8 +975,7 @@ window.Store = {
       const msg = await res.text();
       try { throw new Error(JSON.parse(msg).error || msg); } catch { throw new Error(msg); }
     }
-    const r = await res.json();
-    this.state.contracts = r.contracts || []; this.notify(); return r;
+    return this._aplicarRdo(await res.json());
   },
   async updateRdo(contractId, rdoId, data) {
     const res = await fetch(`/api/contracts/${contractId}/rdos/${rdoId}`, {
@@ -958,14 +985,12 @@ window.Store = {
       const msg = await res.text();
       try { throw new Error(JSON.parse(msg).error || msg); } catch { throw new Error(msg); }
     }
-    const r = await res.json();
-    this.state.contracts = r.contracts || []; this.notify(); return r;
+    return this._aplicarRdo(await res.json());
   },
   async deleteRdo(contractId, rdoId) {
     const res = await fetch(`/api/contracts/${contractId}/rdos/${rdoId}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(await res.text());
-    const r = await res.json();
-    this.state.contracts = r.contracts || []; this.notify(); return r;
+    return this._aplicarRdo(await res.json());
   },
   async uploadRdoFoto(contractId, rdoId, files, legenda) {
     const form = new FormData();
@@ -981,8 +1006,7 @@ window.Store = {
       const msg = await res.text();
       try { throw new Error(JSON.parse(msg).error || msg); } catch { throw new Error(msg); }
     }
-    const r = await res.json();
-    this.state.contracts = r.contracts || []; this.notify(); return r;
+    return this._aplicarRdo(await res.json());
   },
 
   // Comprime/redimensiona a imagem no navegador antes do upload — reduz o
@@ -1013,8 +1037,7 @@ window.Store = {
   async deleteRdoFoto(contractId, rdoId, fotoId) {
     const res = await fetch(`/api/contracts/${contractId}/rdos/${rdoId}/fotos/${fotoId}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(await res.text());
-    const r = await res.json();
-    this.state.contracts = r.contracts || []; this.notify(); return r;
+    return this._aplicarRdo(await res.json());
   },
 
   // Substitui a manutenção no estado a partir da resposta { manutencao }.
