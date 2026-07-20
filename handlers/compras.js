@@ -22,7 +22,6 @@ const { sendJson, sendError } = require('../lib/http-respond');
 
 // ============ Solicitações de Compra ============
 // Normaliza itens na criação (encarregado): só descrição + qtd + observações (sem preço/cotações).
-// Normaliza itens na criação (encarregado): só descrição + qtd + observações (sem preço/cotações).
 function _normalizaItensInicial(arr) {
   if (!Array.isArray(arr)) return [];
   return arr
