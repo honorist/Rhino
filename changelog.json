@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.24.1",
+      "date": "2026-07-20",
+      "summary": "Falhas do sistema passam a gerar alerta em vez de sumir no log",
+      "changes": [
+        "Erros inesperados do servidor agora são registrados de forma estruturada e podem disparar alerta (Slack, Discord ou similar)",
+        "Senhas, tokens e CPF nunca são incluídos nesses alertas",
+        "Um mesmo erro repetido não gera enxurrada de avisos — é agrupado e contado",
+        "A tela de status do sistema mostra se o alerta está configurado"
+      ]
+    },
+    {
       "version": "1.24.0",
       "date": "2026-07-20",
       "summary": "Medição de obra por planilha de serviços, com saldo e aprovação de BM",

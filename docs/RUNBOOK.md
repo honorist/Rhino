@@ -18,6 +18,39 @@ Procedimentos de operação e resposta a incidentes. O "você do futuro" agradec
 
 Check rápido: `curl -s https://rhino.up.railway.app/api/health`
 
+O campo `observability` do `/api/health` mostra o sink ativo — serve para conferir
+a configuração **antes** de precisar dela (descobrir que estava em `console` só
+depois de um incidente é tarde).
+
+---
+
+## 1.1 Captura de erro (lib/observability.js)
+
+Erro não tratado (`uncaughtException`, `unhandledRejection`) e **todo 5xx** da API
+viram um evento estruturado. Onde ele sai depende de `OBSERVABILITY_SINK`:
+
+| Sink | Comportamento | Quando usar |
+|---|---|---|
+| `console` (default) | Linha JSON no stdout | Sempre — Railway/Docker já coletam |
+| `webhook` | POST em `OBSERVABILITY_WEBHOOK_URL` | Produção, para receber alerta ativo |
+| `noop` | Silêncio (default sob `NODE_ENV=test`) | Testes |
+
+**Ligar alerta em produção:** crie um Incoming Webhook (Slack/Discord), e no Railway
+defina `OBSERVABILITY_SINK=webhook` e `OBSERVABILITY_WEBHOOK_URL=<url>` (é secret —
+não versione). Confirme com `curl -s .../api/health | grep observability`.
+
+**Garantias, para você confiar no que vê:**
+- Segredo e PII (senha, token, cookie, CPF, hash) são mascarados antes de sair.
+- Erro em laço não vira enxurrada: no máximo `OBSERVABILITY_MAX_PER_KEY` (5) eventos
+  do mesmo erro por janela de `OBSERVABILITY_WINDOW_MS` (60s). O primeiro evento da
+  janela seguinte traz `suprimidosNaJanelaAnterior` — se esse número estiver alto,
+  o erro está em laço, não resolvido.
+- Falha do coletor **nunca** derruba o request; vira log local e a requisição segue.
+
+**O que ainda NÃO existe:** uptime check externo. `/api/health` só é útil se alguém
+o consultar de fora — configure um monitor (Better Stack, UptimeRobot, Cloudflare
+Health Check) apontando para ele, senão um app fora do ar continua invisível.
+
 ---
 
 ## 2. App fora do ar

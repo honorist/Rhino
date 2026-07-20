@@ -15,11 +15,23 @@ const APP_VERSION =
 const url = require('url');
 const crypto = require('crypto');
 
+// Observabilidade (lib/observability.js): required cedo, ANTES dos handlers
+// globais, para que uma falha de boot já seja reportada. Sink `console` por
+// padrão (zero dependência); `webhook` em produção via OBSERVABILITY_SINK.
+const observability = require('./lib/observability');
+
 process.on('unhandledRejection', (reason) => {
   console.error('[server] unhandledRejection:', reason);
+  observability.captureError(reason instanceof Error ? reason : new Error(String(reason)), {
+    origem: 'unhandledRejection',
+  });
 });
 process.on('uncaughtException', (err) => {
   console.error('[server] uncaughtException:', err);
+  observability.captureError(err, { origem: 'uncaughtException', fatal: true });
+  // O evento é emitido de forma síncrona pelo sink `console`; no `webhook` o
+  // POST pode não completar antes do exit — perder o alerta de um crash é ruim,
+  // mas segurar um processo em estado indefinido é pior.
   process.exit(1);
 });
 
@@ -74,7 +86,12 @@ const perms = require('./lib/permissions');
 const portalImpersonate = require('./lib/portal-impersonate'); // "Ver portal como cliente" (super admin)
 const fluxoCompra = require('./lib/fluxo-compra');
 const recorrencia = require('./lib/recorrencia');
-const { sendJson, sendError } = require('./lib/http-respond');
+const { sendJson, sendError, setErrorReporter } = require('./lib/http-respond');
+// Todo 5xx respondido pela API vira evento de observabilidade. Injetado (e não
+// importado dentro do http-respond) para manter aquele módulo sem dependência.
+setErrorReporter((status, message) => {
+  observability.captureError(new Error(message), { origem: 'http-5xx', status });
+});
 // multipart/form-data (parser + validação de imagem) agora vive em lib/multipart.js,
 // importado diretamente por cada módulo de upload (handlers/*). server.js não usa mais.
 const { createRouter } = require('./lib/router');
@@ -1066,6 +1083,9 @@ async function handleHealth(res) {
     db: 'unknown',
     uptime_s: Math.round((Date.now() - APP_START) / 1000),
     version: APP_VERSION,
+    // Confere sem shell se a captura de erro está configurada como se espera —
+    // descobrir que estava em 'console' só depois de um incidente é tarde.
+    observability: observability.sinkAtivoNome(),
     timestamp: new Date().toISOString(),
   };
   try {
