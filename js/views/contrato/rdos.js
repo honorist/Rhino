@@ -737,7 +737,12 @@
     if (P.fiscalizacaoNome == null) P.fiscalizacaoNome = '';
     if (!Array.isArray(P.detalhamentoHorario)) P.detalhamentoHorario = [];
     P.diasCorridos = decorrido;
+    this._rdoData._contractId = contractId;
     this._rdoTab = 'cabecalho';
+    // Apontamento de HH (item 5): estado carregado sob demanda ao abrir a aba.
+    this._apontLoaded = false;
+    this._apontLoading = false;
+    this._apontAtividades = null;
     this._renderRdoModal(contractId, rdo);
   },
 

@@ -13,6 +13,7 @@ const feriados = require('../lib/feriados');
 const rdoHH = require('../lib/rdo-hh');
 const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
+const { replaceApontamentos } = require('./rdo-apontamentos'); // HH por colaborador × atividade (item 5)
 
 /**
  * Normaliza o bloco `passarelli` do body (recalculando o detalhamento de
@@ -255,6 +256,11 @@ async function handlePostRdo(contractId, body, res) {
       updatedAt: new Date().toISOString(),
     };
     await repos.rdos.create(rdo);
+    // Apontamento de HH por colaborador × atividade (tabela-filha, item 5) —
+    // vem junto no payload do RDO; só toca quando o form enviou o bloco.
+    if (body.apontamentos !== undefined) {
+      await replaceApontamentos(rdo.id, contractId, body.apontamentos);
+    }
     sendJson(res, await repos.contracts.getEnvelope());
   } catch (e) {
     sendError(res, 400, e.message);
@@ -317,6 +323,9 @@ async function handlePutRdo(contractId, rdoId, body, res) {
     allowed.updatedAt = new Date().toISOString();
 
     await repos.rdos.updateById(rdoId, allowed);
+    if (body.apontamentos !== undefined) {
+      await replaceApontamentos(rdoId, contractId, body.apontamentos);
+    }
     sendJson(res, await repos.contracts.getEnvelope());
   } catch (e) {
     sendError(res, 400, e.message);

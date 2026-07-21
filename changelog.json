@@ -1,6 +1,16 @@
 {
   "entries": [
     {
+      "version": "1.25.5",
+      "date": "2026-07-21",
+      "summary": "Apontamento de HH por colaborador e produtividade por etapa",
+      "changes": [
+        "No RDO, a nova aba 'Apontamento HH' já traz a equipe da obra listada — o encarregado só informa as horas de cada colaborador e a etapa em que trabalhou (quem faltou fica com 0); há um botão para aplicar a jornada padrão a todos",
+        "Cada etapa do cronograma ganhou o campo 'HH previsto' (horas planejadas)",
+        "Na aba Cronograma, uma nova tabela mostra a produtividade: HH previsto × realizado por etapa, com saldo e um alerta quando a etapa estoura as horas planejadas"
+      ]
+    },
+    {
       "version": "1.25.4",
       "date": "2026-07-20",
       "summary": "Nova aba DRE / Margem por obra",

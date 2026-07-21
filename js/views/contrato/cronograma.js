@@ -129,6 +129,9 @@
           }).join('')}
         </tbody>
       </table>
+
+      <!-- Produtividade: HH previsto × realizado por etapa (item 5) -->
+      <div id="produtividadeHH" style="margin-top:var(--sp-lg);"></div>
     `;
 
     // Listeners
@@ -152,6 +155,72 @@
 
     // Wire Gantt interactivity after DOM settles
     setTimeout(() => this._initGanttInteractivity(contract, atvs), 50);
+
+    // Produtividade de HH (previsto × realizado) — busca separada, não bloqueia o cronograma.
+    this._loadProdutividade(contract);
+  },
+
+  // ═══════════ Produtividade: HH previsto (atividades.hh_plan) × realizado ═══════════
+  async _loadProdutividade(contract) {
+    const box = document.getElementById('produtividadeHH');
+    if (!box) return;
+    try {
+      const r = await fetch(`/api/contracts/${contract.id}/produtividade-hh`);
+      if (!r.ok) throw new Error(await r.text());
+      const { produtividade } = await r.json();
+      box.innerHTML = this._renderProdutividade(produtividade);
+    } catch (e) {
+      box.innerHTML = `<p class="text-danger font-sm">Produtividade indisponível: ${escapeHtml(e.message)}</p>`;
+    }
+  },
+
+  _renderProdutividade(prod) {
+    const linhas = (prod && prod.porAtividade) || [];
+    const comDado = linhas.filter(l => l.hhPlan > 0 || l.hhReal > 0);
+    if (comDado.length === 0 && !(prod && prod.semAtividade > 0)) {
+      return `<div class="card"><div style="padding:var(--sp-md);color:var(--color-text-muted);font-size:13px;">
+        Sem apontamento de HH ainda. Defina o <strong>HH previsto</strong> nas etapas e lance as horas no RDO (aba "Apontamento HH") para ver a produtividade aqui.</div></div>`;
+    }
+    const fmtH = (v) => `${Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} h`;
+    const corStatus = (s) => s === 'estourado' ? 'var(--color-danger)' : (s === 'ok' ? 'var(--color-success)' : 'var(--color-text-muted)');
+    const rotStatus = (s) => s === 'estourado' ? 'estourou' : (s === 'ok' ? 'no previsto' : 'sem previsto');
+    const rows = comDado.map(l => `
+      <tr>
+        <td style="padding:8px;">${escapeHtml(l.nome || '—')}</td>
+        <td style="padding:8px;text-align:right;">${fmtH(l.hhPlan)}</td>
+        <td style="padding:8px;text-align:right;font-weight:600;">${fmtH(l.hhReal)}</td>
+        <td style="padding:8px;text-align:right;color:${l.saldo < 0 ? 'var(--color-danger)' : 'inherit'};">${fmtH(l.saldo)}</td>
+        <td style="padding:8px;text-align:right;">
+          <span style="font-weight:700;color:${corStatus(l.status)};">${l.status === 'sem_plano' ? '—' : l.pct.toFixed(0) + '%'}</span>
+          <div class="rh-meta">${rotStatus(l.status)}</div>
+        </td>
+      </tr>`).join('');
+    return `
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('activity', 18)}Produtividade — HH previsto × realizado</span></h3>
+          <span class="text-muted font-sm">Previsto (HH da etapa) contra o realizado (horas apontadas no RDO por colaborador)</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th scope="col">Etapa</th>
+              <th scope="col" style="text-align:right;">HH previsto</th>
+              <th scope="col" style="text-align:right;">HH realizado</th>
+              <th scope="col" style="text-align:right;">Saldo</th>
+              <th scope="col" style="text-align:right;">Produtividade</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+            <tfoot><tr style="font-weight:700;background:var(--color-surface-2);">
+              <td style="padding:8px;">TOTAL</td>
+              <td style="padding:8px;text-align:right;">${fmtH(prod.totalHhPlan)}</td>
+              <td style="padding:8px;text-align:right;">${fmtH(prod.totalHhReal)}</td>
+              <td colspan="2"></td>
+            </tr></tfoot>
+          </table>
+        </div>
+        ${prod.semAtividade > 0 ? `<p class="text-muted font-sm" style="padding:0 var(--sp-md) var(--sp-md);">${fmtH(prod.semAtividade)} apontadas sem etapa vinculada.</p>` : ''}
+      </div>`;
   },
 
   // Gantt como SVG simples (sem deps externas) — barra planejada e barra real sobreposta
@@ -428,9 +497,15 @@
                 <input class="form-control" type="number" name="execPct" step="1" min="0" max="100" value="${ativ?.execPct ?? 0}">
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Custo planejado (BRL)</label>
-              <input class="form-control" type="number" name="custoPlan" step="0.01" min="0" value="${ativ?.custoPlan ?? 0}">
+            <div class="form-row" style="grid-template-columns:1fr 1fr;">
+              <div class="form-group">
+                <label class="form-label">Custo planejado (BRL)</label>
+                <input class="form-control" type="number" name="custoPlan" step="0.01" min="0" value="${ativ?.custoPlan ?? 0}">
+              </div>
+              <div class="form-group">
+                <label class="form-label">HH previsto (horas)</label>
+                <input class="form-control" type="number" name="hhPlan" step="0.5" min="0" value="${ativ?.hhPlan ?? 0}" title="Homem-hora previsto para esta etapa (base da produtividade)">
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Notas</label>

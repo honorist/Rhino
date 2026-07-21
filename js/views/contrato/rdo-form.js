@@ -22,6 +22,7 @@
         { k: 'tempo', l: 'Tempo' },
         { k: 'mo', l: 'Mão de Obra' },
         { k: 'horario', l: 'Efetivo / HH' },
+        { k: 'apontamento', l: 'Apontamento HH' },
         { k: 'equipamentos', l: 'Equipamentos' },
         { k: 'atividades', l: 'Atividades' },
         { k: 'seguranca', l: 'Segurança' },
@@ -82,6 +83,8 @@
           return this._rdoTabMo(d);
         case 'horario':
           return this._rdoTabHorario(d);
+        case 'apontamento':
+          return this._rdoTabApontamento(d, rdoOriginal);
         case 'equipamentos':
           return this._rdoTabEquipamentos(d);
         case 'atividades':
@@ -458,6 +461,150 @@
           </tr>
         </tfoot>
       </table>
+    `;
+    },
+
+    // ═══════════ Apontamento de HH por colaborador × atividade (item 5) ═══════════
+    // A equipe da obra (organograma) é pré-carregada: cada colaborador vira uma
+    // linha; o encarregado só preenche horas + a etapa (atividade) do dia. As
+    // horas viajam no payload do RDO e o servidor grava em rdo_apontamentos.
+
+    // Monta as linhas-base a partir do organograma (uma por colaborador real).
+    _apontRosterFromContract(contract) {
+      const membros = (contract && contract.organograma) || [];
+      const recursos = (window.Store && Store.state.recursos) || [];
+      const vistos = new Set();
+      const linhas = [];
+      membros.forEach((m) => {
+        if (!m.recursoId || vistos.has(m.recursoId)) return;
+        vistos.add(m.recursoId);
+        const r = recursos.find((x) => x.id === m.recursoId);
+        linhas.push({
+          recursoId: m.recursoId,
+          nome: (r && r.nome) || m.cargo || 'Colaborador',
+          funcao: (r && r.profissao) || m.cargo || '',
+          atividadeId: '',
+          horas: 0,
+        });
+      });
+      return linhas;
+    },
+
+    // Carrega atividades (dropdown) e, na edição, os apontamentos já salvos —
+    // depois re-renderiza a aba. Idempotente (só busca uma vez por modal).
+    async _loadApontamento(contractId, rdoOriginal) {
+      if (this._apontLoading) return;
+      this._apontLoading = true;
+      try {
+        const contract = Store.getContractById(contractId);
+        const rAtiv = await fetch(`/api/contracts/${contractId}/atividades`);
+        this._apontAtividades = rAtiv.ok ? (await rAtiv.json()).atividades || [] : [];
+
+        // Base: a equipe da obra. Na edição, sobrepõe horas/atividade do que já
+        // foi apontado (casando por colaborador); apontamentos de quem saiu da
+        // obra entram como linhas extras (não se perdem).
+        const roster = this._apontRosterFromContract(contract);
+        if (rdoOriginal && rdoOriginal.id) {
+          const rAp = await fetch(`/api/contracts/${contractId}/rdos/${rdoOriginal.id}/apontamentos`);
+          const existentes = rAp.ok ? (await rAp.json()).apontamentos || [] : [];
+          const porRecurso = new Map();
+          for (const a of existentes) if (a.recursoId) porRecurso.set(a.recursoId, a);
+          roster.forEach((l) => {
+            const a = porRecurso.get(l.recursoId);
+            if (a) {
+              l.horas = Number(a.horas) || 0;
+              l.atividadeId = a.atividadeId || '';
+              porRecurso.delete(l.recursoId);
+            }
+          });
+          // Sobras: apontamentos sem colaborador no roster atual.
+          for (const a of existentes) {
+            if (a.recursoId && !porRecurso.has(a.recursoId)) continue; // já casado
+            if (a.recursoId && porRecurso.has(a.recursoId)) {
+              roster.push({ recursoId: a.recursoId, nome: a.funcao || '(colaborador removido)', funcao: a.funcao || '', atividadeId: a.atividadeId || '', horas: Number(a.horas) || 0 });
+              porRecurso.delete(a.recursoId);
+            } else if (!a.recursoId) {
+              roster.push({ recursoId: null, nome: a.funcao || '(sem colaborador)', funcao: a.funcao || '', atividadeId: a.atividadeId || '', horas: Number(a.horas) || 0 });
+            }
+          }
+        }
+        this._rdoData.apontamentos = roster;
+        this._apontLoaded = true;
+      } catch (e) {
+        console.warn('[apontamento] falha ao carregar:', e && e.message);
+        this._apontAtividades = this._apontAtividades || [];
+        this._rdoData.apontamentos = this._rdoData.apontamentos || [];
+        this._apontLoaded = true;
+      } finally {
+        this._apontLoading = false;
+        // Re-renderiza a aba se ela ainda estiver aberta.
+        if (this._rdoTab === 'apontamento') {
+          const content = document.getElementById('rdoFormContent');
+          if (content) {
+            content.innerHTML = this._renderRdoTab('apontamento', rdoOriginal);
+            this._bindRdoInputs(this._rdoData._contractId || contractId, rdoOriginal);
+          }
+        }
+      }
+    },
+
+    _rdoTabApontamento(d, rdoOriginal) {
+      if (!this._apontLoaded) {
+        return `<div style="text-align:center;padding:var(--sp-xl);color:var(--color-text-muted);">Carregando equipe e atividades…</div>`;
+      }
+      const ativs = this._apontAtividades || [];
+      const linhas = d.apontamentos || [];
+      const total = linhas.reduce((s, l) => s + (Number(l.horas) || 0), 0);
+      const optAtiv = (sel) =>
+        `<option value="">— sem etapa —</option>` +
+        ativs
+          .map((a) => `<option value="${escapeHtml(a.id)}" ${a.id === sel ? 'selected' : ''}>${escapeHtml(a.nome || a.id)}</option>`)
+          .join('');
+      const rows = linhas
+        .map(
+          (l, i) => `
+        <tr>
+          <td style="padding:8px;">
+            <div style="font-weight:600;">${escapeHtml(l.nome || '')}</div>
+            ${l.funcao ? `<div class="rh-meta">${escapeHtml(l.funcao)}</div>` : ''}
+          </td>
+          <td style="padding:8px;"><select class="form-control" data-apont-ativ="${i}">${optAtiv(l.atividadeId || '')}</select></td>
+          <td style="padding:8px;width:120px;"><input class="form-control" type="number" min="0" step="0.5" data-apont-horas="${i}" value="${l.horas || 0}"></td>
+        </tr>`
+        )
+        .join('');
+      return `
+      <p style="font-size:15px;color:var(--color-text-muted);margin-bottom:var(--sp-md);">
+        Apontamento de <strong>horas por colaborador × etapa</strong> do dia. A equipe da obra (organograma) já vem listada — informe as horas de cada um e a etapa em que trabalhou; quem faltou fica com 0. Alimenta a produtividade (HH previsto × realizado) no cronograma.
+      </p>
+      ${
+        ativs.length === 0
+          ? `<p class="text-danger" style="font-size:14px;">Este contrato ainda não tem etapas no cronograma — cadastre atividades para poder ligar as horas a uma etapa. Você ainda pode apontar as horas sem etapa.</p>`
+          : ''
+      }
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:var(--sp-sm);flex-wrap:wrap;">
+        <label class="form-label" style="margin:0;">Jornada padrão</label>
+        <input class="form-control" type="number" min="0" step="0.5" id="apontJornada" value="9" style="width:90px;">
+        <span class="rh-meta">h</span>
+        <button type="button" class="btn btn-sm btn-secondary" data-apont-fill>Aplicar a todos</button>
+      </div>
+      ${
+        linhas.length === 0
+          ? `<p class="text-muted" style="text-align:center;padding:var(--sp-lg);">Nenhum colaborador no organograma desta obra. Monte a equipe na aba "Equipe" do contrato.</p>`
+          : `
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="background:var(--color-surface-2);">
+          <th scope="col" class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Colaborador</th>
+          <th scope="col" class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Etapa (atividade)</th>
+          <th scope="col" class="rh-meta" style="text-align:left;padding:8px;font-weight:600;">Horas</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr style="background:var(--color-surface-2);font-weight:700;">
+          <td colspan="2" style="text-align:right;padding:8px;">TOTAL HH APONTADO</td>
+          <td style="padding:8px;" data-apont-total>${total.toFixed(2)}</td>
+        </tr></tfoot>
+      </table>`
+      }
     `;
     },
 
@@ -1195,6 +1342,40 @@
           }
         });
       });
+
+      // ── Apontamento de HH por colaborador × atividade (item 5) ──
+      if (this._rdoTab === 'apontamento') {
+        // Carrega equipe + atividades na primeira vez que a aba abre.
+        if (!this._apontLoaded && !this._apontLoading) {
+          this._loadApontamento(contractId, rdoOriginal);
+        } else if (this._apontLoaded) {
+          const apts = () => this._rdoData.apontamentos || [];
+          const recalcTotal = () => {
+            const el = overlay.querySelector('[data-apont-total]');
+            if (el) el.textContent = apts().reduce((s, l) => s + (Number(l.horas) || 0), 0).toFixed(2);
+          };
+          overlay.querySelectorAll('[data-apont-horas]').forEach((el) => {
+            el.addEventListener('input', () => {
+              const i = parseInt(el.dataset.apontHoras);
+              if (apts()[i]) apts()[i].horas = Math.max(0, parseFloat(el.value) || 0);
+              recalcTotal();
+            });
+          });
+          overlay.querySelectorAll('[data-apont-ativ]').forEach((el) => {
+            el.addEventListener('change', () => {
+              const i = parseInt(el.dataset.apontAtiv);
+              if (apts()[i]) apts()[i].atividadeId = el.value || '';
+            });
+          });
+          overlay.querySelector('[data-apont-fill]')?.addEventListener('click', () => {
+            const jornada = Math.max(0, parseFloat(document.getElementById('apontJornada')?.value) || 0);
+            apts().forEach((l) => {
+              l.horas = jornada;
+            });
+            rerender();
+          });
+        }
+      }
     },
 
     async deleteRdo(contractId, rdoId) {

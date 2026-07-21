@@ -30,6 +30,36 @@ async function _assertRdoDoContrato(contractId, rdoId) {
   return rdo;
 }
 
+/**
+ * Replace-all dos apontamentos de um RDO, sob transação: apaga os existentes e
+ * reinsere só os normalizados (linhas vazias somem). Compartilhado entre o PUT
+ * dedicado e o save do RDO (handlers/contract-rdos.js persiste no mesmo fluxo,
+ * evitando o cliente ter de descobrir o rdoId recém-criado).
+ *
+ * @param {string} rdoId
+ * @param {string} contractId
+ * @param {Array} apontamentosRaw  linhas cruas do form
+ */
+async function replaceApontamentos(rdoId, contractId, apontamentosRaw) {
+  const itens = normalizarApontamentos(apontamentosRaw);
+  await db.withTransaction(async (client) => {
+    await client.query('DELETE FROM rdo_apontamentos WHERE rdo_id = $1', [rdoId]);
+    if (!itens.length) return;
+    const cols = ['id', 'rdo_id', 'contract_id', 'recurso_id', 'atividade_id', 'funcao', 'horas', 'observacoes'];
+    const values = [];
+    const params = [];
+    itens.forEach((it, i) => {
+      const base = i * cols.length;
+      values.push(`(${cols.map((_, j) => `$${base + j + 1}`).join(', ')})`);
+      params.push(generateId('apont'), rdoId, contractId, it.recursoId, it.atividadeId, it.funcao, it.horas, it.observacoes);
+    });
+    await client.query(
+      `INSERT INTO rdo_apontamentos (${cols.join(', ')}) VALUES ${values.join(', ')}`,
+      params
+    );
+  });
+}
+
 async function handleListRdoApontamentos(contractId, rdoId, res) {
   try {
     await _assertRdoDoContrato(contractId, rdoId);
@@ -43,35 +73,7 @@ async function handleListRdoApontamentos(contractId, rdoId, res) {
 async function handlePutRdoApontamentos(contractId, rdoId, body, res) {
   try {
     await _assertRdoDoContrato(contractId, rdoId);
-    const itens = normalizarApontamentos(body && body.apontamentos);
-
-    await db.withTransaction(async (client) => {
-      await client.query('DELETE FROM rdo_apontamentos WHERE rdo_id = $1', [rdoId]);
-      if (itens.length) {
-        const cols = ['id', 'rdo_id', 'contract_id', 'recurso_id', 'atividade_id', 'funcao', 'horas', 'observacoes'];
-        const values = [];
-        const params = [];
-        itens.forEach((it, i) => {
-          const base = i * cols.length;
-          values.push(`(${cols.map((_, j) => `$${base + j + 1}`).join(', ')})`);
-          params.push(
-            generateId('apont'),
-            rdoId,
-            contractId,
-            it.recursoId,
-            it.atividadeId,
-            it.funcao,
-            it.horas,
-            it.observacoes
-          );
-        });
-        await client.query(
-          `INSERT INTO rdo_apontamentos (${cols.join(', ')}) VALUES ${values.join(', ')}`,
-          params
-        );
-      }
-    });
-
+    await replaceApontamentos(rdoId, contractId, body && body.apontamentos);
     const apontamentos = await repos.rdoApontamentos.findAll({ rdoId });
     sendJson(res, { apontamentos });
   } catch (e) {
@@ -109,4 +111,5 @@ module.exports = {
   handleListRdoApontamentos,
   handlePutRdoApontamentos,
   handleGetContractProdutividade,
+  replaceApontamentos, // usado por handlers/contract-rdos.js no save do RDO
 };
