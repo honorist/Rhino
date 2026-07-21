@@ -612,7 +612,7 @@ test('routes/comercial.js — proposta/:id não engole as sub-rotas (docx etc.)'
 // ─── routes/operacao.js (recursos, documentos, estoque, solicitações, ────────
 //     manutenções, frota, dashboard-layouts, doc-templates) ──────────────────
 
-test('routes/operacao.js — registra exatamente as 87 rotas de operação', () => {
+test('routes/operacao.js — registra exatamente as 125 rotas de operação', () => {
   const router = createRouter();
   require('../routes/operacao')(router, {});
   const rotas = router
@@ -709,6 +709,48 @@ test('routes/operacao.js — registra exatamente as 87 rotas de operação', () 
       'PUT /api/veiculos/:id/localizacao',
       'PUT /api/veiculos/:id/manutencoes/:manutId',
       'PUT /api/veiculos/:id/planos/:planoId',
+      // Mapa de cotações + pedido de compra (item 13)
+      'GET /api/cotacoes',
+      'POST /api/cotacoes',
+      'GET /api/cotacoes/:id',
+      'PUT /api/cotacoes/:id',
+      'DELETE /api/cotacoes/:id',
+      'POST /api/cotacoes/:id/itens',
+      'PUT /api/cotacoes/:id/itens/:itemId',
+      'DELETE /api/cotacoes/:id/itens/:itemId',
+      'PUT /api/cotacoes/:id/precos',
+      'DELETE /api/cotacoes/:id/precos/:precoId',
+      'POST /api/cotacoes/:id/gerar-ordem',
+      'GET /api/ordens-compra',
+      'GET /api/ordens-compra/:id',
+      'PUT /api/ordens-compra/:id',
+      'DELETE /api/ordens-compra/:id',
+      // Subcontratados + medições (item 14)
+      'GET /api/subcontratados',
+      'POST /api/subcontratados',
+      'PUT /api/subcontratados/:id',
+      'DELETE /api/subcontratados/:id',
+      'GET /api/subcontratados/:id/medicoes',
+      'POST /api/subcontratados/:id/medicoes',
+      'PUT /api/subcontratados/:id/medicoes/:medId',
+      'DELETE /api/subcontratados/:id/medicoes/:medId',
+      // Ferramentaria + calibração (item 15)
+      'GET /api/ferramentas',
+      'POST /api/ferramentas',
+      'PUT /api/ferramentas/:id',
+      'DELETE /api/ferramentas/:id',
+      'GET /api/ferramentas/:id/calibracoes',
+      'POST /api/ferramentas/:id/calibracoes',
+      'DELETE /api/ferramentas/:id/calibracoes/:calId',
+      // Equipamentos próprios/locados (item 16)
+      'GET /api/equipamentos',
+      'POST /api/equipamentos',
+      'PUT /api/equipamentos/:id',
+      'DELETE /api/equipamentos/:id',
+      'GET /api/equipamentos/:id/locacoes',
+      'POST /api/equipamentos/:id/locacoes',
+      'PUT /api/equipamentos/:id/locacoes/:locId',
+      'DELETE /api/equipamentos/:id/locacoes/:locId',
     ].sort()
   );
 });
@@ -769,7 +811,7 @@ test('routes/operacao.js — req injetado, sub-recursos aninhados e :param', () 
 
 // ─── routes/contracts.js (contratos, saídas, RDO, aditivos, marcos…) ─────────
 
-test('routes/contracts.js — registra exatamente as 60 rotas de contratos', () => {
+test('routes/contracts.js — registra exatamente as 61 rotas de contratos', () => {
   const router = createRouter();
   require('../routes/contracts')(router, {});
   const rotas = router
@@ -795,6 +837,7 @@ test('routes/contracts.js — registra exatamente as 60 rotas de contratos', () 
       'GET /api/contracts/:id/atividades',
       'GET /api/contracts/:id/curva-s',
       'GET /api/contracts/:id/dre',
+      'GET /api/contracts/:id/evm',
       'GET /api/contracts/:id/data-book',
       'GET /api/contracts/:id/ssma',
       'POST /api/contracts/:id/ssma',

@@ -254,6 +254,7 @@ window.ContratoDetail = {
             { k:'visao',      l:'Visão Geral',  icon:'eye' },
             { k:'financeiro', l:'Financeiro',   icon:'dollar-sign' },
             { k:'dre',        l:'DRE / Margem', icon:'trending-up' },
+            { k:'evm',        l:'Curva S / EVM', icon:'bar-chart-2' },
             { k:'punch',      l:'Punch List',   icon:'alert-triangle' },
             { k:'ssma',       l:'SSMA',         icon:'shield' },
             { k:'databook',   l:'Data book',    icon:'check-square' },
@@ -578,6 +579,9 @@ window.ContratoDetail = {
 
         <!-- ─── DRE / Margem por obra (realizado, base caixa) ─── -->
         ${this._tab === 'dre' ? this.renderDreSection(contract) : ''}
+
+        <!-- ─── Curva S / EVM (PV/EV/AC + SPI/CPI) ─── -->
+        ${this._tab === 'evm' ? this.renderEvmSection(contract) : ''}
 
         <!-- ─── Punch List / Qualidade ─── -->
         ${this._tab === 'punch' ? this.renderPunchSection(contract) : ''}
@@ -964,6 +968,9 @@ window.ContratoDetail = {
 
       // DRE / Margem — busca o consolidado do servidor (fonte única, base caixa)
       if (this._tab === 'dre') this._loadDre(contract);
+
+      // Curva S / EVM — busca PV/EV/AC + SPI/CPI da obra
+      if (this._tab === 'evm') this._loadEvm(contract);
 
       // Punch List / Qualidade — busca os itens da obra
       if (this._tab === 'punch') this._loadPunch(contract);

@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.26.0",
+      "date": "2026-07-21",
+      "summary": "Novos módulos de obra: Curva S/EVM, Mapa de Cotações, Subcontratados, Ferramentaria e Equipamentos",
+      "changes": [
+        "Contrato: aba 'Curva S / EVM' com valor planejado (PV), agregado (EV) e realizado (AC), mais os índices SPI (prazo) e CPI (custo) e a projeção de custo final da obra",
+        "Novo módulo 'Mapa de Cotações': compare preços de vários fornecedores por item, veja o menor preço e a economia, e gere o pedido de compra do vencedor",
+        "Novo módulo 'Subcontratados': cadastro de empreiteiros e boletins de medição por competência, com totais previsto/medido/pago e saldo",
+        "Novo módulo 'Ferramentaria': controle de ferramentas e da calibração de instrumentos, com alerta de validade (em dia / vencendo / vencida)",
+        "Novo módulo 'Equipamentos': parque de equipamentos próprios e locados, com custo de locação acumulado e alerta de devolução"
+      ]
+    },
+    {
       "version": "1.25.7",
       "date": "2026-07-21",
       "summary": "Seis novos módulos: SSMA, ponto, treinamentos NR, EPIs, composições de custo e data book",

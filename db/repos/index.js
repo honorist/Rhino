@@ -61,4 +61,18 @@ module.exports = {
   candidatos:           require('./candidatos'),
   notificacoes:         require('./notificacoes'),
   sugestoes:            require('./sugestoes'),
+
+  // Roadmap lote 2 — compras (mapa de cotações + PO), subcontratados,
+  // ferramentaria/calibração, equipamentos próprios/locados (itens 13–16).
+  cotacoes:             require('./cotacoes'),
+  cotacaoItens:         require('./cotacao_itens'),
+  cotacaoPrecos:        require('./cotacao_precos'),
+  ordensCompra:         require('./ordens_compra'),
+  ordemCompraItens:     require('./ordem_compra_itens'),
+  subcontratados:       require('./subcontratados'),
+  subcontratoMedicoes:  require('./subcontrato_medicoes'),
+  ferramentas:          require('./ferramentas'),
+  ferramentaCalibracoes: require('./ferramenta_calibracoes'),
+  equipamentos:         require('./equipamentos'),
+  equipamentoLocacoes:  require('./equipamento_locacoes'),
 };

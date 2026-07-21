@@ -232,4 +232,50 @@ module.exports = function registerOperacao(router, deps) {
   router.delete('/api/doc-templates/:id', (ctx) =>
     deps.handleDeleteDocTemplate(ctx.params[0], ctx.res)
   );
+
+  // ── Mapa de cotações + Pedido de compra (item 13) ──
+  router.get('/api/cotacoes',                    (ctx) => deps.handleListCotacoes(ctx.parsedUrl.query, ctx.res));
+  router.post('/api/cotacoes',                   (ctx) => deps.handlePostCotacao(ctx.body, ctx.res));
+  router.get('/api/cotacoes/:id',                (ctx) => deps.handleGetCotacao(ctx.params[0], ctx.res));
+  router.put('/api/cotacoes/:id',                (ctx) => deps.handlePutCotacao(ctx.params[0], ctx.body, ctx.res));
+  router.delete('/api/cotacoes/:id',             (ctx) => deps.handleDeleteCotacao(ctx.params[0], ctx.res));
+  router.post('/api/cotacoes/:id/itens',              (ctx) => deps.handlePostCotacaoItem(ctx.params[0], ctx.body, ctx.res));
+  router.put('/api/cotacoes/:id/itens/:itemId',       (ctx) => deps.handlePutCotacaoItem(ctx.params[0], ctx.params[1], ctx.body, ctx.res));
+  router.delete('/api/cotacoes/:id/itens/:itemId',    (ctx) => deps.handleDeleteCotacaoItem(ctx.params[0], ctx.params[1], ctx.res));
+  router.put('/api/cotacoes/:id/precos',              (ctx) => deps.handleUpsertCotacaoPreco(ctx.params[0], ctx.body, ctx.res));
+  router.delete('/api/cotacoes/:id/precos/:precoId',  (ctx) => deps.handleDeleteCotacaoPreco(ctx.params[0], ctx.params[1], ctx.res));
+  router.post('/api/cotacoes/:id/gerar-ordem',        (ctx) => deps.handleGerarOrdem(ctx.params[0], ctx.body, ctx.res));
+  router.get('/api/ordens-compra',               (ctx) => deps.handleListOrdens(ctx.parsedUrl.query, ctx.res));
+  router.get('/api/ordens-compra/:id',           (ctx) => deps.handleGetOrdem(ctx.params[0], ctx.res));
+  router.put('/api/ordens-compra/:id',           (ctx) => deps.handlePutOrdem(ctx.params[0], ctx.body, ctx.res));
+  router.delete('/api/ordens-compra/:id',        (ctx) => deps.handleDeleteOrdem(ctx.params[0], ctx.res));
+
+  // ── Subcontratados + medições (item 14) ──
+  router.get('/api/subcontratados',              (ctx) => deps.handleListSubcontratados(ctx.res));
+  router.post('/api/subcontratados',             (ctx) => deps.handlePostSubcontratado(ctx.body, ctx.res));
+  router.put('/api/subcontratados/:id',          (ctx) => deps.handlePutSubcontratado(ctx.params[0], ctx.body, ctx.res));
+  router.delete('/api/subcontratados/:id',       (ctx) => deps.handleDeleteSubcontratado(ctx.params[0], ctx.res));
+  router.get('/api/subcontratados/:id/medicoes',              (ctx) => deps.handleListMedicoes(ctx.params[0], ctx.res));
+  router.post('/api/subcontratados/:id/medicoes',             (ctx) => deps.handlePostMedicao(ctx.params[0], ctx.body, ctx.res));
+  router.put('/api/subcontratados/:id/medicoes/:medId',       (ctx) => deps.handlePutMedicao(ctx.params[0], ctx.params[1], ctx.body, ctx.res));
+  router.delete('/api/subcontratados/:id/medicoes/:medId',    (ctx) => deps.handleDeleteMedicao(ctx.params[0], ctx.params[1], ctx.res));
+
+  // ── Ferramentaria + calibração (item 15) ──
+  router.get('/api/ferramentas',                 (ctx) => deps.handleListFerramentas(ctx.res));
+  router.post('/api/ferramentas',                (ctx) => deps.handlePostFerramenta(ctx.body, ctx.res));
+  router.put('/api/ferramentas/:id',             (ctx) => deps.handlePutFerramenta(ctx.params[0], ctx.body, ctx.res));
+  router.delete('/api/ferramentas/:id',          (ctx) => deps.handleDeleteFerramenta(ctx.params[0], ctx.res));
+  router.get('/api/ferramentas/:id/calibracoes',              (ctx) => deps.handleListCalibracoes(ctx.params[0], ctx.res));
+  router.post('/api/ferramentas/:id/calibracoes',             (ctx) => deps.handlePostCalibracao(ctx.params[0], ctx.body, ctx.res));
+  router.delete('/api/ferramentas/:id/calibracoes/:calId',    (ctx) => deps.handleDeleteCalibracao(ctx.params[0], ctx.params[1], ctx.res));
+
+  // ── Equipamentos próprios/locados (item 16) ──
+  router.get('/api/equipamentos',                (ctx) => deps.handleListEquipamentos(ctx.res));
+  router.post('/api/equipamentos',               (ctx) => deps.handlePostEquipamento(ctx.body, ctx.res));
+  router.put('/api/equipamentos/:id',            (ctx) => deps.handlePutEquipamento(ctx.params[0], ctx.body, ctx.res));
+  router.delete('/api/equipamentos/:id',         (ctx) => deps.handleDeleteEquipamento(ctx.params[0], ctx.res));
+  router.get('/api/equipamentos/:id/locacoes',                (ctx) => deps.handleListLocacoes(ctx.params[0], ctx.res));
+  router.post('/api/equipamentos/:id/locacoes',               (ctx) => deps.handlePostLocacao(ctx.params[0], ctx.body, ctx.res));
+  router.put('/api/equipamentos/:id/locacoes/:locId',         (ctx) => deps.handlePutLocacao(ctx.params[0], ctx.params[1], ctx.body, ctx.res));
+  router.delete('/api/equipamentos/:id/locacoes/:locId',      (ctx) => deps.handleDeleteLocacao(ctx.params[0], ctx.params[1], ctx.res));
 };

@@ -96,6 +96,11 @@ const treinamentosHandlers = require('./handlers/treinamentos'); // matriz de tr
 const epiHandlers = require('./handlers/epis'); // controle de EPIs por colaborador — item 9
 const pontoHandlers = require('./handlers/ponto'); // ponto / banco de horas por colaborador — item 6
 const composicoesHandlers = require('./handlers/composicoes'); // catálogo global de composições de custo — item 4
+const evmHandlers = require('./handlers/evm'); // EVM / Curva S: PV/EV/AC + SPI/CPI por obra — item 2
+const cotacoesHandlers = require('./handlers/cotacoes'); // mapa de cotações + pedido de compra — item 13
+const subcontratadosHandlers = require('./handlers/subcontratados'); // subcontratados + medições — item 14
+const ferramentasHandlers = require('./handlers/ferramentas'); // ferramentaria + calibração — item 15
+const equipamentosHandlers = require('./handlers/equipamentos'); // equipamentos próprios/locados — item 16
 const clausulasHandlers = require('./handlers/clausulas'); // cláusulas reusáveis + apresentação da proposta
 const cobrancaHandlers = require('./handlers/cobranca'); // cobrança mensal da plataforma (admin)
 const dashboardsHandlers = require('./handlers/dashboards'); // painel financeiro + operacional + layouts
@@ -1427,6 +1432,10 @@ registerOperacao(apiRouter, {
   ...dashboardCobrancaHandlers, // handleDashboardCobranca (handlers/dashboard-cobranca.js)
   ...dashboardsHandlers, // operacional + layouts (handlers/dashboards.js; handleDashboard financeiro é usado só no platform)
   ...docTemplatesHandlers, // handlers/doc-templates.js
+  ...cotacoesHandlers, // mapa de cotações + pedido de compra (handlers/cotacoes.js) — item 13
+  ...subcontratadosHandlers, // subcontratados + medições (handlers/subcontratados.js) — item 14
+  ...ferramentasHandlers, // ferramentaria + calibração (handlers/ferramentas.js) — item 15
+  ...equipamentosHandlers, // equipamentos próprios/locados (handlers/equipamentos.js) — item 16
 });
 registerContracts(apiRouter, {
   ...contractRdosHandlers,
@@ -1436,6 +1445,7 @@ registerContracts(apiRouter, {
   ...contractMedicoesHandlers, // BM estruturado: medições por itens + aprovação (handlers/contract-medicoes.js)
   ...contractExtrasHandlers, // saídas/BM + budget/aditivos/marcos/ocorrências
   ...atividadesHandlers, // cronograma físico-financeiro + curva S (handlers/atividades.js)
+  ...evmHandlers, // EVM: PV/EV/AC + SPI/CPI por obra (handlers/evm.js) — item 2
   ...dreHandlers, // DRE / margem por obra (handlers/dre.js)
   ...rdoApontamentosHandlers, // apontamento de HH por colaborador × atividade + produtividade (handlers/rdo-apontamentos.js)
   ...punchHandlers, // punch list / qualidade (handlers/punch-itens.js)
