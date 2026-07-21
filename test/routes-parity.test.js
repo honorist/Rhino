@@ -753,7 +753,7 @@ test('routes/operacao.js — req injetado, sub-recursos aninhados e :param', () 
 
 // ─── routes/contracts.js (contratos, saídas, RDO, aditivos, marcos…) ─────────
 
-test('routes/contracts.js — registra exatamente as 46 rotas de contratos', () => {
+test('routes/contracts.js — registra exatamente as 49 rotas de contratos', () => {
   const router = createRouter();
   require('../routes/contracts')(router, {});
   const rotas = router
@@ -779,6 +779,9 @@ test('routes/contracts.js — registra exatamente as 46 rotas de contratos', () 
       'GET /api/contracts/:id/atividades',
       'GET /api/contracts/:id/curva-s',
       'GET /api/contracts/:id/dre',
+      'GET /api/contracts/:id/produtividade-hh',
+      'GET /api/contracts/:id/rdos/:rdoId/apontamentos',
+      'PUT /api/contracts/:id/rdos/:rdoId/apontamentos',
       'GET /api/contracts/:id/medicoes',
       'GET /api/contracts/:id/servicos',
       'GET /api/contracts/:id/rdos/:rdoId/assinaturas',
@@ -932,6 +935,28 @@ test('routes/contracts.js — DRE por obra despacha (id, res)', () => {
   });
   router.dispatch({ method: 'GET', pathname: '/api/contracts/C1/dre', res: 'R' });
   assert.deepEqual(c.dre, ['C1', 'R']);
+});
+
+test('routes/contracts.js — apontamento de HH e produtividade despacham certo', () => {
+  const c = {};
+  const router = createRouter();
+  require('../routes/contracts')(router, {
+    handleListRdoApontamentos: (cid, rid, res) => {
+      c.list = [cid, rid, res];
+    },
+    handlePutRdoApontamentos: (cid, rid, body, res) => {
+      c.put = [cid, rid, body, res];
+    },
+    handleGetContractProdutividade: (cid, res) => {
+      c.prod = [cid, res];
+    },
+  });
+  router.dispatch({ method: 'GET', pathname: '/api/contracts/C1/rdos/R7/apontamentos', res: 'R' });
+  assert.deepEqual(c.list, ['C1', 'R7', 'R']);
+  router.dispatch({ method: 'PUT', pathname: '/api/contracts/C1/rdos/R7/apontamentos', body: 'B', res: 'R' });
+  assert.deepEqual(c.put, ['C1', 'R7', 'B', 'R']);
+  router.dispatch({ method: 'GET', pathname: '/api/contracts/C1/produtividade-hh', res: 'R' });
+  assert.deepEqual(c.prod, ['C1', 'R']);
 });
 
 // ─── routes/recrutamento.js (solicitações, candidatos, docs/arquivo, sino) ───

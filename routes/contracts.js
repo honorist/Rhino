@@ -59,6 +59,10 @@ module.exports = function registerContracts(router, deps) {
   router.get('/api/contracts/:id/rdos/:rdoId/assinaturas',           (ctx) => deps.handleListRdoAssinaturas(ctx.params[1], ctx.res));
   router.get('/api/contracts/:id/rdos/:rdoId/assinaturas/:assId',    (ctx) => deps.handleGetRdoAssinatura(ctx.params[1], ctx.params[2], ctx.res));
   router.delete('/api/contracts/:id/rdos/:rdoId/assinaturas/:assId', (ctx) => deps.handleDeleteRdoAssinatura(ctx.params[1], ctx.params[2], ctx.res));
+  // Apontamento de HH por colaborador × atividade (sub-recurso do RDO).
+  router.get('/api/contracts/:id/rdos/:rdoId/apontamentos', (ctx) => deps.handleListRdoApontamentos(ctx.params[0], ctx.params[1], ctx.res));
+  router.put('/api/contracts/:id/rdos/:rdoId/apontamentos', (ctx) => deps.handlePutRdoApontamentos(ctx.params[0], ctx.params[1], ctx.body, ctx.res));
+  router.get('/api/contracts/:id/produtividade-hh',         (ctx) => deps.handleGetContractProdutividade(ctx.params[0], ctx.res));
 
   // ── Aditivos ──
   router.post('/api/contracts/:id/aditivos',              (ctx) => deps.handlePostAditivo(ctx.params[0], ctx.body, ctx.res));

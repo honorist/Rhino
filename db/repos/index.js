@@ -17,6 +17,7 @@ module.exports = {
   medicaoItens:     require('./medicao_itens'),
   organograma:    require('./organograma'),
   rdos:           require('./rdos'),
+  rdoApontamentos: require('./rdo_apontamentos'),
   clientes:       require('./clientes'),
   fornecedores:   require('./fornecedores'),
   socios:         require('./socios'),

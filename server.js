@@ -87,6 +87,7 @@ const manutencoesHandlers = require('./handlers/manutencoes'); // manutenção d
 const frotaHandlers = require('./handlers/frota'); // frota: veículos/planos/manutenções/abastecimentos
 const atividadesHandlers = require('./handlers/atividades'); // cronograma físico-financeiro + curva S
 const dreHandlers = require('./handlers/dre'); // DRE / margem por obra (realizado, base caixa)
+const rdoApontamentosHandlers = require('./handlers/rdo-apontamentos'); // HH por colaborador × atividade + produtividade
 const clausulasHandlers = require('./handlers/clausulas'); // cláusulas reusáveis + apresentação da proposta
 const cobrancaHandlers = require('./handlers/cobranca'); // cobrança mensal da plataforma (admin)
 const dashboardsHandlers = require('./handlers/dashboards'); // painel financeiro + operacional + layouts
@@ -1412,6 +1413,7 @@ registerContracts(apiRouter, {
   ...contractExtrasHandlers, // saídas/BM + budget/aditivos/marcos/ocorrências
   ...atividadesHandlers, // cronograma físico-financeiro + curva S (handlers/atividades.js)
   ...dreHandlers, // DRE / margem por obra (handlers/dre.js)
+  ...rdoApontamentosHandlers, // apontamento de HH por colaborador × atividade + produtividade (handlers/rdo-apontamentos.js)
   ...contractOrganogramaHandlers, // handlers/contract-organograma.js
   ...rdoFotosHandlers, // fotos: upload + delete (handlers/rdo-fotos.js)
   ...rdoAssinaturasHandlers, // assinaturas digitais: upload + list/get/delete (handlers/rdo-assinaturas.js)

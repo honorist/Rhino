@@ -31,8 +31,8 @@ async function handlePostAtividade(contractId, body, res) {
     const row = await db.getOne(
       `INSERT INTO atividades
         (id, contract_id, parent_id, ordem, nome, data_inicio_plan, data_fim_plan,
-         data_inicio_real, data_fim_real, peso_pct, exec_pct, custo_plan, predecessoras, notas)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+         data_inicio_real, data_fim_real, peso_pct, exec_pct, custo_plan, hh_plan, predecessoras, notas)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
        RETURNING *`,
       [
         id,
@@ -47,6 +47,7 @@ async function handlePostAtividade(contractId, body, res) {
         parseFloat(body.pesoPct) || 0,
         parseFloat(body.execPct) || 0,
         money.parse(body.custoPlan),
+        money.parse(body.hhPlan), // HH previsto da etapa (item 5)
         Array.isArray(body.predecessoras) ? body.predecessoras : [],
         body.notas || null,
       ]
@@ -70,6 +71,7 @@ async function handlePutAtividade(contractId, atvId, body, res) {
       'peso_pct',
       'exec_pct',
       'custo_plan',
+      'hh_plan',
       'predecessoras',
       'notas',
     ];
@@ -84,6 +86,7 @@ async function handlePutAtividade(contractId, atvId, body, res) {
       peso_pct: parseFloat(body.pesoPct) || 0,
       exec_pct: parseFloat(body.execPct) || 0,
       custo_plan: money.parse(body.custoPlan),
+      hh_plan: money.parse(body.hhPlan), // HH previsto da etapa (item 5)
       predecessoras: Array.isArray(body.predecessoras) ? body.predecessoras : [],
       notas: body.notas ?? null,
     };
