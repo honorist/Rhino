@@ -88,6 +88,8 @@ const frotaHandlers = require('./handlers/frota'); // frota: veículos/planos/ma
 const atividadesHandlers = require('./handlers/atividades'); // cronograma físico-financeiro + curva S
 const dreHandlers = require('./handlers/dre'); // DRE / margem por obra (realizado, base caixa)
 const rdoApontamentosHandlers = require('./handlers/rdo-apontamentos'); // HH por colaborador × atividade + produtividade
+const punchHandlers = require('./handlers/punch-itens'); // punch list / qualidade: CRUD + resumo + notificação
+const punchFotosHandlers = require('./handlers/punch-fotos'); // punch list: foto (evidência) em BYTEA
 const clausulasHandlers = require('./handlers/clausulas'); // cláusulas reusáveis + apresentação da proposta
 const cobrancaHandlers = require('./handlers/cobranca'); // cobrança mensal da plataforma (admin)
 const dashboardsHandlers = require('./handlers/dashboards'); // painel financeiro + operacional + layouts
@@ -931,6 +933,18 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Multipart (upload de foto de item de punch list) — pula o body parser JSON
+  const isPunchFotoUpload =
+    req.method === 'POST' && /^\/api\/contracts\/[^/]+\/punch\/[^/]+\/fotos$/.test(pathname);
+  if (isPunchFotoUpload) {
+    (async () => {
+      if (await applyAuthMiddleware(req, res, pathname, req.method)) return;
+      const parts = pathname.split('/'); // ['', 'api', 'contracts', id, 'punch', itemId, 'fotos']
+      punchFotosHandlers.handlePostPunchFoto(parts[3], parts[5], req, res);
+    })();
+    return;
+  }
+
   // Multipart (upload de fotos de manutenção) — não passa pelo body parser JSON
   const isManutencaoFotoUpload =
     req.method === 'POST' && /^\/api\/manutencoes\/[^/]+\/fotos$/.test(pathname);
@@ -1414,6 +1428,8 @@ registerContracts(apiRouter, {
   ...atividadesHandlers, // cronograma físico-financeiro + curva S (handlers/atividades.js)
   ...dreHandlers, // DRE / margem por obra (handlers/dre.js)
   ...rdoApontamentosHandlers, // apontamento de HH por colaborador × atividade + produtividade (handlers/rdo-apontamentos.js)
+  ...punchHandlers, // punch list / qualidade (handlers/punch-itens.js)
+  ...punchFotosHandlers, // punch list: fotos de evidência (handlers/punch-fotos.js)
   ...contractOrganogramaHandlers, // handlers/contract-organograma.js
   ...rdoFotosHandlers, // fotos: upload + delete (handlers/rdo-fotos.js)
   ...rdoAssinaturasHandlers, // assinaturas digitais: upload + list/get/delete (handlers/rdo-assinaturas.js)
@@ -1507,6 +1523,47 @@ async function serveManutencaoFotoFromDb(pathname, req, res) {
   }
 }
 
+// Serve foto de item de punch list a partir do banco (BYTEA), espelhando o RDO.
+// URL: /data/punch-fotos/<punchItemId>/<fotoId>.<ext>.
+async function servePunchFotoFromDb(pathname, req, res) {
+  try {
+    const sid = auth.parseCookies(req)[auth.COOKIE_NAME];
+    const sessionUser = await auth.getUserBySession(sid);
+    if (!sessionUser) {
+      res.writeHead(401, { 'Content-Type': 'text/plain' });
+      res.end('Não autenticado');
+      return;
+    }
+    const parts = pathname.split('/'); // ['', 'data', 'punch-fotos', itemId, filename]
+    const itemId = parts[3];
+    const filename = parts[4] || '';
+    const fotoId = filename.replace(/\.[^.]+$/, '');
+    if (!/^punch_[0-9a-z]+$/i.test(itemId) || !/^pfoto_[0-9a-z]+$/i.test(fotoId)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('404 Not Found');
+      return;
+    }
+    const row = await db.getOne(
+      'SELECT mime, data FROM punch_fotos WHERE id = $1 AND punch_item_id = $2',
+      [fotoId, itemId]
+    );
+    if (!row || !row.data) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('404 Not Found');
+      return;
+    }
+    res.writeHead(200, {
+      'Content-Type': row.mime || 'image/jpeg',
+      'Content-Length': row.data.length,
+      'Cache-Control': 'private, max-age=3600',
+    });
+    res.end(row.data);
+  } catch (_e) {
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end('Erro ao carregar foto');
+  }
+}
+
 function routeRequest(pathname, method, body, res, parsedUrl, req) {
   // Router modular — se o domínio já foi migrado, casa aqui e encerra.
   if (apiRouter.dispatch({ pathname, method, body, res, parsedUrl, req })) return;
@@ -1537,6 +1594,12 @@ function routeRequest(pathname, method, body, res, parsedUrl, req) {
   // Fotos de manutenção: servidas do banco (BYTEA), não do disco.
   if (pathname.startsWith('/data/manutencao-fotos/')) {
     serveManutencaoFotoFromDb(pathname, req, res);
+    return;
+  }
+
+  // Fotos de item de punch list: servidas do banco (BYTEA).
+  if (pathname.startsWith('/data/punch-fotos/')) {
+    servePunchFotoFromDb(pathname, req, res);
     return;
   }
 

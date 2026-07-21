@@ -1040,6 +1040,26 @@ window.Store = {
     return this._aplicarRdo(await res.json());
   },
 
+  // Punch list / Qualidade (item 11): foto (evidência) de um item.
+  async uploadPunchFoto(contractId, itemId, files) {
+    const form = new FormData();
+    for (const f of files) {
+      const comp = await this._compressImage(f);
+      form.append('arquivo', comp, comp.name);
+    }
+    const res = await fetch(`/api/contracts/${contractId}/punch/${itemId}/fotos`, { method: 'POST', body: form });
+    if (!res.ok) {
+      const msg = await res.text();
+      try { throw new Error(JSON.parse(msg).error || msg); } catch { throw new Error(msg); }
+    }
+    return res.json(); // { fotos }
+  },
+  async deletePunchFoto(contractId, itemId, fotoId) {
+    const res = await fetch(`/api/contracts/${contractId}/punch/${itemId}/fotos/${fotoId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json(); // { fotos }
+  },
+
   // Substitui a manutenção no estado a partir da resposta { manutencao }.
   _mergeManutencao(m) {
     if (!m) return;

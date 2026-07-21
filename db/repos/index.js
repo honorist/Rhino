@@ -18,6 +18,7 @@ module.exports = {
   organograma:    require('./organograma'),
   rdos:           require('./rdos'),
   rdoApontamentos: require('./rdo_apontamentos'),
+  punchItens:     require('./punch_itens'),
   clientes:       require('./clientes'),
   fornecedores:   require('./fornecedores'),
   socios:         require('./socios'),

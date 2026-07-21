@@ -753,7 +753,7 @@ test('routes/operacao.js — req injetado, sub-recursos aninhados e :param', () 
 
 // ─── routes/contracts.js (contratos, saídas, RDO, aditivos, marcos…) ─────────
 
-test('routes/contracts.js — registra exatamente as 49 rotas de contratos', () => {
+test('routes/contracts.js — registra exatamente as 55 rotas de contratos', () => {
   const router = createRouter();
   require('../routes/contracts')(router, {});
   const rotas = router
@@ -780,6 +780,12 @@ test('routes/contracts.js — registra exatamente as 49 rotas de contratos', () 
       'GET /api/contracts/:id/curva-s',
       'GET /api/contracts/:id/dre',
       'GET /api/contracts/:id/produtividade-hh',
+      'GET /api/contracts/:id/punch',
+      'POST /api/contracts/:id/punch',
+      'PUT /api/contracts/:id/punch/:itemId',
+      'DELETE /api/contracts/:id/punch/:itemId',
+      'POST /api/contracts/:id/punch/:itemId/fotos',
+      'DELETE /api/contracts/:id/punch/:itemId/fotos/:fotoId',
       'GET /api/contracts/:id/rdos/:rdoId/apontamentos',
       'PUT /api/contracts/:id/rdos/:rdoId/apontamentos',
       'GET /api/contracts/:id/medicoes',
@@ -957,6 +963,28 @@ test('routes/contracts.js — apontamento de HH e produtividade despacham certo'
   assert.deepEqual(c.put, ['C1', 'R7', 'B', 'R']);
   router.dispatch({ method: 'GET', pathname: '/api/contracts/C1/produtividade-hh', res: 'R' });
   assert.deepEqual(c.prod, ['C1', 'R']);
+});
+
+test('routes/contracts.js — punch list despacha (id, itemId, fotoId, ...)', () => {
+  const c = {};
+  const router = createRouter();
+  require('../routes/contracts')(router, {
+    handleListPunch: (cid, res) => { c.list = [cid, res]; },
+    handlePostPunch: (cid, body, res) => { c.post = [cid, body, res]; },
+    handlePutPunch: (cid, iid, body, res) => { c.put = [cid, iid, body, res]; },
+    handleDeletePunch: (cid, iid, res) => { c.del = [cid, iid, res]; },
+    handleDeletePunchFoto: (cid, iid, fid, res) => { c.delFoto = [cid, iid, fid, res]; },
+  });
+  router.dispatch({ method: 'GET', pathname: '/api/contracts/C1/punch', res: 'R' });
+  assert.deepEqual(c.list, ['C1', 'R']);
+  router.dispatch({ method: 'POST', pathname: '/api/contracts/C1/punch', body: 'B', res: 'R' });
+  assert.deepEqual(c.post, ['C1', 'B', 'R']);
+  router.dispatch({ method: 'PUT', pathname: '/api/contracts/C1/punch/P9', body: 'B', res: 'R' });
+  assert.deepEqual(c.put, ['C1', 'P9', 'B', 'R']);
+  router.dispatch({ method: 'DELETE', pathname: '/api/contracts/C1/punch/P9', res: 'R' });
+  assert.deepEqual(c.del, ['C1', 'P9', 'R']);
+  router.dispatch({ method: 'DELETE', pathname: '/api/contracts/C1/punch/P9/fotos/F2', res: 'R' });
+  assert.deepEqual(c.delFoto, ['C1', 'P9', 'F2', 'R']);
 });
 
 // ─── routes/recrutamento.js (solicitações, candidatos, docs/arquivo, sino) ───

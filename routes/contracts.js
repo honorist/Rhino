@@ -64,6 +64,14 @@ module.exports = function registerContracts(router, deps) {
   router.put('/api/contracts/:id/rdos/:rdoId/apontamentos', (ctx) => deps.handlePutRdoApontamentos(ctx.params[0], ctx.params[1], ctx.body, ctx.res));
   router.get('/api/contracts/:id/produtividade-hh',         (ctx) => deps.handleGetContractProdutividade(ctx.params[0], ctx.res));
 
+  // ── Punch list / Qualidade (item 11) ── (POST de foto é interceptado no server.js por ser multipart)
+  router.get('/api/contracts/:id/punch',                    (ctx) => deps.handleListPunch(ctx.params[0], ctx.res));
+  router.post('/api/contracts/:id/punch',                   (ctx) => deps.handlePostPunch(ctx.params[0], ctx.body, ctx.res));
+  router.put('/api/contracts/:id/punch/:itemId',            (ctx) => deps.handlePutPunch(ctx.params[0], ctx.params[1], ctx.body, ctx.res));
+  router.delete('/api/contracts/:id/punch/:itemId',         (ctx) => deps.handleDeletePunch(ctx.params[0], ctx.params[1], ctx.res));
+  router.post('/api/contracts/:id/punch/:itemId/fotos',            (ctx) => deps.handlePostPunchFoto(ctx.params[0], ctx.params[1], ctx.req, ctx.res));
+  router.delete('/api/contracts/:id/punch/:itemId/fotos/:fotoId',  (ctx) => deps.handleDeletePunchFoto(ctx.params[0], ctx.params[1], ctx.params[2], ctx.res));
+
   // ── Aditivos ──
   router.post('/api/contracts/:id/aditivos',              (ctx) => deps.handlePostAditivo(ctx.params[0], ctx.body, ctx.res));
   router.put('/api/contracts/:id/aditivos/:aditivoId',    (ctx) => deps.handlePutAditivo(ctx.params[0], ctx.params[1], ctx.body, ctx.res));

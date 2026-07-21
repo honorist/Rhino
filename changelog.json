@@ -1,6 +1,17 @@
 {
   "entries": [
     {
+      "version": "1.25.6",
+      "date": "2026-07-21",
+      "summary": "Punch list / Qualidade por obra",
+      "changes": [
+        "Nova aba 'Punch List' no contrato: registre pendências técnicas, RNCs e itens de inspeção com responsável, prazo e foto de evidência",
+        "Fluxo de qualidade em 4 estados — aberto → em andamento → resolvido → verificado — com data de resolução e de verificação, e aviso de item vencido",
+        "O responsável recebe uma notificação no sino quando um item é atribuído a ele",
+        "Perfis com abas de contrato restritas precisam da permissão 'contrato-tab:punch' para ver a nova aba (administradores já enxergam)"
+      ]
+    },
+    {
       "version": "1.25.5",
       "date": "2026-07-21",
       "summary": "Apontamento de HH por colaborador e produtividade por etapa",

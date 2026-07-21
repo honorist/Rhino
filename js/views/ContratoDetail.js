@@ -254,6 +254,7 @@ window.ContratoDetail = {
             { k:'visao',      l:'Visão Geral',  icon:'eye' },
             { k:'financeiro', l:'Financeiro',   icon:'dollar-sign' },
             { k:'dre',        l:'DRE / Margem', icon:'trending-up' },
+            { k:'punch',      l:'Punch List',   icon:'alert-triangle' },
             { k:'medicao',    l:'Medição',      icon:'list' },
             { k:'cronograma', l:'Cronograma',   icon:'calendar' },
             { k:'equipe',     l:'Equipe',       icon:'users' },
@@ -575,6 +576,9 @@ window.ContratoDetail = {
 
         <!-- ─── DRE / Margem por obra (realizado, base caixa) ─── -->
         ${this._tab === 'dre' ? this.renderDreSection(contract) : ''}
+
+        <!-- ─── Punch List / Qualidade ─── -->
+        ${this._tab === 'punch' ? this.renderPunchSection(contract) : ''}
 
         <!-- ─── Cronograma físico-financeiro ─── -->
         ${this._tab === 'cronograma' ? this.renderCronogramaSection(contract) : ''}
@@ -952,6 +956,9 @@ window.ContratoDetail = {
 
       // DRE / Margem — busca o consolidado do servidor (fonte única, base caixa)
       if (this._tab === 'dre') this._loadDre(contract);
+
+      // Punch List / Qualidade — busca os itens da obra
+      if (this._tab === 'punch') this._loadPunch(contract);
 
       document.querySelectorAll('.composicao-item[data-tipo]').forEach(el => {
         el.addEventListener('click', () => {
