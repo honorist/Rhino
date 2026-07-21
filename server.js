@@ -90,6 +90,12 @@ const dreHandlers = require('./handlers/dre'); // DRE / margem por obra (realiza
 const rdoApontamentosHandlers = require('./handlers/rdo-apontamentos'); // HH por colaborador × atividade + produtividade
 const punchHandlers = require('./handlers/punch-itens'); // punch list / qualidade: CRUD + resumo + notificação
 const punchFotosHandlers = require('./handlers/punch-fotos'); // punch list: foto (evidência) em BYTEA
+const ssmaHandlers = require('./handlers/ssma'); // SSMA: desvios/incidentes de segurança por obra (TF/TG) — item 7
+const dataBookHandlers = require('./handlers/data-book'); // data book: prontidão de comissionamento — item 12
+const treinamentosHandlers = require('./handlers/treinamentos'); // matriz de treinamentos NR por colaborador — item 8
+const epiHandlers = require('./handlers/epis'); // controle de EPIs por colaborador — item 9
+const pontoHandlers = require('./handlers/ponto'); // ponto / banco de horas por colaborador — item 6
+const composicoesHandlers = require('./handlers/composicoes'); // catálogo global de composições de custo — item 4
 const clausulasHandlers = require('./handlers/clausulas'); // cláusulas reusáveis + apresentação da proposta
 const cobrancaHandlers = require('./handlers/cobranca'); // cobrança mensal da plataforma (admin)
 const dashboardsHandlers = require('./handlers/dashboards'); // painel financeiro + operacional + layouts
@@ -1400,6 +1406,7 @@ registerComercial(apiRouter, {
   handlePortalImpersonate: portalHandlers.handlePortalImpersonate, // "Ver portal como cliente" (handlers/portal.js)
   ...fornecedoresHandlers, // handlers/fornecedores.js
   ...clausulasHandlers, // cláusulas reusáveis + apresentação (handlers/clausulas.js)
+  ...composicoesHandlers, // catálogo global de composições de custo (handlers/composicoes.js)
   ...propostasHandlers, // CRUD + custos + ciclo + geradores DOCX/PDF/preview (handlers/propostas.js)
   ...propostaAnexosHandlers, // anexos PDF/imagem: upload + get/put/delete (handlers/proposta-anexos.js)
   ...caseLogosHandlers, // case logos: list/get-image + upload + put/delete (handlers/case-logos.js)
@@ -1408,6 +1415,9 @@ registerOperacao(apiRouter, {
   ...recursosHandlers, // CRUD principal (handlers/recursos.js)
   ...recursoFolgasHandlers, // folgas + passagens (handlers/recurso-folgas.js)
   ...recursoDocsHandlers, // metadados (Add/Put/Delete/Status) + arquivo BYTEA + validação IA (handlers/recurso-documentos.js)
+  ...treinamentosHandlers, // treinamentos NR por recurso (handlers/treinamentos.js)
+  ...epiHandlers, // controle de EPIs por recurso (handlers/epis.js)
+  ...pontoHandlers, // ponto / banco de horas por recurso (handlers/ponto.js)
   ...estoqueHandlers, // itens/almoxarifados/movimentações/saldo/visão geral (handlers/estoque.js)
   ...comprasHandlers, // solicitações de compra: avaliar→aprovar→comprar→receber (handlers/compras.js)
   ...manutencoesHandlers, // manutenção de equipamentos: fluxo de aprovação (handlers/manutencoes.js)
@@ -1430,6 +1440,8 @@ registerContracts(apiRouter, {
   ...rdoApontamentosHandlers, // apontamento de HH por colaborador × atividade + produtividade (handlers/rdo-apontamentos.js)
   ...punchHandlers, // punch list / qualidade (handlers/punch-itens.js)
   ...punchFotosHandlers, // punch list: fotos de evidência (handlers/punch-fotos.js)
+  ...ssmaHandlers, // SSMA: desvios/incidentes de segurança (handlers/ssma.js)
+  ...dataBookHandlers, // data book / prontidão de comissionamento (handlers/data-book.js)
   ...contractOrganogramaHandlers, // handlers/contract-organograma.js
   ...rdoFotosHandlers, // fotos: upload + delete (handlers/rdo-fotos.js)
   ...rdoAssinaturasHandlers, // assinaturas digitais: upload + list/get/delete (handlers/rdo-assinaturas.js)

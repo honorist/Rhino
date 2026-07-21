@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.25.7",
+      "date": "2026-07-21",
+      "summary": "Seis novos módulos: SSMA, ponto, treinamentos NR, EPIs, composições de custo e data book",
+      "changes": [
+        "Contrato: aba 'SSMA' para registrar desvios e incidentes de segurança, com taxas de frequência (TF) e gravidade (TG)",
+        "Contrato: aba 'Data book' que mostra a prontidão da obra para entrega (punch list zerada + avanço físico)",
+        "Colaborador (na tela de Recursos): botões 'NRs' (matriz de treinamentos com validade), 'EPIs' (ficha de entrega com data de troca) e 'Ponto' (marcações e banco de horas)",
+        "Novo catálogo de 'Composições' de custo unitário (mão de obra + material + equipamento) para orçar",
+        "Perfis com abas de contrato restritas precisam de 'contrato-tab:ssma' e 'contrato-tab:databook' para ver as novas abas"
+      ]
+    },
+    {
       "version": "1.25.6",
       "date": "2026-07-21",
       "summary": "Punch list / Qualidade por obra",

@@ -107,4 +107,10 @@ module.exports = function registerComercial(router, deps) {
     deps.handlePutCaseLogo(ctx.params[0], ctx.body, ctx.res)
   );
   router.delete('/api/case-logos/:id', (ctx) => deps.handleDeleteCaseLogo(ctx.params[0], ctx.res));
+
+  // ── Composições de custo unitário (catálogo GLOBAL — item 4) ──
+  router.get('/api/composicoes', (ctx) => deps.handleListComposicoes(ctx.res));
+  router.post('/api/composicoes', (ctx) => deps.handlePostComposicao(ctx.body, ctx.res));
+  router.put('/api/composicoes/:id', (ctx) => deps.handlePutComposicao(ctx.params[0], ctx.body, ctx.res));
+  router.delete('/api/composicoes/:id', (ctx) => deps.handleDeleteComposicao(ctx.params[0], ctx.res));
 };

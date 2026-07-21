@@ -72,6 +72,15 @@ module.exports = function registerContracts(router, deps) {
   router.post('/api/contracts/:id/punch/:itemId/fotos',            (ctx) => deps.handlePostPunchFoto(ctx.params[0], ctx.params[1], ctx.req, ctx.res));
   router.delete('/api/contracts/:id/punch/:itemId/fotos/:fotoId',  (ctx) => deps.handleDeletePunchFoto(ctx.params[0], ctx.params[1], ctx.params[2], ctx.res));
 
+  // ── SSMA — Desvios e incidentes de segurança (item 7) ──
+  router.get('/api/contracts/:id/ssma',             (ctx) => deps.handleListSsma(ctx.params[0], ctx.res, ctx.parsedUrl.query));
+  router.post('/api/contracts/:id/ssma',            (ctx) => deps.handlePostSsma(ctx.params[0], ctx.body, ctx.res));
+  router.put('/api/contracts/:id/ssma/:ocorrId',    (ctx) => deps.handlePutSsma(ctx.params[0], ctx.params[1], ctx.body, ctx.res));
+  router.delete('/api/contracts/:id/ssma/:ocorrId', (ctx) => deps.handleDeleteSsma(ctx.params[0], ctx.params[1], ctx.res));
+
+  // ── Data book / prontidão de comissionamento (item 12) ──
+  router.get('/api/contracts/:id/data-book',        (ctx) => deps.handleGetDataBook(ctx.params[0], ctx.res));
+
   // ── Aditivos ──
   router.post('/api/contracts/:id/aditivos',              (ctx) => deps.handlePostAditivo(ctx.params[0], ctx.body, ctx.res));
   router.put('/api/contracts/:id/aditivos/:aditivoId',    (ctx) => deps.handlePutAditivo(ctx.params[0], ctx.params[1], ctx.body, ctx.res));

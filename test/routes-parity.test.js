@@ -459,7 +459,7 @@ test('routes/financeiro.js — sub-recurso aninhado folha/:id/itens/:itemId', ()
 // ─── routes/comercial.js (clientes, fornecedores, cláusulas, propostas, ──────
 //     apresentação, case-logos) ─────────────────────────────────────────────
 
-test('routes/comercial.js — registra exatamente as 39 rotas comerciais', () => {
+test('routes/comercial.js — registra exatamente as 43 rotas comerciais', () => {
   const router = createRouter();
   require('../routes/comercial')(router, {});
   const rotas = router
@@ -469,6 +469,10 @@ test('routes/comercial.js — registra exatamente as 39 rotas comerciais', () =>
   assert.deepEqual(
     rotas,
     [
+      'GET /api/composicoes',
+      'POST /api/composicoes',
+      'PUT /api/composicoes/:id',
+      'DELETE /api/composicoes/:id',
       'DELETE /api/case-logos/:id',
       'DELETE /api/clausulas/:id',
       'DELETE /api/clientes/:id',
@@ -608,7 +612,7 @@ test('routes/comercial.js — proposta/:id não engole as sub-rotas (docx etc.)'
 // ─── routes/operacao.js (recursos, documentos, estoque, solicitações, ────────
 //     manutenções, frota, dashboard-layouts, doc-templates) ──────────────────
 
-test('routes/operacao.js — registra exatamente as 75 rotas de operação', () => {
+test('routes/operacao.js — registra exatamente as 87 rotas de operação', () => {
   const router = createRouter();
   require('../routes/operacao')(router, {});
   const rotas = router
@@ -618,6 +622,18 @@ test('routes/operacao.js — registra exatamente as 75 rotas de operação', () 
   assert.deepEqual(
     rotas,
     [
+      'GET /api/recursos/:id/treinamentos',
+      'POST /api/recursos/:id/treinamentos',
+      'PUT /api/recursos/:id/treinamentos/:trId',
+      'DELETE /api/recursos/:id/treinamentos/:trId',
+      'GET /api/recursos/:id/epis',
+      'POST /api/recursos/:id/epis',
+      'PUT /api/recursos/:id/epis/:epiId',
+      'DELETE /api/recursos/:id/epis/:epiId',
+      'GET /api/recursos/:id/ponto',
+      'POST /api/recursos/:id/ponto',
+      'PUT /api/recursos/:id/ponto/:pontoId',
+      'DELETE /api/recursos/:id/ponto/:pontoId',
       'DELETE /api/dashboard/layouts/:id',
       'DELETE /api/doc-templates/:id',
       'DELETE /api/estoque/almoxarifados/:id',
@@ -753,7 +769,7 @@ test('routes/operacao.js — req injetado, sub-recursos aninhados e :param', () 
 
 // ─── routes/contracts.js (contratos, saídas, RDO, aditivos, marcos…) ─────────
 
-test('routes/contracts.js — registra exatamente as 55 rotas de contratos', () => {
+test('routes/contracts.js — registra exatamente as 60 rotas de contratos', () => {
   const router = createRouter();
   require('../routes/contracts')(router, {});
   const rotas = router
@@ -779,6 +795,11 @@ test('routes/contracts.js — registra exatamente as 55 rotas de contratos', () 
       'GET /api/contracts/:id/atividades',
       'GET /api/contracts/:id/curva-s',
       'GET /api/contracts/:id/dre',
+      'GET /api/contracts/:id/data-book',
+      'GET /api/contracts/:id/ssma',
+      'POST /api/contracts/:id/ssma',
+      'PUT /api/contracts/:id/ssma/:ocorrId',
+      'DELETE /api/contracts/:id/ssma/:ocorrId',
       'GET /api/contracts/:id/produtividade-hh',
       'GET /api/contracts/:id/punch',
       'POST /api/contracts/:id/punch',

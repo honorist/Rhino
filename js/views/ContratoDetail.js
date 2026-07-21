@@ -255,6 +255,8 @@ window.ContratoDetail = {
             { k:'financeiro', l:'Financeiro',   icon:'dollar-sign' },
             { k:'dre',        l:'DRE / Margem', icon:'trending-up' },
             { k:'punch',      l:'Punch List',   icon:'alert-triangle' },
+            { k:'ssma',       l:'SSMA',         icon:'shield' },
+            { k:'databook',   l:'Data book',    icon:'check-square' },
             { k:'medicao',    l:'Medição',      icon:'list' },
             { k:'cronograma', l:'Cronograma',   icon:'calendar' },
             { k:'equipe',     l:'Equipe',       icon:'users' },
@@ -579,6 +581,12 @@ window.ContratoDetail = {
 
         <!-- ─── Punch List / Qualidade ─── -->
         ${this._tab === 'punch' ? this.renderPunchSection(contract) : ''}
+
+        <!-- ─── SSMA / Segurança ─── -->
+        ${this._tab === 'ssma' ? this.renderSsmaSection(contract) : ''}
+
+        <!-- ─── Data book / prontidão ─── -->
+        ${this._tab === 'databook' ? this.renderDatabookSection(contract) : ''}
 
         <!-- ─── Cronograma físico-financeiro ─── -->
         ${this._tab === 'cronograma' ? this.renderCronogramaSection(contract) : ''}
@@ -959,6 +967,12 @@ window.ContratoDetail = {
 
       // Punch List / Qualidade — busca os itens da obra
       if (this._tab === 'punch') this._loadPunch(contract);
+
+      // SSMA / Segurança — busca as ocorrências da obra
+      if (this._tab === 'ssma') this._loadSsma(contract);
+
+      // Data book — busca a prontidão de comissionamento
+      if (this._tab === 'databook') this._loadDatabook(contract);
 
       document.querySelectorAll('.composicao-item[data-tipo]').forEach(el => {
         el.addEventListener('click', () => {

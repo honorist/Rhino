@@ -254,6 +254,28 @@ window.Recursos = {
         if (window.Documentos) window.Documentos.showDocumentos(e.target.dataset.id);
       })
     );
+    // Treinamentos NR (item 8)
+    document.querySelectorAll('.btn-treinos-rec').forEach((b) =>
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const r = (Store.state.recursos || []).find((x) => x.id === e.target.dataset.id);
+        if (r && window.RecursoTreinamentos) window.RecursoTreinamentos.render(r);
+      })
+    );
+    // EPIs (item 9)
+    document.querySelectorAll('.btn-epis-rec').forEach((b) =>
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.RecursoEpis) window.RecursoEpis.showEpis(e.target.dataset.id);
+      })
+    );
+    // Ponto / banco de horas (item 6)
+    document.querySelectorAll('.btn-ponto').forEach((b) =>
+      b.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.RecursoPonto) window.RecursoPonto.show(e.target.dataset.id);
+      })
+    );
 
     // Click na linha → abre modal de detalhe do colaborador (reusa ContratoDetail.showDetalheColaborador)
     document.querySelectorAll('.row-recurso').forEach((tr) => {
@@ -589,6 +611,9 @@ window.Recursos = {
         <div class="actions-cell">
           ${r.status === 'funcionario' ? `<button type="button" class="action-link btn-folgas" data-id="${r.id}" style="color:#7C3AED;">Folgas</button>` : ''}
           <button type="button" class="action-link btn-docs-rec" data-id="${r.id}" style="color:#2563EB;">Docs</button>
+          <button type="button" class="action-link btn-treinos-rec" data-id="${r.id}" style="color:#0D9488;">NRs</button>
+          <button type="button" class="action-link btn-epis-rec" data-id="${r.id}" style="color:#EA580C;">EPIs</button>
+          ${r.status === 'funcionario' ? `<button type="button" class="action-link btn-ponto" data-id="${r.id}" style="color:#0891B2;">Ponto</button>` : ''}
           ${temCoordenadas ? `<button type="button" class="action-link btn-distancia" data-id="${r.id}">Distâncias</button>` : ''}
           <button type="button" class="action-link btn-editar-rec" data-id="${r.id}">Editar</button>
           <button type="button" class="action-link danger btn-excluir-rec" data-id="${r.id}">Excluir</button>

@@ -19,6 +19,8 @@ const _lazyManifest = {
       './js/views/contrato/cronograma.js',
       './js/views/contrato/dre.js',
       './js/views/contrato/punch.js',
+      './js/views/contrato/ssma.js',
+      './js/views/contrato/databook.js',
       './js/views/contrato/medicao.js',
       './js/views/contrato/medicao-bms.js',
       './js/views/contrato/export-pdf.js',
@@ -65,6 +67,7 @@ const _lazyManifest = {
     ],
   },
   '#/clausulas': { viewName: 'Clausulas', scripts: ['./js/views/Clausulas.js'] },
+  '#/composicoes': { viewName: 'Composicoes', scripts: ['./js/views/Composicoes.js'] },
   '#/apresentacao': { viewName: 'Apresentacao', scripts: ['./js/views/Apresentacao.js'] },
   '#/folha-pagamento': { viewName: 'FolhaPagamento', scripts: ['./js/views/FolhaPagamento.js'] },
 };
@@ -109,6 +112,7 @@ const routes = {
   '#/proposta': { view: null, label: 'Propostas', icon: _ic('file-text'), group: 'comercial' },
   '#/proposta/:id': { view: null, label: null, icon: null },
   '#/clausulas': { view: null, label: null, icon: null },
+  '#/composicoes': { view: null, label: 'Composições', icon: _ic('layers'), group: 'comercial' },
   '#/apresentacao': { view: null, label: null, icon: null },
   // Portal do Cliente: rota navegável (matchRoute) — view resolve via
   // _lazyManifest. Sem esta entrada, #/portal não casava e o router

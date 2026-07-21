@@ -25,6 +25,24 @@ module.exports = function registerOperacao(router, deps) {
     deps.handleComprarPassagem(ctx.params[0], ctx.params[1], ctx.body, ctx.res)
   );
 
+  // ── Treinamentos NR (por recurso — item 8) ──
+  router.get('/api/recursos/:id/treinamentos', (ctx) => deps.handleListTreinamentos(ctx.params[0], ctx.res));
+  router.post('/api/recursos/:id/treinamentos', (ctx) => deps.handlePostTreinamento(ctx.params[0], ctx.body, ctx.res));
+  router.put('/api/recursos/:id/treinamentos/:trId', (ctx) => deps.handlePutTreinamento(ctx.params[0], ctx.params[1], ctx.body, ctx.res));
+  router.delete('/api/recursos/:id/treinamentos/:trId', (ctx) => deps.handleDeleteTreinamento(ctx.params[0], ctx.params[1], ctx.res));
+
+  // ── EPIs (por recurso — item 9) ──
+  router.get('/api/recursos/:id/epis', (ctx) => deps.handleListEpis(ctx.params[0], ctx.res));
+  router.post('/api/recursos/:id/epis', (ctx) => deps.handlePostEpi(ctx.params[0], ctx.body, ctx.res));
+  router.put('/api/recursos/:id/epis/:epiId', (ctx) => deps.handlePutEpi(ctx.params[0], ctx.params[1], ctx.body, ctx.res));
+  router.delete('/api/recursos/:id/epis/:epiId', (ctx) => deps.handleDeleteEpi(ctx.params[0], ctx.params[1], ctx.res));
+
+  // ── Ponto / banco de horas (por recurso — item 6) ──
+  router.get('/api/recursos/:id/ponto', (ctx) => deps.handleListPonto(ctx.params[0], ctx.res, ctx.parsedUrl && ctx.parsedUrl.query ? ctx.parsedUrl.query.competencia : undefined));
+  router.post('/api/recursos/:id/ponto', (ctx) => deps.handlePostPonto(ctx.params[0], ctx.body, ctx.res));
+  router.put('/api/recursos/:id/ponto/:pontoId', (ctx) => deps.handlePutPonto(ctx.params[0], ctx.params[1], ctx.body, ctx.res));
+  router.delete('/api/recursos/:id/ponto/:pontoId', (ctx) => deps.handleDeletePonto(ctx.params[0], ctx.params[1], ctx.res));
+
   // ── Documentos (de colaboradores) ──
   router.get('/api/documentos/status', (ctx) => deps.handleGetDocumentosStatus(ctx.res));
   router.post('/api/recursos/:id/documentos', (ctx) =>
