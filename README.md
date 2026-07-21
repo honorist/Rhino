@@ -181,8 +181,8 @@ gantt
 ├── Dockerfile
 ├── docker-compose.yml      # dev local (app + Postgres)
 ├── docker-compose.prod.yml # VPS com Caddy
-├── railway.json
-├── fly.toml
+├── railway.json            # deploy canônico (Railway + Dockerfile)
+├── deploy-archive/         # alvos alternativos arquivados (fly/render/firebase)
 └── DEPLOY.md               # guia completo de deploy
 ```
 
@@ -250,9 +250,9 @@ flowchart LR
     live -. invalida cache do SW .-> sw[Service Worker<br/>busca novos estáticos]
 ```
 
-- **Railway** (recomendado): build via Dockerfile, `preDeployCommand` roda `npm run db:migrate`, healthcheck em `/api/health`. Custo estimado ~US$ 8–10/mês.
-- **Fly.io**: `fly.toml` pronto, ver DEPLOY.md.
+- **Railway** (canônico): build via Dockerfile, `preDeployCommand` roda `npm run db:migrate`, healthcheck em `/api/health`. Custo estimado ~US$ 8–10/mês.
 - **VPS** (Hetzner/DO): `docker-compose.prod.yml` com Caddy + SSL Let's Encrypt automático.
+- Alvos alternativos (Fly.io/Render/Firebase) foram arquivados em `deploy-archive/` — não são mais mantidos.
 - **Cloudflare** na frente (DDoS, WAF, cache) — instruções no DEPLOY.md.
 
 ### Variáveis de ambiente principais
