@@ -29,6 +29,7 @@ const _lazyManifest = {
     ],
   },
   '#/manual': { viewName: 'Manual', scripts: ['./js/views/Manual.js'] },
+  '#/notificacao-preferencias': { viewName: 'NotificacaoPreferencias', scripts: ['./js/views/NotificacaoPreferencias.js'] },
   '#/ai-chat': { viewName: 'AiChat', scripts: ['./js/views/AiChat.js'] },
   '#/previsao': { viewName: 'Previsao', scripts: ['./js/views/Previsao.js'] },
   '#/auditoria': { viewName: 'Auditoria', scripts: ['./js/views/Auditoria.js'] },
@@ -238,6 +239,7 @@ const routes = {
   '#/usuarios': { view: window.Usuarios, label: null, icon: null }, // acessível via Configuração
   '#/auditoria': { view: window.Auditoria, label: null, icon: null }, // acessível via Configuração
   '#/manual': { view: window.Manual, label: null, icon: null },
+  '#/notificacao-preferencias': { view: window.NotificacaoPreferencias, label: null, icon: null }, // acessível via o sino
 };
 
 // Sidebar group open/close state (persisted)
@@ -670,8 +672,10 @@ const perfil = {
   podeAcessar(route) {
     const abas = this.abas();
     if (!abas) return true;
-    // Rotas de detalhe (ex: #/contratos/123) seguem a permissão da rota pai
-    const base = route.replace(/(#\/[^/]+).*/, '$1');
+    // Rotas de detalhe (ex: #/contratos/123) seguem a permissão da rota pai.
+    // baseHashPath já descarta querystring (js/lib/hash-route.js) — sem isso
+    // uma rota como "#/recursos?docs=vencidos" caía sempre em "acesso negado".
+    const base = window.baseHashPath(route);
     // Rotas universais — qualquer perfil autenticado pode abrir
     // (controle fino fica em cada tela, ex: ver/editar).
     // #/usuarios e #/auditoria NÃO são universais: exigem a permissão nas abas
@@ -694,6 +698,7 @@ const perfil = {
       '#/cronograma-geral',
       '#/sugestoes',
       '#/portal',
+      '#/notificacao-preferencias',
     ];
     if (universais.includes(base)) return true;
     return abas.includes(base);
@@ -715,8 +720,9 @@ const perfil = {
     const abas = this.abas();
     if (!abas) return true;
     if (!route) return false;
-    // Detalhe (#/contratos/123) usa permissão da rota pai
-    const base = route.replace(/(#\/[^/]+).*/, '$1');
+    // Detalhe (#/contratos/123) usa permissão da rota pai (mesmo helper de
+    // podeAcessar acima).
+    const base = window.baseHashPath(route);
     return abas.includes('edit:' + base);
   },
 
@@ -785,7 +791,7 @@ async function showProfilePicker() {
             // aspas/JS. icon/label/id via escapeHtml previnem XSS no HTML.
             const cor = /^#[0-9a-fA-F]{6}$/.test(n.cor || '') ? n.cor : null;
             const id = window.escapeHtml(n.id);
-            const icon = window.escapeHtml(n.icon || '');
+            const icon = window.rhIconOrText(n.icon, 36, window.escapeHtml);
             const label = window.escapeHtml(n.label || '');
             return `
           <button class="perfil-card" data-id="${id}" style="
@@ -839,6 +845,11 @@ function iniciarApp() {
   } else {
     navigate();
   }
+
+  // Sinaliza pra quem espera o app realmente utilizável (ex.: tour de
+  // boas-vindas) — dispara sempre depois do gate de perfil ser resolvido,
+  // nunca em cima do seletor de perfil ainda aberto.
+  window.dispatchEvent(new CustomEvent('rh:app-ready'));
 
   // FAB global de sugestões (qualquer tela). Idempotente.
   if (window.Sugestoes?.mountFab) window.Sugestoes.mountFab();
@@ -924,16 +935,20 @@ function zoomReset() {
 }
 
 function matchRoute(hash) {
+  // js/lib/hash-route.js — router só sabia casar hash exato, então um link
+  // com querystring (ex.: drill-down do Dashboard) nunca batia e caía sempre
+  // em primeiraAba().
+  const { path, query } = window.splitHashQuery(hash);
   for (const [pattern, config] of Object.entries(routes)) {
     if (pattern.includes(':id')) {
       const regex = pattern.replace(':id', '([^/]+)');
-      const match = hash.match(new RegExp(`^${regex}$`));
+      const match = path.match(new RegExp(`^${regex}$`));
       if (match) {
-        return { view: config.view, params: { id: match[1] }, pattern, config };
+        return { view: config.view, params: { id: match[1], query }, pattern, config };
       }
     } else {
-      if (hash === pattern) {
-        return { view: config.view, params: {}, pattern, config };
+      if (path === pattern) {
+        return { view: config.view, params: { query }, pattern, config };
       }
     }
   }
@@ -1362,13 +1377,13 @@ function renderSidebar(opts) {
             auth.user() && auth.user().nivelAcessoId
             ? `
           <div class="theme-toggle-btn" title="Seu nível de acesso" data-tooltip="${perfilAtual.label}" style="margin-bottom:4px;cursor:default;">
-            <span class="theme-toggle-icon" style="font-size:18px;">${perfilAtual.icon}</span>
+            <span class="theme-toggle-icon" style="font-size:18px;">${window.rhIconOrText(perfilAtual.icon, 18, window.escapeHtml)}</span>
             <span style="color:${perfilAtual.cor};font-weight:600;">${perfilAtual.label}</span>
           </div>
         `
             : `
           <button id="btn-trocar-perfil" class="theme-toggle-btn" title="Trocar perfil" data-tooltip="${perfilAtual.label}" style="margin-bottom:4px;">
-            <span class="theme-toggle-icon" style="font-size:18px;">${perfilAtual.icon}</span>
+            <span class="theme-toggle-icon" style="font-size:18px;">${window.rhIconOrText(perfilAtual.icon, 18, window.escapeHtml)}</span>
             <span style="color:${perfilAtual.cor};font-weight:600;">${perfilAtual.label}</span>
             <span style="margin-left:auto;font-size:15px;color:var(--color-text-muted);">trocar</span>
           </button>
@@ -1547,6 +1562,7 @@ async function navigate() {
 
   // Bloquear rota não permitida para o perfil atual
   if (!perfil.podeAcessar(hash)) {
+    if (window.showToast) window.showToast('Seu perfil não tem acesso a essa tela.', 'warn');
     location.hash = perfil.primeiraAba();
     return;
   }

@@ -71,13 +71,15 @@ jobs:
 
       - name: Unit tests + piso de cobertura
         # Roda a suíte E exige o piso de cobertura (ratchet — impede regressão).
-        # Piso conservador abaixo do atual (~71% linha / 80% branch / 47% func);
-        # suba quando a cobertura crescer. Ver npm run test:coverage p/ o número.
+        # Piso conservador abaixo do atual (~75% linha / 81% branch / 53% func,
+        # medido em 2026-09-01 — item 13 do plano async-wandering-kite subiu o
+        # piso, que estava conservador demais desde o item 23 do roadmap);
+        # suba de novo quando a cobertura crescer. Ver npm run test:coverage.
         run: >-
           node --test --experimental-test-coverage
-          --test-coverage-lines=65
-          --test-coverage-branches=72
-          --test-coverage-functions=42
+          --test-coverage-lines=73
+          --test-coverage-branches=78
+          --test-coverage-functions=50
           test/*.test.js
 
       - name: Upload server log on failure

@@ -8,12 +8,16 @@
 window.Manutencao = {
   // Persistido: filtros + modo de visualização (lista/kanban), igual a SolicitacoesCompra.
   _store: (window.UIKit?.persistFilter?.('manutencao', {
-    filtroStatus: '', filtroContrato: '', view: 'list',
+    filtroStatus: '', filtroContrato: '', filtroAtrasadas: false, view: 'list',
   })) || null,
   get filtroStatus()    { return this._store?.get('filtroStatus')   ?? ''; },
   set filtroStatus(v)   { this._store?.set('filtroStatus', v); },
   get filtroContrato()  { return this._store?.get('filtroContrato') ?? ''; },
   set filtroContrato(v) { this._store?.set('filtroContrato', v); },
+  // Drill-down do Dashboard (#/manutencoes?filtro=atrasadas) — "atrasada" não
+  // é um status, é status=aprovada + retorno previsto vencido (_isAtrasada).
+  get filtroAtrasadas()  { return this._store?.get('filtroAtrasadas') ?? false; },
+  set filtroAtrasadas(v) { this._store?.set('filtroAtrasadas', v); },
   get view()            { return this._store?.get('view')           ?? 'list'; },
   set view(v)           { this._store?.set('view', v); },
 
@@ -29,7 +33,9 @@ window.Manutencao = {
     return !a || a.includes('manutencao:aprovar');
   },
 
-  async render() {
+  async render(params) {
+    // Drill-down do Dashboard: aplica o filtro inicial da URL uma vez.
+    if (params?.query?.filtro === 'atrasadas') this.filtroAtrasadas = true;
     const app = document.getElementById('app');
     app.innerHTML = '<div class="loading-spinner">Carregando...</div>';
     try {
@@ -177,13 +183,14 @@ window.Manutencao = {
       lista = lista.filter((m) => m.status === this.filtroStatus);
     }
     if (this.filtroContrato) lista = lista.filter((m) => (m.contractId || '') === this.filtroContrato);
+    if (this.filtroAtrasadas) lista = lista.filter((m) => this._isAtrasada(m));
 
     const aAvaliar = todas.filter((m) => m.status === 'solicitada').length;
     const aAprovar = todas.filter((m) => m.status === 'pendente_aprovacao').length;
     const emManut = todas.filter((m) => m.status === 'aprovada').length;
     const atrasadas = todas.filter((m) => this._isAtrasada(m)).length;
 
-    const filtroAtivo = !!(this.filtroStatus || this.filtroContrato);
+    const filtroAtivo = !!(this.filtroStatus || this.filtroContrato || this.filtroAtrasadas);
     const headerHtml = window.UIKit?.pageHeader ? window.UIKit.pageHeader({
       title: 'Manutenção de Equipamentos',
       subtitle: `${todas.length} registro${todas.length !== 1 ? 's' : ''}${podeAvaliar ? ' · você pode avaliar' : ''}${podeAprovar ? ' · você pode aprovar' : ''}`,
@@ -282,7 +289,7 @@ window.Manutencao = {
     document.getElementById('btnNovaManutencao').addEventListener('click', () => this.showModalNova());
     document.getElementById('filtroStatus')?.addEventListener('change', (e) => { this.filtroStatus = e.target.value; this._draw(); });
     document.getElementById('filtroContrato')?.addEventListener('change', (e) => { this.filtroContrato = e.target.value; this._draw(); });
-    document.getElementById('btnLimparMan')?.addEventListener('click', () => { this.filtroStatus = ''; this.filtroContrato = ''; this._draw(); });
+    document.getElementById('btnLimparMan')?.addEventListener('click', () => { this.filtroStatus = ''; this.filtroContrato = ''; this.filtroAtrasadas = false; this._draw(); });
     document.querySelectorAll('.ui-view-toggle button[data-view]').forEach((b) => {
       b.addEventListener('click', () => { this.view = b.dataset.view; this._draw(); });
     });

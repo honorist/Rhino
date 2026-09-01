@@ -54,7 +54,7 @@ window.NotasFiscais = {
                 title: 'Contas a Receber',
                 subtitle: `Notas fiscais e recebimentos previstos · ${total} nota${total !== 1 ? 's' : ''} registrada${total !== 1 ? 's' : ''}`,
                 actions:
-                  '<button class="btn btn-primary btn-lg" id="btnNovoNF">+ Nova Conta a Receber</button>',
+                  '<button class="btn btn-secondary" id="btnExportarNF">Exportar CSV</button> <button class="btn btn-primary btn-lg" id="btnNovoNF">+ Nova Conta a Receber</button>',
               })
             : ''
         }
@@ -178,6 +178,7 @@ window.NotasFiscais = {
       app.innerHTML = html;
 
       document.getElementById('btnNovoNF').addEventListener('click', () => this.showModal());
+      document.getElementById('btnExportarNF').addEventListener('click', () => this._exportarCSV(todas));
       document.querySelectorAll('.ui-view-toggle button[data-view]').forEach((b) => {
         b.addEventListener('click', () => {
           this.currentView = b.dataset.view;
@@ -200,6 +201,23 @@ window.NotasFiscais = {
       app.innerHTML =
         '<div class="card"><p class="text-danger">Erro ao carregar notas fiscais. Tente novamente.</p></div>';
     }
+  },
+
+  _exportarCSV(lista) {
+    const STATUS_LABEL = { vencida: 'Vencida', proximo_vencer: 'Próx. vencimento', no_prazo: 'No prazo' };
+    const rows = [['NF', 'Obra', 'Vencimento', 'Valor', 'Situação']];
+    lista.forEach((nf) => {
+      const contract = Store.getContractById(nf.contractId);
+      const situacao = nf.emitida ? 'Emitida' : (STATUS_LABEL[Store.getNotaFiscalStatus(nf.dataLimite).status] || '');
+      rows.push([
+        nf.numero || '',
+        contract ? contract.name : '',
+        nf.dataLimite || '',
+        parseFloat(nf.valor) || 0,
+        situacao,
+      ]);
+    });
+    window.UIKit.downloadCsv(`notas_fiscais_rhino_${new Date().toISOString().slice(0, 10)}.csv`, rows);
   },
 
   renderLista() {

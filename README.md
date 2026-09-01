@@ -171,8 +171,7 @@ gantt
 ├── db/
 │   ├── schema.sql          # schema canônico
 │   ├── migrations/         # migrations idempotentes (rodam no preDeploy)
-│   ├── repos/              # camada de acesso por entidade
-│   └── seed_niveis.sql
+│   └── repos/              # camada de acesso por entidade
 ├── scripts/                # CLIs (migrações, seed, backup, smoke, bump-version)
 ├── test/                   # unit + Playwright E2E
 ├── data/                   # JSONs do modo legacy local (fallback)
@@ -310,7 +309,7 @@ Detalhe do fluxo de autorização em [`docs/ARCHITECTURE.md`](./docs/ARCHITECTUR
 
 ## Versionamento
 
-Versão atual em `package.json` + `changelog.json` (atual: **1.2.15**). Use:
+Versão atual em `package.json` + `changelog.json` (não fixamos o número aqui pra não desatualizar — `node -e "console.log(require('./package.json').version)"`). Use:
 
 ```bash
 node scripts/bump-version.js patch "mensagem da entrada"

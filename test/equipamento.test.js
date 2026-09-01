@@ -9,32 +9,32 @@ const assert = require('node:assert/strict');
 const eqp = require('../lib/equipamento');
 
 // ── BR-EQP-001: Custo de locação acumulado ──────────────────────────────────
-test('custoLocacaoAcumulado: meses corridos (mês=30 dias) × valor até a referência', () => {
+test('BR-EQP-001: custoLocacaoAcumulado: meses corridos (mês=30 dias) × valor até a referência', () => {
   // 60 dias / 30 = 2 meses × 1000 = 2000 (fim ainda no futuro → usa a referência).
   assert.equal(eqp.custoLocacaoAcumulado('2026-01-01', '2026-12-31', 1000, '2026-03-02'), 2000);
   // 15 dias / 30 = 0,5 mês × 1000 = 500 (fração).
   assert.equal(eqp.custoLocacaoAcumulado('2026-01-01', null, 1000, '2026-01-16'), 500);
 });
 
-test('custoLocacaoAcumulado: para no fim da locação, não projeta além dele', () => {
+test('BR-EQP-001: custoLocacaoAcumulado: para no fim da locação, não projeta além dele', () => {
   // Locação encerra em 31/01 (30 dias) mesmo que a referência seja bem depois.
   assert.equal(eqp.custoLocacaoAcumulado('2026-01-01', '2026-01-31', 1000, '2026-06-01'), 1000);
 });
 
-test('custoLocacaoAcumulado: início ausente, fim ≤ início ou datas inválidas → 0', () => {
+test('BR-EQP-001: custoLocacaoAcumulado: início ausente, fim ≤ início ou datas inválidas → 0', () => {
   assert.equal(eqp.custoLocacaoAcumulado(null, '2026-02-01', 1000, '2026-02-01'), 0);
   assert.equal(eqp.custoLocacaoAcumulado('2026-02-01', null, 1000, '2026-01-01'), 0); // ref antes do início
   assert.equal(eqp.custoLocacaoAcumulado('2026-02-01', '2026-02-01', 1000, '2026-02-01'), 0); // 0 dias
   assert.equal(eqp.custoLocacaoAcumulado('xx', 'yy', 1000, 'zz'), 0);
 });
 
-test('custoLocacaoAcumulado: arredonda a 2 casas', () => {
+test('BR-EQP-001: custoLocacaoAcumulado: arredonda a 2 casas', () => {
   // 10 dias / 30 = 0,3333… mês × 100 = 33,333… → 33,33.
   assert.equal(eqp.custoLocacaoAcumulado('2026-01-01', null, 100, '2026-01-11'), 33.33);
 });
 
 // ── BR-EQP-002: Resumo do parque ────────────────────────────────────────────
-test('resumo: próprios vs locados, por status e custo mensal só dos locados', () => {
+test('BR-EQP-002: resumo: próprios vs locados, por status e custo mensal só dos locados', () => {
   const lista = [
     { propriedade: 'proprio', status: 'disponivel', valorLocacaoMensal: 999 }, // não conta no custo
     { propriedade: 'locado', status: 'em_uso', valorLocacaoMensal: 1500 },
@@ -53,7 +53,7 @@ test('resumo: próprios vs locados, por status e custo mensal só dos locados', 
   assert.equal(r.custoLocacaoMensal, 2000);
 });
 
-test('resumo: entrada vazia/ inválida devolve zeros', () => {
+test('BR-EQP-002: resumo: entrada vazia/ inválida devolve zeros', () => {
   const r = eqp.resumo(null);
   assert.equal(r.total, 0);
   assert.equal(r.proprios, 0);
@@ -63,7 +63,7 @@ test('resumo: entrada vazia/ inválida devolve zeros', () => {
 });
 
 // ── BR-EQP-003: Alerta de devolução ─────────────────────────────────────────
-test('alertaDevolucao: pega ativas vencidas e vencendo (≤15 dias), ignora o resto', () => {
+test('BR-EQP-003: alertaDevolucao: pega ativas vencidas e vencendo (≤15 dias), ignora o resto', () => {
   const ref = '2026-03-01';
   const locacoes = [
     { id: 'a', status: 'ativa', dataFim: '2026-02-20' }, // vencida (−9)
@@ -83,7 +83,7 @@ test('alertaDevolucao: pega ativas vencidas e vencendo (≤15 dias), ignora o re
   assert.equal(al[1].diasRestantes, 9);
 });
 
-test('alertaDevolucao: exatamente 15 dias ainda alerta; 16 já não', () => {
+test('BR-EQP-003: alertaDevolucao: exatamente 15 dias ainda alerta; 16 já não', () => {
   const ref = '2026-03-01';
   const al = eqp.alertaDevolucao(
     [
@@ -96,7 +96,7 @@ test('alertaDevolucao: exatamente 15 dias ainda alerta; 16 já não', () => {
   assert.equal(al[0].id, 'q15');
 });
 
-test('alertaDevolucao: entrada vazia/ inválida devolve lista vazia', () => {
+test('BR-EQP-003: alertaDevolucao: entrada vazia/ inválida devolve lista vazia', () => {
   assert.deepEqual(eqp.alertaDevolucao(null, '2026-03-01'), []);
   assert.deepEqual(eqp.alertaDevolucao([{ status: 'ativa', dataFim: 'xx' }], '2026-03-01'), []);
 });

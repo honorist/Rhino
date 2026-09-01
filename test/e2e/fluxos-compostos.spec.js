@@ -68,6 +68,14 @@ async function freshApp(page) {
         abas.add(base);
         abas.add('edit:' + base);
       });
+      // Sub-permissões de etapa (flags binárias fora do padrão #/rota, ver
+      // js/views/Configuracao.js) — sem elas os botões de cada etapa do fluxo
+      // de Solicitações de Compra e de Manutenção não renderizam mesmo com
+      // acesso total à rota base.
+      ['solicitacoes-compra:avaliar', 'solicitacoes-compra:aprovar', 'solicitacoes-compra:receber',
+       'manutencao:avaliar', 'manutencao:aprovar',
+       'contrato-tab:visao', 'contrato-tab:financeiro', 'contrato-tab:equipe', 'contrato-tab:rdo', 'contrato-tab:pendencias',
+      ].forEach((t) => abas.add(t));
       sessionStorage.setItem('rhino-perfil', JSON.stringify({ id: '__e2e_full__', label: 'E2E (acesso total)', abas: [...abas] }));
     } catch {}
   });
@@ -218,14 +226,180 @@ test.describe('Fluxo composto: Recrutamento (US-05 a US-09)', () => {
 });
 
 test.describe('Fluxo composto: Recurso → Folga', () => {
-  test.skip('3. Cria recurso e registra folga (TODO: modal de folga)', async () => {
-    // Stub — requer mapeamento do modal de folga via Recursos > drill-in.
+  test.beforeEach(async ({ page }) => {
+    await freshApp(page);
+  });
+
+  test('3. Cria recurso e registra folga', async ({ page }) => {
+    test.setTimeout(60_000); // fluxo com 3 criações em sequência (cliente+contrato+recurso)
+    // Nomes únicos por execução: reruns locais na mesma base deixariam vários
+    // "Folga Fluxo" e um seletor por texto/`.last()` correria o risco de pegar
+    // uma linha de uma tentativa anterior (sem alocação configurada).
+    const tag = Date.now();
+    const nomeCliente = `Cli Folga ${tag}`;
+    const nomeContrato = `Contrato Folga ${tag}`;
+    const nomeRecurso = `Folga Fluxo ${tag}`;
+
+    // a) Cliente + contrato — "+ Registrar Folga" só aparece com
+    // alocacaoAtual setado, que só é gravado se uma Obra atual for
+    // selecionada (Recursos.js: `if (data.alocacao_contractId) {...}`).
+    // Cria os próprios aqui em vez de depender de dado de outro teste.
+    await goto(page, '/clientes');
+    await page.getByRole('button', { name: /\+\s*Novo Cliente/i }).click();
+    await submitModal(page, { 'Nome': nomeCliente, 'Empresa': 'Obra Folga' });
+
+    await goto(page, '/contratos');
+    await page.getByRole('button', { name: /\+\s*Novo Contrato/i }).first().click();
+    let modal = page.locator('.modal-overlay');
+    await modal.waitFor({ state: 'visible' });
+    const selCli = modal.getByLabel(/^Cliente/i);
+    const cliValue = await selCli.locator('option', { hasText: nomeCliente }).getAttribute('value');
+    await selCli.selectOption(cliValue);
+    await modal.getByLabel(/Nome do Contrato/i).fill(nomeContrato);
+    await modal.getByLabel(/Valor Total/i).fill('50000');
+    await modal.getByRole('button', { name: /^(Criar|Salvar)$/ }).click();
+    await modal.waitFor({ state: 'detached' }).catch(() => {});
+    await expect(page.locator('#app')).toContainText(nomeContrato);
+
+    // b) Cria recurso já como Funcionário Ativo alocado nesse contrato —
+    // o botão "Folgas" só aparece para status='funcionario' (Recursos.js).
+    await goto(page, '/recursos');
+    await page.locator('#btnNovoRecurso').click();
+    modal = page.locator('.modal-overlay');
+    await modal.waitFor({ state: 'visible' });
+    await modal.getByLabel(/Nome completo/i).fill(nomeRecurso);
+    await modal.locator('#statusSelect').selectOption('funcionario');
+    const obraSelect = modal.getByLabel(/^Obra atual/i);
+    const obraValue = await obraSelect.locator('option', { hasText: nomeContrato }).getAttribute('value');
+    await obraSelect.selectOption(obraValue);
+    await modal.getByLabel(/Início na obra/i).fill('2026-01-01');
+    await modal.getByRole('button', { name: /^(Criar|Salvar)$/i }).click();
+    await modal.waitFor({ state: 'detached' }).catch(() => {});
+    await expect(page.locator('#app')).toContainText(nomeRecurso);
+
+    // c) Drill-in > Folgas
+    await page.locator('tr', { hasText: nomeRecurso }).locator('.btn-folgas').click();
+    const folgasModal = page.locator('#modalFolgas');
+    await folgasModal.waitFor({ state: 'visible' });
+    await expect(folgasModal.getByText('Nenhuma alocação configurada')).toHaveCount(0);
+
+    // d) Registra folga
+    await folgasModal.locator('#btnNovaFolga').click();
+    const novaFolgaModal = page.locator('#modalNovaFolga');
+    await novaFolgaModal.waitFor({ state: 'visible' });
+    await novaFolgaModal.getByLabel(/Início da folga/i).fill('2026-10-01');
+    await novaFolgaModal.getByLabel(/Fim da folga/i).fill('2026-10-07');
+    await novaFolgaModal.locator('#btnSalvarFolga').click();
+    await novaFolgaModal.waitFor({ state: 'detached', timeout: 4000 }).catch(() => {});
+
+    // showFolgas() re-renderiza (sem remover a instância anterior de #modalFolgas —
+    // ver comentário do fluxo de candidato acima); asserta pelo texto visível na
+    // página em vez de uma instância específica do modal (mais robusto).
+    await expect(page.getByText('Nenhuma folga registrada')).toHaveCount(0);
   });
 });
 
 test.describe('Fluxo composto: Solicitação de Compra completa', () => {
-  test.skip('4. Cria → Avalia → Aprova → Recebe (TODO: workflow de aprovação)', async () => {
-    // Stub — fluxo passa por 3 perfis (encarregado/compras/gerência),
-    // exige stub de auth ou usuários de cada perfil.
+  test.beforeEach(async ({ page }) => {
+    await freshApp(page);
+  });
+
+  test('4. Cria → Avalia → Aprova → Compra → Recebe', async ({ page }) => {
+    test.setTimeout(60_000); // 5 etapas em sequência (fornecedor + 4 transições de status)
+    // O perfil sintético de acesso total (freshApp) inclui as sub-permissões de
+    // etapa (solicitacoes-compra:avaliar/aprovar/receber) — sem elas os botões
+    // de cada etapa não renderizam mesmo com acesso à rota base (ver
+    // js/views/SolicitacoesCompra.js `_podeAvaliar/_podeAprovar/_podeReceber`).
+    // "Aprovar" dispara um window.confirm() nativo — sem aceitar, o clique não
+    // teria efeito algum (Playwright descarta dialogs por padrão).
+    page.on('dialog', (d) => d.accept());
+
+    const tag = Date.now();
+    const justificativa = `Justificativa fluxo compra ${tag}`;
+
+    // a) Fornecedor (necessário para a cotação na etapa de Avaliar)
+    await goto(page, '/fornecedores');
+    await page.getByRole('button', { name: /\+\s*Novo Fornecedor/i }).click();
+    await submitModal(page, { 'Nome': `Fornec Compra ${tag}` });
+
+    // b) Encarregado cria a solicitação
+    await goto(page, '/solicitacoes-compra');
+    await page.getByRole('button', { name: /\+\s*Nova solicitação/i }).first().click();
+    let modal = page.locator('.modal-overlay');
+    await modal.waitFor({ state: 'visible' });
+    await modal.getByLabel(/Justificativa/i).fill(justificativa);
+    await modal.locator('.item-row [data-f="descricao"]').first().fill(`Cimento ${tag}`);
+    await modal.getByRole('button', { name: /^Enviar para compras$/ }).click();
+    await modal.waitFor({ state: 'detached' }).catch(() => {});
+
+    // O POST não atualiza Store.state sincronamente — só reflete via um
+    // refresh full (Store.loadAll) disparado pelo evento de mutação em tempo
+    // real (lib/bus.js + js/realtime.js), que só dispara se a conexão SSE já
+    // estiver estabelecida (js/realtime.js: `setTimeout(start, 1500)` — 1.5s
+    // de atraso antes de sequer conectar) — não confiável pra depender em
+    // teste. `goto()` pra ROTA ATUAL é um no-op (mesma URL não recarrega o
+    // documento) — usa page.reload() pra forçar um fetch fresco de verdade.
+    async function reload() {
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('#sidebar', { state: 'attached', timeout: 10_000 });
+    }
+    await reload();
+    const solId = await page.evaluate((j) => {
+      const s = (window.Store?.state?.solicitacoes_compra || []).find((x) => x.justificativa === j);
+      return s ? s.id : null;
+    }, justificativa);
+    expect(solId, 'solicitação recém-criada não encontrada após refresh — POST /api/solicitacoes-compra falhou?').toBeTruthy();
+
+    // Mesma observação para cada transição de status abaixo.
+    async function refrescaEConfirmaStatus(status) {
+      await reload();
+      const atual = await page.evaluate(
+        ({ id }) => (window.Store?.state?.solicitacoes_compra || []).find((x) => x.id === id)?.status,
+        { id: solId },
+      );
+      expect(atual, `status esperado "${status}" após a transição`).toBe(status);
+    }
+
+    // c) Equipe de compras avalia: escolhe fornecedor + preço, envia para aprovação
+    await page.locator(`.btn-avaliar[data-id="${solId}"]`).click();
+    modal = page.locator('#modalAvaliar');
+    await modal.waitFor({ state: 'visible' });
+    const cotFornSelect = modal.locator('.input-cot-forn').first();
+    const fornValue = await cotFornSelect.locator('option', { hasText: `Fornec Compra ${tag}` }).getAttribute('value');
+    await cotFornSelect.selectOption(fornValue);
+    await modal.locator('.input-cot-preco').first().fill('150');
+    await modal.getByRole('button', { name: /^Enviar para aprovação →$/ }).click();
+    await modal.waitFor({ state: 'detached' }).catch(() => {});
+    await refrescaEConfirmaStatus('pendente_aprovacao');
+
+    // d) Gerente aprova (confirm() nativo já é aceito pelo listener acima)
+    await page.locator(`.btn-aprovar[data-id="${solId}"]`).click();
+    modal = page.locator('#modalAprovar');
+    await modal.waitFor({ state: 'visible' });
+    await modal.getByRole('button', { name: /Aprovar \(autorizar compra\)/ }).click();
+    await modal.waitFor({ state: 'detached' }).catch(() => {});
+    await refrescaEConfirmaStatus('aprovada');
+
+    // e) Equipe de compras registra a compra (gera Conta a Pagar)
+    await page.locator(`.btn-comprar[data-id="${solId}"]`).click();
+    modal = page.locator('#modalComprar');
+    await modal.waitFor({ state: 'visible' });
+    await modal.getByRole('button', { name: /^Registrar compra \(gera CP\)$/ }).click();
+    await modal.waitFor({ state: 'detached' }).catch(() => {});
+    await refrescaEConfirmaStatus('comprada');
+
+    // f) Confirma chegada (gera entrada de estoque) — data já vem preenchida com hoje
+    await page.locator(`.btn-receber[data-id="${solId}"]`).click();
+    modal = page.locator('#modalReceber');
+    await modal.waitFor({ state: 'visible' });
+    await modal.getByRole('button', { name: /^Confirmar chegada \(gera entrada\)$/ }).click();
+    await modal.waitFor({ state: 'detached' }).catch(() => {});
+    await refrescaEConfirmaStatus('recebida');
+
+    // Ciclo completo: nenhuma etapa pendente restante para essa solicitação.
+    await expect(page.locator(`[data-id="${solId}"].btn-receber`)).toHaveCount(0);
+    await expect(page.locator(`[data-id="${solId}"].btn-comprar`)).toHaveCount(0);
+    await expect(page.locator(`[data-id="${solId}"].btn-aprovar`)).toHaveCount(0);
+    await expect(page.locator(`[data-id="${solId}"].btn-avaliar`)).toHaveCount(0);
   });
 });

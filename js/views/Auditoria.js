@@ -6,6 +6,12 @@ window.Auditoria = {
   _pageSize: 50,
   _data: { rows: [], total: 0 },
   _showAdvanced: false,
+  // Paginação por cursor (P1-4): _cursors[i] = { ts, id } da última linha da
+  // página i-1, usado como seek pra buscar a página i — sem OFFSET, que numa
+  // tabela grande obriga escanear e descartar tudo antes da página pedida.
+  // _cursors[0] fica null (1ª página não tem cursor). Só Anterior/Próxima
+  // existem na UI (sem "ir pra página N"), então isto cobre 100% da navegação.
+  _cursors: [null],
 
   // ─────────────── Dicionários (entidade, artigo, verbo) ───────────────
 
@@ -403,11 +409,23 @@ window.Auditoria = {
     if (f.to) params.set('to', f.to + 'T23:59:59.999');
     if (f.errors) params.set('errors', '1');
     params.set('limit', this._pageSize);
-    params.set('offset', this._page * this._pageSize);
+    const cursor = this._cursors[this._page];
+    if (cursor) {
+      params.set('afterTs', cursor.ts);
+      params.set('afterId', cursor.id);
+    } else {
+      params.set('offset', 0); // 1ª página — sem cursor ainda
+    }
     try {
       const r = await fetch('/api/audit?' + params.toString());
       if (!r.ok) throw new Error('HTTP ' + r.status);
       this._data = await r.json();
+      // Guarda o cursor pra próxima página (última linha desta).
+      const rows = this._data.rows || [];
+      if (rows.length > 0) {
+        const last = rows[rows.length - 1];
+        this._cursors[this._page + 1] = { ts: last.ts, id: last.id };
+      }
     } catch (e) {
       console.warn('[Auditoria] fetch falhou:', e?.message || e);
       this._data = { rows: [], total: 0 };
@@ -416,6 +434,7 @@ window.Auditoria = {
 
   async _reload() {
     this._page = 0;
+    this._cursors = [null];
     await this._fetch();
     this._draw();
   },

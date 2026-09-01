@@ -16,6 +16,19 @@ const { generateId } = require('../lib/id');
 const { replaceApontamentos } = require('./rdo-apontamentos'); // HH por colaborador × atividade (item 5)
 
 /**
+ * % de aderência de RDO = feitos/esperados, arredondado. `esperados` zero
+ * significa que não há nada a medir (ex.: nenhuma obra ativa) — devolve
+ * `null`, não 100, pra não sugerir "tudo em dia" quando não há dado nenhum.
+ *
+ * @param {number} feitos
+ * @param {number} esperados
+ * @returns {number|null}
+ */
+function calcAderenciaPct(feitos, esperados) {
+  return esperados > 0 ? Math.round((feitos / esperados) * 100) : null;
+}
+
+/**
  * Normaliza o bloco `passarelli` do body (recalculando o detalhamento de
  * horário e o HH no SERVIDOR — fonte da verdade) e devolve o objeto pronto
  * para persistir + o total de homem-hora.
@@ -128,8 +141,10 @@ async function handleGetRdosGlobal(res) {
         feitosPorDia[r.data] = (feitosPorDia[r.data] || 0) + 1;
       }
     }
+    // null (não 100) quando não há obra ativa pra medir — 100% sugeriria
+    // aderência perfeita quando na verdade não há nada a aderir.
     const esperados = ativas.length * ultimos7.length;
-    const aderencia = esperados > 0 ? Math.round((feitos / esperados) * 100) : 100;
+    const aderencia = calcAderenciaPct(feitos, esperados);
 
     // Série diária (ordenada cronologicamente) para o gráfico
     const aderenciaDiaria = ultimos7
@@ -139,7 +154,7 @@ async function handleGetRdosGlobal(res) {
         data: d,
         feitos: feitosPorDia[d] || 0,
         esperados: ativas.length,
-        pct: ativas.length > 0 ? Math.round((feitosPorDia[d] / ativas.length) * 100) : 100,
+        pct: calcAderenciaPct(feitosPorDia[d], ativas.length),
       }));
 
     // Detecta dia da semana de hoje (0=dom, 6=sáb) para banner relaxado
@@ -155,7 +170,7 @@ async function handleGetRdosGlobal(res) {
       if (ativasIds.has(r.contractId) && setMes.has(r.data)) feitosMes++;
     }
     const esperadosMes = ativas.length * diasUteisMes.length;
-    const aderenciaMes = esperadosMes > 0 ? Math.round((feitosMes / esperadosMes) * 100) : 100;
+    const aderenciaMes = calcAderenciaPct(feitosMes, esperadosMes);
 
     sendJson(res, {
       rdos,
@@ -402,4 +417,5 @@ module.exports = {
   handlePutRdo,
   handleDeleteRdo,
   handleGetRdoPdf,
+  calcAderenciaPct,
 };

@@ -238,6 +238,8 @@
 
   window.RhinoTour = { start: (force) => startTour(force) };
 
-  // Auto-dispara para novos usuários após boot
-  window.addEventListener('rh:boot-done', () => setTimeout(() => startTour(false), 1200));
+  // Auto-dispara para novos usuários — 'rh:app-ready' só sai depois que o
+  // gate de perfil (termos + seletor de perfil) já foi resolvido, então o
+  // tour nunca corre disputando clique com esses overlays.
+  window.addEventListener('rh:app-ready', () => setTimeout(() => startTour(false), 1200));
 })();

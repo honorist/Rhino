@@ -80,11 +80,27 @@ test('isConfigured retorna true com a chave definida', () => {
 
 test('SEM chave: encrypt degrada para texto puro (não lança) — rollout seguro', () => {
   // Subprocesso sem PII_ENCRYPTION_KEY: encrypt deve devolver o valor em claro.
+  // Esse é o caminho de DEV/rollout — em produção (NODE_ENV=production) o
+  // próprio encrypt() recusa degradar e lança de propósito (LGPD: nunca
+  // gravar PII em claro em prod). Sem fixar NODE_ENV aqui, este teste falha
+  // sempre que rodado com um .env que já tem NODE_ENV=production (like este
+  // projeto tem, pra espelhar produção localmente) — não é bug do código.
   const { execFileSync } = require('node:child_process');
   const out = execFileSync(
     process.execPath,
     ['-e', "process.stdout.write(require('./lib/crypto-pii').encrypt('12345678900'))"],
-    { cwd: process.cwd(), env: { ...process.env, PII_ENCRYPTION_KEY: '' } }
+    { cwd: process.cwd(), env: { ...process.env, PII_ENCRYPTION_KEY: '', NODE_ENV: 'development' } }
   ).toString();
   assert.equal(out, '12345678900'); // texto puro, sem prefixo enc:
+});
+
+test('SEM chave EM PRODUÇÃO: encrypt lança em vez de gravar PII em claro', () => {
+  const { execFileSync } = require('node:child_process');
+  assert.throws(() => {
+    execFileSync(
+      process.execPath,
+      ['-e', "require('./lib/crypto-pii').encrypt('12345678900')"],
+      { cwd: process.cwd(), env: { ...process.env, PII_ENCRYPTION_KEY: '', NODE_ENV: 'production' }, stdio: 'pipe' }
+    );
+  }, /PII_ENCRYPTION_KEY/);
 });

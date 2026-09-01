@@ -11,7 +11,7 @@
  */
 module.exports = function registerFinanceiro(router, deps) {
   // ── Caixa ──
-  router.get('/api/caixa',        (ctx) => deps.handleGetCaixa(ctx.res));
+  router.get('/api/caixa',        (ctx) => deps.handleGetCaixa(ctx.res, ctx.parsedUrl.query));
   router.post('/api/caixa',       (ctx) => deps.handlePostCaixa(ctx.body, ctx.res));
   router.put('/api/caixa/:id',    (ctx) => deps.handlePutCaixa(ctx.params[0], ctx.body, ctx.res));
   router.delete('/api/caixa/:id', (ctx) => deps.handleDeleteCaixa(ctx.params[0], ctx.res));

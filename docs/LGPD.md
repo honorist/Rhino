@@ -41,7 +41,7 @@ Já existiam: exportação de dados (LGPD export), exclusão de conta e log de a
 
 - **Perder a chave = perder o acesso aos dados cifrados.** Não há recuperação.
 - Faça backup da chave **separado** do backup do banco (quem tem os dois junto tem tudo).
-- Para **rotacionar** a chave: decifrar com a antiga e recifrar com a nova (exige um script de rotação — ainda não incluído; planejar antes de rotacionar).
+- Para **rotacionar** a chave: `DATABASE_URL=... PII_ENCRYPTION_KEY_OLD=... PII_ENCRYPTION_KEY_NEW=... node scripts/rotate-pii-key.js` (`--dry-run` primeiro). Decifra com a antiga e recifra com a nova, em `recursos.cpf`/`candidatos.cpf` e `recurso_doc_arquivos.data`/`candidato_doc_arquivos.data`; é seguro reexecutar (pula o que já foi rotacionado). Só troque `PII_ENCRYPTION_KEY` no ambiente do app depois de rodar sem falhas.
 - O `lib/crypto-pii.js` suporta versionamento de envelope (`enc:1:`) para futura rotação.
 
 ## Validação em staging (antes de produção)

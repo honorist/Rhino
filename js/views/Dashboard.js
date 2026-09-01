@@ -478,25 +478,35 @@ window.Dashboard = {
                  saíram daqui (continuam nas próprias páginas via menu). -->
             ${
               rdoStats
-                ? _kpi({
-                    href: '#/rdos',
-                    label: `Aderência RDO ${rdoStats.diasUteisAvaliados}d`,
-                    value: rdoStats.aderencia7d + '%',
-                    tone:
-                      rdoStats.aderencia7d >= 80
-                        ? 'pos'
-                        : rdoStats.aderencia7d >= 50
-                          ? 'warn'
-                          : 'neg',
-                    deltaIcon: rdoStats.aderencia7d >= 80 ? 'arrow-up' : 'arrow-down',
-                    deltaTone: rdoStats.aderencia7d >= 80 ? 'pos' : 'neg',
-                    meta:
-                      rdosAtrasados > 0
-                        ? `${rdosAtrasados} RDO${rdosAtrasados !== 1 ? 's' : ''} atrasado${rdosAtrasados !== 1 ? 's' : ''}`
-                        : 'tudo em dia',
-                    spark: (rdoStats.aderenciaDiaria || []).map((d) => d.pct),
-                    tooltip: `Aderência = RDOs lançados ÷ (obras ativas × ${rdoStats.diasUteisAvaliados} dias úteis avaliados) × 100. Verde ≥80%, amarelo 50–79%, vermelho <50%.`,
-                  })
+                ? rdoStats.aderencia7d == null
+                  ? _kpi({
+                      href: '#/rdos',
+                      label: `Aderência RDO ${rdoStats.diasUteisAvaliados}d`,
+                      value: '—',
+                      tone: 'neutral',
+                      meta: 'sem obra ativa pra medir',
+                      spark: [],
+                      tooltip: `Aderência = RDOs lançados ÷ (obras ativas × ${rdoStats.diasUteisAvaliados} dias úteis avaliados) × 100. Sem obra ativa no período, não há o que medir.`,
+                    })
+                  : _kpi({
+                      href: '#/rdos',
+                      label: `Aderência RDO ${rdoStats.diasUteisAvaliados}d`,
+                      value: rdoStats.aderencia7d + '%',
+                      tone:
+                        rdoStats.aderencia7d >= 80
+                          ? 'pos'
+                          : rdoStats.aderencia7d >= 50
+                            ? 'warn'
+                            : 'neg',
+                      deltaIcon: rdoStats.aderencia7d >= 80 ? 'arrow-up' : 'arrow-down',
+                      deltaTone: rdoStats.aderencia7d >= 80 ? 'pos' : 'neg',
+                      meta:
+                        rdosAtrasados > 0
+                          ? `${rdosAtrasados} RDO${rdosAtrasados !== 1 ? 's' : ''} atrasado${rdosAtrasados !== 1 ? 's' : ''}`
+                          : 'tudo em dia',
+                      spark: (rdoStats.aderenciaDiaria || []).map((d) => d.pct),
+                      tooltip: `Aderência = RDOs lançados ÷ (obras ativas × ${rdoStats.diasUteisAvaliados} dias úteis avaliados) × 100. Verde ≥80%, amarelo 50–79%, vermelho <50%.`,
+                    })
                 : ''
             }
           </div>
@@ -573,11 +583,14 @@ window.Dashboard = {
                 const aderMes =
                   rdoStats.aderenciaMes != null ? rdoStats.aderenciaMes : rdoStats.aderencia7d;
                 const aderColor =
-                  aderMes >= 80
-                    ? 'var(--rh-pos-strong)'
-                    : aderMes >= 50
-                      ? 'var(--rh-warn-strong)'
-                      : 'var(--rh-neg-strong)';
+                  aderMes == null
+                    ? 'var(--rh-ink-500)'
+                    : aderMes >= 80
+                      ? 'var(--rh-pos-strong)'
+                      : aderMes >= 50
+                        ? 'var(--rh-warn-strong)'
+                        : 'var(--rh-neg-strong)';
+                const aderMesLabel = aderMes == null ? '—' : `${aderMes}%`;
                 const semList = rdoStats.obrasSemRdoOntem || [];
                 return `
           <div class="card" style="margin-bottom:0;">
@@ -593,7 +606,7 @@ window.Dashboard = {
               }
             </div>
             <div style="display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;padding:8px 0;">
-              <div class="rh-display" style="font-size:42px;font-weight:800;color:${aderColor};line-height:1;grid-row:span 3;align-self:center;">${aderMes}%<div style="font-size:11px;font-weight:600;color:var(--rh-ink-500);text-transform:uppercase;letter-spacing:.06em;margin-top:6px;">aderência mês</div></div>
+              <div class="rh-display" style="font-size:42px;font-weight:800;color:${aderColor};line-height:1;grid-row:span 3;align-self:center;">${aderMesLabel}<div style="font-size:11px;font-weight:600;color:var(--rh-ink-500);text-transform:uppercase;letter-spacing:.06em;margin-top:6px;">aderência mês</div></div>
               <div style="border-top:1px solid var(--rh-ink-200);padding-top:8px;font-size:14px;color:var(--rh-ink-700);" title="Quantas obras ativas tiveram RDO lançado no último dia útil, sobre o total de obras ativas previstas.">Lançados ontem</div>
               <div style="border-top:1px solid var(--rh-ink-200);padding-top:8px;font-size:14px;font-weight:700;text-align:right;" title="X de Y obras ativas com RDO no último dia útil.">${lancados}<span style="color:var(--rh-ink-500);">/${ativas}</span></div>
               <div style="font-size:14px;color:var(--rh-ink-700);" title="Obras ativas que NÃO tiveram RDO lançado no último dia útil.">Sem RDO ontem</div>
@@ -1189,12 +1202,12 @@ window.Dashboard = {
           <span class="rh-meta">pendências · vencimentos · funil — tempo real</span>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:var(--sp-md);">
-          ${numCard('🔧 Equip. em manutenção', me.emAberto || 0, manutMeta, '#/manutencoes', (me.atrasadas || 0) > 0)}
-          ${numCard('⏰ Manutenções atrasadas', me.atrasadas || 0, me.atrasadas > 0 ? 'retorno previsto ultrapassado' : 'sem atrasos', '#/manutencoes', (me.atrasadas || 0) > 0)}
-          ${numCard('📄 Docs vencidos', dk.vencidos || 0, docsMeta, '#/recursos', (dk.vencidos || 0) > 0)}
+          ${numCard('🔧 Equip. em manutenção', me.emAberto || 0, manutMeta, '#/manutencao', (me.atrasadas || 0) > 0)}
+          ${numCard('⏰ Manutenções atrasadas', me.atrasadas || 0, me.atrasadas > 0 ? 'retorno previsto ultrapassado' : 'sem atrasos', '#/manutencao?filtro=atrasadas', (me.atrasadas || 0) > 0)}
+          ${numCard('📄 Docs vencidos', dk.vencidos || 0, docsMeta, '#/recursos?docs=vencidos', (dk.vencidos || 0) > 0)}
           ${numCard('📊 Propostas ativas', pk.emAndamento || 0, propMeta, '#/propostas', false)}
           ${numCard('🎯 Conversão propostas', (pk.taxaConversao || 0) + '%', 'aceitas / total enviadas', '#/propostas', false)}
-          ${numCard('👤 Candidatos parados', candParados, candParados > 0 ? 'sem atualização há +7 dias' : 'funil ativo', '#/recrutamento', candParados > 0)}
+          ${numCard('👤 Candidatos parados', candParados, candParados > 0 ? 'sem atualização há +7 dias' : 'funil ativo', '#/recrutamento?filtro=parados', candParados > 0)}
           ${numCard('🔩 Revisões venc. (frota)', re.vencidas || 0, re.vencidas > 0 ? 'revisão preventiva em atraso' : 'revisões em dia', '#/frota', (re.vencidas || 0) > 0)}
           ${numCard('🏖️ Folgas (próx. 5 dias)', fk.proximas5d || 0, fk.proximas5d > 0 ? 'colaborador(es) de folga' : 'nenhuma prevista', '#/recursos', false)}
           ${numCard('🛒 Compras em avaliação', cp.emAvaliacao || 0, compMeta, '#/solicitacoes-compra', (cp.paradas3d || 0) > 0)}

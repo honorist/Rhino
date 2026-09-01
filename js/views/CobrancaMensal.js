@@ -58,7 +58,7 @@ window.CobrancaMensal = {
         window.UIKit?.pageHeader
           ? window.UIKit.pageHeader({
               title: 'Cobrança do app',
-              subtitle: 'Valor a pagar mensalmente — apenas administradores enxergam esta tela',
+              subtitle: 'Valor a pagar mensalmente — visível para Administrador e Gerente',
             })
           : ''
       }

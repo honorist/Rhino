@@ -67,7 +67,7 @@ test('BR-COMP-002: tipo desconhecido é contabilizado como material no resumo', 
 });
 
 // ── normalizaItens ───────────────────────────────────────────────────────────
-test('normalizaItens: tipo desconhecido vira TIPO_PADRAO; campos coeridos', () => {
+test('BR-COMP-002: normalizaItens: tipo desconhecido vira TIPO_PADRAO; campos coeridos', () => {
   const out = normalizaItens([
     { tipo: 'xpto', descricao: 'algo', coef: '2.5', valorUnit: '10' },
     {},

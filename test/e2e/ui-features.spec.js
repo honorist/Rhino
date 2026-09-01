@@ -1,12 +1,16 @@
 // @ts-check
 // Testes E2E de features transversais — versão pós-React (F5-2).
 //
-// Mantidos: PWA, Theme customizer (Ctrl+K continua TODO até F4-5b),
-// Global search API, Health version.
-//
-// Removidos/skipados: Command palette (F4-5b pendente), Atalhos de teclado
-// (não portados), Bottom nav (F4-5c pendente), ContratoDetail global
-// (window.ContratoDetail virou módulo React).
+// Command palette, atalhos de teclado e bottom nav foram marcados
+// skip.'d nesta suíte como TODO (F4-5b/F4-5c) quando este arquivo nasceu —
+// as features foram implementadas depois (js/polish.js `openCmdK`/atalho
+// Ctrl+K, js/power.js `RU.showShortcutsHelp`/atalho "?", js/polish.js
+// `renderBottomNav`) mas os testes nunca foram destravados (item D14 do
+// plano async-wandering-kite). Removido apenas o teste "ContratoDetail
+// global (sub-módulos servem 200)": nasceu vazio nesta mesma suíte
+// (commit c3a3b69) testando o code-splitting de chunks React — a reescrita
+// em React foi completamente removida em 2026-05-28 (commit 4481d68) e o
+// hash-router legado (voltou a produção) não tem conceito equivalente.
 
 const { test, expect } = require('@playwright/test');
 
@@ -131,27 +135,61 @@ test.describe('Health version', () => {
   });
 });
 
-// ─── Skipped até follow-ups ────────────────────────────────────────────
-test.describe.skip('Command palette (F4-5b pendente)', () => {
-  test('Ctrl+K abre o palette e Esc fecha', async ({ page }) => {
+test.describe('Command palette', () => {
+  test('Ctrl+K abre o palette, busca filtra e Esc fecha', async ({ page }) => {
     await login(page);
     await page.keyboard.press('Control+K');
-    await expect(page.locator('.cmdk-overlay')).toBeVisible();
+    const overlay = page.locator('.cmdk-overlay');
+    await expect(overlay).toBeVisible();
+    await expect(page.locator('.cmdk-panel[aria-label="Buscar e navegar"]')).toBeVisible();
+
+    await page.locator('.cmdk-input').fill('dashboard');
+    await expect(page.locator('.cmdk-item').first()).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(overlay).toHaveCount(0);
   });
 });
 
-test.describe.skip('Atalhos de teclado (não portados)', () => {
-  test('? abre help', async () => {});
+test.describe('Atalhos de teclado', () => {
+  test('? abre o modal de ajuda e Esc fecha', async ({ page }) => {
+    await login(page);
+    // Garante que o foco não está num campo editável (o atalho de tecla única
+    // é ignorado nesse caso — ver js/power.js).
+    await page.locator('#sidebar').click();
+    await page.keyboard.press('?');
+    const modal = page.locator('#rh-shortcuts-modal');
+    await expect(modal).toBeVisible();
+    await expect(modal.locator('.cmdk-item').first()).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(modal).toHaveCount(0);
+  });
 });
 
-test.describe.skip('Bottom nav (F4-5c pendente)', () => {
-  test('aparece em mobile', async () => {});
+test.describe('Bottom nav', () => {
+  test('aparece em viewport mobile e some em desktop', async ({ page }) => {
+    await login(page);
+    await page.setViewportSize({ width: 375, height: 700 });
+    await expect(page.locator('.bottom-nav')).toBeVisible({ timeout: 2000 });
+    await expect(page.locator('.bottom-nav__item').first()).toBeVisible();
+
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await expect(page.locator('.bottom-nav')).toHaveCount(0);
+  });
 });
 
-test.describe.skip('Boot loader (removido em React)', () => {
-  test('aparece e some', async () => {});
-});
+test.describe('Boot loader', () => {
+  test('está na marcação inicial servida e é removido após o boot completar', async ({ page, request }) => {
+    // Aparece: o HTML servido pelo backend já inclui o loader estático — é o
+    // primeiro frame que o usuário vê antes do JS assumir (index.html).
+    const r = await request.get(BASE_URL + '/');
+    const html = await r.text();
+    expect(html).toMatch(/class="boot-loader"/);
 
-test.describe.skip('ContratoDetail global (módulo virou React)', () => {
-  test('sub-módulos servem 200', async () => {});
+    // Some: depois do boot completar (login + app pronto), o loader não deve
+    // mais estar no DOM (window.RhinoBoot.done() o remove — js/polish.js).
+    await login(page);
+    await expect(page.locator('.boot-loader')).toHaveCount(0);
+  });
 });

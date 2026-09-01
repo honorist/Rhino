@@ -611,6 +611,11 @@ textarea.form-control {
   display: flex;
   gap: 4px;
   align-items: center;
+  /* Linhas com muitas ações (ex.: Recursos com status "funcionário", até 7
+     botões) não cabem numa linha só — deixa transbordar pra 2ª linha em vez
+     de espremer (o `td, th { overflow-wrap: anywhere }` global quebraria
+     cada rótulo no meio da palavra sem isto). */
+  flex-wrap: wrap;
 }
 
 .action-link {
@@ -625,6 +630,7 @@ textarea.form-control {
   border-radius: var(--border-radius);
   font-family: 'Nunito', sans-serif;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .action-link:hover {
@@ -695,6 +701,11 @@ textarea.form-control {
   transition: color .15s, border-color .15s, background .15s;
   white-space: nowrap;
   margin-bottom: -1px;
+  /* Sem isto, o flex-shrink padrão espreme cada aba abaixo da largura do seu
+     próprio texto (o min-width:44px do WCAG só barra até certo ponto) e o
+     rótulo passa a sobrepor a aba vizinha em vez de estourar pro scroll
+     horizontal que .ctd-tabs já tem — visível com muitas abas (contrato). */
+  flex-shrink: 0;
 }
 .ctd-tab:hover {
   color: var(--color-text);

@@ -23,6 +23,18 @@ test('verify: hash null/undefined → false (anti-enumeração de e-mail por tim
   assert.strictEqual(await auth.verify('qualquer', undefined), false);
 });
 
+// M-05: migração de bcryptjs → bcrypt nativo (rehash-on-login, sem job de
+// bulk) só é segura porque as duas libs produzem/leem o MESMO formato de
+// hash bcrypt ($2a$/$2b$) — um hash antigo gerado por bcryptjs precisa
+// continuar validando com o verify() novo (bcrypt nativo), senão todo login
+// existente quebraria no deploy.
+test('verify (bcrypt nativo) valida hash gerado pela lib antiga (bcryptjs)', async () => {
+  const bcryptjs = require('bcryptjs');
+  const hashAntigo = await bcryptjs.hash('s3nh@Forte!', 10);
+  assert.strictEqual(await auth.verify('s3nh@Forte!', hashAntigo), true);
+  assert.strictEqual(await auth.verify('senhaErrada', hashAntigo), false);
+});
+
 test('parseCookies: parseia o header em objeto e decodifica o valor', () => {
   const c = auth.parseCookies({ headers: { cookie: 'a=1; b=hello%20world; sid=abc' } });
   assert.strictEqual(c.a, '1');

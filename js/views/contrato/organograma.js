@@ -1127,7 +1127,11 @@
                 `).join('')}
               </select>
               ${membro ? `<input type="hidden" name="recursoId" value="${membro.recursoId}">` : ''}
-              ${!membro && recursosDisponiveis.length === 0 ? `<div class="form-helper" style="color:var(--color-warning);">Todos os funcionários já estão no organograma.</div>` : ''}
+              ${!membro && recursosDisponiveis.length === 0 ? (
+                recursos.length === 0
+                  ? `<div class="form-helper" style="color:var(--color-warning);">Nenhum funcionário cadastrado. <a href="#/recursos">Cadastre um em Recursos</a> antes de montar o organograma.</div>`
+                  : `<div class="form-helper" style="color:var(--color-warning);">Todos os funcionários já estão no organograma.</div>`
+              ) : ''}
             </div>
 
             <div class="form-group">

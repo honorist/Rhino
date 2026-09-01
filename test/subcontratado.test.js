@@ -20,32 +20,32 @@ const MEDICOES = [
 ];
 
 // ── BR-SUB-001: total medido (medida + paga) ────────────────────────────────
-test('totalMedido soma medida + paga (paga conta como medido)', () => {
+test('BR-SUB-001: totalMedido soma medida + paga (paga conta como medido)', () => {
   // paga: 1000 + 300 = 1300; medida: 500 → 1800. prevista (200+50) NÃO entra.
   assert.equal(sub.totalMedido(MEDICOES), 1800);
 });
 
-test('totalMedido ignora previstas', () => {
+test('BR-SUB-001: totalMedido ignora previstas', () => {
   assert.equal(sub.totalMedido([{ status: 'prevista', valor: 999 }]), 0);
 });
 
 // ── BR-SUB-002: total pago (apenas paga) ────────────────────────────────────
-test('totalPago soma apenas status paga', () => {
+test('BR-SUB-002: totalPago soma apenas status paga', () => {
   assert.equal(sub.totalPago(MEDICOES), 1300); // 1000 + 300
 });
 
 // ── BR-SUB-003: saldo a pagar = medido − pago ───────────────────────────────
-test('saldo é medido menos pago (o que falta quitar)', () => {
+test('BR-SUB-003: saldo é medido menos pago (o que falta quitar)', () => {
   // medido 1800 − pago 1300 = 500 (exatamente as medições "medida" não pagas).
   assert.equal(sub.saldo(MEDICOES), 500);
 });
 
-test('saldo com tudo pago é zero', () => {
+test('BR-SUB-003: saldo com tudo pago é zero', () => {
   assert.equal(sub.saldo([{ status: 'paga', valor: 400 }]), 0);
 });
 
 // ── BR-SUB-004: resumo por status ───────────────────────────────────────────
-test('resumoPorStatus reparte quantidade e valor; soma reconstitui o total', () => {
+test('BR-SUB-004: resumoPorStatus reparte quantidade e valor; soma reconstitui o total', () => {
   const r = sub.resumoPorStatus(MEDICOES);
   assert.equal(r.prevista.quantidade, 2);
   assert.equal(r.prevista.valor, 250); // 200 + 50
@@ -58,7 +58,7 @@ test('resumoPorStatus reparte quantidade e valor; soma reconstitui o total', () 
 });
 
 // ── BR-SUB-005: agregação por competência ───────────────────────────────────
-test('porCompetencia agrega por YYYY-MM, ordenado ascendente', () => {
+test('BR-SUB-005: porCompetencia agrega por YYYY-MM, ordenado ascendente', () => {
   const g = sub.porCompetencia(MEDICOES);
   assert.deepEqual(g.map((x) => x.competencia), ['2026-01', '2026-02', '2026-03']);
 
@@ -75,7 +75,7 @@ test('porCompetencia agrega por YYYY-MM, ordenado ascendente', () => {
   assert.equal(fev.total, 500);
 });
 
-test('porCompetencia joga competência ausente no bucket "" (ordena primeiro)', () => {
+test('BR-SUB-005: porCompetencia joga competência ausente no bucket "" (ordena primeiro)', () => {
   const g = sub.porCompetencia([
     { competencia: '2026-05', status: 'paga', valor: 10 },
     { status: 'prevista', valor: 7 },
@@ -86,7 +86,7 @@ test('porCompetencia joga competência ausente no bucket "" (ordena primeiro)', 
 });
 
 // ── BR-SUB-006: resumo completo ─────────────────────────────────────────────
-test('resumo junta totais, saldo, por status e por competência', () => {
+test('BR-SUB-006: resumo junta totais, saldo, por status e por competência', () => {
   const r = sub.resumo(MEDICOES);
   assert.equal(r.quantidade, 5);
   assert.equal(r.totalPrevisto, 250);
@@ -97,7 +97,7 @@ test('resumo junta totais, saldo, por status e por competência', () => {
   assert.equal(r.porCompetencia.length, 3);
 });
 
-test('resumo com entrada vazia/ inválida devolve zeros', () => {
+test('BR-SUB-006: resumo com entrada vazia/ inválida devolve zeros', () => {
   const r = sub.resumo(null);
   assert.equal(r.quantidade, 0);
   assert.equal(r.totalPrevisto, 0);

@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.27.0",
+      "date": "2026-09-01",
+      "summary": "Exportação CSV, preferências de notificação e PDF do Data Book",
+      "changes": [
+        "Exportação para CSV em Estoque, Solicitações de Compra, Frota, Caixa, Contas a Pagar, Notas Fiscais e na aba SSMA do contrato",
+        "Nova tela de preferências de notificação (acessível pelo sino): escolha quais avisos você quer receber",
+        "Data book do contrato agora gera o PDF de entrega (capa, prontidão e punch list) com botão de download",
+        "Dashboard: cards da 'Situação atual' levam direto ao filtro certo (atrasadas, vencidos, parados) e disparam notificação automática quando um indicador cruza o limiar crítico",
+        "Diversas correções de segurança e confiabilidade: hash de senha mais forte, filtro de notificações em tempo real por permissão de tela, e ajustes de estabilidade nos testes automatizados"
+      ]
+    },
+    {
       "version": "1.26.0",
       "date": "2026-07-21",
       "summary": "Novos módulos de obra: Curva S/EVM, Mapa de Cotações, Subcontratados, Ferramentaria e Equipamentos",

@@ -80,10 +80,14 @@
     if (u > 0) { badge.textContent = u > 9 ? '9+' : String(u); badge.hidden = false; } else { badge.hidden = true; }
     var panel = el.querySelector('#rhino-notif-panel');
     if (!notifs.length) {
-      panel.innerHTML = '<div class="rn-head"><span>Notificações</span></div><div class="rn-empty">Nada por aqui ainda.</div>';
+      panel.innerHTML = '<div class="rn-head"><span>Notificações</span><a href="#/notificacao-preferencias" id="rn-prefs" title="Preferências de notificação" style="text-decoration:none;">⚙</a></div><div class="rn-empty">Nada por aqui ainda.</div>';
+      var prefsEmpty = panel.querySelector('#rn-prefs');
+      if (prefsEmpty) prefsEmpty.addEventListener('click', function () { close(); });
       return;
     }
-    var html = '<div class="rn-head"><span>Notificações</span>' + (u > 0 ? '<span class="rn-mark" id="rn-mark-all">marcar todas lidas</span>' : '') + '</div>';
+    var html = '<div class="rn-head"><span>Notificações</span><span style="display:flex;gap:10px;align-items:center;">' +
+      (u > 0 ? '<span class="rn-mark" id="rn-mark-all">marcar todas lidas</span>' : '') +
+      '<a href="#/notificacao-preferencias" id="rn-prefs" title="Preferências de notificação" style="text-decoration:none;">⚙</a></span></div>';
     html += notifs.slice(0, 30).map(function (n) {
       return '<a class="rn-item ' + (n.lida ? '' : 'rn-unread') + '" href="' + (hrefFor(n.link) || '#') + '" data-id="' + esc(n.id) + '">' +
         '<div class="rn-title">' + esc(n.titulo) + '</div>' +
@@ -101,6 +105,8 @@
     });
     var ma = panel.querySelector('#rn-mark-all');
     if (ma) ma.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); markAll(); });
+    var prefs = panel.querySelector('#rn-prefs');
+    if (prefs) prefs.addEventListener('click', function () { close(); });
   }
 
   function load() {
@@ -124,6 +130,12 @@
     mount(); load();
     setInterval(load, POLL_MS);
     document.addEventListener('visibilitychange', function () { if (!document.hidden) load(); });
+    // Este script roda no DOMContentLoaded, ANTES do login (logged() ainda
+    // falso) — sem isso o sino ficava escondido por até 60s (POLL_MS) depois
+    // de um login bem-sucedido, só reaparecendo na próxima troca de aba.
+    // rh:app-ready dispara ao fim de iniciarApp() (login OU seleção de
+    // perfil), já com auth.user() preenchido.
+    window.addEventListener('rh:app-ready', load);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();

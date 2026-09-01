@@ -425,13 +425,20 @@ async function listarNotificacoes(req, res) {
   try {
     const user = req.user;
     if (!user) return sendError(res, 401, 'Não autenticado');
+    // F19: respeita as preferências do usuário — tipo desativado não aparece
+    // nem conta pro badge de "não lidas". Lê antes do SELECT pra excluir na
+    // própria query (senão os 100 mais recentes podiam ser todos de um tipo
+    // que o usuário desligou, e ele veria a lista vazia por engano).
+    const me = await repos.users.findById(user.id);
+    const tiposDesativados = (me && me.notifTiposDesativados) || [];
     // Por enquanto: traz tudo destinado a 'rh' ou ao próprio usuário.
     // (Ampliar pra perfil/role quando F4-5b CommandPalette evoluir.)
     const rows = await db.getMany(
       `SELECT * FROM notificacoes
         WHERE destinatario IN ('rh', 'todos', $1)
+          AND NOT (tipo = ANY($2::text[]))
         ORDER BY created_at DESC LIMIT 100`,
-      [user.id]
+      [user.id, tiposDesativados]
     );
     sendJson(res, { notificacoes: rows });
   } catch (e) {

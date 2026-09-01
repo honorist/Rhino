@@ -8,10 +8,12 @@
  */
 module.exports = function registerRecrutamento(router, handlers) {
   // Junta os handlers do fluxo (handlers/recrutamento) com os de arquivo de
-  // documento de candidato (handlers/candidato-documentos). Sem colisão de nome.
+  // documento de candidato (handlers/candidato-documentos) e os de
+  // preferências de notificação (handlers/notificacoes, F19). Sem colisão de nome.
   const h = handlers || {
     ...require('../handlers/recrutamento'),
     ...require('../handlers/candidato-documentos'),
+    ...require('../handlers/notificacoes'),
   };
 
   // Solicitações de contratação (US-05)
@@ -47,4 +49,10 @@ module.exports = function registerRecrutamento(router, handlers) {
   router.get('/api/notificacoes', (ctx) => h.listarNotificacoes(ctx.req, ctx.res));
   router.post('/api/notificacoes/:id/marcar-lida', (ctx) =>
     h.marcarLida(ctx.req, ctx.res, ctx.params[0]));
+  // Preferências de notificação (F19) — rota estática antes de :id acima não
+  // colide: /preferencias nunca bate no padrão /:id/marcar-lida (métodos e
+  // sufixos diferentes), mas fica registrada depois por clareza de leitura.
+  router.get('/api/notificacoes/preferencias', (ctx) => h.handleGetPreferenciasNotificacao(ctx.req, ctx.res));
+  router.put('/api/notificacoes/preferencias', (ctx) =>
+    h.handlePutPreferenciasNotificacao(ctx.req, ctx.body, ctx.res));
 };

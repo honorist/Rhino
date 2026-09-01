@@ -81,7 +81,7 @@ test('BR-DATABOOK-002: sem atividades nunca fica pronto (avanço não medido)', 
   assert.ok(r.pendencias.some((p) => /cronograma|atividade/i.test(p)));
 });
 
-test('prontidao é tolerante a entrada ausente/inválida', () => {
+test('BR-DATABOOK-001/002: prontidao é tolerante a entrada ausente/inválida', () => {
   const r = prontidao();
   assert.equal(r.punch.total, 0);
   assert.equal(r.fisico.execMedio, 0);
@@ -166,5 +166,77 @@ describe('handleGetDataBook', () => {
     assert.equal(res.status, 200);
     // Sem atividades legíveis → não fica pronto, mas responde mesmo assim.
     assert.equal(res.body.prontidao.pronto, false);
+  });
+});
+
+// ═══════════ 3. Handler do PDF (F20) — gera de verdade (pdfkit é puro/síncrono) ═══════════
+
+describe('handleGetDataBookPdf', () => {
+  const db = require('../db');
+  const repos = require('../db/repos');
+  const h = require('../handlers/data-book');
+
+  function fakeRes() {
+    const res = {
+      status: null,
+      headers: null,
+      body: null,
+      writeHead(s, hd) { res.status = s; res.headers = hd; },
+      end(payload) { res.body = payload; },
+    };
+    return res;
+  }
+
+  const orig = { contracts: repos.contracts, punchItens: repos.punchItens, recursos: repos.recursos, getMany: db.getMany };
+
+  function restore() {
+    repos.contracts = orig.contracts;
+    repos.punchItens = orig.punchItens;
+    repos.recursos = orig.recursos;
+    db.getMany = orig.getMany;
+  }
+
+  test('contrato inexistente devolve 404 sem gerar PDF', async (t) => {
+    t.after(restore);
+    repos.contracts = { findById: async () => null };
+    const res = fakeRes();
+    await h.handleGetDataBookPdf('SUMIU', res);
+    assert.equal(res.status, 404);
+  });
+
+  test('gera um PDF válido (magic bytes %PDF-) com Content-Type e Content-Disposition corretos', async (t) => {
+    t.after(restore);
+    repos.contracts = { findById: async (id) => (id === 'C1' ? { id: 'C1', name: 'Obra Teste', client: 'Cliente X' } : null) };
+    repos.punchItens = {
+      findAll: async () => [
+        { id: 'p1', titulo: 'Instalar corrimão', status: 'verificado', responsavelId: 'r1', prazo: '2026-06-01', resolvidoEm: '2026-05-20' },
+        { id: 'p2', titulo: 'Pintura final', status: 'aberto', responsavelId: null, prazo: null, resolvidoEm: null },
+      ],
+    };
+    repos.recursos = { findAll: async () => [{ id: 'r1', nome: 'Fulano' }] };
+    db.getMany = async () => [{ execPct: 100 }];
+
+    const res = fakeRes();
+    await h.handleGetDataBookPdf('C1', res);
+
+    assert.equal(res.status, 200);
+    assert.equal(res.headers['Content-Type'], 'application/pdf');
+    assert.match(res.headers['Content-Disposition'], /inline; filename="DataBook_Obra_Teste\.pdf"/);
+    assert.ok(Buffer.isBuffer(res.body));
+    assert.equal(res.body.slice(0, 5).toString('latin1'), '%PDF-');
+    assert.ok(res.body.length > 1000, 'PDF gerado não deveria ficar vazio/truncado');
+  });
+
+  test('obra sem punch list ainda gera PDF (sem quebrar na seção de evidências vazia)', async (t) => {
+    t.after(restore);
+    repos.contracts = { findById: async () => ({ id: 'C1', name: 'Obra Vazia' }) };
+    repos.punchItens = { findAll: async () => [] };
+    repos.recursos = { findAll: async () => [] };
+    db.getMany = async () => [];
+
+    const res = fakeRes();
+    await h.handleGetDataBookPdf('C1', res);
+    assert.equal(res.status, 200);
+    assert.equal(res.body.slice(0, 5).toString('latin1'), '%PDF-');
   });
 });

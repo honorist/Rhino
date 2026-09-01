@@ -126,7 +126,8 @@ window.Caixa = {
             subtitle: `Saldo atual da empresa: ${Store.formatBRL(saldoGeral)}`,
             actions: `
               <input type="file" id="ofxFileInput" accept=".ofx,.OFX" style="display:none;">
-              <button class="btn btn-secondary btn-sm" id="btnImportarOfx" title="Importar extrato bancário OFX" style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('landmark', 15)}Importar OFX</button>`,
+              <button class="btn btn-secondary btn-sm" id="btnImportarOfx" title="Importar extrato bancário OFX" style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('landmark', 15)}Importar OFX</button>
+              <button class="btn btn-secondary btn-sm" id="btnExportarCaixa">Exportar CSV</button>`,
           })
         : '';
 
@@ -602,6 +603,8 @@ window.Caixa = {
         });
       });
 
+      document.getElementById('btnExportarCaixa')?.addEventListener('click', () => this._exportarCSV(filtered));
+
       // ── F5: OFX Import ──
       const ofxInput = document.getElementById('ofxFileInput');
       const ofxBtn = document.getElementById('btnImportarOfx');
@@ -633,6 +636,22 @@ window.Caixa = {
       app.innerHTML =
         '<div class="card"><p class="text-danger">Erro ao carregar caixa. Tente novamente.</p></div>';
     }
+  },
+
+  // Exporta os lançamentos respeitando os filtros atuais (mês/período/tipo/obra).
+  _exportarCSV(filtered) {
+    const rows = [['Data', 'Tipo', 'Descrição', 'Valor', 'Obra']];
+    filtered.forEach((e) => {
+      const contract = e.contractId ? Store.getContractById(e.contractId) : null;
+      rows.push([
+        e.date || '',
+        e.type === 'entrada' ? 'Entrada' : 'Saída',
+        e.description || '',
+        parseFloat(e.value) || 0,
+        contract ? contract.name : '',
+      ]);
+    });
+    window.UIKit.downloadCsv(`caixa_rhino_${new Date().toISOString().slice(0, 10)}.csv`, rows);
   },
 
   _showOfxResultado(data) {

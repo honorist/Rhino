@@ -265,7 +265,7 @@ test('routes/platform.js — push/subscribe deriva o userId de req.user.id', () 
   assert.deepEqual(args, ['BODY', 'U9', 'RES']);
 });
 
-test('routes/platform.js — rotas inline (stream/online) usam o bus', () => {
+test('routes/platform.js — rotas inline (stream/online) usam o bus', async () => {
   const calls = [];
   let onlinePayload = null;
   const router = createRouter();
@@ -278,17 +278,43 @@ test('routes/platform.js — rotas inline (stream/online) usam o bus', () => {
       onlinePayload = body;
     },
   });
-  router.dispatch({
+  // Sem nivelAcessoId (superAdmin/bootstrap) → abas null, sem consultar niveis_acesso
+  // (item 7 do plano async-wandering-kite: bus filtra mutação por permissão).
+  await router.dispatch({
     method: 'GET',
     pathname: '/api/stream',
     req: { user: { id: 'U1', email: 'e@x' } },
     res: 'RES',
   });
   assert.equal(calls[0][0], 'attach');
-  assert.deepEqual(calls[0][3], { userId: 'U1', userEmail: 'e@x' });
+  assert.deepEqual(calls[0][3], { userId: 'U1', userEmail: 'e@x', abas: null });
 
   router.dispatch({ method: 'GET', pathname: '/api/online', res: 'RES' });
   assert.deepEqual(onlinePayload, { online: ['user1'] });
+});
+
+test('routes/platform.js — /api/stream resolve as abas do nível real do usuário', async () => {
+  const repos = require('../db/repos');
+  const origFindById = repos.niveisAcesso.findById;
+  repos.niveisAcesso.findById = async (id) => (id === 'niv1' ? { id: 'niv1', abas: ['#/caixa', '#/contratos'] } : null);
+  try {
+    const calls = [];
+    const router = createRouter();
+    require('../routes/platform')(router, { bus: { attach: (req, res, meta) => calls.push(meta), online: () => [] }, sendJson: () => {} });
+    router.dispatch({
+      method: 'GET',
+      pathname: '/api/stream',
+      req: { user: { id: 'U2', email: 'e2@x', nivelAcessoId: 'niv1' } },
+      res: 'RES',
+    });
+    // dispatch() não devolve o Promise do handler (lib/router.js) — o handler
+    // real fica pendente num microtask por causa do await interno; dá um
+    // "tick" pra deixar ele terminar antes de checar o resultado.
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(calls[0].abas, ['#/caixa', '#/contratos']);
+  } finally {
+    repos.niveisAcesso.findById = origFindById;
+  }
 });
 
 // ─── routes/financeiro.js (caixa, base, sócios, investimentos, contas a ──────
@@ -357,8 +383,8 @@ test('routes/financeiro.js — rotas com :param despacham com (id, ...) na ordem
   const c = {};
   const router = createRouter();
   require('../routes/financeiro')(router, {
-    handleGetCaixa: (res) => {
-      c.getCaixa = [res];
+    handleGetCaixa: (res, query) => {
+      c.getCaixa = [res, query];
     },
     handlePutCaixa: (id, body, res) => {
       c.putCaixa = [id, body, res];
@@ -373,10 +399,12 @@ test('routes/financeiro.js — rotas com :param despacham com (id, ...) na ordem
       c.delInv = [id, res];
     },
   });
-  const base = { req: 'REQ', body: 'BODY', res: 'RES' };
+  const base = { req: 'REQ', body: 'BODY', res: 'RES', parsedUrl: { query: 'Q' } };
 
   router.dispatch({ ...base, method: 'GET', pathname: '/api/caixa' });
-  assert.deepEqual(c.getCaixa, ['RES']);
+  // handleGetCaixa(res, query) — query pra paginação opt-in (item 10 do
+  // plano async-wandering-kite / TODO P1-3).
+  assert.deepEqual(c.getCaixa, ['RES', 'Q']);
 
   router.dispatch({ ...base, method: 'PUT', pathname: '/api/caixa/C1' });
   assert.deepEqual(c.putCaixa, ['C1', 'BODY', 'RES']);
@@ -811,7 +839,7 @@ test('routes/operacao.js — req injetado, sub-recursos aninhados e :param', () 
 
 // ─── routes/contracts.js (contratos, saídas, RDO, aditivos, marcos…) ─────────
 
-test('routes/contracts.js — registra exatamente as 61 rotas de contratos', () => {
+test('routes/contracts.js — registra exatamente as 62 rotas de contratos', () => {
   const router = createRouter();
   require('../routes/contracts')(router, {});
   const rotas = router
@@ -839,6 +867,7 @@ test('routes/contracts.js — registra exatamente as 61 rotas de contratos', () 
       'GET /api/contracts/:id/dre',
       'GET /api/contracts/:id/evm',
       'GET /api/contracts/:id/data-book',
+      'GET /api/contracts/:id/data-book/pdf',
       'GET /api/contracts/:id/ssma',
       'POST /api/contracts/:id/ssma',
       'PUT /api/contracts/:id/ssma/:ocorrId',
@@ -1053,7 +1082,7 @@ test('routes/contracts.js — punch list despacha (id, itemId, fotoId, ...)', ()
 
 // ─── routes/recrutamento.js (solicitações, candidatos, docs/arquivo, sino) ───
 
-test('routes/recrutamento.js — registra exatamente as 14 rotas de recrutamento', () => {
+test('routes/recrutamento.js — registra exatamente as 16 rotas de recrutamento', () => {
   const router = createRouter();
   require('../routes/recrutamento')(router, {});
   const rotas = router
@@ -1065,6 +1094,7 @@ test('routes/recrutamento.js — registra exatamente as 14 rotas de recrutamento
     [
       'DELETE /api/recrutamento/candidatos/:id/documentos/:tipo/arquivo',
       'GET /api/notificacoes',
+      'GET /api/notificacoes/preferencias',
       'GET /api/recrutamento/candidatos/:id/documentos/:tipo/arquivo',
       'GET /api/recrutamento/solicitacoes',
       'GET /api/recrutamento/solicitacoes/:id',
@@ -1077,6 +1107,7 @@ test('routes/recrutamento.js — registra exatamente as 14 rotas de recrutamento
       'POST /api/recrutamento/solicitacoes',
       'POST /api/recrutamento/solicitacoes/:id/cancelar',
       'POST /api/recrutamento/vagas/:id/candidatos',
+      'PUT /api/notificacoes/preferencias',
     ].sort()
   );
 });

@@ -155,9 +155,9 @@ window.Frota = {
             ? `${lista.length} de ${todos.length} veículo${todos.length !== 1 ? 's' : ''}`
             : `${todos.length} veículo${todos.length !== 1 ? 's' : ''}`,
           actions:
-            '<button class="btn btn-primary btn-lg" id="btnNovoVeic">+ Novo Veículo</button>',
+            '<button class="btn btn-secondary" id="btnExportarFrota">Exportar CSV</button> <button class="btn btn-primary btn-lg" id="btnNovoVeic">+ Novo Veículo</button>',
         })
-      : `<div class="page-header"><div><h1 class="page-title">Frota</h1></div><button class="btn btn-primary btn-lg" id="btnNovoVeic">+ Novo Veículo</button></div>`;
+      : `<div class="page-header"><div><h1 class="page-title">Frota</h1></div><button class="btn btn-secondary" id="btnExportarFrota">Exportar CSV</button> <button class="btn btn-primary btn-lg" id="btnNovoVeic">+ Novo Veículo</button></div>`;
 
     const kpisHtml = window.UIKit?.kpiGrid
       ? window.UIKit.kpiGrid([
@@ -332,6 +332,7 @@ window.Frota = {
     });
 
     document.getElementById('btnNovoVeic').addEventListener('click', () => this.showModal());
+    document.getElementById('btnExportarFrota').addEventListener('click', () => this._exportarCSV(lista, contratos));
     // Toda mudança de filtro/busca volta para a página 1: senão o usuário filtra
     // estando na página 5 e cai numa tela vazia.
     document.getElementById('inpBusca').addEventListener('input', (e) => {
@@ -389,6 +390,24 @@ window.Frota = {
     document
       .querySelectorAll('.btn-excluir')
       .forEach((b) => b.addEventListener('click', (e) => this.excluir(e.target.dataset.id)));
+  },
+
+  // Exporta a lista respeitando busca/filtros atuais.
+  _exportarCSV(lista, contratos) {
+    const rows = [['Placa', 'Marca', 'Modelo', 'Status', 'Obra', 'Próxima Manutenção']];
+    lista.forEach((v) => {
+      const contrato = contratos.find((c) => c.id === v.contractId);
+      const prox = this._proximaManut(v);
+      rows.push([
+        v.placa || '',
+        v.marca || '',
+        v.modelo || '',
+        v.status || '',
+        contrato ? contrato.name : '',
+        prox ? prox.label : '',
+      ]);
+    });
+    window.UIKit.downloadCsv(`frota_rhino_${new Date().toISOString().slice(0, 10)}.csv`, rows);
   },
 
   showModal(id) {

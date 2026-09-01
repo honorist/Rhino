@@ -84,6 +84,16 @@
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${path}</svg>`;
   }
 
+  // Dado editável por SQL (ex.: niveis_acesso.icon) pode conter uma chave da
+  // biblioteca ('shield') OU um emoji solto ('🧭') — resolve pro tipo certo
+  // em vez de imprimir a chave crua como texto quando não é emoji.
+  // `esc` é o escapeHtml do chamador (evita depender de ordem de <script>).
+  function rhIconOrText(name, size, esc) {
+    if (!name) return '';
+    if (PATHS[name]) return rhIcon(name, size);
+    return esc ? esc(name) : name;
+  }
+
   // Status pill helpers — substitui emojis 🔴 🟢 ⚠️
   function rhStatusPill(tone, label) {
     const cls = ({
@@ -165,6 +175,7 @@
   }
 
   window.rhIcon = rhIcon;
+  window.rhIconOrText = rhIconOrText;
   window.rhStatusPill = rhStatusPill;
   window.rhInitTheme = rhInitTheme;
   window.rhInitMobile = rhInitMobile;

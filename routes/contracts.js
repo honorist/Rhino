@@ -79,8 +79,9 @@ module.exports = function registerContracts(router, deps) {
   router.put('/api/contracts/:id/ssma/:ocorrId',    (ctx) => deps.handlePutSsma(ctx.params[0], ctx.params[1], ctx.body, ctx.res));
   router.delete('/api/contracts/:id/ssma/:ocorrId', (ctx) => deps.handleDeleteSsma(ctx.params[0], ctx.params[1], ctx.res));
 
-  // ── Data book / prontidão de comissionamento (item 12) ──
+  // ── Data book / prontidão de comissionamento (item 12; PDF = F20) ──
   router.get('/api/contracts/:id/data-book',        (ctx) => deps.handleGetDataBook(ctx.params[0], ctx.res));
+  router.get('/api/contracts/:id/data-book/pdf',    (ctx) => deps.handleGetDataBookPdf(ctx.params[0], ctx.res));
 
   // ── Aditivos ──
   router.post('/api/contracts/:id/aditivos',              (ctx) => deps.handlePostAditivo(ctx.params[0], ctx.body, ctx.res));

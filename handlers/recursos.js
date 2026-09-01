@@ -46,6 +46,7 @@ async function handlePostRecurso(body, res) {
       salario: money.parse(body.salario), elegivelVale: !!body.elegivelVale, cnh: body.cnh || '', pis: body.pis || '',
       dataDesligamento: body.dataDesligamento || null, motivoDesligamento: body.motivoDesligamento || '',
       obsDesligamento: body.obsDesligamento || '', notas: body.notas || '', rdoCategoria: body.rdoCategoria || '',
+      alocacaoAtual: body.alocacaoAtual ? JSON.stringify(body.alocacaoAtual) : null,
       folgas: '[]', documentos: '[]', historicoAlocacoes: '[]',
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     };

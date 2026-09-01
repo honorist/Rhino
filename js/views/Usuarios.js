@@ -54,7 +54,7 @@ const Usuarios = {
                 </td>
                 <td>${escapeHtml(u.name || '—')}</td>
                 <td>
-                  ${nivel ? `<span style="color:${nivel.cor};font-weight:600;">${nivel.icon} ${nivel.label}</span>` : '<span style="color:var(--color-text-muted);">sem nível</span>'}
+                  ${nivel ? `<span style="display:inline-flex;align-items:center;gap:6px;color:${nivel.cor};font-weight:600;">${window.rhIconOrText(nivel.icon, 15, escapeHtml)} ${escapeHtml(nivel.label)}</span>` : '<span style="color:var(--color-text-muted);">sem nível</span>'}
                 </td>
                 <td>${u.isActive ? '<span style="color:#10b981;">Ativo</span>' : '<span style="color:#aaa;">Desativado</span>'}</td>
                 <td>${u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString('pt-BR') : '—'}</td>
@@ -121,7 +121,7 @@ const Usuarios = {
               <label class="form-label">Nível de acesso</label>
               <select class="form-control" name="nivelAcessoId">
                 <option value="">— sem nível (sem restrição) —</option>
-                ${niveis.map(n => `<option value="${n.id}" ${user?.nivelAcessoId === n.id ? 'selected' : ''}>${n.icon} ${n.label}</option>`).join('')}
+                ${niveis.map(n => `<option value="${n.id}" ${user?.nivelAcessoId === n.id ? 'selected' : ''}>${escapeHtml(n.label)}</option>`).join('')}
               </select>
             </div>
             ${user ? `

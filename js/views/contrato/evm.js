@@ -7,8 +7,9 @@
 
   // Índices (SPI/CPI) com 2 casas, em pt-BR.
   const _idx2 = (v) => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  // Verde ≥ 1 (bom), vermelho < 1 (atenção).
-  const _corIdx = (v) => (Number(v) >= 1 ? 'var(--color-success)' : 'var(--color-danger)');
+  // Verde ≥ 1 (bom), vermelho < 1 (atenção). semDados: nem verde nem vermelho —
+  // sem etapa lançada não há "atraso"/"estouro" pra sinalizar, é cor neutra.
+  const _corIdx = (v, semDados) => (semDados ? 'var(--color-text-muted)' : Number(v) >= 1 ? 'var(--color-success)' : 'var(--color-danger)');
 
   Object.assign(window.ContratoDetail, {
 
@@ -64,17 +65,20 @@
       `;
 
       // Índices de desempenho em destaque (SPI = prazo, CPI = custo).
+      // Sem etapa lançada no cronograma não há o que avaliar — mostra "sem
+      // dados" em vez de 0,00 vermelho (sugeriria atraso/estouro que não existe).
+      const semDadosEvm = porAtividade.length === 0;
       const idxCards = `
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px;">
-          <div class="card" style="padding:var(--sp-md);border-left:4px solid ${_corIdx(spi)};">
+          <div class="card" style="padding:var(--sp-md);border-left:4px solid ${_corIdx(spi, semDadosEvm)};">
             <div class="text-muted font-sm" title="Schedule Performance Index — EV ÷ PV. ≥1 adiantado, <1 atrasado.">SPI — desempenho de prazo</div>
-            <div style="font-weight:800;font-size:1.6em;color:${_corIdx(spi)};">${_idx2(spi)}</div>
-            <div class="text-muted font-sm">${spi >= 1 ? 'no prazo / adiantado' : 'atrasado'}</div>
+            <div style="font-weight:800;font-size:1.6em;color:${_corIdx(spi, semDadosEvm)};">${semDadosEvm ? '—' : _idx2(spi)}</div>
+            <div class="text-muted font-sm">${semDadosEvm ? 'sem etapas lançadas' : spi >= 1 ? 'no prazo / adiantado' : 'atrasado'}</div>
           </div>
-          <div class="card" style="padding:var(--sp-md);border-left:4px solid ${_corIdx(cpi)};">
+          <div class="card" style="padding:var(--sp-md);border-left:4px solid ${_corIdx(cpi, semDadosEvm)};">
             <div class="text-muted font-sm" title="Cost Performance Index — EV ÷ AC. ≥1 dentro do custo, <1 estourado.">CPI — desempenho de custo</div>
-            <div style="font-weight:800;font-size:1.6em;color:${_corIdx(cpi)};">${_idx2(cpi)}</div>
-            <div class="text-muted font-sm">${cpi >= 1 ? 'dentro do custo' : 'acima do custo'}</div>
+            <div style="font-weight:800;font-size:1.6em;color:${_corIdx(cpi, semDadosEvm)};">${semDadosEvm ? '—' : _idx2(cpi)}</div>
+            <div class="text-muted font-sm">${semDadosEvm ? 'sem etapas lançadas' : cpi >= 1 ? 'dentro do custo' : 'acima do custo'}</div>
           </div>
         </div>
       `;

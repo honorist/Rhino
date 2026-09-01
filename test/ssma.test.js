@@ -9,33 +9,33 @@ const assert = require('node:assert/strict');
 const ssma = require('../lib/ssma');
 
 // ── BR-SSMA-001: Taxa de Frequência ─────────────────────────────────────────
-test('calcTF: acidentes com afastamento por milhão de HHT', () => {
+test('BR-SSMA-001: calcTF: acidentes com afastamento por milhão de HHT', () => {
   // 1 acidente / 100.000 HHT → 10 por milhão.
   assert.equal(ssma.calcTF(1, 100000), 10);
   assert.equal(ssma.calcTF(3, 600000), 5);
 });
 
-test('calcTF: HHT 0 ou negativo devolve 0 (sem base para dividir)', () => {
+test('BR-SSMA-001: calcTF: HHT 0 ou negativo devolve 0 (sem base para dividir)', () => {
   assert.equal(ssma.calcTF(2, 0), 0);
   assert.equal(ssma.calcTF(2, -50), 0);
 });
 
-test('calcTF: arredonda a 2 casas', () => {
+test('BR-SSMA-001: calcTF: arredonda a 2 casas', () => {
   // 1 * 1e6 / 3 = 333333.333… → 333333.33
   assert.equal(ssma.calcTF(1, 3), 333333.33);
 });
 
 // ── BR-SSMA-002: Taxa de Gravidade ──────────────────────────────────────────
-test('calcTG: dias perdidos por milhão de HHT', () => {
+test('BR-SSMA-002: calcTG: dias perdidos por milhão de HHT', () => {
   assert.equal(ssma.calcTG(5, 100000), 50);
 });
 
-test('calcTG: HHT 0 devolve 0', () => {
+test('BR-SSMA-002: calcTG: HHT 0 devolve 0', () => {
   assert.equal(ssma.calcTG(10, 0), 0);
 });
 
 // ── BR-SSMA-003: Resumo da obra ─────────────────────────────────────────────
-test('resumo: conta total, por tipo, por status, afastamento, dias e taxas', () => {
+test('BR-SSMA-003: resumo: conta total, por tipo, por status, afastamento, dias e taxas', () => {
   const ocorrencias = [
     { tipo: 'acidente', status: 'encerrado', comAfastamento: true, diasPerdidos: 5 },
     { tipo: 'desvio', status: 'aberto', comAfastamento: false, diasPerdidos: 0 },
@@ -57,7 +57,7 @@ test('resumo: conta total, por tipo, por status, afastamento, dias e taxas', () 
   assert.equal(r.tg, 50);
 });
 
-test('resumo: sem HHT, taxas ficam 0 mas contagens continuam', () => {
+test('BR-SSMA-003: resumo: sem HHT, taxas ficam 0 mas contagens continuam', () => {
   const r = ssma.resumo(
     [{ tipo: 'acidente', status: 'aberto', comAfastamento: true, diasPerdidos: 3 }],
     0
@@ -69,7 +69,7 @@ test('resumo: sem HHT, taxas ficam 0 mas contagens continuam', () => {
   assert.equal(r.tg, 0);
 });
 
-test('resumo: entrada vazia/ inválida devolve zeros', () => {
+test('BR-SSMA-003: resumo: entrada vazia/ inválida devolve zeros', () => {
   const r = ssma.resumo(null, 1000);
   assert.equal(r.total, 0);
   assert.equal(r.comAfastamento, 0);

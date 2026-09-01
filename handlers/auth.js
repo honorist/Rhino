@@ -38,6 +38,10 @@ async function handleLogin(req, body, res) {
     // Sucesso — devolve o slot consumido
     await pgRateLimit.refund(rlKey);
 
+    // Migração orgânica pro bcrypt nativo (M-05): regrava o hash com a lib
+    // atual a cada login bem-sucedido. Nunca bloqueia o login se falhar.
+    auth.rehashPassword(user.id, password).catch((e) => console.warn('[auth] rehash falhou:', e.message));
+
     const session = await auth.createSession(user.id);
     auth.setSessionCookie(res, session.id, session.expiresAt);
     await auth.bumpLastLogin(user.id);

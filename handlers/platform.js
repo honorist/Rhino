@@ -90,6 +90,10 @@ async function handleGetAudit(req, query, res) {
       errorsOnly: query.errors === '1',
       limit,
       offset,
+      // Cursor (seek) — Anterior/Próxima do frontend mandam isto em vez de
+      // offset depois da 1ª página (P1-4: OFFSET fica caro em tabela grande).
+      afterTs: query.afterTs || null,
+      afterId: query.afterId || null,
     });
     // Mascara PII/sensíveis ANTES de sair do servidor (nunca em claro no cliente).
     data.rows = (data.rows || []).map((r) => ({

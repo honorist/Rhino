@@ -61,7 +61,7 @@ window.ContasPagar = {
             title: 'Contas a Pagar',
             subtitle: `${pendentes.length} pendente${pendentes.length !== 1 ? 's' : ''} · ${statusGeral.icone} ${statusGeral.texto} (${pctOk}% em dia)`,
             actions:
-              '<button class="btn btn-primary btn-lg" id="btnNovaConta">+ Nova Conta</button>',
+              '<button class="btn btn-secondary" id="btnExportarCP">Exportar CSV</button> <button class="btn btn-primary btn-lg" id="btnNovaConta">+ Nova Conta</button>',
           })
         : '';
 
@@ -283,6 +283,7 @@ window.ContasPagar = {
       app.innerHTML = html;
 
       document.getElementById('btnNovaConta').addEventListener('click', () => this.showModal());
+      document.getElementById('btnExportarCP').addEventListener('click', () => this._exportarCSV(filtradas));
       document.querySelectorAll('[data-chips="cp-status"] .rh-chip').forEach((b) =>
         b.addEventListener('click', () => {
           this.filtroStatus = b.dataset.value || 'todos';
@@ -326,6 +327,23 @@ window.ContasPagar = {
       app.innerHTML =
         '<div class="card"><p class="text-danger">Erro ao carregar contas a pagar. Tente novamente.</p></div>';
     }
+  },
+
+  // Exporta a lista respeitando o filtro de status atual.
+  _exportarCSV(lista) {
+    const rows = [['Descrição', 'Fornecedor', 'NF', 'Vencimento', 'Valor', 'Status']];
+    lista.forEach((c) => {
+      const fornecedor = c.fornecedorId ? (Store.state.fornecedores || []).find((f) => f.id === c.fornecedorId) : null;
+      rows.push([
+        c.descricao || '',
+        fornecedor ? fornecedor.nome : '',
+        c.numeroNF || '',
+        c.dataVencimento || '',
+        parseFloat(c.valor) || 0,
+        c.status === 'pago' ? 'Pago' : 'Pendente',
+      ]);
+    });
+    window.UIKit.downloadCsv(`contas_pagar_rhino_${new Date().toISOString().slice(0, 10)}.csv`, rows);
   },
 
   showDetail(id) {

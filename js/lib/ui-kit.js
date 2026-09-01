@@ -14,6 +14,7 @@
  *   UIKit.persistFilter(key, getter, setter) → wire transparente
  *   UIKit.sortable(tableEl, opts)        → ativa ordenação por header
  *   UIKit.density.set('compact'|'cozy'|'comfortable')
+ *   UIKit.downloadCsv(filename, rows)    → baixa rows (array de arrays) como CSV
  */
 (function () {
   'use strict';
@@ -640,6 +641,40 @@
   }
 
   // ─────────────────────────────────────────────
+  // CSV export — mesmo padrão já usado em RDOs.js/Contratos.js/CobrancaMensal.js,
+  // centralizado aqui pra novas telas não duplicar a escapagem/BOM.
+  // ─────────────────────────────────────────────
+
+  /**
+   * Baixa `rows` (array de arrays) como CSV (`;`, CRLF, BOM UTF-8 pro Excel).
+   * Célula com aspas/`;`/quebra de linha é envolvida em aspas (aspas internas
+   * dobradas). `cell` nulo/undefined vira string vazia.
+   * @param {string} filename
+   * @param {Array<Array<*>>} rows
+   */
+  function downloadCsv(filename, rows) {
+    const csv = rows
+      .map((r) =>
+        r
+          .map((cell) => {
+            const s = String(cell ?? '');
+            return /[",;\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+          })
+          .join(';')
+      )
+      .join('\r\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ─────────────────────────────────────────────
   // EXPORT
   // ─────────────────────────────────────────────
   window.UIKit = {
@@ -650,5 +685,7 @@
     pageHeader, kpiGrid, toolbar, chips, kanban, viewToggle,
     // Paginação (Wave 2) — ver test/paginacao.test.js
     paginate, pageWindow, pagination, wirePagination, PAGE_SIZES, DEFAULT_PAGE_SIZE,
+    // Export
+    downloadCsv,
   };
 })();

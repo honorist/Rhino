@@ -403,7 +403,7 @@ window.Configuracao = {
       .map(
         (n, i) => `
       <th scope="col" colspan="2" style="border-bottom:3px solid ${corOf(n)};${i > 0 ? 'border-left:2px solid var(--color-border);' : ''}">
-        <span style="font-size:15px;margin-right:4px;">${escapeHtml(n.icon || '')}</span><span style="color:${corOf(n)};">${escapeHtml(n.label)}</span>
+        <span style="display:inline-flex;vertical-align:-2px;margin-right:4px;">${window.rhIconOrText(n.icon, 15, escapeHtml)}</span><span style="color:${corOf(n)};">${escapeHtml(n.label)}</span>
       </th>`
       )
       .join('');

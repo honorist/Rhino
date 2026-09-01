@@ -2,13 +2,28 @@ window.Recursos = {
   busca: '',
   filtroStatus: '',
   filtroProfissoes: [],
+  // Drill-down do Dashboard (#/recursos?docs=vencidos).
+  filtroDocsVencidos: false,
   _miniMap: null,
   // Paginação (UIKit.paginate). Antes a tela jogava o resultado filtrado INTEIRO
   // no DOM — com o crescimento do cadastro isso trava justamente a tela mais usada.
   _page: 1,
   _pageSize: 25,
 
-  async render() {
+  // Mesma regra do badge "docs !" na linha da tabela (mais abaixo).
+  _temDocVencido(r) {
+    if (r.status !== 'funcionario') return false;
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    return (r.documentos || []).some(
+      (d) =>
+        d.dataVencimento &&
+        Math.ceil((new Date(d.dataVencimento + 'T12:00:00') - hoje) / 86400000) < 0
+    );
+  },
+
+  async render(params) {
+    if (params?.query?.docs === 'vencidos') this.filtroDocsVencidos = true;
     const app = document.getElementById('app');
     app.innerHTML = '<div class="loading-spinner">Carregando...</div>';
     try {
@@ -206,6 +221,7 @@ window.Recursos = {
       this.busca = '';
       this.filtroStatus = '';
       this.filtroProfissoes = [];
+      this.filtroDocsVencidos = false;
       this._page = 1;
       this.render();
     });
@@ -315,7 +331,8 @@ window.Recursos = {
     return !!(
       (this.busca || '').trim() ||
       this.filtroStatus ||
-      (this.filtroProfissoes || []).length
+      (this.filtroProfissoes || []).length ||
+      this.filtroDocsVencidos
     );
   },
 
@@ -331,7 +348,8 @@ window.Recursos = {
         (r.endereco || '').toLowerCase().includes(termo);
       const matchStatus = !this.filtroStatus || r.status === this.filtroStatus;
       const matchCargo = sel.length === 0 || sel.includes(this._normalizeCargo(r.profissao));
-      return matchBusca && matchStatus && matchCargo;
+      const matchDocs = !this.filtroDocsVencidos || this._temDocVencido(r);
+      return matchBusca && matchStatus && matchCargo && matchDocs;
     });
   },
 

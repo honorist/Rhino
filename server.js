@@ -46,6 +46,8 @@ if (!process.env.DATABASE_URL) {
 }
 const repos = require('./db/repos');
 const db = require('./db');
+const { generateId } = require('./lib/id');
+const { checarAlertasDashboard } = require('./lib/dashboard-alertas');
 const piiCrypto = require('./lib/crypto-pii'); // cifra CPF/documentos em repouso (LGPD)
 const auth = require('./lib/auth');
 const email = require('./lib/email');
@@ -53,6 +55,7 @@ const queue = require('./lib/queue');
 const rateLimit = require('./lib/rate-limit');
 const pgRateLimit = require('./lib/pg-rate-limit');
 const audit = require('./lib/audit');
+const { buildCsp } = require('./lib/csp');
 const caixaHandlers = require('./handlers/caixa'); // domínio caixa extraído (desmembramento server.js)
 const sociosHandlers = require('./handlers/socios'); // domínio sócios extraído
 const baseHandlers = require('./handlers/base'); // domínio BASE (CRUD) extraído
@@ -582,22 +585,8 @@ document.addEventListener("visibilitychange",function(){
 })();`;
 }
 
-// CSP — fonte única de verdade. Só o script-src varia entre respostas:
-// o HTML da SPA usa nonce (bootstrap inline); as demais respostas não.
-// Centralizar aqui evita o bug recorrente de adicionar um domínio externo
-// em apenas um dos lugares (causa do fix v1.2.27 — faltava OSRM).
-function buildCsp(scriptSrc) {
-  return [
-    "default-src 'self'",
-    scriptSrc,
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
-    "font-src 'self' https://fonts.gstatic.com",
-    "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.openstreetmap.org",
-    "connect-src 'self' https://*.openstreetmap.org https://nominatim.openstreetmap.org https://router.project-osrm.org https://cdn.jsdelivr.net",
-    "worker-src 'self' blob:",
-    "frame-ancestors 'none'",
-  ].join('; ');
-}
+// CSP — ver lib/csp.js (fonte única de verdade, reusada por handlers que
+// precisam relaxar frame-ancestors numa resposta específica).
 
 function _serveHtmlWithBootstrap(pathname, res) {
   const filename = pathname === '/' || pathname === '' ? '/index.html' : pathname;
@@ -1750,6 +1739,20 @@ async function bootstrap() {
       .then((n) => n > 0 && console.log(`[pg-rate-limit] cleanup inicial: ${n} rows`))
       .catch(() => {});
     setInterval(() => pgRateLimit.cleanup(7).catch(() => {}), 24 * 60 * 60 * 1000);
+
+    // Alertas do dashboard operacional (doc vencido, manutenção atrasada,
+    // revisão de frota vencida) — notificação in-app (sino), não depende de
+    // push/VAPID. lib/dashboard-alertas.js já deduplica por dia.
+    checarAlertasDashboard({ db, repos, generateId }).catch((e) =>
+      console.warn('[dashboard-alertas] falha na checagem inicial:', e.message)
+    );
+    setInterval(
+      () =>
+        checarAlertasDashboard({ db, repos, generateId }).catch((e) =>
+          console.warn('[dashboard-alertas] falha na checagem:', e.message)
+        ),
+      60 * 60 * 1000
+    );
 
     // Push notifications — verifica contratos e contas a pagar a cada hora
     if (_webPush) {

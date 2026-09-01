@@ -92,12 +92,13 @@ window.SolicitacoesCompra = {
     const filtroAtivo = !!(this.filtroStatus || this.filtroContrato);
     const headerHtml = window.UIKit?.pageHeader ? window.UIKit.pageHeader({
       title: 'Solicitações de Compra',
-      subtitle: `${todas.length} solicitação${todas.length !== 1 ? 'ões' : ''}${podeAvaliar ? ' · você pode avaliar' : podeAprovar ? ' · você pode aprovar' : ''}`,
+      subtitle: `${todas.length} ${todas.length === 1 ? 'solicitação' : 'solicitações'}${podeAvaliar ? ' · você pode avaliar' : podeAprovar ? ' · você pode aprovar' : ''}`,
       actions: `
         ${window.UIKit?.viewToggle ? window.UIKit.viewToggle({ current: this.view, options: [
           { value: 'list',   label: '☰ Lista' },
           { value: 'kanban', label: '▦ Kanban' },
         ]}) : ''}
+        <button class="btn btn-secondary" id="btnExportarSC">Exportar CSV</button>
         <button class="btn btn-primary btn-lg" id="btnNovaSolicitacao">+ Nova Solicitação</button>`,
     }) : '';
 
@@ -256,6 +257,7 @@ window.SolicitacoesCompra = {
     app.innerHTML = html;
 
     document.getElementById('btnNovaSolicitacao').addEventListener('click', () => this.showModalCriar());
+    document.getElementById('btnExportarSC').addEventListener('click', () => this._exportarCSV(lista, contratos));
     // Mudança de filtro volta para a página 1: senão o usuário filtra estando
     // na página 4 e cai numa tela vazia.
     document.getElementById('filtroStatus')?.addEventListener('change', e => { this.filtroStatus = e.target.value; this._page = 1; this._draw(); });
@@ -284,6 +286,24 @@ window.SolicitacoesCompra = {
     document.querySelectorAll('.btn-rejeitar').forEach(b => b.addEventListener('click', e => this.rejeitar(e.target.dataset.id)));
     document.querySelectorAll('.btn-comprar').forEach(b => b.addEventListener('click', e => this.showModalComprar(e.target.dataset.id)));
     document.querySelectorAll('.btn-receber').forEach(b => b.addEventListener('click', e => this.showModalReceber(e.target.dataset.id)));
+  },
+
+  // Exporta a lista respeitando o filtro atual (etapa/contrato).
+  _exportarCSV(lista, contratos) {
+    const rows = [['Data', 'Solicitante', 'Destino', 'Itens', 'Valor', 'Etapa']];
+    lista.forEach((s) => {
+      const contrato = contratos.find((c) => c.id === s.contractId);
+      const itens = Array.isArray(s.itens) ? s.itens : (s.itens ? JSON.parse(s.itens) : []);
+      rows.push([
+        s.createdAt ? new Date(s.createdAt).toLocaleDateString('pt-BR') : '',
+        s.solicitanteNome || '',
+        contrato ? contrato.name : 'Sede',
+        itens.length,
+        parseFloat(s.valorTotal) || 0,
+        this._etapaCfg(s.status).label,
+      ]);
+    });
+    window.UIKit.downloadCsv(`solicitacoes_compra_rhino_${new Date().toISOString().slice(0, 10)}.csv`, rows);
   },
 
   // ── 1ª etapa: ENCARREGADO cria/edita ───────────────────────────────────

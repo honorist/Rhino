@@ -15,6 +15,7 @@
               <h3 class="card-title"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('check-square', 18)}Data book / Prontidão de comissionamento</span></h3>
               <span class="text-muted font-sm">A obra está pronta para a entrega? Punch list verificada e avanço físico concluído.</span>
             </div>
+            <a class="btn btn-secondary btn-sm" id="btnBaixarDatabookPdf" href="/api/contracts/${escapeHtml(contract.id)}/data-book/pdf" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('download', 15)}Baixar PDF</a>
           </div>
           <div id="databookConteudo" style="padding:var(--sp-md);">
             <div class="text-muted" style="text-align:center;padding:var(--sp-lg);">Avaliando prontidão…</div>
@@ -82,8 +83,6 @@
                 ${pendencias.map((t) => `<li class="font-sm" style="margin:2px 0;">${escapeHtml(t)}</li>`).join('')}
               </ul>
             </div>`}
-
-        <p class="text-muted font-sm" style="margin-top:var(--sp-md);"><span style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('info', 13)}A geração do PDF do data book (capa, índice e anexos) será adicionada em uma próxima fase.</span></p>
       `;
     },
 

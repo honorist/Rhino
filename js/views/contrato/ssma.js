@@ -135,7 +135,10 @@
               ${SSMA_STATUSES.map(([v, l]) => `<option value="${v}" ${filtro === v ? 'selected' : ''}>${escapeHtml(l)}</option>`).join('')}
             </select>
           </div>
-          ${podeEditar ? `<button class="btn btn-primary btn-sm" id="btnNovoSsma">+ Nova ocorrência</button>` : ''}
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary btn-sm" id="btnExportarSsma">Exportar CSV</button>
+            ${podeEditar ? `<button class="btn btn-primary btn-sm" id="btnNovoSsma">+ Nova ocorrência</button>` : ''}
+          </div>
         </div>
       `;
 
@@ -227,6 +230,9 @@
       const btnNovo = document.getElementById('btnNovoSsma');
       if (btnNovo) btnNovo.addEventListener('click', () => this._showModalSsma(contract, null));
 
+      const btnExportar = document.getElementById('btnExportarSsma');
+      if (btnExportar) btnExportar.addEventListener('click', () => this._exportarSsmaCSV(contract));
+
       document.querySelectorAll('[data-ssma-edit]').forEach((b) => {
         b.addEventListener('click', () => {
           const o = (this._ssmaCache || []).find((x) => x.id === b.getAttribute('data-ssma-edit'));
@@ -263,6 +269,33 @@
           } catch (e) { window.showToast(e.message, 'error'); }
         });
       });
+    },
+
+    // Exporta a lista respeitando o filtro de status atual.
+    _exportarSsmaCSV(contract) {
+      const recursos = Store.state.recursos || [];
+      const filtro = this._ssmaFiltro || 'todos';
+      const cache = this._ssmaCache || [];
+      const lista = filtro === 'todos' ? cache : cache.filter((o) => o.status === filtro);
+      const TIPO_LABEL = { desvio: 'Desvio', quase_acidente: 'Quase-acidente', incidente: 'Incidente', acidente: 'Acidente' };
+      const GRAV_LABEL = { baixa: 'Baixa', media: 'Média', alta: 'Alta', critica: 'Crítica' };
+      const STATUS_LABEL = { aberto: 'Aberto', em_investigacao: 'Em investigação', encerrado: 'Encerrado' };
+      const rows = [['Tipo', 'Gravidade', 'Descrição', 'Data', 'Responsável', 'Prazo', 'Status', 'Com afastamento', 'Dias perdidos']];
+      lista.forEach((o) => {
+        const resp = recursos.find((rr) => rr.id === o.responsavelId);
+        rows.push([
+          TIPO_LABEL[o.tipo] || o.tipo || '',
+          GRAV_LABEL[o.gravidade] || o.gravidade || '',
+          o.descricao || '',
+          o.data || '',
+          resp?.nome || '',
+          o.prazo || '',
+          STATUS_LABEL[o.status] || o.status || '',
+          o.comAfastamento ? 'Sim' : 'Não',
+          o.diasPerdidos || 0,
+        ]);
+      });
+      window.UIKit.downloadCsv(`ssma_${contract.name || contract.id}_${new Date().toISOString().slice(0, 10)}.csv`, rows);
     },
 
     _showModalSsma(contract, item) {

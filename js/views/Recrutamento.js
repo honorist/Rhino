@@ -2,15 +2,28 @@
 // Recrutamento — solicitações de contratação (US-05 a US-09)
 
 window.Recrutamento = {
-  _store: (window.UIKit?.persistFilter?.('recrut', { filtro: 'todas', contrato: '', view: 'list' })) || null,
+  _store: (window.UIKit?.persistFilter?.('recrut', { filtro: 'todas', contrato: '', filtroParados: false, view: 'list' })) || null,
   get _filtro()      { return this._store?.get('filtro')   ?? 'todas'; },
   set _filtro(v)     { this._store?.set('filtro', v); },
   get _contrato()    { return this._store?.get('contrato') ?? ''; },
   set _contrato(v)   { this._store?.set('contrato', v); },
+  // Drill-down do Dashboard (#/recrutamento?filtro=parados) — candidato
+  // "parado" é contatado/interessado sem atualização há mais de 7 dias
+  // (mesma regra de handlers/dashboards.js, candidatosParados). É um filtro
+  // client-side (não um status de solicitação), por isso fica separado de _filtro.
+  get _filtroParados()  { return this._store?.get('filtroParados') ?? false; },
+  set _filtroParados(v) { this._store?.set('filtroParados', v); },
   get _view()        { return this._store?.get('view')     ?? 'list'; },
   set _view(v)       { this._store?.set('view', v); },
 
-  async render() {
+  _candidatoParado(c) {
+    if (!['contatado', 'interessado'].includes(c.status)) return false;
+    if (!c.updatedAt) return false;
+    return Date.now() - new Date(c.updatedAt).getTime() > 7 * 24 * 60 * 60 * 1000;
+  },
+
+  async render(params) {
+    if (params?.query?.filtro === 'parados') this._filtroParados = true;
     const app = document.getElementById('app');
     app.innerHTML = '<div class="loading-spinner">Carregando...</div>';
     try {
@@ -35,12 +48,17 @@ window.Recrutamento = {
     const app = document.getElementById('app');
     // Filtro adicional por contrato (cliente-side)
     if (this._contrato) lista = lista.filter(s => s.contractId === this._contrato);
+    // Filtro "candidatos parados" (drill-down do Dashboard) — só solicitações
+    // que têm pelo menos 1 candidato parado em alguma vaga.
+    if (this._filtroParados) {
+      lista = lista.filter(s => (s.vagas || []).some(v => (v.candidatos || []).some(c => this._candidatoParado(c))));
+    }
     const total      = lista.length;
     const abertas    = lista.filter(s => s.status === 'aberta').length;
     const prenchidas = lista.filter(s => s.status === 'preenchida').length;
     const canceladas = lista.filter(s => s.status === 'cancelada').length;
     const contratos  = (window.Store?.state?.contracts || []).filter(c => c.status === 'ativo' || c.status === 'pausado');
-    const filtroAtivo = this._filtro !== 'todas' || !!this._contrato;
+    const filtroAtivo = this._filtro !== 'todas' || !!this._contrato || this._filtroParados;
 
     const headerHtml = window.UIKit?.pageHeader ? window.UIKit.pageHeader({
       title: 'Recrutamento',
@@ -144,7 +162,7 @@ window.Recrutamento = {
       this._contrato = e.target.value; this._load();
     });
     document.getElementById('btnLimparRecrut')?.addEventListener('click', () => {
-      this._filtro = 'todas'; this._contrato = ''; this._load();
+      this._filtro = 'todas'; this._contrato = ''; this._filtroParados = false; this._load();
     });
     document.querySelectorAll('.ui-view-toggle button[data-view]').forEach(b => {
       b.addEventListener('click', () => { this._view = b.dataset.view; this._load(); });

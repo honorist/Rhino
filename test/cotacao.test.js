@@ -24,7 +24,7 @@ const PRECOS = [
 ];
 
 // ── BR-COT-001: mapa (matriz item×fornecedor com subtotal) ───────────────────
-test('mapa: colunas na ordem de aparição e subtotal = qtd × preço', () => {
+test('BR-COT-001: mapa: colunas na ordem de aparição e subtotal = qtd × preço', () => {
   const m = cot.mapa(ITENS, PRECOS);
   assert.deepEqual(m.fornecedorIds, ['fA', 'fB', 'fC']);
   assert.equal(m.linhas.length, 2);
@@ -42,7 +42,7 @@ test('mapa: colunas na ordem de aparição e subtotal = qtd × preço', () => {
   assert.equal(l2.celulas.fC.subtotal, 1100); // 50 × 22
 });
 
-test('mapa: célula com preço 0 é ignorada (não vira coluna nem cél.)', () => {
+test('BR-COT-001: mapa: célula com preço 0 é ignorada (não vira coluna nem cél.)', () => {
   const m = cot.mapa(
     [{ id: 'i1', descricao: 'x', quantidade: 5 }],
     [
@@ -56,7 +56,7 @@ test('mapa: célula com preço 0 é ignorada (não vira coluna nem cél.)', () =
 });
 
 // ── BR-COT-002: melhorPorItem (vencedor = menor preço > 0) ───────────────────
-test('melhorPorItem: elege o menor preço positivo por item', () => {
+test('BR-COT-002: melhorPorItem: elege o menor preço positivo por item', () => {
   const best = cot.melhorPorItem(ITENS, PRECOS);
   const b1 = best.find((b) => b.itemId === 'i1');
   const b2 = best.find((b) => b.itemId === 'i2');
@@ -68,7 +68,7 @@ test('melhorPorItem: elege o menor preço positivo por item', () => {
   assert.equal(b2.subtotal, 900);
 });
 
-test('melhorPorItem: item sem preço válido não tem vencedor', () => {
+test('BR-COT-002: melhorPorItem: item sem preço válido não tem vencedor', () => {
   const best = cot.melhorPorItem(
     [{ id: 'i9', descricao: 'sem cotação', quantidade: 3 }],
     [{ itemId: 'i9', fornecedorId: 'fA', precoUnit: 0 }] // só preço 0 → inválido
@@ -78,7 +78,7 @@ test('melhorPorItem: item sem preço válido não tem vencedor', () => {
   assert.equal(best[0].subtotal, 0);
 });
 
-test('melhorPorItem: empate mantém o primeiro fornecedor', () => {
+test('BR-COT-002: melhorPorItem: empate mantém o primeiro fornecedor', () => {
   const best = cot.melhorPorItem(
     [{ id: 'i1', descricao: 'x', quantidade: 1 }],
     [
@@ -90,7 +90,7 @@ test('melhorPorItem: empate mantém o primeiro fornecedor', () => {
 });
 
 // ── BR-COT-003: totaisPorFornecedor ──────────────────────────────────────────
-test('totaisPorFornecedor: soma subtotais e conta itens, ordenado asc', () => {
+test('BR-COT-003: totaisPorFornecedor: soma subtotais e conta itens, ordenado asc', () => {
   const tot = cot.totaisPorFornecedor(ITENS, PRECOS);
   // fA = 1000+1000 = 2000; fB = 1200+900 = 2100; fC = 1100
   const byId = Object.fromEntries(tot.map((t) => [t.fornecedorId, t]));
@@ -104,7 +104,7 @@ test('totaisPorFornecedor: soma subtotais e conta itens, ordenado asc', () => {
 });
 
 // ── BR-COT-004: economia (média − menor) × qtd ───────────────────────────────
-test('economia: (média − menor) por item e total', () => {
+test('BR-COT-004: economia: (média − menor) por item e total', () => {
   const e = cot.economia(ITENS, PRECOS);
   const e1 = e.itens.find((x) => x.itemId === 'i1');
   const e2 = e.itens.find((x) => x.itemId === 'i2');
@@ -120,7 +120,7 @@ test('economia: (média − menor) por item e total', () => {
   assert.equal(e.total, 200); // 100 + 100
 });
 
-test('economia: item com um único preço válido economiza 0', () => {
+test('BR-COT-004: economia: item com um único preço válido economiza 0', () => {
   const e = cot.economia(
     [{ id: 'i1', descricao: 'x', quantidade: 10 }],
     [{ itemId: 'i1', fornecedorId: 'fA', precoUnit: 5 }]
@@ -132,7 +132,7 @@ test('economia: item com um único preço válido economiza 0', () => {
 });
 
 // ── BR-COT-005: totalOrdem ───────────────────────────────────────────────────
-test('totalOrdem: Σ quantidade × precoUnit', () => {
+test('BR-COT-005: totalOrdem: Σ quantidade × precoUnit', () => {
   const total = cot.totalOrdem([
     { quantidade: 100, precoUnit: 10 }, // 1000
     { quantidade: 50, precoUnit: 18 },  // 900
@@ -140,7 +140,7 @@ test('totalOrdem: Σ quantidade × precoUnit', () => {
   assert.equal(total, 1900);
 });
 
-test('totalOrdem: entrada inválida devolve 0', () => {
+test('BR-COT-005: totalOrdem: entrada inválida devolve 0', () => {
   assert.equal(cot.totalOrdem(null), 0);
   assert.equal(cot.totalOrdem([]), 0);
 });

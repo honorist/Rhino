@@ -98,7 +98,7 @@ window.CotacoesHistorico = {
       <div class="card" style="padding:0;">
         ${lista.length === 0 ? `
           <p class="text-muted" style="padding:var(--sp-xl);text-align:center;">
-            Nenhuma cotação encontrada${this._filtroItem || this._filtroFornecedor ? ' com este filtro' : '. Crie e avalie uma Solicitação de Compra para ver cotações aqui.'}.
+            Nenhuma cotação encontrada${this._filtroItem || this._filtroFornecedor ? ' com este filtro' : '. Crie e avalie uma Solicitação de Compra para ver cotações aqui'}.
           </p>
         ` : `
           <div class="table-wrap">

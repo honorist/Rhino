@@ -1014,7 +1014,12 @@ window.ContratoDetail = {
         <span class="text-muted font-sm">Total aditado: <strong style="color:${totalValorDelta >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${totalValorDelta >= 0 ? '+' : ''}${fmt(totalValorDelta)}</strong></span>
         ${totalDiasDelta !== 0 ? `<span class="text-muted font-sm">Prorrogação: <strong>${totalDiasDelta > 0 ? '+' : ''}${totalDiasDelta} dias</strong></span>` : ''}
       </div>` : ''}
-      ${aditivos.length === 0 ? `<div style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">Nenhum aditivo cadastrado</div>` : `
+      ${aditivos.length === 0 ? `
+      <div style="text-align:center;padding:var(--sp-xl);color:var(--color-text-muted);">
+        <div style="font-size:44px;margin-bottom:8px;opacity:.6;">📝</div>
+        <div style="font-weight:600;font-size:16px;margin-bottom:4px;">Nenhum aditivo cadastrado</div>
+        <div style="font-size:13px;">Registre alterações de escopo, prazo ou valor deste contrato.</div>
+      </div>` : `
       <div class="table-wrap">
         <table>
           <thead><tr><th scope="col">Nº</th><th scope="col">Tipo</th><th scope="col">Descrição</th><th scope="col">Valor Δ</th><th scope="col">Prazo Δ</th><th scope="col">Data</th><th scope="col">Status</th>${this._podeEditar() ? '<th scope="col"></th>' : ''}</tr></thead>
@@ -1109,7 +1114,12 @@ window.ContratoDetail = {
         ${this._podeEditar() ? `<button class="btn btn-primary btn-sm" id="btnNovoMarco">+ Novo Marco</button>` : ''}
       </div>
       ${total > 0 ? `<div style="padding:0 var(--sp-lg) var(--sp-md);"><div style="height:6px;background:var(--color-surface-2);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:var(--color-success);transition:width .4s;border-radius:3px;"></div></div></div>` : ''}
-      ${marcos.length === 0 ? `<div style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">Nenhum marco cadastrado</div>` :
+      ${marcos.length === 0 ? `
+      <div style="text-align:center;padding:var(--sp-xl);color:var(--color-text-muted);">
+        <div style="font-size:44px;margin-bottom:8px;opacity:.6;">🚩</div>
+        <div style="font-weight:600;font-size:16px;margin-bottom:4px;">Nenhum marco cadastrado</div>
+        <div style="font-size:13px;">Marque datas importantes do cronograma deste contrato.</div>
+      </div>` :
         marcos.map(m => {
           const vencido = !m.concluido && m.prazo && new Date(m.prazo + 'T12:00:00') < hoje;
           const proximo = !m.concluido && m.prazo && !vencido && Math.ceil((new Date(m.prazo + 'T12:00:00') - hoje) / 86400000) <= 7;
@@ -1197,7 +1207,12 @@ window.ContratoDetail = {
         </div>
         ${this._podeEditar() ? `<button class="btn btn-primary btn-sm" id="btnNovaOcorrencia">+ Nova Ocorrência</button>` : ''}
       </div>
-      ${ocorrencias.length === 0 ? `<div style="padding:var(--sp-xl);text-align:center;color:var(--color-text-muted);">Nenhuma ocorrência registrada</div>` : `
+      ${ocorrencias.length === 0 ? `
+      <div style="text-align:center;padding:var(--sp-xl);color:var(--color-text-muted);">
+        <div style="font-size:44px;margin-bottom:8px;opacity:.6;">📌</div>
+        <div style="font-weight:600;font-size:16px;margin-bottom:4px;">Nenhuma ocorrência registrada</div>
+        <div style="font-size:13px;">Registre eventos relevantes do andamento da obra: segurança, qualidade, prazo ou financeiro.</div>
+      </div>` : `
       <div class="table-wrap">
         <table>
           <thead><tr><th scope="col">Data</th><th scope="col">Tipo</th><th scope="col">Severidade</th><th scope="col">Descrição</th><th scope="col">Status</th>${this._podeEditar() ? '<th scope="col"></th>' : ''}</tr></thead>

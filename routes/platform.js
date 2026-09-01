@@ -9,6 +9,8 @@
  * @param {object} router  Instância de lib/router.js.
  * @param {object} deps    { bus, sendJson, handle* ... }
  */
+const repos = require('../db/repos');
+
 module.exports = function registerPlatform(router, deps) {
   const { bus, sendJson } = deps;
 
@@ -42,10 +44,22 @@ module.exports = function registerPlatform(router, deps) {
   router.get('/api/search', (ctx) => deps.handleGlobalSearch(ctx.parsedUrl.query, ctx.res));
 
   // ── Stream de eventos em tempo real / quem está online ──
-  router.get('/api/stream', (ctx) => bus.attach(ctx.req, ctx.res, {
-    userId: ctx.req.user?.id,
-    userEmail: ctx.req.user?.email,
-  }));
+  // Resolve as abas do NÍVEL REAL do usuário (não o perfil simulado no
+  // seletor client-side) — é o que lib/bus.js usa pra filtrar quais
+  // mutações este cliente pode ver (achado L6 da varredura de segurança).
+  router.get('/api/stream', async (ctx) => {
+    let abas = null;
+    const nivelAcessoId = ctx.req.user?.nivelAcessoId;
+    if (nivelAcessoId) {
+      const nivel = await repos.niveisAcesso.findById(nivelAcessoId).catch(() => null);
+      abas = nivel?.abas || null;
+    }
+    bus.attach(ctx.req, ctx.res, {
+      userId: ctx.req.user?.id,
+      userEmail: ctx.req.user?.email,
+      abas,
+    });
+  });
   router.get('/api/online', (ctx) => sendJson(ctx.res, { online: bus.online() }));
 
   // ── Níveis de acesso ──

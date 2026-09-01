@@ -471,7 +471,12 @@ button, .btn, [role="button"], a.nav-link, .nav-item a, input[type="checkbox"], 
 ═══════════════════════════════════════════════ */
 .toast-stack {
   position: fixed;
-  top: 20px;
+  /* Não em top:right — é onde toda tela põe o botão de ação primário
+     ("+ Novo X"), e um toast ali por cima intercepta o clique nele
+     (ex.: "+ Nova Conta" em Contas a Pagar). Empilha no canto inferior
+     direito, acima do resto da pilha fixa desse canto (tema=16, ir-ao-
+     topo=72, undo-toast=128 — ver .rh-theme-toggle/.rh-back-top/.ui-toast-stack). */
+  bottom: 210px;
   right: 20px;
   display: flex;
   flex-direction: column;

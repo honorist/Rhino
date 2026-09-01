@@ -16,6 +16,7 @@ const repos = require('../db/repos');
 const money = require('../lib/money');
 const { generateId } = require('../lib/id');
 const { sendJson, sendError } = require('../lib/http-respond');
+const { buildCsp } = require('../lib/csp');
 
 // ============ Propostas Comerciais ============
 async function handleGetPropostas(res) {
@@ -368,7 +369,14 @@ async function handleGetPropostaPreview(propostaId, res) {
     const proposta = await repos.propostas.findByIdWithChildren(propostaId);
     if (!proposta) return sendError(res, 404, 'Proposta não encontrada');
     const html = renderHtml(proposta);
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    // A view carrega isto num <iframe> same-origin (js/views/proposta/preview.js).
+    // O default global é frame-ancestors 'none' (anti-clickjacking) — relaxar só
+    // pra 'self' NESTA resposta, senão o próprio app não consegue se auto-enquadrar.
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'X-Frame-Options': 'SAMEORIGIN',
+      'Content-Security-Policy': buildCsp("script-src 'self'", "'self'"),
+    });
     res.end(html);
   } catch (e) {
     console.error('[propostas/preview] erro:', e);

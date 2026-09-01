@@ -271,7 +271,10 @@ window.Propostas = {
           </div>
           <form id="formNovaProposta" class="modal-content">
             <div class="form-group">
-              <label class="form-label">Cliente *</label>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                <label class="form-label" style="margin:0;">Cliente *</label>
+                ${clientes.length === 0 ? `<a href="#/clientes" style="font-size:15px;color:var(--color-primary);text-decoration:none;">+ Cadastrar cliente →</a>` : `<a href="#/clientes" style="font-size:15px;color:var(--color-primary);text-decoration:none;">Gerenciar clientes →</a>`}
+              </div>
               <select class="form-control" name="clienteId" id="selectCliente" required>
                 <option value="">— Selecione um cliente —</option>
                 ${clientes.map(c => `
@@ -280,7 +283,7 @@ window.Propostas = {
                   </option>
                 `).join('')}
               </select>
-              <small class="form-hint">Os dados do cliente (nome, contato, email, telefone, endereço) serão preenchidos automaticamente.</small>
+              <small class="form-hint">Os dados do cliente (nome, contato, email, telefone, endereço) serão preenchidos automaticamente.${clientes.length === 0 ? ' Nenhum cliente cadastrado ainda.' : ''}</small>
             </div>
 
             <div class="form-group">

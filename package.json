@@ -1,6 +1,6 @@
 {
   "name": "rhino",
-  "version": "1.26.0",
+  "version": "1.27.0",
   "description": "Business management app",
   "main": "server.js",
   "scripts": {
@@ -22,6 +22,7 @@
     "backup:prod": "node scripts/backup-prod.js"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
     "bcryptjs": "^2.4.3",
     "chart.js": "^4.5.1",
     "docx": "^9.6.1",

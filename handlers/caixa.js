@@ -17,8 +17,21 @@ async function envelope() {
   return { entries: await repos.caixa.findAll() };
 }
 
-async function handleGetCaixa(res) {
+async function handleGetCaixa(res, query) {
   try {
+    // Sem query params: comportamento de sempre (Store.loadAll() carrega
+    // caixa inteiro, capado em 5000 pelo factory — P1-3, risco de OOM já
+    // coberto). Paginação de verdade é opt-in via ?page=1, pra quem quiser
+    // (db/repos/caixa.js, findPageKeyset).
+    if (query && query.page === '1') {
+      const limit = Math.min(500, parseInt(query.limit) || 100);
+      const after =
+        query.afterDate && query.afterCreatedAt && query.afterId
+          ? { date: query.afterDate, createdAt: query.afterCreatedAt, id: query.afterId }
+          : undefined;
+      const entries = await repos.caixa.findPageKeyset({ limit, after });
+      return sendJson(res, { entries });
+    }
     sendJson(res, await envelope());
   } catch (e) {
     sendError(res, 500, e.message);

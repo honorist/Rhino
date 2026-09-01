@@ -113,7 +113,7 @@ window.Estoque = {
       title: 'Almoxarifado',
       icon: window.rhIcon('package', 22),
       subtitle: 'Central + 1 almoxarifado por obra (auto)',
-      actions: '<button class="btn btn-primary btn-lg" id="btnNovoItem">+ Novo item</button>',
+      actions: '<button class="btn btn-secondary" id="btnExportarEstoque">Exportar CSV</button> <button class="btn btn-primary btn-lg" id="btnNovoItem">+ Novo item</button>',
     }) : '';
 
     const kpisHtml = window.UIKit?.kpiGrid ? window.UIKit.kpiGrid([
@@ -149,8 +149,28 @@ window.Estoque = {
       b.addEventListener('click', () => { this._tab = b.dataset.tab; this._draw(); });
     });
     document.getElementById('btnNovoItem').addEventListener('click', () => this._modalNovoItem());
+    document.getElementById('btnExportarEstoque').addEventListener('click', () => this._exportarCSV());
     this._attachListenersGeral();
     this._attachListenersHistorico();
+  },
+
+  _exportarCSV() {
+    const central = this._idCentral();
+    const rows = [['Código', 'Descrição', 'Categoria', 'Unidade', 'Saldo Central', 'Saldo Total', 'Estoque Mínimo', 'Custo Médio', 'Valor em Estoque']];
+    this._itens.forEach((i) => {
+      rows.push([
+        i.codigo || '',
+        i.descricao || '',
+        i.categoria || '',
+        i.unidade || '',
+        this._saldoEm(i, central),
+        this._saldoTotal(i),
+        i.estoqueMinimo || 0,
+        i.custoMedio || 0,
+        this._saldoTotal(i) * (parseFloat(i.custoMedio) || 0),
+      ]);
+    });
+    window.UIKit.downloadCsv(`estoque_rhino_${new Date().toISOString().slice(0, 10)}.csv`, rows);
   },
 
   // ─────────── Visão Geral (matriz item × almoxarifado) ───────────
