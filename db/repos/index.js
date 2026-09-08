@@ -76,4 +76,7 @@ module.exports = {
   ferramentaCalibracoes: require('./ferramenta_calibracoes'),
   equipamentos:         require('./equipamentos'),
   equipamentoLocacoes:  require('./equipamento_locacoes'),
+
+  // Instrumentação de uso (achado 6.3) — contador agregado (tela, dia).
+  telaVisitas:          require('./tela_visitas'),
 };

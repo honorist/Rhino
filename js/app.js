@@ -1552,6 +1552,26 @@ window.viewLifecycle = (function () {
   };
 })();
 
+// Instrumentação de uso (achado 6.3): só o hash base (#/ssma), sem query nem
+// id de detalhe — a tela é a mesma independente de "?docs=vencidos" ou
+// "/123" no fim. Fire-and-forget: nunca pode atrapalhar a navegação real.
+let _ultimaTelaRegistrada = null;
+function _registrarVisita(hash) {
+  try {
+    const tela = window.baseHashPath ? window.baseHashPath(hash) : hash;
+    if (!tela || tela === _ultimaTelaRegistrada) return; // evita duplicar em re-render da mesma tela
+    _ultimaTelaRegistrada = tela;
+    fetch('/api/telemetria/visita', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tela }),
+    }).catch(() => {});
+  } catch (e) {
+    /* telemetria é cosmética — nunca pode quebrar a navegação */
+  }
+}
+
 let _navToken = 0;
 async function navigate() {
   // Token incrementa a cada chamada. Operações async checam se ainda são a última.
@@ -1609,6 +1629,7 @@ async function navigate() {
 
   renderSidebar();
   updateSidebarActiveState(hash);
+  _registrarVisita(hash);
   // Update document title
   const _titleLabel = match?.config?.label || match?.config?.title;
   document.title = _titleLabel ? `${_titleLabel} | Rhino` : 'Rhino — Gestão Empresarial';

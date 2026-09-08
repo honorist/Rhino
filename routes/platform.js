@@ -28,6 +28,8 @@ module.exports = function registerPlatform(router, deps) {
   router.get('/api/health',         (ctx) => deps.handleHealth(ctx.res));
   router.get('/api/changelog',      (ctx) => deps.handleChangelog(ctx.res));
   router.get('/api/metrics',        (ctx) => deps.handleMetrics(ctx.res, ctx.req));
+  router.post('/api/telemetria/visita', (ctx) => deps.handleRegistrarVisita(ctx.req, ctx.body, ctx.res));
+  router.get('/api/telemetria/resumo',  (ctx) => deps.handleResumoVisitas(ctx.req, ctx.res));
 
   // ── Admin ──
   router.get('/api/admin/arquivos', (ctx) => deps.handleGetAdminArquivos(ctx.res));

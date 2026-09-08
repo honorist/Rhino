@@ -118,6 +118,7 @@ const portalHandlers = require('./handlers/portal'); // portal do cliente: auth/
 const usuariosHandlers = require('./handlers/usuarios'); // RBAC: users CRUD + níveis de acesso
 const integracoesHandlers = require('./handlers/integracoes'); // LGPD + IA (chat/classify/uso) + OFX
 const platformHandlers = require('./handlers/platform'); // push/auditoria/anomalias/recorrências/flags/busca/arquivos
+const telemetriaHandlers = require('./handlers/telemetria'); // instrumentação de uso por tela (achado 6.3)
 const { sendJson, sendError, setErrorReporter } = require('./lib/http-respond');
 // Todo 5xx respondido pela API vira evento de observabilidade. Injetado (e não
 // importado dentro do http-respond) para manter aquele módulo sem dependência.
@@ -1321,6 +1322,7 @@ registerPlatform(apiRouter, {
   ...usuariosHandlers, // RBAC: users CRUD + níveis de acesso (handlers/usuarios.js)
   ...integracoesHandlers, // LGPD + IA (chat/classify/uso) + OFX (handlers/integracoes.js; importarOfx é usado no financeiro)
   ...platformHandlers, // push/auditoria/anomalias/recorrências/flags/busca/arquivos (handlers/platform.js; recorrências é usado no financeiro)
+  ...telemetriaHandlers, // registrar/resumir visitas por tela (handlers/telemetria.js)
   // Ops/introspecção do processo (dependem do estado de boot) seguem aqui:
   handleHealth,
   handleChangelog,

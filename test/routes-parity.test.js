@@ -158,7 +158,7 @@ test('routes/portal.js — pdf e docx recebem (req, id, res)', async () => {
 
 // ─── routes/platform.js ──────────────────────────────────────────────────────
 
-test('routes/platform.js — registra exatamente as 29 rotas de plataforma', () => {
+test('routes/platform.js — registra exatamente as 31 rotas de plataforma', () => {
   const router = createRouter();
   require('../routes/platform')(router, {});
   const rotas = router
@@ -185,6 +185,7 @@ test('routes/platform.js — registra exatamente as 29 rotas de plataforma', () 
       'GET /api/push/vapid-public-key',
       'GET /api/search',
       'GET /api/stream',
+      'GET /api/telemetria/resumo',
       'GET /api/users',
       'POST /api/ai/chat',
       'POST /api/ai/classify-expense',
@@ -193,6 +194,7 @@ test('routes/platform.js — registra exatamente as 29 rotas de plataforma', () 
       'POST /api/lgpd/delete-account',
       'POST /api/push/subscribe',
       'POST /api/push/unsubscribe',
+      'POST /api/telemetria/visita',
       'POST /api/users',
       'PUT /api/feature-flags/:id',
       'PUT /api/niveis-acesso/:id',
