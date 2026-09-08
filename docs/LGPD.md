@@ -12,7 +12,9 @@ Como o Rhino protege os dados pessoais sensíveis dos colaboradores.
 
 Já existiam: exportação de dados (LGPD export), exclusão de conta e log de auditoria.
 
-**Retenção do log de auditoria** (2026-09-08): `ip`/`body`/`before_state` de `audit_log` são mascarados (não a linha inteira — `entity`/`action`/`user`/`ts` permanecem) além de `AUDIT_LOG_RETENTION_DAYS` (default 180 dias). Ver `lib/audit.js#purgeOldDetails`, agendado em `server.js` (mesmo padrão de `pg-rate-limit.js#cleanup`). **Pendente:** dados de colaborador/candidato (CPF, documentos, `pontos`, `epi_entregas`) não têm política de retenção/apagamento própria — hoje `handleDeleteRecurso` é hard-delete com `ON DELETE CASCADE`, sem considerar a retenção trabalhista de ponto (5 anos). Precisa de decisão de negócio antes de codar (ver backlog, Epic 2.2).
+**Retenção do log de auditoria** (2026-09-08): `ip`/`body`/`before_state` de `audit_log` são mascarados (não a linha inteira — `entity`/`action`/`user`/`ts` permanecem) além de `AUDIT_LOG_RETENTION_DAYS` (default 180 dias). Ver `lib/audit.js#purgeOldDetails`, agendado em `server.js` (mesmo padrão de `pg-rate-limit.js#cleanup`).
+
+**Exclusão de colaborador** (2026-09-08): `handleDeleteRecurso` (`handlers/recursos.js`) não apaga mais a linha — anonimiza (nome, CPF, telefone, email, endereço) e marca `status='ex_funcionario'`, mesmo padrão de `handleLgpdDelete`. Decisão de negócio: `pontos`/`epi_entregas` são FK `ON DELETE CASCADE` em `recursos` e a legislação trabalhista exige reter ponto por 5 anos — um hard-delete destruiria esse histórico. Documentos (RG, CTPS, ASO — `recurso_doc_arquivos`) continuam vinculados ao id anonimizado, sem política de expurgo própria ainda (pendente, menor prioridade — não há obrigação legal de retenção nem pedido explícito de apagamento desses arquivos até aqui).
 
 ## Como funciona
 

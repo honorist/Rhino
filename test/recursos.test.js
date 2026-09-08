@@ -54,6 +54,7 @@ beforeEach(() => {
       removed.push(id);
       return true;
     },
+    findById: async (id) => (id === 'naoexiste' ? null : { id, nome: 'Fulano', status: 'funcionario' }),
     findAll: async () => [],
   };
 });
@@ -136,11 +137,39 @@ test('PUT — id inexistente devolve 404', async () => {
 });
 
 // ---------------- DELETE ----------------
+//
+// Achado 2.2 da varredura 2026-09-08: hard-delete tinha ON DELETE CASCADE
+// sobre `pontos`/`epi_entregas` — excluir um colaborador destruía o histórico
+// de jornada/EPI, sem respeitar a retenção trabalhista de 5 anos de ponto.
+// Decisão de negócio: anonimizar (mesmo padrão de handleLgpdDelete), NUNCA
+// apagar a linha — ponto/EPI ficam intactos e vinculados ao id anonimizado.
 
-test('DELETE — remove pelo id', async () => {
+test('DELETE — não remove a linha (preserva FK de pontos/epi_entregas)', async () => {
   const res = fakeRes();
   await h.handleDeleteRecurso('r1', res);
   assert.equal(res.status, 200);
-  assert.deepEqual(removed, ['r1']);
+  assert.deepEqual(removed, [], 'removeById não deveria ser chamado');
+  restore();
+});
+
+test('DELETE — anonimiza PII (nome, cpf, telefone, email, endereço) e marca ex_funcionario', async () => {
+  const res = fakeRes();
+  await h.handleDeleteRecurso('r1', res);
+  const patch = updates[0].patch;
+  assert.equal(updates[0].id, 'r1');
+  assert.equal(patch.nome, '[Dados excluídos]');
+  assert.equal(patch.cpf, null);
+  assert.equal(patch.telefone, '');
+  assert.equal(patch.email, '');
+  assert.equal(patch.endereco, '');
+  assert.equal(patch.status, 'ex_funcionario');
+  restore();
+});
+
+test('DELETE — recurso inexistente devolve 404, sem gravar nada', async () => {
+  const res = fakeRes();
+  await h.handleDeleteRecurso('naoexiste', res);
+  assert.equal(res.status, 404);
+  assert.equal(updates.length, 0);
   restore();
 });

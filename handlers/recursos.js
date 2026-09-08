@@ -78,9 +78,35 @@ async function handlePutRecurso(id, body, res) {
   } catch (e) { sendError(res, 400, e.message); }
 }
 
+/**
+ * Anonimiza o cadastro em vez de apagar (achado 2.2 da varredura 2026-09-08):
+ * `pontos`/`epi_entregas` são FK ON DELETE CASCADE em `recursos` — um
+ * hard-delete destruiria esse histórico junto, sem respeitar a retenção
+ * trabalhista de 5 anos de ponto. Mesmo padrão de
+ * handlers/integracoes.js#handleLgpdDelete: zera PII, marca como
+ * ex-funcionário, mantém a linha (e os registros vinculados a ela) intactos.
+ */
 async function handleDeleteRecurso(id, res) {
   try {
-    await repos.recursos.removeById(id);
+    const recurso = await repos.recursos.findById(id);
+    if (!recurso) return sendError(res, 404, 'Recurso não encontrado');
+
+    await repos.recursos.updateById(id, {
+      nome: '[Dados excluídos]',
+      cpf: null,
+      telefone: '',
+      email: '',
+      endereco: '',
+      cidade: '',
+      estado: '',
+      lat: '',
+      lng: '',
+      cnh: '',
+      pis: '',
+      notas: '',
+      status: 'ex_funcionario',
+      updatedAt: new Date().toISOString(),
+    });
     sendJson(res, { recursos: await repos.recursos.findAll() });
   } catch (e) { sendError(res, 400, e.message); }
 }
