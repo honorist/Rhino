@@ -3,7 +3,7 @@
 Procedimentos de operação e resposta a incidentes. O "você do futuro" agradece.
 
 - **Produção:** <https://rhino.up.railway.app>
-- **Hospedagem:** Railway (Docker, Node 18+) · **Banco:** Postgres 16 (Railway)
+- **Hospedagem:** Railway (Docker, Node 22+) · **Banco:** Postgres 16 (Railway)
 - **Repositório:** <https://github.com/honorist/Rhino> · deploy automático no push para `main`
 
 ---

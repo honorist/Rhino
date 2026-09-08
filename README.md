@@ -14,7 +14,7 @@ Em produção: <https://rhino.up.railway.app>
 ```mermaid
 flowchart LR
     user([Usuário]) --> cf[Cloudflare<br/>DDoS · WAF · cache]
-    cf --> rw[Railway<br/>Docker · Node 18+]
+    cf --> rw[Railway<br/>Docker · Node 22+]
     rw -->|"GET /*"| static[Estáticos<br/>HTML/CSS/JS + SW]
     rw -->|"/api/*"| api[server.js<br/>HTTP nativo]
     api --> auth[lib/auth<br/>bcrypt + sessões]
@@ -42,7 +42,7 @@ flowchart TB
     end
 
     subgraph railway [Railway · Docker]
-        web["server.js<br/>Node 18 · HTTP nativo<br/>rotas /api/* + estáticos"]
+        web["server.js<br/>Node 22 · HTTP nativo<br/>rotas /api/* + estáticos"]
         bus["lib/bus.js<br/>EventBus in-memory"]
         rate["pg-rate-limit<br/>token bucket persistente"]
     end
@@ -143,7 +143,7 @@ gantt
 ## Stack
 
 - **Frontend**: HTML + CSS + JS sem bundler, Chart.js, Leaflet, Service Worker com cache-busting por versão, Mermaid carregado sob demanda
-- **Backend**: Node.js >= 18 (`server.js`, HTTP nativo, sem Express), pool `pg`
+- **Backend**: Node.js >= 22.13 (`server.js`, HTTP nativo, sem Express), pool `pg`
 - **Banco**: Postgres 16 (fonte única — JSONs em `data/` são vestígio histórico)
 - **PDF/DOCX**: `pdfkit`, `pdf-lib`, `pdf-to-img`, `docx`, `jimp`
 - **Notificações**: `web-push` (VAPID)
@@ -189,7 +189,7 @@ gantt
 
 ## Desenvolvimento local
 
-Requer Node.js >= 18.
+Requer Node.js >= 22.13.
 
 ```bash
 npm install
@@ -241,7 +241,7 @@ Guia completo em [DEPLOY.md](./DEPLOY.md). Pipeline resumido:
 flowchart LR
     dev[git push main] --> gh[GitHub]
     gh -->|webhook| rw[Railway build]
-    rw --> docker[docker build<br/>node:18-alpine]
+    rw --> docker[docker build<br/>node:22-bookworm-slim]
     docker --> pre[preDeployCommand<br/>npm run db:migrate]
     pre --> deploy[Healthcheck<br/>GET /api/health]
     deploy -->|503| rollback[rollback automático]

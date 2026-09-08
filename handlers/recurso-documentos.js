@@ -18,6 +18,7 @@ const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
 const { parseMultipart } = require('../lib/multipart');
 const { writeCollection } = require('../lib/collections');
+const { renderPdfPages } = require('../lib/pdf-render');
 
 // ============ Validação de documento contra template (Claude Vision) ============
 // Lê o BYTEA do arquivo, converte PDF→imagem se preciso, redimensiona com jimp,
@@ -40,12 +41,8 @@ async function _validarDocComTemplate(arquivoBuffer, mimeType, template) {
 
   try {
     if (mimeType === 'application/pdf') {
-      const { pdf } = require('pdf-to-img');
       const { Jimp } = require('jimp');
-      const allPages = [];
-      for await (const page of await pdf(arquivoBuffer, { scale: 1.2 })) {
-        allPages.push(page);
-      }
+      const allPages = await renderPdfPages(arquivoBuffer, { scale: 1.2 });
       if (!allPages.length) throw new Error('PDF sem páginas legíveis');
       totalPaginas = allPages.length;
 

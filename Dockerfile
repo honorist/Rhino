@@ -2,7 +2,9 @@
 # Base Debian (não Alpine): necessária para o LibreOffice headless, usado
 # para gerar o PDF do RDO idêntico ao formulário oficial Passarelli
 # (lib/office-convert.js converte o template .xlsx preenchido → PDF).
-FROM node:20-bookworm-slim
+# Node 22 (não 20): pdf-to-img@7 (fix da CVE GHSA-hq66-cqwq-w95j, RCE via PDF
+# malicioso no upload de documento de RH) exige Node >=22.13.
+FROM node:22-bookworm-slim
 
 WORKDIR /app
 

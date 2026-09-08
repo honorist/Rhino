@@ -25,7 +25,7 @@ Doc técnica profunda. Para visão executiva e instruções de uso, ver [`../REA
 
 ```mermaid
 flowchart LR
-    spa[Browser SPA<br/>vanilla JS] -- HTTPS --> srv[server.js<br/>Node 18 · HTTP nativo]
+    spa[Browser SPA<br/>vanilla JS] -- HTTPS --> srv[server.js<br/>Node 22 · HTTP nativo]
     spa -. EventSource .-> stream[/api/stream<br/>SSE/]
     srv --> pool[pg pool<br/>max=10 default]
     pool --> pg[(Postgres 16)]
