@@ -2,12 +2,14 @@
    Qualquer usuário envia; gerentes movem o status num Kanban. FAB global em qualquer tela. */
 (function () {
   const STATUS = {
-    pendente:   { label: 'Pendente',   cor: '#6B7280', bg: '#6B728022' },
-    em_analise: { label: 'Em análise', cor: '#B45309', bg: '#F59E0B22' },
-    aprovada:   { label: 'Aprovada',   cor: '#047857', bg: '#10B98122' },
-    descartada: { label: 'Descartada', cor: '#B91C1C', bg: '#EF444422' },
+    pendente:     { label: 'Pendente',     cor: '#6B7280', bg: '#6B728022' },
+    em_analise:   { label: 'Em análise',   cor: '#B45309', bg: '#F59E0B22' },
+    aprovada:     { label: 'Aprovada',     cor: '#047857', bg: '#10B98122' },
+    implementada: { label: 'Implementada', cor: '#0F766E', bg: '#0D948822' },
+    descartada:   { label: 'Descartada',   cor: '#B91C1C', bg: '#EF444422' },
   };
-  const ORDEM_STATUS = ['pendente', 'em_analise', 'aprovada', 'descartada'];
+  const ORDEM_STATUS = ['pendente', 'em_analise', 'aprovada', 'implementada', 'descartada'];
+  const DIAS_PARADA_ALERTA = 60; // achado 6.1: sinaliza "aprovada" há mais de 60 dias sem sair do estado
   const AREAS = ['RDO', 'Equipes', 'Relatórios', 'Financeiro', 'Frota', 'Recursos', 'Estoque', 'Outro'];
   const esc = (s) => (window.escapeHtml ? window.escapeHtml(String(s ?? '')) : String(s ?? ''));
   const toast = (m, t) => (window.showToast ? window.showToast(m, t) : null);
@@ -59,6 +61,14 @@
     },
 
     // ── Card de leitura (visão do colaborador) ──
+    _versaoTag(s) {
+      if (s.status !== 'implementada' || !s.versaoEntrega) return '';
+      return `<div style="font-size:13px;color:var(--color-text-muted);margin-top:6px;"><strong>Entregue na versão:</strong> ${esc(s.versaoEntrega)}</div>`;
+    },
+    _paradaAlerta(s) {
+      if (s.status !== 'aprovada' || !(s.diasParada > DIAS_PARADA_ALERTA)) return '';
+      return `<div style="font-size:12px;color:var(--rh-warn-strong,#B45309);margin-top:6px;">Aprovada há ${s.diasParada} dias, ainda não implementada.</div>`;
+    },
     _card(s) {
       const justif = s.status === 'descartada' && s.justificativaDescarte
         ? `<div style="font-size:13px;color:var(--color-text-muted);margin-top:6px;"><strong>Motivo do descarte:</strong> ${esc(s.justificativaDescarte)}</div>` : '';
@@ -73,7 +83,7 @@
           <div style="font-size:13px;color:var(--color-text-muted);margin:2px 0 8px;">${this._meta(s)}</div>
           <div style="font-size:14px;line-height:1.6;white-space:pre-wrap;">${esc(s.descricao)}</div>
           ${this._anexoLink(s, false) ? `<div style="margin-top:6px;">${this._anexoLink(s, false)}</div>` : ''}
-          ${coment}${justif}
+          ${coment}${justif}${this._versaoTag(s)}${this._paradaAlerta(s)}
         </div>`;
     },
 
@@ -107,6 +117,7 @@
           ${meta ? `<div style="font-size:12px;color:var(--color-text-muted);margin-top:2px;">${meta}</div>` : ''}
           <div style="font-size:13px;color:var(--color-text-muted);margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${esc(s.descricao)}</div>
           ${s.temAnexo ? `<div style="margin-top:4px;">${this._anexoLink(s, true)}</div>` : ''}
+          ${this._paradaAlerta(s)}
         </div>`;
     },
 
@@ -125,14 +136,19 @@
         return `${header}${this._kanban(sugestoes)}`;
       }
 
-      // Colaborador: minhas + backlog público (aprovadas).
+      // Colaborador: minhas + backlog público (aprovadas) + implementadas
+      // (achado 6.1 — antes o autor nunca via a própria ideia virar entrega).
       const minhas = sugestoes.filter((s) => s.autorId === this._meuId);
       const backlog = sugestoes.filter((s) => s.status === 'aprovada');
+      const implementadas = sugestoes.filter((s) => s.status === 'implementada');
       return `${header}
         <h3 style="margin:0 0 var(--sp-sm);">Minhas sugestões</h3>
         ${minhas.length ? minhas.map((s) => this._card(s)).join('') : this._vazio('Você ainda não enviou sugestões. Clique em "+ Nova sugestão".')}
         <h3 style="margin:var(--sp-lg) 0 var(--sp-sm);">Backlog — aprovadas (o que vem por aí)</h3>
-        ${backlog.length ? backlog.map((s) => this._card(s)).join('') : this._vazio('Nenhuma sugestão aprovada ainda.')}`;
+        ${backlog.length ? backlog.map((s) => this._card(s)).join('') : this._vazio('Nenhuma sugestão aprovada ainda.')}
+        ${implementadas.length ? `
+        <h3 style="margin:var(--sp-lg) 0 var(--sp-sm);">Implementadas</h3>
+        ${implementadas.map((s) => this._card(s)).join('')}` : ''}`;
     },
 
     _vazio(msg) {
@@ -296,6 +312,7 @@
     _abrirStatusModal(id, novo) {
       document.getElementById('modalSugStOverlay')?.remove();
       const isDescarte = novo === 'descartada';
+      const isImplementada = novo === 'implementada';
       const html = `
         <div class="modal-overlay" id="modalSugStOverlay">
           <div class="modal" style="width:92vw;max-width:480px;">
@@ -306,6 +323,10 @@
                      <textarea class="form-control" id="stJustificativa" rows="3" placeholder="Por que está sendo descartada?"></textarea></div>`
                 : `<div class="form-group"><label class="form-label">Comentário (opcional)</label>
                      <textarea class="form-control" id="stComentario" rows="3" placeholder="Mensagem para o autor"></textarea></div>`}
+              ${isImplementada
+                ? `<div class="form-group"><label class="form-label">Versão da entrega (opcional)</label>
+                     <input class="form-control" id="stVersaoEntrega" placeholder="Ex.: 1.28.0"></div>`
+                : ''}
             </div>
             <div class="modal-footer">
               <button class="btn btn-secondary" id="stCancel">Cancelar</button>
@@ -322,17 +343,21 @@
       document.getElementById('stConfirm').onclick = async () => {
         const comentario = document.getElementById('stComentario')?.value.trim() || '';
         const justificativa = document.getElementById('stJustificativa')?.value.trim() || '';
+        const versaoEntrega = document.getElementById('stVersaoEntrega')?.value.trim() || '';
         if (isDescarte && !justificativa) { toast('Justificativa é obrigatória para descartar', 'warning'); return; }
-        await this._mudarStatus(id, novo, comentario, justificativa, ov);
+        await this._mudarStatus(id, novo, comentario, justificativa, versaoEntrega, ov);
       };
     },
 
-    async _mudarStatus(id, novo, comentario, justificativa, ov) {
+    async _mudarStatus(id, novo, comentario, justificativa, versaoEntrega, ov) {
       try {
         const r = await fetch(`/api/sugestoes/${id}/status`, {
           method: 'PUT', credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: novo, comentario: comentario || undefined, justificativa: justificativa || undefined }),
+          body: JSON.stringify({
+            status: novo, comentario: comentario || undefined,
+            justificativa: justificativa || undefined, versaoEntrega: versaoEntrega || undefined,
+          }),
         });
         const j = await r.json();
         if (!r.ok) throw new Error(j.error || 'Falha ao mudar status');

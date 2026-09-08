@@ -17,9 +17,25 @@ const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
 const { parseMultipart, isAllowedImageMagic, IMAGE_MIMES } = require('../lib/multipart');
 
-const STATUS_VALIDOS = ['pendente', 'em_analise', 'aprovada', 'descartada'];
-const STATUS_LABEL = { pendente: 'Pendente', em_analise: 'Em análise', aprovada: 'Aprovada', descartada: 'Descartada' };
+const STATUS_VALIDOS = ['pendente', 'em_analise', 'aprovada', 'implementada', 'descartada'];
+const STATUS_LABEL = {
+  pendente: 'Pendente', em_analise: 'Em análise', aprovada: 'Aprovada',
+  implementada: 'Implementada', descartada: 'Descartada',
+};
 const ANEXO_MAX_BYTES = 8 * 1024 * 1024;
+
+/**
+ * Dias desde a última mudança de status — só faz sentido pra saber há quanto
+ * tempo uma sugestão está "aprovada" sem sair do estado (achado 6.1: sem
+ * isso, uma sugestão aprovada há 3 dias e uma há 6 meses pareciam iguais).
+ * @param {string} updatedAt
+ * @param {Date} [agora]
+ * @returns {number}
+ */
+function _diasParada(updatedAt, agora = new Date()) {
+  const ms = agora.getTime() - new Date(updatedAt).getTime();
+  return Math.max(0, Math.floor(ms / 86400000));
+}
 
 /** Gerente = super admin OU perfil com 'edit:#/sugestoes'. */
 function _podeGerir(user) {
@@ -108,7 +124,12 @@ async function listar(req, res) {
         [req.user.id]
       );
     }
-    sendJson(res, { sugestoes, podeGerir });
+    // Sinaliza sugestões "aprovada" paradas há muito tempo sem virar
+    // 'implementada' — o relatório/filtro fica a cargo do frontend.
+    const comDiasParada = sugestoes.map((s) =>
+      s.status === 'aprovada' ? { ...s, diasParada: _diasParada(s.updatedAt) } : s
+    );
+    sendJson(res, { sugestoes: comDiasParada, podeGerir });
   } catch (e) {
     sendError(res, 500, e.message);
   }
@@ -128,6 +149,7 @@ async function mudarStatus(req, body, res, id) {
 
     const comentario = body.comentario ? String(body.comentario).trim() : '';
     const justificativa = body.justificativa ? String(body.justificativa).trim() : '';
+    const versaoEntrega = body.versaoEntrega ? String(body.versaoEntrega).trim() : '';
     if (novo === 'descartada' && !justificativa) {
       return sendError(res, 400, 'Justificativa é obrigatória para descartar uma sugestão');
     }
@@ -144,16 +166,21 @@ async function mudarStatus(req, body, res, id) {
       status: novo,
       comentarioGestor: comentario || null,
       justificativaDescarte: novo === 'descartada' ? justificativa : (sug.justificativaDescarte || null),
+      // Link com o changelog (achado 6.1): sem isso, "aprovada" e "implementada"
+      // não diziam se a ideia do autor de fato saiu do papel.
+      versaoEntrega: novo === 'implementada' ? (versaoEntrega || null) : (sug.versaoEntrega || null),
       gestorId: req.user.id,
       historico: JSON.stringify(historico),
       updatedAt: now,
     });
 
+    const tituloNotif = novo === 'implementada' && versaoEntrega
+      ? `Sua sugestão "${sug.titulo}" foi implementada na versão ${versaoEntrega}!`
+      : `Sua sugestão "${sug.titulo}" agora está: ${STATUS_LABEL[novo]}`;
     _notificarAutor(
-      sug.autorId, 'sugestao.status',
-      `Sua sugestão "${sug.titulo}" agora está: ${STATUS_LABEL[novo]}`,
+      sug.autorId, 'sugestao.status', tituloNotif,
       comentario || justificativa || null,
-      { sugestaoId: id, status: novo }
+      { sugestaoId: id, status: novo, versaoEntrega: versaoEntrega || null }
     );
 
     sendJson(res, { ok: true });

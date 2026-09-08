@@ -171,6 +171,21 @@ test('listar — gerente com filtro de status válido restringe o findAll', asyn
   restore();
 });
 
+test('listar — sugestão "aprovada" ganha diasParada; outros status não', async () => {
+  const agora = Date.now();
+  sugestoesStore.sug2 = {
+    id: 'sug2', autorId: 'u2', status: 'aprovada',
+    updatedAt: new Date(agora - 75 * 86400000).toISOString(), // 75 dias atrás
+  };
+  const res = fakeRes();
+  await h.listar({ user: { id: 'u1' }, query: {} }, res);
+  const sug1 = res.body.sugestoes.find((s) => s.id === 'sug1'); // status pendente
+  const sug2 = res.body.sugestoes.find((s) => s.id === 'sug2'); // status aprovada
+  assert.equal(sug1.diasParada, undefined);
+  assert.equal(sug2.diasParada, 75);
+  restore();
+});
+
 test('listar — não-gerente usa query restrita (própria + backlog aprovado)', async () => {
   podeGerirValue = false;
   let capturedParams;
@@ -233,6 +248,52 @@ test('mudarStatus — sucesso avança status e append no histórico (não sobres
   assert.equal(historico[1].de, 'pendente');
   assert.equal(historico[1].para, 'em_analise');
   assert.equal(historico[1].por, 'gestor1');
+  restore();
+});
+
+// Achado 6.1 da varredura 2026-09-08: sugestão aprovada e depois de fato
+// construída nunca fechava o loop com o autor — ficava presa em "aprovada"
+// pra sempre. Novo status 'implementada' + versaoEntrega (link ao changelog).
+
+test('mudarStatus — "implementada" é um status válido', async () => {
+  const res = fakeRes();
+  await h.mudarStatus({ user: { id: 'gestor1', name: 'Gestor X' } }, { status: 'implementada' }, res, 'sug1');
+  assert.equal(res.status, 200);
+  assert.equal(sugestoesStore.sug1.status, 'implementada');
+  restore();
+});
+
+test('mudarStatus — "implementada" com versaoEntrega grava o vínculo com o changelog', async () => {
+  const res = fakeRes();
+  await h.mudarStatus(
+    { user: { id: 'gestor1', name: 'Gestor X' } },
+    { status: 'implementada', versaoEntrega: '1.28.0' },
+    res, 'sug1'
+  );
+  assert.equal(res.status, 200);
+  assert.equal(sugestoesStore.sug1.versaoEntrega, '1.28.0');
+  restore();
+});
+
+test('mudarStatus — "implementada" sem versaoEntrega é aceito (nem sempre a versão é conhecida na hora)', async () => {
+  const res = fakeRes();
+  await h.mudarStatus({ user: { id: 'gestor1' } }, { status: 'implementada' }, res, 'sug1');
+  assert.equal(res.status, 200);
+  assert.equal(sugestoesStore.sug1.versaoEntrega, null);
+  restore();
+});
+
+test('mudarStatus — notifica o autor que a sugestão foi implementada, citando a versão', async () => {
+  const res = fakeRes();
+  await h.mudarStatus(
+    { user: { id: 'gestor1', name: 'Gestor X' } },
+    { status: 'implementada', versaoEntrega: '1.28.0' },
+    res, 'sug1'
+  );
+  assert.equal(res.status, 200);
+  assert.equal(notifCreates.length, 1);
+  assert.equal(notifCreates[0].destinatario, 'u1');
+  assert.match(notifCreates[0].titulo, /1\.28\.0/);
   restore();
 });
 

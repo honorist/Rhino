@@ -223,10 +223,10 @@
       el.className = 'rh-sync-badge';
       el.setAttribute('role', 'status');
       el.setAttribute('aria-live', 'polite');
-      el.style.cssText =
-        'position:fixed;right:12px;bottom:12px;z-index:9998;padding:8px 12px;' +
-        'border-radius:999px;background:#92400E;color:#fff;font-size:13px;' +
-        'font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.25);display:none;';
+      // Só o mínimo pra ficar visível mesmo sem a regra de css/ (posição/z-index);
+      // cor, raio, sombra e tipografia vêm de .rh-sync-badge (css/theme-v2.css),
+      // com tokens de tema — antes eram cor/raio/sombra fixos aqui, sem dark mode.
+      el.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:9998;display:none;';
       document.body.appendChild(el);
     }
     return el;

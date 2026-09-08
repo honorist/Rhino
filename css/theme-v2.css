@@ -343,6 +343,18 @@ textarea:focus-visible,
   transition: background .15s;
 }
 .rh-banner-action:hover { background: var(--rh-warn-bg); }
+
+/* Aviso fixo de fila offline (RDO em campo sem sinal — js/offline.js).
+   Antes só tinha cor/raio/sombra fixos no inline style, sem dark mode. */
+.rh-sync-badge {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--rh-warn-strong);
+  color: #fff;
+  font-size: var(--rh-fs-sm);
+  font-weight: 600;
+  box-shadow: var(--rh-shadow-lg);
+}
 .rh-banner-neg  { background: var(--rh-neg-bg);  border-left-color: var(--rh-neg-strong); }
 .rh-banner-neg .rh-banner-icon, .rh-banner-neg .rh-banner-text, .rh-banner-neg .rh-banner-action { color: var(--rh-neg-text); border-color: var(--rh-neg-strong); }
 .rh-banner-info { background: var(--rh-info-bg); border-left-color: var(--rh-info-strong); }

@@ -1286,13 +1286,19 @@
             const legenda = [legendaBase, ts, gpsStr].filter(Boolean).join(' | ');
             try {
               showToast(`Enviando ${input.files.length} foto(s)...`, 'info');
-              await Store.uploadRdoFoto(contractId, rdoOriginal.id, input.files, legenda);
-              const fresh = (Store.getContractById(contractId)?.rdos || []).find(
-                (r) => r.id === rdoOriginal.id
-              );
-              if (fresh) Object.assign(rdoOriginal, fresh);
-              rerender();
-              showToast('Foto com GPS enviada!', 'success');
+              const resultado = await Store.uploadRdoFoto(contractId, rdoOriginal.id, input.files, legenda);
+              if (Store.isOfflineQueued(resultado)) {
+                // Sem sinal: js/offline.js já avisou ("salvo no dispositivo") — não
+                // sobrepõe com uma mensagem de "enviada" que ainda não é verdade.
+                showToast('Foto salva no dispositivo — será enviada quando a conexão voltar.', 'warning');
+              } else {
+                const fresh = (Store.getContractById(contractId)?.rdos || []).find(
+                  (r) => r.id === rdoOriginal.id
+                );
+                if (fresh) Object.assign(rdoOriginal, fresh);
+                rerender();
+                showToast('Foto com GPS enviada!', 'success');
+              }
             } catch (err) {
               showToast(err.message || 'Erro no upload', 'error');
             }
@@ -1311,14 +1317,20 @@
           const legenda = document.getElementById('rdoFotoLegenda')?.value || '';
           try {
             showToast(`Enviando ${fotoInput.files.length} foto(s)...`, 'info');
-            await Store.uploadRdoFoto(contractId, rdoOriginal.id, fotoInput.files, legenda);
-            // atualiza rdoOriginal local
-            const freshRdo = (Store.getContractById(contractId)?.rdos || []).find(
-              (r) => r.id === rdoOriginal.id
-            );
-            Object.assign(rdoOriginal, freshRdo || {});
-            rerender();
-            showToast('Fotos enviadas!', 'success');
+            const resultado = await Store.uploadRdoFoto(contractId, rdoOriginal.id, fotoInput.files, legenda);
+            if (Store.isOfflineQueued(resultado)) {
+              // Sem sinal: js/offline.js já avisou ("salvo no dispositivo") — não
+              // sobrepõe com uma mensagem de "enviada" que ainda não é verdade.
+              showToast('Fotos salvas no dispositivo — serão enviadas quando a conexão voltar.', 'warning');
+            } else {
+              // atualiza rdoOriginal local
+              const freshRdo = (Store.getContractById(contractId)?.rdos || []).find(
+                (r) => r.id === rdoOriginal.id
+              );
+              Object.assign(rdoOriginal, freshRdo || {});
+              rerender();
+              showToast('Fotos enviadas!', 'success');
+            }
           } catch (err) {
             showToast(err.message || 'Erro no upload', 'error');
           } finally {
