@@ -21,6 +21,7 @@
  * PUT /api/cotacoes/:id/precos. precoUnit ≤ 0 LIMPA a célula (remove a linha),
  * mantendo a coluna do fornecedor significativa (só aparece quem tem preço > 0).
  */
+const db = require('../db');
 const repos = require('../db/repos');
 const cotacaoLib = require('../lib/cotacao');
 const { sendJson, sendError } = require('../lib/http-respond');
@@ -246,25 +247,26 @@ async function handleUpsertCotacaoPreco(cotacaoId, body, res) {
     if (!fornecedorId) return sendError(res, 400, 'fornecedorId é obrigatório');
     await _assertItemDaCotacao(cotacaoId, itemId);
     const precoUnit = _num(body.precoUnit);
-    const existentes = await repos.cotacaoPrecos.findAll({ cotacaoId, itemId, fornecedorId });
-    const atual = existentes[0] || null;
+
+    // UPSERT atômico na célula (cotacao_id, item_id, fornecedor_id) — o
+    // check-then-act antigo (ler a célula, decidir create/update em dois
+    // passos) deixava dois cliques/dois usuários na mesma célula criarem duas
+    // linhas de preço. A constraint que sustenta o ON CONFLICT está na
+    // migration 20260908090000_cotacao_precos_unique.
     if (precoUnit > 0) {
       const agora = new Date().toISOString();
-      if (atual) {
-        await repos.cotacaoPrecos.updateById(atual.id, { precoUnit, updatedAt: agora });
-      } else {
-        await repos.cotacaoPrecos.create({
-          id: generateId('cotp'),
-          cotacaoId,
-          itemId,
-          fornecedorId,
-          precoUnit,
-          createdAt: agora,
-          updatedAt: agora,
-        });
-      }
-    } else if (atual) {
-      await repos.cotacaoPrecos.removeById(atual.id);
+      await db.query(
+        `INSERT INTO cotacao_precos (id, cotacao_id, item_id, fornecedor_id, preco_unit, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$6)
+         ON CONFLICT (cotacao_id, item_id, fornecedor_id)
+         DO UPDATE SET preco_unit = EXCLUDED.preco_unit, updated_at = EXCLUDED.updated_at`,
+        [generateId('cotp'), cotacaoId, itemId, fornecedorId, precoUnit, agora]
+      );
+    } else {
+      await db.query(
+        `DELETE FROM cotacao_precos WHERE cotacao_id = $1 AND item_id = $2 AND fornecedor_id = $3`,
+        [cotacaoId, itemId, fornecedorId]
+      );
     }
     sendJson(res, await _detalhe(cotacaoId));
   } catch (e) {
@@ -322,43 +324,59 @@ async function handleGerarOrdem(cotacaoId, body, res) {
     if (linhasPO.length === 0) return sendError(res, 400, 'O fornecedor selecionado não cotou nenhum item');
 
     const agora = new Date().toISOString();
-    const seq = await repos.ordensCompra.count();
     const ordemId = generateId('oc');
-    const ordem = await repos.ordensCompra.create({
-      id: ordemId,
-      cotacaoId,
-      fornecedorId,
-      contractId: cotacao.contractId || (body && body.contractId) || null,
-      numero: (body && body.numero && String(body.numero).trim()) || ('PC-' + String(seq + 1).padStart(4, '0')),
-      status: 'emitida',
-      valorTotal: cotacaoLib.totalOrdem(linhasPO),
-      dataEmissao: (body && body.dataEmissao) || new Date().toISOString().split('T')[0],
-      createdAt: agora,
-      updatedAt: agora,
+    const valorTotal = cotacaoLib.totalOrdem(linhasPO);
+    const contractId = cotacao.contractId || (body && body.contractId) || null;
+    const dataEmissao = (body && body.dataEmissao) || new Date().toISOString().split('T')[0];
+    const fechaCotacao = cotacao.status === 'aberta' || cotacao.status === 'em_analise';
+
+    // Cabeçalho + itens + fechamento da cotação, atômicos (mesmo padrão de
+    // handlers/rdo-apontamentos.js#replaceApontamentos): antes eram writes
+    // soltos via pool — uma falha no meio do loop de itens deixava um PO
+    // "emitida" órfão, com itens parciais. O advisory lock serializa duas
+    // gerações de pedido concorrentes para a MESMA cotação (evita numeração
+    // duplicada e fechamento em corrida).
+    const itensCriados = await db.withTransaction(async (client) => {
+      await client.query('SELECT pg_advisory_xact_lock(hashtext($1)::int)', [String(cotacaoId)]);
+
+      const { rows: seqRows } = await client.query('SELECT COUNT(*)::int AS n FROM ordens_compra');
+      const numero = (body && body.numero && String(body.numero).trim())
+        || ('PC-' + String((seqRows[0] && seqRows[0].n || 0) + 1).padStart(4, '0'));
+
+      await client.query(
+        `INSERT INTO ordens_compra
+          (id, cotacao_id, fornecedor_id, contract_id, numero, status, valor_total, data_emissao, created_at, updated_at)
+         VALUES ($1,$2,$3,$4,$5,'emitida',$6,$7,$8,$8)`,
+        [ordemId, cotacaoId, fornecedorId, contractId, numero, valorTotal, dataEmissao, agora]
+      );
+
+      const criados = [];
+      for (const oi of linhasPO) {
+        const itemId = generateId('oci');
+        await client.query(
+          `INSERT INTO ordem_compra_itens
+            (id, ordem_id, descricao, unidade, quantidade, preco_unit, created_at, updated_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$7)`,
+          [itemId, ordemId, oi.descricao, oi.unidade, oi.quantidade, oi.precoUnit, agora]
+        );
+        criados.push({
+          id: itemId, ordemId, descricao: oi.descricao, unidade: oi.unidade,
+          quantidade: oi.quantidade, precoUnit: oi.precoUnit, createdAt: agora, updatedAt: agora,
+        });
+      }
+
+      if (fechaCotacao) {
+        await client.query(`UPDATE cotacoes SET status = 'fechada', updated_at = $2 WHERE id = $1`, [cotacaoId, agora]);
+      }
+
+      return criados;
     });
 
-    const itensCriados = [];
-    for (const oi of linhasPO) {
-      itensCriados.push(await repos.ordemCompraItens.create({
-        id: generateId('oci'),
-        ordemId,
-        descricao: oi.descricao,
-        unidade: oi.unidade,
-        quantidade: oi.quantidade,
-        precoUnit: oi.precoUnit,
-        createdAt: agora,
-        updatedAt: agora,
-      }));
-    }
-
-    // Fechar a cotação — só se ainda estava em curso (não reabre uma cancelada).
-    if (cotacao.status === 'aberta' || cotacao.status === 'em_analise') {
-      await repos.cotacoes.updateById(cotacaoId, { status: 'fechada', updatedAt: agora });
-    }
-
+    if (fechaCotacao) cotacao.status = 'fechada';
+    const ordem = await repos.ordensCompra.findById(ordemId);
     sendJson(res, { ordem, itens: itensCriados });
   } catch (e) {
-    sendError(res, e.statusCode || 400, e.message);
+    if (!res.headersSent) sendError(res, e.statusCode || 400, e.message);
   }
 }
 

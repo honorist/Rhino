@@ -1150,29 +1150,11 @@ function requireAdmin(req, res) {
 // Telas universais (propostas, estoque, frota, solicitações, cláusulas) NÃO
 // são enforced — são abertas a qualquer usuário logado por design do app
 // (ver `universais` em js/app.js). Super admin / admin sempre passam.
-const MUTATION_METHODS = new Set(['POST', 'PUT', 'DELETE', 'PATCH']);
-
-// Regex de pathname → telas (#/rota) que liberam a mutação (qualquer uma serve).
-// O OR cobre recursos criados a partir de outra tela — ex.: um cliente novo
-// criado de dentro do formulário de contrato (gate do frontend = #/contratos).
-const MUTATION_PERMISSION_RULES = [
-  { re: /^\/api\/base\/[^/]+\/allocate$/, screens: ['#/base', '#/contratos'] },
-  { re: /^\/api\/(contracts|saidas)(\/|$)/, screens: ['#/contratos'] },
-  { re: /^\/api\/(base|tipos-base)(\/|$)/, screens: ['#/base'] },
-  { re: /^\/api\/caixa(\/|$)/, screens: ['#/caixa'] },
-  { re: /^\/api\/socios(\/|$)/, screens: ['#/socios'] },
-  { re: /^\/api\/investimentos(\/|$)/, screens: ['#/investimentos'] },
-  { re: /^\/api\/clientes(\/|$)/, screens: ['#/clientes', '#/contratos'] },
-  {
-    re: /^\/api\/fornecedores(\/|$)/,
-    screens: ['#/fornecedores', '#/contratos', '#/contas-pagar'],
-  },
-  { re: /^\/api\/notas-fiscais(\/|$)/, screens: ['#/notas-fiscais', '#/contratos'] },
-  { re: /^\/api\/contas-pagar(\/|$)/, screens: ['#/contas-pagar'] },
-  { re: /^\/api\/recursos(\/|$)/, screens: ['#/recursos'] },
-  { re: /^\/api\/folha-pagamento(\/|$)/, screens: ['#/folha-pagamento'] },
-  { re: /^\/api\/recrutamento(\/|$)/, screens: ['#/recrutamento'] },
-];
+//
+// Mapa de tela↔regra e a decisão pura ficam em lib/mutation-permissions.js
+// (testável sem I/O — test/mutation-permissions.test.js). Aqui só a parte de
+// I/O: carregar `abas` da sessão e responder o 403.
+const { MUTATION_METHODS, resolve: resolveMutationPermission } = require('./lib/mutation-permissions');
 
 /**
  * Bloqueia uma mutação se o usuário não tem acesso à tela correspondente.
@@ -1180,15 +1162,12 @@ const MUTATION_PERMISSION_RULES = [
  */
 async function checkMutationPermission(req, res, pathname, method) {
   if (!MUTATION_METHODS.has(method)) return false; // não é mutação
-  if (perms.isSuperAdmin(req.user)) return false; // admin / super admin passam
-  const rule = MUTATION_PERMISSION_RULES.find((r) => r.re.test(pathname));
-  if (!rule) return false; // rota não mapeada → não bloqueia
-  const abas = await perms.loadAbas(req.user);
-  if (!abas) return false; // null = sem restrição
-  // Exige permissão de EDIÇÃO (edit:#/rota). O OR cobre cross-invocações.
-  if (rule.screens.some((s) => abas.includes('edit:' + s))) return false;
+  const isSuperAdmin = perms.isSuperAdmin(req.user);
+  const abas = isSuperAdmin ? null : await perms.loadAbas(req.user);
+  const decision = resolveMutationPermission({ pathname, abas, isSuperAdmin });
+  if (!decision.blocked) return false;
   console.warn(
-    `[C-04] mutação bloqueada: user=${req.user?.id} ${method} ${pathname} — precisa de permissão de edição em uma de: ${rule.screens.join(', ')}`
+    `[C-04] mutação bloqueada: user=${req.user?.id} ${method} ${pathname} — precisa de permissão de edição em uma de: ${decision.screens.join(', ')}`
   );
   sendError(res, 403, 'Você não tem permissão para esta operação.');
   return true;
