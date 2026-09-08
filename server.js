@@ -55,6 +55,7 @@ const queue = require('./lib/queue');
 const rateLimit = require('./lib/rate-limit');
 const pgRateLimit = require('./lib/pg-rate-limit');
 const audit = require('./lib/audit');
+const { buildFullBackupPayload } = require('./lib/backup-payload');
 const { buildCsp } = require('./lib/csp');
 const caixaHandlers = require('./handlers/caixa'); // domínio caixa extraído (desmembramento server.js)
 const sociosHandlers = require('./handlers/socios'); // domínio sócios extraído
@@ -288,52 +289,13 @@ async function handleBackup(res) {
 }
 
 // Backup completo COM DOWNLOAD: retorna 1 JSON consolidado de TUDO no banco.
-// Pensado pra recuperação de desastre — pode importar de volta via scripts/migrate-json-to-pg.js.
+// Pensado pra recuperação de desastre — a lista de tabelas vem de
+// db/repos/index.js (lib/backup-payload.js), não de uma lista hardcoded
+// (achado 3.1: a lista fixa de 15 tabelas não cobria ~metade dos domínios).
 async function handleBackupDownload(res) {
   try {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-    const safe = async (fn) => {
-      try {
-        return await fn();
-      } catch (e) {
-        console.warn('[dump] coleta falhou (resultado vazio):', e && e.message);
-        return [];
-      }
-    };
-
-    const payload = {
-      _meta: {
-        version: APP_VERSION,
-        generatedAt: new Date().toISOString(),
-        format: 'rhino-backup-v1',
-      },
-      // Backup: opt-out do cap defensivo de findAll — precisa dump completo
-      contracts: await safe(() => repos.contracts.findAllWithChildren()),
-      saidas: await safe(() => repos.saidas.findAll({}, { limit: null })),
-      caixa: await safe(() => repos.caixa.findAll({}, { limit: null })),
-      base: await safe(() => repos.baseItems.findAll({}, { limit: null })),
-      socios: await safe(() => repos.socios.findAll({}, { limit: null })),
-      investimentos: await safe(() => repos.investimentos.findAll({}, { limit: null })),
-      notas_fiscais: await safe(() => repos.notasFiscais.findAll({}, { limit: null })),
-      tipos_base: await safe(() => repos.tiposBase.findAll({}, { limit: null })),
-      clientes: await safe(() => repos.clientes.findAll({}, { limit: null })),
-      fornecedores: await safe(() => repos.fornecedores.findAll({}, { limit: null })),
-      contas_pagar: await safe(() => repos.contasPagar.findAll({}, { limit: null })),
-      niveis_acesso: await safe(() => repos.niveisAcesso.findAll()),
-      recursos: await safe(() => repos.recursos.findAllRaw({}, { limit: null })), // CPF cifrado no backup (LGPD)
-      doc_templates: await safe(() => repos.docTemplates.findAll()),
-      users: await safe(() =>
-        repos.users.findAll ? repos.users.findAll({}, { limit: null }) : []
-      ),
-    };
-
-    // Remove campos sensíveis (hash de senha, tokens)
-    if (Array.isArray(payload.users)) {
-      payload.users = payload.users.map((u) => {
-        const { passwordHash, password_hash, resetToken, reset_token, ...safe } = u;
-        return safe;
-      });
-    }
+    const payload = await buildFullBackupPayload(repos, { appVersion: APP_VERSION });
 
     const json = JSON.stringify(payload, null, 2);
     const filename = `rhino-backup-${timestamp}.json`;
@@ -1155,6 +1117,7 @@ function requireAdmin(req, res) {
 // (testável sem I/O — test/mutation-permissions.test.js). Aqui só a parte de
 // I/O: carregar `abas` da sessão e responder o 403.
 const { MUTATION_METHODS, resolve: resolveMutationPermission } = require('./lib/mutation-permissions');
+const termsEnforcement = require('./lib/terms-enforcement');
 
 /**
  * Bloqueia uma mutação se o usuário não tem acesso à tela correspondente.
@@ -1244,6 +1207,12 @@ async function applyAuthMiddleware(req, res, pathname, method) {
       return true;
     }
     req.user = user;
+    // Enforcement server-side de aceite de Termos (achado 2.3 — antes só o
+    // client checava isso; curl direto contornava sem barreira nenhuma).
+    if (termsEnforcement.blocksOnPendingTerms({ pathname, user })) {
+      sendError(res, 403, 'Aceite os Termos de Uso e a Política de Privacidade para continuar.');
+      return true;
+    }
     // Bloqueio server-side de rotas admin (defesa em profundidade — frontend já filtra UI)
     if (isAdminRoute(pathname, method)) {
       if (!requireAdmin(req, res)) return true;
@@ -1719,6 +1688,19 @@ async function bootstrap() {
       .catch(() => {});
     setInterval(() => pgRateLimit.cleanup(7).catch(() => {}), 24 * 60 * 60 * 1000);
 
+    // Retenção de auditoria (steering §12) — diário, mascara ip/body/before_state
+    // além de AUDIT_LOG_RETENTION_DAYS (default 180). Não apaga a linha (ver
+    // lib/audit.js#purgeOldDetails).
+    const AUDIT_LOG_RETENTION_DAYS = parseInt(process.env.AUDIT_LOG_RETENTION_DAYS, 10) || 180;
+    audit
+      .purgeOldDetails(AUDIT_LOG_RETENTION_DAYS)
+      .then((n) => n > 0 && console.log(`[audit] retenção inicial: ${n} linhas mascaradas`))
+      .catch(() => {});
+    setInterval(
+      () => audit.purgeOldDetails(AUDIT_LOG_RETENTION_DAYS).catch(() => {}),
+      24 * 60 * 60 * 1000
+    );
+
     // Alertas do dashboard operacional (doc vencido, manutenção atrasada,
     // revisão de frota vencida) — notificação in-app (sino), não depende de
     // push/VAPID. lib/dashboard-alertas.js já deduplica por dia.
@@ -1820,36 +1802,8 @@ async function _runEmailBackup() {
     return;
   }
   try {
-    const safe = async (fn) => {
-      try {
-        return await fn();
-      } catch (e) {
-        console.warn('[dump] coleta falhou (resultado vazio):', e && e.message);
-        return [];
-      }
-    };
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-    const payload = {
-      _meta: {
-        version: APP_VERSION,
-        generatedAt: new Date().toISOString(),
-        format: 'rhino-backup-v1',
-      },
-      contracts: await safe(() => repos.contracts.findAllWithChildren()),
-      saidas: await safe(() => repos.saidas.findAll()),
-      caixa: await safe(() => repos.caixa.findAll()),
-      base: await safe(() => repos.baseItems.findAll()),
-      socios: await safe(() => repos.socios.findAll()),
-      investimentos: await safe(() => repos.investimentos.findAll()),
-      notas_fiscais: await safe(() => repos.notasFiscais.findAll()),
-      tipos_base: await safe(() => repos.tiposBase.findAll()),
-      clientes: await safe(() => repos.clientes.findAll()),
-      fornecedores: await safe(() => repos.fornecedores.findAll()),
-      contas_pagar: await safe(() => repos.contasPagar.findAll()),
-      niveis_acesso: await safe(() => repos.niveisAcesso.findAll()),
-      recursos: await safe(() => repos.recursos.findAllRaw()), // CPF cifrado no export (LGPD)
-      doc_templates: await safe(() => repos.docTemplates.findAll()),
-    };
+    const payload = await buildFullBackupPayload(repos, { appVersion: APP_VERSION });
     const json = JSON.stringify(payload);
     const sizeMB = (Buffer.byteLength(json) / 1024 / 1024).toFixed(2);
     const filename = `rhino-backup-${timestamp}.json`;

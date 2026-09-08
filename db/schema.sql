@@ -435,6 +435,8 @@ CREATE TABLE IF NOT EXISTS users (
   socio_id        TEXT REFERENCES socios(id) ON DELETE SET NULL,
   is_active       BOOLEAN DEFAULT TRUE,
   last_login_at   TIMESTAMPTZ,
+  -- Tipos de notificação in-app desativados pelo usuário (array de `tipo`).
+  notif_tipos_desativados JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at      TIMESTAMPTZ DEFAULT NOW(),
   updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
@@ -579,6 +581,7 @@ CREATE TABLE IF NOT EXISTS atividades (
   peso_pct          NUMERIC(5,2) DEFAULT 0,        -- % no total da obra (filhos somam 100 dentro do pai)
   exec_pct          NUMERIC(5,2) DEFAULT 0,        -- 0-100, o quanto foi feito
   custo_plan        NUMERIC(15,2) DEFAULT 0,
+  hh_plan           NUMERIC(15,2) NOT NULL DEFAULT 0, -- HH previsto da etapa (orçado)
   predecessoras     TEXT[] DEFAULT '{}',
   notas             TEXT,
   created_at        TIMESTAMPTZ DEFAULT NOW(),

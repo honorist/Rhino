@@ -63,8 +63,8 @@ flowchart LR
 
 ### Banco (`db/`)
 
-- **Schema** declarativo em `db/schema.sql` (~980 linhas)
-- **Migrations** idempotentes em `db/migrations/` aplicadas via `scripts/run-migrations.js` no `preDeployCommand` do Railway
+- **Schema**: `db/schema.sql` é o **baseline inicial** (bootstrap de um Postgres vazio — usado pelo `docker-entrypoint-initdb.d` do Docker Compose local), não um espelho completo e sempre atualizado do schema atual. Tabelas criadas por migration **depois** do baseline (a maioria — 30+ tabelas hoje: recrutamento, sugestões, RDO fotos/apontamentos, punch list, SSMA, EPIs, ponto, composições, cotações/compras, subcontratados, ferramentaria, equipamentos…) existem só em `db/migrations/`, de propósito (ver comentário em `db/migrations/20260609000000_candidato_doc_arquivos.sql`). **A fonte da verdade do schema atual é sempre `db/schema.sql` + todas as migrations aplicadas em sequência** — nunca só o primeiro.
+- **Migrations** idempotentes em `db/migrations/` aplicadas via `scripts/run-migrations.js` no `preDeployCommand` do Railway (produção) ou `npm run db:migrate` (local, depois do `docker compose up` aplicar o baseline)
 - **Triggers PG**:
   - `set_updated_at()` BEFORE UPDATE em todas as tabelas mutáveis
   - `log_contract_status_change()` AFTER UPDATE em `contracts` → grava em `contract_status_history` (usado pela cobrança mensal pra calcular dias ativos)

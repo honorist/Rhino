@@ -12,6 +12,8 @@ Como o Rhino protege os dados pessoais sensíveis dos colaboradores.
 
 Já existiam: exportação de dados (LGPD export), exclusão de conta e log de auditoria.
 
+**Retenção do log de auditoria** (2026-09-08): `ip`/`body`/`before_state` de `audit_log` são mascarados (não a linha inteira — `entity`/`action`/`user`/`ts` permanecem) além de `AUDIT_LOG_RETENTION_DAYS` (default 180 dias). Ver `lib/audit.js#purgeOldDetails`, agendado em `server.js` (mesmo padrão de `pg-rate-limit.js#cleanup`). **Pendente:** dados de colaborador/candidato (CPF, documentos, `pontos`, `epi_entregas`) não têm política de retenção/apagamento própria — hoje `handleDeleteRecurso` é hard-delete com `ON DELETE CASCADE`, sem considerar a retenção trabalhista de ponto (5 anos). Precisa de decisão de negócio antes de codar (ver backlog, Epic 2.2).
+
 ## Como funciona
 
 - **Em repouso**: CPF e arquivos são cifrados com **AES-256-GCM** (autenticado — detecta adulteração) antes de ir ao banco. Num dump/backup do Postgres eles aparecem ilegíveis (`enc:1:...` / blob com header `PENC`). Ver `lib/crypto-pii.js`.
