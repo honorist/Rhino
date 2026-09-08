@@ -175,18 +175,32 @@ flowchart TD
       { k: 'auth',       icon: '🔐', label: 'Login e Acesso' },
       { k: 'contratos',  icon: '📋', label: 'Contratos' },
       { k: 'cronograma', icon: '📅', label: 'Cronograma / Gantt' },
+      { k: 'evm',        icon: '📐', label: 'EVM / Curva S' },
       { k: 'rdos',       icon: '📝', label: 'RDOs' },
+      { k: 'apontamento',icon: '⏳', label: 'Apontamento de HH' },
       { k: 'assinaturas',icon: '✍️', label: 'Assinatura no RDO' },
+      { k: 'ssma',       icon: '🦺', label: 'SSMA (Segurança)' },
+      { k: 'punch',      icon: '✔️', label: 'Punch List' },
+      { k: 'databook',   icon: '📘', label: 'Data Book' },
       { k: 'saidas-bm',  icon: '🧾', label: 'Saídas e BMs' },
+      { k: 'dre',        icon: '📉', label: 'DRE do Contrato' },
       { k: 'nfs',        icon: '✅', label: 'NFs / Faturamento' },
       { k: 'contas-pg',  icon: '💸', label: 'Contas a Pagar' },
       { k: 'caixa',      icon: '💰', label: 'Caixa' },
       { k: 'recursos',   icon: '👥', label: 'Recursos e Folgas' },
+      { k: 'ponto',      icon: '⏱️', label: 'Ponto / Banco de Horas' },
+      { k: 'treinamentos',icon: '🎓', label: 'Treinamentos / NR' },
+      { k: 'epis',       icon: '🥽', label: 'EPIs' },
       { k: 'folha',      icon: '💵', label: 'Folha de Pagamento' },
       { k: 'estoque',    icon: '📦', label: 'Almoxarifado / Estoque' },
       { k: 'compras',    icon: '🛒', label: 'Solicitações de Compra' },
+      { k: 'composicoes',icon: '🧮', label: 'Composições de Custo' },
+      { k: 'cotacoes',   icon: '🧾', label: 'Mapa de Cotações' },
+      { k: 'subcontratados',icon: '🤝', label: 'Subcontratados' },
       { k: 'manutencao', icon: '🔧', label: 'Manutenção' },
       { k: 'frota',      icon: '🚚', label: 'Frota' },
+      { k: 'ferramentaria',icon: '🧰', label: 'Ferramentaria' },
+      { k: 'equipamentos',icon: '🏗️', label: 'Equipamentos' },
       { k: 'conciliacao',icon: '🔁', label: 'Conciliação Bancária' },
       { k: 'previsao',   icon: '📈', label: 'Previsão de Caixa' },
       { k: 'aichat',     icon: '🤖', label: 'Assistente IA' },
@@ -549,6 +563,29 @@ gantt
         </ul>
       `,
 
+      apontamento: `
+        <h1 class="man-h1">⏳ Apontamento de HH</h1>
+        <p class="man-p">Não é uma tela própria — é uma seção dentro do <strong>formulário de RDO</strong> (aba do contrato). Registra quem (colaborador ou equipamento) trabalhou quantas horas em qual etapa do cronograma, naquele dia.</p>
+
+        <h2 class="man-h2">O que preencher por linha</h2>
+        <ul class="man-ul">
+          <li><strong>Colaborador OU equipamento</strong> — pelo menos um dos dois é obrigatório</li>
+          <li><strong>Atividade</strong> — a etapa do Cronograma (opcional; sem atividade, as horas ainda contam pro total do RDO, só não entram no cálculo de produtividade por etapa)</li>
+          <li><strong>Função</strong> e <strong>Horas</strong></li>
+        </ul>
+        <p class="man-p">Linhas em branco (sem identidade nem horas) são descartadas automaticamente ao salvar — não é preciso remover manualmente.</p>
+
+        <h2 class="man-h2">Pra que serve</h2>
+        <p class="man-p">É a base de dois outros módulos:</p>
+        <ul class="man-ul">
+          <li><strong>Produtividade do Cronograma</strong> — compara HH previsto de cada etapa com o HH realizado (soma dos apontamentos daquela etapa):</li>
+        </ul>
+        <pre class="man-code">produtividade % = HH realizado da etapa ÷ HH previsto da etapa × 100</pre>
+        <ul class="man-ul">
+          <li><strong>SSMA</strong> e <strong>EVM</strong> — usam o total de HH apontado (HHT) como base de cálculo (ver Taxa de Frequência/Gravidade e Custo Real).</li>
+        </ul>
+      `,
+
       'saidas-bm': `
         <h1 class="man-h1">🧾 Saídas e BMs</h1>
         <p class="man-p"><strong>Saída</strong> é uma medição parcial executada no contrato. Ao criar uma saída, o sistema agrupa em uma <strong>NF/BM</strong> (Boletim de Medição) — uma por dia/mês.</p>
@@ -569,6 +606,26 @@ gantt
           <li>Mudar a data move a saída para outra NF (busca/cria a do novo dia)</li>
           <li>Editar prazo de recebimento atualiza a NF associada</li>
         </ul>
+      `,
+
+      dre: `
+        <h1 class="man-h1">📉 DRE do Contrato</h1>
+        <p class="man-p">Demonstrativo de Resultado do contrato — receita realmente recebida menos custo realmente pago, em base caixa (não é o valor faturado, é o que já entrou/saiu de fato). Aba dentro do contrato.</p>
+
+        <h2 class="man-h2">As contas</h2>
+        <pre class="man-code">Receita realizada  = Σ entradas de caixa do contrato originadas de nota fiscal
+                      (aporte/empréstimo não conta como receita)
+
+Custo total         = Σ saídas de caixa do contrato, agrupadas por categoria
+                      (categoria não reconhecida cai em "Outros")
+
+Margem realizada %  = (Receita − Custo total) ÷ Receita × 100
+
+Saldo a medir        = Valor do contrato − total já medido (soma das Saídas/BMs)</pre>
+
+        <div class="man-tip">
+          <strong>Base caixa, não competência:</strong> um custo só entra no DRE quando o pagamento sai do caixa de verdade — não quando a conta é lançada. Uma conta a pagar pendente não aparece aqui até ser paga.
+        </div>
       `,
 
       nfs: `
@@ -666,6 +723,52 @@ gantt
           <li><strong>Como lançar</strong>: saída direta no caixa OU conta a pagar pendente</li>
         </ul>
         <p class="man-p">A passagem fica vinculada à folga via <code>caixaEntryId</code> ou <code>contaPagarId</code> para rastreio futuro.</p>
+      `,
+
+      ponto: `
+        <h1 class="man-h1">⏱️ Ponto / Banco de Horas</h1>
+        <p class="man-p">Registro de entrada/saída e cálculo de banco de horas por colaborador. Não é uma tela própria — acesse pelo botão <strong>Ponto</strong> na linha do colaborador em <strong>Recursos</strong> (só aparece para quem está com status "funcionário").</p>
+
+        <h2 class="man-h2">Como funciona</h2>
+        <ul class="man-ul">
+          <li>Lance entrada e saída do dia — o sistema calcula as horas trabalhadas sozinho, inclusive em turnos que viram a madrugada (ex.: 23h às 07h)</li>
+          <li><strong>Saldo do dia</strong> = horas trabalhadas − jornada prevista daquele dia</li>
+          <li>Navegue por mês (competência) para ver o resumo do período: dias marcados, horas trabalhadas e saldo acumulado (banco de horas)</li>
+        </ul>
+
+        <div class="man-tip">
+          <strong>Saldo positivo</strong> (verde) = colaborador tem horas a compensar a favor dele. <strong>Saldo negativo</strong> (vermelho) = trabalhou menos que a jornada prevista.
+        </div>
+      `,
+
+      treinamentos: `
+        <h1 class="man-h1">🎓 Treinamentos / NR</h1>
+        <p class="man-p">Controle de validade dos treinamentos de Normas Regulamentadoras (NR-10, NR-35 etc.) de cada colaborador. Acesse pelo botão <strong>Treinamentos</strong> na linha do colaborador em <strong>Recursos</strong>.</p>
+
+        <h2 class="man-h2">Como funciona</h2>
+        <ul class="man-ul">
+          <li>Cadastre a NR, a data de conclusão e a validade do certificado</li>
+          <li>Status calculado automaticamente pela data: <strong>válido</strong>, <strong>vencendo</strong> ou <strong>vencido</strong></li>
+        </ul>
+
+        <div class="man-warn">
+          <strong>Bloqueio de alocação:</strong> um colaborador sem uma NR obrigatória (ou com ela vencida) fica bloqueado pro sistema alocá-lo numa atividade que exige aquela norma. Renove o treinamento antes de escalar a equipe.
+        </div>
+      `,
+
+      epis: `
+        <h1 class="man-h1">🥽 EPIs</h1>
+        <p class="man-p">Ficha de entrega de Equipamentos de Proteção Individual por colaborador — capacete, luva, óculos, protetor auricular etc. Acesse pelo botão <strong>EPIs</strong> na linha do colaborador em <strong>Recursos</strong>.</p>
+
+        <h2 class="man-h2">Como funciona</h2>
+        <ul class="man-ul">
+          <li>Cada entrega registra o item, a data e a próxima data prevista de troca</li>
+          <li>Status da ficha: <strong>ativo</strong> (dentro do prazo) → <strong>trocar</strong> (prazo de troca já passou e não foi devolvido) → <strong>devolvido</strong></li>
+        </ul>
+
+        <div class="man-tip">
+          <strong>Fila de reposição:</strong> a lista de "a trocar" é o que a área de segurança usa pra saber quem precisa de EPI novo.
+        </div>
       `,
 
       folha: `
@@ -795,6 +898,37 @@ gantt
         </div>
       `,
 
+      evm: `
+        <h1 class="man-h1">📐 EVM / Curva S</h1>
+        <p class="man-p">Análise de valor agregado (Earned Value Management) do contrato — cruza o que estava planejado, o que foi de fato executado e o que já foi gasto, pra saber se a obra está adiantada/atrasada e dentro/fora do orçamento. Aba dentro do contrato, ao lado do Cronograma.</p>
+
+        <h2 class="man-h2">De onde vêm os números</h2>
+        <ul class="man-ul">
+          <li><strong>Custo planejado (BAC)</strong> — soma do custo planejado de todas as etapas do Cronograma.</li>
+          <li><strong>% executado</strong> — vem do Cronograma (mesmo campo usado no Gantt).</li>
+          <li><strong>Custo real (AC)</strong> — vem do Apontamento de HH e do caixa do contrato.</li>
+        </ul>
+
+        <h2 class="man-h2">As fórmulas</h2>
+        <pre class="man-code">BAC (orçamento total)      = Σ custo planejado de todas as etapas
+PV (valor planejado)       = Σ (custo plan. da etapa × % planejado até a data de referência)
+EV (valor agregado)        = Σ (custo plan. da etapa × % executado)
+AC (custo real)            = gasto de verdade até a data de referência
+
+SV  (desvio de prazo)      = EV − PV        → negativo = atrasado
+CV  (desvio de custo)      = EV − AC        → negativo = estourando o orçamento
+SPI (índice de prazo)      = EV ÷ PV        → abaixo de 1 = atrasado
+CPI (índice de custo)      = EV ÷ AC        → abaixo de 1 = gastando mais que o planejado
+
+EAC (estimativa no fim)    = BAC ÷ CPI      → quanto a obra deve custar no total, no ritmo atual
+ETC (falta gastar)         = EAC − AC
+VAC (variação no fim)      = BAC − EAC      → negativo = vai estourar o orçamento</pre>
+
+        <div class="man-tip">
+          <strong>Leitura rápida:</strong> SPI e CPI = 1,00 é o ideal (no prazo, no custo). Abaixo de 1 é alerta; quanto mais longe de 1, maior o desvio.
+        </div>
+      `,
+
       assinaturas: `
         <h1 class="man-h1">✍️ Assinatura digital no RDO</h1>
         <p class="man-p">Encarregado, cliente e fiscal podem assinar o RDO direto no celular ou tablet. A assinatura fica salva como imagem no banco e aparece em qualquer relatório do RDO.</p>
@@ -823,6 +957,56 @@ gantt
 
         <div class="man-tip">
           <strong>Múltiplas assinaturas:</strong> você pode adicionar quantas precisar no mesmo RDO (encarregado + cliente + fiscal numa única visita). Cada uma vira um registro separado.
+        </div>
+      `,
+
+      ssma: `
+        <h1 class="man-h1">🦺 SSMA — Segurança, Saúde e Meio Ambiente</h1>
+        <p class="man-p">Registro de ocorrências de segurança da obra (acidentes, quase-acidentes, desvios) e os indicadores oficiais de SSMA. Aba dentro do contrato.</p>
+
+        <h2 class="man-h2">Registrando uma ocorrência</h2>
+        <p class="man-p">Tipo, gravidade, descrição, e se houve afastamento (com dias perdidos). O histórico completo por obra fica listado na mesma aba.</p>
+
+        <h2 class="man-h2">Os indicadores</h2>
+        <p class="man-p">Calculados sobre o total de Homem-Hora trabalhado na obra (HHT), que vem da soma dos <strong>Apontamentos de HH</strong> lançados nos RDOs:</p>
+        <pre class="man-code">TF (Taxa de Frequência) = acidentes com afastamento × 1.000.000 ÷ HHT
+TG (Taxa de Gravidade)  = dias perdidos × 1.000.000 ÷ HHT</pre>
+        <p class="man-p">São os indicadores padrão do mercado (NBR 14280) — quanto menor, melhor. Sem HHT lançado (nenhum apontamento no contrato), os indicadores não têm base de cálculo.</p>
+
+        <div class="man-tip">
+          <strong>Pré-requisito:</strong> pra TF/TG aparecerem corretos, alguém precisa estar lançando o Apontamento de HH nos RDOs da obra.
+        </div>
+      `,
+
+      punch: `
+        <h1 class="man-h1">✔️ Punch List</h1>
+        <p class="man-p">Lista de pendências pra fechar antes de entregar a obra — o clássico "punch list" de comissionamento. Aba dentro do contrato.</p>
+
+        <h2 class="man-h2">Cada item da lista</h2>
+        <ul class="man-ul">
+          <li>Descrição da pendência + prazo pra resolver</li>
+          <li><strong>Fotos</strong> (antes/depois, evidência do problema)</li>
+          <li>Status: <strong>aberto</strong> → <strong>resolvido</strong> → <strong>verificado</strong> (confirmação de quem NÃO resolveu, fechando o ciclo)</li>
+        </ul>
+        <p class="man-p">Um item entra automaticamente como <strong>vencido</strong> quando o prazo passou e ele ainda não foi resolvido nem verificado — fica destacado na lista.</p>
+
+        <div class="man-tip">
+          <strong>Conecta com o Data Book:</strong> a obra só aparece como "pronta" no Data Book quando não sobrar nenhum item de Punch List em aberto.
+        </div>
+      `,
+
+      databook: `
+        <h1 class="man-h1">📘 Data Book</h1>
+        <p class="man-p">Painel de prontidão da obra pra comissionamento/entrega — resume, numa olhada, se ainda falta alguma pendência da Punch List pra fechar. Aba dentro do contrato.</p>
+
+        <h2 class="man-h2">Como ler</h2>
+        <ul class="man-ul">
+          <li><strong>Total de itens</strong> e <strong>quantos já foram verificados</strong> na Punch List da obra</li>
+          <li><strong>Obra pronta</strong> quando não existe nenhum item de Punch List em aberto (nem "aberto" nem só "resolvido" sem verificação) — todos precisam estar <strong>verificados</strong></li>
+        </ul>
+
+        <div class="man-tip">
+          <strong>Não tem cadastro próprio:</strong> o Data Book só lê o que já foi lançado na Punch List — resolva as pendências lá para o Data Book atualizar sozinho.
         </div>
       `,
 
@@ -920,6 +1104,45 @@ gantt
         <div class="man-tip"><strong>Permissões:</strong> as etapas são liberadas em Configuração → Níveis de Acesso, nas linhas recuadas abaixo de "Solicitações de Compra".</div>
       `,
 
+      composicoes: `
+        <h1 class="man-h1">🧮 Composições de Custo</h1>
+        <p class="man-p">Catálogo de composições (serviço ou insumo montado a partir de outros itens) — a mesma lógica de composição de preço unitário usada em orçamento de obra. Acesse pelo menu lateral.</p>
+
+        <h2 class="man-h2">Como montar uma composição</h2>
+        <p class="man-p">Cada composição é uma lista de insumos, cada um com um <strong>coeficiente</strong> (quanto daquele insumo entra numa unidade da composição) e o <strong>valor unitário</strong> do insumo:</p>
+        <pre class="man-code">Custo unitário da composição = Σ (coeficiente do insumo × valor unitário do insumo)</pre>
+        <p class="man-p">O resumo por tipo reparte esse custo em <strong>mão de obra</strong>, <strong>material</strong> e <strong>outros</strong> — um insumo sem tipo reconhecido cai em "Outros".</p>
+      `,
+
+      cotacoes: `
+        <h1 class="man-h1">🧾 Mapa de Cotações</h1>
+        <p class="man-p">Compara preços de vários fornecedores para os mesmos itens, numa matriz, e gera o pedido de compra pro fornecedor vencedor. Acesse pelo menu lateral (grupo Obras).</p>
+
+        <h2 class="man-h2">O fluxo</h2>
+        <ol class="man-ol">
+          <li><strong>Criar a cotação</strong> — descrição + os itens que você quer comprar (descrição, unidade, quantidade)</li>
+          <li><strong>Preencher a matriz</strong> — pra cada item, lance o preço de cada fornecedor que cotou. Célula vazia = fornecedor não cotou aquele item</li>
+          <li><strong>Comparar</strong> — o sistema mostra o vencedor de cada item (menor preço válido), o total por fornecedor e a economia (diferença entre a média dos preços e o menor preço)</li>
+          <li><strong>Gerar Pedido de Compra</strong> — escolha um fornecedor (ou deixe o sistema sugerir o vencedor global); o pedido leva só os itens que esse fornecedor cotou, no preço dele</li>
+        </ol>
+
+        <div class="man-tip">
+          <strong>Depois de gerar o pedido</strong>, a cotação fecha automaticamente (se ainda estava aberta/em análise) — os Pedidos de Compra ficam listados à parte, com status emitida/recebida/cancelada.
+        </div>
+      `,
+
+      subcontratados: `
+        <h1 class="man-h1">🤝 Subcontratados</h1>
+        <p class="man-p">Cadastro de empresas subcontratadas e o controle de medições (o quanto já foi medido e pago pra cada uma). Acesse pelo menu lateral (grupo Obras).</p>
+
+        <h2 class="man-h2">Medições</h2>
+        <p class="man-p">Cada medição lançada pra um subcontratado tem um status: <strong>prevista</strong> → <strong>medida</strong> → <strong>paga</strong>.</p>
+        <pre class="man-code">Total medido    = Σ medições com status "medida" ou "paga"
+Total pago      = Σ medições com status "paga"
+Saldo a pagar   = Total medido − Total pago</pre>
+        <p class="man-p">O resumo por competência agrupa as medições por mês, e o resumo por status mostra quanto está em cada etapa — útil pra saber o que falta pagar.</p>
+      `,
+
       manutencao: `
         <h1 class="man-h1">🔧 Manutenção de Equipamentos</h1>
         <p class="man-p">Controla equipamentos enviados para reparo — máquina de solda, ferramentas e outros — com fluxo de aprovação parecido com o de Solicitação de Compra.</p>
@@ -954,6 +1177,29 @@ gantt
           <li><strong>+ Adicionar plano</strong> — planos de manutenção preventiva (por km ou período).</li>
           <li><strong>+ Registrar manutenção</strong> — histórico de manutenções já feitas no veículo.</li>
         </ul>
+      `,
+
+      ferramentaria: `
+        <h1 class="man-h1">🧰 Ferramentaria</h1>
+        <p class="man-p">Cadastro do parque de ferramentas e controle de calibração periódica (paquímetros, torquímetros, instrumentos de medição). Acesse pelo menu lateral (grupo Obras).</p>
+
+        <h2 class="man-h2">Calibração</h2>
+        <p class="man-p">Cada ferramenta tem uma <strong>periodicidade</strong> de calibração (em meses). A próxima calibração é calculada a partir da última:</p>
+        <pre class="man-code">Próxima calibração = data da última calibração + periodicidade (meses)</pre>
+        <p class="man-p">Situação mostrada na lista: <strong>em dia</strong> ou <strong>vencida</strong> (data da próxima calibração já passou) — o resumo do parque conta quantas ferramentas estão em cada situação.</p>
+      `,
+
+      equipamentos: `
+        <h1 class="man-h1">🏗️ Equipamentos</h1>
+        <p class="man-p">Cadastro de equipamentos próprios ou locados (guindastes, geradores, plataformas) e o controle das locações — quando começou, quando termina, quanto já custou. Acesse pelo menu lateral (grupo Obras).</p>
+
+        <h2 class="man-h2">Locações</h2>
+        <ul class="man-ul">
+          <li>Cada equipamento locado tem uma locação ativa com início, fim previsto e valor mensal</li>
+          <li>O custo acumulado é calculado proporcionalmente aos meses corridos entre o início e o fim (ou hoje, se ainda estiver ativa)</li>
+          <li>Alerta de devolução: locações com fim já passado (ou vencendo nos próximos dias) aparecem destacadas — evita pagar aluguel de equipamento que já devia ter voltado</li>
+        </ul>
+        <p class="man-p">O resumo mostra quantos equipamentos são <strong>próprios</strong> vs. <strong>locados</strong>, e a distribuição por status.</p>
       `,
 
       conciliacao: `
