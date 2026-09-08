@@ -31,14 +31,17 @@ window.Contratos = {
   set sortDir(v) {
     this._filterStore?.set('sortDir', v);
   },
-  currentPage: 1,
-  pageSize: 25,
+  // Paginação (UIKit.paginate) — era implementação própria duplicada da
+  // mesma lógica que UIKit.js já extraiu pras outras telas (Recursos,
+  // Estoque, Frota, Notas Fiscais, Solicitações de Compra).
+  _page: 1,
+  _pageSize: 25,
   _favs: new Set(JSON.parse(localStorage.getItem('rhino-favs') || '[]')),
   _selectedIds: new Set(),
   _currentFiltered: [],
 
   _resetPage() {
-    this.currentPage = 1;
+    this._page = 1;
   },
 
   _toggleFav(id) {
@@ -175,10 +178,9 @@ window.Contratos = {
       this._currentFiltered = filtered;
 
       const totalFiltered = filtered.length;
-      const totalPages = Math.max(1, Math.ceil(totalFiltered / this.pageSize));
-      if (this.currentPage > totalPages) this.currentPage = totalPages;
-      const pageStart = (this.currentPage - 1) * this.pageSize;
-      const pagedContracts = filtered.slice(pageStart, pageStart + this.pageSize);
+      const pagina = UIKit.paginate(filtered, this._page, this._pageSize);
+      this._page = pagina.page; // clamp: lista encolheu (filtro) sem ficar preso numa página morta
+      const pagedContracts = pagina.slice;
 
       // Compliance de RDOs (não-bloqueante) — fetch disparado no início do render
       const rdoStats = await rdoStatsPromise;
@@ -400,32 +402,7 @@ window.Contratos = {
           </div>
         </div>
 
-        ${
-          totalFiltered > this.pageSize
-            ? `
-        <div class="rh-pagination">
-          <div style="color:var(--color-text-muted);font-size:13px;">
-            ${pageStart + 1}–${Math.min(pageStart + this.pageSize, totalFiltered)} de ${totalFiltered}
-            <select class="rh-pager-size" title="Itens por página" style="margin-left:8px;padding:4px 8px;border-radius:5px;border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-text);font-size:13px;font-family:inherit;">
-              ${[10, 25, 50, 100].map((n) => `<option value="${n}" ${this.pageSize === n ? 'selected' : ''}>${n} por página</option>`).join('')}
-            </select>
-          </div>
-          <div class="rh-pagination__pages">
-            <button class="rh-pagination__btn" id="rh-pg-prev" ${this.currentPage === 1 ? 'disabled' : ''}>‹</button>
-            ${Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
-              let pg = i + 1;
-              if (totalPages > 7) {
-                if (this.currentPage <= 4) pg = i + 1;
-                else if (this.currentPage >= totalPages - 3) pg = totalPages - 6 + i;
-                else pg = this.currentPage - 3 + i;
-              }
-              return `<button class="rh-pagination__btn ${this.currentPage === pg ? 'is-active' : ''}" data-pg="${pg}">${pg}</button>`;
-            }).join('')}
-            <button class="rh-pagination__btn" id="rh-pg-next" ${this.currentPage === totalPages ? 'disabled' : ''}>›</button>
-          </div>
-        </div>`
-            : ''
-        }
+        ${UIKit.pagination(pagina, { label: 'contratos' })}
 
         ${
           this._selectedIds.size > 0
@@ -454,7 +431,7 @@ window.Contratos = {
       // Status filter
       document.getElementById('filterStatus').addEventListener('change', (e) => {
         this.currentFilter = e.target.value;
-        this.currentPage = 1;
+        this._page = 1;
         this.render();
       });
 
@@ -464,7 +441,7 @@ window.Contratos = {
         clearTimeout(_searchTimer);
         _searchTimer = setTimeout(() => {
           this.currentSearch = e.target.value;
-          this.currentPage = 1;
+          this._page = 1;
           this.render();
         }, 220);
       });
@@ -514,24 +491,10 @@ window.Contratos = {
       // CSV export
       document.getElementById('btnExportCSV')?.addEventListener('click', () => this.exportCSV());
 
-      // Pagination controls
-      document.getElementById('rh-pg-prev')?.addEventListener('click', () => {
-        this.currentPage--;
-        this.render();
-      });
-      document.getElementById('rh-pg-next')?.addEventListener('click', () => {
-        this.currentPage++;
-        this.render();
-      });
-      document.querySelectorAll('.rh-pagination__btn[data-pg]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          this.currentPage = parseInt(btn.dataset.pg);
-          this.render();
-        });
-      });
-      document.querySelector('.rh-pager-size')?.addEventListener('change', (e) => {
-        this.pageSize = parseInt(e.target.value);
-        this.currentPage = 1;
+      // Pagination controls (UIKit — mesmo padrão de Recursos/Estoque/Frota/...)
+      UIKit.wirePagination(app, pagina, ({ page, pageSize }) => {
+        this._page = page;
+        this._pageSize = pageSize;
         this.render();
       });
 
