@@ -120,9 +120,9 @@ Um futuro replace de framework deve ser rewrite **só do front**:
 
 ## 8. Testes (a disciplina é obrigatória; as ferramentas são os defaults deste projeto)
 
-> **Estado atual (verificado em 2026-06-08):** `npm test` → **236 testes, 236 passando, 0 falhas,
-> ~1,4 s**, todos **puros (sem banco/I-O)**. A base de teste é real e verde — manter assim é
-> Definition of Done (§10).
+> **Estado atual:** rode `npm test` pra ver o número real — a suíte cresce toda semana e um
+> número fixo aqui sempre fica desatualizado (era 236 em 2026-06-08; passou de mil casos desde
+> então). O que não muda: continua **puro (sem banco/I-O)** e **verde é Definition of Done** (§10).
 
 - **Unitário: `node --test`** (`test/*.test.js`) — rápido, sem I/O; regras puras de `lib/`. Cobre
   dinheiro (`money`), permissões (`permissions`), validação de payload (`validate`, e os

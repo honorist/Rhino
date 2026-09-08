@@ -53,7 +53,7 @@
                 <h2 class="modal-title">Treinamentos NR — ${escapeHtml(recurso.nome || '')}</h2>
                 <p style="font-size:14px;color:var(--color-text-muted);margin:0;">${escapeHtml(recurso.profissao || '')}</p>
               </div>
-              <button class="modal-close">✕</button>
+              <button class="modal-close" aria-label="Fechar">✕</button>
             </div>
             <div class="modal-content" style="overflow-y:auto;flex:1;" id="treinosBody">
               <div class="text-muted" style="text-align:center;padding:var(--sp-xl);">Carregando…</div>
@@ -197,7 +197,7 @@
           <div class="modal" style="width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;">
             <div class="modal-header">
               <h2 class="modal-title">${editing ? 'Editar' : 'Novo'} treinamento — ${escapeHtml(recurso.nome || '')}</h2>
-              <button class="modal-close">✕</button>
+              <button class="modal-close" aria-label="Fechar">✕</button>
             </div>
             <form id="formTreino" class="modal-content">
               <div class="form-row">

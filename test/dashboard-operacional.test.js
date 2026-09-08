@@ -109,6 +109,8 @@ test('financeiro: banco vazio devolve painel coerente e 200', async () => {
   assert.deepStrictEqual(res.body.contratosAVencer, []);
   assert.strictEqual(res.body.nfsStatus.vencidas, 0);
   assert.ok(Array.isArray(res.body.historicoCaixa), 'histórico é sempre uma série');
+  assert.deepStrictEqual(res.body.custoPorCategoria, {});
+  assert.deepStrictEqual(res.body.receitaPorCliente, []);
 });
 
 // ── Financeiro: margem por obra = DRE realizado (caixa); saldoAMedir à parte ──
@@ -154,4 +156,7 @@ test('financeiro: margin = margem realizada do caixa; saldoAMedir = valor − me
   assert.strictEqual(byId.c2.saldoAMedir, 0);
   assert.strictEqual(res.body.activeContracts, 2);
   assert.strictEqual(res.body.totalContractValue, 1500);
+  // Gráficos consolidados: mesmo caixa acima, agora por categoria e por cliente.
+  assert.deepStrictEqual(res.body.custoPorCategoria, { mao_de_obra: 200, Estoque: 60 });
+  assert.deepStrictEqual(res.body.receitaPorCliente, [{ cliente: 'X', total: 480 }]);
 });

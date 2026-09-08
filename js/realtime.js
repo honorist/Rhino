@@ -110,6 +110,20 @@
     'folha-pagamento':   () => location.hash === '#/folha-pagamento',
     documentos:          () => location.hash === '#/documentos',
     sugestoes:           () => location.hash === '#/sugestoes',
+    equipamentos:        () => location.hash === '#/equipamentos',
+    ferramentas:         () => location.hash === '#/ferramentaria',
+    cotacoes:            () => location.hash === '#/mapa-cotacoes' || location.hash === '#/cotacoes-historico',
+    composicoes:         () => location.hash === '#/composicoes',
+    'ordens-compra':     () => location.hash === '#/mapa-cotacoes',
+    subcontratados:      () => location.hash === '#/subcontratados',
+    users:               () => location.hash === '#/usuarios',
+    'niveis-acesso':     () => location.hash === '#/usuarios',
+    'case-logos':        () => location.hash === '#/apresentacao',
+    'doc-templates':     () => location.hash === '#/configuracao',
+    'app-settings':      () => location.hash === '#/apresentacao',
+    'tipos-base':        () => location.hash === '#/configuracao' || location.hash === '#/base',
+    'cobranca-mensal':   () => location.hash === '#/cobranca',
+    saidas:              () => /^#\/contratos/.test(location.hash),
   };
 
   let refreshTimer = null;

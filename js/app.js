@@ -10,6 +10,7 @@ const _lazyManifest = {
       './js/views/ContratoDetail.js',
       './js/views/contrato/charts.js',
       './js/views/contrato/visao-geral.js',
+      './js/lib/org-chart-layout.js',
       './js/views/contrato/organograma.js',
       './js/views/contrato/rdos.js',
       './js/views/contrato/rdo-form.js',
@@ -57,6 +58,7 @@ const _lazyManifest = {
     viewName: 'PropostaDetail',
     scripts: [
       './js/views/PropostaDetail.js',
+      './js/lib/rich-text-editor.js',
       './js/views/proposta/dados-gerais.js',
       './js/views/proposta/escopo.js',
       './js/views/proposta/obrigacoes.js',
@@ -1908,7 +1910,7 @@ window.RhinoShortcuts = {
         <div class="modal" style="max-width:500px;">
           <div class="modal-header">
             <h2 class="modal-title">Atalhos de teclado</h2>
-            <button class="modal-close" id="rh-sc-close">✕</button>
+            <button class="modal-close" id="rh-sc-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content rh-shortcuts-panel">${body}</div>
           <div class="modal-footer">

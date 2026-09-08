@@ -336,7 +336,7 @@ window.SolicitacoesCompra = {
               <h2 class="modal-title">${s ? 'Editar Solicitação' : 'Nova Solicitação de Compra'}</h2>
               <div style="font-size:13px;color:var(--color-text-muted);margin-top:4px;">Informe o que precisa, a quantidade e onde será usado. A equipe de compras vai precificar e o Gerente aprovar.</div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formSolicitacao" class="modal-content">
             <div class="form-row">
@@ -512,7 +512,7 @@ window.SolicitacoesCompra = {
               <h2 class="modal-title">Avaliar / Precificar</h2>
               <div style="font-size:13px;color:var(--color-text-muted);margin-top:4px;">Solicitante: ${escapeHtml(s.solicitanteNome || '—')} · ${this._fmtDt(s.createdAt)}</div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             ${s.justificativa ? `<div style="padding:10px;background:var(--color-surface-2);border-radius:6px;margin-bottom:var(--sp-md);"><strong>Justificativa:</strong><br>${escapeHtml(s.justificativa)}</div>` : ''}
@@ -664,7 +664,7 @@ window.SolicitacoesCompra = {
               <h2 class="modal-title">Aprovar Solicitação</h2>
               <div style="font-size:13px;color:var(--color-text-muted);margin-top:4px;">Pré-aprovada pela equipe de compras · Total: <strong>${Store.formatBRL(parseFloat(s.valorTotal) || 0)}</strong></div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:var(--sp-md);">
@@ -762,7 +762,7 @@ window.SolicitacoesCompra = {
               <h2 class="modal-title">Registrar compra</h2>
               <div style="font-size:13px;color:var(--color-text-muted);">Vai gerar a Conta a Pagar de ${Store.formatBRL(parseFloat(s.valorTotal) || 0)}</div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formComprar" class="modal-content">
             <div class="form-row">
@@ -831,7 +831,7 @@ window.SolicitacoesCompra = {
               <h2 class="modal-title">Confirmar chegada do material</h2>
               <div style="font-size:13px;color:var(--color-text-muted);">${itens.length} ${itens.length === 1 ? 'item' : 'itens'} entram no estoque ao confirmar</div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formReceber" class="modal-content">
             <div class="form-row">
@@ -961,7 +961,7 @@ window.SolicitacoesCompra = {
               <h2 class="modal-title">Solicitação #${s.numero || s.id.slice(-6)}</h2>
               <div style="margin-top:4px;">${this._badgeEtapa(s.status)}</div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             <div style="display:grid;grid-template-columns:2fr 3fr;gap:var(--sp-lg);">

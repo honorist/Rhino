@@ -15,7 +15,7 @@
         <div class="modal" style="width:420px;">
           <div class="modal-header">
             <h2 class="modal-title">Exportar RDOs por período</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             <div class="form-row" style="gap:var(--sp-md);">

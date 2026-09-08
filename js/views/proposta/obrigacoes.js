@@ -5,7 +5,18 @@
 (function() {
   function uid() { return 'obg_' + Math.random().toString(36).slice(2, 9); }
 
+  // Instâncias vivas do editor rico, chave "lado:idx" (contratada e
+  // contratante têm listas/índices independentes) — destruídas no início de
+  // cada render() já que a lista inteira é reconstruída em toda mutação.
+  let _richInstances = new Map();
+
+  function _destroyRichInstances() {
+    _richInstances.forEach(inst => { try { inst.destroy(); } catch {} });
+    _richInstances = new Map();
+  }
+
   function render(container, p, onChange) {
+    _destroyRichInstances();
     const clausulas = (window.Store?.state?.clausulas || []).filter(c => c.ativa !== false);
     const contratada  = Array.isArray(p.obrigacoesContratada)  ? p.obrigacoesContratada  : [];
     const contratante = Array.isArray(p.obrigacoesContratante) ? p.obrigacoesContratante : [];
@@ -60,7 +71,7 @@
         <div class="obg-row" data-lado="${lado}" data-idx="${idx}" style="display:flex;gap:10px;align-items:flex-start;padding:10px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0;">
           <div style="flex:1;">
             <input type="text" class="form-control obg-titulo" data-lado="${lado}" data-idx="${idx}" value="${escapeHtml(it.titulo || '')}" placeholder="Título (opcional)" style="margin-bottom:6px;font-weight:600;">
-            <textarea class="form-control obg-texto" data-lado="${lado}" data-idx="${idx}" rows="3" style="resize:vertical;">${escapeHtml(it.texto || '')}</textarea>
+            <div class="obg-texto rich-text-mount" data-lado="${lado}" data-idx="${idx}"></div>
           </div>
           <div style="display:flex;flex-direction:column;gap:4px;">
             <button class="btn-obg-up"   data-lado="${lado}" data-idx="${idx}" title="Subir"  style="background:none;border:none;cursor:pointer;color:#64748b;font-size:12px;">▲</button>
@@ -71,8 +82,17 @@
       `;
     }
 
+    // Devolve a lista do lado com o `.texto` de cada item atualizado a partir
+    // da instância viva do editor rico (quando existir) — protege contra
+    // perder digitação não-commitada quando um botão dispara um re-render
+    // antes do debounce de 300ms do texto disparar (mesma lógica do
+    // snapshot() de escopo.js, mas por lado+índice).
     function getLista(lado) {
-      return lado === 'contratada' ? [...(p.obrigacoesContratada || [])] : [...(p.obrigacoesContratante || [])];
+      const base = lado === 'contratada' ? [...(p.obrigacoesContratada || [])] : [...(p.obrigacoesContratante || [])];
+      return base.map((it, idx) => {
+        const inst = _richInstances.get(lado + ':' + idx);
+        return inst ? { ...it, texto: inst.getValue() } : it;
+      });
     }
     function setLista(lado, nova) {
       const key = lado === 'contratada' ? 'obrigacoesContratada' : 'obrigacoesContratante';
@@ -115,16 +135,26 @@
           }, 300);
         });
       });
-      container.querySelectorAll('.obg-texto').forEach(ta => {
-        let timer;
-        ta.addEventListener('input', () => {
-          clearTimeout(timer);
-          timer = setTimeout(() => {
-            const lado = ta.dataset.lado, idx = parseInt(ta.dataset.idx, 10);
-            const nova = getLista(lado).map((it, i) => i === idx ? { ...it, texto: ta.value } : it);
-            setLista(lado, nova);
-          }, 300);
-        });
+      // Editor rico por item — assíncrono (lazy-load do Jodit).
+      const commitTimers = new Map();
+      container.querySelectorAll('.obg-texto').forEach(el => {
+        const lado = el.dataset.lado, idx = parseInt(el.dataset.idx, 10);
+        const key = lado + ':' + idx;
+        const item = getLista(lado)[idx];
+        window.RhinoRichText.mount(el, {
+          value: item?.texto || '',
+          uploadUrl: `/api/propostas/${p.id}/anexos`,
+          uploadFields: { tipo: 'imagem', secao: 'inline' },
+          buildImageUrl: (anexoId) => `/api/propostas/${p.id}/anexos/${anexoId}`,
+          onChange: () => {
+            clearTimeout(commitTimers.get(key));
+            commitTimers.set(key, setTimeout(() => setLista(lado, getLista(lado)), 300));
+          },
+          onBlur: () => {
+            clearTimeout(commitTimers.get(key));
+            setLista(lado, getLista(lado));
+          },
+        }).then(inst => { _richInstances.set(key, inst); });
       });
 
       container.querySelectorAll('.btn-obg-del').forEach(b => {

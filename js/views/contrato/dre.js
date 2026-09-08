@@ -13,6 +13,10 @@
               <h3 class="card-title"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('trending-up', 18)}DRE / Margem por obra</span></h3>
               <span class="text-muted font-sm">Resultado realizado — o que de fato entrou e saiu do caixa desta obra</span>
             </div>
+            <div>
+              <button class="btn btn-secondary btn-sm" id="btnExportarDreCsv">Exportar CSV</button>
+              <button class="btn btn-secondary btn-sm" id="btnExportarDrePdf">Exportar PDF</button>
+            </div>
           </div>
           <div id="dreConteudo" style="padding:var(--sp-md);">
             <div class="text-muted" style="text-align:center;padding:var(--sp-lg);">Calculando DRE...</div>
@@ -29,8 +33,51 @@
         if (!r.ok) throw new Error(await r.text());
         const { dre } = await r.json();
         box.innerHTML = this._renderDre(dre);
+        this._dreAtual = dre;
+        this._dreContract = contract;
+        document.getElementById('btnExportarDreCsv')?.addEventListener('click', () => this._exportarDre('csv'));
+        document.getElementById('btnExportarDrePdf')?.addEventListener('click', () => this._exportarDre('pdf'));
       } catch (e) {
         box.innerHTML = `<p class="text-danger">Erro ao calcular DRE: ${escapeHtml(e.message)}</p>`;
+      }
+    },
+
+    // Exportação (item 13) — mesma demonstração já mostrada na tela, em uma
+    // única tabela Categoria/Valor (contratado/medido/recebido + custos + margem + saldo).
+    async _exportarDre(kind) {
+      const dre = this._dreAtual;
+      if (!dre) return;
+      const fmt = (v) => Store.formatBRL(v);
+      const pct = (v) => `${Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+      const margem = dre.margem || { valor: 0, pct: 0 };
+      const saldo = dre.saldoAMedir || { valor: 0, pct: 0 };
+      const receita = dre.receita || { recebida: 0, medida: 0 };
+      const custos = Array.isArray(dre.custos) ? dre.custos.filter((c) => c.total !== 0) : [];
+      const nomeContrato = (this._dreContract && this._dreContract.name) || 'contrato';
+      const filename = `dre_${nomeContrato.replace(/[^a-z0-9]+/gi, '_').toLowerCase()}_${new Date().toISOString().slice(0, 10)}.${kind}`;
+
+      const linhas = [
+        { categoria: 'Valor contratado', valor: fmt(dre.contractValue) },
+        { categoria: 'Medido (faturado)', valor: fmt(receita.medida) },
+        { categoria: 'Recebido (caixa)', valor: fmt(receita.recebida) },
+        { categoria: 'Receita recebida', valor: fmt(receita.recebida) },
+        ...custos.map((c) => ({ categoria: `(−) ${c.label}`, valor: fmt(c.total) })),
+        { categoria: '(=) Custo total', valor: fmt(dre.custoTotal) },
+        { categoria: 'Margem realizada', valor: `${fmt(margem.valor)} (${pct(margem.pct)})` },
+        { categoria: 'Saldo a medir', valor: `${fmt(saldo.valor)} (${pct(saldo.pct)})` },
+      ];
+
+      if (kind === 'csv') {
+        const rows = linhas.map((l) => ({ Categoria: l.categoria, Valor: l.valor }));
+        window.RhinoExport.csv(rows, { filename });
+      } else {
+        const columns = [{ key: 'categoria', label: 'Categoria' }, { key: 'valor', label: 'Valor' }];
+        await window.RhinoExport.tablePdf({
+          title: `DRE / Margem por obra — ${nomeContrato}`,
+          columns,
+          rows: linhas,
+          filename,
+        });
       }
     },
 

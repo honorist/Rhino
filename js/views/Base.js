@@ -380,7 +380,7 @@ window.Base = {
         <div class="modal">
           <div class="modal-header">
             <h2 class="modal-title">${title}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formItem" class="modal-content">
             <div class="form-group">
@@ -581,7 +581,7 @@ window.Base = {
         <div class="modal" style="width:640px;">
           <div class="modal-header">
             <h2 class="modal-title">${info.icon} Alocar "${escapeHtml(item.description)}"</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             <!-- Resumo do item -->

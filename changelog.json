@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.28.0",
+      "date": "2026-09-08",
+      "summary": "Editor de texto rico, organograma visual, exportação/paginação e novos gráficos no Dashboard",
+      "changes": [
+        "Proposta: campos de texto (objetivo, saudação, observações, escopo e obrigações) agora têm editor de texto rico (negrito, listas, títulos). Contrato: novo editor visual de organograma — arraste, conecte e reorganize os cargos da equipe",
+        "Dashboard: dois gráficos novos — custo por categoria e receita por cliente, consolidando todos os contratos, ao lado do fluxo de caixa",
+        "Exportação em CSV/PDF, paginação e ações em massa (ex: marcar várias contas como pagas, ou pagar vários colaboradores de uma vez) chegaram em Recursos, Manutenção, Propostas, Folha de Pagamento, Auditoria, Equipamentos, Contas a Pagar, RDOs e nas abas DRE/Curva S do contrato",
+        "Alertas automáticos quando uma medição, folha de pagamento ou conta a pagar fica com o vínculo financeiro inconsistente; diversas telas que ainda não atualizavam sozinhas (Equipamentos, Ferramentaria, Cotações, Composições, Subcontratados, Usuários e outras) agora recebem em tempo real quando outra pessoa muda algo",
+        "Correções de validação (Contratos, Propostas, Aportes não aceitam mais valor inválido em silêncio), formulário de RDO adaptado pra celular e melhorias de acessibilidade nos botões de fechar das telas"
+      ]
+    },
+    {
       "version": "1.27.0",
       "date": "2026-09-01",
       "summary": "Exportação CSV, preferências de notificação e PDF do Data Book",

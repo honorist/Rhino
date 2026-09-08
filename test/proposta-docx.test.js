@@ -9,6 +9,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const { gerarDocx, isDocxAvailable } = require('../lib/proposta-docx');
+const JSZip = require('jszip');
 
 function propostaFixture(over = {}) {
   return {
@@ -59,6 +60,37 @@ test('gerarDocx aguenta uma proposta mínima sem lançar', async (t) => {
   }
   const buf = await gerarDocx({ id: 'p', titulo: 'Mínima', dataEmissao: '2026-07-20', tipo: 'material' });
   assert.ok(Buffer.isBuffer(buf) && buf.length > 0);
+});
+
+test('gerarDocx: campos com texto rico (negrito/lista/tabela) produzem os marcadores OOXML esperados', async (t) => {
+  if (!isDocxAvailable()) {
+    t.skip('lib `docx`/`jszip` não instalada neste ambiente');
+    return;
+  }
+  const buf = await gerarDocx(propostaFixture({
+    objetivo: '<p>Fornecimento com <strong>garantia estendida</strong>.</p>',
+    escopo: [
+      { texto: '<table><tbody><tr><td>Item</td><td>Qtd</td></tr></tbody></table>', incluso: true },
+    ],
+    obrigacoesContratada: [{ titulo: 'Prazo', texto: '<p><u>A Contratada</u> cumprirá o prazo.</p>' }],
+  }));
+  const zip = await JSZip.loadAsync(buf);
+  const xml = await zip.file('word/document.xml').async('string');
+  assert.ok(xml.includes('<w:b/>'), 'negrito do objetivo aparece no XML');
+  assert.ok(xml.includes('<w:tbl>'), 'tabela do item de escopo aparece no XML');
+  assert.match(xml, /<w:u w:val="single"\/>/, 'sublinhado da obrigação aparece no XML');
+  assert.ok(xml.includes('CONTRATADA'), 'destaque automático continua ativo em obrigações com texto rico');
+});
+
+test('gerarDocx: proposta legada (texto puro, sem HTML) continua renderizando exatamente como antes', async (t) => {
+  if (!isDocxAvailable()) {
+    t.skip('lib `docx` ausente');
+    return;
+  }
+  const buf = await gerarDocx(propostaFixture({
+    objetivo: 'Fornecimento e montagem conforme escopo.',
+  }));
+  assert.ok(Buffer.isBuffer(buf) && buf.slice(0, 2).toString('latin1') === 'PK');
 });
 
 test('gerarDocx com tipo HH (caminho de cálculo de horas) não lança', async (t) => {

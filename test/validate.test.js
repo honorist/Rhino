@@ -3,7 +3,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { validateBody, schemas, ValidationError } = require('../lib/validate');
+const { validateBody, schemas, ValidationError, parseOptionalMoney, parsePositiveMoney } = require('../lib/validate');
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -212,4 +212,111 @@ test('ValidationError tem statusCode 400', () => {
     assert.equal(e.statusCode, 400);
     assert.equal(e.name, 'ValidationError');
   }
+});
+
+// ─── schemas.fornecedorPost / fornecedorPut ──────────────────────────────────
+
+test('fornecedorPost — body mínimo válido (só nome) retorna parsed sem erros', () => {
+  const out = validateBody(schemas.fornecedorPost, { nome: 'Acme Materiais' });
+  assert.equal(out.nome, 'Acme Materiais');
+  assert.equal(out.cnpj, '');
+  assert.equal(out.email, '');
+});
+
+test('fornecedorPost — sem nome lança ValidationError', () => {
+  expectError(() => validateBody(schemas.fornecedorPost, {}), /nome/);
+});
+
+test('fornecedorPost — nome só com espaços lança ValidationError', () => {
+  expectError(() => validateBody(schemas.fornecedorPost, { nome: '   ' }), /nome/);
+});
+
+test('fornecedorPost — CNPJ com 14 dígitos (formatado) é aceito', () => {
+  const out = validateBody(schemas.fornecedorPost, { nome: 'X', cnpj: '12.345.678/0001-90' });
+  assert.equal(out.cnpj, '12.345.678/0001-90');
+});
+
+test('fornecedorPost — CNPJ com número errado de dígitos lança ValidationError', () => {
+  expectError(() => validateBody(schemas.fornecedorPost, { nome: 'X', cnpj: '123' }), /cnpj/);
+});
+
+test('fornecedorPost — email vazio é aceito (campo opcional)', () => {
+  const out = validateBody(schemas.fornecedorPost, { nome: 'X', email: '' });
+  assert.equal(out.email, '');
+});
+
+test('fornecedorPost — email com formato inválido lança ValidationError', () => {
+  expectError(() => validateBody(schemas.fornecedorPost, { nome: 'X', email: 'nao-e-email' }), /email/);
+});
+
+test('fornecedorPost — email válido é aceito e trimado', () => {
+  const out = validateBody(schemas.fornecedorPost, { nome: 'X', email: '  contato@acme.com  ' });
+  assert.equal(out.email, 'contato@acme.com');
+});
+
+test('fornecedorPut — atualiza só os campos presentes', () => {
+  const out = validateBody(schemas.fornecedorPut, { telefone: '(11) 99999-0000' });
+  assert.equal(out.telefone, '(11) 99999-0000');
+  assert.ok(!('nome' in out));
+});
+
+test('fornecedorPut — nome vazio explícito lança ValidationError', () => {
+  expectError(() => validateBody(schemas.fornecedorPut, { nome: '' }), /nome/);
+});
+
+test('fornecedorPut — cnpj inválido lança ValidationError', () => {
+  expectError(() => validateBody(schemas.fornecedorPut, { cnpj: 'abc' }), /cnpj/);
+});
+
+// ─── parseOptionalMoney / parsePositiveMoney ─────────────────────────────────
+// Antes: handlers/contracts.js, propostas.js e investimentos.js usavam
+// money.parse(v) direto na escrita — que é deliberadamente "lenient" (documentado
+// em lib/money.js) e zera QUALQUER entrada inválida em silêncio. Isso é o
+// comportamento certo pra leitura/agregação, mas errado na escrita: um payload
+// malformado zerava o valor de um contrato/proposta/aporte sem erro nenhum.
+// Estes dois helpers dão o mesmo parse+arredondamento de money.js, mas REJEITAM
+// entrada inválida em vez de zerar — só pros pontos de escrita.
+
+test('parseOptionalMoney — ausente devolve o fallback (default 0), sem lançar', () => {
+  assert.equal(parseOptionalMoney(undefined, 'value'), 0);
+  assert.equal(parseOptionalMoney(null, 'value'), 0);
+  assert.equal(parseOptionalMoney('', 'value'), 0);
+});
+
+test('parseOptionalMoney — ausente com fallback customizado', () => {
+  assert.equal(parseOptionalMoney(undefined, 'value', 15), 15);
+});
+
+test('parseOptionalMoney — número válido é aceito e arredondado a 2 casas', () => {
+  assert.equal(parseOptionalMoney(1234.567, 'value'), 1234.57);
+  assert.equal(parseOptionalMoney('2500.5', 'value'), 2500.5);
+});
+
+test('parseOptionalMoney — zero explícito é aceito (não é "ausente")', () => {
+  assert.equal(parseOptionalMoney(0, 'value'), 0);
+  assert.equal(parseOptionalMoney('0', 'value'), 0);
+});
+
+test('parseOptionalMoney — string não-numérica lança ValidationError (não zera em silêncio)', () => {
+  expectError(() => parseOptionalMoney('abc', 'value'), /value/);
+});
+
+test('parseOptionalMoney — negativo lança ValidationError', () => {
+  expectError(() => parseOptionalMoney(-100, 'value'), /value/);
+});
+
+test('parsePositiveMoney — número positivo é aceito', () => {
+  assert.equal(parsePositiveMoney(500, 'valor'), 500);
+});
+
+test('parsePositiveMoney — zero lança ValidationError (aporte de R$0 não faz sentido)', () => {
+  expectError(() => parsePositiveMoney(0, 'valor'), /valor/);
+});
+
+test('parsePositiveMoney — ausente lança ValidationError (é obrigatório)', () => {
+  expectError(() => parsePositiveMoney(undefined, 'valor'), /valor/);
+});
+
+test('parsePositiveMoney — string não-numérica lança ValidationError', () => {
+  expectError(() => parsePositiveMoney('abc', 'valor'), /valor/);
 });

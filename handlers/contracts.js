@@ -8,7 +8,7 @@
 const repos = require('../db/repos');
 const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
-const money = require('../lib/money');
+const { parseOptionalMoney } = require('../lib/validate');
 
 async function handleGetContracts(res, query) {
   try {
@@ -25,7 +25,7 @@ async function handlePostContract(body, res) {
       name: body.name, contractNumber: body.contractNumber || '', client: body.client,
       clientId: body.clientId || null, clientDocument: body.clientDocument || '',
       clientEmail: body.clientEmail || '', clientPhone: body.clientPhone || '',
-      value: money.parse(body.value), currency: body.currency || 'BRL',
+      value: parseOptionalMoney(body.value, 'value'), currency: body.currency || 'BRL',
       startDate: body.startDate || null, endDate: body.endDate || null, tendencyDate: body.tendencyDate || null,
       status: body.status || 'ativo', endereco: body.endereco || '', lat: body.lat || '', lng: body.lng || '',
       notes: body.notes || '', retencaoPercent: parseFloat(body.retencaoPercent) || 0, budget: '[]',
@@ -41,7 +41,7 @@ async function handlePutContract(id, body, res) {
     const allowed = {};
     const fields = ['name', 'client', 'clientId', 'clientDocument', 'clientEmail', 'clientPhone', 'currency', 'status', 'notes', 'lat', 'lng', 'endereco', 'contractNumber'];
     for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
-    if (body.value !== undefined) allowed.value = money.parse(body.value);
+    if (body.value !== undefined) allowed.value = parseOptionalMoney(body.value, 'value');
     if (body.retencaoPercent !== undefined) allowed.retencaoPercent = parseFloat(body.retencaoPercent) || 0;
     for (const f of ['startDate', 'endDate', 'tendencyDate']) {
       if (body[f] !== undefined) allowed[f] = body[f] || null;

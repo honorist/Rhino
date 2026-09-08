@@ -41,7 +41,7 @@
               <h2 class="modal-title">${isNew ? 'Novo RDO' : `RDO #${rdoOriginal.numero} — ${rdoOriginal.data}`}</h2>
               <p style="font-size:15px;color:var(--color-text-muted);margin:0;">${escapeHtml(contract.name || '')}</p>
             </div>
-            <button class="modal-close" id="btnCloseRdo">✕</button>
+            <button class="modal-close" id="btnCloseRdo" aria-label="Fechar">✕</button>
           </div>
 
           <!-- Tabs internas -->
@@ -188,7 +188,7 @@
 
       <!-- Prazo (tudo calculado automaticamente do contrato + data do RDO) -->
       <h4 style="margin-top:var(--sp-lg);margin-bottom:var(--sp-md);font-size:16px;font-weight:700;color:var(--color-text);">⏱ Prazo do Contrato</h4>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;">
+      <div class="form-row form-row-3" style="grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;">
         ${infoBox('Data Inicial', fmt(d.prazo?.dataInicial))}
         ${infoBox('Data Final (Contratual)', fmt(d.prazo?.dataFinal))}
         ${(() => {
@@ -205,7 +205,7 @@
           `;
         })()}
       </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+      <div class="form-row form-row-3" style="grid-template-columns:repeat(3,1fr);gap:10px;">
         ${infoBox('Contratual', (d.prazo?.contratual || 0) + ' dias')}
         ${infoBox('Decorrido', (d.prazo?.decorrido || 0) + ' dias')}
         ${(() => {
@@ -224,7 +224,7 @@
           `;
         })()}
       </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;">
+      <div class="form-row form-row-3" style="grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;">
         <div style="padding:10px 14px;background:var(--color-bg);border:1px solid var(--color-border);border-radius:6px;grid-column:span 3;">
           <div style="font-size:13px;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin-bottom:2px;">% Concluída</div>
           <input class="form-control" type="number" step="0.1" data-rdo-field="prazo.pctConcluida" value="${d.prazo?.pctConcluida || 0}" style="padding:4px 8px;font-weight:700;border:none;background:transparent !important;max-width:120px;">

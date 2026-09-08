@@ -130,7 +130,7 @@ window.Socios = {
         <div class="modal" style="width: 600px;">
           <div class="modal-header">
             <h2 class="modal-title">${title}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formSocio" class="modal-content">
             <div class="form-group">

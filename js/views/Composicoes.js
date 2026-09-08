@@ -183,7 +183,7 @@ window.Composicoes = {
         <div class="modal" style="width:780px;max-width:96vw;">
           <div class="modal-header">
             <h2 class="modal-title">${isEdit ? 'Editar Composição' : 'Nova Composição'}</h2>
-            <button class="modal-close" id="btnFecharComp">✕</button>
+            <button class="modal-close" id="btnFecharComp" aria-label="Fechar">✕</button>
           </div>
           <form id="formComp" class="modal-content">
             <div style="display:grid;grid-template-columns:1fr 2fr 90px;gap:12px;">

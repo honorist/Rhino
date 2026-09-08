@@ -469,7 +469,7 @@
         <div class="modal" style="width:560px;max-width:95vw;">
           <div class="modal-header">
             <h2 class="modal-title">${editing ? '✏️ Editar' : '+ Nova'} etapa do cronograma</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formAtividade" class="modal-content">
             <div class="form-group">

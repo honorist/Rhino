@@ -9,6 +9,8 @@
 window.Propostas = {
   currentFilter: 'todos',
   busca: '',
+  _page: 1,
+  _pageSize: 25,
 
   STATUS_LABELS: {
     rascunho:  'Rascunho',
@@ -63,6 +65,13 @@ window.Propostas = {
         .reduce((s, p) => s + (parseFloat(p.valorTotal) || 0), 0);
       const filtroAtivo = !!(termo || this.currentFilter !== 'todos');
 
+      // Paginação (UIKit.paginate) — a exportação usa `propostas` (lista
+      // filtrada inteira), a tabela usa só `pagina.slice`.
+      const pagina = window.UIKit.paginate(propostas, this._page, this._pageSize);
+      this._page = pagina.page; // clamp: lista pode ter encolhido pelo filtro
+      this._paginaAtual = pagina;
+      this._propostasFiltradas = propostas; // pra exportação (lista inteira, não só a página)
+
       const headerHtml = window.UIKit?.pageHeader ? window.UIKit.pageHeader({
         title: 'Propostas Comerciais',
         subtitle: filtroAtivo
@@ -71,6 +80,8 @@ window.Propostas = {
         actions: `
           <a class="btn btn-secondary" href="#/apresentacao" title="Apresentação da empresa">🏢 Apresentação</a>
           <a class="btn btn-secondary" href="#/clausulas" title="Biblioteca de cláusulas">📖 Cláusulas</a>
+          <button class="btn btn-secondary btn-sm" id="btnExportarPropostasCsv">Exportar CSV</button>
+          <button class="btn btn-secondary btn-sm" id="btnExportarPropostasPdf">Exportar PDF</button>
           <button class="btn btn-primary btn-lg" id="btnNovaProposta">+ Nova Proposta</button>`,
       }) : '';
 
@@ -128,10 +139,11 @@ window.Propostas = {
                           desc:'Comece criando sua primeira proposta — gere PDF/DOCX em timbrado, anexe portfolio e envie ao cliente.',
                           cta:'<button class="btn btn-primary" onclick="document.getElementById(\'btnNovaProposta\')?.click()">+ Criar primeira proposta</button>' }
                   ) : 'Nenhuma proposta'}</td></tr>
-                ` : propostas.map(p => this._renderRow(p)).join('')}
+                ` : pagina.slice.map(p => this._renderRow(p)).join('')}
               </tbody>
             </table>
           </div>
+          ${window.UIKit.pagination(pagina, { label: 'propostas' })}
         </div>
       `;
 
@@ -188,17 +200,58 @@ window.Propostas = {
     } catch { return d; }
   },
 
+  // Exportação (item 13) — CSV/PDF da lista filtrada visível na tela.
+  async _exportar(kind) {
+    const propostas = this._propostasFiltradas || [];
+    if (!propostas.length) {
+      if (window.RhinoUI && RhinoUI.toast) RhinoUI.toast('Nada para exportar', { type: 'warning' });
+      return;
+    }
+    const filename = `propostas_rhino_${new Date().toISOString().slice(0, 10)}.${kind}`;
+    const linha = (p) => ({
+      numero: `PC_${p.numero}-${String(p.ano).padStart(2, '0')}${p.revisao > 0 ? ` Rev.${String(p.revisao).padStart(2, '0')}` : ''}`,
+      titulo: p.titulo || '',
+      cliente: p.clienteEmpresa || p.clienteNome || '',
+      tipo: { hh: 'HH', material: 'Material', ambos: 'HH + Material' }[p.tipo] || p.tipo || '',
+      valor: Store.formatBRL(parseFloat(p.valorTotal) || 0),
+      emissao: this._fmtDate(p.dataEmissao),
+      status: this.STATUS_LABELS[p.status] || p.status || '',
+    });
+    if (kind === 'csv') {
+      // RhinoExport.csv usa as próprias chaves do objeto como cabeçalho quando
+      // `columns` não é passado — por isso as chaves aqui já são os rótulos.
+      const rows = propostas.map(p => {
+        const l = linha(p);
+        return { Número: l.numero, Título: l.titulo, Cliente: l.cliente, Tipo: l.tipo, Valor: l.valor, Emissão: l.emissao, Status: l.status };
+      });
+      window.RhinoExport.csv(rows, { filename });
+    } else {
+      const columns = [
+        { key: 'numero', label: 'Número' },
+        { key: 'titulo', label: 'Título' },
+        { key: 'cliente', label: 'Cliente' },
+        { key: 'tipo', label: 'Tipo' },
+        { key: 'valor', label: 'Valor' },
+        { key: 'emissao', label: 'Emissão' },
+        { key: 'status', label: 'Status' },
+      ];
+      const rows = propostas.map(linha);
+      await window.RhinoExport.tablePdf({ title: 'Propostas Comerciais', columns, rows, filename, orientation: 'landscape' });
+    }
+  },
+
   _attachEvents() {
     // Chips de status (novo padrão UIKit usa data-value dentro de [data-chips])
     document.querySelectorAll('[data-chips="propostas-status"] .rh-chip').forEach(btn => {
       btn.addEventListener('click', () => {
         this.currentFilter = btn.dataset.value || 'todos';
+        this._page = 1;
         this.render();
       });
     });
     // Botão limpar
     document.getElementById('btnLimparPropostas')?.addEventListener('click', () => {
-      this.busca = ''; this.currentFilter = 'todos'; this.render();
+      this.busca = ''; this.currentFilter = 'todos'; this._page = 1; this.render();
     });
 
     // Busca (debounce)
@@ -209,10 +262,28 @@ window.Propostas = {
         clearTimeout(timer);
         timer = setTimeout(() => {
           this.busca = inputBusca.value;
+          this._page = 1;
           this.render();
         }, 250);
       });
     }
+
+    // Paginação
+    if (this._paginaAtual) {
+      window.UIKit.wirePagination(document.getElementById('app'), this._paginaAtual, ({ page, pageSize }) => {
+        this._page = page;
+        this._pageSize = pageSize;
+        this.render();
+      });
+    }
+
+    // Exportação (CSV/PDF) — lista filtrada inteira, não só a página visível
+    document.getElementById('btnExportarPropostasCsv')?.addEventListener('click', () => {
+      this._exportar('csv');
+    });
+    document.getElementById('btnExportarPropostasPdf')?.addEventListener('click', () => {
+      this._exportar('pdf');
+    });
 
     // Linha da tabela → abre editor
     document.querySelectorAll('.row-proposta').forEach(row => {
@@ -267,7 +338,7 @@ window.Propostas = {
         <div class="modal" style="width:640px;max-width:95vw;">
           <div class="modal-header">
             <h2 class="modal-title">Nova Proposta Comercial</h2>
-            <button class="modal-close" id="btnFecharModal">✕</button>
+            <button class="modal-close" id="btnFecharModal" aria-label="Fechar">✕</button>
           </div>
           <form id="formNovaProposta" class="modal-content">
             <div class="form-group">

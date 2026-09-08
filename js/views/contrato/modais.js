@@ -13,7 +13,7 @@
         <div class="modal" style="width: 680px; max-height: 90vh; display: flex; flex-direction: column;">
           <div class="modal-header" style="flex-shrink: 0;">
             <h2 class="modal-title">Editar Dados do Contrato</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formEditarDados" class="modal-content" style="flex: 1; overflow-y: auto; padding-right: 4px;">
             <div class="form-row">

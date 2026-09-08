@@ -5,7 +5,7 @@ const RDOs = {
   _filterStore: (window.UIKit?.persistFilter?.('rdos', { contractId: '', mes: '' })) || null,
   get _filters() { return this._filterStore?.get() || { contractId: '', mes: '' }; },
   set _filters(v) { this._filterStore?.set(v); },
-  _page: 0,
+  _page: 1,
   _pageSize: 50,
 
   async render() {
@@ -50,9 +50,10 @@ const RDOs = {
       return true;
     });
 
-    const totalPages = Math.max(1, Math.ceil(filtered.length / this._pageSize));
-    if (this._page >= totalPages) this._page = 0;
-    const slice = filtered.slice(this._page * this._pageSize, (this._page + 1) * this._pageSize);
+    const pagina = window.UIKit.paginate(filtered, this._page, this._pageSize);
+    this._page = pagina.page; // clamp: lista pode ter encolhido pelo filtro
+    this._paginaAtual = pagina;
+    const slice = pagina.slice;
 
     const contratos = [...new Set(rdos.map(r => `${r.contractId}|${r.contractName}|${r.contractClient || ''}`))]
       .map(s => { const [id, name, client] = s.split('|'); return { id, name, client }; })
@@ -165,13 +166,7 @@ const RDOs = {
         </tbody>
       </table>
 
-      ${totalPages > 1 ? `
-        <div style="display:flex;justify-content:center;gap:var(--sp-sm);margin-top:var(--sp-md);">
-          <button class="btn btn-secondary" id="btnPrev" ${this._page === 0 ? 'disabled' : ''}>← Anterior</button>
-          <span style="display:flex;align-items:center;color:var(--color-text-muted);">Página ${this._page + 1} de ${totalPages}</span>
-          <button class="btn btn-secondary" id="btnNext" ${this._page >= totalPages - 1 ? 'disabled' : ''}>Próxima →</button>
-        </div>
-      ` : ''}
+      ${window.UIKit.pagination(pagina, { label: 'RDOs' })}
     `;
 
     // Estes elementos são renderizados condicionalmente (toolbar via UIKit, e
@@ -182,17 +177,17 @@ const RDOs = {
     document.getElementById('btnNovoRdoGlobal')?.addEventListener('click', () => this.showPickerContrato());
     document.getElementById('fltContract')?.addEventListener('change', (e) => {
       this._filterStore?.set('contractId', e.target.value);
-      this._page = 0;
+      this._page = 1;
       this.draw();
     });
     document.getElementById('fltMes')?.addEventListener('change', (e) => {
       this._filterStore?.set('mes', e.target.value);
-      this._page = 0;
+      this._page = 1;
       this.draw();
     });
     document.getElementById('btnLimparFiltros')?.addEventListener('click', () => {
       this._filterStore?.clear();
-      this._page = 0;
+      this._page = 1;
       this.draw();
     });
     document.querySelectorAll('tbody tr.row-rdo-global').forEach(tr => {
@@ -229,10 +224,13 @@ const RDOs = {
         }
       });
     });
-    const prev = document.getElementById('btnPrev');
-    const next = document.getElementById('btnNext');
-    if (prev) prev.addEventListener('click', () => { this._page--; this.draw(); });
-    if (next) next.addEventListener('click', () => { this._page++; this.draw(); });
+    if (this._paginaAtual) {
+      window.UIKit.wirePagination(document.getElementById('app'), this._paginaAtual, ({ page, pageSize }) => {
+        this._page = page;
+        this._pageSize = pageSize;
+        this.draw();
+      });
+    }
 
     // Exportar CSV — obras atrasadas
     const btnExpAtr = document.getElementById('btnExportAtrasadas');
@@ -336,7 +334,7 @@ RDOs.showPickerContrato = function () {
       <div class="modal" style="width:520px;max-width:95vw;">
         <div class="modal-header">
           <h2 class="modal-title">+ Novo RDO</h2>
-          <button class="modal-close">✕</button>
+          <button class="modal-close" aria-label="Fechar">✕</button>
         </div>
         <div class="modal-content">
           <p style="margin:0 0 var(--sp-md);font-size:14px;color:var(--color-text-muted);">

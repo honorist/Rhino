@@ -46,7 +46,7 @@
           <div class="modal" style="width:780px;max-width:96vw;max-height:90vh;overflow-y:auto;">
             <div class="modal-header">
               <h2 class="modal-title"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('clock', 18)}Ponto — ${escapeHtml(r.nome || '')}</span></h2>
-              <button class="modal-close">✕</button>
+              <button class="modal-close" aria-label="Fechar">✕</button>
             </div>
             <div class="modal-content" id="pontoConteudo">
               <div class="text-muted" style="text-align:center;padding:var(--sp-lg);">Carregando…</div>
@@ -190,7 +190,7 @@
           <div class="modal" style="width:520px;max-width:95vw;">
             <div class="modal-header">
               <h2 class="modal-title">${editing ? '✏️ Editar' : '+ Nova'} marcação</h2>
-              <button class="modal-close">✕</button>
+              <button class="modal-close" aria-label="Fechar">✕</button>
             </div>
             <form id="formMarcacao" class="modal-content">
               <div class="form-group">

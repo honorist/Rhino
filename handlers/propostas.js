@@ -13,10 +13,27 @@
  */
 const db = require('../db');
 const repos = require('../db/repos');
-const money = require('../lib/money');
+const { parseOptionalMoney } = require('../lib/validate');
 const { generateId } = require('../lib/id');
 const { sendJson, sendError } = require('../lib/http-respond');
 const { buildCsp } = require('../lib/csp');
+const { sanitizeRichText, sanitizeItemArrayTexto } = require('../lib/rich-text-sanitize');
+const observability = require('../lib/observability');
+
+// Campos de texto rico (editor Jodit) — sanitizados na escrita, ao contrário
+// dos demais campos de texto (titulo, clienteEmpresa, etc.), cuja defesa
+// contra XSS continua sendo escapar tudo na leitura (lib/proposta-html.js).
+const RICH_TEXT_FIELDS = ['objetivo', 'saudacao', 'observacoes'];
+const RICH_TEXT_ARRAY_FIELDS = ['escopo', 'obrigacoesContratada', 'obrigacoesContratante'];
+
+function sanitizePropostaBody(body) {
+  for (const f of RICH_TEXT_FIELDS) {
+    if (body[f] !== undefined) body[f] = sanitizeRichText(body[f]);
+  }
+  for (const f of RICH_TEXT_ARRAY_FIELDS) {
+    if (body[f] !== undefined) body[f] = sanitizeItemArrayTexto(body[f]);
+  }
+}
 
 // ============ Propostas Comerciais ============
 async function handleGetPropostas(res) {
@@ -45,6 +62,7 @@ async function handlePostProposta(body, res) {
     if (!body.clienteId && !body.clienteNome && !body.clienteEmpresa) {
       return sendError(res, 400, 'Cliente é obrigatório');
     }
+    sanitizePropostaBody(body);
     // Se vier cliente_id, faz snapshot dos campos do cliente atual
     if (body.clienteId) {
       const cli = await repos.clientes.findById(body.clienteId);
@@ -68,6 +86,7 @@ async function handlePostProposta(body, res) {
 
 async function handlePutProposta(id, body, res) {
   try {
+    sanitizePropostaBody(body);
     const allowed = {};
     const camelFields = [
       'tipo',
@@ -95,7 +114,7 @@ async function handlePutProposta(id, body, res) {
       if (body[f] !== undefined) allowed[f] = body[f];
     }
     // Campos numéricos
-    if (body.valorTotal !== undefined) allowed.valorTotal = money.parse(body.valorTotal);
+    if (body.valorTotal !== undefined) allowed.valorTotal = parseOptionalMoney(body.valorTotal, 'valorTotal');
     if (body.validadeDias !== undefined)
       allowed.validadeDias = parseInt(body.validadeDias, 10) || 15;
     if (body.garantiaMeses !== undefined) {
@@ -128,6 +147,7 @@ async function handlePutProposta(id, body, res) {
         await repos.contracts.updateById(result.contratoId, { value: allowed.valorTotal });
       } catch (syncErr) {
         console.error('[propostas] falha ao sincronizar value do contrato:', syncErr.message);
+        observability.captureError(syncErr, { operacao: 'propostas.sincronizarValorContrato', propostaId: id, contratoId: result.contratoId });
       }
     }
     const proposta = await repos.propostas.findByIdWithChildren(id);
@@ -153,6 +173,7 @@ async function handleDeleteProposta(id, res) {
         );
       } catch (e) {
         console.error('[propostas] falha ao desvincular contrato:', e.message);
+        observability.captureError(e, { operacao: 'propostas.desvincularContrato', propostaId: id, contratoId: proposta.contratoId });
       }
     }
     await repos.propostas.removeById(id);
@@ -213,7 +234,7 @@ async function handlePostPropostaCusto(propostaId, body, res) {
       propostaId,
       categoria: body.categoria || 'outros',
       descricao: body.descricao || '',
-      valor: money.parse(body.valor),
+      valor: parseOptionalMoney(body.valor, 'valor'),
       percentual: body.percentual != null ? parseFloat(body.percentual) : null,
       ordem: parseInt(body.ordem, 10) || 0,
     };
@@ -230,7 +251,7 @@ async function handlePutPropostaCusto(propostaId, custoId, body, res) {
     const allowed = {};
     if (body.categoria !== undefined) allowed.categoria = body.categoria;
     if (body.descricao !== undefined) allowed.descricao = body.descricao;
-    if (body.valor !== undefined) allowed.valor = money.parse(body.valor);
+    if (body.valor !== undefined) allowed.valor = parseOptionalMoney(body.valor, 'valor');
     if (body.percentual !== undefined)
       allowed.percentual =
         body.percentual === null || body.percentual === '' ? null : parseFloat(body.percentual);

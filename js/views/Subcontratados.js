@@ -192,7 +192,7 @@ window.Subcontratados = {
         <div class="modal" style="width:620px;max-width:96vw;">
           <div class="modal-header">
             <h2 class="modal-title">${isEdit ? 'Editar Subcontratado' : 'Novo Subcontratado'}</h2>
-            <button class="modal-close" id="btnFecharSub">✕</button>
+            <button class="modal-close" id="btnFecharSub" aria-label="Fechar">✕</button>
           </div>
           <form id="formSub" class="modal-content">
             <div class="form-group">
@@ -292,7 +292,7 @@ window.Subcontratados = {
               <h2 class="modal-title">${escapeHtml(s.nome || 'Subcontratado')}</h2>
               <div class="text-muted font-sm">${escapeHtml(s.especialidade || '—')}${s.cnpj ? ' · ' + escapeHtml(s.cnpj) : ''}</div>
             </div>
-            <button class="modal-close" id="btnFecharDet">✕</button>
+            <button class="modal-close" id="btnFecharDet" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content" id="detConteudo">
             <div class="text-muted" style="text-align:center;padding:var(--sp-lg);">Carregando medições…</div>
@@ -463,7 +463,7 @@ window.Subcontratados = {
         <div class="modal" style="width:600px;max-width:95vw;">
           <div class="modal-header">
             <h2 class="modal-title">${editing ? 'Editar Medição' : 'Nova Medição'}</h2>
-            <button class="modal-close" id="btnFecharMed">✕</button>
+            <button class="modal-close" id="btnFecharMed" aria-label="Fechar">✕</button>
           </div>
           <form id="formMed" class="modal-content">
             <div style="display:grid;grid-template-columns:150px 1fr;gap:12px;">

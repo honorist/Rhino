@@ -7,6 +7,7 @@
  */
 window.FolhaPagamento = {
   competencia: new Date().toISOString().slice(0, 7),
+  _selectedIds: new Set(),
 
   async render() {
     const app = document.getElementById('app');
@@ -92,7 +93,13 @@ window.FolhaPagamento = {
         const liquido = (parseFloat(f.valorVale) || 0) + (parseFloat(f.valorSaldo) || 0);
         const liquidoCell = `<strong${liquido < 0 ? ' style="color:#991B1B;"' : ''}>${fmt(liquido)}</strong>`;
         const lancCell = `<button type="button" class="action-link js-acertos" data-id="${f.id}">Lançamentos${itens.length ? ` (${itens.length})` : ''}</button>`;
+        // Só linhas com saldo AINDA pendente entram na seleção em massa — não
+        // há o que "pagar em lote" numa linha já quitada.
+        const chkCell = f.saldoPago
+          ? ''
+          : `<input type="checkbox" class="row-chk" data-id="${f.id}" ${this._selectedIds.has(f.id) ? 'checked' : ''} style="cursor:pointer;width:16px;height:16px;" onclick="event.stopPropagation();">`;
         return `<tr class="row-folha" data-id="${f.recursoId}" style="cursor:pointer;" title="Ver dados do colaborador">
+        <td style="text-align:center;" onclick="event.stopPropagation();">${chkCell}</td>
         <td><strong>${esc(f.recursoNome) || '—'}</strong></td>
         <td>${esc(this._nomeLocal(f))}</td>
         <td>${fmt(f.salarioBase)}</td>
@@ -106,6 +113,19 @@ window.FolhaPagamento = {
       })
       .join('');
 
+    // Exportação (CSV/PDF) — mesmos dados da grade, formatados pra planilha.
+    const exportRows = folha.map((f) => ({
+      Colaborador: f.recursoNome || '',
+      'Local de custo': this._nomeLocal(f),
+      Salário: fmt(f.salarioBase),
+      'Vale (40%)': f.elegivelVale && (parseFloat(f.valorVale) || 0) > 0 ? fmt(f.valorVale) : '—',
+      'Status vale':
+        f.elegivelVale && (parseFloat(f.valorVale) || 0) > 0 ? (f.valePago ? 'Pago' : 'Pendente') : '—',
+      Saldo: fmt(f.valorSaldo),
+      'Status saldo': f.saldoPago ? 'Pago' : 'Pendente',
+      Líquido: fmt((parseFloat(f.valorVale) || 0) + (parseFloat(f.valorSaldo) || 0)),
+    }));
+
     // Padrão B (UIKit) — mesma moldura das demais telas financeiras.
     app.innerHTML = `
       ${
@@ -115,6 +135,8 @@ window.FolhaPagamento = {
               subtitle: `${folha.length} colaborador${folha.length !== 1 ? 'es' : ''} na competência ${this.competencia}`,
               actions: `
           <input type="month" class="form-control" id="fpCompetencia" value="${this.competencia}" style="width:170px;">
+          ${folha.length > 0 ? '<button class="btn btn-secondary btn-sm" id="fpExportarCsv">Exportar CSV</button>' : ''}
+          ${folha.length > 0 ? '<button class="btn btn-secondary btn-sm" id="fpExportarPdf">Exportar PDF</button>' : ''}
           ${folha.length > 0 ? '<button class="btn btn-ghost" id="fpLimpar">Limpar folha</button>' : ''}
           <button class="btn btn-primary btn-lg" id="fpGerar">Gerar folha do mês</button>`,
             })
@@ -145,6 +167,7 @@ window.FolhaPagamento = {
         <div class="table-wrap">
           <table>
             <thead><tr>
+              <th scope="col" style="width:36px;padding-left:12px;"><input type="checkbox" id="chkAllFolha" title="Selecionar todos com saldo pendente" style="cursor:pointer;width:16px;height:16px;"></th>
               <th scope="col">Colaborador</th><th scope="col">Local de custo</th><th scope="col">Salário</th>
               <th scope="col">Vale (40%)</th><th scope="col">Proventos</th><th scope="col">Descontos</th>
               <th scope="col">A pagar (5º dia útil)</th><th scope="col">Líquido</th><th scope="col">Lançamentos</th>
@@ -152,7 +175,7 @@ window.FolhaPagamento = {
             <tbody>
               ${
                 folha.length === 0
-                  ? `<tr><td colspan="9" class="text-center text-muted" style="padding:var(--sp-xl);">
+                  ? `<tr><td colspan="10" class="text-center text-muted" style="padding:var(--sp-xl);">
                      Folha de ${this.competencia} ainda não gerada — clique em "Gerar folha do mês".
                    </td></tr>`
                   : rows
@@ -160,7 +183,23 @@ window.FolhaPagamento = {
             </tbody>
           </table>
         </div>
-      </div>`;
+      </div>
+
+      ${
+        this._selectedIds.size > 0
+          ? `
+      <div class="rh-bulk-bar is-visible" id="fpBulkBar" aria-label="Ações para selecionados">
+        <span class="rh-bulk-bar__count">${this._selectedIds.size} selecionado${this._selectedIds.size !== 1 ? 's' : ''}</span>
+        <div class="rh-bulk-bar__actions">
+          <button class="btn rh-bulk-btn" id="fpBulkPagar">Pagar selecionados</button>
+          <button class="btn rh-bulk-btn" id="fpBulkClear">Limpar</button>
+        </div>
+      </div>
+      `
+          : ''
+      }`;
+
+    document.body.classList.toggle('has-bulk-bar', this._selectedIds.size > 0);
 
     document.getElementById('fpCompetencia').addEventListener('change', async (e) => {
       this.competencia = e.target.value || this.competencia;
@@ -187,6 +226,74 @@ window.FolhaPagamento = {
     app
       .querySelectorAll('.js-acertos')
       .forEach((b) => b.addEventListener('click', () => this._acertos(b.dataset.id)));
+
+    // ── Exportação CSV/PDF ──
+    document.getElementById('fpExportarCsv')?.addEventListener('click', () => {
+      window.RhinoExport.csv(exportRows, {
+        filename: `folha-pagamento-${this.competencia}.csv`,
+      });
+    });
+    document.getElementById('fpExportarPdf')?.addEventListener('click', () => {
+      const columns = Object.keys(exportRows[0] || {}).map((k) => ({ key: k, label: k }));
+      window.RhinoExport.tablePdf({
+        title: `Folha de Pagamento — ${this.competencia}`,
+        columns,
+        rows: exportRows,
+        filename: `folha-pagamento-${this.competencia}.pdf`,
+        orientation: 'landscape',
+      });
+    });
+
+    // ── Seleção em massa: só linhas com saldo pendente participam ──
+    document.getElementById('chkAllFolha')?.addEventListener('change', (e) => {
+      folha.filter((f) => !f.saldoPago).forEach((f) => {
+        if (e.target.checked) this._selectedIds.add(f.id);
+        else this._selectedIds.delete(f.id);
+      });
+      this._renderLista();
+    });
+    app.querySelectorAll('.row-chk').forEach((chk) => {
+      chk.addEventListener('change', (e) => {
+        if (e.target.checked) this._selectedIds.add(e.target.dataset.id);
+        else this._selectedIds.delete(e.target.dataset.id);
+        const all = document.getElementById('chkAllFolha');
+        if (all) {
+          const checked = app.querySelectorAll('.row-chk:checked').length;
+          const total = app.querySelectorAll('.row-chk').length;
+          all.indeterminate = checked > 0 && checked < total;
+          all.checked = total > 0 && checked === total;
+        }
+        document.body.classList.toggle('has-bulk-bar', this._selectedIds.size > 0);
+        const bar = document.getElementById('fpBulkBar');
+        if (bar)
+          bar.querySelector('.rh-bulk-bar__count').textContent =
+            `${this._selectedIds.size} selecionado${this._selectedIds.size !== 1 ? 's' : ''}`;
+      });
+    });
+    document.getElementById('fpBulkClear')?.addEventListener('click', () => {
+      this._selectedIds.clear();
+      document.body.classList.remove('has-bulk-bar');
+      this._renderLista();
+    });
+    document.getElementById('fpBulkPagar')?.addEventListener('click', async () => {
+      const ids = [...this._selectedIds];
+      if (!ids.length) return;
+      if (!confirm(`Pagar o saldo de ${ids.length} colaborador(es)?`)) return;
+      const hoje = new Date().toISOString().split('T')[0];
+      try {
+        await Promise.all(
+          ids.map((id) =>
+            Store.pagarFolhaParcela(id, { parcela: 'saldo', dataPagamento: hoje, formaPagamento: null })
+          )
+        );
+        window.showToast(`${ids.length} pagamento(s) confirmado(s)`, 'success');
+        this._selectedIds.clear();
+        await Store.loadFolha(this.competencia);
+        this._renderLista();
+      } catch (e) {
+        window.showToast('Erro ao pagar em lote: ' + e.message, 'error');
+      }
+    });
 
     // Click na linha → abre o detalhe do colaborador (mesmo modal da aba Recursos).
     app.querySelectorAll('.row-folha').forEach((tr) => {
@@ -255,7 +362,7 @@ window.FolhaPagamento = {
         <div class="modal" style="width:420px;">
           <div class="modal-header">
             <h2 class="modal-title">Pagar ${label} — ${window.escapeHtml(f.recursoNome)}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             <p style="margin-bottom:var(--sp-md);">Valor: <strong>${Store.formatBRL(parseFloat(valor) || 0)}</strong></p>
@@ -327,7 +434,7 @@ window.FolhaPagamento = {
         <div class="modal" style="width:540px;">
           <div class="modal-header">
             <h2 class="modal-title">Lançamentos — ${esc(f0.recursoNome)}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content" id="acertosBody" style="max-height:62vh;overflow-y:auto;"></div>
           <div class="modal-footer">

@@ -24,6 +24,10 @@
               <h3 class="card-title"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('trending-up', 18)}Curva S / Valor Agregado (EVM)</span></h3>
               <span class="text-muted font-sm">Planejado × executado × custo real — SPI, CPI e projeção de custo (EAC) numa data de referência</span>
             </div>
+            <div>
+              <button class="btn btn-secondary btn-sm" id="btnExportarEvmCsv">Exportar CSV</button>
+              <button class="btn btn-secondary btn-sm" id="btnExportarEvmPdf">Exportar PDF</button>
+            </div>
           </div>
           <div id="evmConteudo" style="padding:var(--sp-md);">
             <div class="text-muted" style="text-align:center;padding:var(--sp-lg);">Calculando EVM...</div>
@@ -41,9 +45,66 @@
         if (!r.ok) throw new Error(await r.text());
         const { evm } = await r.json();
         box.innerHTML = this._renderEvm(evm || {});
+        this._evmAtual = evm || {};
+        this._evmContract = contract;
         this._attachEvmListeners(contract);
       } catch (e) {
         box.innerHTML = `<p class="text-danger">Erro ao calcular EVM: ${escapeHtml(e.message)}</p>`;
+      }
+    },
+
+    // Exportação (item 13) — os KPIs do topo (métrica/valor) + a tabela de
+    // etapas (Etapa/Custo plan./% Real/PV/EV) já mostrados na tela.
+    async _exportarEvm(kind) {
+      const evm = this._evmAtual;
+      if (!evm) return;
+      const fmt = (v) => Store.formatBRL(v);
+      const porAtividade = Array.isArray(evm.porAtividade) ? evm.porAtividade : [];
+      const nomeContrato = (this._evmContract && this._evmContract.name) || 'contrato';
+      const filename = `evm_${nomeContrato.replace(/[^a-z0-9]+/gi, '_').toLowerCase()}_${new Date().toISOString().slice(0, 10)}.${kind}`;
+
+      const kpis = [
+        { metrica: 'PV — valor planejado', valor: fmt(evm.pv) },
+        { metrica: 'EV — valor agregado', valor: fmt(evm.ev) },
+        { metrica: 'AC — custo real', valor: fmt(evm.ac) },
+        { metrica: 'SV — variação de prazo', valor: fmt(evm.sv) },
+        { metrica: 'CV — variação de custo', valor: fmt(evm.cv) },
+        { metrica: 'BAC — orçamento total', valor: fmt(evm.bac) },
+        { metrica: 'EAC — custo projetado', valor: fmt(evm.eac) },
+        { metrica: 'ETC — falta gastar', valor: fmt(evm.etc) },
+        { metrica: 'VAC — folga projetada', valor: fmt(evm.vac) },
+        { metrica: 'SPI — desempenho de prazo', valor: _idx2(evm.spi) },
+        { metrica: 'CPI — desempenho de custo', valor: _idx2(evm.cpi) },
+      ];
+      const etapas = porAtividade.map((a) => ({
+        etapa: a.nome || '—',
+        custoPlan: fmt(a.custoPlan),
+        pctReal: `${Number(a.execPct || 0).toFixed(0)}%`,
+        pv: fmt(a.pv),
+        ev: fmt(a.ev),
+      }));
+
+      if (kind === 'csv') {
+        const rowsKpi = kpis.map((k) => ({ Métrica: k.metrica, Valor: k.valor }));
+        window.RhinoExport.csv(rowsKpi, { filename: filename.replace(/\.csv$/, '_indices.csv') });
+        if (etapas.length) {
+          const rowsEtapas = etapas.map((e) => ({ Etapa: e.etapa, 'Custo Plan.': e.custoPlan, '% Real': e.pctReal, PV: e.pv, EV: e.ev }));
+          window.RhinoExport.csv(rowsEtapas, { filename: filename.replace(/\.csv$/, '_etapas.csv') });
+        }
+      } else {
+        const columnsKpi = [{ key: 'metrica', label: 'Métrica' }, { key: 'valor', label: 'Valor' }];
+        await window.RhinoExport.tablePdf({ title: `Curva S / EVM — ${nomeContrato}`, columns: columnsKpi, rows: kpis, filename });
+        if (etapas.length) {
+          const columnsEtapas = [
+            { key: 'etapa', label: 'Etapa' }, { key: 'custoPlan', label: 'Custo Plan.' },
+            { key: 'pctReal', label: '% Real' }, { key: 'pv', label: 'PV' }, { key: 'ev', label: 'EV' },
+          ];
+          await window.RhinoExport.tablePdf({
+            title: `Curva S / EVM — Etapas — ${nomeContrato}`,
+            columns: columnsEtapas, rows: etapas,
+            filename: filename.replace(/\.pdf$/, '_etapas.pdf'),
+          });
+        }
       }
     },
 
@@ -150,13 +211,16 @@
 
     _attachEvmListeners(contract) {
       const inp = document.getElementById('evmDataRef');
-      if (!inp) return;
-      inp.addEventListener('change', () => {
-        this._evmDataRef = inp.value || null;
-        const box = document.getElementById('evmConteudo');
-        if (box) box.innerHTML = `<div class="text-muted" style="text-align:center;padding:var(--sp-lg);">Calculando EVM...</div>`;
-        this._loadEvm(contract);
-      });
+      if (inp) {
+        inp.addEventListener('change', () => {
+          this._evmDataRef = inp.value || null;
+          const box = document.getElementById('evmConteudo');
+          if (box) box.innerHTML = `<div class="text-muted" style="text-align:center;padding:var(--sp-lg);">Calculando EVM...</div>`;
+          this._loadEvm(contract);
+        });
+      }
+      document.getElementById('btnExportarEvmCsv')?.addEventListener('click', () => this._exportarEvm('csv'));
+      document.getElementById('btnExportarEvmPdf')?.addEventListener('click', () => this._exportarEvm('pdf'));
     },
 
   });

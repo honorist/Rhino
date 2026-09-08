@@ -3,6 +3,14 @@
    Estende o objeto window.ContratoDetail já definido. */
 (function () {
   if (!window.ContratoDetail) { console.error('[contrato/organograma] requires ContratoDetail core'); return; }
+
+  // Tamanho dos cards no organograma em SVG — generoso o bastante para caber
+  // avatar + nome (até 2 linhas) + cargo + área + tag de nível + ações no hover.
+  const ORG_CARD_W = 240;
+  const ORG_CARD_H = 224;
+  const ORG_H_GAP = 28;
+  const ORG_V_GAP = 56;
+
   Object.assign(window.ContratoDetail, {
   // ═══════════ ORGANOGRAMA ═══════════
   renderOrganogramaSection(contract) {
@@ -96,12 +104,12 @@
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   },
 
-  _renderNodeOrg(membro, membros) {
+  // Card do membro (sem recursão) — usado dentro de cada <foreignObject> do
+  // organograma em SVG. Reatribuir supervisor é feito via modal de edição
+  // (campo Supervisor), não por arrastar-e-soltar no card.
+  _orgCardHtml(membro, membros) {
     const nome = this._getRecursoNome(membro.recursoId);
     const cargo = this._getRecursoProfissao(membro.recursoId) || membro.cargo || '';
-    const cor = NIVEL_COR[membro.nivel] || '#999';
-    const filhos = membros.filter(m => m.supervisorId === membro.id);
-    const hasChildren = filhos.length > 0;
     const iniciais = this._iniciais(nome);
 
     // Conta total de descendentes (direto + indireto)
@@ -113,74 +121,50 @@
 
     const nivelClass = `node-${membro.nivel}`;
 
-    const card = `
-      <div class="org-node ${nivelClass}" draggable="true" data-id="${membro.id}" data-nivel="${membro.nivel}" data-recurso-id="${membro.recursoId}">
+    return `
+      <div class="org-node ${nivelClass}" data-id="${membro.id}" data-nivel="${membro.nivel}" data-recurso-id="${membro.recursoId}">
         ${totalDesc > 0 ? `<span class="org-node-count" title="${totalDesc} subordinado(s) no total">${totalDesc}</span>` : ''}
         <div class="org-avatar" aria-hidden="true">${escapeHtml(iniciais)}</div>
         <div class="org-info">
-          <button type="button" class="org-node-nome" draggable="false" title="Ver detalhes do colaborador">${escapeHtml(nome)}</button>
+          <button type="button" class="org-node-nome" title="Ver detalhes do colaborador">${escapeHtml(nome)}</button>
           ${cargo ? `<div class="org-cargo">${escapeHtml(cargo)}</div>` : ''}
           ${membro.area ? `<div class="org-area">${escapeHtml(membro.area)}</div>` : ''}
           <div class="org-nivel-tag">${NIVEL_LABEL[membro.nivel] || ''}</div>
         </div>
-        <div class="org-actions" draggable="false">
-          <button class="org-action-btn btn-editar-org" data-id="${membro.id}" draggable="false" title="Editar membro" aria-label="Editar">
+        <div class="org-actions">
+          <button class="org-action-btn btn-editar-org" data-id="${membro.id}" title="Editar membro" aria-label="Editar">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
           </button>
-          <button class="org-action-btn danger btn-excluir-org" data-id="${membro.id}" draggable="false" title="Remover do organograma" aria-label="Remover">
+          <button class="org-action-btn danger btn-excluir-org" data-id="${membro.id}" title="Remover do organograma" aria-label="Remover">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
           </button>
         </div>
       </div>
     `;
-
-    if (!hasChildren) {
-      return `<li class="org-li">${card}</li>`;
-    }
-
-    return `
-      <li class="org-li">
-        ${card}
-        <ul class="org-ul">
-          ${filhos.map(f => this._renderNodeOrg(f, membros)).join('')}
-        </ul>
-      </li>
-    `;
   },
 
   _renderOrganogramaArvore(membros) {
-    const raizes = [];
-    const encarregado = membros.find(m => m.nivel === 'encarregado');
-
-    if (encarregado) {
-      raizes.push(encarregado);
+    if (membros.length === 0) {
+      return '<div class="org-tree"><p class="text-muted rh-text-center">Nenhum membro cadastrado.</p></div>';
     }
 
-    // Líderes sem encarregado (órfãos) e profissionais sem líder viram raízes separadas
-    membros.forEach(m => {
-      if (m === encarregado) return;
-      const temSupervisor = m.supervisorId && membros.some(x => x.id === m.supervisorId);
-      if (!temSupervisor) raizes.push(m);
+    const membrosComNome = membros.map(m => ({ ...m, nome: this._getRecursoNome(m.recursoId) }));
+    const { nodes, connectors, width, height } = window.OrgChartLayout.buildOrgChartLayout(membrosComNome, {
+      cardWidth: ORG_CARD_W, cardHeight: ORG_CARD_H, hGap: ORG_H_GAP, vGap: ORG_V_GAP,
     });
 
     const treeCss = `
       <style>
         /* ═══════════════════════════════════════════════════════
-           ORGANOGRAMA — Glassmorphism + Minimal Dark
+           ORGANOGRAMA — cards em SVG (foreignObject), conectores em
+           "barramento" (desce do pai → trilho horizontal → sobe no filho),
+           layout calculado por js/lib/org-chart-layout.js
            ═══════════════════════════════════════════════════════ */
         @keyframes orgFadeUp {
           from { opacity: 0; transform: translateY(8px); }
           to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* ─────────────────────────────────────────
-           Padrão clássico de árvore CSS (Thiebaud Weksteen)
-           - inline-block ao invés de flex (siblings auto-fluem)
-           - 2 pseudos por li formam um conector "T":
-             ::before = metade DIREITA do horizontal + border-right desce
-             ::after  = metade ESQUERDA do horizontal + border-left desce
-           - ul::before adiciona o drop do pai para o T das crianças
-           ─────────────────────────────────────────── */
         .org-tree {
           padding: var(--sp-2xl) var(--sp-lg);
           overflow: auto;
@@ -191,81 +175,18 @@
           text-align: center;
         }
 
-        .org-tree ul.org-root,
-        .org-tree ul.org-ul {
-          padding: 0;
-          margin: 0;
-          list-style: none;
-          position: relative;
-          white-space: nowrap;
-        }
-        .org-tree ul.org-ul { padding-top: 24px; }
+        .org-chart-svg { display: block; margin: 0 auto; overflow: visible; }
 
-        .org-tree li.org-li {
-          display: inline-block;
-          vertical-align: top;
-          text-align: center;
-          list-style: none;
-          padding: 24px 12px 0 12px;
-          position: relative;
-          white-space: normal;
+        .org-connector {
+          fill: none;
+          stroke: var(--rh-brand-500, #55588B);
+          stroke-width: 2;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          opacity: .55;
         }
 
-        /* T-conector: metade direita do horizontal + vertical descendo */
-        .org-tree li.org-li::before,
-        .org-tree li.org-li::after {
-          content: '';
-          position: absolute;
-          top: 0;
-          right: 50%;
-          border-top: 2px solid var(--rh-brand-500, #55588B);
-          width: 50%;
-          height: 24px;
-        }
-        /* Metade esquerda do horizontal + vertical descendo */
-        .org-tree li.org-li::after {
-          right: auto;
-          left: 50%;
-          border-left: 2px solid var(--rh-brand-500, #55588B);
-        }
-
-        /* Filho único: sem horizontal, mantém só vertical */
-        .org-tree li.org-li:only-child::after,
-        .org-tree li.org-li:only-child::before {
-          display: none;
-        }
-        .org-tree li.org-li:only-child { padding-top: 24px; }
-
-        /* Primeiro filho: remove metade ESQUERDA do horizontal (não tem irmão à esquerda) */
-        .org-tree li.org-li:first-child::before { border: 0 none; }
-        /* Último filho: remove metade DIREITA do horizontal */
-        .org-tree li.org-li:last-child::after  { border: 0 none; }
-        /* Cantos arredondados nos extremos para suavizar a junção */
-        .org-tree li.org-li:last-child::before {
-          border-right: 2px solid var(--rh-brand-500, #55588B);
-          border-radius: 0 6px 0 0;
-        }
-        .org-tree li.org-li:first-child::after {
-          border-radius: 6px 0 0 0;
-        }
-
-        /* Drop vertical do pai para os filhos: ul::before */
-        .org-tree ul.org-ul::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 50%;
-          border-left: 2px solid var(--rh-brand-500, #55588B);
-          width: 0;
-          height: 24px;
-        }
-
-        /* Raiz: sem linhas vindo de cima */
-        .org-tree ul.org-root > li.org-li::before,
-        .org-tree ul.org-root > li.org-li::after {
-          display: none;
-        }
-        .org-tree ul.org-root > li.org-li { padding-top: 0; }
+        .org-card-wrap { width: 100%; height: 100%; }
 
         /* Card base — Akaunting light clean */
         .org-node {
@@ -278,7 +199,6 @@
           min-width: 200px;
           max-width: 240px;
           text-align: center;
-          cursor: grab;
           user-select: none;
           border-radius: 12px;
           background: #FFFFFF;
@@ -287,8 +207,6 @@
           transition: transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s, border-color .2s;
           animation: orgFadeUp .32s cubic-bezier(.2,.8,.2,1) both;
         }
-
-        .org-node:active { cursor: grabbing; }
 
         .org-node:hover {
           transform: translateY(-2px);
@@ -490,27 +408,6 @@
           color: var(--color-danger);
         }
 
-        /* Dragging */
-        .org-node.dragging {
-          opacity: .5;
-          transform: scale(.94) rotate(-1deg);
-          box-shadow: 0 20px 40px rgba(17,24,39,.15), 0 0 0 2px var(--color-primary);
-          cursor: grabbing;
-        }
-        .org-node.drop-target {
-          border-color: var(--color-primary) !important;
-          box-shadow:
-            0 0 0 2px var(--color-primary),
-            0 8px 24px rgba(85,88,139,.2) !important;
-          transform: translateY(-4px) scale(1.03);
-        }
-        .org-node.drop-invalid {
-          border-color: var(--color-danger) !important;
-          box-shadow:
-            0 0 0 2px var(--color-danger),
-            0 8px 24px rgba(220,38,38,.18) !important;
-        }
-
         /* Dica no rodapé */
         .org-tree-hint {
           margin: var(--sp-xl) auto 0;
@@ -544,10 +441,6 @@
         }
       </style>
     `;
-
-    if (raizes.length === 0) {
-      return treeCss + '<div class="org-tree"><p class="text-muted rh-text-center">Nenhum membro cadastrado.</p></div>';
-    }
 
     const zoomCtrlCss = `
       <style>
@@ -597,6 +490,13 @@
         }
       </style>
     `;
+    const svgPaths = connectors.map(c => `<path class="org-connector" d="${c.path}"/>`).join('');
+    const svgCards = nodes.map(n => `
+      <foreignObject x="${n.x - n.width / 2}" y="${n.y}" width="${n.width}" height="${n.height}">
+        <div xmlns="http://www.w3.org/1999/xhtml" class="org-card-wrap">${this._orgCardHtml(n.membro, membros)}</div>
+      </foreignObject>
+    `).join('');
+
     return treeCss + zoomCtrlCss + `
       <div class="org-zoom-bar" role="toolbar" aria-label="Controles de zoom do organograma">
         <button class="org-zoom-btn" id="orgZoomOut" aria-label="Diminuir zoom" title="Zoom −">−</button>
@@ -607,14 +507,15 @@
       <div class="org-zoom-wrap">
         <div class="org-zoom-content" id="orgZoomContent">
           <div class="org-tree">
-            <ul class="org-root">
-              ${raizes.map(r => this._renderNodeOrg(r, membros)).join('')}
-            </ul>
+            <svg class="org-chart-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+              <g class="org-connectors">${svgPaths}</g>
+              ${svgCards}
+            </svg>
             <div class="org-tree-hint">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/>
+                <path d="M9 18l6-6-6-6"/>
               </svg>
-              Arraste um card sobre outro para alterar o supervisor direto. Clique no nome para ver detalhes. Use os botões de zoom para ver a equipe inteira.
+              Clique no nome para ver detalhes. Use o botão de editar para trocar o supervisor. Use os botões de zoom para ver a equipe inteira.
             </div>
           </div>
         </div>
@@ -685,7 +586,6 @@
         if (recursoId) this.showDetalheColaborador(recursoId);
       });
     });
-    this._attachDragDrop(contract);
   },
 
   _calcProximaFolgaRecurso(r) {
@@ -887,7 +787,7 @@
                 ${r.profissao ? escapeHtml(r.profissao) : 'Sem profissão cadastrada'} ${statusBadge}
               </div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
 
           <div class="modal-content">
@@ -979,103 +879,6 @@
     }
   },
 
-  // ── Drag & Drop no organograma ────────────────────────────────
-  _attachDragDrop(contract) {
-    const nodes = document.querySelectorAll('.org-node[draggable="true"]');
-    if (!nodes.length) return;
-
-    nodes.forEach(node => {
-      node.addEventListener('dragstart', (e) => {
-        node.classList.add('dragging');
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', node.dataset.id);
-      });
-
-      node.addEventListener('dragend', () => {
-        node.classList.remove('dragging');
-        document.querySelectorAll('.org-node').forEach(n => {
-          n.classList.remove('drop-target', 'drop-invalid');
-        });
-      });
-
-      node.addEventListener('dragover', (e) => {
-        const draggingId = document.querySelector('.org-node.dragging')?.dataset.id;
-        const targetId = node.dataset.id;
-        if (!draggingId || draggingId === targetId) return;
-
-        e.preventDefault();
-        const ok = this._podeReparentar(draggingId, targetId, contract.organograma || []);
-        node.classList.remove('drop-target', 'drop-invalid');
-        node.classList.add(ok ? 'drop-target' : 'drop-invalid');
-        e.dataTransfer.dropEffect = ok ? 'move' : 'none';
-      });
-
-      node.addEventListener('dragleave', () => {
-        node.classList.remove('drop-target', 'drop-invalid');
-      });
-
-      node.addEventListener('drop', async (e) => {
-        e.preventDefault();
-        const draggingId = e.dataTransfer.getData('text/plain');
-        const targetId = node.dataset.id;
-        node.classList.remove('drop-target', 'drop-invalid');
-        if (!draggingId || draggingId === targetId) return;
-
-        const organograma = contract.organograma || [];
-        if (!this._podeReparentar(draggingId, targetId, organograma)) {
-          showToast('Não é possível mover este nó para aqui.', 'warning');
-          return;
-        }
-
-        const arrastado = organograma.find(m => m.id === draggingId);
-        const alvo = organograma.find(m => m.id === targetId);
-        if (!arrastado || !alvo) return;
-
-        // Ajusta nível automaticamente conforme o alvo
-        let novoNivel = arrastado.nivel;
-        if (alvo.nivel === 'encarregado' && arrastado.nivel !== 'encarregado') {
-          novoNivel = 'lider_area';
-        } else if (alvo.nivel === 'lider_area') {
-          novoNivel = 'profissional';
-        }
-
-        try {
-          await Store.updateMembroOrganograma(contract.id, draggingId, {
-            supervisorId: alvo.id,
-            nivel: novoNivel,
-            area: novoNivel === 'lider_area' ? (arrastado.area || alvo.area || 'Geral') : null
-          });
-          showToast(`${this._getRecursoNome(arrastado.recursoId)} agora reporta-se a ${this._getRecursoNome(alvo.recursoId)}.`, 'success');
-          this.render({ id: contract.id });
-        } catch (err) {
-          showToast(err.message || 'Erro ao mover.', 'error');
-        }
-      });
-    });
-  },
-
-  _podeReparentar(arrastadoId, alvoId, organograma) {
-    if (arrastadoId === alvoId) return false;
-    const arrastado = organograma.find(m => m.id === arrastadoId);
-    const alvo = organograma.find(m => m.id === alvoId);
-    if (!arrastado || !alvo) return false;
-
-    // Encarregado não pode virar subordinado de ninguém
-    if (arrastado.nivel === 'encarregado') return false;
-
-    // Não pode mover um ancestral para dentro de seu próprio descendente (evita ciclo)
-    let cursor = alvo;
-    while (cursor && cursor.supervisorId) {
-      if (cursor.supervisorId === arrastadoId) return false;
-      cursor = organograma.find(m => m.id === cursor.supervisorId);
-    }
-
-    // Só faz sentido soltar sob encarregado ou líder
-    if (alvo.nivel === 'profissional') return false;
-
-    return true;
-  },
-
   _switchOrgView(view, contract) {
     this._organogramaView = view;
     const body = document.getElementById('organogramaBody');
@@ -1113,7 +916,7 @@
         <div class="modal" style="width: 560px;">
           <div class="modal-header">
             <h2 class="modal-title">${membro ? 'Editar Membro' : 'Adicionar Membro ao Organograma'}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formOrganograma" class="modal-content">
             <div class="form-group">

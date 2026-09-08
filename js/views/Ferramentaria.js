@@ -264,7 +264,7 @@ window.Ferramentaria = {
         <div class="modal" style="width:640px;max-width:96vw;">
           <div class="modal-header">
             <h2 class="modal-title">${isEdit ? 'Editar Ferramenta' : 'Nova Ferramenta'}</h2>
-            <button class="modal-close" id="btnFecharFerr">✕</button>
+            <button class="modal-close" id="btnFecharFerr" aria-label="Fechar">✕</button>
           </div>
           <form id="formFerr" class="modal-content">
             <div class="form-row">
@@ -410,7 +410,7 @@ window.Ferramentaria = {
                 <h2 class="modal-title">${escapeHtml(ferramenta.nome || '')}</h2>
                 <div style="font-size:13px;color:var(--color-text-muted);">${escapeHtml(ferramenta.codigo || 'sem código')} · ${escapeHtml(ferramenta.tipo || 'sem tipo')}</div>
               </div>
-              <button class="modal-close" id="btnFecharDetFerr">✕</button>
+              <button class="modal-close" id="btnFecharDetFerr" aria-label="Fechar">✕</button>
             </div>
             <div class="modal-content">
               <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--sp-md);margin-bottom:var(--sp-lg);">
@@ -503,7 +503,7 @@ window.Ferramentaria = {
     const html = `
       <div class="modal-overlay" id="modalCal" style="z-index:10000;">
         <div class="modal" style="width:520px;">
-          <div class="modal-header"><h2 class="modal-title">Registrar calibração</h2><button class="modal-close" id="btnFecharCal">✕</button></div>
+          <div class="modal-header"><h2 class="modal-title">Registrar calibração</h2><button class="modal-close" id="btnFecharCal" aria-label="Fechar">✕</button></div>
           <form id="formCal" class="modal-content">
             <div class="form-row">
               <div class="form-group">

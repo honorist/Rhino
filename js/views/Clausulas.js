@@ -233,7 +233,7 @@ window.Clausulas = {
         <div class="modal" style="width:680px;max-width:95vw;">
           <div class="modal-header">
             <h2 class="modal-title">${isEdit ? 'Editar Cláusula' : 'Nova Cláusula'}</h2>
-            <button class="modal-close" id="btnFecharModalCla">✕</button>
+            <button class="modal-close" id="btnFecharModalCla" aria-label="Fechar">✕</button>
           </div>
           <form id="formCla" class="modal-content">
             <div class="form-group">

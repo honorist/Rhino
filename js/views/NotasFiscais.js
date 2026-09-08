@@ -497,7 +497,7 @@ window.NotasFiscais = {
         <div class="modal" style="width:600px;">
           <div class="modal-header">
             <h2 class="modal-title">${title}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formNF" class="modal-content">
             <div class="form-row">
@@ -726,7 +726,7 @@ window.NotasFiscais = {
                 <span style="font-size:22px;font-weight:700;color:var(--color-success);margin-left:12px;">${Store.formatBRL(nf.valor || 0)}</span>
               </div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             ${row('Contrato', contract ? `<a href="#/contratos/${contract.id}" style="color:var(--color-primary);">${escapeHtml(contract.name)}</a>` : null)}
@@ -789,7 +789,7 @@ window.NotasFiscais = {
         <div class="modal" style="width:560px;">
           <div class="modal-header">
             <h2 class="modal-title">✓ Marcar NF ${escapeHtml(nf.numero)} como Emitida</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             <div style="padding:var(--sp-md);background:var(--color-bg);border-radius:8px;margin-bottom:var(--sp-lg);">

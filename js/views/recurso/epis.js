@@ -36,7 +36,7 @@ window.RecursoEpis = {
         <div class="modal" style="width:820px;max-width:96vw;max-height:90vh;overflow-y:auto;">
           <div class="modal-header">
             <h2 class="modal-title"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon ? window.rhIcon('shield', 18) : ''}EPIs — ${escapeHtml(nome || '')}</span></h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content" id="episConteudo">
             <div class="text-muted" style="text-align:center;padding:var(--sp-lg);">Carregando…</div>
@@ -164,7 +164,7 @@ window.RecursoEpis = {
         <div class="modal" style="width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;">
           <div class="modal-header">
             <h2 class="modal-title">${editing ? '✏️ Editar' : '+ Nova'} entrega de EPI</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formEpi" class="modal-content">
             <div class="form-group">

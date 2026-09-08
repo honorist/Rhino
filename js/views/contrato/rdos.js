@@ -224,7 +224,7 @@
                 ${escapeHtml(contract?.name || '')} ${contract?.client ? '· ' + escapeHtml(contract.client) : ''}
               </div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             <!-- Cabeçalho do dia -->
@@ -427,7 +427,7 @@
           <div class="modal" style="width:480px;max-width:95vw;">
             <div class="modal-header">
               <h2 class="modal-title">💬 Resumo do RDO</h2>
-              <button class="modal-close" id="btnWhatsX">✕</button>
+              <button class="modal-close" id="btnWhatsX" aria-label="Fechar">✕</button>
             </div>
             <div class="modal-content">
               <p style="font-size:13px;color:var(--color-text-muted);margin:0 0 8px;">Copie o texto e cole no grupo da obra no WhatsApp.</p>
@@ -526,7 +526,7 @@
         <div class="modal" style="width:520px;max-width:95vw;">
           <div class="modal-header">
             <h2 class="modal-title">✍️ Adicionar Assinatura</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             <div class="form-row">

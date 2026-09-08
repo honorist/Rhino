@@ -1,5 +1,8 @@
 window.ContasPagar = {
   filtroStatus: 'pendente',
+  _page: 1,
+  _pageSize: 25,
+  _selectedIds: new Set(),
 
   async render() {
     const app = document.getElementById('app');
@@ -55,6 +58,21 @@ window.ContasPagar = {
           : this.filtroStatus === 'pago'
             ? pagas
             : contas;
+
+      // Ordenação (pendentes primeiro, depois por vencimento) — separada da
+      // paginação pra poder fatiar só a página atual no corpo da tabela.
+      const filtradasOrdenadas = [...filtradas].sort((a, b) => {
+        if (a.status === 'pendente' && b.status !== 'pendente') return -1;
+        if (a.status !== 'pendente' && b.status === 'pendente') return 1;
+        return (a.dataVencimento || '') < (b.dataVencimento || '') ? -1 : 1;
+      });
+      const pagina = window.UIKit.paginate(filtradasOrdenadas, this._page, this._pageSize);
+      this._page = pagina.page; // clamp: lista pode ter encolhido pelo filtro
+      this._paginaAtual = pagina;
+      // Seleção em massa só se aplica a contas pendentes (é o que "Marcar como
+      // pago em lote" consegue agir) — remove da seleção qualquer id que não
+      // esteja mais pendente na fatia atual (ex: filtro mudou).
+      const idsPendentesPagina = new Set(pagina.slice.filter((c) => c.status === 'pendente').map((c) => c.id));
 
       const headerHtml = window.UIKit?.pageHeader
         ? window.UIKit.pageHeader({
@@ -173,6 +191,7 @@ window.ContasPagar = {
             <table>
               <thead>
                 <tr>
+                  <th scope="col" style="width:36px;padding-left:12px;"><input type="checkbox" id="chkAllCP" title="Selecionar todas as pendentes desta página" style="cursor:pointer;width:16px;height:16px;"></th>
                   <th scope="col">Descrição / NF</th>
                   <th scope="col">Fornecedor</th>
                   <th scope="col">Emissão</th>
@@ -184,18 +203,13 @@ window.ContasPagar = {
               </thead>
               <tbody>
                 ${
-                  filtradas.length === 0
+                  filtradasOrdenadas.length === 0
                     ? `
-                  <tr><td colspan="7" class="text-center text-muted" style="padding:var(--sp-xl);">
+                  <tr><td colspan="8" class="text-center text-muted" style="padding:var(--sp-xl);">
                     Nenhuma conta ${this.filtroStatus === 'pendente' ? 'pendente' : this.filtroStatus === 'pago' ? 'paga' : ''} cadastrada
                   </td></tr>
                 `
-                    : filtradas
-                        .sort((a, b) => {
-                          if (a.status === 'pendente' && b.status !== 'pendente') return -1;
-                          if (a.status !== 'pendente' && b.status === 'pendente') return 1;
-                          return (a.dataVencimento || '') < (b.dataVencimento || '') ? -1 : 1;
-                        })
+                    : pagina.slice
                         .map((c) => {
                           const fornecedor = (Store.state.fornecedores || []).find(
                             (f) => f.id === c.fornecedorId
@@ -229,6 +243,9 @@ window.ContasPagar = {
                               : '';
                           return `
                     <tr class="row-cp" data-id="${c.id}" style="cursor:pointer;">
+                      <td style="padding-left:12px;" onclick="event.stopPropagation()">
+                        ${c.status === 'pendente' ? `<input type="checkbox" class="row-chk-cp" data-id="${c.id}" ${this._selectedIds.has(c.id) ? 'checked' : ''} style="cursor:pointer;width:16px;height:16px;">` : ''}
+                      </td>
                       <td>
                         <strong>${escapeHtml(c.descricao) || '—'}</strong>
                         ${c.numeroNF ? `<div style="font-size:15px;color:var(--color-text-muted);">NF ${escapeHtml(c.numeroNF)}</div>` : ''}
@@ -277,19 +294,104 @@ window.ContasPagar = {
               </tbody>
             </table>
           </div>
+          ${window.UIKit.pagination(pagina, { label: 'contas a pagar' })}
         </div>
+
+        ${
+          this._selectedIds.size > 0
+            ? `
+        <div class="rh-bulk-bar is-visible" id="rhBulkBarCP" aria-label="Ações para selecionadas">
+          <span class="rh-bulk-bar__count">${this._selectedIds.size} selecionada${this._selectedIds.size !== 1 ? 's' : ''}</span>
+          <div class="rh-bulk-bar__actions">
+            <button class="btn rh-bulk-btn" id="bulkPagarCP">Marcar como pago</button>
+            <button class="btn rh-bulk-btn" id="bulkClearCP">Limpar</button>
+          </div>
+        </div>
+        `
+            : ''
+        }
       `;
 
       app.innerHTML = html;
+      document.body.classList.toggle('has-bulk-bar', this._selectedIds.size > 0);
 
       document.getElementById('btnNovaConta').addEventListener('click', () => this.showModal());
-      document.getElementById('btnExportarCP').addEventListener('click', () => this._exportarCSV(filtradas));
+      document.getElementById('btnExportarCP').addEventListener('click', () => this._exportarCSV(filtradasOrdenadas));
       document.querySelectorAll('[data-chips="cp-status"] .rh-chip').forEach((b) =>
         b.addEventListener('click', () => {
           this.filtroStatus = b.dataset.value || 'todos';
+          this._page = 1;
           this.render();
         })
       );
+
+      // ── Paginação ──
+      if (this._paginaAtual) {
+        window.UIKit.wirePagination(document.getElementById('app'), this._paginaAtual, ({ page, pageSize }) => {
+          this._page = page;
+          this._pageSize = pageSize;
+          this.render();
+        });
+      }
+
+      // ── Seleção em massa (só contas pendentes) ──
+      document.getElementById('chkAllCP')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+      document.getElementById('chkAllCP')?.addEventListener('change', (e) => {
+        idsPendentesPagina.forEach((id) => {
+          if (e.target.checked) this._selectedIds.add(id);
+          else this._selectedIds.delete(id);
+        });
+        this.render();
+      });
+      document.querySelectorAll('.row-chk-cp').forEach((chk) => {
+        chk.addEventListener('change', (e) => {
+          if (e.target.checked) this._selectedIds.add(e.target.dataset.id);
+          else this._selectedIds.delete(e.target.dataset.id);
+          const all = document.getElementById('chkAllCP');
+          if (all) {
+            const checked = document.querySelectorAll('.row-chk-cp:checked').length;
+            const total = document.querySelectorAll('.row-chk-cp').length;
+            all.indeterminate = checked > 0 && checked < total;
+            all.checked = total > 0 && checked === total;
+          }
+          document.body.classList.toggle('has-bulk-bar', this._selectedIds.size > 0);
+          const bar = document.getElementById('rhBulkBarCP');
+          if (bar)
+            bar.querySelector('.rh-bulk-bar__count').textContent =
+              `${this._selectedIds.size} selecionada${this._selectedIds.size !== 1 ? 's' : ''}`;
+        });
+      });
+      document.getElementById('bulkClearCP')?.addEventListener('click', () => {
+        this._selectedIds.clear();
+        document.body.classList.remove('has-bulk-bar');
+        this.render();
+      });
+      document.getElementById('bulkPagarCP')?.addEventListener('click', async () => {
+        const ids = [...this._selectedIds];
+        if (!ids.length) return;
+        if (
+          !confirm(
+            `Marcar ${ids.length} conta(s) como paga(s) hoje, com o valor integral e forma de pagamento PIX?\n\nPara registrar com outra data/valor/forma, use "Pagar" individualmente.`
+          )
+        )
+          return;
+        const hoje = new Date().toISOString().split('T')[0];
+        try {
+          await Promise.all(
+            ids.map((id) => {
+              const c = (Store.state.contas_pagar || []).find((x) => x.id === id);
+              return Store.pagarConta(id, { dataPagamento: hoje, valorPago: c ? c.valor : 0, formaPagamento: 'PIX' });
+            })
+          );
+          window.showToast(`${ids.length} conta(s) marcada(s) como paga(s)`, 'success');
+          this._selectedIds.clear();
+          this.render();
+        } catch (e) {
+          window.showToast('Erro: ' + e.message, 'error');
+        }
+      });
       document.querySelectorAll('.btn-pagar').forEach((b) =>
         b.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -375,7 +477,7 @@ window.ContasPagar = {
                 <span style="font-size:22px;font-weight:700;color:var(--color-danger);margin-left:12px;">${Store.formatBRL(c.valor)}</span>
               </div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             ${row('Fornecedor', fornecedor ? escapeHtml(fornecedor.nome) : null)}
@@ -435,7 +537,7 @@ window.ContasPagar = {
         <div class="modal" style="width:580px;">
           <div class="modal-header">
             <h2 class="modal-title">${title}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formConta" class="modal-content">
             <div class="form-group">
@@ -627,7 +729,7 @@ window.ContasPagar = {
         <div class="modal" style="width:420px;">
           <div class="modal-header">
             <h2 class="modal-title">Registrar Pagamento</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             <p style="margin-bottom:var(--sp-md);color:var(--color-text-muted);">

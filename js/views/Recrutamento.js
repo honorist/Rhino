@@ -208,7 +208,7 @@ window.Recrutamento = {
         <div class="modal" style="width:640px;max-width:95vw;">
           <div class="modal-header">
             <h2 class="modal-title">Nova solicitação de contratação</h2>
-            <button class="modal-close" id="recrutBtnFechar">✕</button>
+            <button class="modal-close" id="recrutBtnFechar" aria-label="Fechar">✕</button>
           </div>
           <form id="recrutFormNova" class="modal-content">
             <div class="form-group">
@@ -376,7 +376,7 @@ window.Recrutamento = {
         <div class="modal" style="width:900px;max-width:96vw;max-height:90vh;overflow-y:auto;">
           <div class="modal-header">
             <h2 class="modal-title">Solicitação #${sol.id.slice(-6).toUpperCase()}</h2>
-            <button class="modal-close" id="recrutDetBtnFechar">✕</button>
+            <button class="modal-close" id="recrutDetBtnFechar" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             <div style="display:flex;align-items:center;gap:var(--sp-sm);margin-bottom:var(--sp-sm);">
@@ -485,7 +485,7 @@ window.Recrutamento = {
         <div class="modal" style="width:520px;max-width:95vw;">
           <div class="modal-header">
             <h2 class="modal-title">Adicionar candidato</h2>
-            <button class="modal-close" id="recrutCandBtnFechar">✕</button>
+            <button class="modal-close" id="recrutCandBtnFechar" aria-label="Fechar">✕</button>
           </div>
           <form id="recrutFormCand" class="modal-content">
             <div class="form-group">
@@ -619,7 +619,7 @@ window.Recrutamento = {
         <div class="modal" style="width:640px;max-width:95vw;">
           <div class="modal-header">
             <h2 class="modal-title">${escapeHtml(cand.nome)}</h2>
-            <button class="modal-close" id="recrutTriBtnFechar">✕</button>
+            <button class="modal-close" id="recrutTriBtnFechar" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             <div class="form-row" style="margin-bottom:var(--sp-md);">

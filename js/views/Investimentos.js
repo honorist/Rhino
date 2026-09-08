@@ -282,7 +282,7 @@ window.Investimentos = {
                 <span style="font-size:22px;font-weight:700;color:var(--color-info);">${Store.formatBRL(parseFloat(ap.value) || 0)}</span>
               </div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             ${row('Data', fmtD(ap.date))}
@@ -318,7 +318,7 @@ window.Investimentos = {
         <div class="modal" style="width:680px;max-height:90vh;overflow-y:auto;">
           <div class="modal-header">
             <h2 class="modal-title">Novo Aporte</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formAporte" class="modal-content">
 
@@ -538,7 +538,7 @@ window.Investimentos = {
         <div class="modal" style="width:700px;">
           <div class="modal-header">
             <h2 class="modal-title">Aportes de ${escapeHtml(socio.name)}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-lg);margin-bottom:var(--sp-lg);">

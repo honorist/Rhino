@@ -13,7 +13,7 @@
         <div class="modal" style="width: 480px;">
           <div class="modal-header">
             <h2 class="modal-title" style="color: var(--color-danger);">⚠️ Excluir Contrato</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content" style="padding: var(--sp-lg);">
             <p style="margin: 0 0 var(--sp-md) 0;">
@@ -113,7 +113,7 @@
         <div class="modal">
           <div class="modal-header">
             <h2 class="modal-title">${title}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formSaida" class="modal-content">
             <div class="form-group">
@@ -216,7 +216,7 @@
         <div class="modal">
           <div class="modal-header">
             <h2 class="modal-title">${title}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formOrcamento" class="modal-content">
             <div class="form-group">
@@ -407,7 +407,7 @@
         <div class="modal" style="width:700px;max-width:95vw;">
           <div class="modal-header" style="border-left:4px solid ${cor};">
             <h2 class="modal-title">${tipo} — Detalhamento</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content" style="padding:0;">
             ${
@@ -495,7 +495,7 @@
         <div class="modal" style="width:640px;">
           <div class="modal-header">
             <h2 class="modal-title"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('file-text', 18)}Gerar Documento do Contrato</span></h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             <div class="form-group">

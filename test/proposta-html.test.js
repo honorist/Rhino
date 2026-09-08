@@ -62,19 +62,46 @@ test('smoke: renderiza HTML completo sem lançar', () => {
   assert.ok(html.includes('Cliente LTDA'), 'inclui o cliente');
 });
 
-test('segurança: XSS em campos de usuário sai escapado, nunca cru', () => {
+test('segurança: XSS em campos de texto puro sai escapado, nunca cru', () => {
+  // titulo/clienteEmpresa/cronograma[].fase continuam texto puro (defesa =
+  // escapar tudo). objetivo/observacoes/escopo[].texto viraram texto rico —
+  // cobertos no teste seguinte, com defesa = allowlist de sanitização.
   const html = renderHtml(
     propostaFixture({
       titulo: `Proposta ${XSS}`,
-      objetivo: `Objetivo ${XSS}`,
       clienteEmpresa: `Empresa ${XSS}`,
-      escopo: [{ texto: `Item ${XSS}`, incluso: true }],
       cronograma: [{ fase: `Fase ${XSS}`, inicio: '2026-08-01', fim: '2026-08-05', duracaoDias: 5 }],
-      observacoes: `Obs ${XSS}`,
     })
   );
   assert.ok(!html.includes(XSS), 'o <script> cru NÃO pode aparecer no HTML servido ao cliente');
   assert.ok(html.includes(XSS_ESC), 'o payload aparece, porém escapado (prova que foi renderizado)');
+});
+
+test('segurança: campos de texto rico (objetivo/observações/escopo) sanitizam por allowlist — <script> nunca sobrevive, <strong> sobrevive sem escapar', () => {
+  const html = renderHtml(
+    propostaFixture({
+      objetivo: `<p>Objetivo com <strong>negrito</strong>.</p>${XSS}`,
+      observacoes: `<p>Nota <strong>importante</strong>.</p>${XSS}`,
+      escopo: [{ texto: `<p>Item <strong>crítico</strong>.</p>${XSS}`, incluso: true }],
+    })
+  );
+  assert.ok(!html.includes('<script'), '<script> não pode sobreviver em campo de texto rico');
+  assert.ok(!html.includes('alert(\'xss\')'), 'conteúdo do script não pode sobrar como texto solto');
+  // Prova que é allowlist (sanitiza), não blanket-escape (que tornaria <strong> em &lt;strong&gt;)
+  // nem blanket-trust (que deixaria o <script> passar).
+  assert.ok(html.includes('<strong>negrito</strong>'), 'negrito do objetivo sobrevive sem escapar');
+  assert.ok(html.includes('<strong>importante</strong>'), 'negrito das observações sobrevive sem escapar');
+  assert.ok(html.includes('<strong>crítico</strong>'), 'negrito do item de escopo sobrevive sem escapar');
+});
+
+test('segurança: style perigoso em campo de texto rico é neutralizado, cor válida sobrevive', () => {
+  const html = renderHtml(
+    propostaFixture({
+      objetivo: '<p><span style="color:#ff0000;background:url(javascript:alert(1))">alerta</span></p>',
+    })
+  );
+  assert.ok(!html.includes('javascript:'), 'style perigoso não pode sobreviver');
+  assert.ok(html.includes('color:#ff0000'), 'cor de texto válida sobrevive');
 });
 
 test('segurança: título com aspas/ângulos não quebra o atributo <title>', () => {
@@ -96,6 +123,46 @@ test('comercial: custos internos não vazam no HTML do cliente', () => {
   assert.ok(!html.includes('MARGEM_SECRETA_42'), 'descrição de custo interno não pode vazar');
   assert.ok(!html.includes('CUSTO_INTERNO_SENTINELA'), 'custo interno não pode vazar');
   assert.ok(!html.includes('9999'), 'valor de custo interno não pode vazar');
+});
+
+test('compatibilidade: objetivo/saudação legados (texto puro, sem tags HTML) continuam com o negrito automático de Contratada/Contratante, igual a hoje', () => {
+  const html = renderHtml(
+    propostaFixture({
+      objetivo: 'A Contratada deve cumprir o escopo.',
+    })
+  );
+  assert.ok(html.includes('<strong>CONTRATADA</strong>'), 'destaque automático de "Contratada" continua ativo em objetivo (campo legado, sem HTML)');
+});
+
+test('compatibilidade: observações legadas (texto puro) continuam sem o negrito automático — nunca tiveram esse comportamento', () => {
+  const html = renderHtml(
+    propostaFixture({
+      observacoes: 'A Contratada e a Contratante já assinaram.',
+    })
+  );
+  // observacoes usava esc() puro (sem destaque) antes desta mudança — preserva esse comportamento
+  assert.ok(!html.includes('<strong>CONTRATADA</strong>'), 'observações nunca tiveram destaque automático — não deve ganhar um agora');
+  assert.ok(html.includes('A Contratada e a Contratante já assinaram.'), 'texto aparece normalmente, só sem o negrito automático');
+});
+
+test('texto rico: negrito automático de Contratada/Contratante continua funcionando junto com formatação manual do usuário', () => {
+  const html = renderHtml(
+    propostaFixture({
+      objetivo: '<p>A Contratada deve cumprir o <strong>escopo</strong> combinado.</p>',
+    })
+  );
+  assert.ok(html.includes('<strong>CONTRATADA</strong>'), 'destaque automático continua ativo mesmo em campo com HTML de verdade');
+  assert.ok(html.includes('<strong>escopo</strong>'), 'negrito aplicado manualmente pelo usuário também sobrevive');
+});
+
+test('texto rico: tabela dentro de um item de escopo é preservada (não escapada)', () => {
+  const html = renderHtml(
+    propostaFixture({
+      escopo: [{ texto: '<table><tbody><tr><td>Coluna A</td></tr></tbody></table>', incluso: true }],
+    })
+  );
+  assert.ok(html.includes('<td>Coluna A</td>'), 'célula da tabela do item de escopo sobrevive, não escapada');
+  assert.ok(!html.includes('&lt;table&gt;'), 'a tabela não pode ter sido escapada como texto puro');
 });
 
 test('robustez: proposta mínima (campos ausentes) ainda renderiza', () => {

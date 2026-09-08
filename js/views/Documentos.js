@@ -343,7 +343,7 @@
               <h2 class="modal-title">Documentos — ${escapeHtml(r.nome)}</h2>
               <p style="font-size:15px;color:var(--color-text-muted);margin:0;">${r.profissao || ''}</p>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content" style="overflow-y:auto;flex:1;">
             <div style="margin-bottom:var(--sp-md);display:flex;justify-content:flex-end;">
@@ -480,7 +480,7 @@
               <h2 class="modal-title">Validação IA — ${escapeHtml(d.tipoLabel || d.tipo)}</h2>
               <div style="font-size:13px;color:var(--color-text-muted);">Template: ${escapeHtml(tpl?.nome || d.templateId)}</div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content" id="valBody">${renderRel(v)}</div>
           <div class="modal-footer">
@@ -557,7 +557,7 @@
               <h2 class="modal-title">${doc ? 'Editar Documento' : 'Adicionar Documento'}</h2>
               <p style="font-size:15px;color:var(--color-text-muted);margin:0;">${escapeHtml(r.nome)}</p>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formDocumento" class="modal-content">
 
@@ -829,7 +829,7 @@
               <h2 class="modal-title">${escapeHtml(r.nome)}</h2>
               <div style="margin-top:4px;">${statusBadge}</div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
 

@@ -54,6 +54,19 @@
       src: './js/lib/vendor/signature_pad.umd.min.js',
       check: () => typeof window.SignaturePad !== 'undefined',
     },
+    // Editor de texto rico da Proposta (negrito/lista/tabela/cor/imagem).
+    // Build "fat" (todos os plugins embutidos, MIT) — usado só na aba de
+    // edição da Proposta.
+    'jodit-css': {
+      type: 'css',
+      href: './js/lib/vendor/jodit.fat.min.css',
+    },
+    'jodit': {
+      deps: ['jodit-css'],
+      type: 'js',
+      src: './js/lib/vendor/jodit.fat.min.js',
+      check: () => typeof window.Jodit !== 'undefined',
+    },
     // Mermaid: ESM grande (~600 KB) usado só no Manual. Mantém CDN com SRI seria
     // ideal mas mermaid não publica hash estável. Mantém CDN restrita por enquanto
     // — Manual não é crítico, mas avaliar vendor no futuro.

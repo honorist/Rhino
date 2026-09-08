@@ -8,7 +8,7 @@ const db = require('../db');
 const repos = require('../db/repos');
 const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
-const money = require('../lib/money');
+const { parsePositiveMoney } = require('../lib/validate');
 
 async function envelope() { return { investimentos: await repos.investimentos.findAll() }; }
 
@@ -20,7 +20,7 @@ async function handlePostInvestimento(body, res) {
   try {
     const origem = body.origem || 'socio';
     const destino = body.destino || 'contrato';
-    const valor = money.parse(body.value);
+    const valor = parsePositiveMoney(body.value, 'value');
     const dataDoc = body.date || new Date().toISOString().split('T')[0];
 
     const aporte = {

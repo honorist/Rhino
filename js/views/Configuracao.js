@@ -617,7 +617,7 @@ window.Configuracao = {
         <div class="modal" style="width:580px;">
           <div class="modal-header">
             <h2 class="modal-title">${title}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formTipo" class="modal-content">
             <div class="form-group">
@@ -932,7 +932,7 @@ window.Configuracao = {
         <div class="modal" style="width:600px;max-height:90vh;overflow-y:auto;">
           <div class="modal-header">
             <h2 class="modal-title">${t ? 'Editar Template' : 'Novo Template'}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formTemplate" class="modal-content">
 

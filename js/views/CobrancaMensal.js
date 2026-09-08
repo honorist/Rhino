@@ -229,7 +229,7 @@ window.CobrancaMensal = {
               <h2 class="modal-title">Detalhe · ${this._mesNome(mes)}/${ano}</h2>
               <div style="font-size:13px;color:var(--color-text-muted);">${dados.contratosAtivos} contratos cobrados · Total: <strong>${Store.formatBRL(dados.total)}</strong></div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:var(--sp-md);font-size:13px;">

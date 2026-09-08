@@ -81,7 +81,7 @@ async function handlePortalLogin(req, body, res) {
     if (!cliente || !cliente.portalPasswordHash)
       return sendError(res, 401, 'Email ou senha incorretos');
 
-    const bcrypt = require('bcryptjs');
+    const bcrypt = require('bcrypt');
     const ok = await bcrypt.compare(senha, cliente.portalPasswordHash);
     if (!ok) return sendError(res, 401, 'Email ou senha incorretos');
 

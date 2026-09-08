@@ -13,6 +13,8 @@ window.Equipamentos = {
   filtro: 'todos', // todos | proprio | locado
   _lista: [],
   _resumo: {},
+  _page: 1,
+  _pageSize: 25,
 
   PROPRIEDADES: [
     { v: 'proprio', l: 'Próprio' },
@@ -71,6 +73,54 @@ window.Equipamentos = {
       : '<span class="badge" style="background:#e0f2fe;color:#0369a1;font-size:11px;">Próprio</span>';
   },
 
+  // Item 13 do backlog: exportação CSV/PDF do parque de equipamentos (lista já filtrada).
+  _propriedadeLabelPlano(p) { return p === 'locado' ? 'Locado' : 'Próprio'; },
+  _statusLabelPlano(st) {
+    return (this.STATUS.find((s) => s.v === st) || {}).l || st || '—';
+  },
+  _exportRowsPlanas(lista) {
+    return lista.map((e) => {
+      const locado = (e.propriedade || 'proprio') === 'locado';
+      return {
+        nome: e.nome || '',
+        tipo: e.tipo || '',
+        propriedade: this._propriedadeLabelPlano(e.propriedade),
+        status: this._statusLabelPlano(e.status),
+        fornecedor: locado && e.fornecedorId ? this._fornecedorNome(e.fornecedorId) : '',
+        valor: locado ? this._fmtBRL(e.valorLocacaoMensal) + '/mês' : this._fmtBRL(e.valorAquisicao),
+      };
+    });
+  },
+  _exportarCSV(lista) {
+    const rows = this._exportRowsPlanas(lista);
+    if (!rows.length) { if (window.showToast) showToast('Nada para exportar', 'warning'); return; }
+    window.RhinoExport.csv(
+      rows.map((r) => ({
+        Equipamento: r.nome, Tipo: r.tipo, Propriedade: r.propriedade,
+        Status: r.status, Fornecedor: r.fornecedor, Valor: r.valor,
+      })),
+      { filename: `equipamentos_${new Date().toISOString().slice(0, 10)}.csv` }
+    );
+  },
+  async _exportarPDF(lista) {
+    const rows = this._exportRowsPlanas(lista);
+    if (!rows.length) { if (window.showToast) showToast('Nada para exportar', 'warning'); return; }
+    await window.RhinoExport.tablePdf({
+      title: 'Equipamentos',
+      columns: [
+        { key: 'nome', label: 'Equipamento' },
+        { key: 'tipo', label: 'Tipo' },
+        { key: 'propriedade', label: 'Propriedade' },
+        { key: 'status', label: 'Status' },
+        { key: 'fornecedor', label: 'Fornecedor' },
+        { key: 'valor', label: 'Valor' },
+      ],
+      rows,
+      filename: `equipamentos_${new Date().toISOString().slice(0, 10)}.pdf`,
+      orientation: 'landscape',
+    });
+  },
+
   async render() {
     const app = document.getElementById('app');
     app.innerHTML = '<div class="loading-spinner">Carregando equipamentos...</div>';
@@ -84,6 +134,15 @@ window.Equipamentos = {
       const r = this._resumo;
       let lista = this._lista;
       if (this.filtro !== 'todos') lista = lista.filter((e) => (e.propriedade || 'proprio') === this.filtro);
+
+      // Paginação (UIKit.paginate) — cobre a lista já filtrada por propriedade.
+      let pagina = null;
+      let listaPagina = lista;
+      if (window.UIKit?.paginate) {
+        pagina = window.UIKit.paginate(lista, this._page, this._pageSize);
+        this._page = pagina.page; // clamp: lista pode ter encolhido pelo filtro
+        listaPagina = pagina.slice;
+      }
 
       const kpis = `
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:var(--sp-lg);">
@@ -116,6 +175,8 @@ window.Equipamentos = {
             <p class="page-subtitle">${this._lista.length} equipamento${this._lista.length !== 1 ? 's' : ''} no parque · próprios e locados</p>
           </div>
           <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-secondary btn-sm" id="btnExportarEqpCSV">Exportar CSV</button>
+            <button class="btn btn-secondary btn-sm" id="btnExportarEqpPDF">Exportar PDF</button>
             <button class="btn btn-primary btn-lg" id="btnNovoEqp">+ Novo Equipamento</button>
           </div>
         </div>
@@ -148,13 +209,14 @@ window.Equipamentos = {
                          <th scope="col" style="width:200px;">Ações</th>
                        </tr>
                      </thead>
-                     <tbody>${lista.map((e) => this._renderRow(e)).join('')}</tbody>
+                     <tbody>${listaPagina.map((e) => this._renderRow(e)).join('')}</tbody>
                    </table>
                  </div>
+                 ${pagina && window.UIKit?.pagination ? window.UIKit.pagination(pagina, { label: 'equipamentos' }) : ''}
                </div>`
         }
       `;
-      this._attachEvents();
+      this._attachEvents(lista, pagina);
     } catch (e) {
       console.error('[Equipamentos] erro:', e);
       app.innerHTML = `<div class="error-banner">Erro ao carregar equipamentos: ${escapeHtml(e.message)}</div>`;
@@ -188,13 +250,25 @@ window.Equipamentos = {
     `;
   },
 
-  _attachEvents() {
+  _attachEvents(listaFiltrada, pagina) {
     const btnNovo = document.getElementById('btnNovoEqp');
     if (btnNovo) btnNovo.addEventListener('click', () => this.showModal(null));
+
+    document.getElementById('btnExportarEqpCSV')?.addEventListener('click', () => this._exportarCSV(listaFiltrada || this._lista));
+    document.getElementById('btnExportarEqpPDF')?.addEventListener('click', () => this._exportarPDF(listaFiltrada || this._lista));
+
+    if (pagina && window.UIKit?.wirePagination) {
+      window.UIKit.wirePagination(document.getElementById('app'), pagina, ({ page, pageSize }) => {
+        this._page = page;
+        this._pageSize = pageSize;
+        this.render();
+      });
+    }
 
     document.querySelectorAll('.eqp-filtro').forEach((b) => {
       b.addEventListener('click', () => {
         this.filtro = b.dataset.f;
+        this._page = 1;
         this.render();
       });
     });
@@ -257,7 +331,7 @@ window.Equipamentos = {
         <div class="modal" style="width:640px;max-width:95vw;max-height:90vh;overflow-y:auto;">
           <div class="modal-header">
             <h2 class="modal-title">${isEdit ? 'Editar' : 'Novo'} Equipamento</h2>
-            <button class="modal-close" id="btnFecharEqp">✕</button>
+            <button class="modal-close" id="btnFecharEqp" aria-label="Fechar">✕</button>
           </div>
           <form id="formEqp" class="modal-content">
             <div class="form-row">
@@ -359,7 +433,7 @@ window.Equipamentos = {
         <div class="modal" style="width:760px;max-width:96vw;max-height:92vh;overflow-y:auto;">
           <div class="modal-header">
             <h2 class="modal-title">${escapeHtml(equip.nome || 'Equipamento')}</h2>
-            <button class="modal-close" id="btnFecharEqpDet">✕</button>
+            <button class="modal-close" id="btnFecharEqpDet" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content" id="eqpDetConteudo">
             <div class="text-muted" style="text-align:center;padding:var(--sp-lg);">Carregando…</div>

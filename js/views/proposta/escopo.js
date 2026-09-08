@@ -5,7 +5,19 @@
 (function() {
   function uid() { return 'esc_' + Math.random().toString(36).slice(2, 9); }
 
+  // Instâncias vivas do editor rico, por idx — a lista inteira é reconstruída
+  // (innerHTML) em toda mutação (add/toggle/mover/excluir), então as
+  // instâncias precisam ser destruídas no início de cada render() pra não
+  // vazar presas a nós DOM já substituídos.
+  let _richInstances = new Map();
+
+  function _destroyRichInstances() {
+    _richInstances.forEach(inst => { try { inst.destroy(); } catch {} });
+    _richInstances = new Map();
+  }
+
   function render(container, p, onChange) {
+    _destroyRichInstances();
     const itens = Array.isArray(p.escopo) ? p.escopo : [];
 
     container.innerHTML = `
@@ -54,26 +66,21 @@
               <button class="btn-down" data-idx="${idx}" title="Descer"  style="background:none;border:none;cursor:pointer;font-size:10px;color:#94a3b8;padding:0;">▼</button>
             </div>
           </div>
-          <textarea class="form-control item-texto" data-idx="${idx}" rows="2"
-                    style="flex:1;border:none;background:transparent;resize:vertical;font-size:14px;padding:4px;">${escapeHtml(it.texto || '')}</textarea>
+          <div class="item-texto rich-text-mount" data-idx="${idx}" style="flex:1;"></div>
           <button class="btn-del-item" data-idx="${idx}" title="Remover" style="background:none;border:none;cursor:pointer;color:#dc2626;padding:4px 8px;font-size:18px;">×</button>
         </div>
       `;
     }
 
     /**
-     * Captura o estado atual do DOM (textos digitados nos textareas) e mescla
-     * com `itens`. Isso evita perder texto não-flushado do debounce de 300ms
+     * Captura o estado atual das instâncias vivas do editor rico e mescla com
+     * `itens`. Isso evita perder texto não-flushado do debounce de 300ms
      * quando o usuário clica em algum botão que re-renderiza a aba.
      */
     function snapshot() {
-      const textareas = container.querySelectorAll('.item-texto');
       const lista = itens.map(it => ({ ...it }));
-      textareas.forEach(t => {
-        const idx = parseInt(t.dataset.idx, 10);
-        if (!isNaN(idx) && lista[idx]) {
-          lista[idx].texto = t.value;
-        }
+      _richInstances.forEach((inst, idx) => {
+        if (lista[idx]) lista[idx].texto = inst.getValue();
       });
       return lista;
     }
@@ -97,20 +104,26 @@
       });
     });
 
-    container.querySelectorAll('.item-texto').forEach(t => {
-      let timer;
-      t.addEventListener('input', () => {
-        clearTimeout(timer);
-        timer = setTimeout(() => {
+    // Monta o editor rico de cada item — assíncrono (lazy-load do Jodit).
+    const commitTimers = new Map();
+    container.querySelectorAll('.item-texto').forEach(el => {
+      const idx = parseInt(el.dataset.idx, 10);
+      window.RhinoRichText.mount(el, {
+        value: itens[idx]?.texto || '',
+        uploadUrl: `/api/propostas/${p.id}/anexos`,
+        uploadFields: { tipo: 'imagem', secao: 'inline' },
+        buildImageUrl: (anexoId) => `/api/propostas/${p.id}/anexos/${anexoId}`,
+        onChange: () => {
+          clearTimeout(commitTimers.get(idx));
           // snapshot pega TODOS os textos (não só o que mudou), garantindo sync
+          commitTimers.set(idx, setTimeout(() => commit(snapshot()), 300));
+        },
+        // Salvar também ao perder foco (flush imediato — antes do usuário poder clicar em botão)
+        onBlur: () => {
+          clearTimeout(commitTimers.get(idx));
           commit(snapshot());
-        }, 300);
-      });
-      // Salvar também ao perder foco (flush imediato — antes do usuário poder clicar em botão)
-      t.addEventListener('blur', () => {
-        clearTimeout(timer);
-        commit(snapshot());
-      });
+        },
+      }).then(inst => { _richInstances.set(idx, inst); });
     });
 
     container.querySelectorAll('.btn-del-item').forEach(b => {

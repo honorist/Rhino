@@ -498,6 +498,14 @@ window.Auditoria = {
           <h1 class="page-title">Histórico de Atividades</h1>
           <p class="page-subtitle">${total} ${total === 1 ? 'atividade' : 'atividades'}</p>
         </div>
+        ${
+          rows.length > 0
+            ? `<div style="display:flex;gap:8px;">
+                <button class="btn btn-secondary btn-sm" id="auditExportCsv">Exportar CSV</button>
+                <button class="btn btn-secondary btn-sm" id="auditExportPdf">Exportar PDF</button>
+              </div>`
+            : ''
+        }
       </div>
 
       <div class="audit-toolbar">
@@ -603,8 +611,40 @@ window.Auditoria = {
       </div>`;
   },
 
+  // Dados de exportação — só a página atual (a paginação por cursor não
+  // permite montar "todas as páginas" de uma vez sem varrer o cursor inteiro).
+  _exportRows() {
+    return (this._data.rows || []).map((r) => ({
+      'Data/Hora': r.ts ? new Date(r.ts).toLocaleString('pt-BR') : '',
+      Usuário: this._userName(r.userEmail),
+      Evento: this._eventSentence(r).replace(/<[^>]+>/g, ''),
+      Status: this._statusLabel(r.status).texto,
+    }));
+  },
+
   _wire() {
     const $ = (id) => document.getElementById(id);
+
+    const exportCsv = $('auditExportCsv');
+    if (exportCsv)
+      exportCsv.addEventListener('click', () => {
+        window.RhinoExport.csv(this._exportRows(), {
+          filename: `auditoria-pagina-${this._page + 1}.csv`,
+        });
+      });
+    const exportPdf = $('auditExportPdf');
+    if (exportPdf)
+      exportPdf.addEventListener('click', () => {
+        const data = this._exportRows();
+        const columns = Object.keys(data[0] || {}).map((k) => ({ key: k, label: k }));
+        window.RhinoExport.tablePdf({
+          title: 'Histórico de Atividades',
+          subtitle: `Página ${this._page + 1} — ${data.length} evento(s)`,
+          columns,
+          rows: data,
+          filename: `auditoria-pagina-${this._page + 1}.pdf`,
+        });
+      });
 
     const search = $('fAuditUser');
     if (search) {

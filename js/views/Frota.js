@@ -419,7 +419,7 @@ window.Frota = {
         <div class="modal" style="width:680px;max-width:95vw;">
           <div class="modal-header">
             <h2 class="modal-title">${v ? 'Editar Veículo' : 'Novo Veículo'}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formVeic" class="modal-content">
             <div class="form-row">
@@ -749,7 +749,7 @@ window.Frota = {
                 <h2 class="modal-title">${escapeHtml(v.placa)} · ${escapeHtml((v.marca || '') + ' ' + (v.modelo || ''))}</h2>
                 <div style="font-size:13px;color:var(--color-text-muted);">${(v.kmAtual || 0).toLocaleString('pt-BR')} km · ${escapeHtml(v.status)}</div>
               </div>
-              <button class="modal-close">✕</button>
+              <button class="modal-close" aria-label="Fechar">✕</button>
             </div>
             <div class="modal-content">
               <div class="ctd-tabs" style="margin-bottom:var(--sp-md);">
@@ -858,7 +858,7 @@ window.Frota = {
     const html = `
       <div class="modal-overlay" id="modalPlano" style="z-index:10000;">
         <div class="modal" style="width:520px;">
-          <div class="modal-header"><h2 class="modal-title">${p ? 'Editar plano' : 'Novo plano'}</h2><button class="modal-close">✕</button></div>
+          <div class="modal-header"><h2 class="modal-title">${p ? 'Editar plano' : 'Novo plano'}</h2><button class="modal-close" aria-label="Fechar">✕</button></div>
           <form id="formPlano" class="modal-content">
             <div class="form-group">
               <label class="form-label">Descrição *</label>
@@ -954,7 +954,7 @@ window.Frota = {
     const html = `
       <div class="modal-overlay" id="modalManut" style="z-index:10000;">
         <div class="modal" style="width:560px;">
-          <div class="modal-header"><h2 class="modal-title">Registrar manutenção</h2><button class="modal-close">✕</button></div>
+          <div class="modal-header"><h2 class="modal-title">Registrar manutenção</h2><button class="modal-close" aria-label="Fechar">✕</button></div>
           <form id="formManut" class="modal-content">
             <div class="form-row">
               <div class="form-group">
@@ -1066,7 +1066,7 @@ window.Frota = {
         <div class="modal" style="width:560px;">
           <div class="modal-header">
             <h2 class="modal-title">Registrar abastecimento</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formAbastec" class="modal-content">
             <div class="form-row">
@@ -1221,7 +1221,7 @@ window.Frota = {
               <h2 class="modal-title">Distâncias de ${escapeHtml(v.placa)} até as obras</h2>
               <div style="font-size:13px;color:var(--color-text-muted);">A partir de: ${escapeHtml(v.endereco || '—')}</div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             ${

@@ -668,6 +668,9 @@ window.Dashboard = {
         <!-- Saúde Financeira + Gráfico Histórico + Projeção -->
         ${this._renderFluxoCaixaCard(dash, saudeScore, marginMedia, taxaDespesa)}
 
+        <!-- Custo por categoria + Receita por cliente (empresa toda) -->
+        ${this._renderGraficosConsolidadosCard(dash)}
+
         <!-- Entradas previstas das NFs -->
         ${this._renderEntradasPrevistas(dash)}
 
@@ -692,6 +695,8 @@ window.Dashboard = {
       this._injetarBotaoCustomizar();
 
       await this.renderChart(dash);
+      await this.renderChartCustoCategoria(dash);
+      await this.renderChartReceitaCliente(dash);
       this._bindPeriodoCtrl();
     } catch (e) {
       console.error(e);
@@ -750,6 +755,38 @@ window.Dashboard = {
           </div>
           <div style="position:relative;height:200px;">
             <canvas id="chartSaude"></canvas>
+          </div>
+        </div>`;
+  },
+
+  // Dois gráficos consolidados (empresa toda, não um contrato só): custo por
+  // categoria (mesmo agrupamento de contrato/charts.js#renderPizza) e receita
+  // por cliente. Dados já vêm prontos de handlers/dashboards.js
+  // (custoPorCategoria/receitaPorCliente, lib/dashboard-agregados.js).
+  _renderGraficosConsolidadosCard(dash) {
+    const semCusto = !dash.custoPorCategoria || Object.keys(dash.custoPorCategoria).length === 0;
+    const semReceita = !dash.receitaPorCliente || dash.receitaPorCliente.length === 0;
+    return `
+        <div class="grid grid-2 mb-md">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Custo por Categoria — todos os contratos</h3>
+            </div>
+            <div style="position:relative;height:220px;padding:var(--sp-md);">
+              ${semCusto
+                ? '<p class="text-muted" style="text-align:center;padding:var(--sp-xl);">Nenhuma saída de caixa lançada ainda</p>'
+                : '<canvas id="chartCustoCategoria"></canvas>'}
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Receita por Cliente</h3>
+            </div>
+            <div style="position:relative;height:220px;padding:var(--sp-md);">
+              ${semReceita
+                ? '<p class="text-muted" style="text-align:center;padding:var(--sp-xl);">Nenhuma entrada de caixa lançada ainda</p>'
+                : '<canvas id="chartReceitaCliente"></canvas>'}
+            </div>
           </div>
         </div>`;
   },
@@ -1754,6 +1791,112 @@ window.Dashboard = {
     });
   },
 
+  // Doughnut de custo por categoria (empresa toda). Mesmas cores/labels do
+  // gráfico por contrato (js/views/ContratoDetail.js#TIPOS_FIXOS_LABEL/COLOR)
+  // — categoria fora da lista fixa cai no nome de tipos_base (se existir) ou
+  // vira o próprio texto da category, com "_" trocado por espaço.
+  async renderChartCustoCategoria(dash) {
+    if (typeof window.Chart === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('chart');
+    if (this.chartCusto) { this.chartCusto.destroy(); this.chartCusto = null; }
+    const canvas = document.getElementById('chartCustoCategoria');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    const cats = dash.custoPorCategoria || {};
+    const entries = Object.entries(cats).filter(([, v]) => v > 0);
+    if (!entries.length) return;
+
+    const TIPOS_FIXOS_LABEL = {
+      mao_de_obra: 'Mão de Obra', material: 'Material',
+      hospedagem: 'Hospedagem', transporte: 'Transporte',
+      base: 'Custo BASE', outros: 'Outros',
+    };
+    const TIPOS_FIXOS_COLOR = {
+      mao_de_obra: '#A78BFA', material: '#FB923C',
+      hospedagem: '#22D3EE', transporte: '#34D399',
+      base: '#60A5FA', outros: '#9CA3AF',
+    };
+    const tiposBaseMap = Object.fromEntries((Store.state.tipos_base || []).map((t) => [t.key, t]));
+    const paleta = ['#F472B6', '#FBBF24', '#38BDF8', '#4ADE80', '#FB7185', '#A3E635'];
+    const label = (key) =>
+      TIPOS_FIXOS_LABEL[key] || (tiposBaseMap[key] && tiposBaseMap[key].label) || String(key).replace(/_/g, ' ');
+    const cor = (key, i) =>
+      TIPOS_FIXOS_COLOR[key] || (tiposBaseMap[key] && tiposBaseMap[key].cor) || paleta[i % paleta.length];
+
+    const podeVerValores = !window.perfil || typeof window.perfil.podeVerValores !== 'function' || window.perfil.podeVerValores();
+    const fmt = (v) => podeVerValores ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v) : 'R$ ●●●●●';
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const total = entries.reduce((s, [, v]) => s + v, 0);
+
+    this.chartCusto = new Chart(canvas.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: entries.map(([k]) => label(k)),
+        datasets: [{
+          data: entries.map(([, v]) => v),
+          backgroundColor: entries.map(([k], i) => cor(k, i)),
+          borderColor: isDark ? '#0F1523' : '#fff',
+          borderWidth: 3,
+          hoverOffset: 10,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',
+        plugins: {
+          legend: { position: 'right', labels: { color: isDark ? '#FFFFFF' : '#1f2937', boxWidth: 12, font: { size: 12 } } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `  ${fmt(ctx.parsed)}  (${((ctx.parsed / total) * 100).toFixed(1)}%)`,
+            },
+          },
+        },
+      },
+    });
+  },
+
+  // Barras horizontais de receita por cliente (top 10 — mais que isso vira
+  // ruído visual; a lista completa fica disponível via export do módulo).
+  async renderChartReceitaCliente(dash) {
+    if (typeof window.Chart === 'undefined' && window.RhinoLazy) await window.RhinoLazy.ensure('chart');
+    if (this.chartReceita) { this.chartReceita.destroy(); this.chartReceita = null; }
+    const canvas = document.getElementById('chartReceitaCliente');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    const lista = (dash.receitaPorCliente || []).filter((r) => r.total > 0).slice(0, 10);
+    if (!lista.length) return;
+
+    const podeVerValores = !window.perfil || typeof window.perfil.podeVerValores !== 'function' || window.perfil.podeVerValores();
+    const fmt = (v) => podeVerValores ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v) : 'R$ ●●●●●';
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const tc = { text: isDark ? '#FFFFFF' : '#1f2937', grid: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' };
+
+    this.chartReceita = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: lista.map((r) => r.cliente),
+        datasets: [{
+          data: lista.map((r) => r.total),
+          backgroundColor: '#60A5FA',
+          borderRadius: 4,
+        }],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: (ctx) => `  ${fmt(ctx.parsed.x)}` } },
+        },
+        scales: {
+          x: { grid: { color: tc.grid }, ticks: { color: tc.text, callback: (v) => podeVerValores ? fmt(v) : '●●●' } },
+          y: { grid: { display: false }, ticks: { color: tc.text } },
+        },
+      },
+    });
+  },
+
   // ═════════════ Customização do Dashboard ═════════════
   _widgetsDetected: [],
   _prefs: null,
@@ -1865,7 +2008,7 @@ window.Dashboard = {
         <div class="modal" style="width:560px;max-height:85vh;display:flex;flex-direction:column;">
           <div class="modal-header">
             <h2 class="modal-title"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('palette', 18)}Personalizar Dashboard</span></h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content" style="overflow-y:auto;flex:1;">
             <p class="text-muted font-sm">Escolha quais seções aparecem no seu dashboard. As alterações são salvas na sua conta.</p>

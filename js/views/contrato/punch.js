@@ -273,7 +273,7 @@
           <div class="modal" style="width:600px;max-width:95vw;max-height:90vh;overflow-y:auto;">
             <div class="modal-header">
               <h2 class="modal-title">${editing ? '✏️ Editar' : '+ Novo'} item — Punch List</h2>
-              <button class="modal-close">✕</button>
+              <button class="modal-close" aria-label="Fechar">✕</button>
             </div>
             <div class="modal-content">
               <form id="formPunch">

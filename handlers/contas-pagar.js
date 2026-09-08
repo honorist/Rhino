@@ -11,6 +11,7 @@ const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
 const money = require('../lib/money');
 const { validateBody, schemas } = require('../lib/validate');
+const observability = require('../lib/observability');
 
 async function envelope() { return { contas: await repos.contasPagar.findAll() }; }
 
@@ -95,7 +96,10 @@ async function handlePagarConta(id, body, res) {
           ? { valePago: true, valeDataPagamento: dataPagamento, valeCaixaEntryId: caixaEntry.id, updatedAt: new Date().toISOString() }
           : { saldoPago: true, saldoDataPagamento: dataPagamento, saldoCaixaEntryId: caixaEntry.id, updatedAt: new Date().toISOString() };
         await repos.folhaPagamento.updateById(conta.folhaPagamentoId, fPatch)
-          .catch((e) => console.error('[conta-pagar] falha ao sincronizar folha', conta.folhaPagamentoId, e && e.message));
+          .catch((e) => {
+            console.error('[conta-pagar] falha ao sincronizar folha', conta.folhaPagamentoId, e && e.message);
+            observability.captureError(e, { operacao: 'contaPagar.pagar.sincronizarFolha', contaId: conta.id, folhaPagamentoId: conta.folhaPagamentoId });
+          });
       }
       return await envelope();
     });
@@ -122,7 +126,10 @@ async function handleEstornarConta(id, res) {
           ? { valePago: false, valeDataPagamento: null, valeCaixaEntryId: null, updatedAt: new Date().toISOString() }
           : { saldoPago: false, saldoDataPagamento: null, saldoCaixaEntryId: null, updatedAt: new Date().toISOString() };
         await repos.folhaPagamento.updateById(conta.folhaPagamentoId, fPatch)
-          .catch((e) => console.error('[conta-estorno] falha ao sincronizar folha', conta.folhaPagamentoId, e && e.message));
+          .catch((e) => {
+            console.error('[conta-estorno] falha ao sincronizar folha', conta.folhaPagamentoId, e && e.message);
+            observability.captureError(e, { operacao: 'contaPagar.estornar.sincronizarFolha', contaId: conta.id, folhaPagamentoId: conta.folhaPagamentoId });
+          });
       }
       return await envelope();
     });

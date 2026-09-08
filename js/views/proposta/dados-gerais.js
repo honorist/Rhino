@@ -2,7 +2,29 @@
  * Aba: Dados Gerais — cliente, referência, título, tipo, signatário, datas
  */
 (function() {
+  // Instâncias vivas do editor rico desta aba — destruídas no início de cada
+  // render() pra não vazar instâncias presas a nós DOM já substituídos.
+  let _richInstances = [];
+
+  function _destroyRichInstances() {
+    _richInstances.forEach(inst => { try { inst.destroy(); } catch {} });
+    _richInstances = [];
+  }
+
+  function _mountRich(container, propostaId, id, key, initialValue, onChange) {
+    const el = container.querySelector('#' + id);
+    if (!el) return;
+    window.RhinoRichText.mount(el, {
+      value: initialValue || '',
+      onChange: (html) => onChange({ [key]: html }),
+      uploadUrl: `/api/propostas/${propostaId}/anexos`,
+      uploadFields: { tipo: 'imagem', secao: 'inline' },
+      buildImageUrl: (anexoId) => `/api/propostas/${propostaId}/anexos/${anexoId}`,
+    }).then(inst => { _richInstances.push(inst); });
+  }
+
   function render(container, p, onChange) {
+    _destroyRichInstances();
     const clientes = (window.Store?.state?.clientes) || [];
     container.innerHTML = `
       <div class="card prop-dados-card">
@@ -84,11 +106,11 @@
         <h3 class="prop-section-title">Texto de Abertura</h3>
         <div class="form-group prop-fg" style="margin-bottom:10px;">
           <label class="form-label">Objetivo</label>
-          <textarea class="form-control" id="pObjetivo" rows="3" placeholder="Descrição do que a proposta visa atender...">${escapeHtml(p.objetivo || '')}</textarea>
+          <div id="pObjetivo" class="rich-text-mount"></div>
         </div>
         <div class="form-group prop-fg" style="margin-bottom:10px;">
           <label class="form-label">Saudação (parágrafo de abertura)</label>
-          <textarea class="form-control" id="pSaudacao" rows="2" placeholder="Em atendimento à solicitação de fornecimento...">${escapeHtml(p.saudacao || 'Em atendimento à solicitação de fornecimento, a Rhino Manutenções apresenta a seguinte proposta comercial para sua apreciação.')}</textarea>
+          <div id="pSaudacao" class="rich-text-mount"></div>
         </div>
 
         <h3 style="color:#1F497D;border-bottom:2px solid #1F497D;padding-bottom:8px;">Encerramento</h3>
@@ -104,7 +126,7 @@
           </div>
           <div class="form-group prop-fg full">
             <label class="form-label">Observações finais (opcional)</label>
-            <textarea class="form-control" id="pObservacoes" rows="2">${escapeHtml(p.observacoes || '')}</textarea>
+            <div id="pObservacoes" class="rich-text-mount"></div>
           </div>
         </div>
       </div>
@@ -127,11 +149,14 @@
     bindText('pReferencia',      'referencia');
     bindText('pTipo',            'tipo');
     bindText('pDataEmissao',     'dataEmissao');
-    bindText('pObjetivo',        'objetivo');
-    bindText('pSaudacao',        'saudacao');
     bindText('pSignatario',      'signatario');
     bindText('pSignatarioCargo', 'signatarioCargo');
-    bindText('pObservacoes',     'observacoes');
+
+    _mountRich(container, p.id, 'pObjetivo', 'objetivo', p.objetivo, onChange);
+    _mountRich(container, p.id, 'pSaudacao', 'saudacao',
+      p.saudacao || 'Em atendimento à solicitação de fornecimento, a Rhino Manutenções apresenta a seguinte proposta comercial para sua apreciação.',
+      onChange);
+    _mountRich(container, p.id, 'pObservacoes', 'observacoes', p.observacoes, onChange);
 
     const validadeEl = container.querySelector('#pValidadeDias');
     if (validadeEl) validadeEl.addEventListener('input', () => onChange({ validadeDias: parseInt(validadeEl.value, 10) || 15 }));

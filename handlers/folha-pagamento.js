@@ -17,6 +17,7 @@ const repos = require('../db/repos');
 const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
 const money = require('../lib/money'); // dinheiro 2 casas — contém drift de float
+const observability = require('../lib/observability');
 // Desestruturado, e NÃO guardado numa const `folha`: várias funções deste
 // arquivo declaram `const folha = await repos.folhaPagamento...` no próprio
 // corpo. Uma const de módulo com esse nome fica sombreada pelo bloco inteiro,
@@ -220,13 +221,17 @@ async function recalcularSaldoFolha(folhaId) {
         valor: novoSaldo,
         updatedAt: new Date().toISOString(),
       })
-      .catch((e) =>
+      .catch((e) => {
         console.error(
           '[folha] falha ao sincronizar conta do saldo',
           f.saldoContaPagarId,
           e && e.message
-        )
-      );
+        );
+        // Divergência real entre Folha e Contas a Pagar (valor do saldo
+        // mudou, a conta vinculada não acompanhou) — precisa de alerta,
+        // não só stdout.
+        observability.captureError(e, { operacao: 'folha.recalcularSaldo', folhaId, contaPagarId: f.saldoContaPagarId });
+      });
   }
   return atualizada;
 }
@@ -417,7 +422,14 @@ async function handlePagarFolhaParcela(id, body, res) {
             formaPagamento: (body && body.formaPagamento) || null,
             updatedAt: new Date().toISOString(),
           })
-          .catch(() => {});
+          .catch((e) => {
+            // Antes disso era 100% silencioso — nem console.error. O caixa já
+            // foi lançado (pagamento aconteceu de verdade); só a conta a
+            // pagar vinculada não ficou "paga" — divergência real, precisa
+            // de alerta.
+            console.error('[folha-pagar] falha ao sincronizar conta a pagar', contaId, e && e.message);
+            observability.captureError(e, { operacao: 'folha.pagar', folhaId: id, contaPagarId: contaId });
+          });
       }
       return atualizada;
     });
@@ -478,13 +490,14 @@ async function handleEstornarFolhaParcela(id, body, res) {
             caixaEntryId: null,
             updatedAt: new Date().toISOString(),
           })
-          .catch((e) =>
+          .catch((e) => {
             console.error(
               '[folha-estorno] falha ao sincronizar conta a pagar',
               contaId,
               e && e.message
-            )
-          );
+            );
+            observability.captureError(e, { operacao: 'folha.estorno', folhaId: id, contaPagarId: contaId });
+          });
       }
       return atualizada;
     });
@@ -515,18 +528,20 @@ async function handleLimparFolha(body, res) {
         if (cpId)
           await repos.contasPagar
             .removeById(cpId)
-            .catch((e) =>
-              console.error('[limpar-folha] falha ao remover conta', cpId, e && e.message)
-            );
+            .catch((e) => {
+              console.error('[limpar-folha] falha ao remover conta', cpId, e && e.message);
+              observability.captureError(e, { operacao: 'folha.limpar.removerConta', competencia, contaPagarId: cpId });
+            });
       }
       // Ordem: folha_pagamento antes do base_item (FK base_item_id).
       await repos.folhaPagamento.removeById(f.id);
       if (f.baseItemId)
         await repos.baseItems
           .removeById(f.baseItemId)
-          .catch((e) =>
-            console.error('[limpar-folha] falha ao remover base item', f.baseItemId, e && e.message)
-          );
+          .catch((e) => {
+            console.error('[limpar-folha] falha ao remover base item', f.baseItemId, e && e.message);
+            observability.captureError(e, { operacao: 'folha.limpar.removerBaseItem', competencia, baseItemId: f.baseItemId });
+          });
       removidas++;
     }
     const restante = await repos.folhaPagamento.findByCompetencia(competencia);

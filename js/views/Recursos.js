@@ -9,6 +9,8 @@ window.Recursos = {
   // no DOM — com o crescimento do cadastro isso trava justamente a tela mais usada.
   _page: 1,
   _pageSize: 25,
+  // Seleção em massa (item 15) — mesmo padrão de Contratos.js.
+  _selectedIds: new Set(),
 
   // Mesma regra do badge "docs !" na linha da tabela (mais abaixo).
   _temDocVencido(r) {
@@ -74,6 +76,8 @@ window.Recursos = {
             ? `${filtrados.length} de ${total} pessoa${total !== 1 ? 's' : ''}`
             : `${total} pessoa${total !== 1 ? 's' : ''} cadastrada${total !== 1 ? 's' : ''}`,
           actions: `
+        <button class="btn btn-secondary btn-sm" id="btnExportarRecursosCSV" style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('download', 15)}CSV</button>
+        <button class="btn btn-secondary btn-sm" id="btnExportarRecursosPDF" style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('download', 15)}PDF</button>
         <button class="btn btn-secondary" id="btnMapaGeral" style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('map-pin', 15)}Mapa Geral</button>
         <button class="btn btn-primary btn-lg" id="btnNovoRecurso">+ Novo Cadastro</button>`,
         })
@@ -173,6 +177,7 @@ window.Recursos = {
           <table>
             <thead>
               <tr>
+                <th scope="col" style="width:36px;padding-left:12px;"><input type="checkbox" id="chkAllRec" title="Selecionar todos na página" style="cursor:pointer;width:16px;height:16px;"></th>
                 <th scope="col">Nome</th>
                 <th scope="col">Profissão</th>
                 <th scope="col">Status</th>
@@ -184,7 +189,7 @@ window.Recursos = {
             <tbody id="recursosTbody">
               ${
                 filtrados.length === 0
-                  ? `<tr><td colspan="6" class="text-center text-muted" style="padding:var(--sp-xl);">
+                  ? `<tr><td colspan="7" class="text-center text-muted" style="padding:var(--sp-xl);">
                     ${this._temFiltro() ? 'Nenhum resultado' : 'Nenhum cadastro ainda'}
                    </td></tr>`
                   : pagina.slice.map((r) => this._renderRow(r)).join('')
@@ -193,7 +198,20 @@ window.Recursos = {
           </table>
         </div>
         ${UIKit.pagination(pagina, { label: 'colaboradores' })}
-      </div>`;
+      </div>
+      ${
+        this._selectedIds.size > 0
+          ? `
+      <div class="rh-bulk-bar is-visible" id="rhBulkBarRec" aria-label="Ações para selecionados">
+        <span class="rh-bulk-bar__count">${this._selectedIds.size} selecionado${this._selectedIds.size !== 1 ? 's' : ''}</span>
+        <div class="rh-bulk-bar__actions">
+          <button class="btn rh-bulk-btn danger" id="bulkExcluirRec" style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('trash-2', 15)}Excluir</button>
+          <button class="btn rh-bulk-btn" id="bulkClearRec" style="display:inline-flex;align-items:center;gap:6px;">${window.rhIcon('x', 15)}Limpar</button>
+        </div>
+      </div>
+      `
+          : ''
+      }`;
 
     // O clamp acontece dentro do paginate: se a lista encolheu, `pagina.page`
     // já vem corrigido — guardar de volta evita ficar preso numa página morta.
@@ -206,6 +224,37 @@ window.Recursos = {
 
     document.getElementById('btnNovoRecurso').addEventListener('click', () => this.showModal());
     document.getElementById('btnMapaGeral').addEventListener('click', () => this.showMapaGeral());
+    document.getElementById('btnExportarRecursosCSV')?.addEventListener('click', () => this._exportarCSV(filtrados));
+    document.getElementById('btnExportarRecursosPDF')?.addEventListener('click', () => this._exportarPDF(filtrados));
+
+    // ── Seleção em massa (item 15) ──
+    document.getElementById('chkAllRec')?.addEventListener('change', (e) => {
+      pagina.slice.forEach((r) => {
+        if (e.target.checked) this._selectedIds.add(r.id);
+        else this._selectedIds.delete(r.id);
+      });
+      this._renderLista();
+    });
+    document.getElementById('bulkClearRec')?.addEventListener('click', () => {
+      this._selectedIds.clear();
+      document.body.classList.remove('has-bulk-bar');
+      this._renderLista();
+    });
+    document.getElementById('bulkExcluirRec')?.addEventListener('click', async () => {
+      const n = this._selectedIds.size;
+      if (!confirm(`Excluir ${n} cadastro(s) selecionado(s)? Esta ação não pode ser desfeita.`)) return;
+      try {
+        const ids = [...this._selectedIds];
+        await Promise.all(ids.map((id) => Store.deleteRecurso(id)));
+        this._selectedIds.clear();
+        window.showToast(`${n} cadastro(s) removido(s)`, 'success');
+        this._renderLista();
+      } catch (e) {
+        window.showToast('Erro: ' + e.message, 'error');
+      }
+    });
+    document.body.classList.toggle('has-bulk-bar', this._selectedIds.size > 0);
+
     document.getElementById('inputBusca').addEventListener('input', (e) => {
       this.busca = e.target.value;
       this._page = 1; // filtro mudou: senão o usuário busca e cai numa página vazia
@@ -240,6 +289,31 @@ window.Recursos = {
   // Religa os listeners das linhas da tabela (chamado no render completo e
   // nas atualizações incrementais que só trocam o <tbody>).
   _attachRowListeners() {
+    // Seleção em massa (item 15) — religa nos dois caminhos de render
+    // (_renderLista completo e _refreshResultados incremental).
+    document.querySelectorAll('.row-chk-rec').forEach((chk) => {
+      chk.addEventListener('change', (e) => {
+        if (e.target.checked) this._selectedIds.add(e.target.dataset.id);
+        else this._selectedIds.delete(e.target.dataset.id);
+        const all = document.getElementById('chkAllRec');
+        if (all) {
+          const checked = document.querySelectorAll('.row-chk-rec:checked').length;
+          const total = document.querySelectorAll('.row-chk-rec').length;
+          all.indeterminate = checked > 0 && checked < total;
+          all.checked = total > 0 && checked === total;
+        }
+        document.body.classList.toggle('has-bulk-bar', this._selectedIds.size > 0);
+        const bar = document.getElementById('rhBulkBarRec');
+        if (bar) {
+          bar.querySelector('.rh-bulk-bar__count').textContent =
+            `${this._selectedIds.size} selecionado${this._selectedIds.size !== 1 ? 's' : ''}`;
+        } else if (this._selectedIds.size > 0) {
+          // Primeira seleção: a barra ainda não existe no DOM (render anterior
+          // tinha 0 selecionados) — precisa de um render completo pra aparecer.
+          this._renderLista();
+        }
+      });
+    });
     document.querySelectorAll('.btn-editar-rec').forEach((b) =>
       b.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -492,7 +566,7 @@ window.Recursos = {
     if (tbody) {
       tbody.innerHTML =
         filtrados.length === 0
-          ? `<tr><td colspan="6" class="text-center text-muted" style="padding:var(--sp-xl);">${this._temFiltro() ? 'Nenhum resultado' : 'Nenhum cadastro ainda'}</td></tr>`
+          ? `<tr><td colspan="7" class="text-center text-muted" style="padding:var(--sp-xl);">${this._temFiltro() ? 'Nenhum resultado' : 'Nenhum cadastro ainda'}</td></tr>`
           : pagina.slice.map((r) => this._renderRow(r)).join('');
       this._attachRowListeners();
     }
@@ -617,6 +691,7 @@ window.Recursos = {
     }
 
     return `<tr class="row-recurso" data-id="${r.id}" style="cursor:pointer;">
+      <td class="js-stop" style="width:36px;padding-left:12px;"><input type="checkbox" class="row-chk-rec" data-id="${r.id}" ${this._selectedIds.has(r.id) ? 'checked' : ''} style="cursor:pointer;width:16px;height:16px;"></td>
       <td>
         <strong>${escapeHtml(r.nome) || '—'}</strong>${docBadge}
         ${r.cpf ? `<div style="font-size:15px;color:var(--color-text-muted);font-family:monospace;">${escapeHtml(r.cpf)}</div>` : ''}
@@ -638,6 +713,42 @@ window.Recursos = {
         </div>
       </td>
     </tr>`;
+  },
+
+  _statusLabel(status) {
+    return { funcionario: 'Funcionário', candidato: 'Candidato', ex_funcionario: 'Ex-Funcionário' }[status] || status || '';
+  },
+
+  // Exportação (item 13) — respeita os filtros atuais, igual Caixa.js/_exportarCSV.
+  _exportarCSV(filtrados) {
+    if (!filtrados.length) { window.showToast('Nada para exportar', 'warning'); return; }
+    const rows = filtrados.map((r) => ({
+      Nome: r.nome || '',
+      Profissão: this._normalizeCargo(r.profissao) || '',
+      CPF: r.cpf || '',
+      Status: this._statusLabel(r.status),
+      'Cidade/UF': [r.cidade, r.estado].filter(Boolean).join(' / '),
+      'Data de Admissão': r.dataAdmissao ? this._fmtDate(r.dataAdmissao) : '',
+    }));
+    window.RhinoExport.csv(rows, { filename: `recursos_rhino_${new Date().toISOString().slice(0, 10)}.csv` });
+  },
+
+  async _exportarPDF(filtrados) {
+    if (!filtrados.length) { window.showToast('Nada para exportar', 'warning'); return; }
+    await window.RhinoExport.tablePdf({
+      title: 'Recursos Humanos',
+      subtitle: `${filtrados.length} colaborador(es) — ${new Date().toLocaleString('pt-BR')}`,
+      columns: [
+        { key: 'nome', label: 'Nome' },
+        { key: 'profissao', label: 'Profissão', format: (v) => this._normalizeCargo(v) || '' },
+        { key: 'cpf', label: 'CPF' },
+        { key: 'status', label: 'Status', format: (v) => this._statusLabel(v) },
+        { key: 'cidade', label: 'Cidade/UF', format: (_v, r) => [r.cidade, r.estado].filter(Boolean).join(' / ') },
+        { key: 'dataAdmissao', label: 'Admissão', format: (v) => (v ? this._fmtDate(v) : '') },
+      ],
+      rows: filtrados,
+      filename: `recursos_rhino_${new Date().toISOString().slice(0, 10)}.pdf`,
+    });
   },
 
   _fmtDate(d) {
@@ -673,7 +784,7 @@ window.Recursos = {
         <div class="modal" style="width:700px;max-height:90vh;overflow-y:auto;">
           <div class="modal-header">
             <h2 class="modal-title">${r ? 'Editar Cadastro' : 'Novo Cadastro'}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formRecurso" class="modal-content">
 
@@ -943,7 +1054,7 @@ window.Recursos = {
         <div class="modal" style="width:680px;max-height:90vh;overflow-y:auto;">
           <div class="modal-header">
             <h2 class="modal-title">Folgas — ${escapeHtml(r.nome)}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
 
@@ -1093,7 +1204,7 @@ window.Recursos = {
         <div class="modal" style="width:480px;">
           <div class="modal-header">
             <h2 class="modal-title">Registrar Folga — ${escapeHtml(r?.nome || '')}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formNovaFolga" class="modal-content">
             <div class="form-row">
@@ -1157,7 +1268,7 @@ window.Recursos = {
         <div class="modal" style="width:500px;">
           <div class="modal-header">
             <h2 class="modal-title">Passagem de ${tipo === 'ida' ? 'Ida' : 'Volta'} — ${escapeHtml(r?.nome || '')}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formPassagem" class="modal-content">
 
@@ -1428,7 +1539,7 @@ window.Recursos = {
               <h2 class="modal-title">Mapa — ${escapeHtml(r.nome)}</h2>
               <p style="font-size:15px;color:var(--color-text-muted);margin:0;">${escapeHtml(r.endereco || '')}</p>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
             <div id="mapaDistancias" style="height:380px;width:100%;"></div>
@@ -1608,7 +1719,7 @@ window.Recursos = {
                 <span style="display:inline-block;width:12px;height:12px;background:#2563EB;border-radius:50%;margin-right:4px;vertical-align:middle;"></span>Funcionário
                 <span style="display:inline-block;width:12px;height:12px;background:#059669;border-radius:50%;margin:0 4px 0 12px;vertical-align:middle;"></span>Obra
               </span>
-              <button class="modal-close">✕</button>
+              <button class="modal-close" aria-label="Fechar">✕</button>
             </div>
           </div>
           <div id="mapaGeral" style="flex:1;min-height:500px;"></div>

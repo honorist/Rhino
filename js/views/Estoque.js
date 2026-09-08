@@ -485,7 +485,7 @@ window.Estoque = {
         <div class="modal" style="width:560px;max-height:90vh;display:flex;flex-direction:column;">
           <div class="modal-header" style="flex-shrink:0;">
             <h2 class="modal-title"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon(editing ? 'edit' : 'plus', 18)}${editing ? 'Editar' : 'Novo'} item</span></h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formItem" class="modal-content" style="overflow-y:auto;flex:1;">
 
@@ -603,7 +603,7 @@ window.Estoque = {
         <div class="modal" style="width:520px;">
           <div class="modal-header">
             <h2 class="modal-title">🟢 Comprei / Recebi</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formCompra" class="modal-content">
             <div style="background:rgba(16,185,129,.08);border-left:3px solid #10b981;border-radius:6px;padding:10px 14px;margin-bottom:var(--sp-md);">
@@ -705,7 +705,7 @@ window.Estoque = {
         <div class="modal" style="width:540px;max-height:90vh;display:flex;flex-direction:column;">
           <div class="modal-header" style="flex-shrink:0;">
             <h2 class="modal-title">🔵 Enviar para obra</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formEnviar" class="modal-content" style="overflow-y:auto;flex:1;">
             <div style="background:rgba(59,130,246,.08);border-left:3px solid #3b82f6;border-radius:6px;padding:10px 14px;margin-bottom:var(--sp-md);">
@@ -806,7 +806,7 @@ window.Estoque = {
         <div class="modal" style="width:520px;max-height:90vh;display:flex;flex-direction:column;">
           <div class="modal-header" style="flex-shrink:0;">
             <h2 class="modal-title">🔴 Usei na obra</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formUsei" class="modal-content" style="overflow-y:auto;flex:1;">
             <div style="background:rgba(220,38,38,.08);border-left:3px solid #dc2626;border-radius:6px;padding:10px 14px;margin-bottom:var(--sp-md);">
@@ -908,7 +908,7 @@ window.Estoque = {
         <div class="modal" style="width:520px;max-height:90vh;display:flex;flex-direction:column;">
           <div class="modal-header" style="flex-shrink:0;">
             <h2 class="modal-title">🟡 Voltou da obra</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formVoltou" class="modal-content" style="overflow-y:auto;flex:1;">
             <div style="background:rgba(245,158,11,.08);border-left:3px solid #f59e0b;border-radius:6px;padding:10px 14px;margin-bottom:var(--sp-md);">
@@ -996,7 +996,7 @@ window.Estoque = {
         <div class="modal" style="width:520px;">
           <div class="modal-header">
             <h2 class="modal-title">🟠 Corrigir saldo (ajuste)</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formAjuste" class="modal-content">
             <div style="background:rgba(245,158,11,.08);border-left:3px solid #f59e0b;border-radius:6px;padding:10px 14px;margin-bottom:var(--sp-md);font-size:13px;">

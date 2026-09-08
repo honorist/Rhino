@@ -204,7 +204,7 @@
           <div class="modal" style="width:92vw;max-width:560px;">
             <div class="modal-header">
               <h2 class="modal-title" style="font-size:18px;">${esc(s.titulo)}</h2>
-              <button class="modal-close" id="detClose">✕</button>
+              <button class="modal-close" id="detClose" aria-label="Fechar">✕</button>
             </div>
             <div style="padding:var(--sp-lg);">
               <div style="display:flex;align-items:center;gap:var(--sp-sm);margin-bottom:8px;">${this._badge(s.status)}<span style="font-size:13px;color:var(--color-text-muted);">${this._meta(s)}</span></div>
@@ -250,7 +250,7 @@
       const html = `
         <div class="modal-overlay" id="modalSugOverlay">
           <div class="modal" style="width:92vw;max-width:560px;">
-            <div class="modal-header"><h2 class="modal-title">Nova sugestão</h2><button class="modal-close" id="sugClose">✕</button></div>
+            <div class="modal-header"><h2 class="modal-title">Nova sugestão</h2><button class="modal-close" id="sugClose" aria-label="Fechar">✕</button></div>
             <div style="padding:var(--sp-lg);">
               <div class="form-group"><label class="form-label">Título *</label>
                 <input class="form-control" id="sugTitulo" maxlength="120" placeholder="Resumo da ideia"></div>
@@ -316,7 +316,7 @@
       const html = `
         <div class="modal-overlay" id="modalSugStOverlay">
           <div class="modal" style="width:92vw;max-width:480px;">
-            <div class="modal-header"><h2 class="modal-title">Mover para: ${STATUS[novo].label}</h2><button class="modal-close" id="stClose">✕</button></div>
+            <div class="modal-header"><h2 class="modal-title">Mover para: ${STATUS[novo].label}</h2><button class="modal-close" id="stClose" aria-label="Fechar">✕</button></div>
             <div style="padding:var(--sp-lg);">
               ${isDescarte
                 ? `<div class="form-group"><label class="form-label">Justificativa do descarte *</label>

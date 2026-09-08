@@ -19,6 +19,7 @@ const { generateId } = require('../lib/id');
 const { validateBody, schemas } = require('../lib/validate');
 const med = require('../lib/medicao');
 const { criarSaidaAgregandoNf } = require('./contract-saidas');
+const observability = require('../lib/observability');
 
 /** Visão de medições do contrato: planilha com saldo + BMs com itens e retenção. */
 async function handleGetContractMedicoes(contractId, res) {
@@ -154,6 +155,13 @@ async function handlePostContractMedicao(contractId, body, res) {
           }
         } catch (undoErr) {
           console.error('[medicao] falha na compensação após erro de INSERT de itens:', undoErr && undoErr.message);
+          // Compensação falhou → saída/NF órfã fica no banco (registro financeiro
+          // divergente) sem que ninguém seja avisado além do stdout. Severidade
+          // alta: precisa de correção manual.
+          observability.captureError(undoErr, {
+            operacao: 'medicao.compensacao', contractId, saidaId: saida.id,
+            nfId: nf.id, severidade: 'critica',
+          });
         }
         throw insertErr;
       }

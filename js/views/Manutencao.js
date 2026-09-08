@@ -21,6 +21,11 @@ window.Manutencao = {
   get view()            { return this._store?.get('view')           ?? 'list'; },
   set view(v)           { this._store?.set('view', v); },
 
+  // Paginação (UIKit.paginate) — só no modo lista; o kanban já organiza tudo
+  // em colunas por status, então paginar lá cortaria cards do quadro.
+  _page: 1,
+  _pageSize: 25,
+
   _abas() {
     return window.perfil?.abas?.() || null;
   },
@@ -112,6 +117,68 @@ window.Manutencao = {
     return Store.formatBRL ? Store.formatBRL(n) : 'R$ ' + n.toFixed(2);
   },
 
+  // Versões em texto puro (sem emoji/markup) — usadas na exportação CSV/PDF,
+  // diferente de _nomeContrato/_badgeStatus que devolvem HTML pra tela.
+  _nomeContratoPlano(contractId) {
+    if (!contractId) return 'Sede';
+    const c = (Store.state.contracts || []).find((x) => x.id === contractId);
+    return c ? c.name || 'Obra' : 'Obra';
+  },
+  _statusLabelPlano(status) {
+    return {
+      solicitada: 'A avaliar',
+      pendente_aprovacao: 'Aguardando aprovação',
+      aprovada: 'Em manutenção',
+      retornado: 'Retornado',
+      rejeitada: 'Rejeitada',
+      cancelada: 'Cancelada',
+    }[status] || status || '—';
+  },
+
+  // Item 13 do backlog: exportação CSV/PDF da lista já filtrada (não só a
+  // página atual em tela).
+  _exportRowsPlanas() {
+    return (this._listaFiltradaAtual || []).map((m) => ({
+      equipamento: m.equipamento || '',
+      origem: this._nomeContratoPlano(m.contractId),
+      oficina: m.oficina || '',
+      enviado: this._fmtDate(m.dataEnvio),
+      previsao: this._fmtDate(m.dataRetornoPrevista),
+      retorno: m.status === 'retornado' ? this._fmtDate(m.dataRetorno) : '—',
+      status: this._statusLabelPlano(m.status),
+    }));
+  },
+  _exportarCSV() {
+    const rows = this._exportRowsPlanas();
+    if (!rows.length) { window.showToast?.('Nada para exportar', 'warning'); return; }
+    window.RhinoExport.csv(
+      rows.map((r) => ({
+        Equipamento: r.equipamento, Origem: r.origem, Oficina: r.oficina,
+        Enviado: r.enviado, Previsão: r.previsao, Retorno: r.retorno, Status: r.status,
+      })),
+      { filename: `manutencoes_${new Date().toISOString().slice(0, 10)}.csv` }
+    );
+  },
+  async _exportarPDF() {
+    const rows = this._exportRowsPlanas();
+    if (!rows.length) { window.showToast?.('Nada para exportar', 'warning'); return; }
+    await window.RhinoExport.tablePdf({
+      title: 'Manutenção de Equipamentos',
+      columns: [
+        { key: 'equipamento', label: 'Equipamento' },
+        { key: 'origem', label: 'Origem' },
+        { key: 'oficina', label: 'Oficina' },
+        { key: 'enviado', label: 'Enviado' },
+        { key: 'previsao', label: 'Previsão' },
+        { key: 'retorno', label: 'Retorno' },
+        { key: 'status', label: 'Status' },
+      ],
+      rows,
+      filename: `manutencoes_${new Date().toISOString().slice(0, 10)}.pdf`,
+      orientation: 'landscape',
+    });
+  },
+
   _fotos(m) {
     return Array.isArray(m.fotos) ? m.fotos : (m.fotos ? JSON.parse(m.fotos) : []);
   },
@@ -185,6 +252,19 @@ window.Manutencao = {
     if (this.filtroContrato) lista = lista.filter((m) => (m.contractId || '') === this.filtroContrato);
     if (this.filtroAtrasadas) lista = lista.filter((m) => this._isAtrasada(m));
 
+    // Guardado para exportação (CSV/PDF cobrem a lista filtrada inteira, não só a página).
+    this._listaFiltradaAtual = lista;
+
+    // Paginação (UIKit.paginate) — só no modo lista.
+    let pagina = null;
+    let listaPagina = lista;
+    if (this.view !== 'kanban' && window.UIKit?.paginate) {
+      pagina = window.UIKit.paginate(lista, this._page, this._pageSize);
+      this._page = pagina.page; // clamp: lista pode ter encolhido pelo filtro
+      listaPagina = pagina.slice;
+    }
+    this._paginaAtual = pagina;
+
     const aAvaliar = todas.filter((m) => m.status === 'solicitada').length;
     const aAprovar = todas.filter((m) => m.status === 'pendente_aprovacao').length;
     const emManut = todas.filter((m) => m.status === 'aprovada').length;
@@ -199,6 +279,8 @@ window.Manutencao = {
           { value: 'list',   label: '☰ Lista' },
           { value: 'kanban', label: '▦ Kanban' },
         ]}) : ''}
+        <button class="btn btn-secondary btn-sm" id="btnExportarManCSV">Exportar CSV</button>
+        <button class="btn btn-secondary btn-sm" id="btnExportarManPDF">Exportar PDF</button>
         <button class="btn btn-primary btn-lg" id="btnNovaManutencao">+ Solicitar Manutenção</button>`,
     }) : '';
 
@@ -264,11 +346,12 @@ window.Manutencao = {
                     ? `<tr><td colspan="8" class="text-center text-muted" style="padding:var(--sp-xl);">
                       ${filtroAtivo ? 'Nenhum registro neste filtro' : 'Nenhuma solicitação. Clique em "+ Solicitar Manutenção".'}
                      </td></tr>`
-                    : lista.map((m) => this._renderRow(m, podeAvaliar, podeAprovar)).join('')
+                    : listaPagina.map((m) => this._renderRow(m, podeAvaliar, podeAprovar)).join('')
                 }
               </tbody>
             </table>
           </div>
+          ${pagina && window.UIKit?.pagination ? window.UIKit.pagination(pagina, { label: 'manutenções' }) : ''}
         </div>`;
     }
 
@@ -287,12 +370,21 @@ window.Manutencao = {
     `;
 
     document.getElementById('btnNovaManutencao').addEventListener('click', () => this.showModalNova());
-    document.getElementById('filtroStatus')?.addEventListener('change', (e) => { this.filtroStatus = e.target.value; this._draw(); });
-    document.getElementById('filtroContrato')?.addEventListener('change', (e) => { this.filtroContrato = e.target.value; this._draw(); });
-    document.getElementById('btnLimparMan')?.addEventListener('click', () => { this.filtroStatus = ''; this.filtroContrato = ''; this.filtroAtrasadas = false; this._draw(); });
+    document.getElementById('btnExportarManCSV')?.addEventListener('click', () => this._exportarCSV());
+    document.getElementById('btnExportarManPDF')?.addEventListener('click', () => this._exportarPDF());
+    document.getElementById('filtroStatus')?.addEventListener('change', (e) => { this.filtroStatus = e.target.value; this._page = 1; this._draw(); });
+    document.getElementById('filtroContrato')?.addEventListener('change', (e) => { this.filtroContrato = e.target.value; this._page = 1; this._draw(); });
+    document.getElementById('btnLimparMan')?.addEventListener('click', () => { this.filtroStatus = ''; this.filtroContrato = ''; this.filtroAtrasadas = false; this._page = 1; this._draw(); });
     document.querySelectorAll('.ui-view-toggle button[data-view]').forEach((b) => {
-      b.addEventListener('click', () => { this.view = b.dataset.view; this._draw(); });
+      b.addEventListener('click', () => { this.view = b.dataset.view; this._page = 1; this._draw(); });
     });
+    if (this._paginaAtual && window.UIKit?.wirePagination) {
+      window.UIKit.wirePagination(document.getElementById('app'), this._paginaAtual, ({ page, pageSize }) => {
+        this._page = page;
+        this._pageSize = pageSize;
+        this._draw();
+      });
+    }
     this._attachListeners();
   },
 
@@ -349,7 +441,7 @@ window.Manutencao = {
               <h2 class="modal-title">${titulo}</h2>
               ${sub ? `<div style="font-size:13px;color:var(--color-text-muted);margin-top:4px;">${sub}</div>` : ''}
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           ${corpo}
           <div class="modal-footer">
@@ -649,7 +741,7 @@ window.Manutencao = {
               <h2 class="modal-title">Aprovar Manutenção</h2>
               <div style="font-size:13px;color:var(--color-text-muted);margin-top:4px;">Pré-avaliada pela equipe de compras.</div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           ${corpo}
           <div class="modal-footer">
@@ -833,7 +925,7 @@ window.Manutencao = {
               <h2 class="modal-title">Manutenção #${m.numero || m.id.slice(-6)}</h2>
               <div style="margin-top:4px;">${this._badgeStatus(m.status)} <span style="font-size:12px;color:var(--color-text-muted);margin-left:8px;">${this._codigoRomaneio ? this._codigoRomaneio(m) : ''}</span></div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             <div style="display:grid;grid-template-columns:2fr 3fr;gap:var(--sp-lg);">

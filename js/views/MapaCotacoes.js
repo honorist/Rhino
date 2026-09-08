@@ -511,7 +511,7 @@ window.MapaCotacoes = {
         <div class="modal" style="width:560px;max-width:95vw;">
           <div class="modal-header">
             <h2 class="modal-title">${isEdit ? 'Editar Cotação' : 'Nova Cotação'}</h2>
-            <button class="modal-close" id="btnCloseCot">✕</button>
+            <button class="modal-close" id="btnCloseCot" aria-label="Fechar">✕</button>
           </div>
           <form id="formCot" class="modal-content">
             <div class="form-group">
@@ -581,7 +581,7 @@ window.MapaCotacoes = {
         <div class="modal" style="width:520px;max-width:95vw;">
           <div class="modal-header">
             <h2 class="modal-title">${isEdit ? 'Editar item' : 'Novo item'}</h2>
-            <button class="modal-close" id="btnCloseItem">✕</button>
+            <button class="modal-close" id="btnCloseItem" aria-label="Fechar">✕</button>
           </div>
           <form id="formItem" class="modal-content">
             <div class="form-group">
@@ -645,7 +645,7 @@ window.MapaCotacoes = {
         <div class="modal" style="width:460px;max-width:95vw;">
           <div class="modal-header">
             <h2 class="modal-title">Adicionar fornecedor à matriz</h2>
-            <button class="modal-close" id="btnCloseAddForn">✕</button>
+            <button class="modal-close" id="btnCloseAddForn" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             <div class="form-group">
@@ -688,7 +688,7 @@ window.MapaCotacoes = {
         <div class="modal" style="width:520px;max-width:95vw;">
           <div class="modal-header">
             <h2 class="modal-title">Gerar pedido de compra</h2>
-            <button class="modal-close" id="btnCloseGerar">✕</button>
+            <button class="modal-close" id="btnCloseGerar" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             <div class="form-group">

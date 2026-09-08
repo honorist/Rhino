@@ -1,6 +1,6 @@
 {
   "name": "rhino",
-  "version": "1.27.0",
+  "version": "1.28.0",
   "description": "Business management app",
   "main": "server.js",
   "scripts": {
@@ -23,16 +23,17 @@
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
-    "bcryptjs": "^2.4.3",
     "chart.js": "^4.5.1",
     "docx": "^9.6.1",
     "exceljs": "^4.4.0",
+    "htmlparser2": "^12.0.0",
     "jimp": "^1.6.1",
     "pdf-lib": "^1.17.1",
     "pdf-to-img": "^7.0.0",
     "pdfkit": "^0.18.0",
     "pg": "^8.20.0",
     "pg-boss": "^12.18.2",
+    "sanitize-html": "^2.17.7",
     "web-push": "^3.6.7"
   },
   "engines": {
@@ -46,6 +47,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@playwright/test": "^1.59.1",
+    "bcryptjs": "^2.4.3",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.6.0",

@@ -275,7 +275,7 @@ window.Fornecedores = {
         <div class="modal" style="width:720px;max-height:90vh;overflow-y:auto;">
           <div class="modal-header">
             <h2 class="modal-title">${title}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formFornecedor" class="modal-content">
 

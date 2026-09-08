@@ -794,6 +794,52 @@ textarea.form-control {
 }
 .prop-fg.full { grid-column: 1 / -1; }
 
+/* Editor de texto rico (Jodit) — mesma "moldura" visual dos .form-control ao
+   redor, pra não destoar dos campos simples que continuam plain <input>.
+   IMPORTANTE: Jodit.make() esconde o <div class="rich-text-mount"> original
+   (display:none) e insere o `.jodit-container` como IRMÃO — mas ANTES dele
+   na ordem do DOM, não depois. `.rich-text-mount + .jodit-container` (irmão
+   seguinte) por isso NUNCA bate; `.jodit-container` é único nesse app
+   (só usado pelo editor rico), então mira ele direto, sem depender de
+   ordem de irmãos. */
+.jodit-container {
+  border: 1px solid var(--color-border, #D1D5DB) !important;
+  border-radius: var(--border-radius, 6px) !important;
+  font-size: 13px;
+}
+.jodit-container.jodit_focused {
+  border-color: var(--color-primary, #55588B) !important;
+  box-shadow: 0 0 0 3px rgba(85,88,139,.12);
+}
+.jodit-container .jodit-toolbar__box { border-radius: var(--border-radius, 6px) var(--border-radius, 6px) 0 0 !important; }
+.jodit-container .jodit-workplace { border-radius: 0 0 var(--border-radius, 6px) var(--border-radius, 6px) !important; }
+
+/* Dentro de linha flex (item de Escopo/Obrigações), o editor precisa
+   CRESCER pra ocupar o espaço disponível — por padrão ele só assume a
+   largura do próprio conteúdo (fica espremido do lado dos botões/chip).
+   `.jodit-container` é filho DE VERDADE de `.escopo-row`/`.obg-row` (mesmo
+   pai do `.rich-text-mount` escondido), então descendente simples funciona. */
+.escopo-row .jodit-container,
+.obg-row .jodit-container {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Jodit é MIT — sem obrigação de manter o link de atribuição na barra de
+   status; tira só o link, mantém contagem de caracteres/palavras e o
+   redimensionador ao lado dele. */
+.jodit-status-bar-link { display: none !important; }
+
+/* O reset global `* { padding:0 }` (css/main.css) zera o padding-left nativo
+   de <ul>/<ol>, que é o que dá espaço pro marcador (•/1.) aparecer — sem
+   isso a lista existe no HTML mas o marcador fica invisível/cortado.
+   Restaura só dentro do conteúdo editável do Jodit. */
+.jodit-wysiwyg ul, .jodit-wysiwyg ol {
+  padding-left: 24px;
+  margin: 4px 0;
+}
+.jodit-wysiwyg li { margin: 2px 0; }
+
 /* Inputs numericos das tabelas de Investimento e Custo Interno —
    alinhamento a direita, sem os spinners nativos do browser que comem
    espaco do valor em colunas estreitas */

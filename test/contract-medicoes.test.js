@@ -19,6 +19,7 @@ const assert = require('node:assert/strict');
 
 const db = require('../db');
 const repos = require('../db/repos');
+const observability = require('../lib/observability');
 const h = require('../handlers/contract-medicoes');
 
 function fakeRes() {
@@ -170,6 +171,31 @@ test('POST — falha no INSERT dos itens desfaz a saída e a NF recém-criada (c
   assert.equal(res.status, 400);
   assert.equal(saidas.length, 0, 'saída deve ter sido desfeita');
   assert.equal(nfs.length, 0, 'NF recém-criada deve ter sido removida');
+  restore();
+});
+
+test('POST — quando a PRÓPRIA compensação também falha, reporta pra observability (registro órfão de saída/NF)', async () => {
+  const origDbQuery = db.query;
+  db.query = async (sql, params) => {
+    if (/INSERT INTO medicao_itens/.test(sql)) throw new Error('falha simulada de INSERT');
+    return origDbQuery(sql, params);
+  };
+  const origRemoveById = repos.saidas.removeById;
+  repos.saidas.removeById = async () => { throw new Error('falha simulada na compensação'); };
+  const captured = [];
+  const origCaptureError = observability.captureError;
+  observability.captureError = (err, ctx) => { captured.push({ err, ctx }); };
+
+  const res = fakeRes();
+  await h.handlePostContractMedicao('C1', { date: '2026-04-01', itens: [{ servicoId: 'srv1', qtd: 20 }] }, res);
+
+  assert.equal(res.status, 400, 'a requisição ainda falha pro usuário (comportamento inalterado)');
+  assert.equal(captured.length, 1, 'a falha de compensação deve ser reportada pra observability');
+  assert.match(captured[0].err.message, /compensação/i);
+  assert.equal(captured[0].ctx.contractId, 'C1');
+
+  repos.saidas.removeById = origRemoveById;
+  observability.captureError = origCaptureError;
   restore();
 });
 

@@ -35,7 +35,7 @@ flowchart LR
     audit --> pg
 ```
 
-- **Sem framework** no backend. `server.js` faz roteamento `if (pathname === ... && method === ...)` em ~7.200 linhas.
+- **Sem framework** no backend. `server.js` (hoje ~1.800 linhas, descendo de ~7.200) monta um `apiRouter` modular (`lib/router.js#createRouter`) e registra ~9 domínios via `register*(apiRouter, {...})` (`routes/*.js` — auth, recrutamento, sugestões, portal, platform, financeiro, comercial, operação, contratos...); `routeRequest()` continua existindo como fallback legado só pros endpoints ainda não migrados pro router modular.
 - **Sem bundler** no frontend. `<script defer>` no `index.html` e `js/lazy.js` para libs pesadas (mermaid, chart, signaturepad, jspdf).
 - **Postgres é a fonte única**. Diretório `data/*.json` é vestígio do modo legacy e nunca é lido em produção.
 
@@ -55,7 +55,7 @@ flowchart LR
 
 ### Backend (`server.js` + `lib/` + `db/repos/`)
 
-- **HTTP nativo** (sem Express) — roteamento via `if/match` em `routeRequest()` (linha ~3960)
+- **HTTP nativo** (sem Express) — domínios migrados usam o `apiRouter` modular (`lib/router.js`, registrado em `server.js` a partir da linha ~1305); o que ainda não foi migrado cai no fallback legado `routeRequest()` (`server.js:1423`)
 - **Auth** com cookies de sessão server-side, bcrypt, rate limit persistente em PG (`lib/auth.js`, `lib/pg-rate-limit.js`)
 - **Audit** automático em toda mutação POST/PUT/DELETE com status < 500 (`lib/audit.js`, registra `before_state` + `entity_label`)
 - **Bus de eventos** in-memory (`lib/bus.js`) — feed do `/api/stream`

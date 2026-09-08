@@ -282,7 +282,7 @@ window.Clientes = {
               <h2 class="modal-title">${escapeHtml(c.nome || '—')}</h2>
               <div class="rh-meta" style="margin-top:2px;">${escapeHtml(c.empresa || 'Sem empresa cadastrada')}${c.cargo ? ' · ' + escapeHtml(c.cargo) : ''}</div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             <!-- KPIs do relacionamento -->
@@ -383,7 +383,7 @@ window.Clientes = {
         <div class="modal" style="width:620px;">
           <div class="modal-header">
             <h2 class="modal-title">${title}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formCliente" class="modal-content">
             <div class="form-row">

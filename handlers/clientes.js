@@ -4,10 +4,11 @@
  * (hash bcrypt) e propagação de endereço/coords para contratos vinculados.
  * Extraído do server.js (desmembramento).
  */
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const repos = require('../db/repos');
 const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
+const observability = require('../lib/observability');
 
 async function envelope() { return { clientes: await repos.clientes.findAll() }; }
 
@@ -74,6 +75,7 @@ async function handlePutCliente(id, body, res) {
         }
       } catch (syncErr) {
         console.error('[clientes] falha ao propagar endereço para contratos:', syncErr.message);
+        observability.captureError(syncErr, { operacao: 'clientes.propagarEndereco', clienteId: id });
       }
     }
     sendJson(res, await envelope());

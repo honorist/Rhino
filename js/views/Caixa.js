@@ -677,7 +677,7 @@ window.Caixa = {
         <div class="modal" style="width:860px;max-width:98vw;">
           <div class="modal-header">
             <h2 class="modal-title"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('landmark', 18)}Resultado da importação OFX</span></h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content" style="max-height:65vh;overflow-y:auto;">
             <p style="margin-bottom:var(--sp-md);">
@@ -743,7 +743,7 @@ window.Caixa = {
                 <span style="font-size:22px;font-weight:700;color:${isEntrada ? 'var(--color-success)' : 'var(--color-danger)'};">${isEntrada ? '+' : '-'}${valor}</span>
               </div>
             </div>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <div class="modal-content">
             ${row('Data', fmtD(e.date))}
@@ -783,7 +783,7 @@ window.Caixa = {
         <div class="modal">
           <div class="modal-header">
             <h2 class="modal-title">Materializar recorrência</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formMatRec" class="modal-content">
             <div class="rh-meta" style="margin-bottom:var(--sp-md);">
@@ -856,7 +856,7 @@ window.Caixa = {
         <div class="modal">
           <div class="modal-header">
             <h2 class="modal-title">${title}</h2>
-            <button class="modal-close">✕</button>
+            <button class="modal-close" aria-label="Fechar">✕</button>
           </div>
           <form id="formEntrada" class="modal-content">
             <div class="form-row">

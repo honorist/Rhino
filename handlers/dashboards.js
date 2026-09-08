@@ -15,6 +15,7 @@ const db = require('../db');
 const repos = require('../db/repos');
 const money = require('../lib/money');
 const { computeDreRealizado } = require('../lib/dre'); // margem por obra = DRE realizado (caixa)
+const { custoPorCategoria, receitaPorCliente } = require('../lib/dashboard-agregados'); // gráficos consolidados
 const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
 const { getDashboardOperacional } = require('../lib/dashboard-operacional');
@@ -387,6 +388,10 @@ async function handleDashboard(res, query) {
       projDays,
       contasPagarStatus,
       ocorrenciasVirtuais,
+      // Gráficos consolidados (empresa toda) do Dashboard — mesmos campos
+      // (`category`/`contractId`) já lidos acima pra `caixaPorContrato`.
+      custoPorCategoria: custoPorCategoria(caixa.entries),
+      receitaPorCliente: receitaPorCliente(caixa.entries, contracts.contracts),
     };
 
     res.writeHead(200, { 'Content-Type': 'application/json' });

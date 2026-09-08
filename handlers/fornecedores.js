@@ -5,6 +5,7 @@
 const repos = require('../db/repos');
 const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
+const { validateBody, schemas } = require('../lib/validate');
 
 function normalizeMateriais(v) {
   if (Array.isArray(v)) return v;
@@ -20,13 +21,14 @@ async function handleGetFornecedores(res) {
 
 async function handlePostFornecedor(body, res) {
   try {
+    const p = validateBody(schemas.fornecedorPost, body);
     const fornecedor = {
       id: generateId('for'),
-      nome: body.nome || '', cnpj: body.cnpj || '', endereco: body.endereco || '',
-      telefone: body.telefone || '', email: body.email || '', pessoaContato: body.pessoaContato || '',
+      nome: p.nome, cnpj: p.cnpj, endereco: p.endereco,
+      telefone: p.telefone, email: p.email, pessoaContato: p.pessoaContato,
       materiais: JSON.stringify(normalizeMateriais(body.materiais)),
-      banco: body.banco || '', agencia: body.agencia || '', conta: body.conta || '',
-      chavePix: body.chavePix || '', notas: body.notas || '',
+      banco: p.banco, agencia: p.agencia, conta: p.conta,
+      chavePix: p.chavePix, notas: p.notas,
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
     };
     await repos.fornecedores.create(fornecedor);
@@ -36,9 +38,7 @@ async function handlePostFornecedor(body, res) {
 
 async function handlePutFornecedor(id, body, res) {
   try {
-    const allowed = {};
-    const fields = ['nome', 'cnpj', 'endereco', 'telefone', 'email', 'pessoaContato', 'banco', 'agencia', 'conta', 'chavePix', 'notas'];
-    for (const f of fields) { if (body[f] !== undefined) allowed[f] = body[f]; }
+    const allowed = validateBody(schemas.fornecedorPut, body);
     if (body.materiais !== undefined) allowed.materiais = JSON.stringify(normalizeMateriais(body.materiais));
     allowed.updatedAt = new Date().toISOString();
     const result = await repos.fornecedores.updateById(id, allowed);
