@@ -220,13 +220,21 @@ window.Configuracao = {
         label: 'Contratos',
         icon: ic('briefcase'),
         grupo: 'Principal',
-        children: [
-          { route: 'contrato-tab:visao', label: 'Aba Visão Geral', icon: ic('eye') },
-          { route: 'contrato-tab:financeiro', label: 'Aba Financeiro', icon: ic('dollar-sign') },
-          { route: 'contrato-tab:equipe', label: 'Aba Equipe', icon: ic('users') },
-          { route: 'contrato-tab:rdo', label: 'Aba RDO', icon: ic('clipboard-check') },
-          { route: 'contrato-tab:pendencias', label: 'Aba Pendências', icon: ic('alert-triangle') },
-        ],
+        // Gerado do registry (js/lib/contrato-tabs.js) em vez de escrito à mão:
+        // a lista manual tinha 5 das 16 abas, então as outras 11 (DRE, EVM,
+        // Punch, SSMA, Data book, Aditivos, Marcos, Ocorrências...) só podiam
+        // ser liberadas editando o JSONB direto no banco. Abas universais ficam
+        // de fora — não há o que configurar nelas.
+        children: (window.ContratoTabs ? window.ContratoTabs.TABS : [])
+          .filter((t) => !t.universal)
+          .map((t) => {
+            const grupo = (window.ContratoTabs.GRUPOS.find((g) => g.k === t.grupo) || {}).l || '';
+            return {
+              route: 'contrato-tab:' + (t.perm || t.k),
+              label: `${grupo} · ${t.l}`,
+              icon: ic(t.icon || 'square'),
+            };
+          }),
       },
       { route: '#/rdos', label: 'RDOs (todos)', icon: ic('clipboard-check'), grupo: 'Obras' },
       { route: '#/obras', label: 'Mapa de Obras', icon: ic('map-pin'), grupo: 'Obras' },

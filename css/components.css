@@ -683,13 +683,63 @@ textarea.form-control {
   animation: fadeSlideIn 0.2s ease both;
 }
 
-/* ─── ContratoDetail — Tabs ─── */
+/* ─── ContratoDetail — Navegação em 2 níveis ───
+   Antes: 16 abas num único trilho de ~2.100px. Num notebook de 1440px com a
+   sidebar sobravam ~1.150px → cabiam 9, e as outras 7 ficavam atrás de scroll
+   horizontal sem nenhum indicador. Agora: 5 grupos (cabem em qualquer tela) e,
+   abaixo, só as folhas do grupo ativo. */
+.ctd-nav { margin-bottom: var(--sp-xl); }
+
 .ctd-tabs {
   display: flex; gap: 4px;
-  margin-bottom: var(--sp-xl);
   border-bottom: 1px solid var(--color-border);
   overflow-x: auto;
 }
+
+/* Grupo — o primeiro nível. */
+.ctd-group {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 18px;
+  background: transparent; border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--color-text-muted);
+  font-size: 15px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  white-space: nowrap; flex-shrink: 0;
+  margin-bottom: -1px;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.ctd-group:hover { color: var(--color-text); background: var(--color-surface-2); }
+.ctd-group.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* Folhas do grupo ativo — o segundo nível. */
+.ctd-subtabs {
+  display: flex; gap: 4px; flex-wrap: wrap;
+  padding: 10px 2px 0;
+}
+.ctd-subtab {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid transparent; border-radius: 99px;
+  color: var(--color-text-muted);
+  font-size: 14px; font-weight: 500;
+  cursor: pointer; font-family: inherit;
+  white-space: nowrap;
+  transition: color .15s, background .15s, border-color .15s;
+}
+.ctd-subtab:hover { color: var(--color-text); background: var(--color-surface-2); }
+.ctd-subtab.active {
+  color: var(--color-primary);
+  background: var(--color-surface-2);
+  border-color: var(--color-border);
+  font-weight: 600;
+}
+
+/* ─── ContratoDetail — Tabs (legado; ainda usado por outras telas) ─── */
 .ctd-tab {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 11px 18px;

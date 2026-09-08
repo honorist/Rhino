@@ -6,7 +6,12 @@
  */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { computeDreRealizado, bucketDeCategoria } = require('../lib/dre');
+const {
+  computeDreRealizado,
+  bucketDeCategoria,
+  avaliarMargem,
+  META_MARGEM_PCT,
+} = require('../lib/dre');
 
 // Cenário base: obra de R$ 1.000.000, R$ 800k medido, com lançamentos de caixa.
 function rowsBase() {
@@ -111,4 +116,59 @@ test('coerção: totais em string (NUMERIC do Postgres) somam certo', () => {
   assert.equal(dre.receita.recebida, 250.5);
   assert.equal(dre.custoTotal, 100.25);
   assert.equal(dre.margem.valor, 150.25);
+});
+
+// ═══════════ BR-DRE-006: avaliação da margem contra a meta ═══════════
+// O limiar de 20% era um literal mágico dentro de uma template string da view
+// (js/views/ContratoDetail.js:316-319), e contrato recém-criado — zero
+// faturado, zero custo, margemPct 0 — abria exibindo "⚠ faltam 20,0pp",
+// alarme falso no primeiro segundo de vida. Faltava o estado "ainda não se
+// moveu".
+
+test('BR-DRE-006: obra sem nenhum movimento não é cobrada de meta', () => {
+  const r = avaliarMargem({ margemPct: 0, receitaRecebida: 0, custoTotal: 0 });
+  assert.equal(r.status, 'sem_movimento');
+  assert.equal(r.faltamPp, null, 'sem movimento não há distância pra meta');
+  assert.equal(r.faltamValor, null);
+});
+
+test('BR-DRE-006: já ter custo (sem receita) JÁ é movimento — não é sem_movimento', () => {
+  // Obra que começou a gastar antes de faturar está em prejuízo de verdade.
+  const r = avaliarMargem({ margemPct: -100, receitaRecebida: 0, custoTotal: 5000 });
+  assert.equal(r.status, 'prejuizo');
+});
+
+test('margem negativa é prejuízo', () => {
+  const r = avaliarMargem({ margemPct: -12.5, receitaRecebida: 80000, custoTotal: 90000 });
+  assert.equal(r.status, 'prejuizo');
+  assert.equal(r.faltamPp, 32.5, 'distância até a meta de 20%');
+});
+
+test('margem entre 0 e a meta fica abaixo_meta, com o quanto falta', () => {
+  const r = avaliarMargem({ margemPct: 12, receitaRecebida: 100000, custoTotal: 88000 });
+  assert.equal(r.status, 'abaixo_meta');
+  assert.equal(r.faltamPp, 8);
+  // 20% de 100.000 = 20.000 de margem-alvo; a margem real é 12.000.
+  assert.equal(r.faltamValor, 8000);
+});
+
+test('margem na meta ou acima é ok', () => {
+  const naMeta = avaliarMargem({ margemPct: 20, receitaRecebida: 100000, custoTotal: 80000 });
+  assert.equal(naMeta.status, 'ok');
+  assert.equal(naMeta.faltamPp, null);
+
+  const acima = avaliarMargem({ margemPct: 35.4, receitaRecebida: 100000, custoTotal: 64600 });
+  assert.equal(acima.status, 'ok');
+});
+
+test('meta customizada muda a régua e volta no retorno', () => {
+  const r = avaliarMargem({ margemPct: 12, receitaRecebida: 100000, custoTotal: 88000, metaPct: 10 });
+  assert.equal(r.status, 'ok', 'com meta de 10%, 12% está acima');
+  assert.equal(r.metaPct, 10);
+});
+
+test('META_MARGEM_PCT é exportada (fim do 20 mágico espalhado na view)', () => {
+  assert.equal(META_MARGEM_PCT, 20);
+  const r = avaliarMargem({ margemPct: 5, receitaRecebida: 10, custoTotal: 5 });
+  assert.equal(r.metaPct, META_MARGEM_PCT);
 });

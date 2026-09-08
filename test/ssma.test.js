@@ -86,3 +86,33 @@ test('normalizações caem no default para valores desconhecidos', () => {
   assert.equal(ssma.normalizarTipo('acidente'), 'acidente');
   assert.equal(ssma.normalizarStatus('encerrado'), 'encerrado');
 });
+
+// ── hhtDeRdos: extraído de handlers/ssma.js ────────────────────────────────
+// A soma do homem-hora trabalhado vivia dentro do handler (_hhtDoContrato),
+// misturada com o I/O de buscar os RDOs — regra de negócio em handler viola
+// steering §3, e o Painel precisa da mesma conta sem repetir a query.
+const { hhtDeRdos } = require('../lib/ssma');
+
+test('hhtDeRdos soma o totalHomemHora dos RDOs', () => {
+  const hht = hhtDeRdos([
+    { totais: { totalHomemHora: 120 } },
+    { totais: { totalHomemHora: 80.5 } },
+  ]);
+  assert.equal(hht, 200.5);
+});
+
+test('hhtDeRdos ignora RDO sem totais, nulo ou com valor inválido', () => {
+  const hht = hhtDeRdos([
+    { totais: { totalHomemHora: 100 } },
+    null,
+    {},
+    { totais: null },
+    { totais: { totalHomemHora: 'abc' } },
+  ]);
+  assert.equal(hht, 100);
+});
+
+test('hhtDeRdos com lista vazia/undefined devolve 0 (as taxas caem pra 0)', () => {
+  assert.equal(hhtDeRdos([]), 0);
+  assert.equal(hhtDeRdos(undefined), 0);
+});

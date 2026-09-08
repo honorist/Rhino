@@ -39,12 +39,40 @@ test('BR-DATABOOK-001: sem itens de punch → 100% verificado e nenhum aberto', 
   assert.equal(r.punch.pctVerificado, 100);
 });
 
-test('fisico.execMedio é a média simples do exec_pct (aceita camel e snake)', () => {
+test('fisico.execMedio cai na média simples quando não há peso (aceita camel e snake)', () => {
   const r = prontidao({
     punchItens: [],
     atividades: [{ execPct: 100 }, { exec_pct: 50 }, { execPct: 0 }],
   });
   assert.equal(r.fisico.execMedio, 50);
+  assert.equal(r.fisico.base, 'media', 'sem peso preenchido, a base é média simples');
+});
+
+// O avanço físico do data book passou a vir de lib/avanco-fisico.js — a mesma
+// conta do Cronograma. Antes era média simples aqui e ponderada lá, então a
+// mesma obra tinha dois "avanço físico" diferentes dependendo da aba.
+test('fisico.execMedio pondera pelo peso das etapas quando há peso', () => {
+  const r = prontidao({
+    punchItens: [],
+    // Etapa pesada (80%) quase pronta, etapa leve (20%) nem começou.
+    // Ponderado: (80×100 + 20×0)/100 = 80. Média simples daria 50.
+    atividades: [
+      { pesoPct: 80, execPct: 100 },
+      { pesoPct: 20, execPct: 0 },
+    ],
+  });
+  assert.equal(r.fisico.execMedio, 80, 'esperava o ponderado, não a média simples');
+  assert.equal(r.fisico.base, 'peso');
+});
+
+test('cronograma vazio: avanço não medido é diferente de avanço zero', () => {
+  const r = prontidao({ punchItens: [], atividades: [] });
+  assert.equal(r.fisico.base, 'sem_dados');
+  assert.equal(r.pronto, false, 'sem cronograma não dá pra afirmar prontidão');
+  assert.ok(
+    r.pendencias.some((p) => /sem atividades|não medido/i.test(p)),
+    'a pendência precisa dizer que falta cronograma, não que o avanço é 0%'
+  );
 });
 
 test('BR-DATABOOK-002: pronto quando punch toda verificada E físico 100%', () => {

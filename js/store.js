@@ -238,6 +238,56 @@ window.Store = {
     try { await p; } finally { delete this._sliceInflight[slice]; }
   },
 
+  /**
+   * Carrega UM contrato completo (com rdos/organograma/aditivos/marcos/
+   * ocorrências/saidas dele) e faz upsert em `state.contracts`.
+   *
+   * Existe porque abrir uma obra puxava `/api/contracts` sem `lite`, que traz
+   * os filhos de TODAS as obras — numa empresa com 20 contratos isso são
+   * milhares de RDOs completos (com os JSONB de mão de obra, equipamentos e
+   * fotos) baixados pra desenhar UMA tela.
+   *
+   * O upsert é o que torna a troca barata: `Store.getContractById` continua
+   * funcionando e as dezenas de pontos que leem `contract.rdos`/`.organograma`/
+   * `.aditivos`/`.marcos`/`.ocorrencias` seguem iguais, sem tocar em nenhum mixin.
+   *
+   * @param {string} id
+   * @param {{force?:boolean}} [opts]
+   */
+  async loadContract(id, opts) {
+    if (!id) return null;
+    const key = 'contract:' + id;
+    const force = opts && opts.force;
+    const now = Date.now();
+    if (!force && this._sliceLoadedAt[key] && (now - this._sliceLoadedAt[key]) < this.SLICE_TTL_MS) {
+      return this.getContractById(id);
+    }
+    if (this._sliceInflight[key]) { await this._sliceInflight[key]; return this.getContractById(id); }
+
+    const p = (async () => {
+      const res = await fetch(`/api/contracts/${encodeURIComponent(id)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status} (/api/contracts/${id})`);
+      const j = await res.json();
+      const c = j.contract || j;
+      if (c && c.id) {
+        const i = (this.state.contracts || []).findIndex((x) => x.id === c.id);
+        if (i >= 0) this.state.contracts[i] = { ...this.state.contracts[i], ...c };
+        else (this.state.contracts = this.state.contracts || []).push(c);
+      }
+      if (Array.isArray(j.saidas)) {
+        // Substitui só as saídas DESTE contrato; as das outras obras seguem
+        // intactas (a lista é global e outras telas dependem dela).
+        const outras = (this.state.saidas || []).filter((s) => s.contractId !== id);
+        this.state.saidas = outras.concat(j.saidas);
+      }
+      this._sliceLoadedAt[key] = Date.now();
+      this.notify();
+    })();
+    this._sliceInflight[key] = p;
+    try { await p; } finally { delete this._sliceInflight[key]; }
+    return this.getContractById(id);
+  },
+
   async loadFor(slices, opts) {
     const results = await Promise.allSettled(slices.map(s => this.loadOnly(s, opts)));
     const failed = results

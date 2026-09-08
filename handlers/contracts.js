@@ -5,6 +5,7 @@
  * outros pontos do server.js (extração separada). `retencaoPercent` é percentual
  * (não dinheiro) → segue parseFloat.
  */
+const db = require('../db');
 const repos = require('../db/repos');
 const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
@@ -14,6 +15,29 @@ async function handleGetContracts(res, query) {
   try {
     const lite = !!(query && (query.lite === '1' || query.lite === 'true'));
     sendJson(res, await repos.contracts.getEnvelope({ lite }));
+  } catch (e) { sendError(res, 500, e.message); }
+}
+
+/**
+ * UM contrato com os filhos só DELE (organograma, RDOs, aditivos, marcos,
+ * ocorrências) + as suas saídas.
+ *
+ * Existe porque abrir uma obra puxava `/api/contracts` inteiro, que roda
+ * `findAllWithChildren()` — um `SELECT * FROM rdos WHERE contract_id IN (todos)`
+ * sem paginação. Numa empresa com 20 obras isso significa baixar os RDOs de
+ * todas elas (com os JSONB de mão de obra, equipamentos, atividades e fotos)
+ * pra renderizar uma. `findByIdWithChildren` já existia e já fazia o certo;
+ * faltava a rota.
+ */
+async function handleGetContract(id, res) {
+  try {
+    const contract = await repos.contracts.findByIdWithChildren(id);
+    if (!contract) return sendError(res, 404, 'Contrato não encontrado');
+    const saidas = await db.getMany(
+      `SELECT * FROM saidas WHERE contract_id = $1 ORDER BY date DESC, created_at DESC`,
+      [id]
+    );
+    sendJson(res, { contract, saidas });
   } catch (e) { sendError(res, 500, e.message); }
 }
 
@@ -62,4 +86,5 @@ async function handleDeleteContract(id, res) {
   } catch (e) { sendError(res, 400, e.message); }
 }
 
-module.exports = { handleGetContracts, handlePostContract, handlePutContract, handleDeleteContract };
+module.exports = {
+  handleGetContract, handleGetContracts, handlePostContract, handlePutContract, handleDeleteContract };

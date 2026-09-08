@@ -1,6 +1,18 @@
 {
   "entries": [
     {
+      "version": "1.29.0",
+      "date": "2026-09-08",
+      "summary": "Contrato repaginado: painel da obra, 5 grupos de abas e qualidade unificada",
+      "changes": [
+        "Ao abrir uma obra você vê primeiro o que precisa da sua atenção (RDO atrasado, punch vencido, acidente, atraso de cronograma, documento de colaborador vencendo) e como ela está hoje: avanço físico, prazo e margem. Cada alerta leva direto à aba certa, já filtrada",
+        "As 16 abas do contrato viraram 5 grupos (Painel, Execução, Financeiro, Qualidade & Segurança, Equipe) — antes metade delas ficava escondida atrás de rolagem lateral. Links antigos de contrato continuam abrindo normalmente",
+        "Punch list, SSMA e Ocorrências viraram uma aba só, com filtro por tipo: acabou a dúvida de onde lançar. As taxas de segurança (TF/TG) continuam sempre visíveis",
+        "'Margem' e 'avanço físico' agora têm um número só no sistema inteiro — antes a mesma obra mostrava valores diferentes dependendo da aba aberta. Contrato recém-criado não abre mais com alarme falso de meta",
+        "Abrir uma obra ficou bem mais rápido, e corrigimos botões que levavam a 'Contrato não encontrado', telas que não atualizavam depois de salvar, o gráfico ilegível no tema claro e o alerta de RDO que contava o total em vez dos dias em atraso"
+      ]
+    },
+    {
       "version": "1.28.0",
       "date": "2026-09-08",
       "summary": "Editor de texto rico, organograma visual, exportação/paginação e novos gráficos no Dashboard",

@@ -841,7 +841,7 @@ test('routes/operacao.js — req injetado, sub-recursos aninhados e :param', () 
 
 // ─── routes/contracts.js (contratos, saídas, RDO, aditivos, marcos…) ─────────
 
-test('routes/contracts.js — registra exatamente as 62 rotas de contratos', () => {
+test('routes/contracts.js — registra exatamente as 65 rotas de contratos', () => {
   const router = createRouter();
   require('../routes/contracts')(router, {});
   const rotas = router
@@ -864,10 +864,12 @@ test('routes/contracts.js — registra exatamente as 62 rotas de contratos', () 
       'DELETE /api/contracts/:id/servicos/:servicoId',
       'DELETE /api/saidas/:id',
       'GET /api/contracts',
+      'GET /api/contracts/:id',
       'GET /api/contracts/:id/atividades',
       'GET /api/contracts/:id/curva-s',
       'GET /api/contracts/:id/dre',
       'GET /api/contracts/:id/evm',
+      'GET /api/contracts/:id/painel',
       'GET /api/contracts/:id/data-book',
       'GET /api/contracts/:id/data-book/pdf',
       'GET /api/contracts/:id/ssma',
@@ -875,6 +877,7 @@ test('routes/contracts.js — registra exatamente as 62 rotas de contratos', () 
       'PUT /api/contracts/:id/ssma/:ocorrId',
       'DELETE /api/contracts/:id/ssma/:ocorrId',
       'GET /api/contracts/:id/produtividade-hh',
+      'GET /api/contracts/:id/qualidade',
       'GET /api/contracts/:id/punch',
       'POST /api/contracts/:id/punch',
       'PUT /api/contracts/:id/punch/:itemId',

@@ -4,20 +4,36 @@
 (function () {
   if (!window.ContratoDetail) { console.error('[contrato/rdos] requires ContratoDetail core'); return; }
   Object.assign(window.ContratoDetail, {
-  // ═══════════ RDO — Relatório Diário de Obra ═══════════
-  renderRdoSection(contract) {
+  /**
+   * Compliance de RDO da obra: último RDO, dias ÚTEIS sem registrar, e se isso
+   * configura atraso. Fonte única — consumido pelo alerta desta seção E pelo
+   * badge da aba RDO (ContratoDetail.js), que antes mostrava o TOTAL de RDOs e
+   * portanto pintava de vermelho justamente a obra em dia.
+   *
+   * `hojeISO` é injetável para o teste fixar o relógio. Limitação conhecida:
+   * ignora feriado (só fim de semana) — na Fase 3 esta conta migra para o
+   * servidor, onde lib/feriados.js já resolve isso; este é o único ponto de
+   * troca.
+   *
+   * @param {object} contract
+   * @param {string} [hojeISO] 'YYYY-MM-DD'; default = hoje.
+   * @returns {{ultimoRdo:string|null, diasUteisSem:number, ultDiaUtilIso:string,
+   *            ehFimDeSemana:boolean, atrasado:boolean, badge:number}}
+   */
+  _rdoCompliance(contract, hojeISO) {
     const rdos = (contract.rdos || []).slice().sort((a, b) => (b.data || '').localeCompare(a.data || ''));
-
-    // Compliance: calcula último dia útil e dias úteis sem RDO (cliente-side)
     const isWeekend = (d) => { const x = d.getDay(); return x === 0 || x === 6; };
     const toIso = (d) => d.toISOString().split('T')[0];
-    const today = new Date(); today.setHours(12, 0, 0, 0);
-    const todayDow = today.getDay();
+
+    const today = hojeISO ? new Date(hojeISO + 'T12:00:00') : new Date();
+    today.setHours(12, 0, 0, 0);
     const ehFimDeSemana = isWeekend(today);
+
     const ultDiaUtil = new Date(today);
     ultDiaUtil.setDate(ultDiaUtil.getDate() - 1);
     while (isWeekend(ultDiaUtil)) ultDiaUtil.setDate(ultDiaUtil.getDate() - 1);
     const ultDiaUtilIso = toIso(ultDiaUtil);
+
     const ultimoRdo = rdos.length > 0 ? rdos[0].data : null;
     let diasUteisSem = 0;
     if (ultimoRdo) {
@@ -28,6 +44,25 @@
         cur.setDate(cur.getDate() + 1);
       }
     }
+
+    // Obra que ainda não começou não deve RDO nenhum — sem esta guarda, um
+    // contrato cadastrado hoje pra começar mês que vem já nascia "em atraso".
+    const inicio = contract.startDate || null;
+    const jaComecou = !inicio || inicio <= toIso(today);
+
+    // Fim de semana não cobra RDO. Sem nenhum RDO numa obra em andamento é atraso.
+    const atrasado = jaComecou && !ehFimDeSemana && (!ultimoRdo || ultimoRdo < ultDiaUtilIso);
+    // Sem RDO nenhum ainda não há "dias sem" a contar — sinaliza com 1.
+    const badge = !atrasado ? 0 : (diasUteisSem || 1);
+
+    return { ultimoRdo, diasUteisSem, ultDiaUtilIso, ehFimDeSemana, atrasado, badge };
+  },
+
+  // ═══════════ RDO — Relatório Diário de Obra ═══════════
+  renderRdoSection(contract) {
+    const rdos = (contract.rdos || []).slice().sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+
+    const { ultimoRdo, diasUteisSem, ultDiaUtilIso, ehFimDeSemana } = this._rdoCompliance(contract);
     const fmtBr = (iso) => { const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : iso; };
 
     let alertaHtml = '';

@@ -10,6 +10,11 @@ const _lazyManifest = {
       './js/views/ContratoDetail.js',
       './js/views/contrato/charts.js',
       './js/views/contrato/visao-geral.js',
+      './js/views/contrato/painel.js',
+      './js/views/contrato/timeline.js',
+      './js/views/contrato/extras.js',
+      './js/views/contrato/ocorrencias.js',
+      './js/views/contrato/qualidade.js',
       './js/lib/org-chart-layout.js',
       './js/views/contrato/organograma.js',
       './js/views/contrato/rdos.js',
@@ -731,20 +736,21 @@ const perfil = {
   // Verifica se uma sub-aba dentro do contrato está liberada para este perfil.
   // Convenção: abas com prefixo "contrato-tab:" no array niveis.abas.
   // Se o perfil não tem NENHUMA contrato-tab configurada, libera todas (compat).
+  // As regras (universais, válvula legada, tradução de alias) moram no registry
+  // js/lib/contrato-tabs.js, que é puro e testado (test/contrato-tabs.test.js).
+  // Aqui fica só a ponte com o perfil carregado. O formato gravado no JSONB
+  // continua `contrato-tab:<chave>` — nenhum perfil existente precisa migrar.
   podeContractTab(tabKey) {
-    const abas = this.abas();
-    if (!abas) return true; // sem perfil → tudo liberado
-    // Sub-abas universais (adicionadas depois do cadastro inicial dos perfis):
-    if (['cronograma', 'timeline', 'medicao'].includes(tabKey)) return true;
-    const contractTabs = abas.filter((a) => typeof a === 'string' && a.startsWith('contrato-tab:'));
-    if (contractTabs.length === 0) return true; // nada configurado → tudo liberado (legado)
-    return contractTabs.includes('contrato-tab:' + tabKey);
+    if (!window.ContratoTabs) return true; // registry ainda não carregou → não trava ninguém
+    return window.ContratoTabs.fazerPodeTab(this.abas())(tabKey);
   },
 
-  // Primeira sub-aba do contrato liberada
+  // Primeira sub-aba liberada. A versão antiga tinha uma lista fixa de 7 das
+  // 16 chaves e caía em `|| 'visao'` mesmo quando `visao` estava bloqueada —
+  // o usuário via a barra de abas sem nenhuma ativa e o corpo vazio.
   primeiraContractTab() {
-    const ordem = ['visao', 'financeiro', 'medicao', 'cronograma', 'equipe', 'rdo', 'pendencias'];
-    return ordem.find((k) => this.podeContractTab(k)) || 'visao';
+    if (!window.ContratoTabs) return 'painel';
+    return window.ContratoTabs.primeiraTabPermitida((k) => this.podeContractTab(k));
   },
 
   // Primeira aba acessível (para redirecionar após seleção)

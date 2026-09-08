@@ -162,7 +162,7 @@
 
       document.body.insertAdjacentHTML('beforeend', html);
 
-      const overlay = document.getElementById('modalOverlay');
+      const overlay = document.body.lastElementChild; // o nó recém-inserido (o id se repete entre os modais)
       setTimeout(() => {
         const firstInput = overlay?.querySelector(
           'input:not([type="hidden"]):not([readonly]), select, textarea'
@@ -249,7 +249,7 @@
     `;
 
       document.body.insertAdjacentHTML('beforeend', html);
-      const overlay = document.getElementById('modalOverlay');
+      const overlay = document.body.lastElementChild; // o nó recém-inserido (o id se repete entre os modais)
       setTimeout(() => {
         const firstInput = overlay?.querySelector(
           'input:not([type="hidden"]):not([readonly]), select, textarea'

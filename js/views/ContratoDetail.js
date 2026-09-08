@@ -72,6 +72,104 @@ window.ContratoDetail = {
     return !window.perfil || !window.perfil.podeEditar || window.perfil.podeEditar('#/contratos');
   },
 
+  /**
+   * Badges da navegação. Cada chave casa com `badge` de uma folha do registry
+   * (js/lib/contrato-tabs.js). 0/undefined = sem badge — badge só existe pra
+   * dizer "isto aqui te espera", nunca pra contar acervo.
+   */
+  _badgesAbas(contract, extra) {
+    return {
+      rdoAtrasado: this._rdoCompliance(contract).badge,
+      passagensPendentes: (extra?.passagensPendentes || []).length,
+      aditivosAbertos: (contract.aditivos || []).filter((a) => !a.aprovado).length,
+      marcosAbertos: (contract.marcos || []).filter((m) => !m.concluido).length,
+      ocorrenciasAbertas: (contract.ocorrencias || []).filter((o) => !o.encerrada).length,
+    };
+  },
+
+  /**
+   * Barra de navegação em dois níveis: grupos e, abaixo, as folhas do grupo
+   * ativo. O grupo herda o badge somado das suas folhas, pra pendência não
+   * ficar invisível quando o grupo está fechado.
+   */
+  _renderNavAbas(contract, extra) {
+    const CT = window.ContratoTabs;
+    if (!CT) return '';
+    const pode = (k) => (window.perfil ? window.perfil.podeContractTab(k) : true);
+    const badges = this._badgesAbas(contract, extra);
+    const badgeDe = (t) => (t.badge ? badges[t.badge] || 0 : 0);
+
+    const grupos = CT.gruposVisiveis(pode);
+    const atual = CT.resolveTab(this._tab);
+    const grupoAtivo = atual.grupo;
+    const folhas = CT.tabsDoGrupo(grupoAtivo).filter((t) => pode(t.k));
+
+    const linhaGrupos = grupos
+      .map((g) => {
+        const soma = CT.tabsDoGrupo(g.k)
+          .filter((t) => pode(t.k))
+          .reduce((s, t) => s + badgeDe(t), 0);
+        const ativo = g.k === grupoAtivo;
+        return `
+          <button class="ctd-group ${ativo ? 'active' : ''}" data-ctd-group="${g.k}"
+                  role="tab" aria-selected="${ativo}"
+                  aria-label="${g.l}${soma ? ` (${soma})` : ''}">
+            <span aria-hidden="true" style="display:inline-flex;align-items:center;color:currentColor;">${window.rhIcon ? window.rhIcon(g.icon, 16) : ''}</span>
+            ${g.l}
+            ${soma ? `<span class="ctd-tab-badge">${soma}</span>` : ''}
+          </button>`;
+      })
+      .join('');
+
+    // Grupo de uma folha só não precisa da segunda linha — seria uma aba
+    // repetindo o nome do grupo logo abaixo dele.
+    const linhaFolhas =
+      folhas.length <= 1
+        ? ''
+        : `
+      <div class="ctd-subtabs" role="tablist" aria-label="Seções de ${escapeHtml(
+        (grupos.find((g) => g.k === grupoAtivo) || {}).l || ''
+      )}">
+        ${folhas
+          .map((t) => {
+            const b = badgeDe(t);
+            const ativo = t.k === atual.k;
+            return `
+          <button class="ctd-subtab ${ativo ? 'active' : ''}" data-ctd-tab="${t.k}" data-tab="${t.k}"
+                  role="tab" aria-selected="${ativo}" aria-label="${t.l}${b ? ` (${b})` : ''}">
+            ${t.l}${b ? `<span class="ctd-tab-badge">${b}</span>` : ''}
+          </button>`;
+          })
+          .join('')}
+      </div>`;
+
+    return `
+      <div class="ctd-nav">
+        <div class="ctd-tabs" role="tablist" aria-label="Seções do contrato">${linhaGrupos}</div>
+        ${linhaFolhas}
+      </div>`;
+  },
+
+  /**
+   * Troca de aba: estado, URL (deep-link) e título. O rótulo vem do registry —
+   * o mapa anterior era escrito à mão e conhecia só 10 das 16 chaves, então
+   * DRE/EVM/Punch/SSMA/Data book apareciam no título do navegador como a chave
+   * crua.
+   */
+  _irParaTab(k, contract, contractId) {
+    const CT = window.ContratoTabs;
+    const def = CT ? CT.resolveTab(k).def : null;
+    this._tab = CT ? CT.resolveTab(k).k : k;
+
+    // replaceState (não pushState): o Voltar do navegador sai do contrato, não
+    // desfaz aba por aba — mesmo comportamento de antes.
+    const _hashBase = location.hash.split('?')[0];
+    history.replaceState(null, '', _hashBase + '?tab=' + this._tab);
+    document.title = `${def ? def.l : this._tab} — ${escapeHtml(contract.name)} | Rhino`;
+
+    this.render({ id: contractId });
+  },
+
   async render(params) {
     const app = document.getElementById('app');
     const contractId = params?.id;
@@ -81,10 +179,24 @@ window.ContratoDetail = {
     const _urlTab = _hashQuery?.get('tab');
     if (_urlTab) this._tab = _urlTab;
 
-    // Se a aba atual não é permitida pelo perfil, escolhe a primeira liberada.
+    // Resolve pelo registry: chave desconhecida (typo, link antigo, aba
+    // renomeada) vira a folha padrão em vez de renderizar tela em branco, e
+    // chave aposentada é traduzida pelo alias — link já compartilhado por aí
+    // continua abrindo.
+    const _res = window.ContratoTabs
+      ? window.ContratoTabs.resolveTab(this._tab)
+      : { k: this._tab, filtro: null };
+    this._tab = _res.k;
+    if (_res.filtro) this._filtroAba = _res.filtro;
+
+    // Se a aba resolvida não é permitida pelo perfil, cai na primeira liberada.
     if (window.perfil && !window.perfil.podeContractTab(this._tab)) {
       this._tab = window.perfil.primeiraContractTab();
     }
+    // PORTÃO ÚNICO: daqui pra baixo o corpo usa `aba`, nunca `this._tab` cru.
+    // Antes o filtro escondia só o BOTÃO e o corpo renderizava assim mesmo —
+    // perfil sem acesso a "visão geral" recebia o resumo financeiro completo.
+    const aba = this._tab;
 
     if (!contractId) {
       app.innerHTML = '<div class="card"><p class="text-danger">Contrato não encontrado</p></div>';
@@ -106,7 +218,19 @@ window.ContratoDetail = {
       </div>`;
 
     try {
-      await Store.loadAll();
+      // Carga enxuta: a lista de contratos vem em modo `lite` (sem os filhos de
+      // TODAS as obras) e só ESTE contrato vem completo. Antes eram os RDOs de
+      // todos os contratos baixados pra desenhar uma tela só.
+      //
+      // A ORDEM importa e não pode virar Promise.all: a fatia `contracts_lite`
+      // faz `state.contracts = j.contracts` (substitui o array inteiro), então
+      // se ela chegasse depois apagaria o contrato completo que o
+      // loadContract acabou de fazer upsert.
+      await Store.loadFor([
+        'contracts_lite', 'caixa', 'notas_fiscais', 'contas_pagar',
+        'recursos', 'tipos_base', 'base',
+      ]);
+      await Store.loadContract(contractId);
 
       const contract = Store.getContractById(contractId);
       if (!contract) {
@@ -248,36 +372,16 @@ window.ContratoDetail = {
           </div>
         </div>
 
-        <!-- Tabs executivas (filtradas pelo nível de acesso) -->
-        <div class="ctd-tabs" role="tablist" aria-label="Seções do contrato">
-          ${[
-            { k:'visao',      l:'Visão Geral',  icon:'eye' },
-            { k:'financeiro', l:'Financeiro',   icon:'dollar-sign' },
-            { k:'dre',        l:'DRE / Margem', icon:'trending-up' },
-            { k:'evm',        l:'Curva S / EVM', icon:'bar-chart-2' },
-            { k:'punch',      l:'Punch List',   icon:'alert-triangle' },
-            { k:'ssma',       l:'SSMA',         icon:'shield' },
-            { k:'databook',   l:'Data book',    icon:'check-square' },
-            { k:'medicao',    l:'Medição',      icon:'list' },
-            { k:'cronograma', l:'Cronograma',   icon:'calendar' },
-            { k:'equipe',     l:'Equipe',       icon:'users' },
-            { k:'rdo',        l:'RDO',          icon:'clipboard', badge: (contract.rdos || []).length },
-            { k:'pendencias',  l:'Pendências',   icon:'alert-triangle', badge: passagensPendentes.length },
-            { k:'aditivos',    l:'Aditivos',     icon:'plus-circle',    badge: (contract.aditivos || []).filter(a => !a.aprovado).length || 0 },
-            { k:'marcos',      l:'Marcos',       icon:'check-square',   badge: (contract.marcos || []).filter(m => !m.concluido).length || 0 },
-            { k:'ocorrencias', l:'Ocorrências',  icon:'alert-circle',   badge: (contract.ocorrencias || []).filter(o => !o.encerrada).length || 0 },
-            { k:'timeline',    l:'Timeline',     icon:'git-commit' },
-          ].filter(t => (window.perfil ? window.perfil.podeContractTab(t.k) : true)).map(t => `
-            <button class="ctd-tab ${this._tab === t.k ? 'active' : ''}" data-ctd-tab="${t.k}" data-tab="${t.k}" role="tab" aria-selected="${this._tab === t.k}" aria-label="${t.l}${t.badge ? ' (' + t.badge + ')' : ''}">
-              <span aria-hidden="true" style="display:inline-flex;align-items:center;color:currentColor;">${window.rhIcon ? window.rhIcon(t.icon, 16) : ''}</span>
-              ${t.l}
-              ${t.badge ? `<span class="ctd-tab-badge">${t.badge}</span>` : ''}
-            </button>
-          `).join('')}
-        </div>
+        <!-- Navegação em 2 níveis: 5 grupos + as folhas do grupo ativo.
+             Eram 16 abas num trilho de ~2.100px: num notebook cabiam 9 e o
+             resto ficava atrás de scroll horizontal, sem indicador nenhum. -->
+        ${this._renderNavAbas(contract, { passagensPendentes })}
 
         <!-- Resumo orientado a Boletim de Medição -->
-        ${this._tab === 'visao' ? `
+        ${aba === 'painel' ? `
+        <!-- Painel da obra: o que precisa de atenção + avanço/prazo/margem.
+             Vem primeiro de propósito — antes a dobra inteira era financeira. -->
+        ${this.renderPainelBanda()}
         ${contract.metadata && contract.metadata.propostaId ? `
           <div style="margin-bottom:var(--sp-md);padding:10px 16px;background:rgba(31,73,125,.08);border-left:3px solid #1F497D;border-radius:6px;font-size:14px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;">
             <span style="font-weight:700;color:#1F497D;">📋 Origem: Proposta ${escapeHtml(`PC_${contract.metadata.propostaNumero || ''}-${String(contract.metadata.propostaAno || '').padStart(2,'0')}${contract.metadata.propostaRevisao > 0 ? ' Rev.' + String(contract.metadata.propostaRevisao).padStart(2,'0') : ''}`)}</span>
@@ -296,7 +400,11 @@ window.ContratoDetail = {
             <div style="padding:var(--sp-lg);border-right:1px solid var(--color-border);border-top:3px solid var(--color-success);">
               <div class="text-muted font-sm mb-md" style="">Já faturado</div>
               <div style="font-size:22px;font-weight:800;color:var(--color-success);">${Store.formatBRL(totalEmitido)}</div>
-              <div class="text-muted font-sm mt-sm">${pctEmitido.toFixed(1)}% executado · ${nfsEmitidas.length} NF${nfsEmitidas.length !== 1 ? 's' : ''}</div>
+              <!-- "% faturado", não "% executado": isto é NF emitida sobre o
+                   valor do contrato. Avanço FÍSICO é outra conta (peso das
+                   etapas do cronograma, lib/avanco-fisico.js) e costumava
+                   divergir bastante deste número. -->
+              <div class="text-muted font-sm mt-sm">${pctEmitido.toFixed(1)}% faturado · ${nfsEmitidas.length} NF${nfsEmitidas.length !== 1 ? 's' : ''}</div>
             </div>
             <div style="padding:var(--sp-lg);border-right:1px solid var(--color-border);border-top:3px solid var(--color-warning);">
               <div class="text-muted font-sm mb-md" style="">Disponível para BM</div>
@@ -373,7 +481,7 @@ window.ContratoDetail = {
         ` : ''}
 
         <!-- ─── Curva S de Execução ─── -->
-        ${this._tab === 'financeiro' && contract.value > 0 && contract.startDate && contract.endDate ? `
+        ${aba === 'financeiro' && contract.value > 0 && contract.startDate && contract.endDate ? `
         <div class="card mb-2xl">
           <div class="card-header">
             <h3 class="card-title"><span style="display:inline-flex;align-items:center;gap:8px;">${window.rhIcon('trending-up', 18)}Curva S — Planejado × Realizado</span></h3>
@@ -389,7 +497,7 @@ window.ContratoDetail = {
         ` : ''}
 
         <!-- ─── Orçamento ─── -->
-        ${this._tab === 'financeiro' ? `
+        ${aba === 'financeiro' ? `
         <div class="card mb-2xl">
           <div class="card-header">
             <h3 class="card-title">Orçamento — Composição de Custo Planejado</h3>
@@ -575,46 +683,48 @@ window.ContratoDetail = {
         ` : ''}
 
         <!-- ─── Medição (BM estruturado: planilha de serviços + BMs) ─── -->
-        ${this._tab === 'medicao' ? this.renderMedicaoSection(contract) : ''}
+        ${aba === 'medicao' ? this.renderMedicaoSection(contract) : ''}
 
         <!-- ─── DRE / Margem por obra (realizado, base caixa) ─── -->
-        ${this._tab === 'dre' ? this.renderDreSection(contract) : ''}
+        ${aba === 'dre' ? this.renderDreSection(contract) : ''}
 
         <!-- ─── Curva S / EVM (PV/EV/AC + SPI/CPI) ─── -->
-        ${this._tab === 'evm' ? this.renderEvmSection(contract) : ''}
+        ${aba === 'evm' ? this.renderEvmSection(contract) : ''}
 
         <!-- ─── Punch List / Qualidade ─── -->
-        ${this._tab === 'punch' ? this.renderPunchSection(contract) : ''}
+        ${aba === 'qualidade' ? this.renderQualidadeSection(contract) : ''}
+
+        ${aba === 'punch' ? this.renderPunchSection(contract) : ''}
 
         <!-- ─── SSMA / Segurança ─── -->
-        ${this._tab === 'ssma' ? this.renderSsmaSection(contract) : ''}
+        ${aba === 'ssma' ? this.renderSsmaSection(contract) : ''}
 
         <!-- ─── Data book / prontidão ─── -->
-        ${this._tab === 'databook' ? this.renderDatabookSection(contract) : ''}
+        ${aba === 'databook' ? this.renderDatabookSection(contract) : ''}
 
         <!-- ─── Cronograma físico-financeiro ─── -->
-        ${this._tab === 'cronograma' ? this.renderCronogramaSection(contract) : ''}
+        ${aba === 'cronograma' ? this.renderCronogramaSection(contract) : ''}
 
         <!-- ─── Organograma da Obra ─── -->
-        ${this._tab === 'equipe' ? this.renderOrganogramaSection(contract) : ''}
+        ${aba === 'equipe' ? this.renderOrganogramaSection(contract) : ''}
 
         <!-- ─── RDO ─── -->
-        ${this._tab === 'rdo' ? this.renderRdoSection(contract) : ''}
+        ${aba === 'rdo' ? this.renderRdoSection(contract) : ''}
 
         <!-- ─── Aditivos ─── -->
-        ${this._tab === 'aditivos' ? this.renderAditivosSection(contract, contractId) : ''}
+        ${aba === 'aditivos' ? this.renderAditivosSection(contract, contractId) : ''}
 
         <!-- ─── Marcos ─── -->
-        ${this._tab === 'marcos' ? this.renderMarcosSection(contract, contractId) : ''}
+        ${aba === 'marcos' ? this.renderMarcosSection(contract, contractId) : ''}
 
         <!-- ─── Ocorrências ─── -->
-        ${this._tab === 'ocorrencias' ? this.renderOcorrenciasSection(contract, contractId) : ''}
+        ${aba === 'ocorrencias' ? this.renderOcorrenciasSection(contract, contractId) : ''}
 
         <!-- ─── Timeline ─── -->
-        ${this._tab === 'timeline' ? this.renderTimelineSection(contract, contractId) : ''}
+        ${aba === 'timeline' ? this.renderTimelineSection(contract, contractId) : ''}
 
         <!-- Composição do Gasto - Gráfico em Pizza -->
-        ${this._tab === 'visao' ? (() => {
+        ${aba === 'painel' ? (() => {
           const saldoRestante = Math.max(0, contract.value - totalRealizado);
           const pctConsumido = contract.value > 0 ? (totalRealizado / contract.value) * 100 : 0;
           const pctSaldo = contract.value > 0 ? (saldoRestante / contract.value) * 100 : 0;
@@ -681,7 +791,7 @@ window.ContratoDetail = {
         `;})() : ''}
 
         <!-- Saídas Classificadas (inclui saídas diretas + alocações BASE) -->
-        ${this._tab === 'financeiro' ? `
+        ${aba === 'financeiro' ? `
         <div class="card mb-2xl">
           <div class="card-header">
             <h3 class="card-title">Saídas Classificadas</h3>
@@ -807,7 +917,7 @@ window.ContratoDetail = {
         </div>
         ` : ''}
 
-        ${this._tab === 'pendencias' && passagensPendentes.length > 0 ? `
+        ${aba === 'pendencias' && passagensPendentes.length > 0 ? `
         <!-- Previsão de Desembolso — Passagens Pendentes -->
         <div class="card mb-2xl">
           <div class="card-header">
@@ -856,7 +966,7 @@ window.ContratoDetail = {
           </div>
         </div>` : ''}
 
-        ${this._tab === 'pendencias' && passagensPendentes.length === 0 ? `
+        ${aba === 'pendencias' && passagensPendentes.length === 0 ? `
         <div class="card" style="text-align:center;padding:var(--sp-2xl) var(--sp-lg);">
           <div style="font-size:38px;margin-bottom:var(--sp-md);opacity:.5;">✓</div>
           <div style="font-size:16px;font-weight:600;color:var(--color-text);margin-bottom:4px;">Nenhuma pendência</div>
@@ -868,25 +978,30 @@ window.ContratoDetail = {
 
       app.innerHTML = html;
 
-      // Listeners das tabs
-      document.querySelectorAll('[data-ctd-tab]').forEach(btn => {
+      // Clicar num GRUPO abre a primeira folha dele que o perfil pode ver.
+      document.querySelectorAll('[data-ctd-group]').forEach(btn => {
         btn.addEventListener('click', (e) => {
-          this._tab = e.currentTarget.dataset.ctdTab;
-          // Update URL to enable deep-link (replaceState = no new history entry)
-          const _hashBase = location.hash.split('?')[0];
-          history.replaceState(null, '', _hashBase + '?tab=' + this._tab);
-          // Update document title
-          const _tabLabel = { visao: 'Visão Geral', financeiro: 'Financeiro', medicao: 'Medição', cronograma: 'Cronograma', equipe: 'Equipe', rdo: 'RDOs', aditivos: 'Aditivos', marcos: 'Marcos', ocorrencias: 'Ocorrências', timeline: 'Timeline' }[this._tab] || this._tab;
-          document.title = `${_tabLabel} — ${escapeHtml(contract.name)} | Rhino`;
-          this.render({ id: contractId });
+          const CT = window.ContratoTabs;
+          if (!CT) return;
+          const g = e.currentTarget.dataset.ctdGroup;
+          const pode = (k) => (window.perfil ? window.perfil.podeContractTab(k) : true);
+          const primeira = CT.tabsDoGrupo(g).find((t) => pode(t.k));
+          if (primeira) this._irParaTab(primeira.k, contract, contractId);
         });
       });
 
-      // Keyboard navigation for tabs: ← →
-      const tabBar = document.querySelector('.ctd-tabs');
-      if (tabBar) {
-        tabBar.addEventListener('keydown', e => {
-          const tabs = [...tabBar.querySelectorAll('[data-tab]')].filter(t => !t.hidden && t.offsetParent !== null);
+      // Clicar numa FOLHA vai direto nela.
+      document.querySelectorAll('[data-ctd-tab]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          this._irParaTab(e.currentTarget.dataset.ctdTab, contract, contractId);
+        });
+      });
+
+      // Navegação por teclado ← → entre as folhas do grupo ativo.
+      const subBar = document.querySelector('.ctd-subtabs');
+      if (subBar) {
+        subBar.addEventListener('keydown', e => {
+          const tabs = [...subBar.querySelectorAll('[data-tab]')].filter(t => !t.hidden && t.offsetParent !== null);
           const idx = tabs.findIndex(t => t.dataset.tab === this._tab);
           if (e.key === 'ArrowRight' && idx < tabs.length - 1) {
             e.preventDefault();
@@ -955,31 +1070,45 @@ window.ContratoDetail = {
       this.attachOrganogramaListeners(contract);
 
       // Novas abas
-      if (this._tab === 'medicao') this._attachMedicaoListeners(contractId);
-      if (this._tab === 'aditivos') this._attachAditivosListeners(contractId);
-      if (this._tab === 'marcos')   this._attachMarcosListeners(contractId);
-      if (this._tab === 'ocorrencias') this._attachOcorrenciasListeners(contractId);
+      if (aba === 'medicao') this._attachMedicaoListeners(contractId);
+      if (aba === 'aditivos') this._attachAditivosListeners(contractId);
+      if (aba === 'marcos')   this._attachMarcosListeners(contractId);
+      if (aba === 'ocorrencias') this._attachOcorrenciasListeners(contractId);
 
       // Cronograma — carrega atividades e wires up listeners
-      if (this._tab === 'cronograma') {
+      if (aba === 'cronograma') {
         this._loadAtividades(contract);
         document.getElementById('btnNovaAtividade')?.addEventListener('click', () => this._showModalAtividade(contract, null));
       }
 
       // DRE / Margem — busca o consolidado do servidor (fonte única, base caixa)
-      if (this._tab === 'dre') this._loadDre(contract);
+      if (aba === 'dre') this._loadDre(contract);
 
       // Curva S / EVM — busca PV/EV/AC + SPI/CPI da obra
-      if (this._tab === 'evm') this._loadEvm(contract);
+      if (aba === 'evm') this._loadEvm(contract);
 
       // Punch List / Qualidade — busca os itens da obra
-      if (this._tab === 'punch') this._loadPunch(contract);
+      if (aba === 'qualidade') {
+        // O filtro pode ter vindo de um link antigo (?tab=ssma vira
+        // ?tab=qualidade com origem=ssma) — respeita antes de buscar.
+        if (this._filtroAba && this._filtroAba.origem) {
+          this._qualidadeFiltroOrigem = this._filtroAba.origem;
+          this._filtroAba = null;
+        }
+        this._loadQualidade(contract);
+      }
+
+      if (aba === 'punch') this._loadPunch(contract);
 
       // SSMA / Segurança — busca as ocorrências da obra
-      if (this._tab === 'ssma') this._loadSsma(contract);
+      if (aba === 'ssma') this._loadSsma(contract);
 
       // Data book — busca a prontidão de comissionamento
-      if (this._tab === 'databook') this._loadDatabook(contract);
+      if (aba === 'databook') this._loadDatabook(contract);
+
+      // Painel: busca o agregado (ações + avanço/prazo/margem) em paralelo,
+      // sem bloquear o resto da aba.
+      if (aba === 'painel') this._loadPainel(contract);
 
       document.querySelectorAll('.composicao-item[data-tipo]').forEach(el => {
         el.addEventListener('click', () => {
@@ -996,383 +1125,10 @@ window.ContratoDetail = {
 
   // ── Aditivos ──────────────────────────────────────────────────────────────
 
-  renderAditivosSection(contract, contractId) {
-    const aditivos = contract.aditivos || [];
-    const fmt = Store.formatBRL;
-    const fmtDate = (d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
-    const tipoLabel = { valor: 'Valor', prazo: 'Prazo', escopo: 'Escopo' };
-    const totalValorDelta = aditivos.reduce((s, a) => s + (parseFloat(a.valorDelta) || 0), 0);
-    const totalDiasDelta = aditivos.reduce((s, a) => s + (parseInt(a.diasDelta) || 0), 0);
-    return `
-    <div class="card mb-2xl">
-      <div class="card-header">
-        <h3 class="card-title">Aditivos de Contrato</h3>
-        ${this._podeEditar() ? `<button class="btn btn-primary btn-sm" id="btnNovoAditivo">+ Novo Aditivo</button>` : ''}
-      </div>
-      ${totalValorDelta !== 0 || totalDiasDelta !== 0 ? `
-      <div style="display:flex;gap:var(--sp-lg);padding:var(--sp-md) var(--sp-lg);background:var(--color-surface-2);border-bottom:1px solid var(--color-border);">
-        <span class="text-muted font-sm">Total aditado: <strong style="color:${totalValorDelta >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${totalValorDelta >= 0 ? '+' : ''}${fmt(totalValorDelta)}</strong></span>
-        ${totalDiasDelta !== 0 ? `<span class="text-muted font-sm">Prorrogação: <strong>${totalDiasDelta > 0 ? '+' : ''}${totalDiasDelta} dias</strong></span>` : ''}
-      </div>` : ''}
-      ${aditivos.length === 0 ? `
-      <div style="text-align:center;padding:var(--sp-xl);color:var(--color-text-muted);">
-        <div style="font-size:44px;margin-bottom:8px;opacity:.6;">📝</div>
-        <div style="font-weight:600;font-size:16px;margin-bottom:4px;">Nenhum aditivo cadastrado</div>
-        <div style="font-size:13px;">Registre alterações de escopo, prazo ou valor deste contrato.</div>
-      </div>` : `
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th scope="col">Nº</th><th scope="col">Tipo</th><th scope="col">Descrição</th><th scope="col">Valor Δ</th><th scope="col">Prazo Δ</th><th scope="col">Data</th><th scope="col">Status</th>${this._podeEditar() ? '<th scope="col"></th>' : ''}</tr></thead>
-          <tbody>
-            ${aditivos.map(a => `
-            <tr>
-              <td>${escapeHtml(a.numero || '—')}</td>
-              <td><span style="padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;background:var(--color-surface-2);">${tipoLabel[a.tipo] || a.tipo}</span></td>
-              <td>${escapeHtml(a.descricao)}</td>
-              <td style="font-weight:700;color:${parseFloat(a.valorDelta) >= 0 ? 'var(--color-success)' : 'var(--color-danger)'};">${parseFloat(a.valorDelta) >= 0 ? '+' : ''}${fmt(a.valorDelta)}</td>
-              <td>${parseInt(a.diasDelta) ? `${parseInt(a.diasDelta) > 0 ? '+' : ''}${a.diasDelta}d` : '—'}</td>
-              <td>${fmtDate(a.data)}</td>
-              <td><span style="padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;background:${a.aprovado ? '#D1FAE5' : '#FEF3C7'};color:${a.aprovado ? '#065F46' : '#92400E'};">${a.aprovado ? 'Aprovado' : 'Pendente'}</span></td>
-              ${this._podeEditar() ? `<td><button class="btn btn-sm btn-secondary btn-edit-aditivo" data-id="${a.id}" style="margin-right:4px;">Editar</button><button class="btn btn-sm btn-danger btn-del-aditivo" data-id="${a.id}">✕</button></td>` : ''}
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`}
-    </div>`;
-  },
-
-  _attachAditivosListeners(contractId) {
-    document.getElementById('btnNovoAditivo')?.addEventListener('click', () => this._showModalAditivo(contractId, null));
-    document.querySelectorAll('.btn-edit-aditivo').forEach(b => b.addEventListener('click', () => {
-      const contract = Store.getContractById(contractId);
-      const item = (contract?.aditivos || []).find(a => a.id === b.dataset.id);
-      this._showModalAditivo(contractId, item);
-    }));
-    document.querySelectorAll('.btn-del-aditivo').forEach(b => b.addEventListener('click', async () => {
-      if (!confirm('Excluir este aditivo?')) return;
-      await fetch(`/api/contracts/${contractId}/aditivos/${b.dataset.id}`, { method: 'DELETE' });
-      await Store.loadAll(); this.render({ id: contractId });
-    }));
-  },
-
-  _showModalAditivo(contractId, item) {
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay active';
-    modal.innerHTML = `
-      <div class="modal" style="max-width:480px;">
-        <div class="modal-header"><h2 class="modal-title">${item ? 'Editar Aditivo' : 'Novo Aditivo'}</h2></div>
-        <div class="modal-body">
-          <form id="formAditivo" style="display:flex;flex-direction:column;gap:var(--sp-md);">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-md);">
-              <div class="form-group" style="margin:0;"><label class="form-label">Número</label><input class="form-control" name="numero" value="${escapeHtml(item?.numero || '')}"></div>
-              <div class="form-group" style="margin:0;"><label class="form-label">Tipo</label><select class="form-control" name="tipo"><option value="valor" ${(!item || item.tipo === 'valor') ? 'selected' : ''}>Valor</option><option value="prazo" ${item?.tipo === 'prazo' ? 'selected' : ''}>Prazo</option><option value="escopo" ${item?.tipo === 'escopo' ? 'selected' : ''}>Escopo</option></select></div>
-            </div>
-            <div class="form-group" style="margin:0;"><label class="form-label">Descrição *</label><textarea class="form-control" name="descricao" style="min-height:60px;">${escapeHtml(item?.descricao || '')}</textarea></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-md);">
-              <div class="form-group" style="margin:0;"><label class="form-label">Valor Δ (R$)</label><input class="form-control" name="valorDelta" type="number" step="0.01" value="${item?.valorDelta || 0}"></div>
-              <div class="form-group" style="margin:0;"><label class="form-label">Prazo Δ (dias)</label><input class="form-control" name="diasDelta" type="number" value="${item?.diasDelta || 0}"></div>
-              <div class="form-group" style="margin:0;"><label class="form-label">Data</label><input class="form-control" name="data" type="date" value="${item?.data || ''}"></div>
-            </div>
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;"><input type="checkbox" name="aprovado" ${item?.aprovado ? 'checked' : ''}> Aprovado</label>
-          </form>
-        </div>
-        <div class="modal-footer"><button class="btn btn-secondary" id="btnCancelarAditivo">Cancelar</button><button class="btn btn-primary" id="btnSalvarAditivo">${item ? 'Atualizar' : 'Criar'}</button></div>
-      </div>`;
-    document.body.appendChild(modal);
-    setTimeout(() => {
-      const firstInput = modal.querySelector('input:not([type="hidden"]):not([readonly]), select, textarea');
-      firstInput?.focus();
-    }, 50);
-    document.getElementById('btnCancelarAditivo').addEventListener('click', () => modal.remove());
-    document.getElementById('btnSalvarAditivo').addEventListener('click', async () => {
-      const fd = new FormData(document.getElementById('formAditivo'));
-      const data = Object.fromEntries(fd);
-      data.aprovado = document.querySelector('[name=aprovado]').checked;
-      if (!data.descricao?.trim()) { window.showToast('Descrição obrigatória', 'error'); return; }
-      const url = item ? `/api/contracts/${contractId}/aditivos/${item.id}` : `/api/contracts/${contractId}/aditivos`;
-      await fetch(url, { method: item ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-      await Store.loadAll(); modal.remove(); this.render({ id: contractId });
-    });
-  },
-
-  // ── Marcos ────────────────────────────────────────────────────────────────
-
-  renderMarcosSection(contract, contractId) {
-    const marcos = contract.marcos || [];
-    const total = marcos.length;
-    const done = marcos.filter(m => m.concluido).length;
-    const pct = total > 0 ? (done / total * 100) : 0;
-    const fmtDate = (d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
-    const hoje = new Date(); hoje.setHours(0,0,0,0);
-    return `
-    <div class="card mb-2xl">
-      <div class="card-header">
-        <div>
-          <h3 class="card-title">Checklist de Marcos</h3>
-          <div class="rh-meta-xs">${done}/${total} concluídos · ${pct.toFixed(0)}%</div>
-        </div>
-        ${this._podeEditar() ? `<button class="btn btn-primary btn-sm" id="btnNovoMarco">+ Novo Marco</button>` : ''}
-      </div>
-      ${total > 0 ? `<div style="padding:0 var(--sp-lg) var(--sp-md);"><div style="height:6px;background:var(--color-surface-2);border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:var(--color-success);transition:width .4s;border-radius:3px;"></div></div></div>` : ''}
-      ${marcos.length === 0 ? `
-      <div style="text-align:center;padding:var(--sp-xl);color:var(--color-text-muted);">
-        <div style="font-size:44px;margin-bottom:8px;opacity:.6;">🚩</div>
-        <div style="font-weight:600;font-size:16px;margin-bottom:4px;">Nenhum marco cadastrado</div>
-        <div style="font-size:13px;">Marque datas importantes do cronograma deste contrato.</div>
-      </div>` :
-        marcos.map(m => {
-          const vencido = !m.concluido && m.prazo && new Date(m.prazo + 'T12:00:00') < hoje;
-          const proximo = !m.concluido && m.prazo && !vencido && Math.ceil((new Date(m.prazo + 'T12:00:00') - hoje) / 86400000) <= 7;
-          return `
-          <div style="display:flex;align-items:flex-start;gap:var(--sp-md);padding:var(--sp-md) var(--sp-lg);border-bottom:1px solid var(--color-border);">
-            <button class="btn-toggle-marco" data-id="${m.id}" data-concluido="${m.concluido}" style="flex-shrink:0;width:22px;height:22px;border-radius:4px;border:2px solid ${m.concluido ? 'var(--color-success)' : 'var(--color-border)'};background:${m.concluido ? 'var(--color-success)' : 'transparent'};cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;">${m.concluido ? '✓' : ''}</button>
-            <div style="flex:1;min-width:0;">
-              <div style="font-weight:600;font-size:14px;${m.concluido ? 'text-decoration:line-through;color:var(--color-text-muted);' : ''}">${escapeHtml(m.titulo)}</div>
-              ${m.descricao ? `<div style="font-size:13px;color:var(--color-text-muted);margin-top:2px;">${escapeHtml(m.descricao)}</div>` : ''}
-              ${m.prazo ? `<div style="font-size:12px;margin-top:4px;color:${vencido ? 'var(--color-danger)' : proximo ? 'var(--color-warning)' : 'var(--color-text-muted)'};">${vencido ? '⚠ Vencido: ' : ''}Prazo: ${fmtDate(m.prazo)}${m.concluido && m.concluidoEm ? ` · Concluído: ${fmtDate(m.concluidoEm)}` : ''}</div>` : ''}
-            </div>
-            ${this._podeEditar() ? `<div style="display:flex;gap:4px;flex-shrink:0;"><button class="btn btn-sm btn-secondary btn-edit-marco" data-id="${m.id}">Editar</button><button class="btn btn-sm btn-danger btn-del-marco" data-id="${m.id}">✕</button></div>` : ''}
-          </div>`}).join('')}
-    </div>`;
-  },
-
-  _attachMarcosListeners(contractId) {
-    document.getElementById('btnNovoMarco')?.addEventListener('click', () => this._showModalMarco(contractId, null));
-    document.querySelectorAll('.btn-toggle-marco').forEach(b => b.addEventListener('click', async () => {
-      const nowDone = b.dataset.concluido === 'true';
-      await fetch(`/api/contracts/${contractId}/marcos/${b.dataset.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ concluido: !nowDone }) });
-      await Store.loadAll(); this.render({ id: contractId });
-    }));
-    document.querySelectorAll('.btn-edit-marco').forEach(b => b.addEventListener('click', () => {
-      const contract = Store.getContractById(contractId);
-      const item = (contract?.marcos || []).find(m => m.id === b.dataset.id);
-      this._showModalMarco(contractId, item);
-    }));
-    document.querySelectorAll('.btn-del-marco').forEach(b => b.addEventListener('click', async () => {
-      if (!confirm('Excluir este marco?')) return;
-      await fetch(`/api/contracts/${contractId}/marcos/${b.dataset.id}`, { method: 'DELETE' });
-      await Store.loadAll(); this.render({ id: contractId });
-    }));
-  },
-
-  _showModalMarco(contractId, item) {
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay active';
-    modal.innerHTML = `
-      <div class="modal" style="max-width:420px;">
-        <div class="modal-header"><h2 class="modal-title">${item ? 'Editar Marco' : 'Novo Marco'}</h2></div>
-        <div class="modal-body">
-          <form id="formMarco" style="display:flex;flex-direction:column;gap:var(--sp-md);">
-            <div class="form-group" style="margin:0;"><label class="form-label">Título *</label><input class="form-control" name="titulo" value="${escapeHtml(item?.titulo || '')}"></div>
-            <div class="form-group" style="margin:0;"><label class="form-label">Descrição</label><textarea class="form-control" name="descricao" style="min-height:60px;">${escapeHtml(item?.descricao || '')}</textarea></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-md);">
-              <div class="form-group" style="margin:0;"><label class="form-label">Prazo</label><input class="form-control" name="prazo" type="date" value="${item?.prazo || ''}"></div>
-              <div class="form-group" style="margin:0;"><label class="form-label">Ordem</label><input class="form-control" name="ordem" type="number" value="${item?.ordem || 0}"></div>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer"><button class="btn btn-secondary" id="btnCancelarMarco">Cancelar</button><button class="btn btn-primary" id="btnSalvarMarco">${item ? 'Atualizar' : 'Criar'}</button></div>
-      </div>`;
-    document.body.appendChild(modal);
-    setTimeout(() => {
-      const firstInput = modal.querySelector('input:not([type="hidden"]):not([readonly]), select, textarea');
-      firstInput?.focus();
-    }, 50);
-    document.getElementById('btnCancelarMarco').addEventListener('click', () => modal.remove());
-    document.getElementById('btnSalvarMarco').addEventListener('click', async () => {
-      const fd = new FormData(document.getElementById('formMarco'));
-      const data = Object.fromEntries(fd);
-      if (!data.titulo?.trim()) { window.showToast('Título obrigatório', 'error'); return; }
-      const url = item ? `/api/contracts/${contractId}/marcos/${item.id}` : `/api/contracts/${contractId}/marcos`;
-      await fetch(url, { method: item ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-      await Store.loadAll(); modal.remove(); this.render({ id: contractId });
-    });
-  },
 
   // ── Ocorrências ───────────────────────────────────────────────────────────
 
-  renderOcorrenciasSection(contract, contractId) {
-    const ocorrencias = contract.ocorrencias || [];
-    const fmtDate = (d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
-    const sevCor = { baixa: '#6B7280', media: '#D97706', alta: '#DC2626', critica: '#7C3AED' };
-    const sevBg  = { baixa: '#F3F4F6', media: '#FEF3C7', alta: '#FEE2E2', critica: '#EDE9FE' };
-    const tipoLabel = { geral: 'Geral', seguranca: 'Segurança', qualidade: 'Qualidade', prazo: 'Prazo', financeiro: 'Financeiro' };
-    const abertas = ocorrencias.filter(o => !o.encerrada).length;
-    return `
-    <div class="card mb-2xl">
-      <div class="card-header">
-        <div>
-          <h3 class="card-title">Ocorrências</h3>
-          ${abertas > 0 ? `<div class="rh-meta-xs" style="color:var(--color-danger);">${abertas} aberta${abertas !== 1 ? 's' : ''}</div>` : '<div class="rh-meta-xs" style="color:var(--color-success);">Nenhuma aberta</div>'}
-        </div>
-        ${this._podeEditar() ? `<button class="btn btn-primary btn-sm" id="btnNovaOcorrencia">+ Nova Ocorrência</button>` : ''}
-      </div>
-      ${ocorrencias.length === 0 ? `
-      <div style="text-align:center;padding:var(--sp-xl);color:var(--color-text-muted);">
-        <div style="font-size:44px;margin-bottom:8px;opacity:.6;">📌</div>
-        <div style="font-weight:600;font-size:16px;margin-bottom:4px;">Nenhuma ocorrência registrada</div>
-        <div style="font-size:13px;">Registre eventos relevantes do andamento da obra: segurança, qualidade, prazo ou financeiro.</div>
-      </div>` : `
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th scope="col">Data</th><th scope="col">Tipo</th><th scope="col">Severidade</th><th scope="col">Descrição</th><th scope="col">Status</th>${this._podeEditar() ? '<th scope="col"></th>' : ''}</tr></thead>
-          <tbody>
-            ${ocorrencias.map(o => `
-            <tr style="${o.encerrada ? 'opacity:.6;' : ''}">
-              <td style="white-space:nowrap;">${fmtDate(o.data)}</td>
-              <td>${tipoLabel[o.tipo] || o.tipo}</td>
-              <td><span style="padding:2px 8px;border-radius:4px;font-size:12px;font-weight:700;background:${sevBg[o.severidade] || '#F3F4F6'};color:${sevCor[o.severidade] || '#6B7280'};">${(o.severidade || 'media').toUpperCase()}</span></td>
-              <td>${escapeHtml(o.descricao)}</td>
-              <td>${o.encerrada ? `<span style="color:var(--color-success);font-weight:600;">Encerrada</span>` : `<span style="color:var(--color-danger);font-weight:600;">Aberta</span>`}</td>
-              ${this._podeEditar() ? `<td style="white-space:nowrap;"><button class="btn btn-sm btn-secondary btn-edit-ocr" data-id="${o.id}" style="margin-right:4px;">Editar</button><button class="btn btn-sm btn-danger btn-del-ocr" data-id="${o.id}">✕</button></td>` : ''}
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>`}
-    </div>`;
-  },
-
-  _attachOcorrenciasListeners(contractId) {
-    document.getElementById('btnNovaOcorrencia')?.addEventListener('click', () => this._showModalOcorrencia(contractId, null));
-    document.querySelectorAll('.btn-edit-ocr').forEach(b => b.addEventListener('click', () => {
-      const contract = Store.getContractById(contractId);
-      const item = (contract?.ocorrencias || []).find(o => o.id === b.dataset.id);
-      this._showModalOcorrencia(contractId, item);
-    }));
-    document.querySelectorAll('.btn-del-ocr').forEach(b => b.addEventListener('click', async () => {
-      if (!confirm('Excluir esta ocorrência?')) return;
-      await fetch(`/api/contracts/${contractId}/ocorrencias/${b.dataset.id}`, { method: 'DELETE' });
-      await Store.loadAll(); this.render({ id: contractId });
-    }));
-  },
-
-  _showModalOcorrencia(contractId, item) {
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay active';
-    modal.innerHTML = `
-      <div class="modal" style="max-width:480px;">
-        <div class="modal-header"><h2 class="modal-title">${item ? 'Editar Ocorrência' : 'Nova Ocorrência'}</h2></div>
-        <div class="modal-body">
-          <form id="formOcorrencia" style="display:flex;flex-direction:column;gap:var(--sp-md);">
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--sp-md);">
-              <div class="form-group" style="margin:0;"><label class="form-label">Data</label><input class="form-control" name="data" type="date" value="${item?.data || new Date().toISOString().split('T')[0]}"></div>
-              <div class="form-group" style="margin:0;"><label class="form-label">Tipo</label><select class="form-control" name="tipo"><option value="geral" ${(!item || item.tipo === 'geral') ? 'selected' : ''}>Geral</option><option value="seguranca" ${item?.tipo === 'seguranca' ? 'selected' : ''}>Segurança</option><option value="qualidade" ${item?.tipo === 'qualidade' ? 'selected' : ''}>Qualidade</option><option value="prazo" ${item?.tipo === 'prazo' ? 'selected' : ''}>Prazo</option><option value="financeiro" ${item?.tipo === 'financeiro' ? 'selected' : ''}>Financeiro</option></select></div>
-              <div class="form-group" style="margin:0;"><label class="form-label">Severidade</label><select class="form-control" name="severidade"><option value="baixa" ${item?.severidade === 'baixa' ? 'selected' : ''}>Baixa</option><option value="media" ${(!item || item.severidade === 'media') ? 'selected' : ''}>Média</option><option value="alta" ${item?.severidade === 'alta' ? 'selected' : ''}>Alta</option><option value="critica" ${item?.severidade === 'critica' ? 'selected' : ''}>Crítica</option></select></div>
-            </div>
-            <div class="form-group" style="margin:0;"><label class="form-label">Descrição *</label><textarea class="form-control" name="descricao" style="min-height:80px;">${escapeHtml(item?.descricao || '')}</textarea></div>
-            ${item ? `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;"><input type="checkbox" name="encerrada" ${item?.encerrada ? 'checked' : ''}> Encerrada</label>` : ''}
-          </form>
-        </div>
-        <div class="modal-footer"><button class="btn btn-secondary" id="btnCancelarOcr">Cancelar</button><button class="btn btn-primary" id="btnSalvarOcr">${item ? 'Atualizar' : 'Registrar'}</button></div>
-      </div>`;
-    document.body.appendChild(modal);
-    setTimeout(() => {
-      const firstInput = modal.querySelector('input:not([type="hidden"]):not([readonly]), select, textarea');
-      firstInput?.focus();
-    }, 50);
-    document.getElementById('btnCancelarOcr').addEventListener('click', () => modal.remove());
-    document.getElementById('btnSalvarOcr').addEventListener('click', async () => {
-      const fd = new FormData(document.getElementById('formOcorrencia'));
-      const data = Object.fromEntries(fd);
-      if (item) data.encerrada = document.querySelector('[name=encerrada]')?.checked || false;
-      if (!data.descricao?.trim()) { window.showToast('Descrição obrigatória', 'error'); return; }
-      const url = item ? `/api/contracts/${contractId}/ocorrencias/${item.id}` : `/api/contracts/${contractId}/ocorrencias`;
-      await fetch(url, { method: item ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-      await Store.loadAll(); modal.remove(); this.render({ id: contractId });
-    });
-  },
 
   // ── Timeline ──────────────────────────────────────────────────────────────
 
-  renderTimelineSection(contract, contractId) {
-    const fmtDate = (d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : null;
-    const events = [];
-
-    // Início e fim do contrato
-    if (contract.startDate) events.push({ date: contract.startDate, tipo: 'contrato', icon: 'clipboard',    label: 'Início do contrato', desc: contract.name });
-    if (contract.endDate)   events.push({ date: contract.endDate,   tipo: 'contrato', icon: 'check-circle', label: 'Fim do contrato',   desc: contract.name });
-
-    // Aditivos
-    (contract.aditivos || []).forEach(a => {
-      if (a.data) events.push({ date: a.data, tipo: 'aditivo', icon: 'plus-circle', label: `Aditivo${a.numero ? ' #' + a.numero : ''}: ${a.tipo === 'valor' ? 'Valor' : a.tipo === 'prazo' ? 'Prazo' : 'Valor+Prazo'}`, desc: a.descricao });
-    });
-
-    // Marcos
-    (contract.marcos || []).forEach(m => {
-      if (m.prazo) events.push({ date: m.prazo, tipo: 'marco', icon: m.concluido ? 'check-circle' : 'circle', label: `Marco: ${m.titulo}`, desc: m.concluido ? `Concluído${m.concluidoEm ? ' em ' + fmtDate(m.concluidoEm) : ''}` : 'Pendente' });
-    });
-
-    // Ocorrências
-    (contract.ocorrencias || []).forEach(o => {
-      if (o.data) {
-        const sevCor = o.severidade === 'alta' ? '#DC2626' : o.severidade === 'media' ? '#D97706' : '#059669';
-        events.push({ date: o.data, tipo: 'ocorrencia', icon: 'alert-triangle', iconColor: sevCor, label: `Ocorrência${o.encerrada ? ' (encerrada)' : ''}`, desc: o.descricao });
-      }
-    });
-
-    // RDOs
-    (contract.rdos || []).forEach(r => {
-      if (r.date) events.push({ date: r.date, tipo: 'rdo', icon: 'file-text', label: `RDO — ${r.condition || ''}`, desc: null });
-    });
-
-    // Medições (notas fiscais vinculadas)
-    const nfsContrato = (Store.state.notas_fiscais || []).filter(nf => nf.contractId === contractId);
-    nfsContrato.forEach(nf => {
-      const d = nf.dataEmissao || nf.dataPrevista || nf.createdAt;
-      if (d) {
-        const dateStr = d.length > 10 ? d.slice(0, 10) : d;
-        const val = parseFloat(nf.valor) || 0;
-        events.push({ date: dateStr, tipo: 'medicao', icon: 'dollar-sign', label: `Medição${nf.numero ? ' #' + nf.numero : ''}${nf.emitida ? ' ✓' : ''}`, desc: val ? `R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : null });
-      }
-    });
-
-    if (!events.length) {
-      return `<div class="card"><p class="text-muted" style="text-align:center;padding:32px;">Nenhum evento registrado neste contrato.</p></div>`;
-    }
-
-    // Ordena por data
-    events.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-
-    const TIPO_COLOR = {
-      contrato:   'var(--color-primary)',
-      aditivo:    '#8B5CF6',
-      marco:      '#059669',
-      ocorrencia: '#DC2626',
-      rdo:        '#6B7280',
-      medicao:    '#D97706',
-    };
-
-    const today = new Date().toISOString().slice(0, 10);
-
-    return `
-      <div class="card" style="padding: var(--sp-xl);">
-        <h3 style="margin:0 0 var(--sp-xl);font-size:16px;font-weight:700;color:var(--color-text);">Timeline do Contrato</h3>
-        <div style="position:relative;padding-left:32px;">
-          <div style="position:absolute;left:11px;top:0;bottom:0;width:2px;background:var(--color-border);border-radius:2px;"></div>
-          ${events.map((ev, i) => {
-            const isPast = ev.date <= today;
-            const color = TIPO_COLOR[ev.tipo] || 'var(--color-text-muted)';
-            return `
-              <div style="position:relative;margin-bottom:28px;${i === events.length - 1 ? 'margin-bottom:0;' : ''}">
-                <div style="position:absolute;left:-26px;top:2px;width:14px;height:14px;border-radius:50%;background:${color};border:2px solid var(--color-bg);box-shadow:0 0 0 2px ${color}44;display:flex;align-items:center;justify-content:center;font-size:8px;opacity:${isPast ? 1 : 0.5};"></div>
-                <div style="opacity:${isPast ? 1 : 0.65};">
-                  <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:2px;">
-                    <span style="font-size:11px;font-weight:600;color:${color};letter-spacing:.5px;text-transform:uppercase;">${ev.tipo}</span>
-                    <span style="font-size:12px;color:var(--color-text-muted);">${fmtDate(ev.date) || ev.date}</span>
-                    ${!isPast ? `<span style="font-size:10px;background:var(--color-surface-2);color:var(--color-text-muted);padding:1px 6px;border-radius:8px;">futuro</span>` : ''}
-                  </div>
-                  <!-- label/desc vêm de dados editáveis → escapeHtml (anti-XSS).
-                       ev.icon é NOME de ícone (SVG via window.rhIcon), colorido
-                       por ev.iconColor (severidade) ou pela cor do tipo. -->
-                  <div style="font-size:14px;font-weight:600;color:var(--color-text);display:flex;align-items:center;gap:6px;">
-                    <span style="color:${ev.iconColor || color};display:inline-flex;flex:0 0 auto;">${window.rhIcon ? window.rhIcon(ev.icon, 15) : ''}</span>
-                    <span>${escapeHtml(ev.label)}</span>
-                  </div>
-                  ${ev.desc ? `<div style="font-size:13px;color:var(--color-text-muted);margin-top:2px;">${escapeHtml(ev.desc)}</div>` : ''}
-                </div>
-              </div>`;
-          }).join('')}
-        </div>
-      </div>`;
-  },
 };

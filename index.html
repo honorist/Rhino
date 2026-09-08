@@ -76,6 +76,9 @@
        lazy.js (precisa estar disponível) permanecem eager. -->
   <script src="./js/lib/icons.js" defer></script>
   <script src="./js/lib/hash-route.js" defer></script>
+  <!-- Registry das abas do contrato: eager (não lazy) porque o gate de
+       permissão de js/app.js#podeContractTab precisa dele já no boot. -->
+  <script src="./js/lib/contrato-tabs.js" defer></script>
   <script src="./js/lib/ui-kit.js" defer></script>
   <script src="./js/lazy.js" defer></script>
   <script src="./js/exports.js" defer></script>

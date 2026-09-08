@@ -854,7 +854,7 @@
 
     document.body.insertAdjacentHTML('beforeend', html);
 
-    const overlay = document.getElementById('modalOverlay');
+    const overlay = document.body.lastElementChild; // o nó recém-inserido (o id se repete entre os modais)
     const close = () => overlay.remove();
     overlay.querySelector('.modal-close').addEventListener('click', close);
     document.getElementById('btnFecharDetalhe').addEventListener('click', close);
@@ -968,7 +968,7 @@
 
     document.body.insertAdjacentHTML('beforeend', html);
 
-    const overlay = document.getElementById('modalOverlay');
+    const overlay = document.body.lastElementChild; // o nó recém-inserido (o id se repete entre os modais)
     const nivelHidden = document.getElementById('orgNivel');
     const nivelBadge = document.getElementById('orgNivelBadge');
     const recursoSelect = overlay.querySelector('select[name="recursoId"]');

@@ -31,8 +31,11 @@
     try {
       const r = await fetch(`/api/contracts/${contract.id}/atividades`);
       if (!r.ok) throw new Error(await r.text());
-      const { atividades } = await r.json();
+      const { atividades, avanco } = await r.json();
       this._atividadesCache = atividades || [];
+      // O avanço vem pronto do servidor (lib/avanco-fisico.js) — a mesma conta
+      // que o Data book usa. Antes esta tela fazia a sua própria versão.
+      this._avancoCache = avanco || null;
       this._renderAtividades(contract);
     } catch (e) {
       const div = document.getElementById('cronogramaConteudo');
@@ -58,9 +61,16 @@
     const fmtDt = (s) => s ? new Date(s + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
     const totalPeso = atvs.reduce((s, a) => s + (parseFloat(a.pesoPct) || 0), 0);
     const totalCusto = atvs.reduce((s, a) => s + (parseFloat(a.custoPlan) || 0), 0);
-    const execGeral = totalPeso > 0
-      ? atvs.reduce((s, a) => s + ((parseFloat(a.pesoPct) || 0) * (parseFloat(a.execPct) || 0) / 100), 0) / totalPeso * 100
-      : 0;
+    // Avanço físico: vem calculado do servidor (fonte única, lib/avanco-fisico.js).
+    // O fallback local existe só para o caso de um payload antigo em cache.
+    const execGeral = this._avancoCache && this._avancoCache.pct !== null
+      ? this._avancoCache.pct
+      : (totalPeso > 0
+          ? atvs.reduce((s, a) => s + ((parseFloat(a.pesoPct) || 0) * (parseFloat(a.execPct) || 0) / 100), 0) / totalPeso * 100
+          : 0);
+    // Quando os pesos não foram preenchidos a conta cai em média simples — a
+    // tela diz isso, em vez de apresentar os dois casos como a mesma coisa.
+    const execBase = this._avancoCache ? this._avancoCache.base : null;
 
     const corExec = (p) => p >= 100 ? 'var(--color-success)' : (p >= 50 ? '#3b82f6' : (p > 0 ? '#F59E0B' : 'var(--color-text-muted)'));
 
@@ -79,6 +89,7 @@
         <div style="padding:10px;background:var(--color-surface-2);border-radius:6px;border-left:3px solid ${corExec(execGeral)};">
           <div class="text-muted font-sm">Avanço físico</div>
           <div style="font-size:18px;font-weight:700;color:${corExec(execGeral)};">${execGeral.toFixed(1)}%</div>
+          ${execBase === 'media' ? '<div class="text-muted font-sm" title="Nenhuma etapa tem peso definido, então o avanço é a média simples das etapas.">média simples — sem pesos</div>' : ''}
         </div>
         <div style="padding:10px;background:var(--color-surface-2);border-radius:6px;border-left:3px solid #8b5cf6;">
           <div class="text-muted font-sm">Custo planejado</div>

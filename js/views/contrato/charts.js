@@ -4,6 +4,26 @@
 (function () {
   if (!window.ContratoDetail) { console.error('[contrato/charts] requires ContratoDetail core'); return; }
   Object.assign(window.ContratoDetail, {
+  /**
+   * Cores de eixo/grade dos gráficos, conforme o tema ativo.
+   *
+   * O app não usa prefers-color-scheme: o tema claro é o :root sem atributo e
+   * o escuro aplica data-theme="dark" (js/app.js:895-899). Antes cada gráfico
+   * cravava a sua: renderBarrasOrcado usava ticks '#FFFFFF' (ilegível no tema
+   * claro, que é o padrão — o canvas fica sobre #F9FAFB) e renderCurvaS usava
+   * grade 'rgba(0,0,0,.06)' (some no escuro). Fonte única, mesmo par de cores
+   * usado por js/views/Dashboard.js#renderChart.
+   *
+   * @returns {{text:string, grid:string}}
+   */
+  _chartTheme() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    return {
+      text: isDark ? '#FFFFFF' : '#1F2937',
+      grid: isDark ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.08)',
+    };
+  },
+
   async renderPizza(dados) {
     if (this.chart) { this.chart.destroy(); this.chart = null; }
     const canvas = document.getElementById('chartPizzaContrato');
@@ -93,6 +113,7 @@
 
     const _pvv = !window.perfil || typeof window.perfil.podeVerValores !== 'function' || window.perfil.podeVerValores();
     const fmt = v => _pvv ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v) : 'R$ ●●●●●';
+    const _tc = this._chartTheme();
 
     this.chartBarras = new Chart(canvas.getContext('2d'), {
       type: 'bar',
@@ -120,9 +141,9 @@
         },
         scales: {
           x: {
-            ticks: { color: '#FFFFFF', font: { size: 13 } },
+            ticks: { color: _tc.text, font: { size: 13 } },
             grid: {
-              color: 'rgba(255,255,255,.15)',
+              color: _tc.grid,
               drawOnChartArea: true,
               drawTicks: true,
               offset: true,
@@ -130,8 +151,8 @@
             }
           },
           y: {
-            ticks: { callback: v => fmt(v), color: '#FFFFFF', font: { size: 12 } },
-            grid: { color: 'rgba(255,255,255,.08)' }
+            ticks: { callback: v => fmt(v), color: _tc.text, font: { size: 12 } },
+            grid: { color: _tc.grid }
           }
         }
       }
@@ -255,6 +276,7 @@
     });
 
     const fmt = (v) => Store.formatBRLk ? Store.formatBRLk(v) : `R$ ${(v / 1000).toFixed(0)}k`;
+    const _tcCurva = this._chartTheme();
 
     this.chartCurvaS = new Chart(canvas.getContext('2d'), {
       type: 'line',
@@ -313,10 +335,11 @@
         scales: {
           y: {
             beginAtZero: true,
-            ticks: { callback: v => fmt(v) },
-            grid: { color: 'rgba(0,0,0,.06)' },
+            ticks: { callback: v => fmt(v), color: _tcCurva.text },
+            grid: { color: _tcCurva.grid },
           },
           x: {
+            ticks: { color: _tcCurva.text },
             grid: { display: false },
           },
         },

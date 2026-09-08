@@ -92,6 +92,8 @@ const manutencoesHandlers = require('./handlers/manutencoes'); // manutenção d
 const frotaHandlers = require('./handlers/frota'); // frota: veículos/planos/manutenções/abastecimentos
 const atividadesHandlers = require('./handlers/atividades'); // cronograma físico-financeiro + curva S
 const dreHandlers = require('./handlers/dre'); // DRE / margem por obra (realizado, base caixa)
+const contratoPainelHandlers = require('./handlers/contrato-painel'); // painel da obra (retrato + ações)
+const qualidadeHandlers = require('./handlers/qualidade-seguranca'); // aba unificada: punch + SSMA + ocorrências (só leitura)
 const rdoApontamentosHandlers = require('./handlers/rdo-apontamentos'); // HH por colaborador × atividade + produtividade
 const punchHandlers = require('./handlers/punch-itens'); // punch list / qualidade: CRUD + resumo + notificação
 const punchFotosHandlers = require('./handlers/punch-fotos'); // punch list: foto (evidência) em BYTEA
@@ -1387,6 +1389,8 @@ registerContracts(apiRouter, {
   ...atividadesHandlers, // cronograma físico-financeiro + curva S (handlers/atividades.js)
   ...evmHandlers, // EVM: PV/EV/AC + SPI/CPI por obra (handlers/evm.js) — item 2
   ...dreHandlers, // DRE / margem por obra (handlers/dre.js)
+  ...contratoPainelHandlers, // painel da obra: retrato + o que precisa de atenção (handlers/contrato-painel.js)
+  ...qualidadeHandlers, // leitura unificada de Qualidade & Segurança (handlers/qualidade-seguranca.js)
   ...rdoApontamentosHandlers, // apontamento de HH por colaborador × atividade + produtividade (handlers/rdo-apontamentos.js)
   ...punchHandlers, // punch list / qualidade (handlers/punch-itens.js)
   ...punchFotosHandlers, // punch list: fotos de evidência (handlers/punch-fotos.js)

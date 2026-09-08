@@ -15,6 +15,10 @@ module.exports = function registerContracts(router, deps) {
 
   // ── Contratos (CRUD) ── (PATCH reusa PUT — aceita campos parciais)
   router.get('/api/contracts',        (ctx) => deps.handleGetContracts(ctx.res, ctx.parsedUrl.query));
+  // UM contrato com os filhos só dele — evita baixar os RDOs de todas as obras
+  // pra abrir uma. As rotas /:id/<sub> continuam funcionando: o padrão do
+  // roteador é âncorado (^...$) e `:param` casa um único segmento.
+  router.get('/api/contracts/:id',    (ctx) => deps.handleGetContract(ctx.params[0], ctx.res));
   router.post('/api/contracts',       (ctx) => deps.handlePostContract(ctx.body, ctx.res));
   router.put('/api/contracts/:id',    (ctx) => deps.handlePutContract(ctx.params[0], ctx.body, ctx.res));
   router.delete('/api/contracts/:id', (ctx) => deps.handleDeleteContract(ctx.params[0], ctx.res));
@@ -42,6 +46,10 @@ module.exports = function registerContracts(router, deps) {
   router.delete('/api/contracts/:id/atividades/:atvId', (ctx) => deps.handleDeleteAtividade(ctx.params[0], ctx.params[1], ctx.res));
   router.get('/api/contracts/:id/curva-s',              (ctx) => deps.handleGetCurvaS(ctx.params[0], ctx.res));
   router.get('/api/contracts/:id/dre',                  (ctx) => deps.handleGetContractDre(ctx.params[0], ctx.res));
+  // Painel da obra: retrato + o que precisa de atenção, num payload só.
+  // Recebe `ctx.req` porque omite os blocos financeiros de quem não tem
+  // permissão de financeiro/DRE.
+  router.get('/api/contracts/:id/painel',               (ctx) => deps.handleGetContratoPainel(ctx.req, ctx.params[0], ctx.res));
   router.get('/api/contracts/:id/evm',                  (ctx) => deps.handleGetEvm(ctx.params[0], ctx.res, ctx.parsedUrl.query));
 
   // ── Organograma ── (DELETE recebe também body e query)
@@ -74,6 +82,10 @@ module.exports = function registerContracts(router, deps) {
   router.delete('/api/contracts/:id/punch/:itemId/fotos/:fotoId',  (ctx) => deps.handleDeletePunchFoto(ctx.params[0], ctx.params[1], ctx.params[2], ctx.res));
 
   // ── SSMA — Desvios e incidentes de segurança (item 7) ──
+  // Qualidade & Segurança: leitura unificada de punch + SSMA + ocorrências.
+  // Só leitura — as escritas seguem nos 3 endpoints de origem logo abaixo.
+  router.get('/api/contracts/:id/qualidade',        (ctx) => deps.handleGetQualidade(ctx.params[0], ctx.res, ctx.parsedUrl.query));
+
   router.get('/api/contracts/:id/ssma',             (ctx) => deps.handleListSsma(ctx.params[0], ctx.res, ctx.parsedUrl.query));
   router.post('/api/contracts/:id/ssma',            (ctx) => deps.handlePostSsma(ctx.params[0], ctx.body, ctx.res));
   router.put('/api/contracts/:id/ssma/:ocorrId',    (ctx) => deps.handlePutSsma(ctx.params[0], ctx.params[1], ctx.body, ctx.res));

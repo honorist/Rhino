@@ -12,6 +12,7 @@ const db = require('../db');
 const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
 const money = require('../lib/money');
+const { avancoFisicoPonderado } = require('../lib/avanco-fisico');
 
 async function handleListAtividades(contractId, res) {
   try {
@@ -19,7 +20,10 @@ async function handleListAtividades(contractId, res) {
       `SELECT * FROM atividades WHERE contract_id = $1 ORDER BY ordem ASC, created_at ASC`,
       [contractId]
     );
-    sendJson(res, { atividades: rows });
+    // O avanço vem calculado daqui (lib/avanco-fisico.js) em vez de cada tela
+    // fazer a sua conta em cima das linhas cruas — era assim que a mesma obra
+    // acabava com dois "avanço físico" diferentes entre Cronograma e Data book.
+    sendJson(res, { atividades: rows, avanco: avancoFisicoPonderado(rows) });
   } catch (e) {
     sendError(res, 500, e.message);
   }

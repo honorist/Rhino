@@ -70,7 +70,7 @@
             <h3 class="rh-h3" style="margin:0;">Equipe alocada · ${membros.length} pessoas</h3>
             <div class="rh-meta-xs">${counts.MOI || 0} MOI · ${counts.MOD || 0} MOD${counts.Terc ? ' · ' + counts.Terc + ' Terceiros' : ''}</div>
           </div>
-          <a href="#/contratos/${contract.id}" onclick="window.ContratoDetail._tab='equipe';window.ContratoDetail.render('${contract.id}');event.preventDefault();" class="btn btn-secondary btn-sm">Ver todos</a>
+          <a href="#/contratos/${contract.id}" onclick="window.ContratoDetail._tab='equipe';window.ContratoDetail.render({id:'${contract.id}'});event.preventDefault();" class="btn btn-secondary btn-sm">Ver todos</a>
         </div>
         ${membros.length === 0 ? `<p class="rh-meta" style="padding:var(--sp-md) 0;">Nenhum membro alocado</p>` : `
           <div class="table-wrap">
@@ -139,7 +139,7 @@
         <div class="card" style="margin-bottom:0;padding:var(--sp-md);">
           <div class="card-header" style="margin-bottom:8px;">
             <h3 class="rh-h3" style="margin:0;">Saídas / BMs</h3>
-            <a href="#/contratos/${contract.id}" onclick="window.ContratoDetail._tab='financeiro';window.ContratoDetail.render('${contract.id}');event.preventDefault();" style="font-size:12px;color:var(--rh-accent-500);text-decoration:none;">Ver todas</a>
+            <a href="#/contratos/${contract.id}" onclick="window.ContratoDetail._tab='financeiro';window.ContratoDetail.render({id:'${contract.id}'});event.preventDefault();" style="font-size:12px;color:var(--rh-accent-500);text-decoration:none;">Ver todas</a>
           </div>
           ${bmsRecentes.length === 0 ? `<p class="rh-meta-xs" style="padding:8px 0;">Nenhum BM</p>` : `
             <div style="display:flex;flex-direction:column;gap:6px;">
@@ -212,7 +212,7 @@
             </div>
           ` : `
             <p class="rh-meta-xs" style="padding:6px 0 8px;">Não lançado para ${new Date().toLocaleDateString('pt-BR')}</p>
-            <a href="#/contratos/${contract.id}" onclick="window.ContratoDetail._tab='rdo';window.ContratoDetail.render('${contract.id}');event.preventDefault();" class="btn btn-primary btn-sm" style="width:100%;">+ Novo RDO</a>
+            <a href="#/contratos/${contract.id}" onclick="window.ContratoDetail._tab='rdo';window.ContratoDetail.render({id:'${contract.id}'});event.preventDefault();" class="btn btn-primary btn-sm" style="width:100%;">+ Novo RDO</a>
           `}
         </div>
       </div>
@@ -238,7 +238,7 @@
       <div class="card">
         <div class="card-header">
           <h3 class="card-title">Saídas / BMs</h3>
-          <a href="#/contratos/${contract.id}" onclick="window.ContratoDetail._tab='financeiro';window.ContratoDetail.render('${contract.id}');event.preventDefault();" style="font-size:13px;color:var(--color-primary);text-decoration:none;">Ver todas →</a>
+          <a href="#/contratos/${contract.id}" onclick="window.ContratoDetail._tab='financeiro';window.ContratoDetail.render({id:'${contract.id}'});event.preventDefault();" style="font-size:13px;color:var(--color-primary);text-decoration:none;">Ver todas →</a>
         </div>
         ${bmsRecentes.length === 0 ? `
           <p class="text-muted font-sm" style="padding:var(--sp-md) 0;">Nenhum BM emitido</p>
@@ -313,7 +313,7 @@
           </div>
         ` : `
           <p class="text-muted font-sm" style="padding:var(--sp-md) 0;">RDO ainda não lançado para ${new Date().toLocaleDateString('pt-BR')}</p>
-          <a href="#/contratos/${contract.id}" onclick="window.ContratoDetail._tab='rdo';window.ContratoDetail.render('${contract.id}');event.preventDefault();" class="btn btn-primary btn-sm">+ Novo RDO</a>
+          <a href="#/contratos/${contract.id}" onclick="window.ContratoDetail._tab='rdo';window.ContratoDetail.render({id:'${contract.id}'});event.preventDefault();" class="btn btn-primary btn-sm">+ Novo RDO</a>
         `}
       </div>
     </div>
