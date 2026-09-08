@@ -56,6 +56,7 @@ const rateLimit = require('./lib/rate-limit');
 const pgRateLimit = require('./lib/pg-rate-limit');
 const audit = require('./lib/audit');
 const { buildFullBackupPayload } = require('./lib/backup-payload');
+const { servirFotoBlob } = require('./lib/serve-blob-photo');
 const { buildCsp } = require('./lib/csp');
 const caixaHandlers = require('./handlers/caixa'); // domínio caixa extraído (desmembramento server.js)
 const sociosHandlers = require('./handlers/socios'); // domínio sócios extraído
@@ -1394,134 +1395,28 @@ registerContracts(apiRouter, {
   ...rdoAssinaturasHandlers, // assinaturas digitais: upload + list/get/delete (handlers/rdo-assinaturas.js)
 });
 
-// Serve foto de RDO a partir do banco (BYTEA). Mantém a URL antiga
-// /data/rdo-fotos/<rdoId>/<fotoId>.<ext> — o fotoId é o nome do arquivo sem
-// extensão (handlers/rdo-fotos.js grava filename = fotoId + ext).
-async function serveRdoFotoFromDb(pathname, req, res) {
-  try {
-    // Exige sessão válida (antes era estático público; fotos de obra podem ser
-    // sensíveis). <img> same-origin e download direto enviam o cookie httpOnly.
-    const sid = auth.parseCookies(req)[auth.COOKIE_NAME];
-    const sessionUser = await auth.getUserBySession(sid);
-    if (!sessionUser) {
-      res.writeHead(401, { 'Content-Type': 'text/plain' });
-      res.end('Não autenticado');
-      return;
-    }
-    const parts = pathname.split('/'); // ['', 'data', 'rdo-fotos', rdoId, filename]
-    const rdoId = parts[3];
-    const filename = parts[4] || '';
-    const fotoId = filename.replace(/\.[^.]+$/, '');
-    // Defesa em profundidade: IDs têm formato fixo (generateId) — rejeita ".." etc.
-    if (!/^rdo_[0-9a-z]+$/i.test(rdoId) || !/^foto_[0-9a-z]+$/i.test(fotoId)) {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('404 Not Found');
-      return;
-    }
-    const row = await db.getOne('SELECT mime, data FROM rdo_fotos WHERE id = $1 AND rdo_id = $2', [
-      fotoId,
-      rdoId,
-    ]);
-    if (!row || !row.data) {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('404 Not Found');
-      return;
-    }
-    res.writeHead(200, {
-      'Content-Type': row.mime || 'image/jpeg',
-      'Content-Length': row.data.length,
-      'Cache-Control': 'private, max-age=3600',
-    });
-    res.end(row.data);
-  } catch (_e) {
-    res.writeHead(500, { 'Content-Type': 'text/plain' });
-    res.end('Erro ao carregar foto');
-  }
-}
-
-// Serve foto de manutenção a partir do banco (BYTEA), espelhando o RDO.
-// URL: /data/manutencao-fotos/<manutencaoId>/<fotoId>.<ext> — o fotoId é o nome
-// do arquivo sem extensão (handlers/manutencao-fotos.js grava filename = fotoId + ext).
-async function serveManutencaoFotoFromDb(pathname, req, res) {
-  try {
-    const sid = auth.parseCookies(req)[auth.COOKIE_NAME];
-    const sessionUser = await auth.getUserBySession(sid);
-    if (!sessionUser) {
-      res.writeHead(401, { 'Content-Type': 'text/plain' });
-      res.end('Não autenticado');
-      return;
-    }
-    const parts = pathname.split('/'); // ['', 'data', 'manutencao-fotos', manutencaoId, filename]
-    const manutencaoId = parts[3];
-    const filename = parts[4] || '';
-    const fotoId = filename.replace(/\.[^.]+$/, '');
-    // Defesa em profundidade: IDs têm formato fixo (generateId) — rejeita ".." etc.
-    if (!/^man_[0-9a-z]+$/i.test(manutencaoId) || !/^foto_[0-9a-z]+$/i.test(fotoId)) {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('404 Not Found');
-      return;
-    }
-    const row = await db.getOne(
-      'SELECT mime, data FROM manutencao_fotos WHERE id = $1 AND manutencao_id = $2',
-      [fotoId, manutencaoId]
-    );
-    if (!row || !row.data) {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('404 Not Found');
-      return;
-    }
-    res.writeHead(200, {
-      'Content-Type': row.mime || 'image/jpeg',
-      'Content-Length': row.data.length,
-      'Cache-Control': 'private, max-age=3600',
-    });
-    res.end(row.data);
-  } catch (_e) {
-    res.writeHead(500, { 'Content-Type': 'text/plain' });
-    res.end('Erro ao carregar foto');
-  }
-}
-
-// Serve foto de item de punch list a partir do banco (BYTEA), espelhando o RDO.
-// URL: /data/punch-fotos/<punchItemId>/<fotoId>.<ext>.
-async function servePunchFotoFromDb(pathname, req, res) {
-  try {
-    const sid = auth.parseCookies(req)[auth.COOKIE_NAME];
-    const sessionUser = await auth.getUserBySession(sid);
-    if (!sessionUser) {
-      res.writeHead(401, { 'Content-Type': 'text/plain' });
-      res.end('Não autenticado');
-      return;
-    }
-    const parts = pathname.split('/'); // ['', 'data', 'punch-fotos', itemId, filename]
-    const itemId = parts[3];
-    const filename = parts[4] || '';
-    const fotoId = filename.replace(/\.[^.]+$/, '');
-    if (!/^punch_[0-9a-z]+$/i.test(itemId) || !/^pfoto_[0-9a-z]+$/i.test(fotoId)) {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('404 Not Found');
-      return;
-    }
-    const row = await db.getOne(
-      'SELECT mime, data FROM punch_fotos WHERE id = $1 AND punch_item_id = $2',
-      [fotoId, itemId]
-    );
-    if (!row || !row.data) {
-      res.writeHead(404, { 'Content-Type': 'text/plain' });
-      res.end('404 Not Found');
-      return;
-    }
-    res.writeHead(200, {
-      'Content-Type': row.mime || 'image/jpeg',
-      'Content-Length': row.data.length,
-      'Cache-Control': 'private, max-age=3600',
-    });
-    res.end(row.data);
-  } catch (_e) {
-    res.writeHead(500, { 'Content-Type': 'text/plain' });
-    res.end('Erro ao carregar foto');
-  }
-}
+// Serve foto (RDO/manutenção/punch list) a partir do banco (BYTEA), mantendo
+// as URLs antigas /data/<rota>/<parentId>/<fotoId>.<ext>. As 3 instâncias
+// diferiam só em tabela/coluna FK/regex de id — fábrica em lib/serve-blob-photo.js
+// (achado 4.1 da varredura 2026-09-08; teste em test/serve-blob-photo.test.js).
+const serveRdoFotoFromDb = servirFotoBlob({
+  idPrefixRe: /^rdo_[0-9a-z]+$/i,
+  fotoPrefixRe: /^foto_[0-9a-z]+$/i,
+  table: 'rdo_fotos',
+  fkColumn: 'rdo_id',
+});
+const serveManutencaoFotoFromDb = servirFotoBlob({
+  idPrefixRe: /^man_[0-9a-z]+$/i,
+  fotoPrefixRe: /^foto_[0-9a-z]+$/i,
+  table: 'manutencao_fotos',
+  fkColumn: 'manutencao_id',
+});
+const servePunchFotoFromDb = servirFotoBlob({
+  idPrefixRe: /^punch_[0-9a-z]+$/i,
+  fotoPrefixRe: /^pfoto_[0-9a-z]+$/i,
+  table: 'punch_fotos',
+  fkColumn: 'punch_item_id',
+});
 
 function routeRequest(pathname, method, body, res, parsedUrl, req) {
   // Router modular — se o domínio já foi migrado, casa aqui e encerra.

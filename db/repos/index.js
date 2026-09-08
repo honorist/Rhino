@@ -59,6 +59,7 @@ module.exports = {
   solicitacoesContratacao: require('./solicitacoes_contratacao'),
   vagas:                require('./vagas'),
   candidatos:           require('./candidatos'),
+  candidatoDocArquivos: require('./candidato_doc_arquivos'),
   notificacoes:         require('./notificacoes'),
   sugestoes:            require('./sugestoes'),
 

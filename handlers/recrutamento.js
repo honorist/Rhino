@@ -18,7 +18,6 @@ const db = require('../db');
 const { sendJson, sendError } = require('../lib/http-respond');
 const { generateId } = require('../lib/id');
 const { podeAprovar } = require('../lib/recrutamento-docs');
-const candidatoDocs = require('./candidato-documentos'); // tiposComArquivo (sem ciclo: não requer este módulo)
 
 const STATUS_CANDIDATO_VALIDOS = [
   'contatado',
@@ -308,7 +307,7 @@ async function aprovarCandidato(req, body, res, candidatoId) {
 
     // Gate (regra pura, testada): antecedentes OK + os 4 docs obrigatórios com
     // ARQUIVO de fato armazenado (não só metadado fantasma no JSONB).
-    const tiposArmazenados = await candidatoDocs.tiposComArquivo(candidatoId);
+    const tiposArmazenados = await repos.candidatoDocArquivos.tiposComArquivo(candidatoId);
     const veredito = podeAprovar(cand, tiposArmazenados);
     if (!veredito.ok) return sendError(res, 400, veredito.motivo);
 

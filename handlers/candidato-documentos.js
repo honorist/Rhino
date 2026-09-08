@@ -44,15 +44,6 @@ function _buildFilename({ nomeCandidato, tipo, filenameOriginal }) {
   return `${ano}_${mes}_${dia}_${t}_${pessoa}${ext}`;
 }
 
-/** Tipos de documento que JÁ têm arquivo armazenado para um candidato. */
-async function tiposComArquivo(candidatoId) {
-  const rows = await db.getMany(
-    `SELECT DISTINCT tipo FROM candidato_doc_arquivos WHERE candidato_id = $1`,
-    [candidatoId]
-  );
-  return rows.map((r) => r.tipo);
-}
-
 /** US-08: upload multipart do arquivo de um documento de candidato. */
 function handlePostCandidatoDocArquivo(candidatoId, tipo, req, res) {
   const contentType = req.headers['content-type'] || '';
@@ -190,5 +181,4 @@ module.exports = {
   handlePostCandidatoDocArquivo,
   handleGetCandidatoDocArquivo,
   handleDeleteCandidatoDocArquivo,
-  tiposComArquivo,
 };
